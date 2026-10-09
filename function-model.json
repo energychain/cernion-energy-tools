@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "989c64e90fdb5fe61b48caf40ef88546c6701bd55effa53ef526c6d10d9f992d",
+  "sourceHash": "422bfad02cbd367ea2c92dc1db96cf0f55024389227da2bd6db3e77d34a42152",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -118032,6 +118032,14 @@
         {
           "kind": "service",
           "ref": "src/workbench-activity-taxonomy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-answer-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-identifiers.js"
         },
         {
           "kind": "service",

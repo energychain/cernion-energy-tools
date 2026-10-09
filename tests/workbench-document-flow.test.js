@@ -102,10 +102,14 @@ describe('document conversation integration', () => {
     });
     llm.generateStructured.mockImplementation(async (_schema, prompt) => {
       const data = JSON.parse(prompt);
-      if (data.untrustedDocument) return structuredClone(map);
+      if (data.untrustedDocument)
+        return {
+          ...structuredClone(map),
+          citations: [data.lines.find((line) => /Gesamtzahl/.test(line.quote)) || data.lines[0]],
+        };
       if (data.maps) {
         const citation = {
-          finding: 'Ausgangszahlen sind zu belegen.',
+          finding: data.locations[data.maps[0].locationIds[0]].quote,
           locations: [data.maps[0].locationIds[0]],
           criterion: data.criteria.length ? 0 : -1,
         };
@@ -177,7 +181,7 @@ describe('document conversation integration', () => {
     expect(page.responseText).toContain('01.06.2030');
     const chapter = await turn('Was steht in Kapitel 3?');
     expect(chapter.responseText).toContain('90 Prozent');
-    expect(chapter.responseText).toContain('Teilauszug');
+    expect(chapter.responseText).toContain('wiederholter Standardtext ausgelassen');
     expect(llm.generateStructured).not.toHaveBeenCalled();
     const missing = await turn('Seite 999?');
     expect(missing.responseText).toContain('nicht enthalten');

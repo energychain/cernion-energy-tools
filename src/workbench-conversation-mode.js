@@ -101,31 +101,38 @@ function updatePersonFacts(situation, message, previous) {
 }
 
 function markParagraphs(value, mark) {
-  let closing = false;
-  return String(value)
-    .split(/\n\s*\n/u)
-    .map((paragraph) => {
-      const hadMarker = /\(bitte gegenprüfen\)/iu.test(paragraph);
-      const lines = paragraph.replace(/\s*\(bitte gegenprüfen\)/giu, '').split('\n');
-      // A claim can contain a complete letter. Mark its body, never its closing team line.
-      const body = [];
+  const blocks = String(value).split(
+    /(?=^(?:\*\*)?(?:Einordnung|Schritte|Nächste Schritte|Entwurf|Variante [A-Z])\b[^\n]*:)/gmu
+  );
+  return blocks
+    .map((block) => {
+      const hadMarker = /\(bitte gegenprüfen\)/iu.test(block);
+      const lines = block.replace(/[ \t]*\(bitte gegenprüfen\)/giu, '').split('\n');
+      let closing = false;
+      let lastBody = -1;
       lines.forEach((line, index) => {
+        const text = line.trim();
         if (
           /^(?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße|Beste Grüße|Ihr\b|Ihre\b|Dein\b|Deine\b)/iu.test(
-            line.trim()
+            text
           )
         )
           closing = true;
-        const salutation = /^(?:Guten Tag|Sehr geehrte|Hallo\b|Liebe[r]?\b|Betreff:)/iu.test(
-          line.trim()
-        );
+        const salutation = /^(?:Guten Tag|Sehr geehrte|Hallo\b|Liebe[r]?\b|Betreff:)/iu.test(text);
         if (salutation) closing = false;
-        if (line.trim() && !closing && !salutation) body.push(index);
+        if (
+          text &&
+          !closing &&
+          !salutation &&
+          !/\?$/u.test(text) &&
+          !/^(?:Quellen:|(?:\*\*)?(?:Einordnung|Schritte|Entwurf).*:)/iu.test(text)
+        )
+          lastBody = index;
       });
-      if ((mark || hadMarker) && body.length) lines[body.at(-1)] += ' (bitte gegenprüfen)';
+      if ((mark || hadMarker) && lastBody >= 0) lines[lastBody] += ' (bitte gegenprüfen)';
       return lines.join('\n');
     })
-    .join('\n\n');
+    .join('');
 }
 
 module.exports = { UNIT_DIMENSIONS, responseMode, updatePersonFacts, markParagraphs };

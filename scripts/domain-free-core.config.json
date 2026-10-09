@@ -82,7 +82,8 @@
     "src/workbench-document.js",
     "src/workbench-review.js",
     "src/workbench-document-input.js",
-    "src/workbench-document-flow.js"
+    "src/workbench-document-flow.js",
+    "src/workbench-document-passages.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

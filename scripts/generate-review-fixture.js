@@ -61,3 +61,35 @@ fs.writeFileSync(
   ].join('\n') + '\n'
 );
 console.log(`Synthetic injection fixture: ${fs.statSync(injectionTarget).size} bytes`);
+
+// Short chapters deliberately share a 12000-character map; all contradictions are known.
+const polishChapters = [];
+const polishStatements = {
+  1: 'Der Plan beschreibt acht Kapitel und eine gemeinsame Arbeitsgrundlage.',
+  2: 'Die Arbeitsgruppe dokumentiert ihre Entscheidungen in einem Bericht.',
+  3: 'Die Gesamtzahl der Einheiten beträgt im Ausgangsjahr 120.',
+  4: 'Die Gesamtzahl der Einheiten beträgt im gleichen Ausgangsjahr 280. Der Start ist am 01.06.2030, der Abschluss am 01.05.2030.',
+  5: 'Das verfügbare Budget beträgt 900. Die geplanten Ausgaben betragen 1300. Die Finanzierung der Differenz bleibt offen.',
+  6: 'Die Freigabe erfordert eine nachvollziehbare Dokumentation.',
+  7: 'Die Arbeitsgruppe prüft die Angaben vor der Freigabe.',
+  8: 'Der Bericht endet mit offenen Fragen an die Arbeitsgruppe.',
+};
+for (let chapter = 1; chapter <= 8; chapter++) {
+  polishChapters.push(
+    [
+      `Kapitel ${chapter}: Synthetische Planung`,
+      `Seite ${chapter}`,
+      polishStatements[chapter],
+      ...Array.from(
+        { length: 12 },
+        () => 'Die Arbeitsgruppe prüft den Standardtext regelmäßig und dokumentiert Änderungen.'
+      ),
+    ].join('\n')
+  );
+}
+const polishTarget = path.join(
+  __dirname,
+  '../tests/fixtures/document-review/neutral-eight-chapters.txt'
+);
+fs.writeFileSync(polishTarget, polishChapters.join('\n\n') + '\n');
+console.log(`Synthetic location fixture: ${fs.statSync(polishTarget).size} bytes`);

@@ -244,7 +244,7 @@ test('source names prefer metadata titles and reject filenames, UUIDs and techni
     { title: uuid, source: uuid, sectionId: uuid },
   ]);
   expect(line).toContain('Lesbarer Dokumenttitel · Abschnitt 2');
-  expect(line).toContain('Wissensquelle');
+  expect(line).not.toMatch(/Wissensquelle|knowledge/);
   expect(line).not.toMatch(/E_0|\.json|640f0811/);
 });
 
@@ -296,4 +296,42 @@ test('separate letter claims keep the signature free of markers after joining', 
   const reply = await answer({ situation, retrieval: { evidence: [] }, message: 'Entwurf bitte' });
   expect(reply.draft).not.toContain('Team Service (bitte gegenprüfen)');
   expect(reply.draft.match(/\(bitte gegenprüfen\)/g) || []).toHaveLength(1);
+});
+
+test('answer block guard consolidates multiple unchecked paragraphs and drops unsolicited markers on grounded claims', async () => {
+  const specific = (text) => ({ ...claim(text), specific: true });
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      interpretation: [specific('Der Wert beträgt 41.'), specific('Die Frist beträgt 7 Tage.')],
+      expectation: [],
+      nextSteps: [specific('Prüfe die Zahl 13.'), specific('Prüfe die Zahl 17.')],
+      draft: [],
+    })
+  );
+  const reply = await answer({
+    situation: {
+      ...situation,
+      requestedAction: { ...situation.requestedAction, draftRequested: false },
+    },
+    retrieval: { evidence: [] },
+  });
+  expect(reply.responseText.match(/\(bitte gegenprüfen\)/gu)).toHaveLength(2);
+  expect(reply.responseText).toContain('Die Frist beträgt 7 Tage. (bitte gegenprüfen)');
+  expect(reply.responseText).toContain('Prüfe die Zahl 17. (bitte gegenprüfen)');
+  expect(reply.responseText).not.toContain('41. (bitte gegenprüfen)');
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      expectation: [claim('Allgemeine Einordnung. (bitte gegenprüfen)')],
+      nextSteps: [],
+      draft: [],
+    })
+  );
+  const grounded = await answer({
+    situation: {
+      ...situation,
+      requestedAction: { ...situation.requestedAction, draftRequested: false },
+    },
+    retrieval: { evidence: [] },
+  });
+  expect(grounded.responseText).not.toContain('gegenprüfen');
 });

@@ -73,7 +73,14 @@ describe('document flow through authenticated HTTP', () => {
     llm.generateStructured.mockImplementation(async (_schema, prompt) => {
       const input = JSON.parse(prompt);
       if (input.untrustedDocument)
-        return { claims: [], assumptions: [], numbers: [], measures: [], schedule: [] };
+        return {
+          claims: [],
+          assumptions: [],
+          numbers: [],
+          measures: [],
+          schedule: [],
+          citations: [input.lines[0]],
+        };
       if (input.maps)
         return {
           verdict: 'Synthetische Prüfung abgeschlossen.',
@@ -174,5 +181,27 @@ describe('document flow through authenticated HTTP', () => {
       openWebuiOrgId: 'foreign-org',
     });
     expect(spoof.status).toBe(403);
+  });
+  test('chapter five summary over HTTP omits repeated boilerplate and preserves exact quote offsets', async () => {
+    const text = fs.readFileSync(
+      path.join(__dirname, 'fixtures/document-review/neutral-eight-chapters.txt'),
+      'utf8'
+    );
+    const first = await request(
+      `<context><source name="Synthetic short plan">${text}</source></context><user_query>Dokument aufnehmen.</user_query>`,
+      'person-a',
+      'polish-http'
+    );
+    expect(first.status).toBe(200);
+    const response = await request('Was steht in Kapitel 5 genau?', 'person-a', 'polish-http');
+    expect(response.status).toBe(200);
+    const content = response.body.choices[0].message.content;
+    expect(content).toContain('Kurzfassung von Kapitel 5');
+    expect(content).toContain('12-fach wiederholter Standardtext ausgelassen');
+    expect(content).not.toContain('Standardtext regelmäßig');
+    expect(content).toContain('Kapitel 5: Synthetische Planung · Seite 5');
+    const offsets = content.match(/Zeichen (\d+)–(\d+)/u);
+    const quote = content.match(/^> (.+)$/mu)[1];
+    expect(text.slice(Number(offsets[1]), Number(offsets[2]))).toBe(quote);
   });
 });
