@@ -245,6 +245,10 @@ describe('Case continuation #764 with persisted router and workbench', () => {
     const item = (await candidates()).items.find((item) => item.cetCaseId === first.cetCaseId);
     expect(item.summary).toBe(before);
     expect(item.summary).not.toContain('Der Nutzer fragt');
+    const detail = await app.call('workbench.cases.get', { caseId: first.cetCaseId });
+    const list = await app.call('workbench.cases.list', {});
+    expect(detail.title).toBe(before);
+    expect(list.items.find((entry) => entry.caseId === first.cetCaseId).title).toBe(before);
     const resumed = await chat('stable-resume');
     expect(resumed.responseText).not.toMatch(/Der Nutzer fragt|Belege fehlen/u);
   });
