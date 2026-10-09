@@ -11,6 +11,7 @@ function noticeKey(source, event) {
 }
 
 function resolvedNotice(item, model) {
+  if (item.kind === 'memory') return item;
   const candidates = resolveFunctionId(item.functionId, { model });
   const matches =
     item.modelSourceHash === model.sourceHash
@@ -21,6 +22,7 @@ function resolvedNotice(item, model) {
 }
 
 function noticeText(item, model) {
+  if (item.kind === 'memory') return item.text || '';
   const fn = model.functions.find((fn) => fn.functionId === item.functionId);
   const label = fn?.displayLabel || fn?.label || '';
   const clean = String(label)

@@ -63,8 +63,51 @@ function isConflictError(err) {
   return err?.status === 409 || err?.code === 409 || err?.type === 'OBJECT_OCC_CONFLICT';
 }
 
+// The existing generic store remains unchanged for other namespaces. Tenant statements
+// inherit the same authenticated tenant and clearance contract as Workbench cases.
+async function memoryNamespaceBefore(ctx) {
+  if (!String(ctx.params.namespace || '').endsWith(':workbench_facts')) return;
+  const { principal, visible, deny } = require('../src/domain-router-policy');
+  const p = principal(ctx);
+  if (ctx.params.namespace !== `tenant:${p.tenantId}:workbench_facts`) deny('Tenant mismatch');
+  if (ctx.params.payload && !visible(p, ctx.params.payload)) deny('Statement not accessible');
+  if (ctx.action.name.endsWith('.query'))
+    ctx.params.selector = {
+      $and: [
+        ctx.params.selector || {},
+        {
+          $or: [
+            { 'payload.sensitivityFlags': { $exists: false } },
+            { 'payload.sensitivityFlags': { $size: 0 } },
+            { 'payload.sensitivityFlags': { $allMatch: { $in: p.clearance } } },
+          ],
+        },
+      ],
+    };
+  if (ctx.params.key && /\.(?:put|delete)$/.test(ctx.action.name)) {
+    try {
+      const current = await this.db.get(docId(ctx.params.namespace, ctx.params.key));
+      if (!visible(p, current.payload)) deny('Statement not accessible');
+    } catch (error) {
+      if (error.status !== 404) throw error;
+    }
+  }
+}
+function memoryNamespaceAfter(ctx, result) {
+  if (!String(ctx.params.namespace || '').endsWith(':workbench_facts')) return result;
+  const { principal, visible, deny } = require('../src/domain-router-policy');
+  const p = principal(ctx);
+  if (result.docs) {
+    const docs = result.docs.filter((doc) => visible(p, doc.payload));
+    return { ...result, docs, totalDocs: docs.length };
+  }
+  if (result.payload && !visible(p, result.payload)) deny('Statement not accessible');
+  return result;
+}
+
 module.exports = {
   name: 'object-store',
+  hooks: { before: { '*': memoryNamespaceBefore }, after: { '*': memoryNamespaceAfter } },
 
   mixins: [
     createPouchDbLifecycleMixin({

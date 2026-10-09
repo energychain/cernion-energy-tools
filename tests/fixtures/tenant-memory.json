@@ -1,0 +1,16 @@
+{
+  "first": {
+    "actor": "Charly",
+    "functionLabel": "Gasnetzplanung",
+    "text": "Die Leitung in der Hauptstraße müssen wir spätestens 2030 außer Betrieb nehmen. Die Kunden sollen zeitnah informiert werden.",
+    "latest": "2030"
+  },
+  "second": {
+    "actor": "Doris",
+    "functionLabel": "Stromnetz",
+    "text": "Das Stromnetz in der Hauptstraße ist so weit am Limit, dass wir frühestens 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.",
+    "earliest": "2034"
+  },
+  "reason": "Nach der Stilllegung wird ein Wechsel auf Wärmepumpen erwartet; bis zur Aufnahme neuer Anträge besteht eine zeitliche Lücke von mindestens vier Jahren (2030 bis 2034).",
+  "question": "Wie überbrücken wir diese Lücke vor der Kundeninformation?"
+}

@@ -2,7 +2,11 @@
 
 // Current-message metadata, never facts about the continuing work item.
 // turnKind and proactive draftRequested describe the work item and remain stable.
-const TURN_SCOPED_FIELDS = Object.freeze(['followupKind', 'requestedAction.externalEffect']);
+const TURN_SCOPED_FIELDS = Object.freeze([
+  'followupKind',
+  'requestedAction.externalEffect',
+  'tenantMemory',
+]);
 
 function persistentSituation(situation) {
   if (!situation) return situation;

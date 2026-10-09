@@ -196,6 +196,57 @@ async function runContentTurn(
     previous
   );
   phaseTimes.understandMs = Math.round(performance.now() - understandStarted);
+  const tenantMemory = require('./tenant-memory');
+  const memoryCtx = {
+    broker: ctx.broker,
+    meta,
+    params: ctx.params,
+    call: (name, params) => ctx.call(name, params, { meta }),
+  };
+  if (!incomingDocuments && !understandingFailed && situation.tenantMemory?.query?.requested)
+    return tenantMemory.queryResponse(
+      memoryCtx,
+      p,
+      envelope.userRequest,
+      situation.tenantMemory.query
+    );
+  if (
+    !incomingDocuments &&
+    !understandingFailed &&
+    situation.tenantMemory?.correction?.kind !== 'none'
+  ) {
+    const correction = await tenantMemory.correctFacts(
+      memoryCtx,
+      p,
+      envelope,
+      pending,
+      situation.tenantMemory?.correction
+    );
+    if (correction && !situation.tenantMemory?.assertions?.length) return correction;
+  }
+  let resolveMemoryRetrieval;
+  const memoryRetrieval = new Promise((resolve) => {
+    resolveMemoryRetrieval = resolve;
+  });
+  const memory = tenantMemory.start(service, memoryCtx, p, {
+    situation:
+      understandingFailed || draftRequest || incomingDocuments
+        ? { ...situation, tenantMemory: undefined }
+        : situation,
+    envelope,
+    mapping: {
+      ...mapping,
+      roleFamilies: workbenchContext.userProfile?.roleFamilies || mapping?.roleFamilies,
+    },
+    retrieval: memoryRetrieval,
+  });
+  const memoryStatement =
+    !understandingFailed &&
+    !draftRequest &&
+    tenantMemory.eligible(envelope.userRequest, situation, envelope) &&
+    situation.tenantMemory?.assertions?.some(
+      (item) => item.basis && envelope.userRequest.includes(item.basis)
+    );
   const toolLoop = require('./workbench-capability-loop');
   const toolOptions = {
     model: service.settings.systemActivityModel || getFunctionModel(),
@@ -242,6 +293,7 @@ async function runContentTurn(
           .catch(() => null)
       : null;
   if (situation.turnKind === 'smalltalk' && !situation.dataNeeds?.trim()) {
+    resolveMemoryRetrieval({ evidence: [] });
     if (pending?.caseSelection)
       await conversationAssistance.saveTurn(
         service.conversationsDb,
@@ -271,6 +323,7 @@ async function runContentTurn(
   // Pure knowledge questions never create or advance case state.
   if (
     (caseChoice || ['work', 'review'].includes(situation.turnKind)) &&
+    !memoryStatement &&
     !pending?.caseSuppressed &&
     !pending?.caseSelectionExpired
   ) {
@@ -380,7 +433,10 @@ async function runContentTurn(
         clientId: envelope.asyncDelivery.clientId,
       });
     });
-    if (assignmentResponse) return assignmentResponse;
+    if (assignmentResponse) {
+      resolveMemoryRetrieval({ evidence: [] });
+      return assignmentResponse;
+    }
   }
   if (result.primaryDomain) situation = { ...situation, primaryDomain: result.primaryDomain };
   const prefetched = prefetchedKnowledge ? await prefetchedKnowledge : null;
@@ -627,6 +683,21 @@ async function runContentTurn(
       metadata: { cetCaseId: item.cetCaseId },
     }))
   );
+  resolveMemoryRetrieval(retrieval);
+  if (!memory.settled && toolDeadline > performance.now())
+    await toolLoop
+      .withinToolBudget(() => memory.job, Math.min(100, toolDeadline - performance.now()))
+      .catch(() => {});
+  const memoryContext =
+    !incomingDocuments && toolDeadline > performance.now()
+      ? await toolLoop
+          .withinToolBudget(
+            () => tenantMemory.related(memoryCtx, p, situation, envelope.userRequest),
+            toolDeadline - performance.now()
+          )
+          .catch(() => ({ evidence: [], text: '' }))
+      : { evidence: [], text: '' };
+  retrieval.evidence.push(...memoryContext.evidence);
   const actorUpdated =
     previous &&
     situation.actorContext &&
@@ -696,10 +767,16 @@ async function runContentTurn(
     )
       ? choiceCandidates(result, service.settings.systemActivityModel).slice(0, 3)
       : [];
+  memory.deferred = !memory.settled;
+  memory.renderedConfirmation = Boolean(memory.confirmation);
   result.responseText = readableCaseText(
     [
       caseNotice,
+      memoryContext.text,
+      ...memory.paragraphs.filter((text) => !memoryContext.text.includes(text)),
       reply.responseText,
+      memory.ambiguous,
+      memory.confirmation,
       mergeProposal?.text,
       choices.length
         ? `Optional passende Funktion (Nummer oder Name):\n${choices.map((choice, index) => `${index + 1}. ${choice.label}`).join('\n')}`
@@ -769,6 +846,7 @@ async function runContentTurn(
       : {}),
     situation,
     retrieval,
+    tenantMemoryFactIds: memory.ids.length ? memory.ids : pending?.tenantMemoryFactIds || [],
     evidenceRetrievedAt: draftRequest || reuseEvidence ? pending?.evidenceRetrievedAt : Date.now(),
     draft: reply.draft,
     offeredContent: '',
@@ -776,6 +854,7 @@ async function runContentTurn(
     lastAnswer: reply.responseText.slice(0, 600),
     askedQuestions: [...(pending?.askedQuestions || []), ...reply.questions],
   });
+  memory.deferred = !memory.settled;
   const turnMemory = caseId
     ? await service.saveTurnMemory(p, {
         caseId,

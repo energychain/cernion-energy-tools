@@ -70,6 +70,55 @@ module.exports = {
     await this.queue;
   },
   actions: {
+    enqueueMemory: {
+      visibility: 'protected',
+      params: {
+        ...personParams,
+        relationId: { type: 'string' },
+        factIds: { type: 'array', items: 'string' },
+        confirmation: { type: 'boolean', optional: true },
+      },
+      async handler(ctx) {
+        const p = principal(ctx, { tenantId: ctx.params.tenantId });
+        const text = await require('../src/tenant-memory-store').relationText(
+          ctx,
+          p,
+          ctx.params.relationId
+        );
+        if (!text && !ctx.params.confirmation) return { queued: false };
+        if (ctx.params.confirmation) {
+          const doc = await require('../src/tenant-memory-store').get(
+            ctx,
+            p,
+            ctx.params.relationId
+          );
+          if (doc.payload.type !== 'tenant_memory_fact') return { queued: false };
+        }
+        return this.serialize(async () => {
+          const doc = await this.read(p.tenantId, ctx.params.actorId);
+          const key = noticeKey('tenant-memory', [
+            ctx.params.relationId,
+            Boolean(ctx.params.confirmation),
+          ]);
+          if (doc.seen.includes(key)) return { queued: false };
+          doc.seen = [...doc.seen, key].slice(-this.settings.dedupLimit);
+          const sequence = ++doc.sequence;
+          doc.queue.push({
+            kind: 'memory',
+            ref: `G-${sequence}`,
+            sequence,
+            turn: doc.turn,
+            relationId: ctx.params.relationId,
+            confirmation: Boolean(ctx.params.confirmation),
+            factIds: ctx.params.factIds,
+            eventKey: key,
+          });
+          doc.queue = doc.queue.slice(-this.settings.maxQueue);
+          await this.save(doc);
+          return { queued: true };
+        });
+      },
+    },
     list: {
       rest: 'GET /',
       openapi: {
@@ -459,6 +508,14 @@ module.exports = {
     },
     async canSee(ctx, p, item) {
       try {
+        if (item.kind === 'memory') {
+          const memoryStore = require('../src/tenant-memory-store');
+          if (item.confirmation) {
+            const fact = (await memoryStore.get(ctx, p, item.relationId)).payload;
+            item.text = memoryStore.active(fact) ? `Hab ich festgehalten: ${fact.text}` : '';
+          } else item.text = await memoryStore.relationText(ctx, p, item.relationId);
+          return Boolean(item.text);
+        }
         if (item.kind === 'proposal') {
           // Apply the same recipient predicate as resolveProposal, using its persisted association.
           const agentService = this.broker.getLocalService('shared-service-agent');

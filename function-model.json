@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "06a60451744e6fa5e4b18a9a8bb3780d70627eb04f4d444c75bd18da49b3e03b",
+  "sourceHash": "7455937ddfe7afd83a77aa95230a7b0c39024d7fbe8881741ae0b56409983e54",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -117819,6 +117819,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/gateway-request-classifiers.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/governance-policy-evaluator.js"
         },
         {
@@ -117871,6 +117875,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/mcp-execute-read-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/metrics.js"
         },
         {
@@ -117892,6 +117900,14 @@
         {
           "kind": "service",
           "ref": "src/oeo-mappings.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/openwebui-context.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/operation-capability-index.js"
         },
         {
           "kind": "service",
@@ -118003,7 +118019,23 @@
         },
         {
           "kind": "service",
+          "ref": "src/tabular-intelligence.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/tenant-context.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-memory-schema.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-memory-store.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-memory.js"
         },
         {
           "kind": "service",
@@ -118039,7 +118071,39 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-answer-filter.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-background-task.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-capability-loop.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-codes.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-mode.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-document-input.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-identifier-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifiers.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-json.js"
         },
         {
           "kind": "service",
@@ -118051,7 +118115,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-llm-repair.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-retrieval.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-thread.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-understanding.js"
         },
         {
           "kind": "service",
@@ -188727,7 +188803,7 @@
       },
       {
         "service": "notices",
-        "ref": "services/shared-service-notices.service.js:214: spread event handlers"
+        "ref": "services/shared-service-notices.service.js:263: spread event handlers"
       },
       {
         "service": "system",

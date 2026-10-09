@@ -411,7 +411,23 @@ module.exports = {
   },
 
   async collectCopilotObjectEvidence(ctx, { context = {}, queryTerms = [], maxEvidence = 5 } = {}) {
-    const namespaces = normalizeCopilotObjectNamespaces(context);
+    const memory = require('../../src/tenant-memory');
+    let remembered = [];
+    if (memory.available(ctx)) {
+      try {
+        const p = require('../../src/domain-router-policy').principal(ctx);
+        const result = await memory.related(ctx, p, context.situation || {}, queryTerms.join(' '));
+        remembered = result.evidence;
+        if (result.text) remembered.push({ source: 'tenant-memory', value: result.text });
+      } catch (error) {
+        this.logger?.debug?.('Tenant statements unavailable', {
+          errorClass: error.type || error.name,
+        });
+      }
+    }
+    const namespaces = normalizeCopilotObjectNamespaces(context).filter(
+      (ns) => !ns.endsWith(':workbench_facts')
+    );
     const perNamespaceLimit = Math.max(3, Math.ceil(maxEvidence / Math.max(1, namespaces.length)));
     const responses = await Promise.all(
       namespaces.map(async (namespace) => {
@@ -462,8 +478,13 @@ module.exports = {
     const availableNamespaces = responses.filter((entry) => entry.status === 'available').length;
     return {
       source: 'object-store',
-      status: hits.length > 0 ? 'available' : availableNamespaces > 0 ? 'missing' : 'unavailable',
-      hits: hits.slice(0, maxEvidence),
+      status:
+        hits.length + remembered.length > 0
+          ? 'available'
+          : availableNamespaces > 0
+            ? 'missing'
+            : 'unavailable',
+      hits: [...remembered, ...hits].slice(0, maxEvidence),
       trace: {
         namespaces: responses.map((entry) => ({
           namespace: entry.namespace,

@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `06a60451744e6fa5e4b18a9a8bb3780d70627eb04f4d444c75bd18da49b3e03b`
+Source SHA-256: `7455937ddfe7afd83a77aa95230a7b0c39024d7fbe8881741ae0b56409983e54`
 
 Capabilities: 172; functions: 110.
 Function vectors: 95/110; missing or incompatible capability vectors: 25.
@@ -570,7 +570,7 @@ None.
 - {"service":"residual-load","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"shared-service-agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"shared-service-agent","ref":"src/llm-client.js:216: dynamic emission"}
-- {"service":"notices","ref":"services/shared-service-notices.service.js:214: spread event handlers"}
+- {"service":"notices","ref":"services/shared-service-notices.service.js:263: spread event handlers"}
 - {"service":"system","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"system","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"tabular","ref":"src/job-store.js:67: dynamic emission"}

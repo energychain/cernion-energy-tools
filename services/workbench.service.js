@@ -1507,6 +1507,13 @@ module.exports = {
         if (background.backgroundTask(envelope.userRequest))
           return background.answerBackgroundTask(envelope.userRequest, p.tenantId, this.logger);
         const pending = await conversationAssistance.readTurn(this.conversationsDb, p, envelope);
+        const memoryReply = await require('../src/tenant-memory').preturn(
+          { ...ctx, call: (name, params) => ctx.call(name, params, { meta: correctionMeta }) },
+          p,
+          envelope,
+          pending
+        );
+        if (memoryReply) return memoryReply;
         const conversation = await this.store.resolveConversation(
           {
             tenantId: p.tenantId,
@@ -1702,6 +1709,7 @@ module.exports = {
   },
   async stopped() {
     await Promise.allSettled([...(this.workbenchDocumentReviews?.values() || [])]);
+    await Promise.allSettled([...(this.tenantMemoryJobs || [])]);
     await stopLocalProvisioning(this);
   },
   created() {
