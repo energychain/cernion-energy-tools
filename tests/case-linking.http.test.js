@@ -187,6 +187,55 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
     expect(undo.body.choices[0].message.content).toContain('rückgängig');
   });
 
+  test('colleague status during open choice stays German and shows creator and last editing time through HTTP', async () => {
+    const identifiers = [{ kind: 'reference-a', value: 'ANON-HTTP-CHOICE' }];
+    await app.create(identifiers, auth('actor-a', ['ROLE_GRID_OPERATOR'], 'public'));
+    await app.create(
+      [...identifiers, { kind: 'reference-b', value: 'ANON-SECOND-PROCESS' }],
+      auth('actor-a', ['ROLE_GRID_OPERATOR'], 'public')
+    );
+    const original = llm.generateStructured.getMockImplementation();
+    llm.generateStructured.mockImplementation(async (...args) => ({
+      ...(await original(...args)),
+      identifiers,
+    }));
+    try {
+      const start = await request(
+        'person-b',
+        'Bitte bearbeite ANON-HTTP-CHOICE.',
+        'colleague-choice'
+      );
+      expect(start.status).toBe(200);
+      expect(start.body.choices[0].message.content).toContain('Welchen Fall');
+      const status = await request(
+        'person-b',
+        'Wer hat das bisher bearbeitet und was ist der Stand?',
+        'colleague-choice'
+      );
+      expect(status.status).toBe(200);
+      const text = status.body.choices[0].message.content;
+      expect(text).toContain('Angelegt von actor-a');
+      expect(text).toContain('zuletzt bearbeitet am');
+      expect(text).toContain('Stand:');
+      expect(text).not.toMatch(
+        /Please|provide|Case:|Readiness:|Missing evidence|Belege fehlen|evidence_required|Der Nutzer fragt/u
+      );
+      expect(text).not.toContain('Welchen Fall');
+      const chosen = await request('person-b', '1', 'colleague-choice');
+      expect(chosen.status).toBe(200);
+      const bound = await request(
+        'person-b',
+        'Wer hat das zuletzt bearbeitet?',
+        'colleague-choice'
+      );
+      expect(bound.body.choices[0].message.content).toMatch(
+        /Angelegt von actor-a[\s\S]*zuletzt bearbeitet am[\s\S]*von actor-b/u
+      );
+    } finally {
+      llm.generateStructured.mockImplementation(original);
+    }
+  });
+
   test('identifier status is tenant-wide through HTTP; foreign tenant and spoofed organization reveal nothing', async () => {
     const foreign = await app.create(
       [{ kind: 'reference-a', value: 'ANON-FOREIGN' }],
@@ -194,7 +243,7 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
     );
     const response = await request('person-b', 'Wie ist der Stand bei ANON-0001?', 'status-b');
     expect(response.status).toBe(200);
-    expect(response.body.choices[0].message.content).toContain('Belege fehlen');
+    expect(response.body.choices[0].message.content).toContain('Stand: Die Bearbeitung ist offen');
     expect(response.body.choices[0].message.content).not.toContain('evidence_required');
     const foreignTeam = await request('person-c', 'Wie ist der Stand bei ANON-0001?', 'status-c');
     expect(foreignTeam.status).toBe(200);

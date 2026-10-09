@@ -47,7 +47,10 @@ function caseLabel(item) {
     .replace(/\s+/gu, ' ')
     .slice(0, 160);
   const creator = item.responsible?.length ? `; angelegt von ${item.responsible.join(', ')}` : '';
-  return `${item.displayRef || item.cetCaseId} (${summary}; ${statusLabel(item.status)}${creator})`;
+  const status = ['closed', 'completed', 'resolved', 'blocked'].includes(item.status)
+    ? `; ${statusLabel(item.status)}`
+    : '';
+  return `${item.displayRef || item.cetCaseId} (${summary}${status}${creator})`;
 }
 
 module.exports = {

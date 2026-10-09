@@ -46,12 +46,27 @@ function rawContentAllowed(p, state) {
   return visible(p, state);
 }
 
-function caseSummary(state) {
+function caseDescription(state) {
+  if (state.caseDescription) return state.caseDescription;
   const situation = state.knownContext?.situation || {};
+  const title = [situation.title, situation.concern, situation.situation].find(
+    (text) =>
+      text &&
+      !/^(?:der|die) (?:nutzer|nutzerin|person) (?:fragt|möchte|will|bittet)/iu.test(text.trim())
+  );
+  const references = (state.typedIdentifiers || situation.identifiers || [])
+    .map(({ value }) => value)
+    .join(', ');
+  return [title || 'Vorgang', references].filter(Boolean).join(' · ').slice(0, 600);
+}
+
+function caseSummary(state) {
   return {
     caseId: state.cetCaseId,
     cetCaseId: state.cetCaseId,
-    summary: String(situation.situation || situation.concern || '').slice(0, 600),
+    summary: caseDescription(state),
+    updatedAt: state.updatedAt,
+    lastEditedBy: state.lastEditedBy,
     status: state.lastClassification?.readinessState || 'unknown',
     responsible: [state.actorId],
     identifiers: state.typedIdentifiers || [],
@@ -102,6 +117,7 @@ module.exports = {
   tenantCasePolicy,
   rawContentAllowed,
   caseSummary,
+  caseDescription,
   identifierQueryMatches,
   relatedCaseSentence,
 };

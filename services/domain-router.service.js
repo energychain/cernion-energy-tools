@@ -509,6 +509,12 @@ module.exports = {
         caseStateVersion: (previous?.caseStateVersion || 0) + 1,
         currentDomain: classification.primaryDomain,
         initialRequest: previous?.initialRequest || input.userRequest,
+        caseDescription:
+          previous?.caseDescription ||
+          require('../src/case-linking').caseDescription(
+            previous || { knownContext: input.knownContext }
+          ),
+        lastEditedBy: p.actorId,
         conversationId: input.conversationId || previous?.conversationId || null,
         agentSessionId: input.agentSessionId || previous?.agentSessionId || null,
         knownContext: input.knownContext,

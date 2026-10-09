@@ -8,10 +8,7 @@ function text(value, fallback = '') {
 }
 
 function titleFromCase(state) {
-  const domain = state.currentDomain || state.lastClassification?.primaryDomain || 'CET Case';
-  const request =
-    state.knownContext?.userRequest || state.lastClassification?.responseGuidance || '';
-  return request ? `${domain}: ${text(request).slice(0, 80)}` : `${domain} Case ${state.cetCaseId}`;
+  return text(require('./case-linking').caseDescription(state), 'Vorgang');
 }
 
 function presentCase(state, { evidenceRefs = [], eventSummary = null, clearance = [] } = {}) {

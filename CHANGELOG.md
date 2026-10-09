@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.22] — 2026-09-27
 
 ### Fixed
-
+- Workbench #764 follow-up: answer content before a once-only case-choice question, retain the choice for two turns and expire it without automatic case creation. Identical strong-reference duplicates continue the latest open case with one merge proposal. Preserve the first case description and show creator, last editor and editing time in German status answers, including colleague handovers during an open choice.
 - Workbench review follow-up (#754, #758): validate line-anchored quotations against stored chapter/page offsets, summarize chapter follow-ups without repeated boilerplate, consolidate verification markers per answer block, and preserve document/section titles while omitting untitled source labels.
 - RC3 routing review CI prerequisite: refresh the existing transitive proxy-addr lock from 2.0.7 to 2.0.8 for GHSA-jqcg-44mw-7w3h, without adding dependencies or changing gateway policy.
 - RC3 #730 Review: uncertain broker results expose labeled candidates and clarification only, with no executable plan or selected capabilities; prevent Personal Agent local fallback/hydration from bypassing abstention. Number/name confirmation preserves the prior case domain and context and skips fresh Receipt/Knowledge routing.

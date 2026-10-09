@@ -26,7 +26,15 @@ function selection(pending, message) {
   const item = /^[1-3]$/u.test(text)
     ? items[Number(text) - 1]
     : items.find((entry) => [entry.displayRef, entry.cetCaseId].includes(text));
-  return item ? { caseId: item.cetCaseId } : { invalid: true };
+  return item ? { caseId: item.cetCaseId } : null;
+}
+
+function advanceSelection(pending) {
+  const remainingTurns = (pending?.caseSelection?.remainingTurns ?? 2) - 1;
+  return {
+    caseSelection: remainingTurns > 0 ? { ...pending.caseSelection, remainingTurns } : null,
+    caseSelectionExpired: remainingTurns <= 0,
+  };
 }
 
 function mergeSituation(previous, current) {
@@ -50,14 +58,8 @@ function mergeSituation(previous, current) {
 
 async function assignCase(service, ctx, p, envelope, situation, pending, meta) {
   const choice = selection(pending, envelope.userRequest);
-  if (choice?.invalid)
-    return {
-      response: {
-        state: 'case_selection',
-        nonBinding: true,
-        responseText: 'Bitte antworte mit der Fallnummer, der Nummer deiner Auswahl oder „neu“.',
-      },
-    };
+  if (pending?.caseSelection && !choice)
+    return { deferred: true, caseSelection: advanceSelection(pending).caseSelection };
   const items = await candidates(service, ctx, p, situation, meta);
   let selected;
   if (choice?.caseId) {
@@ -79,20 +81,34 @@ async function assignCase(service, ctx, p, envelope, situation, pending, meta) {
           responseText: `Du kannst ${caseLabel(selected)} sehen, hast aber keine Freigabe zur Bearbeitung. Wähle „neu“, um dein Material in einem eigenen Fall zu bearbeiten.`,
         },
       };
-  } else if (!choice?.newCase && items.length === 1) {
+  } else if (
+    !choice?.newCase &&
+    items.length &&
+    items.every((item) =>
+      sameStrongSubject(
+        items[0].identifiers,
+        item.identifiers,
+        service.broker.getLocalService('domain-router').casePolicy(p).identifierTypes,
+        true
+      )
+    )
+  ) {
     selected = items[0];
   } else if (!choice?.newCase && items.length) {
-    const shown = items.slice(0, 3);
-    await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
-      caseSelection: { items: shown, message: envelope.userRequest },
-      situation,
-    });
+    const types = service.broker.getLocalService('domain-router').casePolicy(p).identifierTypes;
+    const distinct = [];
+    for (const item of items)
+      if (
+        !distinct.some((other) =>
+          sameStrongSubject(other.identifiers, item.identifiers, types, true)
+        )
+      )
+        distinct.push(item);
+    const shown = distinct.slice(0, 3);
     return {
-      response: {
-        state: 'case_selection',
-        nonBinding: true,
-        responseText: `Das Material könnte zu ${shown.map(caseLabel).join('; ')} gehören. Welchen Fall soll ich fortsetzen (Fallnummer oder 1–${shown.length}), oder möchtest du „neu“?`,
-      },
+      deferred: true,
+      caseSelection: { items: shown, message: envelope.userRequest, situation, remainingTurns: 2 },
+      question: `Das Material könnte zu ${shown.map(caseLabel).join('; ')} gehören. Welchen Fall soll ich fortsetzen (Fallnummer oder 1–${shown.length}), oder möchtest du „neu“?`,
     };
   }
   return { selected, items, choice };
@@ -203,6 +219,7 @@ module.exports = {
   withTenantCaseAssignment,
   assignCase,
   selection,
+  advanceSelection,
   mergeSituation,
   recordContribution,
   duplicateProposal,

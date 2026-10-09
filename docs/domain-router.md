@@ -165,3 +165,28 @@ normalization, tenant-wide case access, cross-tenant event/inbox boundaries, fai
 audits, corrections and restart. `tests/case-linking.http.test.js` uses the real
 HTTP gateway with two mapped colleagues and negative tenant/organization
 checks. Fixtures contain fictional actors and identifiers.
+
+### Nacharbeit zu #764: offene Auswahl im Kollegenpfad
+
+Mehrdeutige Falltreffer unterbrechen die Sachantwort nicht: CET beantwortet das
+Anliegen vorläufig ohne Fallbindung und stellt die Auswahlfrage einmal am Ende.
+Eine andere Nachricht wird als normaler Inhalt verstanden. Die Auswahl bleibt für
+zwei weitere Turns verfügbar und verfällt danach still; ohne Auswahl wird in
+diesem Gespräch kein neuer Fall automatisch angelegt. „neu“ während der offenen
+Auswahl und die Fallauswahl verwenden das ursprünglich angebotene Material.
+
+Offene Fälle mit identischen starken typisierten Kennungen sind Duplikate. CET
+setzt den neuesten fort und schlägt die Zusammenführung einmal vor. Bei echten
+unterschiedlichen Vorgängen enthält die Auswahl höchstens drei Vertreter, jeweils
+der neueste pro Vorgang. Die vorhandene ausdrückliche Bestätigung, Auditierung und
+Sichtbarkeitsprüfung der Zusammenführung bleiben erforderlich.
+
+Die Fallbeschreibung wird beim ersten Verstehen separat gespeichert. Spätere
+Concern-/Gesprächszusammenfassungen überschreiben sie nicht. Für Altfälle wird ein
+brauchbarer Vorgangstitel mit Kennungen verwendet; reine Gesprächsmetatexte wie
+„Der Nutzer fragt …“ dienen nicht als Titel. Interne Bereitschaftszustände stehen
+nicht im Zuordnungshinweis. Status- und Bearbeiterfragen nutzen denselben deutschen
+Kollegen-Presenter, auch ohne Fallbindung während einer Auswahl. Er zeigt Ersteller,
+Zeitpunkt der letzten Bearbeitung und, für neue Bearbeitungen, die zuletzt handelnde
+Person. Bei Altfällen ohne diese Angabe wird kein letzter Bearbeiter vermutet.
+Tenant- und Clearance-Prüfungen werden vor jeder Statusauskunft erneut angewendet.

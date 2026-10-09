@@ -888,9 +888,9 @@ describe('OpenAI governance intent modes', () => {
       }),
     };
     const result = await handler(ctx);
-    expect(result.choices[0].message.content).toContain('Assumptions: Read-only evaluation');
-    expect(result.choices[0].message.content).toContain('Missing evidence: MSCONS');
-    expect(result.choices[0].message.content).toContain('Non-binding');
+    expect(result.choices[0].message.content).toContain('Arbeitsannahmen: Read-only evaluation');
+    expect(result.choices[0].message.content).toContain('Fehlende Nachweise: MSCONS');
+    expect(result.choices[0].message.content).toContain('Unverbindliche Einschätzung');
   });
   test('rejects unauthenticated governance requests before routing', async () => {
     const ctx = {

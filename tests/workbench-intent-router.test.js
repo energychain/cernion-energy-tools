@@ -67,10 +67,24 @@ describe('Workbench intent routing', () => {
       },
       'status_query'
     );
-    expect(content).toContain('Pending events: 2');
-    expect(content).toContain('Missing evidence: MSCONS');
-    expect(content).toContain('Next safe actions: provide_evidence');
+    expect(content).toContain('Offene Ereignisse: 2');
+    expect(content).toContain('Fehlende Nachweise: MSCONS');
+    expect(content).toContain('Nächste Schritte: provide_evidence');
   });
+  test('German status and colleague response guard keeps natural replies and German empty-state text', () => {
+    expect(classifyWorkbenchIntent('Wer hat das bisher bearbeitet und was ist der Stand?')).toBe(
+      'status_query'
+    );
+    expect(classifyWorkbenchIntent('Wer hat das angelegt?')).toBe('status_query');
+    const reply =
+      'Angelegt von actor-a, zuletzt bearbeitet am 01.01.2026. Stand: Die Bearbeitung ist offen.';
+    expect(renderWorkbenchResponse({ responseText: reply }, 'status_query')).toBe(reply);
+    for (const intent of ['status_query', 'knowledge_query', 'data_lookup', 'tool_run_request'])
+      expect(renderWorkbenchResponse({}, intent)).not.toMatch(
+        /Please|provide|No matching|Non-binding|Tool requests|verified explanation|Readiness|Missing evidence/u
+      );
+  });
+
   test('preserves finished Markdown replies', () => {
     expect(
       renderWorkbenchResponse(
