@@ -1,6 +1,30 @@
 {
   "entries": [
     {
+      "term": "diagnostics",
+      "reason": "Generic per-turn execution telemetry; contains no subject data or domain routing rules."
+    },
+    {
+      "term": "bedeutung",
+      "reason": "Generic conceptual question form excluded from deterministic data-query triggers."
+    },
+    {
+      "term": "proof",
+      "reason": "Generic cache completeness caution; no domain-specific evidence logic."
+    },
+    {
+      "term": "bezug",
+      "reason": "Generic conversational reference in the data-needs instruction; no domain branch."
+    },
+    {
+      "term": "manual",
+      "reason": "Generic response-boundary variable for preventing manual-query instructions when a tool exists."
+    },
+    {
+      "term": "portal",
+      "reason": "Generic website reference in the manual-query response guard; no service or domain mapping."
+    },
+    {
       "term": "profile",
       "reason": "Existing server-side Workbench userProfile authorization contract; generic identity configuration, not domain rules."
     },

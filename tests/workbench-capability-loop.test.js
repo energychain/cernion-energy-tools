@@ -11,6 +11,8 @@ const {
   safeRead,
   summarizeResult,
   candidatesFor,
+  resolveCapabilityNeed,
+  loopDiagnostics,
 } = require('../src/workbench-capability-loop');
 const { answer, understand } = require('../src/workbench-understanding');
 const index = require('../operation-capability-index.json');
@@ -211,7 +213,7 @@ test('AC-03 tool failure is concrete and does not skip the independent answer', 
 test('no data need means no planner or backend call, including follow-up', async () => {
   expect(
     await run({ situation: { ...situation, dataNeeds: '', followupKind: 'next_step' } })
-  ).toEqual({ trace: [], evidence: [], ms: 0 });
+  ).toMatchObject({ trace: [{ status: 'skipped', reason: 'no_data_need' }], evidence: [], ms: 0 });
   expect(llm.generateChat).not.toHaveBeenCalled();
   expect(ctx.call).not.toHaveBeenCalled();
 });
@@ -762,4 +764,470 @@ test('a later read can bind a protected reference discovered in an earlier tool 
   expect(ctx.call.mock.calls[1][1].gridOperatorName).toBe(discovered);
   expect(result.evidence[0].value).toContain(discovered);
   expect(result.trace.filter((entry) => entry.status === 'available')).toHaveLength(2);
+});
+
+const registryQuestion =
+  'Wie viele Solaranlagen über 100 kW sind laut Marktstammdatenregister in Uslar in Betrieb?';
+const refinementQuestion = 'Und welche davon ist die größte?';
+
+test.each([registryQuestion, refinementQuestion])(
+  'empty understanding dataNeeds recovers data question: %s',
+  async (message) => {
+    const empty = { ...situation, concern: registryQuestion, dataNeeds: '', hypotheses: [] };
+    const need = resolveCapabilityNeed(empty, message, { model, index, api, previous: empty });
+    expect(need.reason).toBe('capability_match');
+    expect(need.candidates.map((entry) => entry.operation.action)).toContain(operation.action);
+    llm.generateChat.mockResolvedValueOnce({
+      toolCalls: [call({ installationType: 'solar', minCapacityKW: 100, location: 'Uslar' })],
+    });
+    const result = await run({ situation: empty, message, previous: empty });
+    expect(ctx.call).toHaveBeenCalledTimes(1);
+    expect(result.trace[0].status).toBe('available');
+    // One planner request plus the ordinary observe/stop request; trigger uses no model.
+    expect(llm.generateChat).toHaveBeenCalledTimes(2);
+  }
+);
+
+test.each([
+  'Was ist das Marktstammdatenregister?',
+  'Wie funktioniert die Registrierung von Solaranlagen?',
+  'Was bedeutet der Wert einer Solaranlage?',
+  'Welche Vorteile haben Solaranlagen?',
+  'Welche Unterschiede gibt es zwischen Solaranlagen?',
+  'Warum gibt es Solaranlagen?',
+  'Hallo',
+  'Wie interpretiere ich das?',
+])('knowledge question never triggers from a stale matching concern: %s', (message) => {
+  const need = resolveCapabilityNeed(
+    { ...situation, concern: registryQuestion, dataNeeds: '' },
+    message,
+    { model, index, api }
+  );
+  expect(need.reason).toBe('no_data_need');
+  expect(need.situation.dataNeeds).toBe('');
+  expect(llm.generateChat).not.toHaveBeenCalled();
+});
+
+test('fallback respects configurable threshold, read policy and domain restrictions', () => {
+  const empty = { ...situation, concern: registryQuestion, dataNeeds: '' };
+  process.env.WORKBENCH_TOOL_TRIGGER_MIN_SCORE = '10000';
+  expect(resolveCapabilityNeed(empty, registryQuestion, { model, index, api }).reason).toBe(
+    'no_candidates'
+  );
+  process.env.WORKBENCH_TOOL_TRIGGER_MIN_SCORE = '14';
+  expect(
+    resolveCapabilityNeed(empty, registryQuestion, {
+      model,
+      index,
+      api,
+      domainsAllowed: ['synthetic-other'],
+    }).reason
+  ).toBe('no_candidates');
+  expect(
+    resolveCapabilityNeed(empty, registryQuestion, {
+      model,
+      index: { operations: [{ ...operation, operationKind: 'admin' }] },
+      api,
+    }).reason
+  ).toBe('no_candidates');
+});
+
+test.each([
+  ['available', 'capability_match'],
+  ['blocked', 'blocked'],
+  ['unavailable', 'error'],
+  ['timeout', 'budget'],
+  ['limited', 'budget'],
+])('PII-free loop diagnostics for %s', (status, reason) => {
+  const result = {
+    trace: [
+      {
+        status,
+        called: status === 'available',
+        name: operation.action,
+        parameters: { location: 'PRIVATE' },
+        error: 'PRIVATE',
+      },
+    ],
+    ms: 7,
+  };
+  expect(loopDiagnostics(result, 1, 'capability_match')).toEqual({
+    status: 'started',
+    reason,
+    candidateCount: 1,
+    operations: status === 'available' ? [operation.action] : [],
+    ms: 7,
+  });
+  expect(JSON.stringify(loopDiagnostics(result, 1, 'capability_match'))).not.toContain('PRIVATE');
+});
+
+test.each(['available', 'unavailable'])(
+  'manual register instructions are removed when a matching tool is %s',
+  async (status) => {
+    llm.generateText.mockResolvedValue(
+      JSON.stringify({
+        interpretation: [claim('Die Auswertung ist noch nicht vollständig.')],
+        expectation: [],
+        nextSteps: [claim('Öffne das Register und filtere selbst nach der Leistung.')],
+        draft: [],
+      })
+    );
+    const response = await answer({
+      situation,
+      retrieval: {
+        evidence: [],
+        toolTrace: [
+          {
+            source: 'capability-read',
+            name: operation.action,
+            status,
+            called: status === 'available',
+            error: status === 'unavailable' ? 'Zeitbudget erschöpft' : undefined,
+          },
+        ],
+      },
+    });
+    expect(response.responseText).not.toContain('filtere selbst');
+    expect(response.responseText).toContain('Die Auswertung ist noch nicht vollständig');
+    if (status === 'unavailable')
+      expect(response.responseText).toContain(
+        'Ich konnte die Datenabfrage gerade nicht ausführen: Zeitbudget erschöpft'
+      );
+  }
+);
+
+test('fallback turns log exactly once and follow-up planner reuses authorized proven filters', async () => {
+  const { createCaseBroker } = require('./helpers/case-linking-broker');
+  const environment = await createCaseBroker();
+  const logs = jest.spyOn(environment.workbench.logger, 'info');
+  const reads = jest.fn(async () => ({
+    success: true,
+    data: {
+      results: [
+        { name: 'Synthetic Small', capacityKW: 150 },
+        { name: 'Synthetic Large', capacityKW: 300 },
+      ],
+    },
+  }));
+  environment.broker.createService({
+    name: 'energy-market',
+    actions: { installations: { requiredRoles: ['ROLE_GRID_OPERATOR'], handler: reads } },
+  });
+  const empty = { ...situation, concern: registryQuestion, dataNeeds: '', hypotheses: [] };
+  llm.generateStructured.mockResolvedValue(empty);
+  llm.generateChat
+    .mockResolvedValueOnce({
+      toolCalls: [
+        call({
+          installationType: 'solar',
+          minCapacityKW: 100,
+          location: 'Uslar',
+          operationalStatus: '35',
+        }),
+      ],
+    })
+    .mockResolvedValueOnce({ toolCalls: [] })
+    .mockImplementationOnce(async (messages, options) => {
+      const previousRead = JSON.parse(messages[1].content).previousReads[0];
+      expect(previousRead.metadata.parameters).toMatchObject({
+        installationType: 'solar',
+        minCapacityKW: 100,
+      });
+      expect(previousRead.value).toContain('300');
+      const candidate = options.tools.find((tool) =>
+        tool.function.description.startsWith(operation.action)
+      );
+      return {
+        toolCalls: [
+          {
+            name: candidate.function.name,
+            args: {
+              input: {
+                installationType: 'solar',
+                minCapacityKW: 100,
+                location: 'Uslar',
+                operationalStatus: '35',
+              },
+              projection: {
+                operations: [
+                  { op: 'sort', by: [{ field: 'capacityKW', direction: 'desc' }] },
+                  { op: 'limit', count: 1 },
+                ],
+              },
+            },
+          },
+        ],
+      };
+    });
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      interpretation: [claim('Das Werkzeugergebnis ist unten aufgeführt.')],
+      expectation: [],
+      nextSteps: [],
+      draft: [],
+    })
+  );
+  await environment.broker.start();
+  try {
+    const input = {
+      channel: 'open-webui',
+      conversationId: 'synthetic-trigger',
+      message: registryQuestion,
+    };
+    const first = await environment.call('workbench.chat', input, meta);
+    expect(first.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: operation.action, status: 'available' }),
+      ])
+    );
+    const second = await environment.call(
+      'workbench.chat',
+      { ...input, message: refinementQuestion },
+      meta
+    );
+    expect(reads).toHaveBeenCalledTimes(2);
+    expect(second.responseText).toContain('Synthetic Large');
+    expect(second.responseText).not.toContain('Synthetic Small');
+    expect(reads.mock.calls[1][0].params).toEqual(reads.mock.calls[0][0].params);
+    const loopLogs = logs.mock.calls.filter(([line]) => line === 'Workbench capability loop');
+    expect(loopLogs).toHaveLength(2);
+    expect(loopLogs.map(([, value]) => value)).toEqual([
+      expect.objectContaining({
+        status: 'started',
+        reason: 'capability_match',
+        candidateCount: 1,
+        operations: [operation.action],
+      }),
+      expect.objectContaining({
+        status: 'started',
+        reason: 'capability_match',
+        operations: [operation.action],
+      }),
+    ]);
+    expect(JSON.stringify(loopLogs)).not.toContain('Uslar');
+    const knowledge = await environment.call(
+      'workbench.chat',
+      { ...input, message: 'Was ist das Marktstammdatenregister?' },
+      meta
+    );
+    expect(reads).toHaveBeenCalledTimes(2);
+    expect(knowledge.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'capability-read', status: 'skipped' }),
+      ])
+    );
+    expect(logs.mock.calls.filter(([line]) => line === 'Workbench capability loop')).toHaveLength(
+      3
+    );
+  } finally {
+    await environment.cleanup();
+  }
+});
+
+test('HTTP-e2e: empty dataNeeds triggers registry query and refinement with delegated transport', async () => {
+  const { createCaseBroker } = require('./helpers/case-linking-broker');
+  const Api = require('../services/api.service');
+  const OpenAICompatible = require('../services/openai-compatible.service');
+  const environment = await createCaseBroker();
+  const observed = [];
+  environment.broker.createService({ ...Api, settings: { ...Api.settings, port: 0 } });
+  environment.broker.createService(OpenAICompatible);
+  environment.broker.createService({
+    name: 'token-manager',
+    actions: {
+      verify: () => ({
+        valid: true,
+        type: 'gateway',
+        tokenId: 'synthetic-transport',
+        client: 'open-webui',
+        externalOrgId: 'synthetic-org',
+        tenantId: 'synthetic',
+        scope: 'full-access',
+        roles: ['ROLE_ADMIN', 'full-access'],
+      }),
+    },
+  });
+  environment.broker.createService({
+    name: 'energy-market',
+    actions: {
+      installations: {
+        requiredRoles: ['ROLE_GRID_OPERATOR'],
+        handler: (context) => {
+          observed.push(context.meta);
+          return {
+            success: true,
+            data: { results: [{ municipality: 'Synthetic A', capacityKW: 300 }] },
+          };
+        },
+      },
+    },
+  });
+  await environment.workbench.store.saveTenantMapping({
+    client: 'open-webui',
+    externalOrgId: 'synthetic-org',
+    cetTenantId: 'synthetic',
+  });
+  await environment.workbench.store.saveUserMapping({
+    client: 'open-webui',
+    externalOrgId: 'synthetic-org',
+    externalUserId: 'external-person',
+    cetTenantId: 'synthetic',
+    cetActorId: 'person',
+    roles: ['ROLE_GRID_OPERATOR'],
+  });
+  llm.generateStructured.mockResolvedValue({
+    ...situation,
+    concern: registryQuestion,
+    dataNeeds: '',
+    hypotheses: [],
+  });
+  llm.generateChat
+    .mockResolvedValueOnce({
+      toolCalls: [
+        call({
+          installationType: 'solar',
+          location: 'Uslar',
+          minCapacityKW: 100,
+          operationalStatus: '35',
+        }),
+      ],
+    })
+    .mockResolvedValueOnce({ toolCalls: [] })
+    .mockResolvedValueOnce({
+      toolCalls: [
+        call(
+          {
+            installationType: 'solar',
+            location: 'Uslar',
+            minCapacityKW: 100,
+            operationalStatus: '35',
+          },
+          {
+            operations: [
+              { op: 'sort', by: [{ field: 'capacityKW', direction: 'desc' }] },
+              { op: 'limit', count: 1 },
+            ],
+          }
+        ),
+      ],
+    });
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      interpretation: [claim('Synthetic A ist im Ergebnis enthalten.', ['E1'])],
+      expectation: [],
+      nextSteps: [],
+      draft: [],
+    })
+  );
+  await environment.broker.start();
+  try {
+    const base = `http://127.0.0.1:${environment.broker.getLocalService('api').server.address().port}`;
+    const request = (user, content = registryQuestion) =>
+      fetch(`${base}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ck_synthetic',
+          'Content-Type': 'application/json',
+          'X-OpenWebUI-User-Id': user,
+          'X-OpenWebUI-Chat-Id': 'synthetic-http-tools',
+        },
+        body: JSON.stringify({
+          model: 'cernion-governance-assistant',
+          messages: [{ role: 'user', content }],
+        }),
+      });
+    const response = await request('external-person');
+    const payload = await response.json();
+    expect(response.status).toBe(200);
+    expect(payload.metadata.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: operation.action, status: 'available' }),
+      ])
+    );
+    expect(observed).toHaveLength(1);
+    expect(observed[0].authUser).toMatchObject({
+      userId: 'person',
+      roles: ['ROLE_GRID_OPERATOR'],
+      scope: 'read-only',
+      tenantId: 'synthetic',
+    });
+    expect(observed[0].apiToken.type).toBe('delegated-person');
+    expect(JSON.stringify(observed)).not.toContain('ROLE_ADMIN');
+    const refined = await request('external-person', refinementQuestion);
+    const refinedPayload = await refined.json();
+    expect(refined.status).toBe(200);
+    expect(refinedPayload.metadata.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: operation.action, status: 'available' }),
+      ])
+    );
+    expect(observed).toHaveLength(2);
+    expect((await request('unmapped-person')).status).toBe(403);
+    expect(observed).toHaveLength(2);
+  } finally {
+    await environment.cleanup();
+  }
+});
+
+test('loop summary distinguishes no candidates from a planner that did not execute a matching read', () => {
+  const trace = [{ source: 'capability-read', status: 'missing', called: false, hitCount: 0 }];
+  expect(loopDiagnostics({ trace, candidateCount: 0, ms: 2 }, 0, 'data_need')).toEqual({
+    status: 'skipped',
+    reason: 'no_candidates',
+    candidateCount: 0,
+    operations: [],
+    ms: 2,
+  });
+  expect(loopDiagnostics({ trace, candidateCount: 1, ms: 2 }, 1, 'data_need')).toMatchObject({
+    status: 'started',
+    reason: 'error',
+  });
+});
+
+test('a quoted data question in a correspondence thread does not create a fallback data need', () => {
+  const message = `Kannst du mir mit diesem Verlauf helfen?\n\nVon: Synthetic Team\n${registryQuestion}`;
+  const need = resolveCapabilityNeed(
+    { ...situation, concern: registryQuestion, dataNeeds: '' },
+    message,
+    { model, index, api }
+  );
+  expect(need.reason).toBe('no_data_need');
+  expect(llm.generateChat).not.toHaveBeenCalled();
+});
+
+test.each([
+  'Welche Arten von Solaranlagen gibt es?',
+  'Welche Voraussetzungen gelten für Solaranlagen?',
+])('generic knowledge lists do not trigger data reads: %s', (message) => {
+  expect(
+    resolveCapabilityNeed({ ...situation, concern: registryQuestion, dataNeeds: '' }, message, {
+      model,
+      index,
+      api,
+    }).reason
+  ).toBe('no_data_need');
+});
+test.each([
+  'Was ist der aktuelle Stand der MaStR installations?',
+  'Wie hoch ist der Wert der MaStR installations installed capacity?',
+])('concrete status and value questions trigger existing read routing: %s', (message) => {
+  expect(
+    resolveCapabilityNeed({ ...situation, concern: registryQuestion, dataNeeds: '' }, message, {
+      model,
+      index,
+      api,
+    }).reason
+  ).toBe('capability_match');
+});
+
+test('a plain multiline data question still triggers without any extra understanding request', () => {
+  expect(
+    resolveCapabilityNeed(
+      { ...situation, concern: registryQuestion, dataNeeds: '' },
+      `Hallo!\n${registryQuestion}`,
+      { model, index, api }
+    ).reason
+  ).toBe('capability_match');
+  expect(llm.generateStructured).not.toHaveBeenCalled();
+  expect(llm.generateChat).not.toHaveBeenCalled();
 });

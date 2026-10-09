@@ -103,7 +103,11 @@ async function evidenceAccess(service, p) {
   };
 }
 
-async function runContentTurn(service, ctx, { p, mapping, envelope, pending, conversation, meta }) {
+async function runContentTurn(
+  service,
+  ctx,
+  { p, mapping, envelope, pending, conversation, meta, capabilityDiagnostics }
+) {
   const started = performance.now();
   const caseChoice = continuation.selection(pending, envelope.userRequest);
   let rawMessage = envelope.userRequest;
@@ -151,7 +155,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
                 },
               }
             : await understanding.understand({
-                message: rawMessage,
+                message: envelope.userRequest,
                 messages: documentFlow.cleanDocumentHistory(ctx.params.messages),
                 previous,
                 asked: pending?.askedQuestions || [],
@@ -192,6 +196,21 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     previous
   );
   phaseTimes.understandMs = Math.round(performance.now() - understandStarted);
+  const toolLoop = require('./workbench-capability-loop');
+  const toolOptions = {
+    model: service.settings.systemActivityModel || getFunctionModel(),
+    domainsAllowed: workbenchContext.userProfile?.domainsAllowed || mapping?.domainsAllowed || [],
+    previous,
+  };
+  const toolNeed =
+    !incomingDocuments && !draftRequest && !understandingFailed
+      ? toolLoop.resolveCapabilityNeed(situation, envelope.userRequest, toolOptions)
+      : { situation, candidates: [], reason: 'no_data_need' };
+  situation = toolNeed.situation;
+  Object.assign(capabilityDiagnostics, {
+    candidateCount: toolNeed.candidates.length,
+    reason: toolNeed.reason,
+  });
   const nextStepRequest =
     !understanding.isDraftRequest(envelope.userRequest) && situation.followupKind === 'next_step';
   const reuseTools = Boolean(
@@ -222,7 +241,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
           )
           .catch(() => null)
       : null;
-  if (situation.turnKind === 'smalltalk') {
+  if (situation.turnKind === 'smalltalk' && !situation.dataNeeds?.trim()) {
     if (pending?.caseSelection)
       await conversationAssistance.saveTurn(
         service.conversationsDb,
@@ -375,7 +394,6 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     : null;
   const retrieveStarted = performance.now();
   const toolDeadline = retrieveStarted + retrievalTimeoutMs();
-  const toolLoop = require('./workbench-capability-loop');
   const tools =
     situation.dataNeeds?.trim() &&
     !incomingDocuments &&
@@ -397,6 +415,14 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
             model: service.settings.systemActivityModel || getFunctionModel(),
             deadline: toolDeadline,
             logger: service.logger,
+            previous,
+            candidates: toolNeed.reason === 'capability_match' ? toolNeed.candidates : undefined,
+            previousReads:
+              toolNeed.refinement && Date.now() - (pending?.evidenceRetrievedAt || 0) < 300000
+                ? (pending?.retrieval?.evidence || []).filter(
+                    (hit) => hit.retrievalSource === 'capability-read'
+                  )
+                : [],
           })
           .catch((error) => ({
             evidence: [],
@@ -415,7 +441,20 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
               },
             ],
           }))
-      : Promise.resolve({ trace: [], evidence: [], ms: 0 });
+      : Promise.resolve({
+          trace: [
+            {
+              source: 'capability-read',
+              status: access['capability-read'] === false ? 'blocked' : 'skipped',
+              reason: access['capability-read'] === false ? 'blocked' : toolNeed.reason,
+              called: false,
+              hitCount: 0,
+              ms: 0,
+            },
+          ],
+          evidence: [],
+          ms: 0,
+        });
   const codes = require('./workbench-codes');
   const codeLookup = codes.resolveCodes(
     { call: (name, params, options) => ctx.call(name, params, { ...options, meta }), meta },
@@ -534,7 +573,26 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   retrieval.trace = [...(retrieval.trace || []), ...resolvedCodes.trace];
   const toolResult = await tools;
   phaseTimes.toolsMs = toolResult.ms;
-  const cachedTools = draftRequest || reuseTools ? retrieval.toolTrace || [] : [];
+  Object.assign(
+    capabilityDiagnostics,
+    toolLoop.loopDiagnostics(
+      toolResult,
+      toolNeed.candidates.length,
+      toolNeed.reason,
+      Boolean(
+        situation.dataNeeds?.trim() &&
+        !incomingDocuments &&
+        !draftRequest &&
+        !reuseEvidence &&
+        !understandingFailed &&
+        access['capability-read'] !== false
+      )
+    )
+  );
+  const cachedTools =
+    draftRequest || reuseTools
+      ? (retrieval.toolTrace || []).filter((entry) => entry.status !== 'skipped')
+      : [];
   retrieval.toolTrace = [
     ...cachedTools.map((entry) => {
       const allowed = retrieval.evidence.some(
@@ -553,6 +611,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     }),
     ...toolResult.trace,
   ];
+  retrieval.toolCandidateCount = toolResult.candidateCount ?? toolNeed.candidates.length;
   retrieval.evidence.push(...toolResult.evidence);
   if (retrieval.toolTrace.length)
     retrieval.trace = [
@@ -825,6 +884,13 @@ async function selectChoice(service, ctx, { p, mapping, envelope, conversation, 
 // Serialize each conversation; the case-assignment helper separately protects tenant writes.
 // Refresh persisted questions after waiting so parallel requests cannot repeat them.
 async function queuedContentTurn(service, ctx, input) {
+  const capabilityDiagnostics = {
+    status: 'skipped',
+    reason: 'no_data_need',
+    candidateCount: 0,
+    operations: [],
+    ms: 0,
+  };
   const queues = (service.workbenchContentTurns ||= new Map());
   const key = JSON.stringify([
     input.p.tenantId,
@@ -853,8 +919,17 @@ async function queuedContentTurn(service, ctx, input) {
       },
       { optional: true }
     );
-    return await runContentTurn(service, ctx, { ...input, pending, conversation });
+    return await runContentTurn(service, ctx, {
+      ...input,
+      pending,
+      conversation,
+      capabilityDiagnostics,
+    });
+  } catch (error) {
+    capabilityDiagnostics.reason = 'error';
+    throw error;
   } finally {
+    service.logger.info('Workbench capability loop', capabilityDiagnostics);
     release();
     if (queues.get(key) === gate) queues.delete(key);
   }
