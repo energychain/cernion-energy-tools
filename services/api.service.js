@@ -33,6 +33,7 @@ const { serveAiCatalog, advertiseAiCatalog } = require('../src/ai-catalog');
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 const CONTENT_TYPE_HEADER = 'Content-Type';
 const CONTENT_TYPE_JSON = 'application/json; charset=utf-8';
+const OPENAI_COMPAT_BODY_LIMIT = process.env.OPENAI_COMPAT_BODY_LIMIT || '16MB';
 const ALLOWED_UPLOAD_EXTENSIONS = new Set([
   '.csv',
   '.tsv',
@@ -558,6 +559,26 @@ function buildOpenAiErrorBody(err) {
       code: err?.type || err?.code || 'request_failed',
     },
   };
+}
+
+function handleOpenAiRouteError(req, res, err) {
+  if (res.headersSent) return;
+  if (err?.type === 'entity.too.large' || resolveHttpStatus(err) === 413) {
+    const sizeBytes = Number(err.length ?? err.received ?? req.headers?.['content-length']);
+    this.logger.warn('OpenAI-Anfrage überschreitet das Body-Limit', {
+      sizeBytes: Number.isSafeInteger(sizeBytes) && sizeBytes >= 0 ? sizeBytes : null,
+      limitBytes: err.limit ?? null,
+      configuredLimit: OPENAI_COMPAT_BODY_LIMIT,
+    });
+    err = new Errors.MoleculerClientError(
+      `Die Datei oder der Chat-Kontext ist zu groß. Die aktuelle Grenze beträgt ${OPENAI_COMPAT_BODY_LIMIT}. Bitte teile die Datei auf, sende einen kleineren Ausschnitt oder starte einen neuen Chat mit weniger Verlauf.`,
+      413,
+      'request_body_too_large'
+    );
+  }
+  res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
+  res.writeHead(resolveHttpStatus(err));
+  res.end(JSON.stringify(buildOpenAiErrorBody(err)));
 }
 
 async function buildOpenAiFacadeMeta(service, req, facadePath = '/v1/chat/completions') {
@@ -1549,14 +1570,16 @@ module.exports = {
           'GET /models': handleOpenAiModels,
         },
 
+        onError: handleOpenAiRouteError,
+
         bodyParsers: {
           json: {
             strict: false,
-            limit: '1MB',
+            limit: OPENAI_COMPAT_BODY_LIMIT,
           },
           urlencoded: {
             extended: true,
-            limit: '1MB',
+            limit: OPENAI_COMPAT_BODY_LIMIT,
           },
         },
       },

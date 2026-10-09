@@ -141,7 +141,7 @@ describe('existing evidence persistence (AC-02)', () => {
     const log = jest.spyOn(console, 'log');
     await expect(
       attachDocuments(store, identity, [{ name: 'Plan', text: fixture }], { maxChars: 100 })
-    ).rejects.toThrow('budget');
+    ).rejects.toThrow('Aufnahmegrenze');
     expect(await loadDocuments(store, identity)).toEqual([]);
     expect(log).not.toHaveBeenCalled();
   });

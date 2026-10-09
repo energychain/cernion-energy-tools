@@ -52,12 +52,17 @@ function documentSections(text, chunkChars = 12000) {
 async function attachDocuments(store, identity, documents, options = {}) {
   if (!identity.tenantId || !identity.caseId || !identity.actorId)
     throw new Error('Document identity required');
-  const maxChars = Number(options.maxChars ?? process.env.WORKBENCH_DOCUMENT_MAX_CHARS ?? 1000000);
+  const maxChars = Number(options.maxChars ?? process.env.WORKBENCH_DOCUMENT_MAX_CHARS ?? 4000000);
   if (!Number.isSafeInteger(maxChars) || maxChars <= 0) throw new Error('Invalid document budget');
   if (documents.reduce((sum, doc) => sum + String(doc.text || '').length, 0) > maxChars) {
-    throw Object.assign(new Error('Document budget exceeded; send a smaller document'), {
-      type: 'WORKBENCH_DOCUMENT_LIMIT',
-    });
+    throw Object.assign(
+      new Error(
+        `Das Dokument ist zu groß. Die Aufnahmegrenze beträgt ${maxChars.toLocaleString('de-DE')} Zeichen. Bitte teile das Dokument auf oder sende einen kleineren Ausschnitt.`
+      ),
+      {
+        type: 'WORKBENCH_DOCUMENT_LIMIT',
+      }
+    );
   }
   const prepared = documents.map((document) => {
     if (typeof document.text !== 'string' || !document.text.trim())
