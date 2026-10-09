@@ -229,6 +229,21 @@ function summarizeResult(result, projection, tenantId, observations) {
   };
 }
 
+function boundedJson(data, limit) {
+  const value = JSON.stringify(data);
+  if (value.length <= limit) return { value, truncated: false };
+  const frame = { truncated: true, data: structuredClone(data) };
+  if (Array.isArray(frame.data)) {
+    while (frame.data.length && JSON.stringify(frame).length > limit) frame.data.pop();
+  } else if (frame.data && typeof frame.data === 'object') {
+    const keys = Object.keys(frame.data);
+    while (keys.length && JSON.stringify(frame).length > limit) delete frame.data[keys.pop()];
+  } else frame.data = null;
+  const serialized = JSON.stringify(frame);
+  if (serialized.length > limit) throw new Error('Ausgabebudget zu klein für gültige Daten');
+  return { value: serialized, truncated: true };
+}
+
 async function runCapabilityLoop(
   ctx,
   {
@@ -461,7 +476,8 @@ async function runCapabilityLoop(
           const limit = positiveSetting('WORKBENCH_TOOL_RESULT_CHARS', 6000, 16000);
           // Preserve canonical evidence locally; the answer masks its complete context.
           // Only the scrubbed observation is sent back to the planner below.
-          const value = JSON.stringify(observation.data).slice(0, limit);
+          const boundedResult = boundedJson(observation.data, limit);
+          const value = boundedResult.value;
           const protectedResult = opaqueContext({ data: observation.data });
           plannerValue = JSON.stringify(protectedResult.value.data);
           let reference = 0;
@@ -470,11 +486,10 @@ async function runCapabilityLoop(
             plannerValue = plannerValue.replaceAll(placeholder, scoped);
             safe.reidentMap.set(scoped, original);
           }
-          plannerValue = plannerValue.slice(0, limit);
+          plannerValue = boundedJson(JSON.parse(plannerValue), limit).value;
           entry.status = 'available';
           entry.hitCount = observation.count;
-          entry.truncated =
-            JSON.stringify(observation.data).length > limit || observation.fullResultRowCount > 20;
+          entry.truncated = boundedResult.truncated || observation.fullResultRowCount > 20;
           entry.sourceId = `${entry.name}:${calls}`;
           currentEvidence = {
             source: entry.name,

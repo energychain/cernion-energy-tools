@@ -67,6 +67,32 @@ describe('src/adapters/gemini generateChat', () => {
     });
   });
 
+  it('coalesces parallel function responses into one user content', async () => {
+    mockGenerateContent.mockResolvedValue({ response: { text: () => 'ok' } });
+    const adapter = require('../src/adapters/gemini');
+    await adapter.generateChat([
+      { role: 'user', content: 'Read both sources.' },
+      {
+        role: 'assistant',
+        tool_calls: [
+          { id: 'a', function: { name: 'read_a', arguments: '{}' } },
+          { id: 'b', function: { name: 'read_b', arguments: '{}' } },
+        ],
+      },
+      { role: 'tool', tool_call_id: 'a', content: '{"value":1}' },
+      { role: 'tool', tool_call_id: 'b', content: '{"value":2}' },
+    ]);
+    const contents = mockGenerateContent.mock.calls[0][0].contents;
+    expect(contents).toHaveLength(3);
+    expect(contents[2]).toEqual({
+      role: 'user',
+      parts: [
+        { functionResponse: { name: 'read_a', response: { value: 1 } } },
+        { functionResponse: { name: 'read_b', response: { value: 2 } } },
+      ],
+    });
+  });
+
   it('passes OpenAI-shaped tools as Gemini functionDeclarations', async () => {
     mockGenerateContent.mockResolvedValue({ response: { text: () => 'ok' } });
     const geminiAdapter = require('../src/adapters/gemini');

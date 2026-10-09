@@ -236,10 +236,11 @@ function buildGeminiContents(messages) {
         );
         responsePayload = { result: message.content ?? null };
       }
-      contents.push({
-        role: 'user',
-        parts: [{ functionResponse: { name, response: responsePayload } }],
-      });
+      const part = { functionResponse: { name, response: responsePayload } };
+      const previous = contents.at(-1);
+      if (previous?.role === 'user' && previous.parts.every((item) => item.functionResponse))
+        previous.parts.push(part);
+      else contents.push({ role: 'user', parts: [part] });
     }
   }
 

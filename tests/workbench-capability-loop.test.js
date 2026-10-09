@@ -350,6 +350,7 @@ test('existing domain hypothesis routes to read operations without a case', () =
 test('full Workbench answer path executes reads and follow-up without new data executes none', async () => {
   const { createCaseBroker } = require('./helpers/case-linking-broker');
   const environment = await createCaseBroker();
+  const brokerCalls = jest.spyOn(environment.broker, 'call');
   const reads = jest.fn(async () => ({
     success: true,
     data: { results: [{ municipality: 'Synthetic A', capacityKW: 300 }] },
@@ -386,6 +387,9 @@ test('full Workbench answer path executes reads and follow-up without new data e
     );
     expect(first.phaseTimes.toolsMs).toBeGreaterThanOrEqual(0);
     const plannerCalls = llm.generateChat.mock.calls.length;
+    const retrievalCalls = brokerCalls.mock.calls.filter(
+      ([name]) => name === 'personal-agent.collectWorkbenchEvidence'
+    ).length;
     const followup = await environment.call(
       'workbench.chat',
       { ...input, message: 'Wie interpretiere ich das?' },
@@ -399,6 +403,10 @@ test('full Workbench answer path executes reads and follow-up without new data e
     expect(followup.phaseTimes.toolsMs).toBe(0);
     expect(reads).toHaveBeenCalledTimes(1);
     expect(llm.generateChat).toHaveBeenCalledTimes(plannerCalls);
+    expect(
+      brokerCalls.mock.calls.filter(([name]) => name === 'personal-agent.collectWorkbenchEvidence')
+        .length
+    ).toBeGreaterThan(retrievalCalls);
   } finally {
     await environment.cleanup();
   }
@@ -653,7 +661,10 @@ test('display result cap is enforced and its provenance declares truncation', as
   ctx.call.mockResolvedValue({ success: true, data: { results: [{ value: 'x'.repeat(1000) }] } });
   llm.generateChat.mockResolvedValueOnce({ toolCalls: [call({ installationType: 'solar' })] });
   const result = await run();
-  expect(result.evidence[0].value).toHaveLength(60);
+  expect(result.evidence[0].value.length).toBeLessThanOrEqual(60);
+  expect(JSON.parse(result.evidence[0].value)).toMatchObject({ truncated: true });
+  const planner = JSON.parse(llm.generateChat.mock.calls[1][0].at(-1).content);
+  expect(JSON.parse(planner.result)).toMatchObject({ truncated: true });
   expect(result.evidence[0].metadata.truncated).toBe(true);
   expect(result.trace[0]).toMatchObject({ status: 'available', truncated: true });
 });

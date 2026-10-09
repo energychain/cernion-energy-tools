@@ -163,12 +163,13 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   phaseTimes.understandMs = Math.round(performance.now() - understandStarted);
   const nextStepRequest =
     !understanding.isDraftRequest(envelope.userRequest) && situation.followupKind === 'next_step';
-  const reuseEvidence = Boolean(
+  const reuseTools = Boolean(
     previous &&
     (nextStepRequest || (situation.followupKind === 'question' && !situation.dataNeeds?.trim())) &&
     pending?.retrieval &&
     Date.now() - (pending.evidenceRetrievedAt || 0) < 300000
   );
+  const reuseEvidence = reuseTools && nextStepRequest;
   // Use the understood turn kind before deciding whether fresh retrieval is needed.
   const prefetchedKnowledge =
     !draftRequest && !reuseEvidence
@@ -365,6 +366,15 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
         toolDeadline - performance.now()
       );
     }
+    if (reuseTools && !reuseEvidence && !draftRequest) {
+      retrieval.evidence = [
+        ...(retrieval.evidence || []),
+        ...(pending.retrieval.evidence || []).filter(
+          (hit) => hit.retrievalSource === 'capability-read'
+        ),
+      ];
+      retrieval.toolTrace = pending.retrieval.toolTrace || [];
+    }
     // Recheck the contract at the response boundary, including stubbed/custom facades.
     const groups = new Map();
     for (const hit of retrieval.evidence || []) {
@@ -429,7 +439,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   retrieval.trace = [...(retrieval.trace || []), ...resolvedCodes.trace];
   const toolResult = await tools;
   phaseTimes.toolsMs = toolResult.ms;
-  const cachedTools = draftRequest || reuseEvidence ? retrieval.toolTrace || [] : [];
+  const cachedTools = draftRequest || reuseTools ? retrieval.toolTrace || [] : [];
   retrieval.toolTrace = [
     ...cachedTools.map((entry) => {
       const allowed = retrieval.evidence.some(
