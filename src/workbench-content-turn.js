@@ -241,7 +241,7 @@ async function runContentTurn(
           )
           .catch(() => null)
       : null;
-  if (situation.turnKind === 'smalltalk') {
+  if (situation.turnKind === 'smalltalk' && !situation.dataNeeds?.trim()) {
     service.logger.info('Workbench turn phases and sources', { phaseTimes, sources: [] });
     return {
       state: 'assistance',

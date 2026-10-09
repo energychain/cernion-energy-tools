@@ -1219,3 +1219,15 @@ test.each([
     }).reason
   ).toBe('capability_match');
 });
+
+test('a plain multiline data question still triggers without any extra understanding request', () => {
+  expect(
+    resolveCapabilityNeed(
+      { ...situation, concern: registryQuestion, dataNeeds: '' },
+      `Hallo!\n${registryQuestion}`,
+      { model, index, api }
+    ).reason
+  ).toBe('capability_match');
+  expect(llm.generateStructured).not.toHaveBeenCalled();
+  expect(llm.generateChat).not.toHaveBeenCalled();
+});

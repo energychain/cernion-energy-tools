@@ -132,11 +132,10 @@ function resolveCapabilityNeed(situation, message, options = {}) {
   const model = options.model || getFunctionModel();
   const index = options.index || loadOperationCapabilityIndex();
   const api = options.api || require('../openapi-export.json');
-  // Only the current request opens a data query, never a quoted thread body.
+  // Quoted correspondence cannot open a query; plain requests may span lines.
+  const request = String(message || '').trim();
   const text = normalizePhrase(
-    String(message || '')
-      .trim()
-      .split('\n')[0]
+    require('./workbench-thread').isThreadInput(request) ? request.split('\n')[0] : request
   );
   const refinement = /\b(davon|darunter|dieser|diesen|deren|of those|among them)\b/.test(text);
   const concrete =
