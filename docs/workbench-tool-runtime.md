@@ -121,8 +121,33 @@ Attached summaries become `willi_mako_ref` EvidenceRefs with `evidenceRole: diag
 
 ## Read capabilities in content answers (#755, Part B)
 
-The understood situation carries a turn-local `dataNeeds` string. An empty value skips
-both tool planning and execution, including follow-up questions without fresh data needs.
+The understood situation carries a turn-local `dataNeeds` string. Concrete data questions
+also have a deterministic fallback when understanding leaves it empty: generic count,
+list, value, extrema or status question forms must match a safe read operation using the
+existing operation index and `candidatesFor` ranking. `WORKBENCH_TOOL_TRIGGER_MIN_SCORE`
+(default 14, the existing registry-query score) controls this threshold. Conceptual
+knowledge questions do not trigger it, even with a previously matching concern. No
+additional model request is used for the trigger. Data needs are derived from the current
+message and matched capability descriptions; referential refinements also retain the
+previous concern. Ordinary follow-ups without new data needs skip planning.
+
+Refinements such as “which of those is largest?” pass recent cached reads from persisted
+conversation turn memory to the planner after current tenant/role/domain authorization.
+The planner reuses the proven filter parameters and repeats the read with a refined local
+projection. Cached displayed samples are never assumed to be complete. Cache context
+expires after five minutes; fresh reads still use the shared retrieval deadline.
+
+Each content turn emits exactly one `Workbench capability loop` info record, including
+short-circuit document and knowledge turns. Its fields are `status` (started/skipped),
+`reason` (data_need/capability_match on success, no_data_need, no_candidates, blocked,
+budget or error), `candidateCount`, called `operations`, and `ms`; no request text,
+parameters, result contents, tenant identifiers or error messages enter this record.
+`capability-read` source status is taken from loop or authorized cache observations,
+including explicit skipped status, and replaces the legacy retrieval source entry.
+
+When a suitable read exists, the answer instruction and response boundary exclude manual
+query instructions or false access denial. A failed or unexecuted read produces a brief
+explicit failure statement while retaining independent supported knowledge.
 The bounded plan/act/observe loop runs alongside knowledge retrieval within the same
 `WORKBENCH_RETRIEVAL_TIMEOUT_MS` deadline. It uses `llm-client.generateChat` and candidates
 ranked by the existing operation index, function hypotheses and capability catalog.
