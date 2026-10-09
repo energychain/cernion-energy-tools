@@ -185,7 +185,11 @@ test('only used evidence appears in sources; no routine sending sentence; condit
     },
     retrieval: {
       evidence: [
-        { source: 'willi-mako', value: 'Prozessantwort' },
+        {
+          source: 'willi-mako',
+          value: 'Prozessantwort',
+          metadata: { documentTitle: 'Synthetischer Prozessleitfaden' },
+        },
         { source: 'analysis-planner', value: 'irrelevant' },
       ],
     },
@@ -195,7 +199,8 @@ test('only used evidence appears in sources; no routine sending sentence; condit
   });
   expect(result.draft).toContain('Variante A');
   expect(result.draft).toContain('Variante B');
-  expect(result.responseText).toContain('Quellen: willi-mako');
+  expect(result.responseText).toContain('Quellen: Synthetischer Prozessleitfaden');
+  expect(result.responseText).not.toContain('Quellen: willi-mako');
   expect(result.responseText).not.toContain('analysis-planner');
   expect(result.responseText).not.toContain('schick ihn');
   expect(result.responseText).not.toMatch(/unverbindlich|keine externe Handlung|MASKED/i);
