@@ -225,6 +225,36 @@ describe('Capability Broker Service', () => {
     );
   });
 
+  it('promotes unclear customer billing question to kunden_service_klaerfall', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ein Kunde fragt, warum seine Rechnung so hoch ist, Vertragskonto und Zählpunkt fehlen.',
+    });
+
+    expect(result.caseTypeRouting.primary.id).toBe('kunden_service_klaerfall');
+    expect(result.caseTypeRouting.primary.maturity).toMatch(/observed|routable/);
+    expect(result.caseTypeRouting.primary.clarificationQuestions.join(' ')).toMatch(
+      /Vertragskonto|Zählpunkt|Zeitraum/
+    );
+  });
+
+  it('keeps customer meter-reading requests as customer case with EDM secondary candidate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Kunde meldet falschen Zählerstand und unplausiblen Verbrauch auf der Rechnung.',
+    });
+
+    const ids = result.caseTypeRouting.candidates.map((candidate) => candidate.id);
+    expect(ids).toContain('kunden_service_klaerfall');
+    expect(ids).toContain('messwert_edm_plausibilitaetsfall');
+  });
+
+  it('routes customer tariff and contract help to kunden_service_klaerfall', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich brauche Hilfe zum Tarif und Vertrag eines Kunden im Kundenservice.',
+    });
+
+    expect(result.caseTypeRouting.primary.id).toBe('kunden_service_klaerfall');
+  });
+
   it('routes portfolio logic prompts to znp.assessPortfolio', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Bitte ZNP Portfolio-Logik für Projekt abc prüfen inkl. Layer 0/2/2.5 und fNAV',
