@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-10T13:25:26.230Z",
+  "generatedAt": "2026-10-10T19:29:05.469Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261010T132416Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261010T192759Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
@@ -362,19 +362,19 @@
   "domainTermCounts": {
     "agent": {
       "files": 726,
-      "hits": 8280
+      "hits": 8282
     },
     "personal-agent": {
-      "files": 301,
-      "hits": 2012
+      "files": 299,
+      "hits": 2010
     },
     "sidecar": {
       "files": 109,
-      "hits": 1001
+      "hits": 997
     },
     "capability": {
       "files": 446,
-      "hits": 5641
+      "hits": 5664
     },
     "broker": {
       "files": 569,
@@ -382,31 +382,31 @@
     },
     "openwebui": {
       "files": 65,
-      "hits": 512
+      "hits": 513
     },
     "open-webui": {
       "files": 47,
-      "hits": 266
+      "hits": 268
     },
     "chatgpt": {
       "files": 37,
-      "hits": 402
+      "hits": 398
     },
     "evidence": {
       "files": 722,
-      "hits": 24309
+      "hits": 24316
     },
     "receipt": {
-      "files": 154,
-      "hits": 2404
+      "files": 152,
+      "hits": 2402
     },
     "hitl": {
       "files": 436,
-      "hits": 3666
+      "hits": 3662
     },
     "routing": {
       "files": 315,
-      "hits": 2014
+      "hits": 2050
     },
     "workflow": {
       "files": 232,
@@ -414,7 +414,7 @@
     },
     "tenant": {
       "files": 665,
-      "hits": 14776
+      "hits": 14777
     },
     "market": {
       "files": 384,
@@ -430,15 +430,15 @@
     },
     "forecast": {
       "files": 320,
-      "hits": 4541
+      "hits": 4543
     },
     "edm": {
       "files": 330,
-      "hits": 2372
+      "hits": 2370
     },
     "mako": {
       "files": 279,
-      "hits": 2229
+      "hits": 2231
     },
     "willi": {
       "files": 100,
@@ -454,15 +454,15 @@
     },
     "stadtwerk": {
       "files": 242,
-      "hits": 5622
+      "hits": 5620
     },
     "utility": {
       "files": 93,
-      "hits": 614
+      "hits": 612
     },
     "regulator": {
-      "files": 316,
-      "hits": 2486
+      "files": 315,
+      "hits": 2485
     },
     "decision": {
       "files": 430,
