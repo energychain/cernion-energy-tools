@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-10T03:02:10.527Z
+Generated: 2026-10-10T07:22:47.615Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.21
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 1296
+- Files scanned: 1309
 - Services: 144
-- src/*.js files: 211
+- src/*.js files: 212
 - Tests: 330
 - Integrations files: 26
-- Markdown/docs files: 383
+- Markdown/docs files: 395
 
 ## Existing validation summary
 
@@ -28,9 +28,9 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 - `tests`: 373 files
 - `docs`: 298 files
-- `src`: 258 files
+- `src`: 259 files
 - `services`: 180 files
-- `agentic-architecture`: 34 files
+- `agentic-architecture`: 46 files
 - `.claude`: 26 files
 - `integrations`: 26 files
 - `scripts`: 23 files
@@ -49,8 +49,8 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Agentic surface
 
-- Agent/capability/sidecar related files: 211
-- Routing/capability/broker/manifest files: 48
+- Agent/capability/sidecar related files: 223
+- Routing/capability/broker/manifest files: 51
 - Evidence/HITL/receipt/dossier files: 67
 - OpenWebUI/ChatGPT adapter files: 25
 
@@ -60,10 +60,16 @@ Primary agentic files:
 - `agentic-architecture/ARCHITECTURE_CANON.md`
 - `agentic-architecture/DOMAIN_ONTOLOGY.md`
 - `agentic-architecture/domain/AMBIGUOUS_TERMS.md`
+- `agentic-architecture/domain/CASE_TYPE_INDEX.md`
+- `agentic-architecture/domain/CASE_TYPE_ROUTING.md`
 - `agentic-architecture/domain/DOMAIN_OBJECTS.md`
 - `agentic-architecture/domain/domain-abstraction-report.md`
 - `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md`
 - `agentic-architecture/domain/EVIDENCE_VS_PRACTICE.md`
+- `agentic-architecture/domain/falltypen/KUNDEN_SERVICE_KLAERFALL.md`
+- `agentic-architecture/domain/falltypen/MESSWERT_EDM_PLAUSIBILITAETSFALL.md`
+- `agentic-architecture/domain/falltypen/README.md`
+- `agentic-architecture/domain/falltypen/STAMMDATEN_MARKTROLLEN_KLAERFALL.md`
 - `agentic-architecture/domain/HUMAN_DECISION_POINTS.md`
 - `agentic-architecture/domain/NATURAL_WORKFLOWS.md`
 - `agentic-architecture/domain/PROCESS_PATTERNS.md`
@@ -77,25 +83,19 @@ Primary agentic files:
 - `agentic-architecture/reports/latest/canon-update-proposal.md`
 - `agentic-architecture/reports/latest/domain-abstraction-summary.json`
 - `agentic-architecture/reports/latest/domain-abstraction/AMBIGUOUS_TERMS.md`
+- `agentic-architecture/reports/latest/domain-abstraction/CASE_TYPE_INDEX.md`
+- `agentic-architecture/reports/latest/domain-abstraction/CASE_TYPE_ROUTING.md`
 - `agentic-architecture/reports/latest/domain-abstraction/DOMAIN_OBJECTS.md`
 - `agentic-architecture/reports/latest/domain-abstraction/domain-abstraction-report.md`
 - `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md`
 - `agentic-architecture/reports/latest/domain-abstraction/EVIDENCE_VS_PRACTICE.md`
+- `agentic-architecture/reports/latest/domain-abstraction/falltypen/KUNDEN_SERVICE_KLAERFALL.md`
+- `agentic-architecture/reports/latest/domain-abstraction/falltypen/MESSWERT_EDM_PLAUSIBILITAETSFALL.md`
+- `agentic-architecture/reports/latest/domain-abstraction/falltypen/README.md`
+- `agentic-architecture/reports/latest/domain-abstraction/falltypen/STAMMDATEN_MARKTROLLEN_KLAERFALL.md`
 - `agentic-architecture/reports/latest/domain-abstraction/HUMAN_DECISION_POINTS.md`
 - `agentic-architecture/reports/latest/domain-abstraction/NATURAL_WORKFLOWS.md`
 - `agentic-architecture/reports/latest/domain-abstraction/PROCESS_PATTERNS.md`
-- `agentic-architecture/reports/latest/openwebui-blindspots.md`
-- `agentic-architecture/reports/latest/refactoring-backlog.md`
-- `agentic-architecture/reports/latest/scan-complete.txt`
-- `agentic-architecture/reports/latest/scan-summary.json`
-- `agentic-architecture/SHEPHERD_SUMMARY.md`
-- `agentic-architecture/shepherd-fingerprint.json`
-- `AGENTS.md`
-- `docs/agent-decision-enums.ts`
-- `docs/agent-responses/alloc-list.json`
-- `docs/agent-responses/alloc-list.status`
-- `docs/agent-responses/es-list.json`
-- `docs/agent-responses/es-list.status`
 
 ## Service inventory
 
