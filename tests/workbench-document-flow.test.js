@@ -201,6 +201,25 @@ describe('document conversation integration', () => {
     expect(overview.requiredClarifications).toEqual([]);
     expect(overview.metadata.degraded).toBe(false);
     expect(service.workbenchDocumentReviews?.size || 0).toBe(0);
+    llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+      const data = JSON.parse(prompt);
+      if (data.untrustedDocument) return { ...structuredClone(map), citations: [data.lines[0]] };
+      if (data.maps)
+        return {
+          verdict: 'Prüfung abgeschlossen.',
+          rationale: 'Synthetische Prüfung.',
+          strengths: [],
+          risks: [],
+          checkpoints: [],
+          contradictions: [],
+          openQuestions: [],
+          draft: '',
+        };
+      return { ...structuredClone(situation), turnKind: 'review', conversationShape: 'task' };
+    });
+    const review = await turn('Prüfe das Dokument fachlich.');
+    expect(review.documentReview.status).toBe('pending');
+    await Promise.all(service.workbenchDocumentReviews.values());
   });
 
   test('an explicit draft after orientation gets a fresh task situation', async () => {

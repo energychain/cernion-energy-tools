@@ -391,7 +391,9 @@ async function documentReply(
   if (!documents.length) return null;
   const question = envelope.userRequest;
   if (
-    conversationReplyRequested ||
+    (conversationReplyRequested &&
+      !isReviewRequest(question) &&
+      !documentDraftRequested(question)) ||
     ['orientation', 'knowledge', 'assistance', 'filing'].includes(situation.conversationShape)
   ) {
     const reply = await require('./workbench-understanding').answer({
