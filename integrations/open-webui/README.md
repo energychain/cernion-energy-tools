@@ -118,6 +118,18 @@ Common fail-closed errors:
 - `WORKBENCH_IDENTITY_INCOMPLETE`: send Open-WebUI user and organization ids together.
 - Evidence attach errors for unknown `evidenceType`, `sourceType`, missing sensitivity clearance or secret-like `sourceRef` fields are intentional fail-closed behavior.
 
+
+## Forecast & Data-Quality Fit self-service preview
+
+For buyer-readable RC3 demos, use [`forecast-data-review-self-service.md`](./forecast-data-review-self-service.md) instead of leading with API documentation. The flow is intentionally file/result oriented:
+
+1. show the synthetic CSV input shape in `examples/forecast-fit/sample-load-profile.csv`;
+2. show the synthetic fit matrix in `examples/forecast-fit/sample-fit-matrix.json`;
+3. show the report-style output in `examples/forecast-fit/sample-report.md`;
+4. only then offer paid review, pilot or advanced API/model access.
+
+The preview is public-safe and must not claim a forecast-quality guarantee, productive operation, SLA, legal/regulatory advice or custom integration.
+
 ## OpenAI-compatible Sidecar bridge
 
 The legacy bridge lets an existing Open WebUI instance use a single, explicit Cernion Sidecar
