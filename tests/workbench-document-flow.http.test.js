@@ -204,4 +204,70 @@ describe('document flow through authenticated HTTP', () => {
     const quote = content.match(/^> (.+)$/mu)[1];
     expect(text.slice(Number(offsets[1]), Number(offsets[2]))).toBe(quote);
   });
+  test('identical Open WebUI context on three HTTP turns stores once and answers all three questions', async () => {
+    const text =
+      'Synthetischer Anfang: Die Planung beginnt 2030.\nKapitel 1: Grundlagen\nEin Termin ist noch offen.\nSynthetisches Ende: Der Abschluss ist 2034 vorgesehen.';
+    const context = `<context><source id="repeat-source" name="Synthetic-Repeated.txt">${text}</source></context>`;
+    const save = jest.spyOn(app.workbench.store, 'saveEvidence');
+    const log = jest.spyOn(app.workbench.logger, 'info');
+    const original = llm.generateStructured.getMockImplementation();
+    llm.generateStructured.mockImplementation(async (schema, prompt, options) => {
+      if (schema.properties?.answer) {
+        const input = JSON.parse(prompt);
+        expect(input.question).toBe('Gibt es Auffälligkeiten?');
+        expect(input.sections.some((section) => section.text.includes('2034'))).toBe(true);
+        return {
+          answer:
+            'Im Dokument bleibt ein Termin offen (Kapitel 1: Grundlagen). Das ist eine zu klärende Angabe.',
+        };
+      }
+      return original(schema, prompt, options);
+    });
+    try {
+      const messages = [
+        'Was steht am Anfang des Dokuments?',
+        'Gibt es Auffälligkeiten?',
+        'Was steht ganz am Ende des Dokuments?',
+      ];
+      const replies = [];
+      for (const question of messages) {
+        const response = await request(
+          `${context}<user_query>${question}</user_query>`,
+          'person-a',
+          'repeated-document-http'
+        );
+        expect(response.status).toBe(200);
+        replies.push(response.body.choices[0].message.content);
+      }
+      expect(replies[0]).toContain('Synthetischer Anfang');
+      expect(replies[1]).toContain('Termin offen');
+      expect(replies[2]).toContain('Synthetisches Ende');
+      expect(
+        replies.filter((reply) => reply.includes('als Fallgrundlage gespeichert'))
+      ).toHaveLength(1);
+      expect(
+        save.mock.calls.filter(
+          ([input]) => input.extracts?.document?.name === 'Synthetic-Repeated.txt'
+        )
+      ).toHaveLength(1);
+      const storedLogs = log.mock.calls.filter(
+        ([message, data]) =>
+          message === 'Workbench document stored' && data.name === 'Synthetic-Repeated.txt'
+      );
+      expect(storedLogs).toHaveLength(1);
+      expect(storedLogs[0][1]).toEqual({
+        name: 'Synthetic-Repeated.txt',
+        chars: text.length,
+        lines: 4,
+        tabular: false,
+      });
+      expect(JSON.stringify(storedLogs)).not.toContain('2034');
+      for (const reply of replies)
+        expect(reply).not.toMatch(/Datenabfrage: skipped|opaque|repeat-source/u);
+    } finally {
+      save.mockRestore();
+      log.mockRestore();
+      llm.generateStructured.mockImplementation(original);
+    }
+  });
 });

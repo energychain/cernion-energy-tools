@@ -37,7 +37,21 @@ Quell-ID und Vollständigkeit liegen in `EvidenceRef.extracts.document`, SHA-256
 `fileHash`. `loadDocuments` liest dieselbe Fallgrundlage tenant-/fallgebunden und beachtet
 die Sensitivity-Freigabe. Identität kommt aus dem bestehenden Gateway, nie aus dem
 Dokument. Namen unterliegen der bestehenden Evidence-Validierung. Inhalte werden nicht
-protokolliert. Deduplizierung nutzt den bestehenden Fingerprint.
+protokolliert. Vor der Ablage wird derselbe Inhalt per SHA-256 im gleichen Fall erkannt,
+auch bei geändertem Dateinamen. Wiederholt mitgesendete Open-WebUI-Kontexte erzeugen
+weder eine weitere Ablage noch einen wiederholten Ablagehinweis.
+
+Dokument plus Inhaltsfrage beantwortet die aktuelle Frage. Anfang, Ende, Seite und
+Kapitel werden direkt aus dem gespeicherten Text gelesen; sonst werden relevante
+Abschnitte über die zentrale LLM-Fassade gezielt beantwortet. Nur ein ausdrücklicher
+Bewertungsauftrag startet das Hintergrund-Review. Der erste Ablagehinweis umfasst
+höchstens einen Satz. CSV-/TSV-/Markdown- und XLSX-Textdarstellungen werden erkannt;
+erste/letzte Datenzeile und Zeilenanzahl sind lokal beantwortbar. Weitergehende
+Tabellenauswertung verweist bis zur Integration von #774 ehrlich auf den Datenkatalog.
+
+Die Info-Zeile `Workbench document stored` enthält ausschließlich `name`, `chars`,
+`lines` und `tabular`. Sie erscheint einmal je neuer Ablage und ermöglicht die Prüfung,
+ob Open WebUI den erwarteten Umfang übermittelt hat, ohne Inhalte zu protokollieren.
 
 `reviewDocuments` verwendet ausschließlich `src/llm-client.js`; Tests ersetzen die Fassade.
 Eine Retrieval-Runde nutzt die vorhandene `collectEvidence`-Pipeline mit den konfigurierten

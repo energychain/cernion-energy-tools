@@ -170,12 +170,18 @@ supports data comparisons without domain rules or model arithmetic in the core.
 Limits:
 
 - `WORKBENCH_MAX_TOOL_CALLS`: maximum attempted calls per turn, default 3, ceiling 12.
-- `WORKBENCH_TOOL_RESULT_CHARS`: displayed/model result characters per call, default 6000,
-  ceiling 16000; at most 20 displayed rows.
+- `WORKBENCH_TOOL_RESULT_CHARS`: evidence/model result characters per call, default 6000,
+  ceiling 16000; at most 20 sample rows. Truncation removes rows only, retaining the
+  input count and locally computed extrema with their associated entries. A single
+  record that cannot fit requires a narrower projection; success flags never replace data.
 - Raw results: at most 2 MB and the existing tabular source limit of 50000 rows.
 - Planning and backend calls use the remaining retrieval deadline; backend retries are
   disabled. A timeout stops waiting and prevents subsequent calls. A started read may
   still finish in its underlying connector; no write operation is admitted.
+- `WORKBENCH_TURN_TIMEOUT_MS`: optional total turn budget. The default combines the
+  understanding, retrieval and answer phase budgets plus 3 seconds for routing. Tools
+  stop before the answer phase's full configured budget and a 1-second persistence reserve.
+- Identical backend requests (canonical operation and input) execute once per turn.
 
 Tool failures, missing parameters, unavailable capabilities and exhausted budgets remain
 explicit observations. The independent answer phase still runs and provides a partial
@@ -199,8 +205,12 @@ current tenant, scope, roles and domain restrictions before being reused. Canoni
 identifier values stay in local evidence; existing answer-context masking and the sole
 LLM facade protect every provider request.
 
-Bounded canonical results are also rendered directly alongside the provenance report.
-This preserves computed rows/rankings when a model claim is rejected by the existing
-answer guard. It does not relax claim grounding or infer completeness from a successful
-read. Follow-up interpretation can reuse recent evidence after authorization without
-new tool calls.
+Tool results supply evidence for sentences answering the question, including counts,
+names and values with units. Raw JSON, parameter names/codes and internal statuses
+are not chat output. The short provenance line contains the source, retrieval time
+and readable request filters, and appears only for a completed or reused read.
+If answer generation fails, existing counts and extrema still produce a deterministic
+partial answer. A follow-up asking for the largest/smallest previous entry reuses
+recent, reauthorized evidence without another planner or backend request. Explicit
+freshness requests still query again. Neither samples nor retrieval time establish
+complete registry coverage or a verified source data date.
