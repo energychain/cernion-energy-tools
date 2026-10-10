@@ -424,6 +424,66 @@ describe('tenant memory acceptance and lifecycle', () => {
     ).toEqual([]);
   });
 
+  test('a deferred relationship with cited knowledge is delivered once, separately from plausibility', async () => {
+    const first = await memory.capture(context(app), principal(), {
+      situation: situation(fixture.first.text, [assertion(fixture.first.text)]),
+      envelope: { userRequest: fixture.first.text, channel: 'api', conversationId: 'cited-first' },
+    });
+    let release;
+    let signalStarted;
+    const started = new Promise((resolve) => {
+      signalStarted = resolve;
+    });
+    llm.generateStructured.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+          signalStarted();
+        })
+    );
+    const service = app.broker.getLocalService('workbench');
+    const state = memory.start(service, context(app, 'Doris'), principal('Doris'), {
+      situation: situation(fixture.second.text, [assertion(fixture.second.text)]),
+      envelope: {
+        userRequest: fixture.second.text,
+        channel: 'api',
+        conversationId: 'cited-second',
+      },
+      retrieval: Promise.resolve({
+        evidence: [{ source: 'Synthetic guideline', value: 'Synthetic supporting information.' }],
+      }),
+    });
+    await started;
+    state.deferred = true;
+    state.renderedConfirmation = true;
+    release({
+      relations: [
+        {
+          candidateId: first.ids[0],
+          kind: 'gap',
+          reason: fixture.reason,
+          uncertainty: 0.2,
+          evidenceIds: ['K1'],
+          question: fixture.question,
+        },
+      ],
+      plausibility: [],
+    });
+    await state.job;
+    expect(
+      (await store.get(context(app, 'Doris'), principal('Doris'), state.ids[0])).payload
+        .plausibility
+    ).toEqual([]);
+    const notices = await app.call(
+      'notices.list',
+      { tenantId: 'tenant-a', actorId: 'Doris' },
+      auth('Doris')
+    );
+    expect(notices.items).toHaveLength(1);
+    expect(notices.items[0].text).toContain('Synthetic guideline');
+    expect(notices.items[0].text).toContain(fixture.reason);
+  });
+
   test('an interrupted turn leaves retryable memory without a hanging background job', async () => {
     const previousTimeout = process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS;
     process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS = '25';

@@ -132,6 +132,23 @@ async function enqueue(ctx, p, actorId, relationId, factIds, confirmation = fals
       confirmation,
     });
 }
+function plausibilityText(item, evidence) {
+  const refs = evidence.filter((hit) => item.evidenceIds?.includes(hit.id));
+  if (!item.reason?.trim() || !refs.length) return '';
+  const sources = refs.map((hit) => {
+    const url = hit.url ? ` (${hit.url})` : '';
+    return `${hit.source}${url}: ${hit.value}`;
+  });
+  return `${item.reason} Quelle: ${sources.join('; ')}`;
+}
+async function deferredNotices(ctx, p, fact) {
+  const latest = (await store.get(ctx, p, fact.id)).payload;
+  if (latest.plausibility?.length) await enqueue(ctx, p, p.actorId, fact.id, [fact.id]);
+  for (const relationId of latest.relationIds) {
+    const relation = (await store.get(ctx, p, relationId)).payload;
+    await enqueue(ctx, p, p.actorId, relationId, relation.factIds);
+  }
+}
 async function assess(ctx, p, fact, retrieval) {
   const all = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
   const weighted = new Set(store.candidates(fact, all).map((item) => item.id));
@@ -181,7 +198,7 @@ async function assess(ctx, p, fact, retrieval) {
       !['conflict', 'dependency', 'gap', 'confirmation'].includes(item.kind)
     )
       continue;
-    const factIds = [fact.id, candidate.id].sort();
+    const factIds = [fact.id, candidate.id].sort((left, right) => left.localeCompare(right));
     const id = store.key(['relationship', ...factIds]);
     const reason = `${item.reason}${item.uncertainty > 0 ? ` Unsicherheit: ${Math.round(item.uncertainty * 100)} %.` : ''}`;
     let fresh = false;
@@ -221,17 +238,14 @@ async function assess(ctx, p, fact, retrieval) {
     if (candidate.person.actorId !== p.actorId)
       await enqueue(ctx, p, candidate.person.actorId, id, factIds);
   }
-  for (const item of result.plausibility || []) {
-    const refs = evidence.filter((hit) => item.evidenceIds?.includes(hit.id));
-    if (item.reason?.trim() && refs.length)
-      texts.push(
-        `${item.reason} Quelle: ${refs.map((hit) => `${hit.source}${hit.url ? ` (${hit.url})` : ''}: ${hit.value}`).join('; ')}`
-      );
-  }
+  const plausibility = (result.plausibility || [])
+    .map((item) => plausibilityText(item, evidence))
+    .filter(Boolean);
+  texts.push(...plausibility);
   await store.mutate(ctx, p, fact.id, (value) => ({
     ...value,
     checking: 'complete',
-    plausibility: texts.filter((text) => text.includes('Quelle:')),
+    plausibility,
   }));
   return texts.filter(Boolean);
 }
@@ -249,6 +263,7 @@ function start(service, ctx, p, input) {
     state.settled = true;
     return state;
   }
+  service.tenantMemoryJobs ||= new Set();
   const job = (async () => {
     const captured = await capture(ctx, p, input);
     Object.assign(state, captured, { captured: true });
@@ -272,14 +287,7 @@ function start(service, ctx, p, input) {
         fact.checkingEvidence ? { evidence: fact.checkingEvidence } : retrieval || {}
       );
       state.paragraphs.push(...texts);
-      if (state.deferred) {
-        const latest = (await store.get(ctx, p, fact.id)).payload;
-        if (latest.plausibility?.length) await enqueue(ctx, p, p.actorId, fact.id, [fact.id]);
-        for (const relationId of latest.relationIds) {
-          const relation = (await store.get(ctx, p, relationId)).payload;
-          await enqueue(ctx, p, p.actorId, relationId, relation.factIds);
-        }
-      }
+      if (state.deferred) await deferredNotices(ctx, p, fact);
     }
   })()
     .catch((error) =>
@@ -287,9 +295,9 @@ function start(service, ctx, p, input) {
     )
     .finally(() => {
       state.settled = true;
+      service.tenantMemoryJobs.delete(job);
     });
-  (service.tenantMemoryJobs ||= new Set()).add(job);
-  job.finally(() => service.tenantMemoryJobs.delete(job));
+  service.tenantMemoryJobs.add(job);
   state.job = job;
   return state;
 }
