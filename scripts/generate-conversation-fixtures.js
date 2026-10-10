@@ -20,7 +20,7 @@ const corpus = [
     turns: [
       {
         message:
-          'Was kannst Du mir dazu sagen?\n\n# Projektpapier\nFür das synthetische Projekt Nord ist eine Abstimmung für den 15. November geplant. Offen ist die Freigabe des Zeitplans.',
+          '<context><source id="synthetic-file-813" name="Projektpapier.md"># Projektpapier\nFür das synthetische Projekt Nord ist eine Abstimmung für den 15. November geplant. Offen ist die Freigabe des Zeitplans.</source></context><user_query>Was kannst Du mir dazu sagen?</user_query>',
         question: true,
       },
       { message: 'Mir geht es um einen kurzen Überblick.', question: false },

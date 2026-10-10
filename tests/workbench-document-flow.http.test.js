@@ -309,7 +309,7 @@ describe('document flow through authenticated HTTP', () => {
               },
             }
           : previous?.conversationContext
-            ? { conversationContext: previous.conversationContext }
+            ? { conversationContext: { ...previous.conversationContext, preference: '' } }
             : {}),
       };
     });
@@ -346,6 +346,7 @@ describe('document flow through authenticated HTTP', () => {
       ]) {
         const result = await request(message, 'person-a', 'conversation-shape-http');
         expect(result.status).toBe(200);
+        expect(result.body.metadata.degraded).toBe(false);
         replies.push(result.body.choices[0].message.content);
       }
       expect(replies[0].match(/\?/g) || []).toHaveLength(1);

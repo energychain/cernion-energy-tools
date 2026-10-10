@@ -78,3 +78,14 @@ test('foreign tenant cases cannot expose document contents', async () => {
   await searchKnowledge(service, ctx, p, { selfKnowledge: { query: 'System X' } });
   expect(loadDocuments).not.toHaveBeenCalled();
 });
+
+test('an unavailable case index marks the dependent document search unavailable', async () => {
+  const { service, ctx, router } = setup();
+  router.visibleStates.mockRejectedValue(new Error('Unavailable'));
+  loadDocuments.mockClear();
+  const result = await searchKnowledge(service, ctx, p, { selfKnowledge: { query: 'System X' } });
+  expect(result.trace.find((entry) => entry.source === 'cases').status).toBe('unavailable');
+  expect(result.trace.find((entry) => entry.source === 'documents').status).toBe('unavailable');
+  expect(searchSummary(result.trace)).toContain('Dokumente (gerade nicht erreichbar)');
+  expect(loadDocuments).not.toHaveBeenCalled();
+});

@@ -353,7 +353,18 @@ async function launchReview(
 async function documentReply(
   service,
   ctx,
-  { p, envelope, caseId, situation, retrieval, meta = ctx.meta, access, selectedCapabilities = [] }
+  {
+    p,
+    envelope,
+    caseId,
+    situation,
+    retrieval,
+    asked = [],
+    conversationReplyRequested = false,
+    meta = ctx.meta,
+    access,
+    selectedCapabilities = [],
+  }
 ) {
   if (!caseId) return null;
   ctx = Object.assign(Object.create(ctx), {
@@ -379,9 +390,13 @@ async function documentReply(
   const documents = await loadDocuments(service.store, identity);
   if (!documents.length) return null;
   const question = envelope.userRequest;
-  if (['orientation', 'filing'].includes(situation.conversationShape)) {
+  if (
+    conversationReplyRequested ||
+    ['orientation', 'knowledge', 'assistance', 'filing'].includes(situation.conversationShape)
+  ) {
     const reply = await require('./workbench-understanding').answer({
       situation,
+      asked,
       tenantId: p.tenantId,
       message: question,
       retrieval: {
@@ -558,8 +573,9 @@ function documentAnswer(reply) {
 
 async function documentFollowupResponse(
   service,
-  { p, envelope, conversation, state, started, access }
+  { p, envelope, conversation, state, started, access, previousShape }
 ) {
+  if (['orientation', 'knowledge', 'assistance', 'filing'].includes(previousShape)) return null;
   if (!state || state.disposition === 'discarded') return null;
   const reply = await documentFollowup(service, {
     p,

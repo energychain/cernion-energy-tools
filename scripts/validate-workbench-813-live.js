@@ -99,7 +99,7 @@ async function validateConversation() {
               !/unverbindliche Einschätzung|keine externe Handlung|versendet.*nichts/iu.test(
                 result.responseText
               ),
-            answered: !result.metadata?.degraded,
+            answered: result.metadata?.degraded === false,
             ...(turn.search
               ? { searchedSources: result.responseText.includes('Nachgesehen:') }
               : {}),

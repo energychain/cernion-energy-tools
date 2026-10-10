@@ -70,7 +70,11 @@ async function searchKnowledge(service, ctx, p, situation) {
         .map((fact) => hit('tenant-memory', 'Tenant-Gedächtnis', memory.factText(fact)));
     }),
     read('documents', async () => {
-      if (!router) throw new Error('Documents unavailable');
+      if (
+        !router ||
+        trace.some((entry) => entry.source === 'cases' && entry.status === 'unavailable')
+      )
+        throw new Error('Documents unavailable');
       const hits = [];
       for (const state of states.filter((state) => rawContentAllowed(p, state))) {
         const docs = await loadDocuments(service.store, { ...p, caseId: state.cetCaseId });

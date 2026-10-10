@@ -128,6 +128,7 @@ async function runContentTurn(
     state,
     started,
     access,
+    previousShape: pending?.lastConversationShape,
   });
   if (documentFollowup) return documentFollowup;
   const previous =
@@ -147,7 +148,11 @@ async function runContentTurn(
         }
       : null);
   if (previous) delete previous.dataNeeds;
-  const draftRequest = Boolean(previous && understanding.isDraftRequest(envelope.userRequest));
+  const draftRequest = Boolean(
+    previous &&
+    ['work', 'review'].includes(previous.turnKind) &&
+    understanding.isDraftRequest(envelope.userRequest)
+  );
   const phaseTimes = { understandMs: 0, retrieveMs: 0, toolsMs: 0, answerMs: 0 };
   let situation;
   let understandingFailed = false;
@@ -814,6 +819,10 @@ async function runContentTurn(
       caseId: caseId || conversation?.cetCaseId,
       situation,
       retrieval: incomingDocuments ? null : retrieval,
+      asked: pending?.askedQuestions || [],
+      conversationReplyRequested: ['orientation', 'knowledge', 'assistance', 'filing'].includes(
+        pending?.lastConversationShape
+      ),
       meta,
       access,
       selectedCapabilities: result.selectedCapabilities,
@@ -953,6 +962,7 @@ async function runContentTurn(
         }
       : {}),
     situation,
+    lastConversationShape: situation.conversationShape,
     retrieval,
     tenantMemoryFactIds: memory.ids.length ? memory.ids : pending?.tenantMemoryFactIds || [],
     evidenceRetrievedAt: draftRequest || reuseTools ? pending?.evidenceRetrievedAt : Date.now(),

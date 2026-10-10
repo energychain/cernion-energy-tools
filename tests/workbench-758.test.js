@@ -157,7 +157,7 @@ test('three synthetic turns keep live mode and facts; energy cannot answer a pow
       expect(current.personFacts).toEqual(fixture.liveTurns);
     }
     const prompt = JSON.parse(llm.generateText.mock.calls.at(-1)[0]);
-    expect(prompt.conversationInstruction).toContain('kein Brief');
+    expect(prompt.instruction).toContain('ohne Brief');
     expect(prompt.instruction).toContain('niemals annehmen');
     previous = current;
   }
