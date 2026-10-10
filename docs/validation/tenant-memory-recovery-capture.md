@@ -6,8 +6,9 @@ Ergebnisse aus dem Skript in `tenant-memory-live.json`.
 
 ## Ursachen und Änderungen
 
-- Die Recovery legte Modellaufrufe in das 1.000-ms-Werkzeugbudget und startete alle Sekunde
-  erneut. Sie nutzt jetzt dieselben Assessment-Optionen wie der Turn, eine persistierte
+- Die Recovery begrenzte lokale Aufrufe auf 1.000 ms, verwendete für Modellprüfungen
+  die Verstehen-Optionen und startete jede Sekunde erneut. Sie nutzt jetzt dieselben
+  Assessment-Optionen wie der Turn, eine persistierte
   Warteschlange mit Backoff, Versuchsgrenze und begrenzter Batch-Größe. Standardintervall:
   30 Sekunden. `Retry-After` geht vor; es gibt keinen sofortigen Retry in der Fassade.
 - Das Assessment übergab Schema-Einschränkungen, die der echte strukturierte Providerpfad
