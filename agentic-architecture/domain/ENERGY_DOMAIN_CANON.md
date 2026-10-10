@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-10T03:02:13.755Z
+Generated: 2026-10-10T07:22:50.450Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -32,7 +32,7 @@ Starke Code-/Doku-Signale:
 - `src/capability-catalog.js` (613 hits)
 - `src/answer-dossier-hydration-rules.json` (361 hits)
 - `services/personal-agent/actions-part-01-of-1.js` (356 hits)
-- `services/capability-broker.service.js` (296 hits)
+- `services/capability-broker.service.js` (303 hits)
 - `services/dashboard-api/methods-part-09-of-14.js` (265 hits)
 - `services/dashboard-api/methods-part-08-of-14.js` (264 hits)
 - `services/dashboard-api/actions-part-06-of-8.js` (256 hits)

@@ -1,6 +1,6 @@
 # Kunden-/Service-Klärfall
 
-Generated: 2026-10-10T03:02:13.755Z
+Generated: 2026-10-10T07:22:50.450Z
 
 Status: draft
 Priority: 3
@@ -131,10 +131,10 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 ## Code-/Doku-Signale
 
 - `src/capability-catalog.js` (478 hits)
-- `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md` (318 hits)
-- `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md` (318 hits)
+- `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md` (322 hits)
+- `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md` (322 hits)
 - `services/capability-broker.service.js` (260 hits)
-- `agentic-architecture/reports/latest/architecture-scan.md` (234 hits)
+- `agentic-architecture/reports/latest/architecture-scan.md` (233 hits)
 - `src/report-builder.js` (174 hits)
 - `services/chatgpt-sidecar.service.js` (156 hits)
 - `feedback/HYGIENE_SPRINT.md` (145 hits)

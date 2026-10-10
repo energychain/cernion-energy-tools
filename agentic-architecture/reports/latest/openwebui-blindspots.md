@@ -1,6 +1,6 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-10T03:02:10.527Z
+Generated: 2026-10-10T07:22:47.615Z
 
 ## Observed adapter surface
 
@@ -47,7 +47,9 @@ Detected files:
 
 Routing/capability/broker/manifest files:
 
+- `agentic-architecture/domain/CASE_TYPE_ROUTING.md`
 - `agentic-architecture/OPENWEBUI_AGENTIC_ROUTING.md`
+- `agentic-architecture/reports/latest/domain-abstraction/CASE_TYPE_ROUTING.md`
 - `docs/OPERATION_CAPABILITY_INDEX.md`
 - `docs/PUBLIC_WEBSITE_BACKLOG_AGENT_ROUTING.md`
 - `docs/roadmap/resolved/16-capability-broker-v2.md`
@@ -69,6 +71,7 @@ Routing/capability/broker/manifest files:
 - `src/agent-sidecar-tool-manifest.js`
 - `src/answer-dossier-domain-routes.json`
 - `src/capability-catalog.js`
+- `src/case-type-routing.js`
 - `src/consultation-routing-guardrails.js`
 - `src/domain-routes-registry.js`
 - `src/energy-sidecar-route-registry.js`

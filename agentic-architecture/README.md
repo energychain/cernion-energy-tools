@@ -1,9 +1,9 @@
 # CET Agentic Architecture Shepherd
 
 Status: generated from the independent Architecture Shepherd checkout.
-Last material scan: 2026-10-10T03:02:13.833Z
-Run: 20261010T030056Z
-Fingerprint: 2a1dda425078748b30b5ee543148ca9fdb4721e660c26584e1b109ab974ec54d
+Last material scan: 2026-10-10T07:22:50.518Z
+Run: 20261010T072152Z
+Fingerprint: 3ca044bd30acbd0baec9c5690765645037a205e685463973211a789acfc5ca82
 
 This directory is the repo-local directive for CET's agentic development. It is generated from the Shepherd checkout and should guide Vibe-Coding agents toward a consistent target architecture.
 

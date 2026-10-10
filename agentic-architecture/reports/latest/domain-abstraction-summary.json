@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-10T03:02:13.755Z",
+  "generatedAt": "2026-10-10T07:22:50.450Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261010T030056Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261010T072152Z",
   "counts": {
-    "files": 1296,
-    "candidateFiles": 828,
+    "files": 1309,
+    "candidateFiles": 841,
     "services": 144,
-    "srcFiles": 256,
-    "docs": 383,
+    "srcFiles": 257,
+    "docs": 395,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -15,7 +15,7 @@
       "label": "Fallarbeit und Assistenz",
       "files": 25,
       "services": 1,
-      "hits": 4817
+      "hits": 4824
     },
     "evidence-and-trust": {
       "label": "Evidence, Nachweis und Vertrauen",
@@ -220,11 +220,11 @@
         },
         {
           "path": "agentic-architecture/domain/ENERGY_DOMAIN_CANON.md",
-          "hits": 318
+          "hits": 322
         },
         {
           "path": "agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md",
-          "hits": 318
+          "hits": 322
         },
         {
           "path": "services/capability-broker.service.js",
@@ -232,7 +232,7 @@
         },
         {
           "path": "agentic-architecture/reports/latest/architecture-scan.md",
-          "hits": 234
+          "hits": 233
         },
         {
           "path": "src/report-builder.js",
@@ -340,5 +340,5 @@
       "hits": 256
     }
   ],
-  "fingerprint": "47e7eb94ace055ebd887e8a146a25dc321c970f0f665a833bef3b187d6221596"
+  "fingerprint": "a1215df76456064bfe9dece399d6ccff4e6286526f3dd9864b43baf8bfd7b0fb"
 }
