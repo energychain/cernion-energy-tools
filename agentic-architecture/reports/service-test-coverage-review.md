@@ -1,19 +1,19 @@
 # Service Test Coverage Review
 
-Generated: 2026-10-10T11:21:08.429Z
-Source run: 20261010T072152Z
+Generated: 2026-10-10T13:26:46.807Z
+Source run: 20261010T132416Z
 
 This Shepherd review classifies services that have no obvious direct unit test by filename heuristic. It is not a claim that the service is untested; it is a routing list for autonomous follow-up work.
 
 ## Summary
 
-- Services scanned: 144
-- Tests scanned: 330
-- Services without obvious direct test: 26
+- Services scanned: 157
+- Tests scanned: 458
+- Services without obvious direct test: 27
 
 ## Classification counts
 
-- `coverage_review_needed`: 18
+- `coverage_review_needed`: 19
 - `domain_smoke_test_recommended`: 6
 - `smoke_test_recommended`: 1
 - `experimental_or_demo`: 1
@@ -109,6 +109,11 @@ This Shepherd review classifies services that have no obvious direct unit test b
 
 - Classification: `coverage_review_needed`
 - Recommendation: Review whether reporting-governance is indirectly covered; otherwise add a minimal action-level smoke test.
+
+### services/shared-service-agents.service.js
+
+- Classification: `coverage_review_needed`
+- Recommendation: Review whether shared-service-agents is indirectly covered; otherwise add a minimal action-level smoke test.
 
 ### services/tenant-quota.service.js
 
