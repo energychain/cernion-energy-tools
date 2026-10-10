@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
+const { compareCanonicalStrings } = require('../src/canonical-order');
 const fs = require('fs');
 const path = require('path');
 
@@ -29,7 +30,7 @@ function extractRequiredIds(markdown) {
   while ((match = regex.exec(markdown)) !== null) {
     set.add(match[1]);
   }
-  return Array.from(set).sort();
+  return Array.from(set).sort(compareCanonicalStrings);
 }
 
 function splitRequiredIds(requiredIds) {

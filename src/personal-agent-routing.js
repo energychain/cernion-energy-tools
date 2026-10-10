@@ -1669,6 +1669,22 @@ function buildExecutionPlan({
   knowledgeContext = null,
   knownContext = {},
 }) {
+  if (brokerRecommendation?.uncertain) {
+    return {
+      source: 'capability-broker',
+      routeKey: null,
+      routeLabel: brokerRecommendation.summary,
+      primaryIntent: 'clarify',
+      secondaryIntents: [],
+      requestedDomains: [],
+      unsupportedDomains: [],
+      steps: [],
+      status: 'clarification_required',
+      warnings: [],
+      promptHints: {},
+      candidates: brokerRecommendation.candidates || [],
+    };
+  }
   const promptHints = extractPromptHints(message);
   const evidenceSignalKey = detectEvidenceSignalKey(message, knownContext, promptHints);
   const requestedDomains = detectRequestedDomains(message);

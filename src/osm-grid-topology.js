@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 /**
  * OSM Grid Topology — local replacement for the mcp.cernion.de `osm_grid_topology`
  * MCP tool.
@@ -439,7 +441,7 @@ function buildGraph(nodesById, ways, voltageLevelFilter) {
       const toNode = attachments[i].node;
       if (fromNode.osmId === toNode.osmId) continue; // same node attached twice (shouldn't happen, defensive)
 
-      const key = [fromNode.osmId, toNode.osmId].sort().join('|');
+      const key = [fromNode.osmId, toNode.osmId].sort(compareCanonicalStrings).join('|');
       if (edgesByKey.has(key)) continue;
 
       const lengthKm =
@@ -509,7 +511,7 @@ function buildGraph(nodesById, ways, voltageLevelFilter) {
         }
         if (!nearestSubstation || nearestDistanceM > MAX_NEAREST_SUBSTATION_DISTANCE_M) continue;
 
-        const key = [node.osmId, nearestSubstation.osmId].sort().join('|');
+        const key = [node.osmId, nearestSubstation.osmId].sort(compareCanonicalStrings).join('|');
         if (edgesByKey.has(key)) continue;
 
         edgesByKey.set(key, {

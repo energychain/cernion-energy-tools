@@ -15,7 +15,10 @@ const {
   isReadMethod,
   isReadOnlySidecarInvocation,
   isOperationsRunbookInvocation,
+  isDomainRouterAdvisoryInvocation,
 } = require('../src/gateway-request-classifiers');
+
+const { validateTokenIdentity } = require('../src/auth/token-policy');
 
 const DEFAULT_STORAGE_FILE = process.env.TOKEN_STORAGE_FILE || './uploads/.api-tokens.json';
 const DEFAULT_SIGNAL_QUEUE_FILE =
@@ -177,6 +180,8 @@ module.exports = {
           data: tokens.map((entry) => ({
             id: entry.id,
             name: entry.name,
+            ...(entry.type ? { type: entry.type, client: entry.client } : {}),
+            ...(entry.roles ? { roles: entry.roles } : {}),
             token: entry.tokenMasked,
             createdAt: entry.createdAt,
             lastUsedAt: entry.lastUsedAt || null,
@@ -287,7 +292,13 @@ module.exports = {
     // Gating belongs on the `create` action above (the HTTP-facing path).
     // Callers: scripts/provision-token.js (guarded by CERNION_SUPPORT_TOKEN).
     createCli: {
+      visibility: 'protected',
       params: {
+        gateway: { type: 'boolean', optional: true },
+        client: { type: 'string', optional: true },
+        externalOrgId: { type: 'string', optional: true, trim: true, min: 1, max: 500 },
+        roles: { type: 'array', items: 'string', optional: true },
+        support: { type: 'boolean', optional: true },
         name: { type: 'string', min: 1, max: MAX_NAME_LENGTH, trim: true },
         scope: {
           type: 'enum',
@@ -314,7 +325,14 @@ module.exports = {
         },
       },
       handler(ctx) {
-        return this._doCreateToken(ctx.params);
+        if (ctx.meta.$gateway || ctx.meta.mcpBearerToken) {
+          throw new Errors.MoleculerClientError(
+            'Token provisioning requires the local CLI.',
+            403,
+            'TOKEN_CLI_REQUIRED'
+          );
+        }
+        return this._doCreateToken(ctx.params, { enforceLimit: false, cli: true });
       },
     },
 
@@ -400,12 +418,23 @@ module.exports = {
 
         const record = tokens[matchIndex];
         const scope = normaliseScope(record.scope);
+        if (
+          record.type === 'gateway' &&
+          !(
+            (method === 'POST' && requestPath === '/v1/chat/completions') ||
+            (method === 'GET' && requestPath === '/v1/models')
+          )
+        ) {
+          return { success: true, valid: false, reason: 'GATEWAY_TOKEN_FORBIDDEN' };
+        }
 
         if (
+          record.type !== 'gateway' &&
           scope === 'read-only' &&
           !isReadMethod(method) &&
           !isReadOnlySidecarInvocation(method, requestPath) &&
-          !isOperationsRunbookInvocation(method, requestPath)
+          !isOperationsRunbookInvocation(method, requestPath) &&
+          !isDomainRouterAdvisoryInvocation(method, requestPath)
         ) {
           return {
             success: true,
@@ -439,6 +468,10 @@ module.exports = {
           success: true,
           valid: true,
           tokenId: record.id,
+          ...(record.type
+            ? { type: record.type, client: record.client, externalOrgId: record.externalOrgId }
+            : {}),
+          ...(record.roles ? { roles: record.roles } : {}),
           name: record.name,
           scope,
           scopes: record.scopes || [scope],
@@ -505,7 +538,21 @@ module.exports = {
   },
 
   methods: {
-    _doCreateToken({ name, tenantId, userId, scope: rawScope, scopes: extraScopes = [] }) {
+    _doCreateToken(
+      {
+        name,
+        tenantId,
+        userId,
+        scope: rawScope,
+        scopes: extraScopes = [],
+        gateway = false,
+        client,
+        externalOrgId,
+        roles,
+        support = false,
+      },
+      { enforceLimit = true, cli = false } = {}
+    ) {
       // Explicit checks so direct invocation — bypassing moleculer-web validator —
       // still rejects unbound tokens. Issue #157: no new token without tenant/user binding.
       if (!tenantId) {
@@ -523,8 +570,29 @@ module.exports = {
         );
       }
 
-      const scope = normaliseScope(rawScope);
-      const scopes = normalizeScopes(scope, extraScopes);
+      if (!cli && (gateway || roles !== undefined || client || externalOrgId || support)) {
+        throw new Errors.MoleculerClientError(
+          'Gateway and role issuance requires the provisioning CLI.',
+          403,
+          'TOKEN_CLI_REQUIRED'
+        );
+      }
+      const validatedRoles = validateTokenIdentity({
+        gateway,
+        client,
+        externalOrgId,
+        roles,
+        support,
+      });
+      if (gateway && extraScopes.length) {
+        throw new Errors.MoleculerClientError(
+          'Gateway tokens cannot have scopes.',
+          422,
+          'INVALID_TOKEN_SCOPE'
+        );
+      }
+      const scope = gateway ? 'read-only' : normaliseScope(rawScope);
+      const scopes = gateway ? [] : normalizeScopes(scope, extraScopes);
 
       validateTenantId(tenantId);
       if (!isTenantAllowed(tenantId) && !tenantExistsInRegistry(tenantId)) {
@@ -544,7 +612,7 @@ module.exports = {
 
       const tokens = this.loadTokens();
       const activeCount = tokens.filter((entry) => entry.active !== false).length;
-      if (activeCount >= this.settings.maxTokensPerInstallation) {
+      if (enforceLimit && activeCount >= this.settings.maxTokensPerInstallation) {
         throw new Error(
           `Token limit reached (${this.settings.maxTokensPerInstallation}). Revoke unused tokens first.`
         );
@@ -556,6 +624,8 @@ module.exports = {
         id: crypto.randomUUID(),
         name,
         tokenHash: sha256(rawToken),
+        ...(gateway ? { type: 'gateway', client, externalOrgId: externalOrgId.trim() } : {}),
+        ...(roles !== undefined ? { roles: validatedRoles } : {}),
         tokenMasked: maskToken(rawToken),
         createdAt,
         lastUsedAt: null,
@@ -567,6 +637,22 @@ module.exports = {
         active: true,
       };
 
+      if (support) {
+        const auditFile = process.env.TOKEN_ROLE_AUDIT_FILE || './uploads/.token-role-audit.jsonl';
+        ensureDirForFile(auditFile);
+        fs.appendFileSync(
+          auditFile,
+          JSON.stringify({
+            event: 'token.support_roles_issued',
+            tokenId: record.id,
+            tenantId,
+            userId,
+            roles: validatedRoles,
+            createdAt,
+          }) + '\n',
+          'utf8'
+        );
+      }
       tokens.push(record);
       this.saveTokens(tokens);
       if (typeof this.recordTokenSignal === 'function') {
@@ -581,6 +667,10 @@ module.exports = {
         success: true,
         data: {
           id: record.id,
+          ...(record.type
+            ? { type: record.type, client: record.client, externalOrgId: record.externalOrgId }
+            : {}),
+          ...(record.roles ? { roles: record.roles } : {}),
           name: record.name,
           token: rawToken,
           createdAt: record.createdAt,

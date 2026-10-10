@@ -5,6 +5,7 @@
  */
 
 const crypto = require('crypto');
+const { stableStringify } = require('./decision-evidence-audit-trail');
 
 class VDMIAuditTrail {
   constructor(pouchdb) {
@@ -22,6 +23,7 @@ class VDMIAuditTrail {
     const auditEntry = {
       _id: `${this.collectionPrefix}${tenantId}:${crypto.randomUUID()}`,
       tenantId,
+      integrityVersion: 2,
       action: entry.action, // MATRIX_OVERRIDE, MATRIX_REVERT, FINDING_CREATED, etc.
       actor: entry.actor, // email of user performing action
       actorRole: entry.actorRole, // hitl-approver, data-steward, etc.
@@ -61,8 +63,11 @@ class VDMIAuditTrail {
     try {
       const result = await this.db.find({
         selector: {
-          _id: { $gt: `${this.collectionPrefix}${tenantId}:` },
-          _id: { $lt: `${this.collectionPrefix}${tenantId}:\uffff` },
+          _id: {
+            $gt: `${this.collectionPrefix}${tenantId}:`,
+            $lt: `${this.collectionPrefix}${tenantId}:\uffff`,
+          },
+          tenantId,
           'relatedEntities.type': entityType,
           'relatedEntities.id': entityId,
         },
@@ -84,31 +89,32 @@ class VDMIAuditTrail {
    * @private
    */
   _calculateHash(entry) {
-    const canonicalized = JSON.stringify(
-      {
-        action: entry.action,
-        actor: entry.actor,
-        timestamp: entry.timestamp,
-        delta: entry.delta,
-        relatedEntities: entry.relatedEntities,
-      },
-      Object.keys({
-        action: null,
-        actor: null,
-        timestamp: null,
-        delta: null,
-        relatedEntities: null,
-      }).sort()
-    );
+    const canonicalized = stableStringify({
+      integrityVersion: entry.integrityVersion,
+      tenantId: entry.tenantId,
+      action: entry.action,
+      actor: entry.actor,
+      actorRole: entry.actorRole,
+      timestamp: entry.timestamp,
+      rationale: entry.rationale,
+      changeCategory: entry.changeCategory,
+      delta: entry.delta,
+      relatedEntities: entry.relatedEntities,
+      ipAddress: entry.ipAddress,
+      userAgent: entry.userAgent,
+      createdAt: entry.createdAt,
+    });
     return crypto.createHash('sha256').update(canonicalized).digest('hex');
   }
 
   /**
    * Verify audit entry integrity
    * @param {object} entry
-   * @returns {boolean} True if hash matches
+   * Legacy hashes omitted nested fields and cannot prove integrity.
+   * @returns {boolean} True if a version 2 hash matches
    */
   verifyIntegrity(entry) {
+    if (!entry || entry.integrityVersion !== 2) return false;
     const expectedHash = this._calculateHash(entry);
     return entry.integrityHash === expectedHash;
   }

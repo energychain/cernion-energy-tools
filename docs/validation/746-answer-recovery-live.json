@@ -1,0 +1,1224 @@
+{
+  "mode": "live central LLM / synthetic long EBD source stubs; no actor mapping; reconstructed anonymous mail",
+  "provider": "gemini",
+  "models": "gemini-3.5-flash-lite",
+  "answerModel": "gemini-flash-latest",
+  "budgets": "15000,45000",
+  "thinking": "minimal,default",
+  "followupThinking": "low",
+  "turns": [
+    {
+      "message": "Anonymisierte Mail eines Lieferanten an einen Netzbetreiber: Zu unserer Netzanmeldung zum Lieferbeginn vom 05.10.2026, DAR DE000000000001, Marktlokation 99000000001, Anschlussadresse Beispielstraße 1, fehlt laut unserem Bearbeitungsstand die Rückmeldung. Die Frist ist laut Mail überschritten. Bitte teilen Sie uns den Bearbeitungsstand mit. Kannst du mir helfen?",
+      "elapsedMs": 32253,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 2654,
+        "retrieveMs": 13,
+        "answerMs": 29457
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 29
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 9
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 10
+        },
+        {
+          "name": "willi-mako",
+          "status": "available",
+          "hitCount": 5,
+          "ms": 9
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 5
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "capability-read",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 1
+        }
+      ],
+      "caseId": "12a3c933-82cd-4071-b12f-e0836059ed62",
+      "answerStatus": "grounded",
+      "answerAttempts": 1,
+      "responseText": "Eine Netzanmeldung zum Lieferbeginn bedarf einer fachlichen Prozessantwort über den Marktkommunikations-Kanal, wobei eine technische Eingangsbestätigung hierfür unzureichend ist und aus der Lieferantenmail keine Frist abgeleitet werden darf.\n\nDer Lieferant erwartet eine Mitteilung über den Bearbeitungsstand der Netzanmeldung zum Lieferbeginn vom 05.10.2026 für die Marktlokation 99000000001 und DAR DE000000000001 an der Adresse Beispielstraße 1.\n\nPrüfe im Marktkommunikationssystem den tatsächlichen Ausgang der fachlichen Prozessantwort zur DAR DE000000000001 an der Marktlokation 99000000001, da eine technische Eingangsbestätigung diese nicht ersetzt.\n\nKläre intern den Klärungsstand der Netzanmeldung, falls die fachliche Antwort über den Marktkommunikationskanal noch nicht versendet wurde.\n\nIch gehe davon aus, dass wir als Netzbetreiber für die Bearbeitung dieser Netzanmeldung an der Marktlokation 99000000001 zuständig sind – sonst sag Bescheid.\n\nEntwurf:\nVariante A – wenn die Netzanmeldung nach interner Prüfung bestätigt werden kann:\nGuten Tag, zur Netzanmeldung zum Lieferbeginn vom 05.10.2026 für die Marktlokation 99000000001 und DAR DE000000000001 an der Adresse Beispielstraße 1 erfolgt die fachliche Bestätigung über den regulären Marktkommunikations-Kanal. Freundliche Grüße\n\nVariante B – wenn die Netzanmeldung nach interner Prüfung abgelehnt werden muss:\nGuten Tag, zur Netzanmeldung zum Lieferbeginn vom 05.10.2026 für die Marktlokation 99000000001 und DAR DE000000000001 an der Adresse Beispielstraße 1 erfolgt die fachliche Ablehnung mit dem Grund [Ablehnungsgrund] über den Marktkommunikations-Kanal. Freundliche Grüße\n\nQuellen: willi-mako: synthetic-ebd-0; willi-mako: synthetic-ebd-1\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "situation": {
+        "concern": "Prüfung des Bearbeitungsstandes einer Netzanmeldung zur Marktlokation 99000000001 aufgrund einer angeblich überschrittenen Frist.",
+        "situation": "Ein Lieferant hat eine anonymisierte Mail an einen Netzbetreiber gesendet, in der er bemängelt, dass zur Netzanmeldung zum Lieferbeginn vom 05.10.2026, DAR DE000000000001 und Marktlokation 99000000001 an der Adresse Beispielstraße 1 die Rückmeldung fehlt und die Frist überschritten sei.",
+        "participants": [
+          "Lieferant",
+          "Netzbetreiber"
+        ],
+        "identifiers": [
+          {
+            "kind": "DAR",
+            "value": "DAR DE000000000001"
+          },
+          {
+            "kind": "Marktlokation",
+            "value": "Marktlokation 99000000001"
+          }
+        ],
+        "deadlines": [
+          {
+            "value": "Die Frist ist laut Mail überschritten",
+            "basis": "Die Frist ist laut Mail überschritten"
+          }
+        ],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-e2e-connection-check",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [
+          {
+            "key": "interner_bearbeitungsstand",
+            "question": "Wie ist der aktuelle interne Bearbeitungsstand der Netzanmeldung?",
+            "blocking": false
+          }
+        ],
+        "requestedAction": {
+          "description": "Den Bearbeitungsstand der Netzanmeldung an den Lieferanten mitteilen.",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Netzanmeldung",
+          "Lieferbeginn",
+          "DAR DE000000000001",
+          "Marktlokation 99000000001",
+          "Beispielstraße 1"
+        ],
+        "primaryDomain": "market_master_data"
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Anonymisierte Mail eines Lieferanten an einen Netzbetreiber: Zu unserer Netzanmeldung zum Lieferbeginn vom 05.10.2026, DAR DE000000000001, Marktlokation 99000000001, Anschlussadresse Beispielstraße 1, fehlt laut unserem · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        },
+        {
+          "source": "willi-mako",
+          "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+          "url": "https://example.invalid/synthetic-ebd-0",
+          "metadata": {
+            "sourceId": "synthetic-ebd-0",
+            "sectionId": null,
+            "score": 32
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E2"
+        },
+        {
+          "source": "willi-mako",
+          "value": "BDEW-Umsetzungsfragen zum Lieferbeginn (Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen…",
+          "url": "https://example.invalid/synthetic-ebd-1",
+          "metadata": {
+            "sourceId": "synthetic-ebd-1",
+            "sectionId": null,
+            "score": 31
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E3"
+        },
+        {
+          "source": "willi-mako",
+          "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+          "url": "https://example.invalid/synthetic-ebd-2",
+          "metadata": {
+            "sourceId": "synthetic-ebd-2",
+            "sectionId": null,
+            "score": 30
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E4"
+        },
+        {
+          "source": "willi-mako",
+          "value": "BDEW-Umsetzungsfragen zum Lieferbeginn (Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen…",
+          "url": "https://example.invalid/synthetic-ebd-3",
+          "metadata": {
+            "sourceId": "synthetic-ebd-3",
+            "sectionId": null,
+            "score": 29
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E5"
+        },
+        {
+          "source": "willi-mako",
+          "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+          "url": "https://example.invalid/synthetic-ebd-4",
+          "metadata": {
+            "sourceId": "synthetic-ebd-4",
+            "sectionId": null,
+            "score": 28
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E6"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "hitCount": 1,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ],
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "ms": 29
+        },
+        {
+          "scannedCount": 0,
+          "hitCount": 0,
+          "rejected": [],
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "ms": 9
+        },
+        {
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "hitCount": 0,
+          "rejected": [],
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "ms": 10
+        },
+        {
+          "hitCount": 5,
+          "confidence": "none",
+          "rejected": [],
+          "source": "willi-mako",
+          "called": true,
+          "status": "available",
+          "ms": 9
+        },
+        {
+          "hitCount": 0,
+          "rejected": [],
+          "source": "knowledge-rag-federated",
+          "called": true,
+          "status": "missing",
+          "ms": 5
+        },
+        {
+          "source": "analysis-planner",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "calledOperations": 0,
+          "rejected": [],
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        },
+        {
+          "source": "answer",
+          "rawEvidence": [
+            {
+              "source": "knowledge-rag",
+              "value": "Anonymisierte Mail eines Lieferanten an einen Netzbetreiber: Zu unserer Netzanmeldung zum Lieferbeginn vom 05.10.2026, DAR DE000000000001, Marktlokation 99000000001, Anschlussadresse Beispielstraße 1, fehlt laut unserem · Score: 0.920",
+              "url": "https://example.invalid/anonymous-process-note",
+              "metadata": {
+                "hitId": "local-process-note",
+                "sectionId": null,
+                "timestamp": null,
+                "documentType": null,
+                "score": 0.92
+              },
+              "retrievalSource": "knowledge-rag",
+              "evidenceId": "E1"
+            },
+            {
+              "source": "willi-mako",
+              "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+              "url": "https://example.invalid/synthetic-ebd-0",
+              "metadata": {
+                "sourceId": "synthetic-ebd-0",
+                "sectionId": null,
+                "score": 32
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E2"
+            },
+            {
+              "source": "willi-mako",
+              "value": "BDEW-Umsetzungsfragen zum Lieferbeginn (Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen…",
+              "url": "https://example.invalid/synthetic-ebd-1",
+              "metadata": {
+                "sourceId": "synthetic-ebd-1",
+                "sectionId": null,
+                "score": 31
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E3"
+            },
+            {
+              "source": "willi-mako",
+              "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+              "url": "https://example.invalid/synthetic-ebd-2",
+              "metadata": {
+                "sourceId": "synthetic-ebd-2",
+                "sectionId": null,
+                "score": 30
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E4"
+            },
+            {
+              "source": "willi-mako",
+              "value": "BDEW-Umsetzungsfragen zum Lieferbeginn (Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen…",
+              "url": "https://example.invalid/synthetic-ebd-3",
+              "metadata": {
+                "sourceId": "synthetic-ebd-3",
+                "sectionId": null,
+                "score": 29
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E5"
+            },
+            {
+              "source": "willi-mako",
+              "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+              "url": "https://example.invalid/synthetic-ebd-4",
+              "metadata": {
+                "sourceId": "synthetic-ebd-4",
+                "sectionId": null,
+                "score": 28
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E6"
+            }
+          ],
+          "selectedIds": [
+            "E1",
+            "E2",
+            "E3"
+          ]
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": true
+    },
+    {
+      "message": "Die Eingangsbestätigung liegt vor. Was bedeutet das für den nächsten Schritt?",
+      "elapsedMs": 9315,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 2595,
+        "retrieveMs": 11,
+        "answerMs": 6654
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 6
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 7
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 9
+        },
+        {
+          "name": "willi-mako",
+          "status": "available",
+          "hitCount": 5,
+          "ms": 9
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 4
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "capability-read",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        }
+      ],
+      "caseId": "12a3c933-82cd-4071-b12f-e0836059ed62",
+      "answerStatus": "grounded",
+      "answerAttempts": 1,
+      "responseText": "Das Vorliegen der Eingangsbestätigung bestätigt nur den technischen Eingang, ersetzt jedoch nicht die erforderliche fachliche Prozessantwort über den Marktkommunikations-Kanal.\n\nPrüfe im Marktkommunikationssystem den tatsächlichen Ausgang der fachlichen Antwort zur DAR DE000000000001 an der Marktlokation 99000000001.\n\nKläre den internen Bearbeitungsstand der Netzanmeldung, um dem Lieferanten eine belastbare Statusrückmeldung zu geben.\n\nIch gehe davon aus, dass wir auf Seiten des Netzbetreibers agieren und den Bearbeitungsstand für den Lieferanten prüfen müssen – sonst sag Bescheid.\n\nEntwurf:\nVariante A – wenn die fachliche Prozessantwort bereits versendet wurde:\nGuten Tag, bezüglich der Netzanmeldung zur Marktlokation 99000000001 mit der Vorgangsnummer DAR DE000000000001 teilen wir Ihnen mit, dass die fachliche Prüfung abgeschlossen und die Antwort über die Marktkommunikation versendet wurde. Freundliche Grüße\n\nVariante B – wenn die Bearbeitung der Netzanmeldung noch andauert:\nGuten Tag, die Netzanmeldung zur Marktlokation 99000000001 mit der Vorgangsnummer DAR DE000000000001 befindet sich derzeit noch in der internen Bearbeitung. Die fachliche Prozessantwort über den regulären Marktkommunikations-Kanal folgt. Freundliche Grüße\n\nQuellen: willi-mako: synthetic-ebd-0; willi-mako: synthetic-ebd-1\n\nFall F-1",
+      "situation": {
+        "concern": "Prüfung des Bearbeitungsstandes einer Netzanmeldung zur Marktlokation 99000000001 aufgrund einer angeblich überschrittenen Frist.",
+        "situation": "Der Nutzer fragt, was es für den nächsten Schritt bedeutet, dass die Eingangsbestätigung für die Netzanmeldung vorliegt.",
+        "participants": [
+          "Lieferant",
+          "Netzbetreiber"
+        ],
+        "identifiers": [
+          {
+            "kind": "DAR",
+            "value": "DAR DE000000000001"
+          },
+          {
+            "kind": "Marktlokation",
+            "value": "Marktlokation 99000000001"
+          }
+        ],
+        "deadlines": [
+          {
+            "value": "Die Frist ist laut Mail überschritten",
+            "basis": "Die Frist ist laut Mail überschritten"
+          }
+        ],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-e2e-connection-check",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [
+          {
+            "key": "interner_bearbeitungsstand",
+            "question": "Wie ist der aktuelle interne Bearbeitungsstand der Netzanmeldung?",
+            "blocking": false
+          }
+        ],
+        "requestedAction": {
+          "description": "Den Bearbeitungsstand der Netzanmeldung an den Lieferanten mitteilen.",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Eingangsbestätigung",
+          "Netzanmeldung",
+          "DAR DE000000000001",
+          "Marktlokation 99000000001"
+        ],
+        "primaryDomain": "market_master_data"
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Die Eingangsbestätigung liegt vor. Was bedeutet das für den nächsten Schritt? Prüfung des Bearbeitungsstandes einer Netzanmeldung zur Marktlokation 99000000001 aufgrund einer angeblich überschrittenen Frist. Anfrage doku · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        },
+        {
+          "source": "willi-mako",
+          "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+          "url": "https://example.invalid/synthetic-ebd-0",
+          "metadata": {
+            "sourceId": "synthetic-ebd-0",
+            "sectionId": null,
+            "score": 32
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E2"
+        },
+        {
+          "source": "willi-mako",
+          "value": "BDEW-Umsetzungsfragen zum Lieferbeginn (Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen…",
+          "url": "https://example.invalid/synthetic-ebd-1",
+          "metadata": {
+            "sourceId": "synthetic-ebd-1",
+            "sectionId": null,
+            "score": 31
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E3"
+        },
+        {
+          "source": "willi-mako",
+          "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+          "url": "https://example.invalid/synthetic-ebd-2",
+          "metadata": {
+            "sourceId": "synthetic-ebd-2",
+            "sectionId": null,
+            "score": 30
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E4"
+        },
+        {
+          "source": "willi-mako",
+          "value": "BDEW-Umsetzungsfragen zum Lieferbeginn (Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen…",
+          "url": "https://example.invalid/synthetic-ebd-3",
+          "metadata": {
+            "sourceId": "synthetic-ebd-3",
+            "sectionId": null,
+            "score": 29
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E5"
+        },
+        {
+          "source": "willi-mako",
+          "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+          "url": "https://example.invalid/synthetic-ebd-4",
+          "metadata": {
+            "sourceId": "synthetic-ebd-4",
+            "sectionId": null,
+            "score": 28
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E6"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "hitCount": 1,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ],
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "ms": 6
+        },
+        {
+          "scannedCount": 0,
+          "hitCount": 0,
+          "rejected": [],
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "ms": 7
+        },
+        {
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "hitCount": 0,
+          "rejected": [],
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "ms": 9
+        },
+        {
+          "hitCount": 5,
+          "confidence": "none",
+          "rejected": [],
+          "source": "willi-mako",
+          "called": true,
+          "status": "available",
+          "ms": 9
+        },
+        {
+          "hitCount": 0,
+          "rejected": [],
+          "source": "knowledge-rag-federated",
+          "called": true,
+          "status": "missing",
+          "ms": 4
+        },
+        {
+          "source": "analysis-planner",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "calledOperations": 0,
+          "rejected": [],
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        },
+        {
+          "source": "answer",
+          "rawEvidence": [
+            {
+              "source": "knowledge-rag",
+              "value": "Die Eingangsbestätigung liegt vor. Was bedeutet das für den nächsten Schritt? Prüfung des Bearbeitungsstandes einer Netzanmeldung zur Marktlokation 99000000001 aufgrund einer angeblich überschrittenen Frist. Anfrage doku · Score: 0.920",
+              "url": "https://example.invalid/anonymous-process-note",
+              "metadata": {
+                "hitId": "local-process-note",
+                "sectionId": null,
+                "timestamp": null,
+                "documentType": null,
+                "score": 0.92
+              },
+              "retrievalSource": "knowledge-rag",
+              "evidenceId": "E1"
+            },
+            {
+              "source": "willi-mako",
+              "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+              "url": "https://example.invalid/synthetic-ebd-0",
+              "metadata": {
+                "sourceId": "synthetic-ebd-0",
+                "sectionId": null,
+                "score": 32
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E2"
+            },
+            {
+              "source": "willi-mako",
+              "value": "BDEW-Umsetzungsfragen zum Lieferbeginn (Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen…",
+              "url": "https://example.invalid/synthetic-ebd-1",
+              "metadata": {
+                "sourceId": "synthetic-ebd-1",
+                "sectionId": null,
+                "score": 31
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E3"
+            },
+            {
+              "source": "willi-mako",
+              "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+              "url": "https://example.invalid/synthetic-ebd-2",
+              "metadata": {
+                "sourceId": "synthetic-ebd-2",
+                "sectionId": null,
+                "score": 30
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E4"
+            },
+            {
+              "source": "willi-mako",
+              "value": "BDEW-Umsetzungsfragen zum Lieferbeginn (Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen…",
+              "url": "https://example.invalid/synthetic-ebd-3",
+              "metadata": {
+                "sourceId": "synthetic-ebd-3",
+                "sectionId": null,
+                "score": 29
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E5"
+            },
+            {
+              "source": "willi-mako",
+              "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+              "url": "https://example.invalid/synthetic-ebd-4",
+              "metadata": {
+                "sourceId": "synthetic-ebd-4",
+                "sectionId": null,
+                "score": 28
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E6"
+            }
+          ],
+          "selectedIds": [
+            "E1",
+            "E2",
+            "E3"
+          ]
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": true
+    },
+    {
+      "message": "Mach mir die Antwort fertig",
+      "elapsedMs": 4433,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 0,
+        "retrieveMs": 1,
+        "answerMs": 4400
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 0
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "willi-mako",
+          "status": "available",
+          "hitCount": 5,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "capability-read",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        }
+      ],
+      "caseId": "12a3c933-82cd-4071-b12f-e0836059ed62",
+      "answerStatus": "grounded",
+      "answerAttempts": 1,
+      "responseText": "Entwurf:\nVariante A – wenn die fachliche Bearbeitung der Netzanmeldung bereits abgeschlossen ist:\nGuten Tag,\n\nbezugnehmend auf Ihre Anfrage zur Netzanmeldung mit der Referenz DAR DE000000000001 an der Marktlokation 99000000001 teilen wir Ihnen mit, dass die fachliche Prüfung abgeschlossen ist und die entsprechende Rückmeldung über die Marktkommunikation versendet wurde.\n\nFreundliche Grüße\n\nVariante B – wenn die fachliche Prüfung der Netzanmeldung noch aussteht:\nGuten Tag,\n\nbezugnehmend auf Ihre Anfrage zur Netzanmeldung mit der Referenz DAR DE000000000001 an der Marktlokation 99000000001 teilen wir Ihnen mit, dass die Eingangsbestätigung vorliegt, die fachliche Bearbeitung jedoch noch andauert und die Prozessantwort baldmöglichst über die Marktkommunikation übermittelt wird.\n\nFreundliche Grüße\n\nFall F-1",
+      "situation": {
+        "concern": "Prüfung des Bearbeitungsstandes einer Netzanmeldung zur Marktlokation 99000000001 aufgrund einer angeblich überschrittenen Frist.",
+        "situation": "Der Nutzer fragt, was es für den nächsten Schritt bedeutet, dass die Eingangsbestätigung für die Netzanmeldung vorliegt.",
+        "participants": [
+          "Lieferant",
+          "Netzbetreiber"
+        ],
+        "identifiers": [
+          {
+            "kind": "DAR",
+            "value": "DAR DE000000000001"
+          },
+          {
+            "kind": "Marktlokation",
+            "value": "Marktlokation 99000000001"
+          }
+        ],
+        "deadlines": [
+          {
+            "value": "Die Frist ist laut Mail überschritten",
+            "basis": "Die Frist ist laut Mail überschritten"
+          }
+        ],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-e2e-connection-check",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [
+          {
+            "key": "interner_bearbeitungsstand",
+            "question": "Wie ist der aktuelle interne Bearbeitungsstand der Netzanmeldung?",
+            "blocking": false
+          }
+        ],
+        "requestedAction": {
+          "description": "Den Bearbeitungsstand der Netzanmeldung an den Lieferanten mitteilen.",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Eingangsbestätigung",
+          "Netzanmeldung",
+          "DAR DE000000000001",
+          "Marktlokation 99000000001"
+        ],
+        "primaryDomain": "market_master_data"
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Die Eingangsbestätigung liegt vor. Was bedeutet das für den nächsten Schritt? Prüfung des Bearbeitungsstandes einer Netzanmeldung zur Marktlokation 99000000001 aufgrund einer angeblich überschrittenen Frist. Anfrage doku · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        },
+        {
+          "source": "willi-mako",
+          "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+          "url": "https://example.invalid/synthetic-ebd-0",
+          "metadata": {
+            "sourceId": "synthetic-ebd-0",
+            "sectionId": null,
+            "score": 32
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E2"
+        },
+        {
+          "source": "willi-mako",
+          "value": "BDEW-Umsetzungsfragen zum Lieferbeginn (Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen…",
+          "url": "https://example.invalid/synthetic-ebd-1",
+          "metadata": {
+            "sourceId": "synthetic-ebd-1",
+            "sectionId": null,
+            "score": 31
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E3"
+        },
+        {
+          "source": "willi-mako",
+          "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+          "url": "https://example.invalid/synthetic-ebd-2",
+          "metadata": {
+            "sourceId": "synthetic-ebd-2",
+            "sectionId": null,
+            "score": 30
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E4"
+        },
+        {
+          "source": "willi-mako",
+          "value": "BDEW-Umsetzungsfragen zum Lieferbeginn (Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen…",
+          "url": "https://example.invalid/synthetic-ebd-3",
+          "metadata": {
+            "sourceId": "synthetic-ebd-3",
+            "sectionId": null,
+            "score": 29
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E5"
+        },
+        {
+          "source": "willi-mako",
+          "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+          "url": "https://example.invalid/synthetic-ebd-4",
+          "metadata": {
+            "sourceId": "synthetic-ebd-4",
+            "sectionId": null,
+            "score": 28
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E6"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "hitCount": 1,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ],
+          "source": "knowledge-rag",
+          "called": false,
+          "status": "available",
+          "ms": 0
+        },
+        {
+          "scannedCount": 0,
+          "hitCount": 0,
+          "rejected": [],
+          "source": "datapoint",
+          "called": false,
+          "status": "missing",
+          "ms": 0
+        },
+        {
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "hitCount": 0,
+          "rejected": [],
+          "source": "object-store",
+          "called": false,
+          "status": "missing",
+          "ms": 0
+        },
+        {
+          "hitCount": 5,
+          "confidence": "none",
+          "rejected": [],
+          "source": "willi-mako",
+          "called": false,
+          "status": "available",
+          "ms": 0
+        },
+        {
+          "hitCount": 0,
+          "rejected": [],
+          "source": "knowledge-rag-federated",
+          "called": false,
+          "status": "missing",
+          "ms": 0
+        },
+        {
+          "source": "analysis-planner",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "calledOperations": 0,
+          "rejected": [],
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        },
+        {
+          "source": "answer",
+          "rawEvidence": [
+            {
+              "source": "knowledge-rag",
+              "value": "Die Eingangsbestätigung liegt vor. Was bedeutet das für den nächsten Schritt? Prüfung des Bearbeitungsstandes einer Netzanmeldung zur Marktlokation 99000000001 aufgrund einer angeblich überschrittenen Frist. Anfrage doku · Score: 0.920",
+              "url": "https://example.invalid/anonymous-process-note",
+              "metadata": {
+                "hitId": "local-process-note",
+                "sectionId": null,
+                "timestamp": null,
+                "documentType": null,
+                "score": 0.92
+              },
+              "retrievalSource": "knowledge-rag",
+              "evidenceId": "E1"
+            },
+            {
+              "source": "willi-mako",
+              "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+              "url": "https://example.invalid/synthetic-ebd-0",
+              "metadata": {
+                "sourceId": "synthetic-ebd-0",
+                "sectionId": null,
+                "score": 32
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E2"
+            },
+            {
+              "source": "willi-mako",
+              "value": "BDEW-Umsetzungsfragen zum Lieferbeginn (Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen…",
+              "url": "https://example.invalid/synthetic-ebd-1",
+              "metadata": {
+                "sourceId": "synthetic-ebd-1",
+                "sectionId": null,
+                "score": 31
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E3"
+            },
+            {
+              "source": "willi-mako",
+              "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+              "url": "https://example.invalid/synthetic-ebd-2",
+              "metadata": {
+                "sourceId": "synthetic-ebd-2",
+                "sectionId": null,
+                "score": 30
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E4"
+            },
+            {
+              "source": "willi-mako",
+              "value": "BDEW-Umsetzungsfragen zum Lieferbeginn (Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen…",
+              "url": "https://example.invalid/synthetic-ebd-3",
+              "metadata": {
+                "sourceId": "synthetic-ebd-3",
+                "sectionId": null,
+                "score": 29
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E5"
+            },
+            {
+              "source": "willi-mako",
+              "value": "EBD E_0608 (synthetischer Testtext) · Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Allgemeine Dokumentstruktur mit Prüfpfaden und Verweisen. Lieferbeginn und Netzanmeldung: Die Anmeldung benötigt eine fachliche Prozessantwort über den Marktkommunikations-Kanal. Eine technische Eingangsbestätigung ersetzt diese fachliche Antwort nicht. Bei unbekanntem Status muss die zuständige Bearbeitung den tatsächlichen Ausgang prüfen. Keine Frist aus der Mail ableiten. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weitere Prüfpfade und Dokumentverweise stehen im vollständigen Dokument. Weit…",
+              "url": "https://example.invalid/synthetic-ebd-4",
+              "metadata": {
+                "sourceId": "synthetic-ebd-4",
+                "sectionId": null,
+                "score": 28
+              },
+              "retrievalSource": "willi-mako",
+              "evidenceId": "E6"
+            }
+          ],
+          "selectedIds": [
+            "E1",
+            "E2",
+            "E3"
+          ]
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": true
+    }
+  ],
+  "answerDiagnostics": [
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "object"
+    },
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "object"
+    },
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "object"
+    }
+  ]
+}

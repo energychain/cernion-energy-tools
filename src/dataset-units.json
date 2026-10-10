@@ -1,0 +1,8 @@
+{
+  "W": { "dimension": "power", "factor": 1, "integratedUnit": "Wh" },
+  "kW": { "dimension": "power", "factor": 1000, "integratedUnit": "kWh" },
+  "MW": { "dimension": "power", "factor": 1000000, "integratedUnit": "MWh" },
+  "Wh": { "dimension": "energy", "factor": 1 },
+  "kWh": { "dimension": "energy", "factor": 1000 },
+  "MWh": { "dimension": "energy", "factor": 1000000 }
+}

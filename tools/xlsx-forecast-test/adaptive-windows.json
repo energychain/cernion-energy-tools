@@ -1,0 +1,7 @@
+{
+  "model_family": "learned_states",
+  "extended_features": true,
+  "selection_metric": "rmse",
+  "selection_policy": "adaptive_rmse_v1",
+  "activity_model": false
+}

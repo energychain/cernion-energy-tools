@@ -67,6 +67,32 @@ describe('src/adapters/gemini generateChat', () => {
     });
   });
 
+  it('coalesces parallel function responses into one user content', async () => {
+    mockGenerateContent.mockResolvedValue({ response: { text: () => 'ok' } });
+    const adapter = require('../src/adapters/gemini');
+    await adapter.generateChat([
+      { role: 'user', content: 'Read both sources.' },
+      {
+        role: 'assistant',
+        tool_calls: [
+          { id: 'a', function: { name: 'read_a', arguments: '{}' } },
+          { id: 'b', function: { name: 'read_b', arguments: '{}' } },
+        ],
+      },
+      { role: 'tool', tool_call_id: 'a', content: '{"value":1}' },
+      { role: 'tool', tool_call_id: 'b', content: '{"value":2}' },
+    ]);
+    const contents = mockGenerateContent.mock.calls[0][0].contents;
+    expect(contents).toHaveLength(3);
+    expect(contents[2]).toEqual({
+      role: 'user',
+      parts: [
+        { functionResponse: { name: 'read_a', response: { value: 1 } } },
+        { functionResponse: { name: 'read_b', response: { value: 2 } } },
+      ],
+    });
+  });
+
   it('passes OpenAI-shaped tools as Gemini functionDeclarations', async () => {
     mockGenerateContent.mockResolvedValue({ response: { text: () => 'ok' } });
     const geminiAdapter = require('../src/adapters/gemini');
@@ -96,7 +122,7 @@ describe('src/adapters/gemini generateChat', () => {
               {
                 name: 'get_weather',
                 description: 'Get current weather for a location',
-                parameters: {
+                parametersJsonSchema: {
                   type: 'object',
                   properties: { location: { type: 'string' } },
                   required: ['location'],
@@ -189,7 +215,7 @@ describe('src/adapters/gemini generateChat', () => {
           parts: [{ functionCall: { name: 'get_weather', args: { location: 'Berlin' } } }],
         },
         {
-          role: 'function',
+          role: 'user',
           parts: [
             {
               functionResponse: {
@@ -207,4 +233,51 @@ describe('src/adapters/gemini generateChat', () => {
     const geminiAdapter = require('../src/adapters/gemini');
     expect(geminiAdapter.capabilities().toolCalling).toBe(true);
   });
+});
+
+test('round-trips provider thought signatures across a tool result', async () => {
+  process.env.GEMINI_API_KEY = 'test-key';
+  jest.resetModules();
+  mockGetGenerativeModel = jest.fn();
+  mockGenerateContent = jest
+    .fn()
+    .mockResolvedValueOnce({
+      response: {
+        functionCalls: () => [{ name: 'read_data', args: { key: 'synthetic' } }],
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: { name: 'read_data', args: { key: 'synthetic' } },
+                  thoughtSignature: 'synthetic-signature',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    })
+    .mockResolvedValueOnce({ response: { text: () => 'Complete' } });
+  const adapter = require('../src/adapters/gemini');
+  const reply = await adapter.generateChat([{ role: 'user', content: 'Read data' }]);
+  expect(reply.toolCalls[0].thoughtSignature).toBe('synthetic-signature');
+  await adapter.generateChat([
+    { role: 'user', content: 'Read data' },
+    {
+      role: 'assistant',
+      tool_calls: [
+        {
+          id: 'call_1',
+          thoughtSignature: reply.toolCalls[0].thoughtSignature,
+          function: { name: 'read_data', arguments: JSON.stringify(reply.toolCalls[0].args) },
+        },
+      ],
+    },
+    { role: 'tool', tool_call_id: 'call_1', content: '{"rows":[]}' },
+  ]);
+  expect(mockGenerateContent.mock.calls[1][0].contents[1].parts[0]).toMatchObject({
+    thoughtSignature: 'synthetic-signature',
+  });
+  expect(mockGenerateContent.mock.calls[1][0].contents[2].role).toBe('user');
 });

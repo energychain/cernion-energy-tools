@@ -1,0 +1,2897 @@
+{
+  "baseCommit": "3d618836",
+  "fixtureHash": "09ce6e64f9645a3cb11953dda93d1eb8c20f5b3cc9493d11863a93cd2bc610b6",
+  "results": [
+    {
+      "id": "issue-1",
+      "capabilities": ["vnb_delta_signal_classifier"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "issue-2",
+      "capabilities": ["vnb_delta_signal_classifier"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "issue-3",
+      "capabilities": ["vnb_delta_signal_classifier"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "issue-4",
+      "capabilities": ["vnb_delta_signal_classifier"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "market_communication-1",
+      "capabilities": ["market_communication_evidence_chain"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "market_communication-2",
+      "capabilities": ["market_communication_evidence_chain"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "market_communication-3",
+      "capabilities": ["market_communication_evidence_chain"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "market_master_data-1",
+      "capabilities": ["eic_code_lookup"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "market_master_data-2",
+      "capabilities": ["eic_code_lookup"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "market_master_data-3",
+      "capabilities": ["eic_code_lookup"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "edm-1",
+      "capabilities": ["bilanzkreis_slp_edm_operations"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "edm-2",
+      "capabilities": ["settlement_a96_reconciliation"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "edm-3",
+      "capabilities": ["bilanzkreis_slp_edm_operations"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "metering_msb-1",
+      "capabilities": ["metering_rollout_process_indicator"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "metering_msb-2",
+      "capabilities": ["metering_rollout_process_indicator"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "metering_msb-3",
+      "capabilities": ["metering_rollout_process_indicator"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "m2c_revenue_assurance-1",
+      "capabilities": ["edm_customer_moveout_billing_evidence"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "m2c_revenue_assurance-2",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "m2c_revenue_assurance-3",
+      "capabilities": ["edm_customer_moveout_billing_evidence"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "grid_operations_system_control-1",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "grid_operations_system_control-2",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "grid_operations_system_control-3",
+      "capabilities": ["fnav_commercial_hedging"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-1",
+      "capabilities": ["redispatch_settlement_sandbox"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-2",
+      "capabilities": ["redispatch_settlement_sandbox"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-3",
+      "capabilities": ["redispatch_settlement_sandbox"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "asset_grid_planning-1",
+      "capabilities": ["reinvest_signal"],
+      "confidence": 0.92,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "asset_grid_planning-2",
+      "capabilities": ["reinvest_signal"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "asset_grid_planning-3",
+      "capabilities": ["gas_network_decision_chain"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "target_grid_planning-1",
+      "capabilities": ["znp_portfolio_assessment"],
+      "confidence": 0.92,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "target_grid_planning-2",
+      "capabilities": ["znp_portfolio_assessment"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "target_grid_planning-3",
+      "capabilities": ["znp_portfolio_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "grid_connection-1",
+      "capabilities": ["vnb_delta_signal_classifier"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "grid_connection-2",
+      "capabilities": ["flex_forecast_bess_grid_operations_advisory"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "grid_connection-3",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "regulatory_compliance-1",
+      "capabilities": ["mastr_asset_inventory"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "regulatory_compliance-2",
+      "capabilities": ["mastr_quality_oemetadata"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "regulatory_compliance-3",
+      "capabilities": ["mastr_quality_oemetadata"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "controlling_finance-1",
+      "capabilities": ["liquidity_planning_governance_module"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "controlling_finance-2",
+      "capabilities": ["liquidity_planning_governance_module"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "controlling_finance-3",
+      "capabilities": ["liquidity_planning_governance_module"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "strategic_committee_governance-1",
+      "capabilities": ["gremiencoach_workbook_readiness"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "strategic_committee_governance-2",
+      "capabilities": ["gremiencoach_workbook_readiness"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "strategic_committee_governance-3",
+      "capabilities": ["gremiencoach_workbook_readiness"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "it_data_vendor_governance-1",
+      "capabilities": ["vdmi_role_boundary_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "it_data_vendor_governance-2",
+      "capabilities": ["evu_api_migration_diagnostics"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "it_data_vendor_governance-3",
+      "capabilities": ["residual_load_forecast_for_dso"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "org_roles_competence-1",
+      "capabilities": ["knowledge_continuity_governance_gate"],
+      "confidence": 0.92,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "org_roles_competence-2",
+      "capabilities": ["knowledge_continuity_governance_gate"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "org_roles_competence-3",
+      "capabilities": ["vdmi_role_boundary_governance"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "management-1",
+      "capabilities": ["leadership_delta_cockpit"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "management-2",
+      "capabilities": ["vnb_kpi_benchmark_comparison"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "management-3",
+      "capabilities": ["leadership_delta_cockpit"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "existing-mastr",
+      "capabilities": ["mastr_asset_inventory"],
+      "confidence": 0.92,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "semantic-metering-0",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-metering-1",
+      "capabilities": ["battery_redispatch_special_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "semantic-grid-assets-0",
+      "capabilities": ["mastr_asset_inventory"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "semantic-grid-assets-1",
+      "capabilities": ["grid_operator_identity_resolution"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "semantic-grid-incidents-0",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-grid-incidents-1",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "semantic-redispatch-queue-0",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "semantic-redispatch-queue-1",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-mastr-local-0",
+      "capabilities": ["mastr_asset_inventory"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "semantic-mastr-local-1",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-procurement-0",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-procurement-1",
+      "capabilities": ["altdaten_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "semantic-forecast-vs-actual-0",
+      "capabilities": ["settlement_a96_reconciliation"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "semantic-forecast-vs-actual-1",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-billing-overview-0",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-billing-overview-1",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-receivables-0",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-receivables-1",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-mako-process-log-0",
+      "capabilities": ["vnb_delta_signal_classifier"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "semantic-mako-process-log-1",
+      "capabilities": ["regulatory_change_simulator_readiness"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "semantic-customer-projects-0",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-customer-projects-1",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-other-0",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-other-1",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-other-2",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-metering-point-master-0",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "semantic-metering-point-master-1",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "vnb-lookup-v1",
+      "capabilities": ["grid_operator_identity_resolution"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "vnb-resolution-chain-v1",
+      "capabilities": ["grid_operator_identity_resolution"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "netzbetreiber-flexibility-potential-v1",
+      "capabilities": ["connection_rejection_fnav_14a_evidence"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "mako-resolution-value-v1",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "asset-to-decision-v1",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "agnes-bottleneck_list",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "agnes-bottleneck_assess",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "agnes-bottleneck_get",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "altdaten-assessment_list",
+      "capabilities": ["altdaten_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "altdaten-assessment_assess",
+      "capabilities": ["altdaten_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "altdaten-assessment_get",
+      "capabilities": ["altdaten_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "assets_effective",
+      "capabilities": ["mastr_asset_inventory"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "assets_all",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "automatisierungsradar_list",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "automatisierungsradar_analyze",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "automatisierungsradar_get",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "battery-redispatch-special-gate_getStatus",
+      "capabilities": ["battery_redispatch_special_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "battery-redispatch-special-gate_evaluate",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "battery-redispatch-special-gate_listGates",
+      "capabilities": ["battery_redispatch_special_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "battery-redispatch-special-gate_getGate",
+      "capabilities": ["battery_redispatch_special_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "bess-screening_list",
+      "capabilities": ["bess_screening"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "bess-screening_screen",
+      "capabilities": ["bess_screening"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "bess-screening_get",
+      "capabilities": ["bess_screening"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "bilanzkreis_list",
+      "capabilities": ["bilanzkreis_slp_edm_operations"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "bilanzkreis_get",
+      "capabilities": ["bilanzkreis_slp_edm_operations"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "business-intelligence_dynamicTariffCalculator",
+      "capabilities": ["residual_load_forecast_for_dso"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "capex-prioritization_list",
+      "capabilities": ["capex_prioritization"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "capex-prioritization_analyze",
+      "capabilities": ["capex_prioritization"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "capex-prioritization_get",
+      "capabilities": ["capex_prioritization"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "connection-rejection-evidence_list",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "connection-rejection-evidence_create",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "connection-rejection-evidence_get",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "cookbook_get",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "cookbook_search",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "listProcessIntents",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "cya_generate",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "dashboard-api_a2mdmDecisionObjectStatus",
+      "capabilities": ["coordination_meaning_preservation_profile"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_anschlusskapazitaetEvidenceQueueStatus",
+      "capabilities": ["anschlusskapazitaet_evidence_queue"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_arealNetworkIntegrationOfferGateStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_assetValuationTransformationGateStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_automationRequirementsDecisionValueStatus",
+      "capabilities": ["automation_requirements_decision_value"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_automationRiskGateStatus",
+      "capabilities": ["automation_risk_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_budgetWaterfallGovernanceStatus",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_capacityContractRiskAssetCockpitStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_clsDigitalTwinComplianceGateStatus",
+      "capabilities": ["cls_digital_twin_compliance_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_communicationBreakProcessRiskStatus",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "dashboard-api_connectionDeadlineEvidenceQueueStatus",
+      "capabilities": ["connection_deadline_evidence_queue"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_controllabilityAssetHandoverStatus",
+      "capabilities": ["controllability_asset_handover"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_controllabilityDataAlignmentStatus",
+      "capabilities": ["controllability_data_alignment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_controllabilitySubmissionCockpitStatus",
+      "capabilities": ["controllability_submission_cockpit"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_coordinationMeaningPreservationProfile",
+      "capabilities": ["coordination_meaning_preservation_profile"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_costReviewCommitteeStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_crisisDecisionRoutineStatus",
+      "capabilities": ["crisis_decision_routine"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_crossChannelVnbSignalQueueStatus",
+      "capabilities": ["owner_deadline_evidence_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_crossDomainSpecialTopicsQueueStatus",
+      "capabilities": ["cross_domain_special_topics_queue"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_crossSystemVarianceMatrixStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_decisionReadinessMatrixStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_decommissionedAssetReconciliationStatus",
+      "capabilities": ["decommissioned_asset_reconciliation"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_directMarketerRiskGateStatus",
+      "capabilities": ["direct_marketer_risk_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_drReadinessEvidenceStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_e2eControllabilityGovernanceStatus",
+      "capabilities": ["e2e_connection_check"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_energySharing42cCutoverReadinessStatus",
+      "capabilities": ["energy_sharing_42c_cutover_readiness"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_energySharingCollectiveApprovalStatus",
+      "capabilities": ["energy_sharing_prosumer_advisory"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_energySharingSimulationGateStatus",
+      "capabilities": ["energy_sharing_simulation_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_energySidecarRouteRegistryStatus",
+      "capabilities": ["energy_sidecar_route_registry"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_energyTaxInformationPackageStatus",
+      "capabilities": ["energy_tax_information_package"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_evidenceFreshnessGuardStatus",
+      "capabilities": ["evidence_freshness_guard"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_evidenceGroundingConfidenceAudit",
+      "capabilities": ["evidence_grounding_confidence_audit"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_evuApiMigrationDiagnosticsStatus",
+      "capabilities": ["evu_api_migration_diagnostics"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_flexStrategicDemandIntakeStatus",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "dashboard-api_fnavFastTrackContractGateStatus",
+      "capabilities": ["fnav_commercial_hedging"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_gasCapacityBookingReviewGateStatus",
+      "capabilities": ["gas_capacity_booking_review_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_gasDecommissioningRoadmapStatus",
+      "capabilities": ["gas_decommissioning_roadmap_status"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_gasGridTransformationAssetCockpitStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_gasInfrastructureRiskGovernanceStatus",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_gasNetworkDecisionChainStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_gasTransformationDataroomStatus",
+      "capabilities": ["gas_transformation_dataroom_status"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_gasTransformationDependencyMapStatus",
+      "capabilities": ["gas_transformation_dependency_map"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_gremiencoachWorkbookReadinessStatus",
+      "capabilities": ["gremiencoach_workbook_readiness"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_gridConnectionTransformationGateStatus",
+      "capabilities": ["grid_connection_transformation_gate"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_grossspeicherAnschlussReadinessGateStatus",
+      "capabilities": ["grossspeicher_anschluss_readiness_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_heatAssetTariffSteeringStatus",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "dashboard-api_heatTransformationLineAssetModelStatus",
+      "capabilities": ["scqa_decision_framing"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_imsysScheduleValueChainReadinessStatus",
+      "capabilities": ["imsys_schedule_value_chain_readiness"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_imsysTaf2ComplianceStatus",
+      "capabilities": ["imsys_taf2_compliance_status"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_interconnectionReleaseFileStatus",
+      "capabilities": ["interconnection_release_file"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_investmentBudgetCapExceptionGovernanceStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_investmentCommitteeSteeringCardsStatus",
+      "capabilities": ["investment_committee_steering_cards"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_investmentDataReviewQueueStatus",
+      "capabilities": ["investment_data_review_queue"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_investmentOwnerDeadlineBudgetGateStatus",
+      "capabilities": ["investment_owner_deadline_budget_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_investmentRiskTranslationStatus",
+      "capabilities": ["investment_risk_translation_status"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_investmentTwoTrackControlStatus",
+      "capabilities": ["investment_two_track_control"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_investmentWaterfallGovernanceStatus",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_jourFixeDecisionClosureStatus",
+      "capabilities": ["jour_fixe_decision_closure_tracker"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_kiFloorwalkerGovernanceStatus",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_layer0AuditDrilldownNoteStatus",
+      "capabilities": ["layer0_audit_drilldown_note"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_leadershipDeltaCockpitStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_legacyControlTechnologyTransitionStatus",
+      "capabilities": ["legacy_control_technology_transition"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_legalClarificationOperatingModelStatus",
+      "capabilities": ["legal_clarification_operating_model"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_liquidityPlanningGovernanceStatus",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_liveUpdateStreamContractStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_loadProfileStreamMonitor",
+      "capabilities": ["load_profile_stream_monitor"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_marketCommunicationEvidenceChainStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_mastrSyncGapStatus",
+      "capabilities": ["mastr_sync_gap_alerting"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_meteringRolloutProcessIndicatorStatus",
+      "capabilities": ["metering_rollout_process_indicator"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_modelViabilityEvidenceGateStatus",
+      "capabilities": ["model_viability_evidence_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_monitoringNonEscalationStatus",
+      "capabilities": ["evidence_freshness_guard"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_netzprozessReadinessGateStatus",
+      "capabilities": ["process_sensitization_readiness_map"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_netzsignalDeltaGatingStatus",
+      "capabilities": ["netzsignal_delta_gating"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_noRegretMeasureDefinitionGateStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_noRegretMeasureProofGateStatus",
+      "capabilities": ["legal_clarification_operating_model"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_novaDecisionLifecycleReadinessStatus",
+      "capabilities": ["nova_decision_lifecycle_readiness"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_offBalancingMeteringPruefmatrixStatus",
+      "capabilities": ["off_balancing_metering_pruefmatrix"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_ownerDeadlineEvidenceGateStatus",
+      "capabilities": ["owner_deadline_evidence_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_processSensitizationReadinessMapStatus",
+      "capabilities": ["process_sensitization_readiness_map"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_qualitySummary",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "dashboard-api_receiptGroundedPresentationContract",
+      "capabilities": ["receipt_grounded_presentation_contract"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_redispatchCallQualityGate",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_redispatchProjectControllingKpiCockpitStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_regulatoryChangeReadinessStatus",
+      "capabilities": ["regulatory_change_simulator_readiness"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_regulatorySignalProcessTranslatorStatus",
+      "capabilities": ["regulatory_signal_process_translator"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_rolePermissionAccessReadinessGateStatus",
+      "capabilities": ["role_permission_access_readiness_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_sapBudgetPspGateStatus",
+      "capabilities": ["sap_budget_psp_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_scheduleManagementGovernanceRoadmapStatus",
+      "capabilities": ["schedule_management_governance_roadmap"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_smartMeterOffBalancingPurposeLockStatus",
+      "capabilities": ["smart_meter_off_balancing_purpose_lock"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_smgwConnectorReadinessStatus",
+      "capabilities": ["smgw_connector_readiness_status"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_specialGridUsageImpactMapStatus",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerCapabilityProjectionStatus",
+      "capabilities": ["stadtwerk_mauer_capability_projection"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerE2eProcessDemoStatus",
+      "capabilities": ["stadtwerk_mauer_capability_projection"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerEventReplayPreviewStatus",
+      "capabilities": ["stadtwerk_mauer_event_replay_preview"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerExternalInterfaceStubsStatus",
+      "capabilities": ["stadtwerk_mauer_capability_projection"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerMastrDataOverlayStatus",
+      "capabilities": ["stadtwerk_mauer_mastr_data_overlay"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerSandboxRuntimeStatus",
+      "capabilities": ["stadtwerk_mauer_capability_projection"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerVdmiProfileStatus",
+      "capabilities": ["stadtwerk_mauer_capability_projection"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_steeringArtifactAcceptanceGateStatus",
+      "capabilities": ["steering_artifact_acceptance_gate"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_techCommercialOfferCockpitStatus",
+      "capabilities": ["vnb_kpi_benchmark_comparison"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_transformationFinancingScenarioViewStatus",
+      "capabilities": ["transformation_financing_scenario_view"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_vnbDeltaSignalClassifierStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_vnbOverview",
+      "capabilities": ["residual_load_forecast_for_dso"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_vnbSpecialTopicWorkstateStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_waterPricingNetInvestmentAlignmentStatus",
+      "capabilities": ["investment_maturity_off_balance_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "dashboard-api_zaehlparkFinanzierungSzenarioCockpitStatus",
+      "capabilities": ["zaehlpark_finanzierung_szenario_cockpit"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "datapoint_oemetadata",
+      "capabilities": ["ki_floorwalker_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "datapoint_health",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "datapoint_createSnapshot",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "datapoint_validateSnapshot",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "datasource-cache_query",
+      "capabilities": ["inhouse_timeseries_analysis"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "datasource-registry_list",
+      "capabilities": ["inhouse_timeseries_analysis"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "datasource-registry_get",
+      "capabilities": ["inhouse_timeseries_analysis"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "datasource-registry_updateDictionary",
+      "capabilities": ["energy_tax_information_package"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "decision-frame_list",
+      "capabilities": ["scqa_decision_framing"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "decision-frame_create",
+      "capabilities": ["scqa_decision_framing"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "decision-frame_get",
+      "capabilities": ["scqa_decision_framing"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "decision-frame_generateStarter",
+      "capabilities": ["scqa_decision_framing"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "e2e-connection-check_list",
+      "capabilities": ["e2e_connection_check"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "e2e-connection-check_create",
+      "capabilities": ["e2e_connection_check"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "e2e-connection-check_updateThread",
+      "capabilities": ["e2e_connection_check"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "edm-messkonzept_evaluateAll",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "edm-messkonzept_list",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "edm-messkonzept_get",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "edm-messkonzept_evaluate",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "edm_getTimeseriesSummary",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "edm-validation_validate",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "eic-codes_gasFacilities",
+      "capabilities": ["eic_code_lookup"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "eic-codes_gasOperators",
+      "capabilities": ["eic_code_lookup"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "eic-codes_search",
+      "capabilities": ["eic_code_lookup"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "eic-codes_statistics",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "eic-codes_validate",
+      "capabilities": ["eic_code_lookup"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "energy-market_co2Intensity",
+      "capabilities": ["residual_load_forecast_for_dso"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "energy-market_installations",
+      "capabilities": ["mastr_asset_inventory"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "energy-market_prices",
+      "capabilities": ["cross_commodity_supply_security_lagebild"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "entsoe_dayAheadPrices",
+      "capabilities": ["cross_commodity_supply_security_lagebild"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "entsoe_loadForecast",
+      "capabilities": ["cross_commodity_supply_security_lagebild"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "entsoe_windSolarForecast",
+      "capabilities": ["cross_commodity_supply_security_lagebild"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "eog-calculator_calculate",
+      "capabilities": ["off_balancing_metering_pruefmatrix"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "eog-calculator_inputStatus",
+      "capabilities": ["residual_load_forecast_for_dso"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "eog-calculator_scenario",
+      "capabilities": ["off_balancing_metering_pruefmatrix"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "ewk-monitoring_benchmarkVnb",
+      "capabilities": ["vnb_kpi_benchmark_comparison"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "file-ingest-monitor_listMonitors",
+      "capabilities": ["file_ingest_monitor"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "file-ingest-monitor_createMonitor",
+      "capabilities": ["file_ingest_monitor"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "file-ingest-monitor_getFindings",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "file-ingest-monitor_scan",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "file-ingest-monitor_getStatus",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "finance-agent_analyze",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "finance-agent_fnavEconomics",
+      "capabilities": ["fnav_commercial_hedging"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "flex_listDevices",
+      "capabilities": ["connection_rejection_fnav_14a_evidence"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "flexibilitaetskosten-raster_list",
+      "capabilities": ["vnb_delta_signal_classifier"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "flexibilitaetskosten-raster_create",
+      "capabilities": ["vnb_delta_signal_classifier"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "flexibilitaetskosten-raster_get",
+      "capabilities": ["vnb_delta_signal_classifier"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "flexibility-conductor-role-model_getStatus",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "flexibility-conductor-role-model_evaluate",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "flexibility-conductor-role-model_listModels",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "flexibility-conductor-role-model_getModel",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "fnav-commercial-hedging_listContracts",
+      "capabilities": ["fnav_commercial_hedging"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "fnav-commercial-hedging_createContract",
+      "capabilities": ["fnav_commercial_hedging"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "fnav-commercial-hedging_createScenario",
+      "capabilities": ["zaehlpark_finanzierung_szenario_cockpit"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "forecast_generationForecast",
+      "capabilities": ["renewable_generation_forecast"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "forecast-engine_evaluateQuality",
+      "capabilities": ["load_profile_stream_monitor"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "forecast-engine_createSchedule",
+      "capabilities": ["cross_commodity_supply_security_lagebild"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "forecast-engine_storageDispatch",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "gas-capacity-order-revision-gate_evaluate",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "gas-capacity-order-revision-gate_listRevisions",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "gas-capacity-order-revision-gate_getRevision",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "gas-capacity-order-revision-gate_getStatus",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "gas-storage_countryStorage",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "gas-storage_supplySecurityCheck",
+      "capabilities": ["cls_digital_twin_compliance_gate"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "gasnetz-waermeplanung_list",
+      "capabilities": ["gasnetz_waermeplanung_assessment"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "gasnetz-waermeplanung_reconcile",
+      "capabilities": ["gasnetz_waermeplanung_assessment"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "gasnetz-waermeplanung_get",
+      "capabilities": ["gasnetz_waermeplanung_assessment"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "german-grid_forecast",
+      "capabilities": ["mastr_asset_inventory"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "german-grid_negativePrices",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "german-grid_redispatch",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "german-grid_spotprices",
+      "capabilities": ["german_grid_market_data"],
+      "confidence": 0.92,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "ghost-asset-alert_list",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "ghost-asset-alert_scan",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "ghost-asset-alert_get",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "grid-connection_fnavValidate",
+      "capabilities": ["fnav_commercial_hedging"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "grid-connection_validate",
+      "capabilities": ["vnb_delta_signal_classifier"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "grid-operations_capacityUtilization",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "grid-operations_connectionCapacityCheck",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "grid-operations_controlMeasures",
+      "capabilities": ["connection_rejection_fnav_14a_evidence"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "grid-operations_marketPartners",
+      "capabilities": ["grid_operator_identity_resolution"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "grid-operations_vnbLookup",
+      "capabilities": ["grid_operator_identity_resolution"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "grid-operations_vnbLookupCodes",
+      "capabilities": ["grid_operator_identity_resolution"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "hitl_list",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "hitl_create",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "hitl_summary",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "in-memory-join_join",
+      "capabilities": ["inhouse_timeseries_analysis"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "in-memory-join_meteringSpotCost",
+      "capabilities": ["inhouse_timeseries_analysis"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "interface-placeholder_listGaps",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "interface-placeholder_markGap",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "interface-placeholder_requestEvidence",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "investment-maturity-off-balance-gate_evaluate",
+      "capabilities": ["investment_maturity_off_balance_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "investment-maturity-off-balance-gate_listGates",
+      "capabilities": ["investment_maturity_off_balance_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "investment-maturity-off-balance-gate_getGate",
+      "capabilities": ["investment_maturity_off_balance_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "investment-maturity-off-balance-gate_getStatus",
+      "capabilities": ["investment_maturity_off_balance_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "investment-planning_createPlan",
+      "capabilities": ["settlement_a96_reconciliation"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "knowledge-continuity-governance-gate_evaluate",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "knowledge-continuity-governance-gate_listGates",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "knowledge-continuity-governance-gate_getGate",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "knowledge-continuity-governance-gate_getStatus",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "knowledge-rag_query",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "mastr-quality_audit",
+      "capabilities": ["znp_portfolio_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "mastr-quality_list",
+      "capabilities": ["mastr_asset_inventory"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "mastr-quality_get",
+      "capabilities": ["mastr_asset_inventory"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "mastr-quality_oemetadata",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "mscons-import_import",
+      "capabilities": ["regulatory_change_simulator_readiness"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "grid-operations_netzfahrplanGenerate",
+      "capabilities": ["netzfahrplan_fnav_assessment"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "netzkoppelvertrag-workflow_list",
+      "capabilities": ["netzkoppelvertrag_workflow"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "netzkoppelvertrag-workflow_create",
+      "capabilities": ["netzkoppelvertrag_workflow"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "netzkoppelvertrag-workflow_get",
+      "capabilities": ["netzkoppelvertrag_workflow"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "netzkoppelvertrag-workflow_updateStatus",
+      "capabilities": ["netzkoppelvertrag_workflow"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "nkp-reporting_list",
+      "capabilities": ["finance_nkp_capex_reinvest_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "nkp-reporting_importReport",
+      "capabilities": ["finance_nkp_capex_reinvest_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "nkp-reporting_get",
+      "capabilities": ["finance_nkp_capex_reinvest_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "nova_listDecisions",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "nova_pendingDecisions",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "object-store_query",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "oep_energyTables",
+      "capabilities": ["oep_research_dataset_discovery"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "oep_search",
+      "capabilities": ["oep_research_dataset_discovery"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "oep_query",
+      "capabilities": ["oep_research_dataset_discovery"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "personal-agent_chat",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "presentation_render",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "re4de-variable-grid-fee_calculate",
+      "capabilities": ["re4de_variable_grid_fee_layer3"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "re4de-variable-grid-fee_getCalculation",
+      "capabilities": ["re4de_variable_grid_fee_layer3"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "re4de-variable-grid-fee_getEvidence",
+      "capabilities": ["re4de_variable_grid_fee_layer3"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-asset-register_listProjections",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "redispatch-asset-register_createProjection",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "redispatch-asset-register_listRelationships",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "redispatch-asset-register_createRelationship",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "redispatch-data-governance_evaluate",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-data-governance_listEvaluations",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-data-governance_listPolicies",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-data-governance_createPolicy",
+      "capabilities": ["reporting_governance"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-readiness-gate_evaluate",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-readiness-gate_listRuns",
+      "capabilities": ["redispatch_readiness_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-readiness-gate_getRun",
+      "capabilities": ["redispatch_readiness_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-readiness-gate_getStatus",
+      "capabilities": ["redispatch_readiness_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-settlement-sandbox_listScenarios",
+      "capabilities": ["settlement_a96_reconciliation"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-settlement-sandbox_createScenario",
+      "capabilities": ["settlement_a96_reconciliation"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-settlement-sandbox_getScenario",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "redispatch-settlement-sandbox_reconcile",
+      "capabilities": ["settlement_a96_reconciliation"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-special-case-gate_evaluate",
+      "capabilities": ["redispatch_special_case_gate"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-special-case-gate_listRuns",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "redispatch-special-case-gate_getRun",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "redispatch-expost_audit",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "redispatch-expost_list",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "regulatorische-entgeltlogik_getActive",
+      "capabilities": ["regulatorische_entgeltlogik"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "regulatorische-entgeltlogik_list",
+      "capabilities": ["regulatorische_entgeltlogik"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "regulatorische-entgeltlogik_registerRuleSet",
+      "capabilities": ["regulatorische_entgeltlogik"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "reinvest-signal_list",
+      "capabilities": ["reinvest_signal"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "reinvest-signal_analyze",
+      "capabilities": ["reinvest_signal"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "reinvest-signal_get",
+      "capabilities": ["reinvest_signal"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "reporting-governance_list",
+      "capabilities": ["nkp_reporting"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "reporting-governance_check",
+      "capabilities": ["nkp_reporting"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "reporting-governance_get",
+      "capabilities": ["nkp_reporting"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "residual-load_netResidualLoad",
+      "capabilities": ["residual_load_forecast_for_dso"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "settlement_reconcileA96",
+      "capabilities": ["settlement_a96_reconciliation"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "stadtwerk-mauer-e2e-process-demo_getStatus",
+      "capabilities": ["residual_load_forecast_for_dso"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "stadtwerk-mauer-external-interface-stubs_getStatus",
+      "capabilities": ["residual_load_forecast_for_dso"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "stadtwerk-mauer-mastr-data-overlay_getStatus",
+      "capabilities": ["residual_load_forecast_for_dso"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "stadtwerk-mauer-sandbox-runtime_status",
+      "capabilities": ["residual_load_forecast_for_dso"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "vdmi-governance-templates_listInstances",
+      "capabilities": ["vdmi_portfolio_gatekeeping"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "vdmi-governance-templates_instantiate",
+      "capabilities": ["vdmi_portfolio_gatekeeping"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "vdmi-governance-templates_listBaseTemplates",
+      "capabilities": ["vdmi_portfolio_gatekeeping"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "vdmi-portfolio-gatekeeping_gate",
+      "capabilities": ["znp_portfolio_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "vdmi-portfolio-gatekeeping_list",
+      "capabilities": ["znp_portfolio_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "vdmi-portfolio-gatekeeping_get",
+      "capabilities": ["znp_portfolio_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "vdmi_evidence",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "vdmi_agentRole",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "vdmi_context",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "vdmi_findings",
+      "capabilities": ["vdmi_portfolio_gatekeeping"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "vdmi_myResponsibilities",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "vdmi_dossier",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "vdmi_negotiationTrace",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "vnb-100-tage-assessment_list",
+      "capabilities": ["residual_load_forecast_for_dso"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "vnb-100-tage-assessment_assess",
+      "capabilities": ["vnb_100_tage_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "vnb-100-tage-assessment_get",
+      "capabilities": ["residual_load_forecast_for_dso"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "vnb-monitor_snapshot",
+      "capabilities": ["vnb_kpi_benchmark_comparison"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "willi-federated_resolveStructure",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "willi-federated_search",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "willi-mako_resolveStructure",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "willi-mako_search",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "willi-regulatorik_resolveStructure",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "willi-regulatorik_search",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "znp_listProjects",
+      "capabilities": ["znp_portfolio_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "znp_getProjectMeta",
+      "capabilities": ["znp_portfolio_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "znp_getProjectAssets",
+      "capabilities": ["znp_portfolio_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "znp_addAssumption",
+      "capabilities": ["interface_placeholder"],
+      "confidence": 0.55,
+      "uncertain": false,
+      "usedFallback": true
+    },
+    {
+      "id": "znp_correlateDisturbance",
+      "capabilities": ["blindflug_radar_anomaly_detection"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "znp_assessPortfolio",
+      "capabilities": ["znp_portfolio_assessment"],
+      "confidence": 0.88,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "znp_productionReadinessStatus",
+      "capabilities": ["vdmi_asset_validation_governance"],
+      "confidence": 0.9600000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    },
+    {
+      "id": "znp_strategicPrompts",
+      "capabilities": ["znp_portfolio_assessment"],
+      "confidence": 0.8400000000000001,
+      "uncertain": false,
+      "usedFallback": false
+    }
+  ]
+}

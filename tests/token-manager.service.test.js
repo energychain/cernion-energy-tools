@@ -100,6 +100,14 @@ describe('token-manager.service', () => {
     });
     expect(allowedMcpSidecarPost.valid).toBe(true);
 
+    const allowedDomainRouterPost = await broker.call('token-manager.verify', {
+      token: created.data.token,
+      method: 'POST',
+      path: '/api/domain-router/classify',
+      trackUsage: false,
+    });
+    expect(allowedDomainRouterPost.valid).toBe(true);
+
     const deniedOtherPost = await broker.call('token-manager.verify', {
       token: created.data.token,
       method: 'POST',
@@ -520,6 +528,38 @@ describe('token-manager.service', () => {
 
       expect(created.success).toBe(true);
       expect(created.data.scope).toBe('full-access');
+    });
+
+    it('can provision above the limit while REST creation remains limited', async () => {
+      const service = broker.getLocalService('token-manager');
+      const previousLimit = service.settings.maxTokensPerInstallation;
+      const tokens = service.loadTokens();
+      service.settings.maxTokensPerInstallation = tokens.filter(
+        (token) => token.active !== false
+      ).length;
+      const params = { name: 'Emergency CLI', tenantId: 'stadtwerk-a', userId: 'svc:cli-operator' };
+      try {
+        await expect(
+          broker.call('token-manager.create', { ...params, enforceLimit: false })
+        ).rejects.toThrow('Token limit reached');
+        const created = await broker.call('token-manager.createCli', params);
+        expect(created.success).toBe(true);
+        expect(
+          (
+            await broker.call('token-manager.verify', {
+              token: created.data.token,
+              method: 'GET',
+              path: '/api/mcp',
+            })
+          ).valid
+        ).toBe(true);
+        expect(service.loadTokens()).toHaveLength(tokens.length + 1);
+        await expect(broker.call('token-manager.create', params)).rejects.toThrow(
+          'Token limit reached'
+        );
+      } finally {
+        service.settings.maxTokensPerInstallation = previousLimit;
+      }
     });
 
     it('is not REST-exposed (no rest: property on the action)', () => {

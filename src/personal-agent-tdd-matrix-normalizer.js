@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 /**
  * v0.52.5 — Fixed normalization map from markdown TDD terminology
  * to concrete backend route aliases used by api.service.js.
@@ -594,7 +596,7 @@ function getNormalizationMap() {
 }
 
 function getNormalizedTestIds() {
-  return Object.keys(FIXED_TDD_NORMALIZATION_MAP).sort();
+  return Object.keys(FIXED_TDD_NORMALIZATION_MAP).sort(compareCanonicalStrings);
 }
 
 module.exports = {

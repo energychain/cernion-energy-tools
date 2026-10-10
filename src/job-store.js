@@ -10,6 +10,7 @@
  *   JOB_STORE_TTL_SECONDS  Job TTL in seconds (default: 86400 = 24 h)
  */
 
+const { randomUUID } = require('crypto');
 const { createDriver } = require('./job-store/factory');
 const rateQuotaStore = require('./rate-quota-store');
 const metrics = require('./metrics');
@@ -205,7 +206,7 @@ function enqueuePendingJob(entry) {
 function toAlarmRecord(input = {}) {
   const ts = nowIso();
   return {
-    alarmId: String(input.alarmId || `alarm_${Math.random().toString(36).slice(2, 12)}`),
+    alarmId: String(input.alarmId || `alarm_${randomUUID()}`),
     code: String(input.code || 'ASYNC_GENERIC_ALARM'),
     severity: String(input.severity || 'warning'),
     status: String(input.status || ALARM_STATUS.OPEN),

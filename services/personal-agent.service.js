@@ -4,6 +4,7 @@ const { DEFAULT_SYSTEM_PROMPT } = require('./personal-agent/shared');
 
 module.exports = {
   name: 'personal-agent',
+  mixins: [require('../src/domain-router-shadow-mixin')],
 
   settings: {
     maxContextTokens: Number(process.env.PERSONAL_AGENT_MAX_CONTEXT_TOKENS || 128_000),

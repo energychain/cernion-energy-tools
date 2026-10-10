@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('../src/canonical-order');
+
 const crypto = require('crypto');
 const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
@@ -1417,7 +1419,7 @@ module.exports = {
       check(context.sourceService, 'sourceServices', 1, 'sourceService');
       check(context.sourceAction, 'sourceActions', 1, 'sourceAction');
 
-      return { persona, score, signals: signals.sort() };
+      return { persona, score, signals: signals.sort(compareCanonicalStrings) };
     },
 
     isPersonaAvailable(persona) {
@@ -1439,7 +1441,7 @@ module.exports = {
           confidence: this.computeResolutionConfidence(resolutionMode, matchedSignals),
           resolutionMode,
           availability: this.isPersonaAvailable(persona),
-          matchedSignals: [...matchedSignals].sort(),
+          matchedSignals: [...matchedSignals].sort(compareCanonicalStrings),
           fallbackPersonaIds: [...fallbackPersonaIds],
           policy: persona.resolutionPolicy || null,
         },

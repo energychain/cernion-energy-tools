@@ -1,0 +1,3825 @@
+{
+  "version": 1,
+  "frozenBeforeTuning": true,
+  "cases": [
+    {
+      "id": "issue-1",
+      "source": "issue-730",
+      "query": "Starte bitte einen Fall: Netzanschlussanfrage für einen 2-MW-Batteriespeicher am Umspannwerk Nord prüfen.",
+      "primaryDomain": "grid_connection",
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "issue-2",
+      "source": "issue-730",
+      "query": "Netzanschlussanfrage Batteriespeicher prüfen",
+      "primaryDomain": "grid_connection",
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "issue-3",
+      "source": "issue-730",
+      "query": "Wir haben eine Anfrage für einen Großspeicher-Netzanschluss",
+      "primaryDomain": "grid_connection",
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "issue-4",
+      "source": "issue-730",
+      "query": "Prüfe die Anschlusskapazität am Umspannwerk",
+      "primaryDomain": "grid_connection",
+      "expectedCapabilities": [
+        "anschlusskapazitaet_evidence_queue"
+      ]
+    },
+    {
+      "id": "market_communication-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Prüfe die Marktkommunikation: APERAK zur MaLo wurde abgelehnt, welche Evidenz fehlt?",
+      "primaryDomain": "market_communication",
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "market_communication-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Review the market communication evidence chain for a rejected UTILMD message.",
+      "primaryDomain": "market_communication",
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "market_communication-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Ordne die MaKo-Evidenzkette zwischen MaLo und MeLo ein.",
+      "primaryDomain": "market_communication",
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "market_master_data-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Welche EIC-Code Zuordnung hat unser Marktpartner?",
+      "primaryDomain": "market_master_data",
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "market_master_data-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Look up the energy identification code of this market partner.",
+      "primaryDomain": "market_master_data",
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "market_master_data-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Prüfe die Stammdaten zum EIC-Code gemäß IEC 62325.",
+      "primaryDomain": "market_master_data",
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "edm-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Prüfe den Fahrplanabgleich im Bilanzkreis für Standardlastprofile.",
+      "primaryDomain": "edm",
+      "expectedCapabilities": [
+        "bilanzkreis_slp_edm_operations"
+      ]
+    },
+    {
+      "id": "edm-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Review SLP balancing group operations and schedule reconciliation.",
+      "primaryDomain": "edm",
+      "expectedCapabilities": [
+        "bilanzkreis_slp_edm_operations"
+      ]
+    },
+    {
+      "id": "edm-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Welche Bilanzgruppe trägt die SLP-Zeitreihe?",
+      "primaryDomain": "edm",
+      "expectedCapabilities": [
+        "bilanzkreis_slp_edm_operations"
+      ]
+    },
+    {
+      "id": "metering_msb-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Wie steht der Zählwechsel-Rollout im Messstellenbetrieb beim Soll-Ist Vergleich?",
+      "primaryDomain": "metering_msb",
+      "expectedCapabilities": [
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "metering_msb-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Review metering rollout backlog and contractor load.",
+      "primaryDomain": "metering_msb",
+      "expectedCapabilities": [
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "metering_msb-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Prüfe den Prozessindikator für spartenübergreifende Zählkennzahlen beim MSB.",
+      "primaryDomain": "metering_msb",
+      "expectedCapabilities": [
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "m2c_revenue_assurance-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Für die Auszugsabrechnung fehlt der Schlusszählerstand: welche EDM-Evidenz brauchen wir?",
+      "primaryDomain": "m2c_revenue_assurance",
+      "expectedCapabilities": [
+        "edm_customer_moveout_billing_evidence"
+      ]
+    },
+    {
+      "id": "m2c_revenue_assurance-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Review move-out billing evidence and final meter reading.",
+      "primaryDomain": "m2c_revenue_assurance",
+      "expectedCapabilities": [
+        "edm_customer_moveout_billing_evidence"
+      ]
+    },
+    {
+      "id": "m2c_revenue_assurance-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Prüfe die EDM-Plausibilisierung für die Schlussrechnung beim Auszug.",
+      "primaryDomain": "m2c_revenue_assurance",
+      "expectedCapabilities": [
+        "edm_customer_moveout_billing_evidence"
+      ]
+    },
+    {
+      "id": "grid_operations_system_control-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Welche Governance-Roadmap braucht das Fahrplanmanagement im Netzbetrieb?",
+      "primaryDomain": "grid_operations_system_control",
+      "expectedCapabilities": [
+        "schedule_management_governance_roadmap"
+      ]
+    },
+    {
+      "id": "grid_operations_system_control-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Review grid operations schedule management governance roadmap.",
+      "primaryDomain": "grid_operations_system_control",
+      "expectedCapabilities": [
+        "schedule_management_governance_roadmap"
+      ]
+    },
+    {
+      "id": "grid_operations_system_control-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Für die Leitwarte: Prüfe die Kapazitätsbewirtschaftung und FNAV-Roadmap.",
+      "primaryDomain": "grid_operations_system_control",
+      "expectedCapabilities": [
+        "schedule_management_governance_roadmap"
+      ]
+    },
+    {
+      "id": "redispatch-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Vergleiche Redispatch-Abrechnung Varianten in der Settlement Sandbox.",
+      "primaryDomain": "redispatch",
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "redispatch-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Compare redispatch settlement sandbox scenarios for curtailment compensation.",
+      "primaryDomain": "redispatch",
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "redispatch-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Erstelle ein Abrechnungsszenario zur Ausfallarbeit Kalkulation im Redispatch.",
+      "primaryDomain": "redispatch",
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "asset_grid_planning-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Prüfe das Reinvestitionssignal für Betriebsmittel anhand des Wartungslogs.",
+      "primaryDomain": "asset_grid_planning",
+      "expectedCapabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "id": "asset_grid_planning-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Review asset reinvest signals from SCADA and maintenance logs.",
+      "primaryDomain": "asset_grid_planning",
+      "expectedCapabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "id": "asset_grid_planning-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Für Asset Management: Was zeigt das ARegV-Fotojahr für Reinvest?",
+      "primaryDomain": "asset_grid_planning",
+      "expectedCapabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "id": "target_grid_planning-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Bewerte das Zielnetzplanungsportfolio mit kaufmännischer Layer-2-Sicht.",
+      "primaryDomain": "target_grid_planning",
+      "expectedCapabilities": [
+        "znp_portfolio_assessment"
+      ]
+    },
+    {
+      "id": "target_grid_planning-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Assess the ZNP portfolio with strategic assumptions and commercial layer 2.",
+      "primaryDomain": "target_grid_planning",
+      "expectedCapabilities": [
+        "znp_portfolio_assessment"
+      ]
+    },
+    {
+      "id": "target_grid_planning-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Prüfe die strategischen Annahmen in der Zielnetzplanung.",
+      "primaryDomain": "target_grid_planning",
+      "expectedCapabilities": [
+        "znp_portfolio_assessment"
+      ]
+    },
+    {
+      "id": "grid_connection-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Prüfe die Anschlussreife für einen Batteriespeicher am Mittelspannungsnetz.",
+      "primaryDomain": "grid_connection",
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "grid_connection-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Assess BESS connection readiness and the flexible connection contract.",
+      "primaryDomain": "grid_connection",
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "grid_connection-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Welche Nachweise fehlen für den Großspeicher-Netzanschluss?",
+      "primaryDomain": "grid_connection",
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "regulatory_compliance-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Prüfe die MaStR-Datenqualität mit OEMetadata und FAIR-Export für Compliance.",
+      "primaryDomain": "regulatory_compliance",
+      "expectedCapabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "id": "regulatory_compliance-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Review MaStR quality OEMetadata compliance audit evidence.",
+      "primaryDomain": "regulatory_compliance",
+      "expectedCapabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "id": "regulatory_compliance-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Welche BNetzA-konformen Audit-IDs fehlen im MaStR FAIR-Export?",
+      "primaryDomain": "regulatory_compliance",
+      "expectedCapabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "id": "controlling_finance-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Prüfe die Liquiditätsplanung und den Cash Pool im Controlling.",
+      "primaryDomain": "controlling_finance",
+      "expectedCapabilities": [
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "controlling_finance-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Review finance cash planning and liquidity planning governance.",
+      "primaryDomain": "controlling_finance",
+      "expectedCapabilities": [
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "controlling_finance-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Welche Liquiditätsplanung braucht das Budget-Gremium?",
+      "primaryDomain": "controlling_finance",
+      "expectedCapabilities": [
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "strategic_committee_governance-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Ist die Gremienmappe für den Aufsichtsrat prüfreif?",
+      "primaryDomain": "strategic_committee_governance",
+      "expectedCapabilities": [
+        "gremiencoach_workbook_readiness"
+      ]
+    },
+    {
+      "id": "strategic_committee_governance-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Review committee workbook readiness with the Gremiencoach.",
+      "primaryDomain": "strategic_committee_governance",
+      "expectedCapabilities": [
+        "gremiencoach_workbook_readiness"
+      ]
+    },
+    {
+      "id": "strategic_committee_governance-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Prüfe die VNB-Arbeitsmappe mit dem Gremiencoach für die nächste Sitzung.",
+      "primaryDomain": "strategic_committee_governance",
+      "expectedCapabilities": [
+        "gremiencoach_workbook_readiness"
+      ]
+    },
+    {
+      "id": "it_data_vendor_governance-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Prüfe die Schnittstellenmigration der EVU API beim Dienstleister.",
+      "primaryDomain": "it_data_vendor_governance",
+      "expectedCapabilities": [
+        "evu_api_migration_diagnostics"
+      ]
+    },
+    {
+      "id": "it_data_vendor_governance-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Review vendor EVU API migration diagnostics and interface errors.",
+      "primaryDomain": "it_data_vendor_governance",
+      "expectedCapabilities": [
+        "evu_api_migration_diagnostics"
+      ]
+    },
+    {
+      "id": "it_data_vendor_governance-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Welche Schnittstellen-Diagnose fehlt bei der VNB API Migration?",
+      "primaryDomain": "it_data_vendor_governance",
+      "expectedCapabilities": [
+        "evu_api_migration_diagnostics"
+      ]
+    },
+    {
+      "id": "org_roles_competence-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Prüfe die Wissenssicherung beim Rollenwechsel und die Zuständigkeit für Übergabedokumente.",
+      "primaryDomain": "org_roles_competence",
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "org_roles_competence-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Review knowledge continuity during role handover and process continuity.",
+      "primaryDomain": "org_roles_competence",
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "org_roles_competence-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Welche Übergabedokumente fehlen für Prozesskontinuität und Rollenklärung?",
+      "primaryDomain": "org_roles_competence",
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "management-1",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Was zeigt das Führungscockpit für blockierte Entscheidungen der Geschäftsführung?",
+      "primaryDomain": "management",
+      "expectedCapabilities": [
+        "leadership_delta_cockpit"
+      ]
+    },
+    {
+      "id": "management-2",
+      "source": "independent-regression",
+      "language": "en",
+      "query": "Review the management leadership delta cockpit and next lever.",
+      "primaryDomain": "management",
+      "expectedCapabilities": [
+        "leadership_delta_cockpit"
+      ]
+    },
+    {
+      "id": "management-3",
+      "source": "independent-regression",
+      "language": "de",
+      "query": "Erstelle die Delta-Steuerung mit Owner-Frist und Eskalation fürs Management.",
+      "primaryDomain": "management",
+      "expectedCapabilities": [
+        "leadership_delta_cockpit"
+      ]
+    },
+    {
+      "id": "existing-mastr",
+      "source": "known-correct",
+      "query": "Zeige die MaStR Anlagen im Netzgebiet.",
+      "expectedCapabilities": [
+        "mastr_asset_inventory"
+      ]
+    },
+    {
+      "id": "semantic-metering-0",
+      "source": "semantic-example",
+      "query": "Wie hoch ist der durchschnittliche Verbrauch pro Stunde?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-metering-1",
+      "source": "semantic-example",
+      "query": "Wann ist die Einspeisung am höchsten?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-grid-assets-0",
+      "source": "semantic-example",
+      "query": "Wie viele Mittelspannungsanlagen wurden vor 2010 installiert?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-grid-assets-1",
+      "source": "semantic-example",
+      "query": "Welche Asset-Typen dominieren im Netzgebiet?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-grid-incidents-0",
+      "source": "semantic-example",
+      "query": "Welche Ursache tritt am häufigsten auf?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-grid-incidents-1",
+      "source": "semantic-example",
+      "query": "Wie lange dauern Trafostörungen im Mittel?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-redispatch-queue-0",
+      "source": "semantic-example",
+      "query": "Wie viele Redispatch-Fälle sind noch offen?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-redispatch-queue-1",
+      "source": "semantic-example",
+      "query": "Welche Messlokationen haben die höchste angeforderte Leistung?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-mastr-local-0",
+      "source": "semantic-example",
+      "query": "Wie viele Anlagen sind noch in Prüfung?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-mastr-local-1",
+      "source": "semantic-example",
+      "query": "Welche Einheitentypen dominieren lokal?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-procurement-0",
+      "source": "semantic-example",
+      "query": "What is the average procurement price for Q2 2026?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-procurement-1",
+      "source": "semantic-example",
+      "query": "Which counterparty has the largest open position?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-forecast-vs-actual-0",
+      "source": "semantic-example",
+      "query": "Wie groß ist die mittlere Prognoseabweichung?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-forecast-vs-actual-1",
+      "source": "semantic-example",
+      "query": "Zu welchen Stunden lag der Istwert über der Prognose?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-billing-overview-0",
+      "source": "semantic-example",
+      "query": "Wie hoch ist der offene Rechnungsbetrag?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-billing-overview-1",
+      "source": "semantic-example",
+      "query": "Welche Perioden haben die meisten überfälligen Zahlungen?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-receivables-0",
+      "source": "semantic-example",
+      "query": "Wie viele Forderungen sind in Mahnstufe 2 oder höher?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-receivables-1",
+      "source": "semantic-example",
+      "query": "Welche Fälligkeiten konzentrieren das höchste Volumen?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-mako-process-log-0",
+      "source": "semantic-example",
+      "query": "Welche Prozesse drohen die Frist zu reißen?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-mako-process-log-1",
+      "source": "semantic-example",
+      "query": "Wie viele UTILMD-Nachrichten sind noch offen?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-customer-projects-0",
+      "source": "semantic-example",
+      "query": "Welche Projektarten sind am weitesten fortgeschritten?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-customer-projects-1",
+      "source": "semantic-example",
+      "query": "Wie viel kW Pipeline sind aktuell in Angebot?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-other-0",
+      "source": "semantic-example",
+      "query": "What data does this dataset contain?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-other-1",
+      "source": "semantic-example",
+      "query": "Show me an overview of the rows in this dataset.",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-other-2",
+      "source": "semantic-example",
+      "query": "What are the unique values in the most important column?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-metering-point-master-0",
+      "source": "semantic-example",
+      "query": "Welche Tariftypen dominieren je Netzebene?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-metering-point-master-1",
+      "source": "semantic-example",
+      "query": "Wie viele MaLo/MeLo-Paare sind vollständig?",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "vnb-lookup-v1",
+      "source": "receipt-example",
+      "query": "VNB lookup (operator scope — bdew or vnbName required). Direct deterministic VNB/BDEW lookup. Requires operator identity context (bdew or vnbName). For city/location-only queries use vnb-resolution-chain-v1 instead.",
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso",
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory",
+        "vnb_kpi_benchmark_comparison"
+      ]
+    },
+    {
+      "id": "vnb-resolution-chain-v1",
+      "source": "receipt-example",
+      "query": "VNB Resolution Chain (location scope — city/postalCode). Two-step VNB resolution for city/location-only queries. Step 1: marketPartners resolves operator candidates from locationScope. Step 2: vnbLookup confirms identity using step 1 result (operatorScope). city/postalCode alone never substitutes for operator identity (bdew/vnbName).",
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso",
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory",
+        "vnb_kpi_benchmark_comparison"
+      ]
+    },
+    {
+      "id": "netzbetreiber-flexibility-potential-v1",
+      "source": "receipt-example",
+      "query": "Netzbetreiber-Flexibilitätspotenzial Executive Briefing. Toolplan für Geschäftsführer-/Leiter-Netz-Dialoge: §14a, Redispatch 2.0, MaStR/Assets, Rückspeisespitzen und Ansiedlungsempfehlung mit Zahlen- und Quellenpflicht.",
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso",
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory",
+        "vnb_kpi_benchmark_comparison"
+      ]
+    },
+    {
+      "id": "mako-resolution-value-v1",
+      "source": "receipt-example",
+      "query": "MaKo/M2C Resolution Value Projection. CR-LKA-RV-001 receipt profile for qualitative Resolution Value in MaKo/M2C clarification cases.",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "asset-to-decision-v1",
+      "source": "receipt-example",
+      "query": "Asset-to-Decision Governance Projection. CR-LKA-RV-001 receipt profile for asset-state to budget/committee decision readiness.",
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "agnes-bottleneck_list",
+      "source": "operation-summary",
+      "query": "agnes-bottleneck.list",
+      "expectedCapabilities": [
+        "agnes_bottleneck"
+      ]
+    },
+    {
+      "id": "agnes-bottleneck_assess",
+      "source": "operation-summary",
+      "query": "agnes-bottleneck.assess",
+      "expectedCapabilities": [
+        "agnes_bottleneck"
+      ]
+    },
+    {
+      "id": "agnes-bottleneck_get",
+      "source": "operation-summary",
+      "query": "agnes-bottleneck.get",
+      "expectedCapabilities": [
+        "agnes_bottleneck"
+      ]
+    },
+    {
+      "id": "altdaten-assessment_list",
+      "source": "operation-summary",
+      "query": "altdaten-assessment.list",
+      "expectedCapabilities": [
+        "altdaten_assessment"
+      ]
+    },
+    {
+      "id": "altdaten-assessment_assess",
+      "source": "operation-summary",
+      "query": "altdaten-assessment.assess",
+      "expectedCapabilities": [
+        "altdaten_assessment"
+      ]
+    },
+    {
+      "id": "altdaten-assessment_get",
+      "source": "operation-summary",
+      "query": "altdaten-assessment.get",
+      "expectedCapabilities": [
+        "altdaten_assessment"
+      ]
+    },
+    {
+      "id": "assets_effective",
+      "source": "operation-summary",
+      "query": "Get effective asset view (MaStR + applied overrides)",
+      "expectedCapabilities": [
+        "asset_valuation_transformation_gate",
+        "gas_network_decision_chain",
+        "gas_transformation_dataroom_status",
+        "legacy_control_technology_transition",
+        "controllability_data_alignment",
+        "gas_infrastructure_risk_governance",
+        "heat_transformation_line_asset_model",
+        "heat_asset_tariff_steering",
+        "redispatch_project_controlling_kpi_cockpit",
+        "gas_transformation_dependency_map",
+        "grid_connection_transformation_gate",
+        "controllability_asset_handover"
+      ]
+    },
+    {
+      "id": "assets_all",
+      "source": "operation-summary",
+      "query": "List all installations by grid operator or location (all or selected types)",
+      "expectedCapabilities": [
+        "gas_grid_transformation_asset_cockpit",
+        "vnb_kpi_benchmark_comparison"
+      ]
+    },
+    {
+      "id": "automatisierungsradar_list",
+      "source": "operation-summary",
+      "query": "automatisierungsradar.list",
+      "expectedCapabilities": [
+        "automatisierungsradar"
+      ]
+    },
+    {
+      "id": "automatisierungsradar_analyze",
+      "source": "operation-summary",
+      "query": "automatisierungsradar.analyze",
+      "expectedCapabilities": [
+        "automatisierungsradar"
+      ]
+    },
+    {
+      "id": "automatisierungsradar_get",
+      "source": "operation-summary",
+      "query": "automatisierungsradar.get",
+      "expectedCapabilities": [
+        "automatisierungsradar"
+      ]
+    },
+    {
+      "id": "battery-redispatch-special-gate_getStatus",
+      "source": "operation-summary",
+      "query": "Get dossier-safe battery Redispatch special gate status",
+      "expectedCapabilities": [
+        "battery_redispatch_special_gate"
+      ]
+    },
+    {
+      "id": "battery-redispatch-special-gate_evaluate",
+      "source": "operation-summary",
+      "query": "Evaluate a battery storage Redispatch special gate",
+      "expectedCapabilities": [
+        "battery_redispatch_special_gate"
+      ]
+    },
+    {
+      "id": "battery-redispatch-special-gate_listGates",
+      "source": "operation-summary",
+      "query": "List battery Redispatch special gates",
+      "expectedCapabilities": [
+        "battery_redispatch_special_gate"
+      ]
+    },
+    {
+      "id": "battery-redispatch-special-gate_getGate",
+      "source": "operation-summary",
+      "query": "Get a battery Redispatch special gate",
+      "expectedCapabilities": [
+        "battery_redispatch_special_gate"
+      ]
+    },
+    {
+      "id": "bess-screening_list",
+      "source": "operation-summary",
+      "query": "bess-screening.list",
+      "expectedCapabilities": [
+        "bess_screening"
+      ]
+    },
+    {
+      "id": "bess-screening_screen",
+      "source": "operation-summary",
+      "query": "bess-screening.screen",
+      "expectedCapabilities": [
+        "bess_screening"
+      ]
+    },
+    {
+      "id": "bess-screening_get",
+      "source": "operation-summary",
+      "query": "bess-screening.get",
+      "expectedCapabilities": [
+        "bess_screening"
+      ]
+    },
+    {
+      "id": "bilanzkreis_list",
+      "source": "operation-summary",
+      "query": "List Bilanzkreise",
+      "expectedCapabilities": [
+        "bilanzkreis_slp_edm_operations"
+      ]
+    },
+    {
+      "id": "bilanzkreis_get",
+      "source": "operation-summary",
+      "query": "Get a Bilanzkreis",
+      "expectedCapabilities": [
+        "bilanzkreis_slp_edm_operations"
+      ]
+    },
+    {
+      "id": "business-intelligence_dynamicTariffCalculator",
+      "source": "operation-summary",
+      "query": "Calculate dynamic electricity tariffs based on market prices or CO₂ intensity",
+      "expectedCapabilities": [
+        "heat_asset_tariff_steering"
+      ]
+    },
+    {
+      "id": "capex-prioritization_list",
+      "source": "operation-summary",
+      "query": "capex-prioritization.list",
+      "expectedCapabilities": [
+        "capex_prioritization"
+      ]
+    },
+    {
+      "id": "capex-prioritization_analyze",
+      "source": "operation-summary",
+      "query": "capex-prioritization.analyze",
+      "expectedCapabilities": [
+        "capex_prioritization"
+      ]
+    },
+    {
+      "id": "capex-prioritization_get",
+      "source": "operation-summary",
+      "query": "capex-prioritization.get",
+      "expectedCapabilities": [
+        "capex_prioritization"
+      ]
+    },
+    {
+      "id": "connection-rejection-evidence_list",
+      "source": "operation-summary",
+      "query": "connection-rejection-evidence.list",
+      "expectedCapabilities": [
+        "connection_rejection_evidence"
+      ]
+    },
+    {
+      "id": "connection-rejection-evidence_create",
+      "source": "operation-summary",
+      "query": "connection-rejection-evidence.create",
+      "expectedCapabilities": [
+        "connection_rejection_evidence"
+      ]
+    },
+    {
+      "id": "connection-rejection-evidence_get",
+      "source": "operation-summary",
+      "query": "connection-rejection-evidence.get",
+      "expectedCapabilities": [
+        "connection_rejection_evidence"
+      ]
+    },
+    {
+      "id": "cookbook_get",
+      "source": "operation-summary",
+      "query": "Get a single cookbook recipe",
+      "expectedCapabilities": [
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "cookbook_search",
+      "source": "operation-summary",
+      "query": "Semantic recipe lookup",
+      "expectedCapabilities": [
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "listProcessIntents",
+      "source": "operation-summary",
+      "query": "List process execution intents",
+      "expectedCapabilities": [
+        "netzprozess_readiness_gate",
+        "owner_deadline_evidence_gate"
+      ]
+    },
+    {
+      "id": "cya_generate",
+      "source": "operation-summary",
+      "query": "Generate profile-aware narrative",
+      "expectedCapabilities": [
+        "ki_floorwalker_governance",
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "dashboard-api_a2mdmDecisionObjectStatus",
+      "source": "operation-summary",
+      "query": "A2MDM decision object - read-only meaning preservation projection",
+      "expectedCapabilities": [
+        "a2mdm_decision_object_meaning_preservation"
+      ]
+    },
+    {
+      "id": "dashboard-api_anschlusskapazitaetEvidenceQueueStatus",
+      "source": "operation-summary",
+      "query": "Anschlusskapazitaet evidence queue - read-only dossier-safe status",
+      "expectedCapabilities": [
+        "anschlusskapazitaet_evidence_queue"
+      ]
+    },
+    {
+      "id": "dashboard-api_arealNetworkIntegrationOfferGateStatus",
+      "source": "operation-summary",
+      "query": "Areal network-integration offer gate -- read-only evidence gate",
+      "expectedCapabilities": [
+        "areal_network_integration_offer_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_assetValuationTransformationGateStatus",
+      "source": "operation-summary",
+      "query": "Asset valuation transformation gate -- read-only evidence projection",
+      "expectedCapabilities": [
+        "asset_valuation_transformation_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_automationRequirementsDecisionValueStatus",
+      "source": "operation-summary",
+      "query": "Automation Requirements Decision Value — read-only dossier-safe gate",
+      "expectedCapabilities": [
+        "automation_requirements_decision_value"
+      ]
+    },
+    {
+      "id": "dashboard-api_automationRiskGateStatus",
+      "source": "operation-summary",
+      "query": "Automation Risk Gate -- read-only dossier-safe status",
+      "expectedCapabilities": [
+        "automation_risk_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_budgetWaterfallGovernanceStatus",
+      "source": "operation-summary",
+      "query": "Budget Waterfall Governance — read-only dossier-safe gate",
+      "expectedCapabilities": [
+        "budget_waterfall_governance"
+      ]
+    },
+    {
+      "id": "dashboard-api_capacityContractRiskAssetCockpitStatus",
+      "source": "operation-summary",
+      "query": "Capacity & Contract Risk Asset Cockpit — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "capacity_contract_risk_asset_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_clsDigitalTwinComplianceGateStatus",
+      "source": "operation-summary",
+      "query": "CLS Digital Twin Compliance Gate — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "cls_digital_twin_compliance_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_communicationBreakProcessRiskStatus",
+      "source": "operation-summary",
+      "query": "Communication-break process-risk gate - read-only dossier-safe status",
+      "expectedCapabilities": [
+        "communication_break_process_risk"
+      ]
+    },
+    {
+      "id": "dashboard-api_connectionDeadlineEvidenceQueueStatus",
+      "source": "operation-summary",
+      "query": "Connection deadline evidence queue - read-only dossier-safe status",
+      "expectedCapabilities": [
+        "connection_deadline_evidence_queue"
+      ]
+    },
+    {
+      "id": "dashboard-api_controllabilityAssetHandoverStatus",
+      "source": "operation-summary",
+      "query": "Controllability asset handover — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "controllability_asset_handover"
+      ]
+    },
+    {
+      "id": "dashboard-api_controllabilityDataAlignmentStatus",
+      "source": "operation-summary",
+      "query": "Controllability data alignment — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "controllability_data_alignment"
+      ]
+    },
+    {
+      "id": "dashboard-api_controllabilitySubmissionCockpitStatus",
+      "source": "operation-summary",
+      "query": "Controllability submission cockpit — read-only dossier-safe gate",
+      "expectedCapabilities": [
+        "controllability_submission_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_coordinationMeaningPreservationProfile",
+      "source": "operation-summary",
+      "query": "Coordination meaning preservation — read-only dossier-safe profile",
+      "expectedCapabilities": [
+        "a2mdm_decision_object_meaning_preservation",
+        "coordination_meaning_preservation_profile"
+      ]
+    },
+    {
+      "id": "dashboard-api_costReviewCommitteeStatus",
+      "source": "operation-summary",
+      "query": "Cost review committee status - read-only dossier-safe evidence board",
+      "expectedCapabilities": [
+        "cost_review_committee_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_crisisDecisionRoutineStatus",
+      "source": "operation-summary",
+      "query": "Crisis decision routine — read-only dossier-safe management gate",
+      "expectedCapabilities": [
+        "crisis_decision_routine"
+      ]
+    },
+    {
+      "id": "dashboard-api_crossChannelVnbSignalQueueStatus",
+      "source": "operation-summary",
+      "query": "Cross-channel VNB signal queue -- read-only evidence projection",
+      "expectedCapabilities": [
+        "evidence_freshness_guard",
+        "cross_channel_vnb_signal_queue"
+      ]
+    },
+    {
+      "id": "dashboard-api_crossDomainSpecialTopicsQueueStatus",
+      "source": "operation-summary",
+      "query": "Cross-domain special topics queue -- read-only management projection",
+      "expectedCapabilities": [
+        "vnb_special_topic_workstate",
+        "non_escalation_control_evidence",
+        "cross_domain_special_topics_queue"
+      ]
+    },
+    {
+      "id": "dashboard-api_crossSystemVarianceMatrixStatus",
+      "source": "operation-summary",
+      "query": "Cross-system variance matrix -- read-only VNB evidence view",
+      "expectedCapabilities": [
+        "cross_system_variance_matrix"
+      ]
+    },
+    {
+      "id": "dashboard-api_decisionReadinessMatrixStatus",
+      "source": "operation-summary",
+      "query": "Decision-readiness matrix -- read-only VNB OPL/budget evidence",
+      "expectedCapabilities": [
+        "decision_readiness_matrix"
+      ]
+    },
+    {
+      "id": "dashboard-api_decommissionedAssetReconciliationStatus",
+      "source": "operation-summary",
+      "query": "Decommissioned Asset Reconciliation status -- read-only Workbench projection",
+      "expectedCapabilities": [
+        "decommissioned_asset_reconciliation"
+      ]
+    },
+    {
+      "id": "dashboard-api_directMarketerRiskGateStatus",
+      "source": "operation-summary",
+      "query": "Direktvermarkter Risk Gate -- read-only dossier-safe status",
+      "expectedCapabilities": [
+        "direct_marketer_risk_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_drReadinessEvidenceStatus",
+      "source": "operation-summary",
+      "query": "DR readiness evidence gate - read-only dossier-safe status",
+      "expectedCapabilities": [
+        "dr_readiness_evidence_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_e2eControllabilityGovernanceStatus",
+      "source": "operation-summary",
+      "query": "E2E controllability governance — read-only dossier-safe matrix",
+      "expectedCapabilities": [
+        "e2e_controllability_check_governance"
+      ]
+    },
+    {
+      "id": "dashboard-api_energySharing42cCutoverReadinessStatus",
+      "source": "operation-summary",
+      "query": "§42c cutover readiness - read-only dossier-safe status",
+      "expectedCapabilities": [
+        "energy_sharing_42c_cutover_readiness"
+      ]
+    },
+    {
+      "id": "dashboard-api_energySharingCollectiveApprovalStatus",
+      "source": "operation-summary",
+      "query": "Energy Sharing Collective Approval status -- read-only Workbench projection",
+      "expectedCapabilities": [
+        "energy_sharing_collective_approval"
+      ]
+    },
+    {
+      "id": "dashboard-api_energySharingSimulationGateStatus",
+      "source": "operation-summary",
+      "query": "Energy-Sharing simulation gate - read-only dossier-safe status",
+      "expectedCapabilities": [
+        "energy_sharing_simulation_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_energySidecarRouteRegistryStatus",
+      "source": "operation-summary",
+      "query": "Energy Sidecar Route Registry -- read-only advisory evidence",
+      "expectedCapabilities": [
+        "energy_sidecar_route_registry"
+      ]
+    },
+    {
+      "id": "dashboard-api_energyTaxInformationPackageStatus",
+      "source": "operation-summary",
+      "query": "Energy Tax Information Package — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "energy_tax_information_package"
+      ]
+    },
+    {
+      "id": "dashboard-api_evidenceFreshnessGuardStatus",
+      "source": "operation-summary",
+      "query": "Evidence freshness guard -- read-only VNB signal metadata classification",
+      "expectedCapabilities": [
+        "evidence_freshness_guard",
+        "vnb_special_topic_workstate"
+      ]
+    },
+    {
+      "id": "dashboard-api_evidenceGroundingConfidenceAudit",
+      "source": "operation-summary",
+      "query": "Evidence grounding confidence audit — read-only dossier-safe evidence status",
+      "expectedCapabilities": [
+        "evidence_grounding_confidence_audit"
+      ]
+    },
+    {
+      "id": "dashboard-api_evuApiMigrationDiagnosticsStatus",
+      "source": "operation-summary",
+      "query": "EVU API migration diagnostics - read-only dossier-safe status",
+      "expectedCapabilities": [
+        "evu_api_migration_diagnostics"
+      ]
+    },
+    {
+      "id": "dashboard-api_flexStrategicDemandIntakeStatus",
+      "source": "operation-summary",
+      "query": "Strategic Flex demand intake — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "flex_strategic_demand_intake"
+      ]
+    },
+    {
+      "id": "dashboard-api_fnavFastTrackContractGateStatus",
+      "source": "operation-summary",
+      "query": "fNAV fast-track contract gate -- read-only decision readiness",
+      "expectedCapabilities": [
+        "fnav_fast_track_contract_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasCapacityBookingReviewGateStatus",
+      "source": "operation-summary",
+      "query": "Gas capacity booking review gate -- read-only evidence projection",
+      "expectedCapabilities": [
+        "gas_capacity_booking_review_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasDecommissioningRoadmapStatus",
+      "source": "operation-summary",
+      "query": "Gas Decommissioning Roadmap — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "gas_decommissioning_roadmap_status",
+        "gas_transformation_dataroom_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasGridTransformationAssetCockpitStatus",
+      "source": "operation-summary",
+      "query": "Gas grid transformation asset cockpit -- read-only evidence gate",
+      "expectedCapabilities": [
+        "gas_grid_transformation_asset_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasInfrastructureRiskGovernanceStatus",
+      "source": "operation-summary",
+      "query": "Gas infrastructure risk governance — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "gas_infrastructure_risk_governance"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasNetworkDecisionChainStatus",
+      "source": "operation-summary",
+      "query": "Gas network decision chain -- read-only evidence projection",
+      "expectedCapabilities": [
+        "gas_network_decision_chain",
+        "gas_transformation_dataroom_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasTransformationDataroomStatus",
+      "source": "operation-summary",
+      "query": "Gasnetz-Transformationsdatenraum -- read-only status snapshot",
+      "expectedCapabilities": [
+        "gas_transformation_dataroom_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasTransformationDependencyMapStatus",
+      "source": "operation-summary",
+      "query": "Gas- und Waermetransformation Abhaengigkeitslandkarte — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "gas_transformation_dependency_map"
+      ]
+    },
+    {
+      "id": "dashboard-api_gremiencoachWorkbookReadinessStatus",
+      "source": "operation-summary",
+      "query": "Gremiencoach workbook readiness - read-only private-prep status",
+      "expectedCapabilities": [
+        "gremiencoach_workbook_readiness"
+      ]
+    },
+    {
+      "id": "dashboard-api_gridConnectionTransformationGateStatus",
+      "source": "operation-summary",
+      "query": "Netzanschlusspunkt Transformations Gate — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "grid_connection_transformation_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_grossspeicherAnschlussReadinessGateStatus",
+      "source": "operation-summary",
+      "query": "Grossspeicher Anschluss Readiness Gate -- read-only dossier-safe status",
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_heatAssetTariffSteeringStatus",
+      "source": "operation-summary",
+      "query": "District Heating Asset & Tariff Steering Gate — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "heat_asset_tariff_steering"
+      ]
+    },
+    {
+      "id": "dashboard-api_heatTransformationLineAssetModelStatus",
+      "source": "operation-summary",
+      "query": "Heat transformation line-asset model — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "heat_transformation_line_asset_model"
+      ]
+    },
+    {
+      "id": "dashboard-api_imsysScheduleValueChainReadinessStatus",
+      "source": "operation-summary",
+      "query": "iMSys schedule value-chain readiness — read-only dossier-safe gate",
+      "expectedCapabilities": [
+        "imsys_schedule_value_chain_readiness"
+      ]
+    },
+    {
+      "id": "dashboard-api_imsysTaf2ComplianceStatus",
+      "source": "operation-summary",
+      "query": "iMSys TAF2 compliance status — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "imsys_taf2_compliance_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_interconnectionReleaseFileStatus",
+      "source": "operation-summary",
+      "query": "Koppelpunkt Freigabeakte -- read-only evidence/gate status",
+      "expectedCapabilities": [
+        "a2mdm_decision_object_meaning_preservation",
+        "interconnection_release_file"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentBudgetCapExceptionGovernanceStatus",
+      "source": "operation-summary",
+      "query": "Investment budget cap exception governance -- read-only evidence queue",
+      "expectedCapabilities": [
+        "investment_budget_cap_exception_governance"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentCommitteeSteeringCardsStatus",
+      "source": "operation-summary",
+      "query": "Investment committee steering cards — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "investment_committee_steering_cards"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentDataReviewQueueStatus",
+      "source": "operation-summary",
+      "query": "Investment data review queue — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "investment_data_review_queue"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentOwnerDeadlineBudgetGateStatus",
+      "source": "operation-summary",
+      "query": "Investment Owner-Frist-Budget Gate -- read-only evidence gate",
+      "expectedCapabilities": [
+        "investment_owner_deadline_budget_gate",
+        "no_regret_measure_proof_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentRiskTranslationStatus",
+      "source": "operation-summary",
+      "query": "Investment Risk Translation — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "investment_risk_translation_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentTwoTrackControlStatus",
+      "source": "operation-summary",
+      "query": "Investment two-track control — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "investment_two_track_control"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentWaterfallGovernanceStatus",
+      "source": "operation-summary",
+      "query": "Investment waterfall governance — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "investment_waterfall_governance"
+      ]
+    },
+    {
+      "id": "dashboard-api_jourFixeDecisionClosureStatus",
+      "source": "operation-summary",
+      "query": "Jour-Fixe Decision Closure — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "jour_fixe_decision_closure_tracker"
+      ]
+    },
+    {
+      "id": "dashboard-api_kiFloorwalkerGovernanceStatus",
+      "source": "operation-summary",
+      "query": "KI Floorwalker governance — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "ki_floorwalker_governance"
+      ]
+    },
+    {
+      "id": "dashboard-api_layer0AuditDrilldownNoteStatus",
+      "source": "operation-summary",
+      "query": "Layer-0 audit drilldown note - read-only dossier-safe validation note",
+      "expectedCapabilities": [
+        "layer0_audit_drilldown_note"
+      ]
+    },
+    {
+      "id": "dashboard-api_leadershipDeltaCockpitStatus",
+      "source": "operation-summary",
+      "query": "Leadership delta cockpit -- read-only management evidence aggregation",
+      "expectedCapabilities": [
+        "evidence_freshness_guard",
+        "vnb_delta_signal_classifier",
+        "vnb_special_topic_workstate",
+        "leadership_delta_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_legacyControlTechnologyTransitionStatus",
+      "source": "operation-summary",
+      "query": "Legacy control technology transition — read-only dossier-safe gate",
+      "expectedCapabilities": [
+        "legacy_control_technology_transition"
+      ]
+    },
+    {
+      "id": "dashboard-api_legalClarificationOperatingModelStatus",
+      "source": "operation-summary",
+      "query": "Legal clarification operating model - read-only dossier-safe status",
+      "expectedCapabilities": [
+        "legal_clarification_operating_model"
+      ]
+    },
+    {
+      "id": "dashboard-api_liquidityPlanningGovernanceStatus",
+      "source": "operation-summary",
+      "query": "Liquidity planning governance - read-only dossier-safe status",
+      "expectedCapabilities": [
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "dashboard-api_liveUpdateStreamContractStatus",
+      "source": "operation-summary",
+      "query": "Live update stream contract -- read-only readiness evidence",
+      "expectedCapabilities": [
+        "live_update_stream_contract_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_loadProfileStreamMonitor",
+      "source": "operation-summary",
+      "query": "Load profile movement monitor — strict anomaly-class buckets",
+      "expectedCapabilities": [
+        "live_update_stream_contract_status",
+        "load_profile_stream_monitor",
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_marketCommunicationEvidenceChainStatus",
+      "source": "operation-summary",
+      "query": "Market communication evidence chain — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "smart_meter_cls_data_governance_receipt",
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "dashboard-api_mastrSyncGapStatus",
+      "source": "operation-summary",
+      "query": "MaStR Sync-Gap alerting status -- read-only Workbench projection",
+      "expectedCapabilities": [
+        "mastr_sync_gap_alerting"
+      ]
+    },
+    {
+      "id": "dashboard-api_meteringRolloutProcessIndicatorStatus",
+      "source": "operation-summary",
+      "query": "Metering rollout process indicator — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "dashboard-api_modelViabilityEvidenceGateStatus",
+      "source": "operation-summary",
+      "query": "Model Viability Evidence Gate — read-only single-candidate evidence view",
+      "expectedCapabilities": [
+        "model_viability_evidence_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_monitoringNonEscalationStatus",
+      "source": "operation-summary",
+      "query": "Monitoring non-escalation evidence -- read-only status card",
+      "expectedCapabilities": [
+        "non_escalation_control_evidence"
+      ]
+    },
+    {
+      "id": "dashboard-api_netzprozessReadinessGateStatus",
+      "source": "operation-summary",
+      "query": "Netzprozess Readiness Gate -- read-only dossier-safe status",
+      "expectedCapabilities": [
+        "netzprozess_readiness_gate",
+        "role_permission_access_readiness_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_netzsignalDeltaGatingStatus",
+      "source": "operation-summary",
+      "query": "Netzsignal Delta-Gating — read-only evidence classification",
+      "expectedCapabilities": [
+        "netzsignal_delta_gating"
+      ]
+    },
+    {
+      "id": "dashboard-api_noRegretMeasureDefinitionGateStatus",
+      "source": "operation-summary",
+      "query": "No-Regret measure definition gate -- read-only evidence gate",
+      "expectedCapabilities": [
+        "no_regret_measure_definition_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_noRegretMeasureProofGateStatus",
+      "source": "operation-summary",
+      "query": "No-Regret measure proof gate - read-only dossier-safe status",
+      "expectedCapabilities": [
+        "no_regret_measure_proof_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_novaDecisionLifecycleReadinessStatus",
+      "source": "operation-summary",
+      "query": "NOVA decision lifecycle readiness - read-only dossier-safe status",
+      "expectedCapabilities": [
+        "nova_decision_lifecycle_readiness"
+      ]
+    },
+    {
+      "id": "dashboard-api_offBalancingMeteringPruefmatrixStatus",
+      "source": "operation-summary",
+      "query": "Off-Balancing Metering Pruefmatrix — read-only dossier-safe gate",
+      "expectedCapabilities": [
+        "off_balancing_metering_pruefmatrix"
+      ]
+    },
+    {
+      "id": "dashboard-api_ownerDeadlineEvidenceGateStatus",
+      "source": "operation-summary",
+      "query": "Owner-Frist-Evidenz Gate -- read-only dossier-safe status",
+      "expectedCapabilities": [
+        "owner_deadline_evidence_gate",
+        "communication_break_process_risk",
+        "steering_artifact_acceptance_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_processSensitizationReadinessMapStatus",
+      "source": "operation-summary",
+      "query": "Process Sensitization Readiness Map -- read-only dossier-safe status",
+      "expectedCapabilities": [
+        "process_sensitization_readiness_map"
+      ]
+    },
+    {
+      "id": "dashboard-api_qualitySummary",
+      "source": "operation-summary",
+      "query": "Quality summary — recent reports from all agent pipelines",
+      "expectedCapabilities": [
+        "process_sensitization_readiness_map"
+      ]
+    },
+    {
+      "id": "dashboard-api_receiptGroundedPresentationContract",
+      "source": "operation-summary",
+      "query": "Receipt-grounded presentation contract — read-only renderer grounding check",
+      "expectedCapabilities": [
+        "receipt_grounded_presentation_contract"
+      ]
+    },
+    {
+      "id": "dashboard-api_redispatchCallQualityGate",
+      "source": "operation-summary",
+      "query": "Redispatch call data-quality gate — read-only evidence aggregator",
+      "expectedCapabilities": [
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_redispatchProjectControllingKpiCockpitStatus",
+      "source": "operation-summary",
+      "query": "Redispatch project-controlling KPI cockpit -- read-only evidence gate",
+      "expectedCapabilities": [
+        "redispatch_project_controlling_kpi_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_regulatoryChangeReadinessStatus",
+      "source": "operation-summary",
+      "query": "Regulatory change readiness — read-only dossier-safe gate",
+      "expectedCapabilities": [
+        "smart_meter_cls_data_governance_receipt",
+        "regulatory_change_simulator_readiness"
+      ]
+    },
+    {
+      "id": "dashboard-api_regulatorySignalProcessTranslatorStatus",
+      "source": "operation-summary",
+      "query": "Regulatory signal process translator -- read-only governance evidence view",
+      "expectedCapabilities": [
+        "smart_meter_cls_data_governance_receipt",
+        "regulatory_signal_process_translator"
+      ]
+    },
+    {
+      "id": "dashboard-api_rolePermissionAccessReadinessGateStatus",
+      "source": "operation-summary",
+      "query": "Role-Permission / AccessManager Readiness Gate -- read-only dossier-safe status",
+      "expectedCapabilities": [
+        "role_permission_access_readiness_gate",
+        "owner_deadline_evidence_gate",
+        "steering_artifact_acceptance_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_sapBudgetPspGateStatus",
+      "source": "operation-summary",
+      "query": "SAP Budget PSP Gate — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "sap_budget_psp_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_scheduleManagementGovernanceRoadmapStatus",
+      "source": "operation-summary",
+      "query": "Fahrplanmanagement Governance Roadmap — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "schedule_management_governance_roadmap"
+      ]
+    },
+    {
+      "id": "dashboard-api_smartMeterOffBalancingPurposeLockStatus",
+      "source": "operation-summary",
+      "query": "Smart Meter Off-Balancing Purpose Lock — read-only dossier-safe gate",
+      "expectedCapabilities": [
+        "smart_meter_cls_data_governance_receipt",
+        "smart_meter_off_balancing_purpose_lock"
+      ]
+    },
+    {
+      "id": "dashboard-api_smgwConnectorReadinessStatus",
+      "source": "operation-summary",
+      "query": "SMGW connector readiness -- read-only evidence/status gate",
+      "expectedCapabilities": [
+        "smgw_connector_readiness_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_specialGridUsageImpactMapStatus",
+      "source": "operation-summary",
+      "query": "Special-grid-usage impact map - read-only dossier-safe status",
+      "expectedCapabilities": [
+        "special_grid_usage_impact_map"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerCapabilityProjectionStatus",
+      "source": "operation-summary",
+      "query": "Stadtwerk Mauer capability projection -- read-only role/VDMI view",
+      "expectedCapabilities": [
+        "stadtwerk_mauer_capability_projection",
+        "stadtwerk_mauer_event_replay_preview"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerE2eProcessDemoStatus",
+      "source": "operation-summary",
+      "query": "Stadtwerk Mauer E2E process demo -- read-only status",
+      "expectedCapabilities": [
+        "stadtwerk_mauer_e2e_process_demo"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerEventReplayPreviewStatus",
+      "source": "operation-summary",
+      "query": "Stadtwerk Mauer event replay preview -- read-only synthetic event catalog",
+      "expectedCapabilities": [
+        "stadtwerk_mauer_event_replay_preview"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerExternalInterfaceStubsStatus",
+      "source": "operation-summary",
+      "query": "Stadtwerk Mauer external-interface stubs -- read-only status",
+      "expectedCapabilities": [
+        "stadtwerk_mauer_external_interface_stubs"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerMastrDataOverlayStatus",
+      "source": "operation-summary",
+      "query": "Stadtwerk Mauer blended MaStR data overlay -- read-only status",
+      "expectedCapabilities": [
+        "stadtwerk_mauer_mastr_data_overlay"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerSandboxRuntimeStatus",
+      "source": "operation-summary",
+      "query": "Stadtwerk Mauer sandbox runtime -- read-only dossier-safe status",
+      "expectedCapabilities": [
+        "stadtwerk_mauer_sandbox_runtime"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerVdmiProfileStatus",
+      "source": "operation-summary",
+      "query": "Stadtwerk Mauer VDMI profile -- read-only dossier-safe status",
+      "expectedCapabilities": [
+        "stadtwerk_mauer_vdmi_profile",
+        "stadtwerk_mauer_capability_projection",
+        "stadtwerk_mauer_event_replay_preview"
+      ]
+    },
+    {
+      "id": "dashboard-api_steeringArtifactAcceptanceGateStatus",
+      "source": "operation-summary",
+      "query": "Steering artifact acceptance gate — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "communication_break_process_risk",
+        "steering_artifact_acceptance_gate",
+        "no_regret_measure_proof_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_techCommercialOfferCockpitStatus",
+      "source": "operation-summary",
+      "query": "Technical & Commercial Offer Cockpit — read-only dossier-safe status",
+      "expectedCapabilities": [
+        "tech_commercial_offer_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_transformationFinancingScenarioViewStatus",
+      "source": "operation-summary",
+      "query": "Transformation financing scenario view -- read-only evidence gate",
+      "expectedCapabilities": [
+        "transformation_financing_scenario_view"
+      ]
+    },
+    {
+      "id": "dashboard-api_vnbDeltaSignalClassifierStatus",
+      "source": "operation-summary",
+      "query": "VNB delta signal classifier -- read-only advisory evidence",
+      "expectedCapabilities": [
+        "evidence_freshness_guard",
+        "vnb_delta_signal_classifier"
+      ]
+    },
+    {
+      "id": "dashboard-api_vnbOverview",
+      "source": "operation-summary",
+      "query": "VNB overview — aggregated dashboard data for one grid operator",
+      "expectedCapabilities": [
+        "live_update_stream_contract_status",
+        "leadership_delta_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_vnbSpecialTopicWorkstateStatus",
+      "source": "operation-summary",
+      "query": "VNB special-topic leading work state -- read-only evidence card",
+      "expectedCapabilities": [
+        "vnb_special_topic_workstate",
+        "non_escalation_control_evidence"
+      ]
+    },
+    {
+      "id": "dashboard-api_waterPricingNetInvestmentAlignmentStatus",
+      "source": "operation-summary",
+      "query": "Water pricing / net-investment alignment -- read-only evidence gate",
+      "expectedCapabilities": [
+        "water_pricing_net_investment_alignment_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_zaehlparkFinanzierungSzenarioCockpitStatus",
+      "source": "operation-summary",
+      "query": "Zaehlpark Finanzierung Szenario Cockpit -- read-only dossier-safe status",
+      "expectedCapabilities": [
+        "zaehlpark_finanzierung_szenario_cockpit"
+      ]
+    },
+    {
+      "id": "datapoint_oemetadata",
+      "source": "operation-summary",
+      "query": "OEMetadata v2.0 — FAIR Data metadata for a Datapoint (EU AI Act Art. 12)",
+      "expectedCapabilities": [
+        "ki_floorwalker_governance"
+      ]
+    },
+    {
+      "id": "datapoint_health",
+      "source": "operation-summary",
+      "query": "Health overview of all Datapoints",
+      "expectedCapabilities": [
+        "cross_channel_vnb_signal_queue",
+        "gas_grid_transformation_asset_cockpit",
+        "transformation_financing_scenario_view",
+        "asset_valuation_transformation_gate",
+        "gas_capacity_booking_review_gate",
+        "layer0_audit_drilldown_note",
+        "budget_waterfall_governance",
+        "off_balancing_metering_pruefmatrix",
+        "automation_requirements_decision_value",
+        "smart_meter_off_balancing_purpose_lock",
+        "imsys_schedule_value_chain_readiness",
+        "cls_digital_twin_compliance_gate",
+        "legacy_control_technology_transition",
+        "controllability_submission_cockpit",
+        "heat_transformation_line_asset_model",
+        "tech_commercial_offer_cockpit",
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "process_sensitization_readiness_map",
+        "automation_risk_gate",
+        "redispatch_project_controlling_kpi_cockpit",
+        "mastr_quality_oemetadata",
+        "imsys_taf2_compliance_status",
+        "schedule_management_governance_roadmap",
+        "gas_transformation_dependency_map",
+        "energy_tax_information_package",
+        "sap_budget_psp_gate",
+        "investment_two_track_control",
+        "regulatory_change_simulator_readiness",
+        "special_grid_usage_impact_map",
+        "liquidity_planning_governance_module",
+        "dr_readiness_evidence_gate",
+        "controllability_asset_handover",
+        "evidence_grounding_confidence_audit",
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "datapoint_createSnapshot",
+      "source": "operation-summary",
+      "query": "Create a Snapshot — seal a consistent set of Datapoints",
+      "expectedCapabilities": [
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "datapoint_validateSnapshot",
+      "source": "operation-summary",
+      "query": "Validate a Snapshot — check provenance hash consistency",
+      "expectedCapabilities": [
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "regulatory_change_simulator_readiness"
+      ]
+    },
+    {
+      "id": "datasource-cache_query",
+      "source": "operation-summary",
+      "query": "Query cached datasource rows",
+      "expectedCapabilities": [
+        "inhouse_timeseries_analysis",
+        "investment_data_review_queue",
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "datasource-registry_list",
+      "source": "operation-summary",
+      "query": "List registered inhouse datasources",
+      "expectedCapabilities": [
+        "investment_data_review_queue",
+        "automation_risk_gate",
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "datasource-registry_get",
+      "source": "operation-summary",
+      "query": "Get datasource definition",
+      "expectedCapabilities": [
+        "gas_grid_transformation_asset_cockpit",
+        "no_regret_measure_definition_gate",
+        "transformation_financing_scenario_view",
+        "budget_waterfall_governance",
+        "off_balancing_metering_pruefmatrix",
+        "automation_requirements_decision_value",
+        "smart_meter_off_balancing_purpose_lock",
+        "imsys_schedule_value_chain_readiness",
+        "cls_digital_twin_compliance_gate",
+        "redispatch_project_controlling_kpi_cockpit",
+        "energy_tax_information_package",
+        "sap_budget_psp_gate",
+        "investment_two_track_control",
+        "regulatory_change_simulator_readiness",
+        "special_grid_usage_impact_map",
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "datasource-registry_updateDictionary",
+      "source": "operation-summary",
+      "query": "Replace Data Dictionary and increment version",
+      "expectedCapabilities": [
+        "energy_tax_information_package"
+      ]
+    },
+    {
+      "id": "decision-frame_list",
+      "source": "operation-summary",
+      "query": "List SCQA decision frames",
+      "expectedCapabilities": [
+        "leadership_delta_cockpit",
+        "scqa_decision_framing",
+        "decision_readiness_matrix",
+        "owner_deadline_evidence_gate"
+      ]
+    },
+    {
+      "id": "decision-frame_create",
+      "source": "operation-summary",
+      "query": "Create a SCQA decision frame",
+      "expectedCapabilities": [
+        "scqa_decision_framing",
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "decision-frame_get",
+      "source": "operation-summary",
+      "query": "Get a SCQA decision frame by ID",
+      "expectedCapabilities": [
+        "gas_capacity_booking_review_gate",
+        "gas_network_decision_chain",
+        "scqa_decision_framing",
+        "netzprozess_readiness_gate"
+      ]
+    },
+    {
+      "id": "decision-frame_generateStarter",
+      "source": "operation-summary",
+      "query": "AI-assisted SCQA starter from entity context",
+      "expectedCapabilities": [
+        "scqa_decision_framing"
+      ]
+    },
+    {
+      "id": "e2e-connection-check_list",
+      "source": "operation-summary",
+      "query": "e2e-connection-check.list",
+      "expectedCapabilities": [
+        "e2e_connection_check"
+      ]
+    },
+    {
+      "id": "e2e-connection-check_create",
+      "source": "operation-summary",
+      "query": "e2e-connection-check.create",
+      "expectedCapabilities": [
+        "e2e_connection_check"
+      ]
+    },
+    {
+      "id": "e2e-connection-check_updateThread",
+      "source": "operation-summary",
+      "query": "e2e-connection-check.updateThread",
+      "expectedCapabilities": [
+        "e2e_connection_check"
+      ]
+    },
+    {
+      "id": "edm-messkonzept_evaluateAll",
+      "source": "operation-summary",
+      "query": "Evaluate all measurement concepts",
+      "expectedCapabilities": [
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "imsys_taf2_compliance_status"
+      ]
+    },
+    {
+      "id": "edm-messkonzept_list",
+      "source": "operation-summary",
+      "query": "List all measurement concepts",
+      "expectedCapabilities": [
+        "edm_metering_concept_evidence"
+      ]
+    },
+    {
+      "id": "edm-messkonzept_get",
+      "source": "operation-summary",
+      "query": "Get a measurement concept",
+      "expectedCapabilities": [
+        "edm_metering_concept_evidence"
+      ]
+    },
+    {
+      "id": "edm-messkonzept_evaluate",
+      "source": "operation-summary",
+      "query": "Evaluate a measurement concept",
+      "expectedCapabilities": [
+        "legacy_control_technology_transition",
+        "e2e_controllability_check_governance"
+      ]
+    },
+    {
+      "id": "edm_getTimeseriesSummary",
+      "source": "operation-summary",
+      "query": "Get aggregated timeseries summary",
+      "expectedCapabilities": [
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "edm-validation_validate",
+      "source": "operation-summary",
+      "query": "Validate timeseries data and optionally auto-fix gaps",
+      "expectedCapabilities": [
+        "controllability_submission_cockpit",
+        "tech_commercial_offer_cockpit",
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "process_sensitization_readiness_map",
+        "imsys_taf2_compliance_status",
+        "schedule_management_governance_roadmap",
+        "regulatory_change_simulator_readiness",
+        "e2e_controllability_check_governance",
+        "market_communication_evidence_chain",
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "eic-codes_gasFacilities",
+      "source": "operation-summary",
+      "query": "List German gas storage facilities (UGS) with EIC codes",
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "eic-codes_gasOperators",
+      "source": "operation-summary",
+      "query": "List German gas storage operators with EIC codes",
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "eic-codes_search",
+      "source": "operation-summary",
+      "query": "Search EIC code database by code or company name",
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "eic-codes_statistics",
+      "source": "operation-summary",
+      "query": "Statistics about EIC database (total count, breakdown by type/sector/country)",
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "eic-codes_validate",
+      "source": "operation-summary",
+      "query": "Validate EIC code format (IEC 62325 standard)",
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "energy-market_co2Intensity",
+      "source": "operation-summary",
+      "query": "Regional CO₂ intensity forecasts (GrünstromIndex)",
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso"
+      ]
+    },
+    {
+      "id": "energy-market_installations",
+      "source": "operation-summary",
+      "query": "Search energy installations in German registry (MaStR)",
+      "expectedCapabilities": [
+        "stadtwerk_mauer_mastr_data_overlay"
+      ]
+    },
+    {
+      "id": "energy-market_prices",
+      "source": "operation-summary",
+      "query": "Electricity market prices (day-ahead, intraday, futures)",
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso"
+      ]
+    },
+    {
+      "id": "entsoe_dayAheadPrices",
+      "source": "operation-summary",
+      "query": "Direct ENTSO-E day-ahead price queries (faster, bypasses LLM)",
+      "expectedCapabilities": [
+        "cross_commodity_supply_security_lagebild"
+      ]
+    },
+    {
+      "id": "entsoe_loadForecast",
+      "source": "operation-summary",
+      "query": "Day-ahead electricity load (demand) forecasts",
+      "expectedCapabilities": [
+        "cross_commodity_supply_security_lagebild"
+      ]
+    },
+    {
+      "id": "entsoe_windSolarForecast",
+      "source": "operation-summary",
+      "query": "Day-ahead wind and solar generation forecasts",
+      "expectedCapabilities": [
+        "cross_commodity_supply_security_lagebild"
+      ]
+    },
+    {
+      "id": "eog-calculator_calculate",
+      "source": "operation-summary",
+      "query": "Calculate EOG for actual data scope",
+      "expectedCapabilities": [
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "eog-calculator_inputStatus",
+      "source": "operation-summary",
+      "query": "Check EOG input coverage for a tenant/VNB scope",
+      "expectedCapabilities": [
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "eog-calculator_scenario",
+      "source": "operation-summary",
+      "query": "Run transient EOG scenario with overrides (no persistence)",
+      "expectedCapabilities": [
+        "transformation_financing_scenario_view",
+        "off_balancing_metering_pruefmatrix",
+        "heat_asset_tariff_steering",
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "regulatory_risk_revenue_scenario",
+        "special_grid_usage_impact_map"
+      ]
+    },
+    {
+      "id": "ewk-monitoring_benchmarkVnb",
+      "source": "operation-summary",
+      "query": "Full EWK benchmark profile for a single VNB – combines Anschlussdauer, Digitalisierungsindex, and Umsetzungsquote",
+      "expectedCapabilities": [
+        "vnb_kpi_benchmark_comparison",
+        "eeg_clawback_ewk_monitoring"
+      ]
+    },
+    {
+      "id": "file-ingest-monitor_listMonitors",
+      "source": "operation-summary",
+      "query": "List file ingest monitors",
+      "expectedCapabilities": [
+        "file_ingest_monitor"
+      ]
+    },
+    {
+      "id": "file-ingest-monitor_createMonitor",
+      "source": "operation-summary",
+      "query": "Register a file ingest monitor",
+      "expectedCapabilities": [
+        "file_ingest_monitor"
+      ]
+    },
+    {
+      "id": "file-ingest-monitor_getFindings",
+      "source": "operation-summary",
+      "query": "Get findings from last scan",
+      "expectedCapabilities": [
+        "file_ingest_monitor"
+      ]
+    },
+    {
+      "id": "file-ingest-monitor_scan",
+      "source": "operation-summary",
+      "query": "Run a scan on the monitored path",
+      "expectedCapabilities": [
+        "file_ingest_monitor"
+      ]
+    },
+    {
+      "id": "file-ingest-monitor_getStatus",
+      "source": "operation-summary",
+      "query": "Get latest scan status for a monitor",
+      "expectedCapabilities": [
+        "file_ingest_monitor"
+      ]
+    },
+    {
+      "id": "finance-agent_analyze",
+      "source": "operation-summary",
+      "query": "Analyze finance/regulatory questions with evidence-bound synthesis",
+      "expectedCapabilities": [
+        "gas_grid_transformation_asset_cockpit",
+        "investment_budget_cap_exception_governance",
+        "investment_owner_deadline_budget_gate",
+        "no_regret_measure_definition_gate",
+        "transformation_financing_scenario_view",
+        "asset_valuation_transformation_gate",
+        "financier_due_diligence_assessment",
+        "budget_waterfall_governance",
+        "gas_decommissioning_roadmap_status",
+        "off_balancing_metering_pruefmatrix",
+        "smart_meter_off_balancing_purpose_lock",
+        "cls_digital_twin_compliance_gate",
+        "crisis_decision_routine",
+        "investment_committee_steering_cards",
+        "flex_strategic_demand_intake",
+        "heat_transformation_line_asset_model",
+        "heat_asset_tariff_steering",
+        "tech_commercial_offer_cockpit",
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "investment_waterfall_governance",
+        "imsys_taf2_compliance_status",
+        "gas_transformation_dependency_map",
+        "capacity_contract_risk_asset_cockpit",
+        "sap_budget_psp_gate",
+        "investment_two_track_control",
+        "regulatory_risk_revenue_scenario",
+        "special_grid_usage_impact_map",
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "finance-agent_fnavEconomics",
+      "source": "operation-summary",
+      "query": "Calculate fNAV economics: avoided CAPEX, annual fee, payback (Phase 5)",
+      "expectedCapabilities": [
+        "fnav_fast_track_contract_gate",
+        "netzfahrplan_fnav_assessment",
+        "tech_commercial_offer_cockpit",
+        "capacity_contract_risk_asset_cockpit"
+      ]
+    },
+    {
+      "id": "flex_listDevices",
+      "source": "operation-summary",
+      "query": "List registered §14a devices",
+      "expectedCapabilities": [
+        "imsys_schedule_value_chain_readiness",
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "flexibilitaetskosten-raster_list",
+      "source": "operation-summary",
+      "query": "flexibilitaetskosten-raster.list",
+      "expectedCapabilities": [
+        "flexibilitaetskosten_raster"
+      ]
+    },
+    {
+      "id": "flexibilitaetskosten-raster_create",
+      "source": "operation-summary",
+      "query": "flexibilitaetskosten-raster.create",
+      "expectedCapabilities": [
+        "flexibilitaetskosten_raster"
+      ]
+    },
+    {
+      "id": "flexibilitaetskosten-raster_get",
+      "source": "operation-summary",
+      "query": "flexibilitaetskosten-raster.get",
+      "expectedCapabilities": [
+        "flexibilitaetskosten_raster"
+      ]
+    },
+    {
+      "id": "flexibility-conductor-role-model_getStatus",
+      "source": "operation-summary",
+      "query": "Get dossier-safe flexibility conductor role-model status",
+      "expectedCapabilities": [
+        "flexibility_conductor_role_model"
+      ]
+    },
+    {
+      "id": "flexibility-conductor-role-model_evaluate",
+      "source": "operation-summary",
+      "query": "Evaluate flexibility orchestration role-model evidence",
+      "expectedCapabilities": [
+        "flexibility_conductor_role_model"
+      ]
+    },
+    {
+      "id": "flexibility-conductor-role-model_listModels",
+      "source": "operation-summary",
+      "query": "List flexibility conductor role models",
+      "expectedCapabilities": [
+        "flexibility_conductor_role_model"
+      ]
+    },
+    {
+      "id": "flexibility-conductor-role-model_getModel",
+      "source": "operation-summary",
+      "query": "Get a flexibility conductor role model",
+      "expectedCapabilities": [
+        "flexibility_conductor_role_model"
+      ]
+    },
+    {
+      "id": "fnav-commercial-hedging_listContracts",
+      "source": "operation-summary",
+      "query": "fnav-commercial-hedging.listContracts",
+      "expectedCapabilities": [
+        "fnav_commercial_hedging"
+      ]
+    },
+    {
+      "id": "fnav-commercial-hedging_createContract",
+      "source": "operation-summary",
+      "query": "fnav-commercial-hedging.createContract",
+      "expectedCapabilities": [
+        "fnav_commercial_hedging"
+      ]
+    },
+    {
+      "id": "fnav-commercial-hedging_createScenario",
+      "source": "operation-summary",
+      "query": "fnav-commercial-hedging.createScenario",
+      "expectedCapabilities": [
+        "fnav_fast_track_contract_gate",
+        "fnav_commercial_hedging"
+      ]
+    },
+    {
+      "id": "forecast_generationForecast",
+      "source": "operation-summary",
+      "query": "Weather-based renewable energy generation forecast",
+      "expectedCapabilities": [
+        "renewable_generation_forecast"
+      ]
+    },
+    {
+      "id": "forecast-engine_evaluateQuality",
+      "source": "operation-summary",
+      "query": "Evaluate forecast quality (RMSE/MAE/MAPE)",
+      "expectedCapabilities": [
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "forecast-engine_createSchedule",
+      "source": "operation-summary",
+      "query": "Create Day-Ahead schedule with optional storage optimization",
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "forecast-engine_storageDispatch",
+      "source": "operation-summary",
+      "query": "Optimize battery storage dispatch",
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "gas-capacity-order-revision-gate_evaluate",
+      "source": "operation-summary",
+      "query": "Evaluate gas-capacity order revision evidence",
+      "expectedCapabilities": [
+        "gas_capacity_order_revision_gate"
+      ]
+    },
+    {
+      "id": "gas-capacity-order-revision-gate_listRevisions",
+      "source": "operation-summary",
+      "query": "List gas-capacity order revisions",
+      "expectedCapabilities": [
+        "gas_capacity_order_revision_gate"
+      ]
+    },
+    {
+      "id": "gas-capacity-order-revision-gate_getRevision",
+      "source": "operation-summary",
+      "query": "Get a gas-capacity order revision",
+      "expectedCapabilities": [
+        "gas_capacity_order_revision_gate"
+      ]
+    },
+    {
+      "id": "gas-capacity-order-revision-gate_getStatus",
+      "source": "operation-summary",
+      "query": "Get dossier-safe gas-capacity order revision status",
+      "expectedCapabilities": [
+        "gas_capacity_order_revision_gate"
+      ]
+    },
+    {
+      "id": "gas-storage_countryStorage",
+      "source": "operation-summary",
+      "query": "Current gas storage data for European countries (fill level, injection/withdrawal)",
+      "expectedCapabilities": [
+        "gas_grid_transformation_asset_cockpit",
+        "cross_commodity_supply_security_lagebild"
+      ]
+    },
+    {
+      "id": "gas-storage_supplySecurityCheck",
+      "source": "operation-summary",
+      "query": "Supply security assessment (fill level vs. consumption, EU 90% mandate)",
+      "expectedCapabilities": [
+        "cross_commodity_supply_security_lagebild"
+      ]
+    },
+    {
+      "id": "gasnetz-waermeplanung_list",
+      "source": "operation-summary",
+      "query": "gasnetz-waermeplanung.list",
+      "expectedCapabilities": [
+        "gasnetz_waermeplanung"
+      ]
+    },
+    {
+      "id": "gasnetz-waermeplanung_reconcile",
+      "source": "operation-summary",
+      "query": "gasnetz-waermeplanung.reconcile",
+      "expectedCapabilities": [
+        "asset_valuation_transformation_gate",
+        "gas_capacity_booking_review_gate",
+        "gas_network_decision_chain",
+        "gasnetz_waermeplanung",
+        "gas_transformation_dataroom_status"
+      ]
+    },
+    {
+      "id": "gasnetz-waermeplanung_get",
+      "source": "operation-summary",
+      "query": "gasnetz-waermeplanung.get",
+      "expectedCapabilities": [
+        "gasnetz_waermeplanung"
+      ]
+    },
+    {
+      "id": "german-grid_forecast",
+      "source": "operation-summary",
+      "query": "Solar/wind generation forecasts for grid planning and load forecasting",
+      "expectedCapabilities": [
+        "german_grid_market_data"
+      ]
+    },
+    {
+      "id": "german-grid_negativePrices",
+      "source": "operation-summary",
+      "query": "Negative price analysis for §51 EEG 2023 compliance",
+      "expectedCapabilities": [
+        "german_grid_market_data"
+      ]
+    },
+    {
+      "id": "german-grid_redispatch",
+      "source": "operation-summary",
+      "query": "Redispatch measures and grid congestion analysis",
+      "expectedCapabilities": [
+        "german_grid_market_data"
+      ]
+    },
+    {
+      "id": "german-grid_spotprices",
+      "source": "operation-summary",
+      "query": "German spotmarket prices (EPEX/EEX) for dynamic tariffs",
+      "expectedCapabilities": [
+        "german_grid_market_data"
+      ]
+    },
+    {
+      "id": "ghost-asset-alert_list",
+      "source": "operation-summary",
+      "query": "ghost-asset-alert.list",
+      "expectedCapabilities": [
+        "ghost_asset_alert"
+      ]
+    },
+    {
+      "id": "ghost-asset-alert_scan",
+      "source": "operation-summary",
+      "query": "ghost-asset-alert.scan",
+      "expectedCapabilities": [
+        "ghost_asset_alert"
+      ]
+    },
+    {
+      "id": "ghost-asset-alert_get",
+      "source": "operation-summary",
+      "query": "ghost-asset-alert.get",
+      "expectedCapabilities": [
+        "ghost_asset_alert"
+      ]
+    },
+    {
+      "id": "grid-connection_fnavValidate",
+      "source": "operation-summary",
+      "query": "Validate fNAV profile against grid connection capacity (Phase 5)",
+      "expectedCapabilities": [
+        "fnav_fast_track_contract_gate",
+        "netzfahrplan_fnav_assessment",
+        "tech_commercial_offer_cockpit",
+        "process_sensitization_readiness_map",
+        "netzprozess_readiness_gate",
+        "grossspeicher_anschluss_readiness_gate",
+        "schedule_management_governance_roadmap",
+        "legal_clarification_operating_model"
+      ]
+    },
+    {
+      "id": "grid-connection_validate",
+      "source": "operation-summary",
+      "query": "Run Netzanschluss validation pipeline (6-step, deterministic)",
+      "expectedCapabilities": [
+        "areal_network_integration_offer_gate",
+        "tech_commercial_offer_cockpit",
+        "grid_connection_transformation_gate",
+        "capacity_contract_risk_asset_cockpit",
+        "anschlusskapazitaet_evidence_queue",
+        "connection_deadline_evidence_queue"
+      ]
+    },
+    {
+      "id": "grid-operations_capacityUtilization",
+      "source": "operation-summary",
+      "query": "Network capacity utilization analysis (transformers, lines, heatmaps)",
+      "expectedCapabilities": [
+        "tech_commercial_offer_cockpit",
+        "investment_waterfall_governance",
+        "capacity_contract_risk_asset_cockpit"
+      ]
+    },
+    {
+      "id": "grid-operations_connectionCapacityCheck",
+      "source": "operation-summary",
+      "query": "Automated grid connection feasibility check (customer self-service)",
+      "expectedCapabilities": [
+        "tech_commercial_offer_cockpit",
+        "capacity_contract_risk_asset_cockpit"
+      ]
+    },
+    {
+      "id": "grid-operations_controlMeasures",
+      "source": "operation-summary",
+      "query": "Query §14a control measures for a postcode area or VNB",
+      "expectedCapabilities": [
+        "legacy_control_technology_transition",
+        "controllability_submission_cockpit",
+        "e2e_controllability_check_governance"
+      ]
+    },
+    {
+      "id": "grid-operations_marketPartners",
+      "source": "operation-summary",
+      "query": "Search German energy market partners by BDEW code, company name, or city",
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso",
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory",
+        "vnb_kpi_benchmark_comparison"
+      ]
+    },
+    {
+      "id": "grid-operations_vnbLookup",
+      "source": "operation-summary",
+      "query": "Lookup MaStR ID for a VNB (grid operator) using BDEW code",
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso",
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory",
+        "vnb_kpi_benchmark_comparison"
+      ]
+    },
+    {
+      "id": "grid-operations_vnbLookupCodes",
+      "source": "operation-summary",
+      "query": "Canonical VNB lookup with consolidated code aliases",
+      "expectedCapabilities": [
+        "grid_operator_identity_resolution"
+      ]
+    },
+    {
+      "id": "hitl_list",
+      "source": "operation-summary",
+      "query": "List HITL items",
+      "expectedCapabilities": [
+        "leadership_delta_cockpit",
+        "netzprozess_readiness_gate",
+        "redispatch_project_controlling_kpi_cockpit"
+      ]
+    },
+    {
+      "id": "hitl_create",
+      "source": "operation-summary",
+      "query": "Create HITL item",
+      "expectedCapabilities": [
+        "gas_decommissioning_roadmap_status",
+        "jour_fixe_decision_closure_tracker",
+        "heat_asset_tariff_steering",
+        "investment_waterfall_governance",
+        "imsys_taf2_compliance_status",
+        "capacity_contract_risk_asset_cockpit"
+      ]
+    },
+    {
+      "id": "hitl_summary",
+      "source": "operation-summary",
+      "query": "Summarize HITL queue and workload",
+      "expectedCapabilities": [
+        "leadership_delta_cockpit",
+        "controllability_submission_cockpit",
+        "crisis_decision_routine",
+        "investment_committee_steering_cards",
+        "investment_data_review_queue",
+        "gas_infrastructure_risk_governance",
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "in-memory-join_join",
+      "source": "operation-summary",
+      "query": "Generic in-memory join across datasource and action outputs",
+      "expectedCapabilities": [
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "in-memory-join_meteringSpotCost",
+      "source": "operation-summary",
+      "query": "Join metering datasource with market spot prices and calculate costs",
+      "expectedCapabilities": [
+        "inhouse_timeseries_analysis"
+      ]
+    },
+    {
+      "id": "interface-placeholder_listGaps",
+      "source": "operation-summary",
+      "query": "List tenant-scoped interface placeholder gaps",
+      "expectedCapabilities": [
+        "cya_assessment_briefing",
+        "edm_customer_moveout_billing_evidence",
+        "energy_sharing_prosumer_advisory",
+        "redispatch_rcs_special_case_governance",
+        "datasource_registry_classification_governance",
+        "hitl_role_based_evidence_request",
+        "automation_risk_gate"
+      ]
+    },
+    {
+      "id": "interface-placeholder_markGap",
+      "source": "operation-summary",
+      "query": "Create an explicit interface placeholder gap",
+      "expectedCapabilities": [
+        "cya_assessment_briefing",
+        "edm_customer_moveout_billing_evidence",
+        "energy_sharing_prosumer_advisory",
+        "redispatch_rcs_special_case_governance",
+        "datasource_registry_classification_governance",
+        "hitl_role_based_evidence_request",
+        "edm_metering_concept_evidence",
+        "flex_forecast_bess_grid_operations_advisory",
+        "finance_nkp_capex_reinvest_governance",
+        "bilanzkreis_slp_edm_operations",
+        "connection_rejection_fnav_14a_evidence",
+        "gasnetz_waermeplanung_assessment",
+        "eeg_clawback_ewk_monitoring"
+      ]
+    },
+    {
+      "id": "interface-placeholder_requestEvidence",
+      "source": "operation-summary",
+      "query": "Return evidence signals required to replace a placeholder",
+      "expectedCapabilities": [
+        "cya_assessment_briefing",
+        "edm_customer_moveout_billing_evidence",
+        "energy_sharing_prosumer_advisory",
+        "redispatch_rcs_special_case_governance",
+        "datasource_registry_classification_governance",
+        "hitl_role_based_evidence_request",
+        "gas_transformation_dataroom_status",
+        "cls_digital_twin_compliance_gate",
+        "legacy_control_technology_transition",
+        "controllability_data_alignment",
+        "controllability_submission_cockpit",
+        "gas_infrastructure_risk_governance",
+        "heat_asset_tariff_steering",
+        "process_sensitization_readiness_map",
+        "imsys_taf2_compliance_status",
+        "schedule_management_governance_roadmap",
+        "gas_transformation_dependency_map",
+        "grid_connection_transformation_gate",
+        "capacity_contract_risk_asset_cockpit",
+        "energy_tax_information_package",
+        "sap_budget_psp_gate",
+        "investment_two_track_control",
+        "special_grid_usage_impact_map",
+        "liquidity_planning_governance_module",
+        "dr_readiness_evidence_gate",
+        "legal_clarification_operating_model",
+        "anschlusskapazitaet_evidence_queue",
+        "connection_deadline_evidence_queue",
+        "a2mdm_decision_object_meaning_preservation",
+        "coordination_meaning_preservation_profile",
+        "controllability_asset_handover",
+        "gremiencoach_workbook_readiness",
+        "e2e_controllability_check_governance",
+        "flex_forecast_bess_grid_operations_advisory",
+        "finance_nkp_capex_reinvest_governance",
+        "connection_rejection_fnav_14a_evidence",
+        "gasnetz_waermeplanung_assessment"
+      ]
+    },
+    {
+      "id": "investment-maturity-off-balance-gate_evaluate",
+      "source": "operation-summary",
+      "query": "Evaluate investment maturity off-balance evidence",
+      "expectedCapabilities": [
+        "investment_maturity_off_balance_gate"
+      ]
+    },
+    {
+      "id": "investment-maturity-off-balance-gate_listGates",
+      "source": "operation-summary",
+      "query": "List investment maturity off-balance gates",
+      "expectedCapabilities": [
+        "investment_maturity_off_balance_gate"
+      ]
+    },
+    {
+      "id": "investment-maturity-off-balance-gate_getGate",
+      "source": "operation-summary",
+      "query": "Get an investment maturity off-balance gate",
+      "expectedCapabilities": [
+        "investment_maturity_off_balance_gate"
+      ]
+    },
+    {
+      "id": "investment-maturity-off-balance-gate_getStatus",
+      "source": "operation-summary",
+      "query": "Get dossier-safe investment maturity off-balance status",
+      "expectedCapabilities": [
+        "investment_maturity_off_balance_gate"
+      ]
+    },
+    {
+      "id": "investment-planning_createPlan",
+      "source": "operation-summary",
+      "query": "Create investment plan with Soll-Ist delta and mandate alignment",
+      "expectedCapabilities": [
+        "gas_grid_transformation_asset_cockpit",
+        "transformation_financing_scenario_view",
+        "asset_valuation_transformation_gate",
+        "budget_waterfall_governance",
+        "gas_decommissioning_roadmap_status",
+        "off_balancing_metering_pruefmatrix",
+        "investment_committee_steering_cards",
+        "investment_data_review_queue",
+        "heat_transformation_line_asset_model",
+        "heat_asset_tariff_steering",
+        "tech_commercial_offer_cockpit",
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "investment_waterfall_governance",
+        "gas_transformation_dependency_map",
+        "capacity_contract_risk_asset_cockpit",
+        "sap_budget_psp_gate",
+        "investment_two_track_control",
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "knowledge-continuity-governance-gate_evaluate",
+      "source": "operation-summary",
+      "query": "Evaluate knowledge-continuity governance evidence",
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "knowledge-continuity-governance-gate_listGates",
+      "source": "operation-summary",
+      "query": "List knowledge-continuity governance gates",
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "knowledge-continuity-governance-gate_getGate",
+      "source": "operation-summary",
+      "query": "Get a knowledge-continuity governance gate",
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "knowledge-continuity-governance-gate_getStatus",
+      "source": "operation-summary",
+      "query": "Get dossier-safe knowledge-continuity governance status",
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "knowledge-rag_query",
+      "source": "operation-summary",
+      "query": "Knowledge RAG query (external MCP + local tenant index)",
+      "expectedCapabilities": [
+        "evidence_grounding_confidence_audit"
+      ]
+    },
+    {
+      "id": "mastr-quality_audit",
+      "source": "operation-summary",
+      "query": "Run MaStR portfolio quality audit (8-step, deterministic)",
+      "expectedCapabilities": [
+        "layer0_audit_drilldown_note",
+        "imsys_schedule_value_chain_readiness",
+        "controllability_data_alignment",
+        "tech_commercial_offer_cockpit",
+        "process_sensitization_readiness_map",
+        "redispatch_project_controlling_kpi_cockpit",
+        "grid_connection_transformation_gate",
+        "regulatory_change_simulator_readiness",
+        "controllability_asset_handover"
+      ]
+    },
+    {
+      "id": "mastr-quality_list",
+      "source": "operation-summary",
+      "query": "List past MaStR quality audit reports",
+      "expectedCapabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "id": "mastr-quality_get",
+      "source": "operation-summary",
+      "query": "Get a specific MaStR quality audit report by ID",
+      "expectedCapabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "id": "mastr-quality_oemetadata",
+      "source": "operation-summary",
+      "query": "Get OEMetadata v2.0 FAIR metadata for an audit report by ID",
+      "expectedCapabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "id": "mscons-import_import",
+      "source": "operation-summary",
+      "query": "Import MSCONS EDIFACT message into EDM",
+      "expectedCapabilities": [
+        "regulatory_change_simulator_readiness"
+      ]
+    },
+    {
+      "id": "grid-operations_netzfahrplanGenerate",
+      "source": "operation-summary",
+      "query": "Generate Netzfahrplan / fNAV feasibility assessment",
+      "expectedCapabilities": [
+        "netzfahrplan_fnav_assessment",
+        "imsys_schedule_value_chain_readiness",
+        "tech_commercial_offer_cockpit",
+        "grossspeicher_anschluss_readiness_gate",
+        "schedule_management_governance_roadmap",
+        "grid_connection_transformation_gate",
+        "capacity_contract_risk_asset_cockpit",
+        "legal_clarification_operating_model"
+      ]
+    },
+    {
+      "id": "netzkoppelvertrag-workflow_list",
+      "source": "operation-summary",
+      "query": "netzkoppelvertrag-workflow.list",
+      "expectedCapabilities": [
+        "netzkoppelvertrag_workflow"
+      ]
+    },
+    {
+      "id": "netzkoppelvertrag-workflow_create",
+      "source": "operation-summary",
+      "query": "netzkoppelvertrag-workflow.create",
+      "expectedCapabilities": [
+        "netzkoppelvertrag_workflow"
+      ]
+    },
+    {
+      "id": "netzkoppelvertrag-workflow_get",
+      "source": "operation-summary",
+      "query": "netzkoppelvertrag-workflow.get",
+      "expectedCapabilities": [
+        "netzprozess_readiness_gate"
+      ]
+    },
+    {
+      "id": "netzkoppelvertrag-workflow_updateStatus",
+      "source": "operation-summary",
+      "query": "netzkoppelvertrag-workflow.updateStatus",
+      "expectedCapabilities": [
+        "netzkoppelvertrag_workflow"
+      ]
+    },
+    {
+      "id": "nkp-reporting_list",
+      "source": "operation-summary",
+      "query": "nkp-reporting.list",
+      "expectedCapabilities": [
+        "nkp_reporting"
+      ]
+    },
+    {
+      "id": "nkp-reporting_importReport",
+      "source": "operation-summary",
+      "query": "nkp-reporting.importReport",
+      "expectedCapabilities": [
+        "nkp_reporting"
+      ]
+    },
+    {
+      "id": "nkp-reporting_get",
+      "source": "operation-summary",
+      "query": "nkp-reporting.get",
+      "expectedCapabilities": [
+        "nkp_reporting"
+      ]
+    },
+    {
+      "id": "nova_listDecisions",
+      "source": "operation-summary",
+      "query": "List NOVA decisions",
+      "expectedCapabilities": [
+        "leadership_delta_cockpit"
+      ]
+    },
+    {
+      "id": "nova_pendingDecisions",
+      "source": "operation-summary",
+      "query": "List pending NOVA decisions (dynamic)",
+      "expectedCapabilities": [
+        "crisis_decision_routine",
+        "flex_strategic_demand_intake"
+      ]
+    },
+    {
+      "id": "object-store_query",
+      "source": "operation-summary",
+      "query": "Query documents in a namespace (Mango selector)",
+      "expectedCapabilities": [
+        "gas_transformation_dataroom_status",
+        "stadtwerk_mauer_sandbox_runtime"
+      ]
+    },
+    {
+      "id": "oep_energyTables",
+      "source": "operation-summary",
+      "query": "List pre-configured Cernion-relevant OEP tables",
+      "expectedCapabilities": [
+        "oep_research_dataset_discovery"
+      ]
+    },
+    {
+      "id": "oep_search",
+      "source": "operation-summary",
+      "query": "Search OEP tables by name or description",
+      "expectedCapabilities": [
+        "oep_research_dataset_discovery"
+      ]
+    },
+    {
+      "id": "oep_query",
+      "source": "operation-summary",
+      "query": "Query rows from an OEP table",
+      "expectedCapabilities": [
+        "oep_research_dataset_discovery"
+      ]
+    },
+    {
+      "id": "personal-agent_chat",
+      "source": "operation-summary",
+      "query": "Run one Personal-Agent chat turn with deterministic L0-L4 context stacking",
+      "expectedCapabilities": [
+        "ki_floorwalker_governance"
+      ]
+    },
+    {
+      "id": "presentation_render",
+      "source": "operation-summary",
+      "query": "Render domain result as structured human view",
+      "expectedCapabilities": [
+        "fnav_fast_track_contract_gate",
+        "cross_channel_vnb_signal_queue",
+        "asset_valuation_transformation_gate",
+        "gas_capacity_booking_review_gate",
+        "redispatch_project_controlling_kpi_cockpit",
+        "receipt_grounded_presentation_contract"
+      ]
+    },
+    {
+      "id": "re4de-variable-grid-fee_calculate",
+      "source": "operation-summary",
+      "query": "Calculate a Re4DE-aligned variable grid fee",
+      "expectedCapabilities": [
+        "re4de_variable_grid_fee_layer3"
+      ]
+    },
+    {
+      "id": "re4de-variable-grid-fee_getCalculation",
+      "source": "operation-summary",
+      "query": "Get a variable grid-fee calculation",
+      "expectedCapabilities": [
+        "re4de_variable_grid_fee_layer3"
+      ]
+    },
+    {
+      "id": "re4de-variable-grid-fee_getEvidence",
+      "source": "operation-summary",
+      "query": "Get dossier-safe evidence for a variable grid-fee calculation",
+      "expectedCapabilities": [
+        "re4de_variable_grid_fee_layer3"
+      ]
+    },
+    {
+      "id": "redispatch-asset-register_listProjections",
+      "source": "operation-summary",
+      "query": "List asset projections",
+      "expectedCapabilities": [
+        "redispatch_asset_register"
+      ]
+    },
+    {
+      "id": "redispatch-asset-register_createProjection",
+      "source": "operation-summary",
+      "query": "Create an asset projection with deterministic finding checks",
+      "expectedCapabilities": [
+        "redispatch_asset_register"
+      ]
+    },
+    {
+      "id": "redispatch-asset-register_listRelationships",
+      "source": "operation-summary",
+      "query": "List asset relationships",
+      "expectedCapabilities": [
+        "redispatch_asset_register"
+      ]
+    },
+    {
+      "id": "redispatch-asset-register_createRelationship",
+      "source": "operation-summary",
+      "query": "Create an asset relationship",
+      "expectedCapabilities": [
+        "redispatch_asset_register"
+      ]
+    },
+    {
+      "id": "redispatch-data-governance_evaluate",
+      "source": "operation-summary",
+      "query": "Evaluate governance status for a data class and process",
+      "expectedCapabilities": [
+        "redispatch_data_governance"
+      ]
+    },
+    {
+      "id": "redispatch-data-governance_listEvaluations",
+      "source": "operation-summary",
+      "query": "List governance evaluations",
+      "expectedCapabilities": [
+        "redispatch_data_governance"
+      ]
+    },
+    {
+      "id": "redispatch-data-governance_listPolicies",
+      "source": "operation-summary",
+      "query": "List governance policies",
+      "expectedCapabilities": [
+        "redispatch_data_governance"
+      ]
+    },
+    {
+      "id": "redispatch-data-governance_createPolicy",
+      "source": "operation-summary",
+      "query": "Create a governance policy",
+      "expectedCapabilities": [
+        "redispatch_data_governance"
+      ]
+    },
+    {
+      "id": "redispatch-readiness-gate_evaluate",
+      "source": "operation-summary",
+      "query": "Evaluate Redispatch operational readiness",
+      "expectedCapabilities": [
+        "redispatch_readiness_gate"
+      ]
+    },
+    {
+      "id": "redispatch-readiness-gate_listRuns",
+      "source": "operation-summary",
+      "query": "List Redispatch readiness gate runs",
+      "expectedCapabilities": [
+        "redispatch_readiness_gate"
+      ]
+    },
+    {
+      "id": "redispatch-readiness-gate_getRun",
+      "source": "operation-summary",
+      "query": "Get Redispatch readiness gate run",
+      "expectedCapabilities": [
+        "redispatch_readiness_gate"
+      ]
+    },
+    {
+      "id": "redispatch-readiness-gate_getStatus",
+      "source": "operation-summary",
+      "query": "Get latest Redispatch readiness status",
+      "expectedCapabilities": [
+        "redispatch_readiness_gate"
+      ]
+    },
+    {
+      "id": "redispatch-settlement-sandbox_listScenarios",
+      "source": "operation-summary",
+      "query": "List settlement scenarios",
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "redispatch-settlement-sandbox_createScenario",
+      "source": "operation-summary",
+      "query": "Create a settlement scenario",
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "redispatch-settlement-sandbox_getScenario",
+      "source": "operation-summary",
+      "query": "Get scenario by ID",
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "redispatch-settlement-sandbox_reconcile",
+      "source": "operation-summary",
+      "query": "Reconcile a settlement scenario",
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "redispatch-special-case-gate_evaluate",
+      "source": "operation-summary",
+      "query": "Evaluate special case gate for an asset",
+      "expectedCapabilities": [
+        "redispatch_special_case_gate"
+      ]
+    },
+    {
+      "id": "redispatch-special-case-gate_listRuns",
+      "source": "operation-summary",
+      "query": "List gate evaluation runs",
+      "expectedCapabilities": [
+        "redispatch_special_case_gate"
+      ]
+    },
+    {
+      "id": "redispatch-special-case-gate_getRun",
+      "source": "operation-summary",
+      "query": "Get gate run by ID",
+      "expectedCapabilities": [
+        "redispatch_special_case_gate"
+      ]
+    },
+    {
+      "id": "redispatch-expost_audit",
+      "source": "operation-summary",
+      "query": "Run Redispatch Ex-Post settlement audit (7-step, deterministic)",
+      "expectedCapabilities": [
+        "imsys_schedule_value_chain_readiness",
+        "controllability_data_alignment",
+        "process_sensitization_readiness_map",
+        "redispatch_project_controlling_kpi_cockpit",
+        "schedule_management_governance_roadmap",
+        "controllability_asset_handover"
+      ]
+    },
+    {
+      "id": "redispatch-expost_list",
+      "source": "operation-summary",
+      "query": "List past Redispatch Ex-Post audit reports",
+      "expectedCapabilities": [
+        "redispatch_project_controlling_kpi_cockpit",
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "regulatorische-entgeltlogik_getActive",
+      "source": "operation-summary",
+      "query": "regulatorische-entgeltlogik.getActive",
+      "expectedCapabilities": [
+        "regulatorische_entgeltlogik",
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "regulatorische-entgeltlogik_list",
+      "source": "operation-summary",
+      "query": "regulatorische-entgeltlogik.list",
+      "expectedCapabilities": [
+        "regulatorische_entgeltlogik"
+      ]
+    },
+    {
+      "id": "regulatorische-entgeltlogik_registerRuleSet",
+      "source": "operation-summary",
+      "query": "regulatorische-entgeltlogik.registerRuleSet",
+      "expectedCapabilities": [
+        "regulatorische_entgeltlogik"
+      ]
+    },
+    {
+      "id": "reinvest-signal_list",
+      "source": "operation-summary",
+      "query": "reinvest-signal.list",
+      "expectedCapabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "id": "reinvest-signal_analyze",
+      "source": "operation-summary",
+      "query": "reinvest-signal.analyze",
+      "expectedCapabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "id": "reinvest-signal_get",
+      "source": "operation-summary",
+      "query": "reinvest-signal.get",
+      "expectedCapabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "id": "reporting-governance_list",
+      "source": "operation-summary",
+      "query": "reporting-governance.list",
+      "expectedCapabilities": [
+        "reporting_governance"
+      ]
+    },
+    {
+      "id": "reporting-governance_check",
+      "source": "operation-summary",
+      "query": "reporting-governance.check",
+      "expectedCapabilities": [
+        "reporting_governance"
+      ]
+    },
+    {
+      "id": "reporting-governance_get",
+      "source": "operation-summary",
+      "query": "reporting-governance.get",
+      "expectedCapabilities": [
+        "reporting_governance"
+      ]
+    },
+    {
+      "id": "residual-load_netResidualLoad",
+      "source": "operation-summary",
+      "query": "Net residual load forecast (SMARD load − MaStR EE generation)",
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso"
+      ]
+    },
+    {
+      "id": "settlement_reconcileA96",
+      "source": "operation-summary",
+      "query": "Reconcile inbound A96 rows against internal settlement baseline",
+      "expectedCapabilities": [
+        "settlement_a96_reconciliation"
+      ]
+    },
+    {
+      "id": "stadtwerk-mauer-e2e-process-demo_getStatus",
+      "source": "operation-summary",
+      "query": "stadtwerk-mauer-e2e-process-demo.getStatus",
+      "expectedCapabilities": [
+        "stadtwerk_mauer_e2e_process_demo"
+      ]
+    },
+    {
+      "id": "stadtwerk-mauer-external-interface-stubs_getStatus",
+      "source": "operation-summary",
+      "query": "stadtwerk-mauer-external-interface-stubs.getStatus",
+      "expectedCapabilities": [
+        "stadtwerk_mauer_external_interface_stubs",
+        "stadtwerk_mauer_e2e_process_demo"
+      ]
+    },
+    {
+      "id": "stadtwerk-mauer-mastr-data-overlay_getStatus",
+      "source": "operation-summary",
+      "query": "stadtwerk-mauer-mastr-data-overlay.getStatus",
+      "expectedCapabilities": [
+        "stadtwerk_mauer_mastr_data_overlay"
+      ]
+    },
+    {
+      "id": "stadtwerk-mauer-sandbox-runtime_status",
+      "source": "operation-summary",
+      "query": "stadtwerk-mauer-sandbox-runtime.status",
+      "expectedCapabilities": [
+        "stadtwerk_mauer_sandbox_runtime",
+        "stadtwerk_mauer_external_interface_stubs",
+        "stadtwerk_mauer_e2e_process_demo"
+      ]
+    },
+    {
+      "id": "vdmi-governance-templates_listInstances",
+      "source": "operation-summary",
+      "query": "vdmi-governance-templates.listInstances",
+      "expectedCapabilities": [
+        "vdmi_governance_templates"
+      ]
+    },
+    {
+      "id": "vdmi-governance-templates_instantiate",
+      "source": "operation-summary",
+      "query": "vdmi-governance-templates.instantiate",
+      "expectedCapabilities": [
+        "vdmi_governance_templates"
+      ]
+    },
+    {
+      "id": "vdmi-governance-templates_listBaseTemplates",
+      "source": "operation-summary",
+      "query": "vdmi-governance-templates.listBaseTemplates",
+      "expectedCapabilities": [
+        "vdmi_governance_templates"
+      ]
+    },
+    {
+      "id": "vdmi-portfolio-gatekeeping_gate",
+      "source": "operation-summary",
+      "query": "vdmi-portfolio-gatekeeping.gate",
+      "expectedCapabilities": [
+        "fnav_fast_track_contract_gate",
+        "gas_capacity_booking_review_gate",
+        "vdmi_portfolio_gatekeeping"
+      ]
+    },
+    {
+      "id": "vdmi-portfolio-gatekeeping_list",
+      "source": "operation-summary",
+      "query": "vdmi-portfolio-gatekeeping.list",
+      "expectedCapabilities": [
+        "vdmi_portfolio_gatekeeping"
+      ]
+    },
+    {
+      "id": "vdmi-portfolio-gatekeeping_get",
+      "source": "operation-summary",
+      "query": "vdmi-portfolio-gatekeeping.get",
+      "expectedCapabilities": [
+        "vdmi_portfolio_gatekeeping"
+      ]
+    },
+    {
+      "id": "vdmi_evidence",
+      "source": "operation-summary",
+      "query": "Inject manual evidence for offline process reality",
+      "expectedCapabilities": [
+        "process_sensitization_readiness_map",
+        "e2e_controllability_check_governance"
+      ]
+    },
+    {
+      "id": "vdmi_agentRole",
+      "source": "operation-summary",
+      "query": "Return guardrail role for an agent",
+      "expectedCapabilities": [
+        "vdmi_role_boundary_governance",
+        "vdmi_asset_validation_governance",
+        "vdmi_grid_connection_decision_governance",
+        "process_sensitization_readiness_map"
+      ]
+    },
+    {
+      "id": "vdmi_context",
+      "source": "operation-summary",
+      "query": "Get active matrix context for a running job",
+      "expectedCapabilities": [
+        "vdmi_role_boundary_governance"
+      ]
+    },
+    {
+      "id": "vdmi_findings",
+      "source": "operation-summary",
+      "query": "List VDMI governance findings",
+      "expectedCapabilities": [
+        "controllability_submission_cockpit",
+        "process_sensitization_readiness_map",
+        "redispatch_project_controlling_kpi_cockpit",
+        "market_communication_evidence_chain",
+        "evidence_grounding_confidence_audit",
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "vdmi_myResponsibilities",
+      "source": "operation-summary",
+      "query": "List matrices where caller has V role",
+      "expectedCapabilities": [
+        "role_permission_access_readiness_gate",
+        "owner_deadline_evidence_gate"
+      ]
+    },
+    {
+      "id": "vdmi_dossier",
+      "source": "operation-summary",
+      "query": "Get condensed decision dossier for V role",
+      "expectedCapabilities": [
+        "znp_production_readiness_evidence_gate",
+        "fnav_fast_track_contract_gate",
+        "evidence_freshness_guard",
+        "netzsignal_delta_gating",
+        "vnb_delta_signal_classifier",
+        "cross_channel_vnb_signal_queue",
+        "live_update_stream_contract_status",
+        "smgw_connector_readiness_status",
+        "smart_meter_cls_data_governance_receipt",
+        "vnb_special_topic_workstate",
+        "non_escalation_control_evidence",
+        "leadership_delta_cockpit",
+        "gas_grid_transformation_asset_cockpit",
+        "investment_budget_cap_exception_governance",
+        "investment_owner_deadline_budget_gate",
+        "direct_marketer_risk_gate",
+        "no_regret_measure_definition_gate",
+        "transformation_financing_scenario_view",
+        "asset_valuation_transformation_gate",
+        "gas_capacity_booking_review_gate",
+        "gas_network_decision_chain",
+        "water_pricing_net_investment_alignment_gate",
+        "areal_network_integration_offer_gate",
+        "vdmi_asset_validation_governance",
+        "vdmi_grid_connection_decision_governance",
+        "layer0_audit_drilldown_note",
+        "budget_waterfall_governance",
+        "gas_decommissioning_roadmap_status",
+        "gas_transformation_dataroom_status",
+        "jour_fixe_decision_closure_tracker",
+        "off_balancing_metering_pruefmatrix",
+        "automation_requirements_decision_value",
+        "model_viability_evidence_gate",
+        "smart_meter_off_balancing_purpose_lock",
+        "imsys_schedule_value_chain_readiness",
+        "cls_digital_twin_compliance_gate",
+        "legacy_control_technology_transition",
+        "controllability_data_alignment",
+        "controllability_submission_cockpit",
+        "crisis_decision_routine",
+        "cross_system_variance_matrix",
+        "regulatory_signal_process_translator",
+        "decision_readiness_matrix",
+        "investment_committee_steering_cards",
+        "investment_data_review_queue",
+        "cross_domain_special_topics_queue",
+        "flex_strategic_demand_intake",
+        "gas_infrastructure_risk_governance",
+        "heat_transformation_line_asset_model",
+        "heat_asset_tariff_steering",
+        "tech_commercial_offer_cockpit",
+        "process_sensitization_readiness_map",
+        "netzprozess_readiness_gate",
+        "grossspeicher_anschluss_readiness_gate",
+        "automation_risk_gate",
+        "redispatch_project_controlling_kpi_cockpit",
+        "stadtwerk_mauer_vdmi_profile",
+        "mastr_quality_oemetadata",
+        "ki_floorwalker_governance",
+        "investment_waterfall_governance",
+        "imsys_taf2_compliance_status",
+        "schedule_management_governance_roadmap",
+        "gas_transformation_dependency_map",
+        "grid_connection_transformation_gate",
+        "capacity_contract_risk_asset_cockpit",
+        "metering_rollout_process_indicator",
+        "investment_risk_translation_status",
+        "energy_tax_information_package",
+        "sap_budget_psp_gate",
+        "investment_two_track_control",
+        "regulatory_change_simulator_readiness",
+        "special_grid_usage_impact_map",
+        "liquidity_planning_governance_module",
+        "dr_readiness_evidence_gate",
+        "legal_clarification_operating_model",
+        "anschlusskapazitaet_evidence_queue",
+        "connection_deadline_evidence_queue",
+        "communication_break_process_risk",
+        "steering_artifact_acceptance_gate",
+        "no_regret_measure_proof_gate",
+        "a2mdm_decision_object_meaning_preservation",
+        "coordination_meaning_preservation_profile",
+        "controllability_asset_handover",
+        "stadtwerk_mauer_sandbox_runtime",
+        "stadtwerk_mauer_external_interface_stubs",
+        "stadtwerk_mauer_e2e_process_demo",
+        "stadtwerk_mauer_mastr_data_overlay",
+        "gremiencoach_workbook_readiness",
+        "e2e_controllability_check_governance"
+      ]
+    },
+    {
+      "id": "vdmi_negotiationTrace",
+      "source": "operation-summary",
+      "query": "Get full A2A negotiation trace for one task",
+      "expectedCapabilities": [
+        "vdmi_asset_validation_governance",
+        "vdmi_grid_connection_decision_governance"
+      ]
+    },
+    {
+      "id": "vnb-100-tage-assessment_list",
+      "source": "operation-summary",
+      "query": "vnb-100-tage-assessment.list",
+      "expectedCapabilities": [
+        "vnb_100_tage_assessment"
+      ]
+    },
+    {
+      "id": "vnb-100-tage-assessment_assess",
+      "source": "operation-summary",
+      "query": "Run a 100-day quick assessment for a grid operator",
+      "expectedCapabilities": [
+        "vnb_100_tage_assessment"
+      ]
+    },
+    {
+      "id": "vnb-100-tage-assessment_get",
+      "source": "operation-summary",
+      "query": "vnb-100-tage-assessment.get",
+      "expectedCapabilities": [
+        "vnb_100_tage_assessment"
+      ]
+    },
+    {
+      "id": "vnb-monitor_snapshot",
+      "source": "operation-summary",
+      "query": "Get full KPI snapshot for a single VNB",
+      "expectedCapabilities": [
+        "layer0_audit_drilldown_note"
+      ]
+    },
+    {
+      "id": "willi-federated_resolveStructure",
+      "source": "operation-summary",
+      "query": "Willi-Federated structure-oriented validation-planning view (read-only, advisory)",
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "willi-federated_search",
+      "source": "operation-summary",
+      "query": "Willi-Federated Marktkommunikation/regulatory knowledge search (read-only)",
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "willi-mako_resolveStructure",
+      "source": "operation-summary",
+      "query": "Willi-Mako structure-oriented validation-planning view (read-only, advisory)",
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "willi-mako_search",
+      "source": "operation-summary",
+      "query": "Willi-Mako Marktkommunikation knowledge search (read-only)",
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "willi-regulatorik_resolveStructure",
+      "source": "operation-summary",
+      "query": "Willi-Regulatorik structure-oriented validation-planning view (read-only, advisory)",
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "willi-regulatorik_search",
+      "source": "operation-summary",
+      "query": "Willi-Regulatorik regulatory knowledge search (read-only)",
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "znp_listProjects",
+      "source": "operation-summary",
+      "query": "List all active ZNP projects (in-memory)",
+      "expectedCapabilities": [
+        "heat_transformation_line_asset_model"
+      ]
+    },
+    {
+      "id": "znp_getProjectMeta",
+      "source": "operation-summary",
+      "query": "Get ZNP project metadata and graph statistics",
+      "expectedCapabilities": [
+        "znp_production_readiness_evidence_gate"
+      ]
+    },
+    {
+      "id": "znp_getProjectAssets",
+      "source": "operation-summary",
+      "query": "List MaStR assets in a ZNP project (paginated)",
+      "expectedCapabilities": [
+        "heat_transformation_line_asset_model"
+      ]
+    },
+    {
+      "id": "znp_addAssumption",
+      "source": "operation-summary",
+      "query": "Ingest a natural-language planning assumption into the graph (AI)",
+      "expectedCapabilities": [
+        "gas_transformation_dependency_map",
+        "legal_clarification_operating_model"
+      ]
+    },
+    {
+      "id": "znp_correlateDisturbance",
+      "source": "operation-summary",
+      "query": "Correlate a disturbance signal with ZNP",
+      "expectedCapabilities": [
+        "blindflug_radar_anomaly_detection"
+      ]
+    },
+    {
+      "id": "znp_assessPortfolio",
+      "source": "operation-summary",
+      "query": "Assess ZNP portfolio with hybrid provenance and transparent dimensions",
+      "expectedCapabilities": [
+        "znp_portfolio_assessment",
+        "znp_production_readiness_evidence_gate",
+        "gas_grid_transformation_asset_cockpit",
+        "tech_commercial_offer_cockpit",
+        "investment_waterfall_governance",
+        "gas_transformation_dependency_map",
+        "grid_connection_transformation_gate"
+      ]
+    },
+    {
+      "id": "znp_productionReadinessStatus",
+      "source": "operation-summary",
+      "query": "Read-only ZNP production-readiness evidence gate",
+      "expectedCapabilities": [
+        "znp_production_readiness_evidence_gate"
+      ]
+    },
+    {
+      "id": "znp_strategicPrompts",
+      "source": "operation-summary",
+      "query": "Generate strategic planning questions for a ZNP project (AI)",
+      "expectedCapabilities": [
+        "gas_transformation_dependency_map"
+      ]
+    }
+  ]
+}

@@ -10,7 +10,8 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Serial coverage plus real forecast-model tests exceeded the previous 20-minute budget.
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -22,10 +23,29 @@ jobs:
           cache: npm
 
       - name: Update package-lock.json for Node 22
-        run: npm install --package-lock-only
+        run: npm install --package-lock-only --ignore-scripts
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
+
+      - name: Build reviewed native dependencies
+        run: npm rebuild better-sqlite3 leveldown
+
+      - name: Setup Python for forecast models
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            tools/forecast-portfolio/requirements.txt
+            tools/forecast-product/requirements.txt
+            tools/forecast-quality/requirements.txt
+            tools/xlsx-forecast-test/requirements.txt
+
+      - name: Install forecast dependencies
+        run: |
+          python -m venv .venv-forecast
+          .venv-forecast/bin/python -m pip install -r tools/forecast-portfolio/requirements.txt -r tools/forecast-product/requirements.txt -r tools/forecast-quality/requirements.txt -r tools/xlsx-forecast-test/requirements.txt
 
       - name: Lint
         run: npm run lint
@@ -35,6 +55,17 @@ jobs:
 
       - name: Unit tests (coverage gates)
         run: npm run test:unit:ci
+
+      - name: Forecast Python tests
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          OMP_NUM_THREADS: '1'
+          OPENBLAS_NUM_THREADS: '1'
+          MKL_NUM_THREADS: '1'
+        run: |
+          for suite in forecast-product forecast-portfolio forecast-quality xlsx-forecast-test; do
+            .venv-forecast/bin/python -m unittest discover -s tools/$suite -p 'test_*.py' || exit 1
+          done
 
       - name: TDD matrix tests (v0.52.4)
         run: npm run test:tdd-matrix
@@ -91,10 +122,10 @@ jobs:
           cache: npm
 
       - name: Update package-lock.json for Node 22
-        run: npm install --package-lock-only
+        run: npm install --package-lock-only --ignore-scripts
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Dependency vulnerability audit (advisory)
         run: npm run audit:security:advisory
@@ -114,10 +145,10 @@ jobs:
           cache: npm
 
       - name: Update package-lock.json for Node 22
-        run: npm install --package-lock-only
+        run: npm install --package-lock-only --ignore-scripts
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Dependency vulnerability audit (critical gate)
         run: npm audit --audit-level=critical

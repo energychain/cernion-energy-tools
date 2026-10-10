@@ -52,13 +52,18 @@ curl -sS "$CERNION_BASE_URL/api/agent-sidecar/tools" \
   -H "Authorization: Bearer $CERNION_READONLY_TOKEN"
 ```
 
-The MVP must return exactly five tools:
+The manifest returns the curated CET-governed tools, including the five legacy tools and the Domain Router/MWI tools:
 
 - `cernion.ask`
 - `cernion.answer_dossier`
 - `cernion.recommend_capability`
 - `cernion.list_readonly_capabilities`
 - `cernion.get_evidence_status`
+- `cernion.classify_task`
+- `cernion.continue_case`
+- `cernion.list_case_events`
+- `cernion.ack_case_event`
+- `cernion.discover_related_sessions`
 
 Each tool entry includes:
 
@@ -69,7 +74,12 @@ Each tool entry includes:
 - `rolePolicy`
 - `hitlPolicy`
 - `responseContract`
-- `sideEffects`
+- `sideEffects` (legacy compatibility hint)
+- `effectClass`
+- `requiresCetAuthorization`
+- `externalSideEffects`
+- `governanceBoundary`
+- `localStateEffects`
 
 The agent host may use these fields to present the tools, but policy is still enforced server-side by Cernion.
 
@@ -99,6 +109,9 @@ Successful responses use a compact wrapper:
   "targetAction": "agent-sidecar.listTools",
   "safetyClass": "read_only_evidence",
   "sideEffects": "none",
+  "effectClass": "none",
+  "requiresCetAuthorization": true,
+  "externalSideEffects": false,
   "structuredContent": {}
 }
 ```
@@ -204,7 +217,9 @@ For OpenClaw or an equivalent host, map the sidecar as an authenticated HTTP too
 }
 ```
 
-Concrete host configuration may differ. The important part is that the host loads `/tools`, exposes only the returned names, and sends calls back to `/tools/:name/call` with the read-only bearer token.
+Concrete host configuration may differ. The important part is that the host loads `/tools`, exposes only the returned names, and sends calls back to `/tools/:name/call` with an authenticated CET bearer token.
+
+The bearer token identifies the tenant, user/agent and client. It is not the fachliche read/write boundary: CET services decide whether the authenticated actor may change internal case/event/process data or perform any external effect. Legacy secret names such as `CERNION_READONLY_TOKEN` may still be used for compatibility, but Domain Router/MWI tools are CET-governed internal state operations, not pure data reads.
 
 The host should not create synthetic tools that bypass the manifest. It should also not infer write permissions from tool descriptions.
 
@@ -232,11 +247,13 @@ If the input tenant and token tenant differ, the sidecar returns:
 }
 ```
 
-The MVP manifest declares `ROLE_UTILITY_HQ` and `ROLE_GRID_OPERATOR` as the intended roles. Operators should provision sidecar tokens only for users whose role assignment matches the intended usage.
+The manifest declares `ROLE_UTILITY_HQ`, `ROLE_GRID_OPERATOR` and `authenticated_energy_role` policies where applicable. Operators should provision sidecar tokens only for users/agents whose CET role assignment matches the intended usage; downstream CET RBAC/governance remains authoritative for internal state changes and external effects.
 
 ## Blocked Operations
 
-The MVP blocks actions whose target looks like write, delete, approve, reject, resolve, bulk, token, webhook or import behavior. It also blocks any `cernion.get_evidence_status` target that is not Hydration Registry allowlisted.
+The Sidecar continues to block actions whose target looks like ungated delete, approve, reject, resolve, bulk, token, webhook or import behavior. It also blocks any `cernion.get_evidence_status` target that is not Hydration Registry allowlisted.
+
+Internal CET state operations exposed by the manifest, such as Domain Router case state and Case Event Outbox delivery/ack state, are not treated as external writes. They must still pass tenant, role, sensitivity and CET service authorization checks.
 
 Expected block shape:
 
@@ -254,15 +271,16 @@ This block is a product feature. It proves that the agent host cannot turn the s
 
 Before handing the sidecar to a user or tenant:
 
-- `GET /api/agent-sidecar/tools` returns exactly five tools.
-- The manifest has `policyOwner:"cernion"` and `maxToolCount:5`.
+- `GET /api/agent-sidecar/tools` returns the curated manifest including Domain Router/MWI tools.
+- The manifest has `policyOwner:"cernion"`, `governanceModel:"cet_governed_internal_state_external_effects_gated"` and a tool count within its published `maxToolCount`.
 - `cernion.list_readonly_capabilities` succeeds through the call endpoint.
+- `cernion.classify_task`, `cernion.list_case_events` and `cernion.ack_case_event` surface `effectClass` metadata and can update internal CET state where authorized.
 - `cernion.recommend_capability` returns a recommendation and does not execute it.
-- `cernion.ask` or `cernion.answer_dossier` returns structured content for a harmless read-only question.
+- `cernion.ask` or `cernion.answer_dossier` returns structured content for a harmless evidence question.
 - A tenant mismatch returns `sidecar_policy_blocked/tenant_mismatch`.
 - A forbidden target such as `hitl.approve` returns `sidecar_policy_blocked/forbidden_target_action`.
 - A non-allowlisted evidence status action returns `sidecar_policy_blocked/target_action_not_hydration_allowlisted`.
-- The read-only token is stored in the host secret store and is not printed in logs.
+- The authenticated CET token is stored in the host secret store and is not printed in logs.
 
 ## Troubleshooting
 
@@ -272,7 +290,7 @@ The bearer token is missing or was not accepted by the API gateway. Check the `A
 
 ### `unsupported_token_scope`
 
-The token scope is neither `read-only` nor `full-access`. Provision a normal read-only Cernion API token for the sidecar.
+Current CET-governed Sidecar policy does not use token scope as the fachliche read/write permission boundary. If an older deployment still returns this error, update to the current Sidecar policy and verify the token carries tenant and actor identity plus suitable CET roles.
 
 ### `tenant_mismatch`
 

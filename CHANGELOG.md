@@ -1,13 +1,124 @@
 # Changelog
 
+## Unreleased — Tenant-Gedächtnis (#766)
+
+- Organisationsrelevante Aussagen werden im bestehenden tenantweiten Object-Store festgehalten, einmal natürlich bestätigt und mit Quelle, Funktion, Datum und Audit-Historie abfragbar.
+- Gemeinsame seltene Anker lösen eine wissensgestützte Wechselwirkungsprüfung aus; Häufigkeit statt Fachlisten bestimmt die Gewichtung. Die zweite Person erhält die Verbindung im Chat, die erste einmal beim nächsten Kontakt.
+- Korrektur, Widerruf, Gültigkeitsende und aktuelle Clearance gelten auch für spätere Evidenz und Notices. Langsame Prüfungen bleiben im bestehenden Turn-Budget und liefern Ergebnisse im Hintergrund.
+- Synthetische Abnahme- und HTTP-Tests sichern beide Akteursreihenfolgen, Quellen, Tenant-Trennung, Sensitivität, Arbeitsrückwirkung und Ausschlüsse für Fragen, Smalltalk und Dokumentablage ab.
+
+
 All notable changes to the Cernion Energy Tools project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Unreleased
+
+- Tenant-Datenkatalog (Phase 1, #774): strukturierte Open-WebUI-Anhänge erkennen,
+  vollständige Zeilen tenantweise in SQLite und OEMetadata im bestehenden datapoint-Katalog
+  speichern; deterministische Abfragen mit Einheit, Zeitbezug und Nutzerprovenienz.
+- Inhalts-Hash verhindert doppelte Versionen und Bestätigungen bei erneut übermittelten
+  CSV-, Markdown- und XLSX-Textanhängen. Semantikkorrektur, Historie, Löschung mit Audit,
+  konfigurierbare Grenzen und synthetische Referenztests ergänzen den Chatfluss.
+
+## [0.99.22] — 2026-09-27
+
+### Fixed
+
+- Workbench production follow-up (#755, #754): retain counts and extrema when bounding tool evidence, answer in sentences with short provenance instead of raw JSON/parameters or internal statuses, reserve answer time and reuse authorized results for extremum follow-ups. Repeated document context is deduplicated by content hash; document questions are answered alongside a once-only storage note, with first/last/count support for tables pending the data catalog. Log document size and table detection without content; omit source fragments without genuine titles.
+- Open WebUI large-file hotfix: configure `/v1` JSON/form bodies with `OPENAI_COMPAT_BODY_LIMIT` (16 MB default), admit document packages up to four million characters independently of review budgets, and return German OpenAI-compatible size errors with content-free size logging. Document matching proxy limits.
+- Workbench #764 follow-up: answer content before a once-only case-choice question, retain the choice for two turns and expire it without automatic case creation. Identical strong-reference duplicates continue the latest open case with one merge proposal. Preserve the first case description and show creator, last editor and editing time in German status answers, including colleague handovers during an open choice.
+- Workbench review follow-up (#754, #758): validate line-anchored quotations against stored chapter/page offsets, summarize chapter follow-ups without repeated boilerplate, consolidate verification markers per answer block, and preserve document/section titles while omitting untitled source labels.
+- RC3 routing review CI prerequisite: refresh the existing transitive proxy-addr lock from 2.0.7 to 2.0.8 for GHSA-jqcg-44mw-7w3h, without adding dependencies or changing gateway policy.
+- RC3 #730 Review: uncertain broker results expose labeled candidates and clarification only, with no executable plan or selected capabilities; prevent Personal Agent local fallback/hydration from bypassing abstention. Number/name confirmation preserves the prior case domain and context and skips fresh Receipt/Knowledge routing.
+- RC3 Shared Service capability routing (#730, part of #693): replaces general substring counts with catalog-derived rarity, shared compound tokenization and bounded reordered phrases; adds optional compatible cache vectors, function-domain consistency evidence, score/margin confidence and uncertain router candidates. Cleans broad single-word catalog keywords, freezes a bilingual cross-domain evaluation corpus and adds offline evaluation/keyword reports. Existing explicit intent routes and action guards remain; After merging #729, uncertain selections skip coverage and bounded catalog-label clarifications accept a number/name as a mapped case-context touch; real-model e2e verifies the complete cycle. Reports the full prior-correct regression set and 25 stale embeddings requiring online gemini-embedding-001/768 refresh.
+- **RC3 #729 Review:** Fall-Ersteller erhalten Lücken und interne Vorschläge auch unterhalb der Abdeckungsschwelle; Kontext-Akteure sind begrenzt und verfallen per Turn-Uhr. Übernahmeformulierungen werden bestätigt, Nicht-Admin-Pins höflich abgelehnt und protokolliert. E2E bewahrt die echten Funktionsnachbarschaften.
+- RC3 Shared Service integration (#729, part of #693): unify mapped person identity across coverage, notices and corrections; propagate bounded turn-expiring case references to complementary agents; add journaled, clearance-limited `ids_only` case parameter access with tenant opt-out; recognize ownership/inventory corrections before case routing, require explicit new-case intent, and render catalog-derived function labels with bounded clarification lists. Adds a separate all-service Open WebUI e2e CI job without LLM keys and preserves broker selection, ordinary visibility and read-only operation policy.
+- RC3 PouchDB shutdown (#731): leave datapoint database closure to the persistence mixin while preserving scheduler cleanup; warn on already-closed databases, propagate unrelated close failures, and guard ownership plus clean shutdown of all local services without LLM credentials.
+- RC3 Shared Service notices (#723): surface bounded, person-scoped proposal/responsibility/tier notices on the next completed turn, preserve visibility and structured responses, add stable reaction refs and a no-RAG news overview, and activate I-12.
+- RC3 Headless Signals catalog follow-up (#722): retain value-free field definitions and compact probe summaries, move observation values into test fixtures, and merge #700 Workbench/agents harness observations while preserving I-11.
+- RC3 Headless Signals (#722, part of #693): project technical response roles into a deterministic signal catalog, observe under caller permissions with bounded tenant state and change events, replace agent finding heuristics with context-safe signals, and expose signal push gaps plus I-11 without changing Dashboard operations.
+- RC3 Shared Service agent (#697): add one function-parametrized, persistent actor with event-driven lifecycle, guarded internal operations, committed attention-unit charges, quota-bound findings evaluation, observed-coverage inbox proposals and durable human feedback; activate agent safety/handoff invariants without timers or external effects.
+- RC3 Shared Service activation (#696): bound per-person touch records and recent transition history, store only non-latent activation summaries, coalesce pending notifications and stop the real harness broker safely under fake timers.
+- RC3 operation-capability index: resolve static service actions, split CommonJS declarations and API route aliases; report every unresolved action with a coverage reason. Regenerate the function graph without changing its catalog or grouping parameters.
+- Sonar RC3 corrections: explicit UTF-16 canonical ordering without hash/cursor/idempotency changes; await requested RCS trace persistence; reuse hydration regex guards; use cryptographic graph/alarm IDs; harden manual UAT transport, job paths and logs. Disable implicit dependency lifecycle scripts in CI and explicitly build reviewed native modules.
+- Fix VDMI entity audit tenant isolation and nested-data integrity checks using the shared canonical serializer and versioned hashes; legacy entries remain readable but are explicitly unverifiable. Remove the shadowed, obsolete Blindflug API alias without changing the effective handler.
+- RC3 readiness cleanup: persist bounded asset technical/commercial and regulatory clarification fields through reads and dossiers; enforce per-type decision signals, immutable card types and lifecycle transitions for PATCH; support technical-first asset creation and decision/risk/commercial-review filters.
+- Reconciled six reviewed dependency PRs and compatible dependency security patches; regenerated OpenAPI and the operation-capability index and refreshed the architecture review with explicit PR/issue boundaries.
 
 ### Added
+- RC3 Shared Service gap findings (#727, part of #693): bundle context-bound missing information into bounded deterministic gap lists, deliver visible `L-` notices, confirm ignore/completion reactions through the existing correction loop, and refresh attention with once-only feedback after verified closure; no extra operations, LLM calls or Dashboard changes.
+- RC3 Shared Service correction learning (#701, part of #693): adds confirmed conversation-bound corrections for coverage, responsibility, attention tiers and tenant neighbor overlays; reversible journaled changes, guarded admin actions, one existing proposal feedback path, proposal inbox visibility and the #723 notice contract seam. Activates I-7/I-8 against real services without widening permissions or applying model overrides.
+- RC3 Shared Service system activity (#700, part of #693): adds a reusable model-label/keyword/alias resolver and a bounded read-only Workbench presenter for activation, attention, journal digests, agent lifecycle and management-visible coverage. Unknown or ambiguous functions ask for clarification; unavailable sources give an explicit notice without Knowledge/RAG fallback. Existing mapped identity and visibility stay authoritative, Coverage observation is skipped for these pure state reads, and real-service I-5 becomes active.
+- **Natürliche CET-Zustandsfragen (#700):** Tokenbasierte, seltenheitsgewichtete Funktionsauflösung mit klarer Mehrdeutigkeit und optionalen Cache-Embeddings; Offline-Funktionsvektoren, kontrollierter Wortsuche-Rückfall und getrennte Sprachkorpus-Messungen.
+- RC3 Shared Service wake mechanism (#699, part of #693): adds a single-timer, PouchDB-backed adaptive scheduler with scoped push promotion, explicit push gaps, revision-protected at-most-once dispatch and turn-funded attention gates. Reuses only the shared-agent runCycle contract, reports cumulative wake metrics in observability and journal digests, and activates I-6 against the real scheduler and shared-service agent from #697; no domain-service events or external effects are added.
+- RC3 Shared Service vocabulary check (#713, part of #693): derives generic catalog terms from a deterministic dependency-code reference corpus, checks only the committed package-share artifact, reports redundant exceptions without failing and reduces the justified manual allowlist. Adds neutral threshold, reproducibility and dependency-free check fixtures while retaining the real-catalog contamination guard.
+- RC3 Shared Service attention budget (#715, part of #693): adds deduplicated human-turn relevance, positive-feedback establishment with hysteresis, authenticated retain/admin inventory corrections, strongest-neighbor caps and finite turn-funded consumption allowances to the existing activation service. Additive attention/turn identity events, journal transition reasons and real-service I-10 observations preserve tenant isolation, bounded persistence and existing authorization policy; no agents, wake mechanism or external effects are introduced.
+- RC3 Shared Service signal precision (#695 / PR #712): excludes router proposals and model-derived aggregate operation hubs, bounds touches to five functions with overflow diagnostics, and gates direct/complementary activation at configurable confidence 0.2. Repetition increases coverage mass without promoting weak touch confidence; productive chat parameters remain unchanged.
+- RC3 Shared Service observed function coverage (#695, part of #693): adds tenant-scoped, idempotent completed-turn observations through the injected function model, configurable intent weighting and half-life, non-mutating paginated reads, bounded provenance, hysteresis and persisted event delivery markers. Workbench/OpenAI coverage recording is best-effort and preserves authorization policy; the shared harness records before/after policy decisions, with I-8 pending #701.
+- RC3 Shared Service semantic function grouping (#708, part of #693): removes corpus-frequency boilerplate and form metadata from version-2 embedding text, enforces complete semantic cliques with a configurable size cap, reports per-function coherence, and stores compact configurable-dimension vectors. Adds versioned catalog-text embeddings through the LLM facade, an incremental committed cache, deterministic offline grouping and bounded semantic neighborhood evidence, missing/stale-cache diagnostics and a review list of merges without structural evidence. Persistent lineage resolves stored IDs across grouping changes; runtime routing and classification remain unchanged.
+- RC3 Shared Service Journal (#698, part of #693): adds an append-only tenant journal with automatic activation, handoff, lifecycle and correction event records, deterministic versioned function digests, existing reference visibility checks and bounded lossless retention archives. Supplies real-service journal harness observations; activity-query and learning invariants remain upstream todos.
+- RC3 Shared Service activation (#696, part of #693): adds a tenant-isolated PouchDB activation service, one-hop complementary responsibility with CET-only budgets, configurable rest windows, coverage-event handoff, lineage-aware reads, read-only broker actions and a real-service test adapter. No agent creation or authorization changes.
+- RC3 Shared Service function model (#694, part of #693): adds a deterministic capability-first function graph with weighted-overlap clustering, frequency-suppressed and bounded directed evidence, mutual sparse neighborhoods, generated grouping/degree/index-gap reports, stable capability-overlap identities with cumulative merge/split lineage and retired-ID reservation, an injectable read-only loader with stored-ID resolution, and generation/drift checks. No runtime routing, authorization or external effects change.
+- Additive Domain Router (#595): PouchDB case state, explicit transitions, policy-isolated trigger outbox, related-session discovery, CET-governed sidecar tools and opt-in Personal Agent shadow hooks. Internal CET case/event state may change; external operational effects remain gated by CET RBAC/HITL and no new external persistence dependencies are introduced.
+- RC3 Open WebUI / Cernion Workbench Tenant-Gateway (#600): adds a CET-governed Workbench API for customers without AgentOS/Hermes/OpenClaw. New PouchDB-backed stores track Open-WebUI conversation mappings, tenant/user/role mappings, delivery clients and EvidenceRefs. New `/api/workbench/*` endpoints expose CET-led chat orchestration, UI-safe case summaries, case inbox, MWI event list/ack, EvidenceRef attach and case dossier rendering. `channel=open-webui` is now accepted by the Domain Router contract, and `/v1/chat/completions` supports `model: "cernion-governance-assistant"` to force the Workbench classify/continue path while preserving existing OpenAI-compatible behavior for other models.
+- Workbench EvidenceRef hardening (#621): upgrades `/api/workbench/cases/:caseId/evidence` from a generic metadata store into a fail-closed, tenant-/actor-/sensitivity-bound EvidenceRef contract. The endpoint now allowlists evidence/source/sensitivity types, sanitizes source metadata, blocks secret-like fields, records provenance plus source fingerprints without fabricating content hashes, handles duplicate EvidenceRefs idempotently, emits `evidence.available` only for new evidence, and exposes UI-safe EvidenceRefs in case summaries/dossiers without raw payloads. Adds the `willi_mako_ref` source model for Willi-MaKo APERAK/CONTRL/MSCONS/UTILMD diagnostic references; Willi remains a supporting evidence/diagnosis source while CET remains the case, audit and governance owner.
+- Workbench conversation/case idempotency (#620): prevents concurrent first-turn Open WebUI messages for the same tenant/client/conversation from creating orphaned duplicate CET cases. Workbench now reserves deterministic conversation mappings before classification, waits for an in-flight mapping to resolve, treats duplicate link attempts for the same case idempotently, rejects conflicting case links deterministically, and refreshes the stored `caseStateVersion` after continue turns.
+- Workbench MWI inbox correctness (#622): applies registered Delivery Client event-type filters to UI-safe Workbench event lists, reports real unacknowledged Case Event counts in `workbench.chat` responses, and computes case-list event summaries with one bounded event scan instead of one full scan per case. Removes an unnecessary related-session probe from the inbox path so listing cases no longer performs noisy failing service calls.
+- Workbench API/Open WebUI setup documentation (#624): enriches generated OpenAPI request/response schemas for the RC3 Workbench endpoints so Open WebUI and API clients can derive concrete contracts for chat, conversation mapping, delivery-client registration, UI-safe MWI events, EvidenceRef attach, case summaries and dossier rendering. Adds onboarding guidance for tenant/user mapping, delivery-client provisioning, `cernion-governance-assistant` metadata, event poll/ack and fail-closed mapping/evidence errors.
+- Domain Router utility workflow regression pack (#631): adds CI-covered energy-utility routing scenarios for MSCONS/EDM/MaKo/MSB ambiguity, APERAK Z18 plus MaLo/MeLo/Lieferbeginn master-data context, data-center grid-connection pre-checks, Zielnetzplanung production-readiness, Redispatch/EDM ambiguity and management/governance dossiers. The router now treats MaKo master-data context as a first-class alternative domain and gives explicit connection-voltage/capacity and target-grid-readiness signals enough weight to avoid the observed Open WebUI/Matrix routing drift.
+- Chunked unit-CI dependency contract (#623): declares the Istanbul libraries used by `scripts/run-unit-ci.js` as direct development dependencies so clean installs no longer rely on transitive Jest/Istanbul package layout while keeping existing coverage thresholds unchanged.
+- MaKo Evidence Parsing MVP (#633): adds a safe metadata extractor for APERAK, CONTRL, MSCONS status, UTILMD master-data hints and Willi-MaKo references. Workbench Evidence Attach now enriches MaKo EvidenceRefs with allowlisted extracts (`messageType`, `processRef`, `errorCode`, `segmentRef`, `ahbVersion`, MaLo/MeLo, partner, direction, status), emits routing signals such as `market_communication`, `aperak_z18` and `market_master_data`, and forwards those signals into Domain Router case state without exposing raw MaKo payloads or resolving cases automatically. Willi-MaKo remains modeled as supporting diagnostic evidence (`willi_mako_ref`) while CET remains the case/audit/governance owner.
+- Workbench Turn Memory and Role Memory (#632): adds CET-governed per-case turn memory for Open WebUI/Workbench conversations. Workbench chat now resumes mapped cases with a compact, UI-safe memory summary containing current domain/readiness, active role projection, open questions, missing evidence, working assumptions, last safe conclusion and no-call guards instead of relying on raw Open WebUI chat history. Case summaries and chat responses expose `turnMemorySummary`/role projection fields while keeping raw chat history, secrets and untrusted payloads out of persistent memory.
+- Workbench Governed Tool Runtime and Tool/Skill Governance Map (#637/#641): adds a CET-owned, case-bound tool execution boundary for Open WebUI/Workbench. New APIs list governed tools, run allowed tools against a case, list/get ToolRuns, read the domain governance map and filter active applicable skills. Tool results are stored as supporting EvidenceRefs/receipt references with audit metadata; `external_business_effect` tools are blocked and audited unless a future explicit CET RBAC/HITL path enables them.
+- Workbench Web Evidence Connector (#638): upgrades the `web_fetch` Workbench tool from a placeholder into a bounded, CET-governed public-web evidence connector. The connector validates URLs, blocks localhost/private-network/link-local/multicast/reserved targets by default, fetches supported public web/PDF/text resources with timeout and size limits, strips raw HTML into UI-safe snippets, records retrieval timestamp/content type/fingerprint/hash metadata, stores successful results as supporting EvidenceRefs, and records fetch failures as failed ToolRuns instead of silent chat failures. Web evidence remains supporting context only and is not a sole authority for binding claims, approvals, Anschlusszusagen or regulatory conclusions.
+- Open WebUI Guided Case Starters (#635): adds taxonomy-derived Workbench case starters for common energy-utility workflows such as MaKo APERAK/MSCONS clarification, EDM measurement-value issues, MaLo/MeLo master-data checks, grid-connection prechecks, Zielnetzplanung evidence gates, Redispatch clarifications, management dossiers and data-center renewable/grid prechecks. New `/api/workbench/case-starters` list/start endpoints launch through the normal CET Workbench chat and Domain Router path, require mapped Open WebUI tenant/user identity, keep domain hints advisory, carry missing starter inputs as evidence-required context and reject nested/secret-like starter inputs without bypassing CET governance.
+- Workbench Activity Taxonomy (#634): adds a machine-readable energy-utility activity map for Open WebUI/Workbench chat routing across MaKo, EDM, MSB, market master data, grid connection, Zielnetzplanung, Asset/VDMI, Redispatch, regulation/governance, billing/balancing, supplier switch, customer service, management dossiers, IT/data/vendor governance and M2C/revenue assurance. Each activity carries example prompts, roles, required evidence, allowed/blocked actions, handoff domains, capability/receipt mappings, OpenAPI operation candidates, case-starter eligibility and dossier hints. The Domain Router now consults this taxonomy as routing support while Capability Broker, receipts and evidence remain authoritative for execution/governance.
+- Workbench Mail Evidence Connector (#639): adds tenant-bound mail account registration and read-only mail evidence tooling for Open WebUI/Workbench cases. Mail credentials are stored inside CET as AES-256-GCM encrypted secrets and are never exposed in Workbench responses, ToolRuns, EvidenceRefs or LLM context. The governed tool runtime now supports `mail_search`, `mail_read` and `mail_attachment_ref` as supporting EvidenceRef sources (`mail_thread`, `mail_message`, `mail_attachment_metadata`) while `mail_send`/reply/forward remain blocked external-business effects.
+- Willi-MaKo identity and role alignment (#642/#645): adds CET-side Workbench admin APIs to map Willi-MaKo mandants/users/emails into CET tenants, actors, roles and sensitivity clearances. Role profiles (`normal_user`, `mandant_admin`, `staff`, `external_advisor`) are tenant-scoped and fail closed; Willi staff status does not grant CET cross-tenant authority. This prepares Willi-MaKo evidence integration without using the global Willi admin path or bypassing CET RBAC.
+- CET Willi-MaKo Evidence Connector (#644): adds tenant-mapped Workbench endpoints to discover Willi-MaKo sessions, attach Willi diagnostic summaries as `willi_mako_ref` EvidenceRefs and link CET cases back to Willi sessions through the tenant-scoped CET service API. Attached Willi evidence remains supporting diagnostic evidence (`diagnostic_signal`, `claimStrength: supporting`), emits readiness-review/routing signals such as `market_communication`, `aperak_z18` and `market_master_data`, and never exposes raw Willi chat history, credentials or service tokens to Open WebUI/LLM context.
+- Regulatory Impulse Governance Card workflow (#665): enriches the `regulatory_impulse` card type with source-open process-flow metadata, field blocks for signal/relevance/feedback handling, allowed risk types, examples and regulatory-field aliases so Open WebUI/Workbench can create and list cards from natural regulatory impulse inputs while keeping the card advisory/internal and evidence-required.
+- Open WebUI MaKo flow with Willi-MaKo evidence (#646): adds a deterministic Workbench regression/reference flow for the customer-facing APERAK Z18/MSCONS scenario. Open WebUI chat starts the CET case, tenant-mapped Willi-MaKo evidence is attached as a `willi_mako_ref` supporting diagnostic EvidenceRef, the Domain Router keeps the case in `evidence_required` while strengthening `market_communication` and EDM/master-data context, MWI exposes `evidence.available`, and the dossier cites Willi evidence without preparing, sending or claiming any external MaKo message.
+- Open WebUI governance-card conversational operations (#664): adds a curated conversation create path for Governance Cards that resolves card type, returns deterministic missing-field prompts for incomplete inputs and persists completed cards only through the existing tenant-scoped Governance Cards service, keeping summaries internal/advisory with no external side effects.
+- Asset and Investment Governance Card workflow (#666): enriches the `asset_investment_governance` card type with technical-finding, risk-clarification and commercial/regulatory steering field blocks, process-flow metadata, decision-signal hints and safe input aliases so Workbench can capture asset/investment cases without forcing a scoring or funding decision.
+- Generic Governance Cards (#663): adds a tenant-scoped `governance-cards` lifecycle service for reusable regulated-process cards (`trigger -> review -> owner/deadline -> next gate -> follow-up`). The service exposes typed card definitions, strict required-field validation with positive missing-field guidance, create/read/list/update/evidence/comment/transition actions and scalar-safe dossier summaries. Cards are advisory/internal only and do not execute external filings, market messages, billing, dispatch, device control or production workflow actions.
+
+### Testing
+- RC3 Shared Service invariant and domain-free harness (#702, part of #693): adds catalog-derived core scanning with justified exceptions, positive/negative I-1–I-9 oracle tests, explicit upstream-service todos, seeded contract simulations with fake time and failure minimization, and fixed-seed/nightly CI with a 59-second runtime deadline. The real function model is used automatically when available.
+- Added RC3 Workbench coverage for admin tenant/user mapping, delivery-client registration, CET-led classify/continue conversation resume, UI-safe event presentation, EvidenceRef attach and the OpenAI-compatible `cernion-governance-assistant` mode. Targeted regression suite: `tests/workbench.service.test.js`, `tests/openai-compatible.service.test.js`, `tests/domain-router.service.test.js`, `tests/domain-router-shadow.test.js`, `tests/agent-sidecar.service.test.js`, `tests/energy-sidecar-connector.test.js`, `tests/token-manager.service.test.js`.
+- Extended `tests/workbench.service.test.js` for #621 with EvidenceRef contract regressions: unknown evidence/source/sensitivity values fail closed, secret-like metadata and oversized labels are rejected, restricted evidence requires sensitivity clearance and renders redacted without it, duplicate source fingerprints are idempotent and do not emit duplicate events, and Willi-MaKo APERAK Z18 references remain supporting diagnostic evidence with no raw payload/token leakage.
+- Extended `tests/workbench.service.test.js` for #620 with concurrent first-turn chat, duplicate link, conflicting link and mapping-version refresh regressions so Open WebUI conversation mappings remain canonical under retries/races.
+- Extended `tests/workbench.service.test.js` for #622 with Workbench MWI/inbox regressions: registered Delivery Client `eventTypes` filter returned events, chat responses expose actual unacknowledged Case Event counts, case-list `pendingEvents` reflect the same unacknowledged count, and the inbox path no longer relies on an unrelated related-session discovery call.
+- Added `tests/workbench-openapi-contract.test.js` for #624 to assert that generated OpenAPI documents concrete Workbench chat, tenant/user mapping, delivery-client, event and EvidenceRef request/response schemas required by Open WebUI clients.
+- Added `tests/domain-router-regression.test.js` for #631 to lock the Open WebUI/Matrix-observed utility workflows: MSCONS/EDM/MaKo/MSB ambiguity, APERAK Z18 with master-data alternatives, MaLo/MeLo supplier-start boundaries, data-center grid-connection checks, Zielnetzplanung production-readiness, Redispatch/EDM ambiguity, grid-connection vs. asset-planning voltage checks and evidence-required management dossiers.
+- Added `tests/mako-evidence-parser.test.js` and extended `tests/workbench.service.test.js` for #633 to cover APERAK Z18, CONTRL, MSCONS and UTILMD metadata extraction, Willi-MaKo reference handling, MaKo routing-signal propagation into case state, readiness-review marking, duplicate-safe EvidenceRef behavior and raw payload/token non-disclosure.
+- Extended `tests/workbench.service.test.js` for #632 to cover CET-governed turn-memory creation, mapped-conversation resume, role projection, working assumptions, safe case-summary rendering and the guarantee that raw Open WebUI chat history/secrets are not persisted as Workbench memory.
+- Extended `tests/workbench.service.test.js` for #637/#641/#638 to cover governed tool registry filtering, allowed ToolRun creation with EvidenceRefs, blocked external-business-effect attempts, ToolRun list/get, governance-map lookup, active-skill filtering that ignores draft playbooks, bounded web-fetch EvidenceRefs, private-target blocking, unsupported content-type failures and failed ToolRun audit records.
+- Extended `tests/workbench.service.test.js` for #635 to cover taxonomy-derived starter metadata, mapped Open WebUI launch, same-conversation retry/continue behavior, fail-closed missing/partial identity, starter input sanitization and evidence-required handling for missing inputs.
+- Extended `tests/workbench.service.test.js` for #639 to cover encrypted tenant mail account registration/list/delete without credential leakage, `mail_search`/`mail_read`/`mail_attachment_ref` EvidenceRef creation, role/account/secret boundaries and the no-send `mail_send` guard.
+- Extended `tests/workbench.service.test.js` for #642/#645 to cover Willi-MaKo mandant/user/email mapping, tenant-admin foreign-tenant denial, unmapped/disabled fail-closed behavior, tenant-scoped role alignment, staff profile safety and prevention of implicit cross-tenant authority from Willi staff visibility.
+- Extended `tests/workbench.service.test.js` for #644 to cover Willi-MaKo session discovery, tenant-mapped EvidenceRef attach, APERAK Z18 routing hints, safe rendering without raw chat/credential leakage, CET-case linking and fail-closed unmapped/foreign-actor access.
+- Extended `tests/governance-cards.service.test.js` for #665 to cover regulatory impulse type metadata, field blocks, risk filters and creation through regulatory-input aliases.
+- Extended `tests/workbench.service.test.js` for #646 to cover the Open WebUI → CET Workbench → Willi-MaKo EvidenceRef → case summary/events/dossier reference flow, including APERAK Z18 routing, `evidence_required` readiness, `evidence.available` MWI visibility, supporting-evidence dossier rendering and no external MaKo send side effects.
+- Extended `tests/governance-cards.service.test.js` for #664 to cover conversational missing-field prompts, complete-card creation through the curated path and filtered card queries for Open WebUI-style follow-ups.
+- Extended `tests/governance-cards.service.test.js` for #666 to cover asset/investment governance metadata, field blocks, decision signals, safe alias creation and list filtering.
+- Added `tests/governance-cards.service.test.js` for #663 to cover UI-safe type listing, required-field validation with missing-field guidance, tenant isolation, filtered list/read behavior, lifecycle transition guards, EvidenceRef attachment and scalar-safe dossier summaries.
+- Added `tests/workbench-activity-taxonomy.test.js` and extended `tests/workbench.service.test.js` for #634 to cover the energy-utility activity families, required evidence/action/governance metadata, representative prompt matching, Domain Router taxonomy consultation and Workbench `/api/workbench/activities` listing/lookup behavior.
+
+## [Unreleased]
+
+- Workbench Context and Case Inbox (#627/#636): adds CET-owned user/workspace context profiles, playbook registry, and persisted inbox tasks so Open WebUI clients receive role-aware task guidance without storing raw chat history.
+### Added
+
+- Workbench understand-first (#739): structured situations select catalog-configured knowledge sources, grounded answers precede background cases, repeated questions are suppressed, and “Kein Fall” withdraws the case. Retains mapped access and no-call guards; explicit external wishes produce notices and internal drafts.
+- **Forecast portfolio and product workflow (RC3):** Adds chronological 07:00 portfolio backtests with durable resume, tenant-bound history/training/prediction APIs, shared and meter-specific models, low-load handling, and reconciled quality metrics. Includes authenticated CLI helpers, CSV/XLSX baseline preparation, season-balanced baseline validation, versioned private model transfer, and opt-in signed public starter installation. Raw training data and trained model packages are not shipped in the repository.
+
+- Tenant-Scoped Skill/Playbook Governance Lifecycle (#640): adds a governed `draft -> proposed -> active -> deprecated` lifecycle on top of the existing CET Workbench playbook store so tenants can learn and reuse case-handling patterns without uncontrolled self-modifying prompts. New `GET/POST /api/workbench/skills`, `GET /api/workbench/skills/:skillId`, `POST /api/workbench/skills/:skillId/{propose,activate,deprecate}` and `POST /api/workbench/cases/:caseId/skills/propose-from-case` endpoints let admins author skills or propose them from a same-tenant resolved/confirmed CET case using only allowlisted case summary metadata (matched routing signals, evidence types/refs, classification's own allowed/blocked actions and no-call guards, plus static Activity Taxonomy handoff/capability/receipt hints) — never raw evidence, chat transcripts or MaKo payloads. New skills always start as `draft`/`proposed`; activation and deprecation require `ROLE_TENANT_ADMIN`, `ROLE_PROCESS_OWNER`, `ROLE_ADMIN` or `ROLE_UTILITY_HQ`. Every skill closed-schema-validates and bounds its fields, rejects secret-/credential-like content and nested/raw payloads, and always inherits (never can subtract) the domain's baseline no-call guards and blocked external actions from the existing Workbench Tool/Skill Governance Map. Only `active` skills are considered by Domain Router/Workbench chat routing hints; draft/proposed/deprecated skills are inert. Lifecycle transitions are idempotent on retry and produce append-only, versioned audit entries without deleting prior history. Case summaries/dossiers now expose a safe `appliedPlaybooks` projection (skill id/title/version/audit refs only) showing which active skills were applied to a case.
+- Workbench Inbox Snapshot (#656): changes Workbench case-list and inbox-task reads to project visible pending/delivered case-event attention in memory instead of persisting inbox tasks during GET/refresh. Explicit task commands can still materialize a selected projected task, but pure display does not create tasks, update task timestamps, acknowledge events, alter delivery state or mutate case state. UI-safe task rows now include bounded scalar `eventCount`/`eventIdsDisplay` fields for Budibase/Open WebUI renderers.
+- **Domain Case Routing Attention Workbench panel (#599) — a bounded, additive, read-only render slice, not a new backend endpoint and not a second generic case service.** Extends `integrations/budibase/manifests/stadtwerk-mauer-workbench.json` with an additive `domain_case_routing_attention_*` section group so `ROLE_PROCESS_OWNER` (or a tenant-parameterized equivalent role family) can answer in under a minute which fachliche domain is active for one explicitly synthetic case (`cetCaseId cet-case-smm-budibase-workbench-001`, linked to the existing Workbench case `smm-budibase-workbench`), which CET routing decision applies (`continue`/`reclassify`/`branch`/`clarify`/`handoff`/`fallback`), which evidence/owner gap blocks the next gate, which related cases are visible only as authorized evidence pointers, and which case events need attention. Composes only the four dashboard bricks named in the accepted plan (`GET /api/dashboard/stadtwerk-mauer-workbench-selected-target`, `GET /api/dashboard/stadtwerk-mauer-case-detail`, `GET /api/dashboard/stadtwerk-mauer-case-actions`, `GET /api/dashboard/stadtwerk-mauer-role-workbench-catalog`) plus the existing protected Domain Router `explain` and `related-sessions.discover` readbacks. `GET /api/domain-router/events` is never called: it reconciles the case-event outbox and mutates addressed events from `pending` to `delivered` as a side effect (`internal_event_outbox`), so the panel instead renders an explicit scalar `event_attention_not_polled` boundary row naming a separately curated delivery-aware command/readback contract as the next safe gate. `continue`, `events.ack` and `related-sessions.link` render only as disabled `not_called` guard rows. Evidence/owner gaps always resolve to `clarification`/`human_review_required`, never an automatic negative conclusion. No new backend endpoint, service action, Capability Broker route, Hydration Registry rule, formatter, Personal-Agent hardcoding, Budibase table write, workflow/HITL creation, external connector, or MaKo/billing/settlement/tariff/device-control/production action is introduced. Visible Budibase apply/presentation remains blocked behind #572.
+- Six new scalar Budibase queries (`getDomainCaseRoutingAttention{SelectorRows,SummaryRows,EvidenceGapRows,RelatedCaseRows,RoleFamilyRows,NoCallRows}`) render the selected synthetic case identity, cetCaseId/caseStateVersion/active-domain/last-routing-decision/next-safe-gate summary rows, positively framed evidence/owner-gap rows, authorized related-case/session evidence-pointer rows, the responsible role family from the existing Role Workbench catalog, and the event-not-polled boundary plus disabled continue/events.ack/related-sessions.link guard rows. A visible Budibase apply/presentation smoke for this panel remains blocked pending an independently proven update-safe application/workspace target (see #572); this keeps #599 open even though the manifest, tests and documentation are complete.
+- **CR-LKA-RV-001 RC v1.0 governance architecture pack** — adds a bounded, schema-backed implementation pack for CET source `0.99.21`: pure MaKo/M2C Resolution Value and Asset-to-Decision projection utilities, draft Agent Receipt profiles (`mako-resolution-value-v1`, `asset-to-decision-v1`), Decision Frame governance metadata pass-through/export, and Role Workbench `governanceArchitecture` enrichment. The RC UAT harness covers the nine executable MaKo/Asset scenarios (`UAT-MAKO-001..005`, `UAT-ASSET-001..004`) with isolated in-process Moleculer test databases. NEST remains macro trace only. `governance.evaluatePolicy` is intentionally internal-only for this RC; no REST alias, OpenAPI export, or operation-capability-index regeneration is introduced. `llm.txt` is regenerated only to synchronize the Unreleased changelog summary and integrity hash.
 - **Forecast Sandbox API v0.1 (CR-CET-FORECAST-SANDBOX-V0.1)** — generic, sales-facing sandbox path for RLM/iMSys day-ahead consumption forecasting: `POST /api/forecast-sandbox/consumption/{validate,day-ahead,backtest}` plus an isolated `GET /api/forecast-sandbox/openapi.json`. Deterministic weekday-profile baseline (method `baseline_weekday_profile_v0`, no ML), stateless (no persistence), reuses `calculateForecastQuality` from `src/forecast-calculator.js` for MAE/RMSE/MAPE/bias. Every response carries a `commercialBoundary` (no SLA, no forecast-quality guarantee, no balancing-energy-risk-reduction guarantee). See `docs/forecast-sandbox.md`.
 - **Versandbatch Completion-Evidence Review Workbench panel (#517) — a bounded, additive, read-only render slice, not a new Versand-, Billing- or Workflow-Engine and not a second generic signal queue.** Extends `integrations/budibase/manifests/stadtwerk-mauer-workbench.json` with an additive `versandbatch_completion_evidence_*` section group so `ROLE_PROCESS_OWNER` can answer in under a minute whether one of exactly three explicitly synthetic selector cases — `release_ready_receipt_missing`, `manual_handover_owner_due_gap` (default-selected), `return_or_completion_evidence_stale`; batch ids, case groups, document versions, channels, owners, dates, snapshot hashes and evidence refs are all explicitly synthetic and marked `synthetic_tenant_seed` — is checkably complete by document status, release, channel/status reference, return, owner/deadline and completion evidence, or which positive human clarification is needed next. `ROLE_MARKET_OPERATIONS` contributes channel/status evidence and `ROLE_REGULATORY_AFFAIRS` is informed via the automation-risk-context row; these are transferable role families, not hardcoded people or Personal-Agent identities. Composes only the four read models named in the accepted plan: `GET /api/dashboard/cross-channel-vnb-signal-queue`, `GET /api/dashboard/owner-deadline-evidence-gate`, `GET /api/dashboard/evidence-freshness-guard` and `GET /api/dashboard/automation-risk-gate`. No new backend endpoint, service action, Capability Broker route, Hydration Registry rule, formatter, Personal-Agent hardcoding, email/document sending, resend, delivery confirmation, billing, invoicing, posting, payment, settlement, MaKo, Redispatch dispatch, tariff/legal determination, mailbox/portal/ERP/CRM connector, customer contact, webhook, workflow/HITL/task creation, escalation, arbitrary Budibase table write, production data, scheduler, notification or connector is introduced — this is manifest composition only. Channel/shipment-status values always render as caller-supplied evidence, never a verified delivery fact; missing or stale evidence always maps to `clarification`/`human_review_required` with a positive follow-up, never automatic rejection, successful delivery, legal completion, billing correctness or settlement completion.
 - Nine new scalar Budibase queries (`getVersandbatchCompletionEvidence{SelectorRows,DocumentChannelRows,ManualHandoverRows,ReturnFreshnessRows,ExceptionRows,CompletionPointerRows,AutomationRiskRows,FollowUpRows,NoCallRows}`) render the three-case selector, batch/document/channel-status rows, manual-handover/owner/deadline rows, return/completion freshness and snapshot-delta rows, exception/missing-evidence/blocked-decision rows, a completion/receipt evidence pointer, an automation-risk-context-only summary, positive follow-up/next-safe-review-gate rows, and no-call guard rows. A visible Budibase apply/presentation smoke for this panel remains blocked pending an independently proven update-safe application/workspace target (see #572 or equivalent evidence); this keeps #517 open even though the manifest, tests and documentation are complete.
@@ -18,15 +129,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Eight new scalar Budibase queries (`getInvestmentPortfolioGovernanceReview{SelectorRows,StromRow,GasRow,WaermeRow,CommitteeCardsFocusRows,OwnerBudgetGateFocusRows,DataReviewQueueFocusRows,NoCallRows}`) render a scalar portfolio table (one live-derived row per synthetic measure), a selected-measure selector (default-selected: Gas, the measure with the broadest evidence gap), detail/evidence-gap/positive-follow-up rows composed from all three investment read models for the selected measure, and dedicated owner/deadline/budget-path/committee-gate rows. Governance labels are restricted to exactly four operator-facing values — `review_ready`, `blocked_missing_evidence`, `budget_path_gap`, `needs_committee_window` — with no numeric score, rank, weighted ranking, winner selection or automatic priority anywhere in the panel. All consequential actions (budget approval, committee execution, ERP/SAP/accounting writes, treasury transfer, workflow/HITL, MaKo/billing/settlement/tariff, device control, external connectors, Budibase table writes, Personal-Agent execution, production/public-context mutation) render only as disabled `not_called` no-call rows.
 - **Datenpunktlisten Change-Control Gate Workbench panel (#521) — a bounded, additive, read-only render slice, not a new data-point-list persistence layer, Excel importer, Asset-MDM/MaStR mutation path or Redispatch test engine.** Extends `integrations/budibase/manifests/stadtwerk-mauer-workbench.json` with an additive `datenpunktlisten_change_control_*` section group over the existing Redispatch E2E Workbench area (extends it, does not clone it as a second Redispatch matrix) so `ROLE_GRID_OPERATIONS_LEAD` can answer in under a minute whether one of exactly three explicitly synthetic selector cases — `existing_control_group_sufficient`, `data_point_version_or_control_group_clarification` (default-selected), `test_call_evidence_or_owner_deadline_gap`; case ids, data-point-list versions, control-group ids, owners, dates and evidence refs are all explicitly synthetic and marked `synthetic_tenant_seed` — really needs a data-point-list/control-group change, which evidence is missing, who verifies it, and what safe review gate follows. Composes only the six read models named in the accepted plan: `GET /api/dashboard/controllability-data-alignment` (data-point-list version/source snapshot, control-group/asset scope, Asset/MaStR/internal match), `GET /api/dashboard/redispatch-participation-readiness-status` (expected test-call readiness impact), `GET /api/dashboard/redispatch-project-controlling-kpi-cockpit` (project-controlling/KPI decision blockers and evidence gaps), `GET /api/dashboard/owner-deadline-evidence-gate` (verifying role, owner, due date, missing evidence), and `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` / `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` reusing the existing `stadtwerk-mauer-redispatch-participation-readiness-v1` Blueprint-Pack seed (no new seed, no second `demoProcessMatrix`) for the canonical V/D/M/I matrix (`roleLegend.M = Mitwirkend`) and transfer-readiness rows. No new backend endpoint, service action, Capability Broker route, Hydration Registry rule, formatter, Personal-Agent hardcoding, Excel/list import, data-point-list write, Asset-MDM/MaStR mutation, test call, Redispatch enrolment/dispatch, SMGW/CLS/device control, MaKo/billing/settlement/tariff, provider call, webhook, workflow/HITL/task creation, arbitrary Budibase table write or Rundeck execution is introduced — this is manifest composition only.
 - Nine new scalar Budibase queries (`getDatenpunktlistenChangeControl{SelectorRows,AlignmentRows,TestCallReadinessRows,KpiCockpitRows,OwnerDeadlineRows,VerifyRows,MatrixRows,TransferRows,NoCallRows}`) render the three-case selector, data-point-list version/scope/match/change-requirement/provider-assumption rows, test-call readiness impact and evidence-gap rows, project-controlling/KPI summary and gap rows, owner/deadline/verifying-role rows, the reused canonical V/D/M/I matrix, transfer-readiness rows, and no-call guard rows. Change requirement is restricted to exactly three operator-facing values — `not_required`, `clarification`, `evidence_gap` — with no numeric score or automatic approval anywhere in the panel; missing evidence always maps to `clarification`/`human_review_required` with a positive follow-up, never a bare negative conclusion; a provider/Dienstleister assumption renders only as an evidence pointer, never an externally verified fact.
+- **MaKo/M2C Resolution Value Review Blueprint-Pack seed (#591) — a static, versioned, tenant-parametrizable `read_only_blueprint_seed`, not a new endpoint, MaKo engine or Budibase write path.** Adds `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-mako-resolution-value-review-v1.json` and registers it in `src/vdmi-blueprint-pack-seeds.js` so `ROLE_MAKO_OWNER` (contributors `ROLE_BILLING`/`ROLE_FINANCE`; informed `ROLE_COMPLIANCE`) can answer in under a minute which MaKo/M2C clarification evidence is present or missing, what qualitative Resolution Value may safely be stated, which consequential claims/actions remain forbidden, who must clarify next, and what the next human review gate is. Aligns with the merged CR-LKA-RV-001 governance architecture pack (`changeRequest=CR-LKA-RV-001`, `candidateId=CRC001`, `workedExample=mako_m2c_resolution_value`) and the draft `mako-resolution-value-v1` Agent Receipt without duplicating their policy/projection logic; the six named read models (`governance.roleWorkbenchProjection`, `market-communication-evidence-chain`, `evidence-grounding-confidence-audit`, `receipt-grounded-presentation-contract`, `owner-deadline-evidence-gate`, `decision-readiness-matrix`) are referenced only as `source_hint_only` metadata and are never called. Exactly four canonical `demoProcessMatrix` rows with the six presentation headers, `roleLegend.M = 'Mitwirkend'`, role-only V/D/M/I cells and the three separated data classes (`publicContextLayer`, `syntheticTenantSeed`, `sandboxRuntimeArtifact`); Resolution Value stays qualitative-only, missing evidence always maps to a positive clarification/evidence-gap follow-up, and the HITL boundary/no-call guard are explicit. `buildDemoProcessMatrixSync(...)` reports `Blueprint-Pack complete -> Landing-Registry pending -> Produktivseite pending`. No API, OpenAPI, LLM-manifest, capability-catalog, Budibase, runtime route, persistence, external call or production mutation is introduced.
 
 ### Fixed
+
+- Workbench #746 production follow-up: native Gemini answer schemas, one bounded schema-repair attempt, compact deduplicated evidence, source-only citations, neutral fallback drafts without raw excerpts or unsupported promises, complete failed-call phase timing, and clean conditional variant headings. External action guards remain unchanged.
 - **`energy-market.co2Intensity` no longer publishes fabricated all-zero CO₂ forecasts when the GrünstromIndex/Corrently source shape contains nullable standard CO₂ fields.** The CET wrapper now accepts raw forecast rows with `co2_avg:null` and `co2_g_standard:null`, falls back to populated `co2_g_oekostrom` values with `degraded:true`/`fallback_co2_field:"co2_g_oekostrom"`, and returns a structured `success:false`, `status:"unavailable"` response with warnings when no numeric CO₂ field is available. This preserves integrator trust for EV charging and load-shifting consumers while avoiding claims that the upstream field behavior is intentionally deprecated.
 
 ### Testing
+- Added `tests/workbench.service.test.js` coverage for #640 (`describe('Tenant skills/playbooks governed lifecycle (#640)')`): create-as-draft with draft/proposed/deprecated skills excluded from chat/routing while active skills are included; propose/activate append-only audit entries that are idempotent on retry; activation/deprecation denied without `ROLE_TENANT_ADMIN`/`ROLE_PROCESS_OWNER`/`ROLE_ADMIN`/`ROLE_UTILITY_HQ`; `propose-from-case` writes only for a same-tenant resolved/confirmed case (unresolved, missing, cross-tenant and unauthorized cases perform no write) and is itself idempotent; secret-like, nested and oversized skill content is rejected and never persisted; activated skills always inherit and cannot subtract the domain's baseline no-call guards/blocked actions; active skill application renders as a safe `appliedPlaybooks` case-summary/dossier entry with no raw case text; deprecation preserves prior version/audit history without deleting it; and the skill lifecycle never invokes any tool run or mail-account side effect.
+- Extended `tests/workbench.service.test.js` for #656 to prove `GET /api/workbench/inbox/tasks` is now a non-mutating snapshot: pure list/refresh does not persist inbox tasks, does not bump projected `updatedAt`, does not acknowledge or deliver events, and exposes scalar `eventCount`/`eventIdsDisplay` render fields while explicit assign/resolve commands still materialize and complete a selected task without touching event delivery state.
+- `tests/budibase-workbench.test.js` — 6 new tests for #599: (1) structural — the panel composes exactly the six named queries against exactly the four existing dashboard-brick endpoints plus the two existing Domain Router `explain`/`related-sessions.discover` endpoints and never `/api/domain-router/events`, and the sections/notes are registered; (2) the selector renders the synthetic `cetCaseId`/linked Workbench case as `selected`/`bound`, or `blocked_outside_sandbox_tenant` outside the sandbox tenant; (3) the summary renders `cetCaseId`/`caseStateVersion`/active-domain/last-routing-decision/next-safe-gate rows, falls back to `fallback`/`clarification` labels when no case state exists yet, and renders no data for a Domain Router policy-denied (foreign/hidden) case; (4) evidence/owner-gap rows always resolve to `clarification` or `human_review_required`, never an automatic rejection; (5) related-case/session rows from `discover` render as scalar evidence pointers only (never auto-linked) and render no data for a policy-denied case; (6) the responsible-role-family row and the event-not-polled boundary plus disabled `continue`/`events.ack`/`related-sessions.link` guard rows render correctly with no `[object Object]` or raw nested JSON. Existing `tests/domain-router.service.test.js` regressions (tenant spoofing, missing role, hidden case/discovery/event placeholders, optimistic version guard, polling delivery and acknowledgement) remain unchanged and green. Full suites: `tests/budibase-workbench.test.js` — 1 suite / 67 tests pass; `tests/domain-router.service.test.js` — 1 suite / 44 tests pass.
+- Added CR-LKA-RV-001 RC v1.0 coverage: schema hardening for required `resolutionValue`, `safetyBoundary`, `hitlBoundary`, readiness, safety and HITL fields; MaKo/M2C and Asset-to-Decision projection tests; governance policy adapter tests; in-process RC UAT harness for 9 executable scenarios; and an API alias decision guard proving `governance.evaluatePolicy` remains internal-only. Focused plus impacted verification passed locally across 10 suites / 133 tests before RC quality-gate execution.
 - Added regression coverage in `tests/energy-market.service.test.js` for the current raw upstream shape (`co2_avg:null`, `co2_g_standard:null`, populated `co2_g_oekostrom`) and for the no-CO₂-field case, asserting CET never exposes a successful all-zero forecast from null source values.
 - `tests/budibase-workbench.test.js` — 2 new tests for #517: (1) structural — the panel composes exactly the four named endpoints (`cross-channel-vnb-signal-queue`, `owner-deadline-evidence-gate`, `evidence-freshness-guard`, `automation-risk-gate`) and no others, and the sections/notes are registered; (2) behavioral — the selector renders exactly three rows with the three named `selectorCase` values, all marked `synthetic_tenant_seed`, with exactly one `selected: true` row (`manual_handover_owner_due_gap`), and the document/channel, manual-handover, freshness, exception, completion-pointer, automation-risk, follow-up and no-call rows are scalar/display-safe with no `[object Object]` or raw nested JSON, missing/stale evidence always carries a non-empty positive follow-up or resolves to `human_review_required`, channel/status is rendered with an explicit `caller_supplied_not_verified_delivery_fact` caveat, the automation-risk row is `contextOnly: true`, and the no-call rows cover the Versandbatch-specific boundaries (document send/resend, delivery confirmation, billing, invoicing, settlement, MaKo, Redispatch dispatch, webhook, HITL, task creation, Budibase table write, Personal-Agent, Rundeck, external connector). Full suite: `tests/budibase-workbench.test.js` — 1 suite / 60 tests pass.
 - `tests/budibase-workbench.test.js` — 3 new tests: (1) structural — the panel composes exactly the three new named investment endpoints (plus the reused Blueprint-Pack verify endpoint) and no others, the reused canonical verify/matrix queries are referenced (not duplicated — `getInvestmentOwnerDeadlineBudgetGateMatrixRows` still appears exactly once in the manifest), and all sections/notes are registered; (2) behavioral — the selector and all three portfolio-row transformers produce scalar/display-safe rows with exactly the four allowed governance labels and no `score`/`rank`/`readinessScore` field, covering `review_ready` (Strom, complete evidence), `blocked_missing_evidence` (Gas, broad evidence gap) and `needs_committee_window` (Waerme, single committee-window gap); (3) behavioral — the selected-measure (Gas) detail rows from all three read models, the owner/deadline/budget-path/committee-gate rows (including `budget_path_gap`), and the no-call guard rows render correctly with no `[object Object]` or raw nested JSON. Full suite: `tests/budibase-workbench.test.js` — 1 suite / 54 tests pass.
 - `tests/budibase-workbench.test.js` — 3 more new tests for #521: (1) structural — the panel composes exactly the six named endpoints and no others, the Blueprint-verify/matrix/no-call and transfer-readiness queries target the reused `stadtwerk-mauer-redispatch-participation-readiness-v1` seed, and the sections/notes are registered; (2) behavioral — the selector renders exactly three rows with the three named `selectorCase` values, all marked `synthetic_tenant_seed`, with exactly one `selected: true` row (`data_point_version_or_control_group_clarification`); (3) behavioral — alignment/test-call-readiness/KPI/owner-deadline/verify/matrix/transfer/no-call rows are scalar/display-safe with no `[object Object]` or raw nested JSON, change requirement resolves to one of the three named states, missing owner/deadline evidence always carries a non-empty positive follow-up, and the no-call rows cover the datenpunktlisten-specific boundaries (Excel import, data-point-list write, Asset-MDM/MaStR mutation, test-call execution, MaKo/billing/settlement, SMGW control, webhook, HITL, Rundeck, Budibase table write, Personal-Agent). Full suite: `tests/budibase-workbench.test.js` — 1 suite / 57 tests pass.
+- `tests/vdmi-blueprint-pack-seeds.test.js` — 15 new tests for #591 covering the MaKo/M2C Resolution Value Review seed: catalog lookup/list registration, the six `source_hint_only` read-model references and `metadata_only` command hints, full validator coverage (required roles/evidence/data classes/forbidden actions), qualitative-only Resolution Value framing with positive missing-evidence follow-ups, the explicit HITL boundary/no-call guard, non-executing workbench-clarification-item mapping for `ROLE_MAKO_OWNER`, the exact four-row canonical matrix (roles, gate outcomes, pending downstream sync) via `buildDemoProcessMatrixSync`/`buildLandingRegistryDraftFromBlueprintSeed`, and five negative cases (missing required evidence key, non-role matrix cell, wrong `roleLegend.M`, an executable command hint, and a missing forbidden/consequential-action guard). Full suite: `tests/vdmi-blueprint-pack-seeds.test.js` — 1 suite / 87 tests pass.
 
 ## [0.99.23] — 2026-08-18
 
@@ -988,6 +1107,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **`askCernionAgent` Copilot Action**: New `personal-agent.askCernionAgent` action (`POST /api/copilot/ask-cernion-agent`) as a Copilot-first entry point to the Personal Agent. Accepts `question`, optional `sessionId`, `context`, and `domain`. Returns compact structured evidence, process context, risks, open questions, and next steps — designed for Copilot Studio to compose the final user-facing answer. Added to allowlist as mode `read`, risk `low`. Route registered in `api.service.js`. Added to `docs/copilot-plugin.json` with `response_semantics` and `data_handling: ["GetPrivateData"]`.
 
 - **SCQA Decision Frame Layer** (`services/decision-frame.service.js`): PouchDB-backed SCQA (Situation–Complication–Question–Answer) decision frame store. Actions: `create`, `get`, `list`, `update`, `linkEntity` (idempotent entity attachment with types `znp_project`, `vdmi_matrix`, `investment_plan`, `grid_operator`, `grid_connection`, `process_intent`), `generateStarter` (AI-assisted — calls `znp.getProjectMeta` + `znp.strategicPrompts` as context seeds, then `generateStructured` to synthesise Situation/Complication/Question), `exportSummary` (Markdown or JSON). Frames do not write to domain objects; they carry `frameId`, `situation`, `complication`, `question`, `answer`, `domain`, `role`, `status`, and `linkedEntities`. DB path configurable via `DECISION_FRAME_DB_PATH` env var.
@@ -1021,6 +1141,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Copilot Search Endpoint**: New `query.search` action (`GET /api/query/search`) with `operationId: searchCernionData`. Cross-domain entity search across companies, VNBs, VDMI matrices, ZNP projects, grid connection validations, and EDM MeLo IDs. Accepts `q`, `domain`, and `limit` query parameters. Returns `{ results: [{ id, title, excerpt, type, status, url }] }`. Resolves input through the existing routing graph (VNB lookup, grid operator identity resolution, VDMI/ZNP namespaces). Designed as the canonical first action for MS365 Copilot agents.
 
 - **Copilot Declarative Agent Manifests**: New `docs/copilot-agent.json` (Declarative Agent v1.7) and `docs/copilot-plugin.json` (Copilot Plugin v2.4) for Copilot Studio import. Plugin manifest defines function schemas with `response_semantics`, `data_handling: ["GetPrivateData"]`, and per-function descriptions. Agent manifest includes `conversation_starters` and a `instructions` block that enforces the context-first workflow and safety rules. Deployment placeholders (`TODO_REPLACE_WITH_DEPLOYMENT_URL`, `TODO_REPLACE_WITH_VAULT_REFERENCE_ID`) are documented; values must be substituted at deploy time.
@@ -1051,6 +1172,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **WP3 — HTTP E2E Smoke Test**: New `tests/rcs-e2e-smoke.test.js` (25 tests). Starts a real Moleculer-web HTTP listener (port 47321) with all RCS services and mocked `token-manager`, `assets`, `energy-market`, `edm`. Tests the full UI flow via real HTTP: rule discovery, run listing (pagination envelope), run detail, asset listing, asset detail, on-demand drilldown, persisted trace retrieval, readiness aggregation, errors listing, link following (self/assets links → correct data), structured error shape, access control (invalid `ck_` token → 401).
 
 - **WP4 — Drilldown Semantics Field**: `drilldownAsset` response now includes a `drilldownSemantics` object: `{ mode: "recomputed_from_current_source_data", baseRunId, ruleSetId, usesOriginalRuleSet: true, usesOriginalAssetSnapshot: false, usesOriginalTimeseriesSnapshot: false, computedAt }`. Semantics are also persisted in trace docs (via `saveTrace`) and returned by `getTrace`. Two new tests added to `tests/rcs-asset-drilldown.test.js` asserting the shape in both the drilldown response and the retrieved trace.
@@ -1065,6 +1187,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **WP1 — Rule Discovery API**: New `rcs-rule-catalog` service (stateless wrapper over `src/rcs-rule-registry.js`). `GET /api/vnb/rcs/rules` → `listRuleSets` with filters (`status`, `legalStatus`, `calculationMode`, `includeSuperseded`). `GET /api/vnb/rcs/rules/:ruleSetId` → `getRuleSet` with full parameters. Superseded rules hidden by default. Latest rule marked `isLatest: true`. Unknown ID returns `RCS_RULE_SET_NOT_FOUND` (404).
 
 - **WP2 — Run Overview API**: `listRuns` now returns a pagination envelope `{ total, offset, limit, hasMore, items }` instead of a plain array. Added `offset` parameter. Each run item includes `links` with `self`, `assets`, `errors`, `readiness`, and (when applicable) `jobStatus`, `jobProgress`, `jobResult` URL fields. `toPublic` updated to always include `links`.
@@ -1095,6 +1218,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **WP1 — Unlimited Portfolio Scale**: Removed the default 500-asset limit. `options.maxAssets` defaults to `null` (no limit). An explicit env-based ceiling can be set via `RCS_MAX_ASSETS_PER_RUN`. The guard only fires when the caller explicitly provides `options.maxAssets` or the env var is set. Error `RCS_MAX_ASSETS_EXCEEDED` (HTTP 400) still thrown when the limit is breached.
 
 - **WP2 — Workload Estimation**: `estimateWorkload(assetIds, timeframe, opts)` is computed before every `simulatePortfolio` and `assessPortfolioReadiness` call and included as `workloadEstimate` in every response (sync and async). Fields: `assetCount`, `timeframeDays`, `expectedIntervalsPerAsset`, `estimatedTotalIntervals`, `chunkSize`, `traceMode`, `executionMode`, `estimatedRisk` (`low`/`medium`/`high`), `warnings`.
@@ -1127,6 +1251,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **WP A — Async Portfolio Simulation**: `simulatePortfolio` accepts `executionMode: 'auto' | 'sync' | 'async'`. `auto` (default) lets the existing gateway flag decide; `sync` always runs inline; `async` forces the CET job system regardless of call origin. Async response: `{ success, jobId, status: 'queued', statusUrl, resultUrl, progressUrl }`. Idempotency key derived from payload hash via `runAsync`. Internal Moleculer calls remain synchronous in `auto` mode (zero backward-compat breakage).
 
 - **WP B — Async Portfolio Readiness**: `assessPortfolioReadiness` gains the same `executionMode` param. Progress phases logged via `jobStore.appendLog`: `price_series` (10%), `timeseries_check` (20%–70% per-asset), `aggregation` (80%), `persist` (100%).
@@ -1157,6 +1282,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Arbeitspaket A — Audit-Grade Interval Trace**: `runCalculation` intervals now contain a fully self-describing, audit-ready data model per quarter-hour slot: `injectionKwh`, `priceEurMwh`, `priceCentsPerKwh`, `technology`, `technologyFloorEurMwh`, `technologyFloorCentsPerKwh`, `awCentsPerKwh`, `s51Active`, `clawbackActive`, `ruleArm`, `ruleArmReason` (human-readable), `baselineAmountEur`, `clawbackAmountEur`, `retainedAmountEur`, `deltaEur`, `dataQualityFlags`. Old short-hand field names removed. Aggregate sums are exactly reconstructible from the trace. `dataQualityFlags` carries `zero_injection` for missing metering slots. `RULE_ARM_REASONS` map exported for consumer use.
 
 - **Arbeitspaket B — Rule Registry Metadata Hardening**: Rule set schema extended with `legalStatus` (required; values: `referentenentwurf`, `regierungsentwurf`, `gesetz`, `in_kraft`, `auslaufend`, `entwurf`), `effectiveTo`, `supersedes`, `sourceUrl`, `notes`. `validateRuleSet` enforces `legalStatus`. `listRuleSets()` returns all new fields. `resolveRuleSet('latest')` considers only `active` and `in_kraft` status; `draft` rules are explicitly excluded. `eeg2027_clawback` added as valid `calculationMode`. Bundled rule JSON files updated with all new fields; `eeg2027-draft-2026-06` sets `"supersedes": "eeg2027-draft-2026-04"` and `"effectiveTo": null`; `eeg2027-draft-2026-04` sets `"effectiveTo": "2026-05-31"`.
@@ -1188,6 +1314,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **P0.1 Rule-Versioning / Rule Registry** (`src/rcs-rule-registry.js`): File-based registry that loads all JSON rule sets from `src/rcs-rules/`, supports runtime overlay via `registerRuleSet`, resolves `'latest'` to the newest active rule by `effectiveFrom`, and validates rule shape (`id`, `version`, `effectiveFrom`, `calculationMode`, `parameters.s51ConsecutiveNegHours`, `technologyFloors`, `supportedTechnologies`).
   - [`src/rcs-rules/eeg2027-draft-2026-04.json`](src/rcs-rules/eeg2027-draft-2026-04.json): April-2026 Referentenentwurf — s51 threshold 6h, wind_onshore floor 1.5 EUR/MWh (status: superseded).
   - [`src/rcs-rules/eeg2027-draft-2026-06.json`](src/rcs-rules/eeg2027-draft-2026-06.json): Juni-2026 Referentenentwurf (revidiert) — s51 threshold 4h, wind_onshore 2.0, wind_offshore 0.5, biomass 1.0 EUR/MWh (status: active).
@@ -1220,6 +1347,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Generische Clarification-Policy-Engine** — data-driven Rückfrage-Mechanismus für den Personal Agent, der vor Receipt-Selektion und Consultation-Loop eingreift, wenn das Optimierungsziel aus der Anfrage nicht eindeutig ableitbar ist.
   - [`src/clarification-policy-registry.js`](src/clarification-policy-registry.js): File-Registry mit Runtime-Overlay (`setRuntimeClarificationPolicy`/`clearRuntimeClarificationPolicy`), term-basiertem Scoring (`anyTerms`, `requiredAnyTerms`, `absentAnyTerms`, `intentSignals`, `priority`), ChatMode-Filter und Policy-Validierung.
   - [`src/clarification-policies/ev-charging-objective-disambiguation-v1.json`](src/clarification-policies/ev-charging-objective-disambiguation-v1.json): Erste Policy — matched generische E-Auto-Ladefragen ohne Zielsignal; blockiert, sobald CO₂, Grünstrom, Strompreis, Börsenpreis, Day-Ahead, EPEX, Kosten, günstig oder dynamischer Tarif explizit genannt werden.
@@ -1246,6 +1374,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Part A — Root `knownContext` to `knowledgeScopeDataPoints`**: `resolveScopedKnowledgeState` in `services/personal-agent.service.js` now automatically promotes eight safe scalar `knownContext` fields to scoped knowledge datapoints without requiring an explicit `knowledgeScopeDataPoints` array — `gridOperatorBdew`, `gridOperatorId`, `gridOperatorName`, `bdew`, `vnbName` → `tenant_candidate`; `postalCode`, `city`, `voltageLevel` → `session`. These fields are already in `SAFE_CONTEXT_FIELDS`, so the Work-Out-Loud emission path automatically emits `scoped_fact_learned` events with the correct `contextField` as soon as any of them are first supplied via `knownContext`.
 
 - **Part B — Auto Evidence Requirement Registration**: `personal-agent.chat` now calls `evidence-revalidation.recordRequirement` when `buildResponsePolicyContract` returns structured missing evidence for a recognised grid-operator fact (`vnb_lookup_required`, `gridOperatorBdew`, `bdew`, `bdewCode`, `operatorEvidence`) AND `knownContext.responsibleRole` or `knownContext.personaId` is present. The call is fire-and-forget and fail-open — unavailability of `evidence-revalidation` never affects the chat response. Evidence requirement IDs are deterministic (`evreq:{sessionId}:{requestedFact}`), making repeated registration idempotent.
@@ -1270,6 +1399,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [scripts/export-blueprints.js](scripts/export-blueprints.js): new CLI script that fetches all active blueprints from the Blueprint Management REST API and writes them as deterministic pretty-printed JSON files to `src/blueprints/`. Exported as a Node module for testability; run via `npm run blueprint:export -- --base-url http://127.0.0.1:3900 --out src/blueprints`.
 - `blueprint:export` npm script in `package.json` for convenient CLI invocation.
 - [tests/export-blueprints.test.js](tests/export-blueprints.test.js): full unit-test suite with mocked HTTP and fs, covering active-blueprint listing, per-blueprint GET calls, deterministic JSON output, missing-`blueprint`-field error handling, HTTP failure per-blueprint recovery, and total list-fetch failure.
@@ -1331,6 +1461,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [src/personal-agent-reflection.js](src/personal-agent-reflection.js): new pure-helper module for the Receipt Reflection / Context-Hydration Loop (#158). Exports `buildReflectionPrompt`, `validateReflectionPatch`, `hasScopeBlockedOrMissingSteps`, `buildReflectionAllowedFields`, and `REFLECTION_OUTPUT_SCHEMA`. No LLM or broker calls; all async work is performed by the service. Whitelist = `DECISIVE_PARAMS ∪ missingRequiredInputs ∪ scope-implied fields`. No WOL emission, no tenant knowledge promotion, no raw-data persistence.
 - [src/personal-agent-work-out-loud.js](src/personal-agent-work-out-loud.js): new shared Work Out Loud event contract for internal broker event `personal-agent.work-out-loud`. Adds strict payload factory/validator, canonical signal enums, allowlist-only `evidence` sanitization, fixed technical `agentId` (`personal-agent`), and tenant-safe payload construction without raw prompt/tool/L4/HEMS/NAP leakage.
 - [services/personal-agent-work-out-loud-listener.service.js](services/personal-agent-work-out-loud-listener.service.js): new minimal, non-persistent listener service for `personal-agent.work-out-loud`. Validates payloads, rejects missing/invalid `tenantId`, and deliberately performs no database writes or tenant-candidate persistence in this milestone.
@@ -1372,6 +1503,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [src/personal-agent-work-log.js](src/personal-agent-work-log.js): New module — Work Out Loud accumulator. Provides `WORK_LOG_ACTIONS` (15-key frozen enum), `VALID_WORK_LOG_ACTIONS` (Set), `WORK_LOG_METADATA_WHITELIST` (per-action field specs), `createTurnWorkLog()` (per-turn request-scoped closure with `addEntry`/`toArray`), `sanitizeMetadataField`, `sanitizeWorkLogMetadata`, `sanitizeWorkLogEntry`, `validateWorkLogEntry`.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `agentTrace.workLog[]` — sanitized per-turn activity log emitted in every chat response. Populated at five callsite groups: `routing_classified`, `onboarding_gap_detected`, `persona_resolved` (3 path branches), `consultation_synthesis`/`consultation_fallback`, plus `worklog_truncated` on overflow. `buildAgentTrace` updated with `workLog` parameter and return field.
 - [tests/personal-agent-work-log.test.js](tests/personal-agent-work-log.test.js): Unit tests T-PA-WOL-001 through T-PA-WOL-009 covering accumulator isolation, label truncation, field stripping, unknown-action safety, metadata sanitization, enum_array filtering, overflow truncation, multi-overflow `totalActivities`, and `validateWorkLogEntry` forbidden-key enforcement. Contract sanity suite for `WORK_LOG_ACTIONS`/`VALID_WORK_LOG_ACTIONS`/whitelist shape.
@@ -1385,6 +1517,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [src/personal-agent-context.js](src/personal-agent-context.js), [services/personal-agent.service.js](services/personal-agent.service.js): v0.57.1 Bootstrap-Context-Handling finalisiert. `bootstrapContext` wird streng sanitisiert und minimal in `agentTrace`/L3 geführt (`status`, `organizationType`, `source`, `updatedAt`).
 - [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): v0.57.1 Testabdeckung erweitert für Enum-/Whitelist-Normalisierung (`status`: `unknown|partial|established`, `source`: `default|knownContext|session|user_confirmed`) sowie Non-Leakage (`tenantId`/`confidence`).
 - [src/personal-agent-context.js](src/personal-agent-context.js), [services/personal-agent.service.js](services/personal-agent.service.js): v0.57.2 Scope-Basis ergänzt mit minimalen `scopedDataPoint`-Feldern (`key`, `scope`, `source`, `status`, `updatedAt`), ohne Rohwerte und ohne neue REST/OpenAPI-Fläche.
@@ -1409,6 +1542,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [services/agent-persona.service.js](services/agent-persona.service.js): neuer tenant-isolierter Audit Store für Persona-Resolution-Ereignisse in separater PouchDB (`AGENT_PERSONA_AUDIT_DB_PATH`, Default `./data/agent-persona-audit`). Persistiert ausschließlich strikt whitelisted Felder (`eventId`, `tenantId`, `sessionId`, `personaId`, `roleId`, `resolutionMode`, `confidence`, `matchedSignals`, `fallbackPersonaIds`, `resolved`, `reason`, `timestamp`).
 - [services/agent-persona.service.js](services/agent-persona.service.js): neue interne Actions `queryResolutionAudits`, `summarizeResolutionAudits`, `pruneResolutionAudits` für Tenant-Analytics und Retention.
 - [services/agent-persona.service.js](services/agent-persona.service.js): neue Retention-Konfiguration `AGENT_PERSONA_AUDIT_RETENTION_DAYS` (Default `90`) als Fallback für `pruneResolutionAudits`.
@@ -1426,6 +1560,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [services/agent-persona.service.js](services/agent-persona.service.js): `agent-persona.resolvePersona` emittiert jetzt best-effort das Event `agent-persona.resolved` bei erfolgreicher Resolution (inkl. `system_fallback`). Event-Payload ist strikt whitelisted auf `eventId`, `tenantId`, `sessionId`, `personaId`, `roleId`, `resolutionMode`, `confidence`, `matchedSignals`, `fallbackPersonaIds`, `resolved`, `reason`, `timestamp`.
 - [services/agent-persona.service.js](services/agent-persona.service.js): erfolgreicher Resolver-Return enthält neu top-level `auditEventId` (nicht in `resolvedPersona`, 8-Feld-Whitelist bleibt unverändert).
 - [services/personal-agent.service.js](services/personal-agent.service.js): neue Hilfsmethoden `getHandoffPersonaIdFromWorkflowAuditTrail()` und `getPersonaHandoffSnapshotContext()` für best-effort HITL-Handoff-Ingestion aus belastbarem `hitlItemId`.
@@ -1444,6 +1579,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [src/znp-context-snapshot.js](src/znp-context-snapshot.js): Neues Shared-Modul für ZNP-Kontextnormalisierung. Exportiert `ALLOWED_ACTIVE_LAYERS`, `ALLOWED_PLANNING_SCENARIOS`, `ALLOWED_ASSET_TYPES`, `normalizeActiveLayer`, `normalizePlanningScenario`, `normalizeZnpAssetContext`, `buildZnpContextSnapshot`. ASCII-kanonische Scenario-Keys (`enwg_14a`, `enwg_42c`, `redispatch_expost`, `nap_expansion`, `asset_review`, `grid_connection_validation`, `market_communication`, `governance_review`). `normalizeZnpAssetContext` beschränkt die Ausgabe auf `{ assetType, capacityClass }` — kein `mastrId`, keine internen Felder.
 - [services/agent-persona.service.js](services/agent-persona.service.js): `resolvePersona` akzeptiert jetzt `planningScenario` (optional, v0.56.3). ALLOWED_KEYS in `normalizeContextAffinities` um `planningScenarios` und `assetTypes` erweitert. `scorePersona` bewertet `planningScenario` (Gewicht ×2) und `assetContext.assetType` (Gewicht ×1) gegen die jeweiligen Affinity-Listen.
 - [services/personal-agent.service.js](services/personal-agent.service.js): Alle 4 `resolvePersonaForTrace`-Aufrufstellen extrahieren per `buildZnpContextSnapshot(ctx, session, semanticClassification)` die ZNP-Signale (`znpProjectId`, `activeLayer`, `planningScenario`, `assetContext`) und spreaden sie in den Snapshot.
@@ -1456,6 +1592,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [services/personal-agent.service.js](services/personal-agent.service.js): neue interne Methode `resolvePersonaForTrace(ctx, snapshot)` — awaited best-effort Call auf `agent-persona.resolvePersona` mit 1500 ms Timeout. Wirft nie; bei Service-Ausfall, Timeout oder fehlendem Tenant wird ein strukturierter Fallback `{ resolved: false, reason }` zurückgegeben (`service_unavailable` | `timeout` | `no_tenant` | `error` | `no_match`).
 - [services/personal-agent.service.js](services/personal-agent.service.js): `agentTrace.personaResolution` — neues strukturiertes Feld in allen vier normalen `agentTrace`-Rückgabepfaden von `personal-agent.chat` (HITL-Resume-Gate, Routing-Gap, Consultation-Node, Execution-Path). Bei Erfolg: whitelisted Felder aus `resolvedPersona` (`personaId`, `roleId`, `confidence`, `resolutionMode`, `availability`, `matchedSignals`, `fallbackPersonaIds`, `policy`). Bei Fallback: `{ resolved: false, reason }`.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): `resolvePersona`-Action dem `agent-persona`-Mock-Service im Test-Broker hinzugefügt.
@@ -1475,6 +1612,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [services/agent-persona.service.js](services/agent-persona.service.js): `ROLE_IDS` — kanonische Rollenbezeichner für das Persona-Resolution-Modell: `grid_planner`, `asset_mdm_operator`, `redispatch_coordinator`, `market_communication_operator`, `governance_reviewer`, `system_agent`.
 - [services/agent-persona.service.js](services/agent-persona.service.js): Persona-Dokument-Schema rückwärtskompatibel erweitert um vier optionale Felder: `roleIds`, `contextAffinities`, `handoffTargets`, `resolutionPolicy`.
 - [services/agent-persona.service.js](services/agent-persona.service.js): interne Moleculer-Action `resolvePersona` — read-only, tenant-isoliert, availability-bewusst, deterministisch. Kein REST/OpenAPI-Endpoint in v0.56.1.
@@ -1499,6 +1637,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [services/hitl.service.js](services/hitl.service.js): Workflow-Abschluss-Tracking mit `workflowCompletionState` (pending/completed) und `workflowAuditTrail` für durable Prozessmetriken.
   - Neue Aktion `getWorkflowState` zur Abfrage des Workflow-Abschluss-Status.
   - Neue Aktion `markWorkflowCompleted` zur expliziten Workflow-Finalisierung mit `completionNotes` und `handoffPersonaId`.
@@ -1525,6 +1664,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [services/hitl.service.js](services/hitl.service.js): Workflow-Completion-Tracking mit `workflowCompletionState` und `workflowAuditTrail` für durable Prozessmetriken.
   - Neue Aktion `getWorkflowState` zur Abfrage des Workflow-Abschluss-Status.
   - Neue Aktion `markWorkflowCompleted` zur expliziten Workflow-Finalisierung mit `completionNotes` und `handoffPersonaId`.
@@ -1561,6 +1701,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [services/personal-agent.service.js](services/personal-agent.service.js): durable HITL resume snapshots with exact checkpoint matching and hard-override behavior.
   - New helper `buildCriticalStepResumeSnapshot(...)` captures and serializes the approved plan state at checkpoint creation time.
   - New helper `findCriticalStepCheckpointContext(...)` locates the matching critical-step checkpoint by `hitlItemId` and checkpoint metadata.
@@ -1613,6 +1754,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [services/api.service.js](services/api.service.js): Actor Persona REST exposure via 7 new aliases under `/api/agent-personas*` routes (`GET /agent-personas`, `POST /agent-personas`, `GET /agent-personas/:id`, `PUT /agent-personas/:id`, `DELETE /agent-personas/:id`, `GET /agent-personas/by-role/:role`, `GET /agent-personas/resolve-by-role/:role`). Route ordering is careful to prevent `:id` wildcard shadowing of more-specific `/by-role/:role` and `/resolve-by-role/:role` routes.
 - [services/api.service.js](services/api.service.js): gateway-level tenant injection middleware for actor-persona REST routes. Resolves `X-Tenant-Id` header via token verification chain and explicitly injects `ctx.meta.tenantId` into both `req.$params.tenantId` and `ctx.params.tenantId` before action validation, ensuring tenant-safe routing for all 7 aliases.
 - [services/agent-persona.service.js](services/agent-persona.service.js): comprehensive OpenAPI metadata added to all 6 agent-persona actions (`create`, `get`, `list`, `update`, `remove`, `listByRole`, `resolveByRole`) with schema definitions, request/response bodies, parameter documentation, and proper `Actor Personas` tag registration.
@@ -1701,6 +1843,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): `isMissingRequired(value)` — centralisierter Missing-Value-Check für null, undefined, leeren String, leeres Array und leeres Objekt.
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): `runExecutionPreflight(action, params, options)` — generische Preflight-Funktion für alle `ctx.call`-Aufrufe in `executeDeterministicPlan`. Kombiniert `ACTION_REQUIREMENTS` (allOf/anyOf), `isMissingRequired` (leere Strings, leere Arrays, leere Objekte) und optionalen Scope-Check (`requiredScopes`/`contextScopes`). Gibt strukturierte Outcomes zurück: `ok`, `missing-inputs`, `scope-blocked`.
 
@@ -1837,6 +1980,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [services/agent-receipts.service.js](services/agent-receipts.service.js): neue governte Learning-Loop-Actions für Runtime-Receipts.
   - `POST /agent-receipts/propose` (`proposeDraft`): erstellt ausschließlich `draft`-Receipts mit `pendingReview=true`.
   - `POST /agent-receipts/:id/promote` (`promote`): explizites Review-Gate für `draft -> active` inkl. `promotedBy`-Pflicht.
@@ -1889,6 +2033,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [src/agent-receipts-schema.js](src/agent-receipts-schema.js): Receipt-Schema um optionale `knowledgeQueries` und `knowledgeEvidencePolicy` erweitert.
   - Query-Modus in v0.54.4 bewusst eingeschränkt auf `semantic`.
   - Strikte Validierung für Query-Limits, Timeout-Budget und Summary-Längen.
@@ -1937,6 +2082,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [src/agent-receipts-seeds.js](src/agent-receipts-seeds.js): neue Seed-Datei mit `vnb-lookup-v1` runtime receipt spec. Erste Production Receipt zur Erprobung der Receipt-Architektur am realen VNB-/Marktpartner-Lookup-Workflow.
   - Receipt deckt VNB-Zuständigkeitsprüfung (Wer ist der zuständige Netzbetreiber für eine gegebene Stadt/BDEW-Code?) ab.
   - `toolPlan`: 2-stufig — Primary: `grid-operations.vnbLookup` mit deterministic Param-Mapping (bdew/city/vnbName → Primary-Lookup). Fallback: `grid-operations.marketPartners` (Name-basiert, wenn Primary unzureichend).
@@ -2006,6 +2152,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [services/agent-receipts.service.js](services/agent-receipts.service.js): neue Action/REST-Route `POST /agent-receipts/select` zur runtime-basierten Receipt-Selektion mit konservativem Matching, Preferred-Reihenfolge und optionaler Selektionsdiagnose.
 - [services/personal-agent.service.js](services/personal-agent.service.js): neue Chat-Request-Controls für Runtime-Selection: `forceReceipt`, `preferredReceipts`, `allowDraftReceipts`, `explainReceiptSelection`, `disableReceiptSelection`.
 - [services/personal-agent.service.js](services/personal-agent.service.js): neue interne Hilfsmethoden `selectRuntimeReceipt()` und `buildReceiptSelectionMetadata()` für optionale, nicht-invasive Integration in den bestehenden Chat-Flow.
@@ -2034,6 +2181,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [src/agent-receipts-registry.js](src/agent-receipts-registry.js): neues Registry-Hilfsmodul für Live-Action-Inspektion aus dem Moleculer-Broker inkl. normalisierter Params-Schema-Ableitung und stabiler Action-Signaturen (SHA-256) für Audit/Staleness-Hinweise.
 - [src/agent-receipts-matcher.js](src/agent-receipts-matcher.js): neues deterministisches Matching-Modul für Receipt-Score-Berechnung (Domain-/Trigger-/Entity-/Workflow-Signale) mit expliziter Diagnose (`score`, `matched`, `reasons`, `missingEntities`).
 - [src/agent-receipts-evaluation.js](src/agent-receipts-evaluation.js): neues isoliertes Test-/Evaluate-Hilfsmodul zur planbaren Tool-Call-Simulation ohne Personal-Agent-Chatpfad; liefert strukturierte `plannedToolCalls`, `missingRequiredInputs`, `evidenceRequirements`, `warnings`, `errors`.
@@ -2063,6 +2211,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [services/agent-receipts.service.js](services/agent-receipts.service.js): neuer PouchDB-basierter Runtime-Service für Receipt-CRUD mit Lifecycle-Statusmodell (`draft`, `active`, `deprecated`, `archived`), Soft-Delete (`archive`) und optionaler CAS-Prüfung über `_rev`.
 - [src/agent-receipts-schema.js](src/agent-receipts-schema.js): neues zentrales Schema-/Validierungsmodul für strukturierte Runtime-Receipts (slug-`receiptId`, Matching-Kriterien, Tool-Plan-Schritte, Status-Transitions, semantische Fehlerliste).
 - [tests/agent-receipts.service.test.js](tests/agent-receipts.service.test.js): neue Service-Level-Tests für Happy Path, Validierungsfehler, Statusaktivierung, Archive-Filterung und CAS-Konflikte (`AGENT_RECEIPT_CONFLICT`).
@@ -2083,6 +2232,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [services/ghost-asset-alert.service.js](services/ghost-asset-alert.service.js): neuer Service für Ghost-Asset-Detection (MaStR-Geo vs. VNB-Gebiet) inkl. Haversine-/Polygon-Prüfung. Closes #103.
 - [services/reinvest-signal.service.js](services/reinvest-signal.service.js): neuer Service zur Reinvest-Signalbewertung (ARegV/Fotojahr-Logik). Closes #105.
 - [services/fnav-commercial-hedging.service.js](services/fnav-commercial-hedging.service.js): neuer Service für fNAV-Risiko-/Hedging-Szenarien und kaufmännische Abregelungsbewertung. Closes #114.
@@ -2148,6 +2298,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - [src/consultation-execution-bridge.js](src/consultation-execution-bridge.js): new pure module that converts consultation recommendations into a structured execution artifact — classifies workflow type (`bess_screening`, `bess_development`, `energy_sharing_readiness`, `vnb_identification`, `mastr_inventory`, `advisory_only`), analyses input readiness with prioritised missing-input detection, builds per-workflow executable tool-step plans with evidence gates, and assesses `readiness` / `canExecuteNow`. Governance and AI-transparency prompts are unconditionally routed to `advisory_only`. Domain guardrails hard-coded: MaStR is labeled as context indicator only; `Netzanschlusszusage` is explicitly marked as non-derivable from public APIs.
 - [src/personal-agent-turn-graph.js](src/personal-agent-turn-graph.js): `addWorkflowPlanNode(graph, planArtifact)` — adds a `workflow_plan` node with a `materializes_into` edge from `response:strategy`, plus up to 5 `evidence_gate` child nodes each connected via `gated_by` edges.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `buildConsultationExecutionArtifact()` and `executeConsultationToolPlan()` service methods added. Consultation path now runs the bridge phase between `finalizeTurnGraph` and the final return; result is wrapped in `try/catch` so bridge errors never degrade the consultation reply.
@@ -3454,6 +3605,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 **Sub-Track A — A96-Feldspezifikation mit BNetzA-Fallback**
 - New module `src/a96-validator.js`: JSON-schema validation for A96 MSCONS messages, drift detection for 4 `[BNetzA-OFFEN]` fields (`ErzeugerMastrNummer`, `Bilanzierungsmonat`, `BdewCodeNetzbetreiber`, `QualitaetskennzeichenMscons`), defensive defaults via `applyA96Defaults()`, finding code `ES_A96_FIELD_DRIFT` (severity: warning)
 - New doc `docs/ENERGY_SHARING_A96_DEFAULTS.md`: All 4 open fields documented with defensive defaults, spec-freeze date 2026-06-15, Q3 2026 BNetzA final spec deferred to v0.51
@@ -4753,6 +4905,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Central Asset Ontology Graph (`src/cya-ontology-graph.js`):** Graphology-basierter
   In-Memory-Directed-Graph aus MaStR-Installationsdaten. Node-Typen: INSTALLATION,
   NAP, SUBSTATION, VNB, REGION. Edge-Typen: VERBUNDEN_MIT, LIEGT_IN, BETRIEBEN_VON,
@@ -4786,6 +4939,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Persistent MQTT Broker (`mqtt-broker`):** Neuer eingebetteter, PouchDB-
   basierter MQTT-Persistenzdienst ohne externe Server/Prozesse (KRITIS-konform).
   Persistiert ausgehende Nachrichten, QoS-Inflight-Status, Expiry-State und
@@ -4804,6 +4958,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **§14a Flexibilitätsmanagement (`flex`):** Steuerbare Verbrauchseinrichtungen
   (SVE) Registry, Dimming-Planung basierend auf Netzlast-Prognose,
   MQTT-basierte Steuerungsausführung (QoS 2), Entlastungsnachweis-Dokumentation,
@@ -4815,6 +4970,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Forecast Engine (`forecast-engine`):** Lastprognose (SLP + historische
   Korrektur + Temperatur), Erzeugungsprognose (MCP mit KRITIS-Fallback),
   Residuallast-Berechnung, Day-Ahead-Fahrplanmanagement, Speicher-Dispatch-
@@ -4825,6 +4981,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Settlement Service (`settlement`):** Redispatch-Entschädigungsberechnung
   (§13a/14 EnWG), EEG-Vergütungsberechnung, A96-Settlement-Export.
   EEG-Tarif-Tabelle mit Degressions-Lookup. KRITIS-konform: Marktpreis-
@@ -4840,6 +4997,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **`grid-operations.controlMeasures` — §14a Steuerungsmaßnahmen endpoint
   (`POST /api/grid-operations/control-measures`):**
   New REST action wrapping the `vnbdigital_control_measures` MCP tool.
@@ -4944,6 +5102,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **EDM (Energiedatenmanagement) Core:** SQLite-basiertes Messdaten-
   Management mit quartalsweiser Partitionierung (better-sqlite3, WAL-Modus,
   WITHOUT ROWID). KRITIS-konform (embedded, kein externer Server).
@@ -4970,6 +5129,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **CYA E2E-Integrationtest `tests/cya-e2e-hoeheinoed.test.js`** (31 Tests, Standort Höheinöd/PLZ 66989):
   - Vollständiger Lifecycle-Test: Phase A (Profile) → B (Generate) → C (Multi-Perspektive) → D (PDF-Export) → E (Refinement) → F (Datenvalidierung).
   - Echte MaStR-Fixtures für Höheinöd (3 Solaranlagen, 1 Windanlage, 1 Biomasse), vollständig inline gemockte Abhängigkeiten (`llm-client`, `cya-report-builder`).
@@ -4990,6 +5150,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **CYA Profile-Templates (read-only Katalog + Bootstrap-Create):**
   - Neues Modul [src/cya-profile-templates.js](src/cya-profile-templates.js) mit 6 vorgefertigten Rollen-Profilen
     (`vnb_defensiv`, `projektierer_offensiv`, `journalist_neutral`,
@@ -5063,6 +5224,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **New environment variables** in `.env.example`:
   - `MASTR_MONITOR_MAX_INSTALLATIONS_PER_WATCH`
   - `MASTR_MONITOR_CHUNKING_ENABLED`
@@ -5146,6 +5308,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **MaStR Monitoring Service:** Field-level change detection for MaStR
   installations with email notifications. 12 REST endpoints (`/api/mastr-monitor/*`).
   - Watch CRUD with saved query filters and configurable schedules
@@ -5175,6 +5338,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **CYA Multi-Agent Orchestrator — "Synthetic Stakeholder Dialogues" (complete):**
   `POST /api/cya/generate` now accepts an optional `perspectives` array
   (`["technical", "commercial", "compliance"]`). When present, the pipeline fans out to
@@ -5328,6 +5492,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Regression tests for Höheinöd granular facts (sync + async):**
   - `tests/cya-data-retriever.test.js`
     - deterministic retrieval test validates PV `SEE999952467552`, Wind
@@ -5410,6 +5575,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **CYA HITL Structured Override (`provided_data`):** `POST /api/cya/refine` now
   accepts a `clarification_response.provided_data` object that supplies hard facts
   (capacity, redispatch, NOVA, investment, …) to rebuild Phase 2 (Regulatory Graph)
@@ -5469,6 +5635,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **CYA Pipeline Modules (implemented):** Added full CYA runtime modules for
   Option-B response orchestration:
   - `src/cya-data-retriever.js` — focus-area query orchestration via `query.ask`
@@ -5519,6 +5686,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **CYA Agent (Cover Your Ass Engine):** Stakeholder-perspective argumentation
   engine with regulatory grounding. 5 REST endpoints (`/api/cya/*`), profile
   management via Object Store, 3-phase pipeline (Data Retrieval → Regulatory
@@ -5561,6 +5729,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **ZNP Project Hydration & Persistence (v0.23+):**
   Complete project lifecycle implementation with automatic state recovery:
   - `POST /api/znp/projects` — Create new graph-backed project workspace
@@ -5796,6 +5965,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **MaStR Quality: NAP-specific aggregation metrics in audit summary (`mastr-quality.audit`):**
   Added `missingNapFindings`, `missingNapDistinctAssets`,
   `missingNapRedispatchFindings`, `missingNapRedispatchDistinctAssets` and `napFindings`.
@@ -5843,6 +6013,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **`findingsCount` in Quality Summary endpoint (`dashboard-api.qualitySummary`):**
   Each agent entry in the `GET /api/dashboard/quality-summary` response now includes a
   `findingsCount` object `{ info, warning, error }` extracted from the most recent report.
@@ -5945,6 +6116,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **ZNP Graph Hydration & Persistence (`znp.service.js`, v0.23 Issue 1):**
   ZNP projects now survive server restarts. After every layer mutation (`addLayer0`,
   `addLayer1`, `addLayer2`, `addAssumption`) the Graphology instance is serialised via
@@ -6141,6 +6313,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **`src/market-role-classifier.js` — shared BDEW market-role classification module (v0.20.3 / CR-0002)**
   New shared module extracted from `utility-report.service.js` inline logic.
   Exports: `MARKET_ROLE_ENUM`, `ROLE_RULES`, `classifyPartner({ roles, bdewCode })`,
@@ -6213,6 +6386,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **`assets.redispatchCount` — fast aggregation of redispatch-eligible installations
   (RES-IR-0001, Option b)**
   (`services/assets.service.js`)
@@ -6314,6 +6488,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Feedback system** (`feedback/`)
   New directory for cross-repository feedback exchange with `cernion-ui`.
   Contains `README.md` (workflow, prefix conventions), `TEMPLATE.md`
@@ -6476,6 +6651,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Dashboard API Layer (`dashboard-api` service, v0.19.0)** —
   New read-only UI aggregator service exposing 4 composite endpoints that aggregate
   data from across all agent, monitor, and market services. Designed for direct
@@ -6571,6 +6747,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Redispatch Ex-Post Agent (`redispatch-expost` service, v0.18.0)** —
   New deterministic 7-step pipeline that audits the Redispatch 2.0 portfolio of a VNB,
   cross-references MaStR master data (≥100 kW installations) with Netztransparenz
@@ -6661,6 +6838,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **MaStR Datenqualitätsagent (`mastr-quality` service, v0.17.0)** —
   New deterministic 8-step pipeline that audits the entire MaStR portfolio of a VNB
   and produces structured findings across 5 quality dimensions. Returns a `qualityScore`
@@ -6754,6 +6932,7 @@ Evidence planning is a five-phase migration:
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Energy Sharing Allocation Engine (`energy-sharing-allocation` service, v0.16.0)** —
   New Berechnungsengine for § 42c EnWG Energy Sharing communities (third layer of the
   ES solution: Validierung v0.15 → Allokation v0.16 → EDM-Integration v0.17+).
@@ -6819,6 +6998,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **UI: Datapoints panel tag filter** — Filter datapoints by tags via a new text input;
   calls `GET /api/datapoints/health/overview?tags=` with comma-separated values.
 - **UI: Datapoints interventions viewer** — Per-row 📋 button toggles an inline
@@ -6846,6 +7026,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Energy Sharing Validation Service (v0.15.0) — `energy-sharing` microservice**
   New Moleculer service implementing a deterministic 6-step Energy Sharing community
   validation pipeline under § 42c EnWG. Provides automated Interims-Prozess for VNBs
@@ -6924,6 +7105,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Grid Connection Validation Service (v0.14.0) — `grid-connection` microservice**
   New Moleculer service implementing a deterministic 6-step Netzanschluss (grid connection)
   validation pipeline. No LLM involvement — identical inputs always produce identical finding codes.
@@ -7102,6 +7284,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **AP1 — Snapshot-Semantik: Konsistenz-Beweis für Datenpunkt-Gruppen**
   Agents können jetzt eine definierte Menge von Datenpunkten als konsistente
   Einheit versiegeln. Ein Snapshot-Dokument (`snap:<uuid>` in PouchDB) hält
@@ -7172,6 +7355,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **AP1 — OEMetadata v2.0 Schema Conformity**
   The `GET /api/datapoints/:name/oemetadata` endpoint now returns a fully
   OEMetadata v2.0 conformant document instead of the previous proprietary
@@ -7262,6 +7446,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Cryptographic data provenance hash — EU AI Act Art. 12 compliance
   (Issue #30)**
   Every datapoint refresh now computes a SHA-256 hash over the canonical
@@ -7345,6 +7530,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Open Energy Ontology (OEO) integration** — Machine-readable semantic
   annotations linking Cernion concepts to the
   [Open Energy Ontology](https://github.com/OpenEnergyPlatform/ontology)
@@ -7432,6 +7618,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Datapoint Layer UI** (`src/app.html`) — completes the v0.11.0 Datapoint Layer
   milestone with full frontend integration (backend shipped in v0.11.0):
   - **`📌 Datapoints` nav entry** between "Data Sources" and "Integration Hub"
@@ -7456,6 +7643,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Datapoint Layer** — new `datapoint.service.js` with PouchDB persistence
   - Promote agent sessions to named, managed datapoints (`POST /api/datapoints/promote`)
   - Full CRUD: list, get, update, delete (`GET/PUT/DELETE /api/datapoints/:name`)
@@ -7548,6 +7736,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **`updatedAfter` filter on all asset endpoints**
   All eight asset endpoints (`GET /api/assets/solar`, `/wind`, `/storage`,
   `/biomass`, `/hydro`, `/combustion`, `/list`, `/all`) now accept an optional
@@ -7580,6 +7769,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **OSM Geo Layer — 4 new endpoints (Layer 2 Geo-Architecture)**
   Wraps the four new Cernion MCP tools that expose physical grid infrastructure
   from OpenStreetMap via the Overpass API, complementing the authoritative
@@ -7667,6 +7857,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Description-guided dataset type (`"other"`) for inhouse data**
   Real-world uploaded files (XLS / CSV / XML / …) often contain mixed or
   custom data that does not map to any of the predefined semantic domain types
@@ -7766,6 +7957,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Direktvermarkter pipeline — Phase 2 & 3 (CR-Direktvermarktung)**
   Implements REST-service integration and agent orchestration for
   direct-energy-marketer (Direktvermarkter) portfolio queries, building on the
@@ -7879,6 +8071,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **GitHub Release workflow**
   Added `.github/workflows/release.yml` to run on version tags (`v*`) and
   `workflow_dispatch`, executing release quality checks (`npm run release:check`),
@@ -8043,6 +8236,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Async job pattern for long-running REST endpoints (RFC 7231 / HTTP 202)**
   Introduced a file-backed async job persistence layer (`src/job-store.js`) and
   a dedicated polling service (`services/job-status.service.js`) with two new
@@ -8086,6 +8280,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **`nbp-monitor` microservice** (`services/nbp-monitor.service.js`)
   New Netzbetreiberprüfungs-Monitor service with three strategic KPIs derived
   from MaStR installations in status 2955 (NetzbetreiberPrüfung ausstehend):
@@ -8147,6 +8342,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Integration Hub panel in `src/app.html`**
   Added a new `#integration-hub-panel` with:
   - Token management (create/list/revoke, one-time token reveal)
@@ -8206,6 +8402,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - Added `tests/acceptance/` real-world acceptance fixtures for procurement,
   iMSys rollout, grid incidents, and PV asset inventory, including companion
   `*.acceptance.json` sidecars with acceptance query sets and connector config.
@@ -8329,6 +8526,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Semantic datasource onboarding flow**
   Added a new semantic classification layer for inhouse datasources with a
   static domain registry, heuristic `datasource-classifier` service, and sample
@@ -8401,6 +8599,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Metering fixture for datasource E2E tests**
   Moved `sample_metering.csv` into `tests/fixtures/` so integration/E2E tests can
   use a stable, real-world load-profile dataset.
@@ -8511,6 +8710,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Data Sources management panel in `src/app.html`** (CR-UI-001 through CR-UI-012)
   Added a full `#datasources-panel` section to the built-in single-page application.
   The panel integrates three sub-views — Source List, Source Form, and Dictionary View —
@@ -8597,6 +8797,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Dictionary version guard endpoint + outdated event**
   Added `GET /api/datasources/:id/dictionary/check?referencedVersion=...` so a
   future Logic Builder can validate stored mappings against the current
@@ -9054,6 +9255,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **UI-Friendly BDEW Code Selection for Report Generation (CR-CERNION-044)**
   - New `POST /api/utility-report/get-bdew-options` endpoint enables users to discover available BDEW codes without needing prior knowledge.
   - Returns all BDEW codes for a given utility name, including market roles (Lieferant, Bilanzgruppe, etc.) to help users select the correct one.
@@ -9102,6 +9304,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Utility Report – Feinarbeiten für CR-83/CR-87 abgeschlossen**
   - `FOTOJAHR-ALERT` im 90-Tage-Aktionsplan ergänzt (kombinierte Warnung aus Prüfstau + PLZ-Ausreißern, inkl. 60-Monate-EO-Hinweis).
   - Konkreter Peer-Vergleich im Abschnitt „Peer-Benchmarking“ ergänzt (benannte Referenzen für EE MS und Verbrauch MS, inkl. Gegenüberstellung zum aktuellen VNB-Wert).
@@ -9117,6 +9320,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Utility Report – CR-74 data-quality query fix (real data, no truncation)**
   - `anlagenInPruefung` now requests all relevant review states (`['NetzbetreiberPruefung', 'InPruefung']`) with `includeNapData: true` and `limit: 500`.
   - `ortsfremdeAnlagen` now uses `includeNapData: true` and `limit: 500`.
@@ -9148,6 +9352,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Report Builder – Semantic KPI Context (domain-aware action hints)**
 
   All report sections now carry business-decision context, not just metric labels.
@@ -9200,6 +9405,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Report Builder – CR-48: Residuallast 48h-Chart (Abb. A, Section 1)**
 
   New time-series area chart appended to Section 1 when `residualLoad.forecast`
@@ -9339,6 +9545,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Report Builder – CR-45 (P2): Marktrollen-Profil in Section 8 & cover**
 
   Section 8 now renders a "Marktrollen-Profil (BDEW-Codes nach Rolle)" block
@@ -9405,6 +9612,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Report Builder – CR-36 (P1): Redispatch-Anlagen Fallback-Strategie**
 
   `cernion_redispatch_export` frequently fails with "MaStR-ID erforderlich".
@@ -9482,6 +9690,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Report Builder – CR-26 (P1): New NEST & Regulierungsrahmen sub-section**
 
   Added `renderNestAgnesBlock()` inserted after the action-hint block in
@@ -9698,6 +9907,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **`GET /api/utility-report/health`**: new diagnostic endpoint checks token
   configuration and MCP reachability. First stop when diagnosing pipeline errors.
 
@@ -9790,6 +10000,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **360° Report – CR-19: Market partner registry in Section 8**
   - Phase 1 of the report pipeline now collects **all** market partner candidates
     (up to 5 results per search query variant) in an `allCandidatesMap` and stores
@@ -9847,6 +10058,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **360° Report – CR-11: DataStatus Fehlerklassen-Taxonomie (P0)**
   - New module `src/data-status.js` exports `DataStatus` enum (OK / NOT_CALLED / TOOL_ERROR / NOT_LICENSED / NO_DATA / FALLBACK) plus factory `ds()`, renderer helpers `dsValue()`, `dsFallbackReason()`, `dsFallbackDisplay()`, `dsRender()`.
   - Imported in both `utility-report.service.js` and `report-builder.js`.
@@ -9890,6 +10102,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **360° Report – CR-01: EE-Portfolio MaStR direct enrichment (P1)**
   - Section 2 pipeline now fires 3 parallel `cernion_installations_local` calls (type: solar / wind / storage) when a MaStR-ID is resolved, providing exact capacity and count directly from local MongoDB.
   - `renderSection2` uses these as fallbacks when the `assets` broker service returns incomplete data; shows `n/v (MaStR-Abfrage nicht verfügbar)` only when both sources fail.
@@ -9963,6 +10176,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **360° Report: 3 new MaStR data-quality KPIs in Section 1** — Parallel `cernion_installations_local` queries now populate:
   - **Anlagen in Netzbetreiberprüfung** — count of active installations stuck in open grid-operator review (`netzbetreiberPruefungStatus: NetzbetreiberPruefung`). Regulatory deadline: 4 weeks (NS) / 6 weeks (MS/HS).
   - **Redispatch-/§14a-Anlagen ohne MeLo** — count of active installations ≥100 kW whose NAP record has no linked Messlokation (`napData` absent). Displayed as `missing / total ≥100 kW`.
@@ -9998,6 +10212,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **360° Bericht panel in `/app`** — new UI section in the web application (`src/app.html`) reachable via the "📄 360° Bericht" nav link. Provides a browser-based hook for the `utility-report` service without requiring API clients or `curl`:
   - Input fields for Versorger name (required), Region, BDEW-Code, and per-request Cernion Token
   - **Generate** button → `POST /api/utility-report/generate`; animated progress bar polls `GET /api/utility-report/status/:reportId` every 4 s, showing phase name and percentage
@@ -10009,6 +10224,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **360° Utility Management Report Generator** — new `utility-report` service with 3 REST endpoints that produce a comprehensive ~50-page HTML report (print-to-PDF) for German energy utility decision-makers (Stadtwerke, Netzbetreiber).
 
   - **`POST /api/utility-report/generate`** — starts (or resumes) report generation. Returns a UUID `reportId` immediately; generation runs asynchronously in a sequential 4-phase pipeline. Supports 7-day disk cache (`.reports/UUID.html`) keyed by SHA-256 of `{utilityName, date}`; `forceRefresh: true` bypasses the cache.
@@ -10071,6 +10287,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **EWK Monitoring Service** (`services/ewk-monitoring.service.js`) — new Moleculer service exposing 4 REST endpoints for BNetzA Energiewendekompetenz (EWK) monitoring data of ~820 German distribution grid operators (VNBs). Data source: [vnb-transparenz.de/EWK-Monitoring-BNetzA](https://www.vnb-transparenz.de/EWK-Monitoring-BNetzA). All endpoints expose the `format` parameter (`json` | `csv` | `xlsx` | `xls`) for file download. **Tag:** `EWK Monitoring (BNetzA)`.
 
   - **`POST /api/ewk-monitoring/anschlussdauer`** — wraps `ewk_anschlussdauer`:
@@ -10094,6 +10311,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **`POST /api/grid-operations/redispatch-export` — `einsatzverantwortlicher` column in CSV/XLSX output**
   The Redispatch 2.0 export now includes the MaStR field `einsatzverantwortlicher` (Direktvermarkter / deployment-responsible party) as the last column in every row. The value is taken directly from `inst.einsatzverantwortlicher` in the `cernion_installations_local` result; it is left as an empty string when no Direktvermarkter is registered for the installation. This enables the "Direktvermarktungs-Pipeline" dashboard KPI: installations with an empty `einsatzverantwortlicher` are redispatch-eligible (≥ 100 kW) but lack a Direktvermarkter — they automatically fall under Ausfallvergütung and are high-priority sales leads.
   **New CSV format:**
@@ -10225,6 +10443,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **`POST /api/energy-market/co2-intensity` — `format` parameter (CSV / XLSX export)**
   The endpoint previously returned only JSON regardless of any `format` parameter in the request
   body. `format` is now a supported parameter (`json` | `csv` | `xlsx` | `xls`, default `json`):
@@ -10288,6 +10507,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **`POST /api/residual-load/net-residual-load` — `region` auto-derived from `gridOperatorMastrId`**
   When a request provides `gridOperatorMastrId` but omits `region` (and all
   location fields), the handler now automatically resolves the region by fetching
@@ -10349,6 +10569,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Automatic ENTSO-E fallback for `POST /api/german-grid/spotprices`** — when
   Netztransparenz.de returns an error (no data for the period, API 500, outage),
   the endpoint transparently retries with ENTSO-E day-ahead prices (DE bidding
@@ -10365,6 +10586,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **`format` parameter for `POST /api/german-grid/negative-prices`** — the endpoint
   now accepts `"format": "csv"` / `"xlsx"` / `"xls"` alongside the default `"json"`.
   Because the MCP tool returns a narrative text analysis (not a data table), CSV/XLSX
@@ -10398,6 +10620,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Relative date aliases for all `german-grid.*` endpoints** — `dateFrom` and `dateTo`
   parameters on `spotprices`, `negativePrices`, `forecast`, and `redispatch` now accept
   human-friendly relative aliases alongside literal ISO dates:
@@ -10427,6 +10650,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **Unlimited / high-limit fetching for installation endpoints** — `energy-market.installations`
   and all `assets.*` endpoints now support `limit=all` (or any high number, e.g. `limit=1000000`)
   to retrieve the **complete result set in a single request**. The server transparently paginates
@@ -10459,6 +10683,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **CSV/XLSX export for all tabular API endpoints** — All data-returning endpoints now accept an
   optional `format` query/body parameter (`json` | `csv` | `xlsx` | `xls`). Passing `csv` or
   `xlsx`/`xls` triggers a file download with correct `Content-Type` and `Content-Disposition`
@@ -10503,6 +10728,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **`populationOverride` UI injection on `dataQualityWarning`** (`services/agent.service.js`):
   - After every `execute` call, the agent scans `stepResults` for any `residual-load.netResidualLoad` step that returned `dataQualityWarning: true` (SMARD returned `loadMW=0`).
   - When detected, a `populationOverride` entry is automatically injected into `session.plan.requiredInputs` with the SMARD-detected population as the pre-filled `default` (e.g. `245000` parsed from `"245.000"`).
@@ -10544,6 +10770,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ### Added
 
+- Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
 - **AI Research Web App** (`src/app.html`, served at `/app`):
   - Browser-based single-page application for interactive exploration of all microservices — no curl, no Swagger form, no coding required.
   - Full AI-agent loop: free-text problem description → Gemini-generated multi-step execution plan → editable parameter form → step-by-step execution → sortable/filterable results table → shareable URL.

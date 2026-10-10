@@ -1,12 +1,14 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 const crypto = require('crypto');
 const jobStore = require('./job-store');
 
 function stableStringify(value) {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map((entry) => stableStringify(entry)).join(',')}]`;
-  const keys = Object.keys(value).sort();
+  const keys = Object.keys(value).sort(compareCanonicalStrings);
   const body = keys.map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',');
   return `{${body}}`;
 }

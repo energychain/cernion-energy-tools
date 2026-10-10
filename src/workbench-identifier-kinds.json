@@ -1,0 +1,44 @@
+{
+  "nonReferenceKinds": [
+    "plz",
+    "postleitzahl",
+    "postcode",
+    "postalcode",
+    "zip",
+    "zipcode",
+    "adresse",
+    "address",
+    "ort",
+    "city",
+    "location"
+  ],
+  "genericKinds": [
+    "kennung",
+    "identifier",
+    "reference",
+    "referenz",
+    "code",
+    "unknown",
+    "unbekannt"
+  ],
+  "strongReferenceKinds": [
+    "prozessreferenz",
+    "processreference",
+    "processref",
+    "vorgangsreferenz",
+    "vorgangsnummer",
+    "lokationsid",
+    "locationid",
+    "marketlocationid",
+    "meterlocationid",
+    "marktlokation",
+    "messlokation",
+    "malo",
+    "melo",
+    "dar",
+    "transactionid",
+    "requestid",
+    "documentid",
+    "caseid"
+  ]
+}

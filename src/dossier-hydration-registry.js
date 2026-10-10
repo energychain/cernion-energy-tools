@@ -2,6 +2,16 @@
 
 const path = require('path');
 
+function isUnsafeCapturePattern(pattern) {
+  return (
+    typeof pattern !== 'string' ||
+    pattern.length < 3 ||
+    pattern.startsWith('.*') ||
+    pattern.includes('.+') ||
+    pattern.endsWith('.?')
+  );
+}
+
 const STATIC_RULES_PATH = path.join(__dirname, 'answer-dossier-hydration-rules.json');
 
 // ── Path resolution ──────────────────────────────────────────────────────────
@@ -70,9 +80,7 @@ const EXTRACTORS = {
 
   locationFromPromptOrFacts(facts, question, _config = {}) {
     const q = String(question || '');
-    const plzCityMatch = q.match(
-      /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ](?:[A-Za-zäöüßÄÖÜ\-]{0,40})?)/
-    );
+    const plzCityMatch = q.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ][A-Za-zäöüßÄÖÜ\-]{0,40})/);
     const cityOnlyMatch = q.match(
       /\b(?:ich\s+wohne\s+in|wohne\s+in|wohnort\s+ist|standort\s+ist|ort\s+ist|lade\s+in|laden\s+in|in|bei|f[üu]r|fuer)\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ\-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zäöüßÄÖÜ\-]{2,}){0,2})\b/
     );
@@ -94,9 +102,7 @@ const EXTRACTORS = {
 
   cityFromPromptOrFacts(facts, question, _config = {}) {
     const q = String(question || '');
-    const plzCityMatch = q.match(
-      /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ](?:[A-Za-zäöüßÄÖÜ\-]{0,40})?)/
-    );
+    const plzCityMatch = q.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ][A-Za-zäöüßÄÖÜ\-]{0,40})/);
     const cityOnlyMatch = q.match(
       /\b(?:ich\s+wohne\s+in|wohne\s+in|wohnort\s+ist|standort\s+ist|ort\s+ist|lade\s+in|laden\s+in|in|bei|f[üu]r|fuer)\s+([A-ZÄÖÜ][A-Za-zäöüßÄÖÜ\-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zäöüßÄÖÜ\-]{2,}){0,2})\b/
     );
@@ -152,10 +158,8 @@ const EXTRACTORS = {
 
   regexCaptureSafe(_facts, question, config = {}) {
     const pattern = config.pattern;
-    if (!pattern || typeof pattern !== 'string') return null;
-    // Safety guard: reject overly broad patterns
-    if (pattern.length < 3) return null;
-    if (/^\.\*|\.\+|\.\?$/.test(pattern)) return null;
+    // Share the same broad-pattern guard with rule validation.
+    if (isUnsafeCapturePattern(pattern)) return null;
     try {
       const rx = new RegExp(pattern, config.flags || 'i');
       const match = String(question || '').match(rx);
@@ -575,7 +579,7 @@ function validateRule(rule) {
         }
         if (spec.extractor === 'regexCaptureSafe' && spec.config?.pattern) {
           const p = spec.config.pattern;
-          if (typeof p !== 'string' || p.length < 3 || /^\.\*|\.\+|\.\?$/.test(p)) {
+          if (isUnsafeCapturePattern(p)) {
             errors.push({
               field: `paramTemplate.${key}.config.pattern`,
               message: `unsafe or too-broad regex: ${p}`,

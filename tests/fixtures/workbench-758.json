@@ -1,0 +1,10 @@
+{
+  "provenance": "Synthetic reconstruction; no original customer or person data.",
+  "liveTurns": [
+    "Ich spreche gerade am Schalter mit einer Person. Sie hat eine PV-Anlage, einen Speicher und eine Wallbox. Kommt §14a Modul 1 für sie infrage?",
+    "Seit dem 01.01.2024 wurde nichts verändert. Es gab keinen Wechsel.",
+    "Der Speicher hat 6 kWh, die Wallbox 11 kW."
+  ],
+  "mail": "Von: Lieferantenservice <service@example.invalid>\nGesendet: 08.10.2026\nBetreff: Ausstehende Rückmeldung\nGuten Tag, zu unserer Anfrage fehlt weiterhin die fachliche Antwort. Bitte teilen Sie uns den dokumentierten Stand mit.\nViele Grüße\nServiceteam",
+  "draftTurns": ["Was soll ich jetzt tun?", "Mach mir die Antwort fertig"]
+}

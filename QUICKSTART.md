@@ -44,7 +44,7 @@ You should see:
 ```
 ✓ ServiceBroker started successfully
 ✓ API Gateway listening on port 3000
-✔ 45 services loaded
+✔ services loaded (v0.99.22: 147 core services)
 ```
 
 ## Test Your Setup
@@ -66,7 +66,54 @@ curl http://localhost:3000/api/system/status
 curl -X POST http://localhost:3000/api/query/ask \
   -H "Content-Type: application/json" \
   -d '{"query": "Wieviel PV-Leistung in Bayern?"}'
+
+# Test CET Domain Router / AgentOS case-state path
+curl -X POST http://localhost:3000/api/domain-router/classify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userRequest": "MSCONS Messwerte fehlen, bitte fachlich einordnen",
+    "taskEnvelope": {
+      "channel": "web",
+      "requestedMode": "classify",
+      "asyncDelivery": { "mode": "none", "ackMode": "explicit" }
+    }
+  }'
+
+# Test RC3 Open WebUI / Cernion Workbench path
+# First provision tenant/user mappings and a delivery client; Workbench fails closed without them.
+curl -X POST http://localhost:3000/api/workbench/admin/tenant-mappings \
+  -H "Authorization: Bearer $CERNION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"client":"open-webui","externalOrgId":"demo-org","cetTenantId":"demo-tenant","defaultClientId":"openwebui-demo","enabled":true}'
+
+curl -X POST http://localhost:3000/api/workbench/admin/user-mappings \
+  -H "Authorization: Bearer $CERNION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"client":"open-webui","externalOrgId":"demo-org","externalUserId":"demo-user","cetTenantId":"demo-tenant","cetActorId":"demo-user","roles":["ROLE_MARKET_COMMUNICATION","ROLE_EDM"],"sensitivityClearance":["tenant_internal"],"defaultClientId":"openwebui-demo","enabled":true}'
+
+curl -X POST http://localhost:3000/api/workbench/delivery-clients \
+  -H "Authorization: Bearer $CERNION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"clientId":"openwebui-demo","clientType":"open-webui","deliveryMode":"poll","ackMode":"explicit","eventTypes":["clarification.required","evidence.required","evidence.available"],"enabled":true}'
+
+curl -X POST http://localhost:3000/api/workbench/chat \
+  -H "Authorization: Bearer $CERNION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client": "open-webui",
+    "channel": "open-webui",
+    "openWebuiOrgId": "demo-org",
+    "openWebuiUserId": "demo-user",
+    "openWebuiConversationId": "demo-chat",
+    "clientId": "openwebui-demo",
+    "message": "MSCONS fehlt, APERAK Z18 ist vorhanden. Was ist der nächste sichere Schritt?"
+  }'
 ```
+
+The Domain Router response should include a `cetCaseId`, `primaryDomain`, optional
+`alternativeDomains`, allowed/blocked actions and a compact `responseText`. For
+ambiguous prompts it may create a pending Case Event Outbox entry such as
+`clarification.required`.
 
 ## Available Endpoints
 
@@ -103,6 +150,17 @@ curl -X POST http://localhost:3000/api/query/ask \
 - **ZNP Projects**: http://localhost:3000/api/znp/projects
 - **Cookbook**: http://localhost:3000/api/cookbook/...
 - **Dashboard**: http://localhost:3000/api/dashboard/...
+- **Agent Sidecar**: http://localhost:3000/api/agent-sidecar/...
+- **Domain Router**: http://localhost:3000/api/domain-router/...
+  - `POST /api/domain-router/classify`
+  - `POST /api/domain-router/continue`
+  - `GET /api/domain-router/events`
+  - `POST /api/domain-router/events/:eventId/ack`
+- **Cernion Workbench / Open WebUI Tenant-Gateway**: http://localhost:3000/api/workbench/...
+  - `POST /api/workbench/chat`
+  - `GET /api/workbench/cases/:caseId`
+  - `GET /api/workbench/events`
+  - `POST /api/workbench/events/:eventId/ack`
 
 ### System
 - **System Tools**: http://localhost:3000/api/system/...
@@ -220,6 +278,12 @@ npm run dev
 - Check OpenAPI docs for required fields
 - Verify data format (dates should be ISO 8601)
 
+### Domain Router / Agent Sidecar issues
+- Verify the authenticated principal carries a tenant (`tenantId`) and suitable CET roles.
+- Domain Router Case State and Case Event Outbox are PouchDB-backed; check the configured data path if cases or events do not persist.
+- If MWI/async notifications do not appear, poll `GET /api/domain-router/events?caseId=...` and acknowledge with `POST /api/domain-router/events/:eventId/ack`.
+- The Sidecar is CET-governed, not merely read-only: internal case/event state may change, but external business effects remain gated by CET RBAC/HITL and no-call guards.
+
 ## Next Steps
 
 1. **Read full documentation**: See [MCP_SERVICES.md](./MCP_SERVICES.md)
@@ -240,18 +304,19 @@ HTTP Request → API Gateway (Moleculer Web)
                      ↓
             Microservice (e.g., query.service.js)
                      ↓
-            MCP Client (src/mcp-client.js)
+        ┌──────────────────────────────────────┐
+        │ Request-scoped MCP calls             │
+        │ or Domain Router `cetCaseId` state   │
+        └──────────────────────────────────────┘
                      ↓
-            New MCP Session via HTTP/SSE
+            MCP Client / CET Domain Router
                      ↓
-            Cernion MCP Server (https://mcp.cernion.de)
-                     ↓
-            Tool Execution (cernion_ask, etc.)
-                     ↓
-            Response → Close Session → Return to Client
+            Response → Return to Client
 ```
 
-Each HTTP request creates a fresh MCP session, ensuring stateless REST behavior.
+Most MCP-backed HTTP requests remain stateless. The Domain Router is the exception
+for AgentOS/Hermes/OpenClaw integrations: it keeps CET-governed case state and
+Case Event Outbox entries in PouchDB and resumes work through `cetCaseId`.
 
 ---
 

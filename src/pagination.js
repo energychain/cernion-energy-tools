@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 const crypto = require('crypto');
 
 const DEFAULT_LIMIT = 50;
@@ -9,7 +11,7 @@ const OFFSET_SUNSET_DATE = '2026-11-05';
 function stableStringify(value) {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map((v) => stableStringify(v)).join(',')}]`;
-  const keys = Object.keys(value).sort();
+  const keys = Object.keys(value).sort(compareCanonicalStrings);
   return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
 }
 

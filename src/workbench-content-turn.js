@@ -1,0 +1,1051 @@
+'use strict';
+
+const { persistentSituation } = require('./workbench-turn-scope');
+
+const crypto = require('node:crypto');
+const { relatedCaseContext } = require('./workbench-case-linking');
+const continuation = require('./workbench-case-continuation');
+const { caseLabel, statusLabel, readableCaseText } = require('./case-continuation');
+const understanding = require('./workbench-understanding');
+const conversationAssistance = require('./workbench-conversation');
+const { filterEvidence, retrievalTimeoutMs } = require('./workbench-retrieval');
+const sourceDefaults = require('./workbench-knowledge-sources.json');
+const { knowledgeSourceAccess } = require('./workbench-knowledge-access');
+const { choiceCandidates, confirmedCapability } = require('./capability-clarification');
+const { getFunctionModel } = require('./function-model');
+const { resolveFunctions, normalizePhrase } = require('./function-resolver');
+const { safeTurnMemory } = require('./workbench-turn-memory');
+
+async function discard(service, ctx, p, envelope, pending, meta) {
+  const conversation = await service.store.resolveConversation(
+    { tenantId: p.tenantId, client: envelope.channel, conversationId: envelope.conversationId },
+    { optional: true }
+  );
+  const caseId = conversation?.cetCaseId;
+  if (caseId) {
+    await ctx.call('domain-router.discard', { cetCaseId: caseId }, { meta });
+    await service.store.unlinkConversation({
+      tenantId: p.tenantId,
+      client: envelope.channel,
+      conversationId: envelope.conversationId,
+    });
+    const functionIds = resolveFunctions(
+      understanding.routingRequest(pending?.situation || { concern: '', situation: '' }),
+      { model: service.settings.systemActivityModel || getFunctionModel() }
+    ).matches.map((entry) => entry.functionId);
+    const correction = {
+      type: 'workbench_case_correction',
+      tenantId: p.tenantId,
+      actorId: p.actorId,
+      caseId,
+      kind: 'corrected',
+      summary: 'Kein Fall: automatische Fallanlage zurückgenommen.',
+      functionIds,
+      at: new Date().toISOString(),
+    };
+    await service.conversationsDb.put({
+      _id: `case-correction:${crypto.randomUUID()}`,
+      ...correction,
+    });
+    if (ctx.broker.getLocalService('journal')) {
+      for (const functionId of functionIds)
+        await ctx.call(
+          'journal.append',
+          {
+            tenantId: p.tenantId,
+            functionId,
+            kind: 'corrected',
+            summary: correction.summary,
+            refs: [{ kind: 'case', id: caseId }],
+          },
+          { meta }
+        );
+    }
+  }
+  await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
+    situation: null,
+    caseSuppressed: true,
+    lastQuestion: '',
+    offeredContent: '',
+  });
+  return {
+    state: 'case_discarded',
+    nonBinding: true,
+    ...(caseId ? { discardedCaseId: caseId } : {}),
+    responseText: caseId
+      ? 'Der Fall ist verworfen. Die Korrektur ist gespeichert; ich helfe in diesem Gespräch ohne automatische Fallanlage weiter.'
+      : 'Ich helfe in diesem Gespräch ohne automatische Fallanlage weiter.',
+  };
+}
+
+async function evidenceAccess(service, p) {
+  // Resolve server-side policy and persisted mappings under the authenticated tenant.
+  const { rows } = await service.identityDb.allDocs({ include_docs: true });
+  const catalog = service.settings.workbenchKnowledgeSources || sourceDefaults;
+  return {
+    ...knowledgeSourceAccess({ meta: { tenantId: p.tenantId } }, catalog.sources),
+    ...Object.fromEntries(
+      catalog.sources
+        .filter((source) => source.requiresMapping)
+        .map((source) => [
+          source.id,
+          rows.some(
+            ({ doc }) =>
+              doc.type === source.mappingType &&
+              doc.enabled !== false &&
+              doc.cetTenantId === p.tenantId &&
+              doc.cetActorId === p.actorId &&
+              (!doc[source.staffField] ||
+                p.roles.some((role) => ['ROLE_ADMIN', 'ROLE_UTILITY_HQ'].includes(role)))
+          ),
+        ])
+    ),
+  };
+}
+
+async function runContentTurn(
+  service,
+  ctx,
+  { p, mapping, envelope, pending, conversation, meta, capabilityDiagnostics }
+) {
+  const started = performance.now();
+  const caseChoice = continuation.selection(pending, envelope.userRequest);
+  let rawMessage = envelope.userRequest;
+  const documentFlow = require('./workbench-document-flow');
+  const incomingDocuments = Boolean(envelope.documents?.length);
+  const thread = require('./workbench-thread');
+  if (thread.isThreadInput(rawMessage))
+    envelope = { ...envelope, userRequest: thread.prepareThread(rawMessage, 12000).text };
+  const workbenchContext = await service.loadWorkbenchContext(p, envelope, mapping);
+  const state = conversation?.cetCaseId
+    ? await service.loadVisibleCase(ctx, p, conversation.cetCaseId)
+    : null;
+  const access = await evidenceAccess(service, p);
+  const documentFollowup = await documentFlow.documentFollowupResponse(service, {
+    p,
+    envelope,
+    conversation,
+    state,
+    started,
+    access,
+  });
+  if (documentFollowup) return documentFollowup;
+  const previous = persistentSituation(pending?.situation || state?.knownContext?.situation);
+  if (previous) delete previous.dataNeeds;
+  const draftRequest = Boolean(previous && understanding.isDraftRequest(envelope.userRequest));
+  const phaseTimes = { understandMs: 0, retrieveMs: 0, toolsMs: 0, answerMs: 0 };
+  let situation;
+  let understandingFailed = false;
+  let understandingFailureReason;
+  let understandingRecoveryReason;
+  const understandStarted = performance.now();
+  try {
+    situation =
+      caseChoice && pending?.caseSelection
+        ? pending.caseSelection.situation || pending.situation
+        : incomingDocuments
+          ? documentFlow.initialDocumentSituation(envelope)
+          : draftRequest
+            ? {
+                ...previous,
+                requestedAction: {
+                  ...previous.requestedAction,
+                  externalEffect: false,
+                  draftRequested: true,
+                },
+              }
+            : await understanding.understand({
+                message: envelope.userRequest,
+                messages: documentFlow.cleanDocumentHistory(ctx.params.messages),
+                previous,
+                asked: pending?.askedQuestions || [],
+                tenantId: p.tenantId,
+                model: service.settings.systemActivityModel,
+                codeCatalog: service.settings.workbenchCodeCatalog,
+                logger: service.logger,
+                onRecovery: ({ reason }) => {
+                  understandingRecoveryReason = reason;
+                },
+              });
+  } catch (error) {
+    understandingFailed = true;
+    understandingFailureReason = require('./workbench-llm-repair').fallbackReason(error);
+    service.logger.warn('Workbench understanding unavailable', {
+      ...require('./workbench-llm-errors').llmErrorDetails(error),
+    });
+    situation = previous || {
+      concern: envelope.userRequest.slice(0, 1200),
+      situation: '',
+      participants: [],
+      identifiers: [],
+      deadlines: [],
+      hypotheses: [],
+      missingInformation: [],
+      requestedAction: {
+        description: 'Prüfe die Angaben im Dokument und den bisherigen Bearbeitungsstand.',
+        draftRequested: understanding.isDraftRequest(envelope.userRequest),
+        externalEffect: false,
+      },
+      turnKind: 'knowledge',
+      retrievalTerms: [],
+    };
+  }
+  situation = require('./workbench-conversation-mode').updatePersonFacts(
+    situation,
+    envelope.userRequest,
+    previous
+  );
+  phaseTimes.understandMs = Math.round(performance.now() - understandStarted);
+  const tenantMemory = require('./tenant-memory');
+  const memoryCtx = {
+    broker: ctx.broker,
+    meta,
+    params: ctx.params,
+    call: (name, params, options) =>
+      ctx.call(name, params, { meta: { ...meta, ...options?.meta } }),
+  };
+  if (!incomingDocuments && !understandingFailed && situation.tenantMemory?.query?.requested)
+    return tenantMemory.queryResponse(
+      memoryCtx,
+      p,
+      envelope.userRequest,
+      situation.tenantMemory.query
+    );
+  if (
+    !incomingDocuments &&
+    !understandingFailed &&
+    situation.tenantMemory?.correction?.kind !== 'none'
+  ) {
+    const correction = await tenantMemory.correctFacts(
+      memoryCtx,
+      p,
+      envelope,
+      pending,
+      situation.tenantMemory?.correction
+    );
+    if (correction && !situation.tenantMemory?.assertions?.length) return correction;
+  }
+  let resolveMemoryRetrieval;
+  const memoryRetrieval = new Promise((resolve) => {
+    resolveMemoryRetrieval = resolve;
+  });
+  const memory = tenantMemory.start(service, memoryCtx, p, {
+    situation:
+      understandingFailed || draftRequest || incomingDocuments
+        ? { ...situation, tenantMemory: undefined }
+        : situation,
+    envelope,
+    mapping: {
+      ...mapping,
+      roleFamilies: workbenchContext.userProfile?.roleFamilies || mapping?.roleFamilies,
+    },
+    retrieval: memoryRetrieval,
+    sensitivityFlags: [
+      ...new Set([...(state?.sensitivityFlags || []), ...(ctx.params.sensitivityFlags || [])]),
+    ],
+  });
+  const memoryStatement =
+    !understandingFailed &&
+    !draftRequest &&
+    tenantMemory.eligible(envelope.userRequest, situation, envelope) &&
+    situation.tenantMemory?.assertions?.some((item) =>
+      tenantMemory.acceptedAssertion(item, envelope.userRequest)
+    );
+  const toolLoop = require('./workbench-capability-loop');
+  const answerReserve = understanding.llmOptions(p.tenantId, 'answer', Boolean(previous)).timeoutMs;
+  const turnBudget =
+    Number(process.env.WORKBENCH_TURN_TIMEOUT_MS) ||
+    understanding.llmOptions(p.tenantId).timeoutMs + retrievalTimeoutMs() + answerReserve + 3000;
+  const toolDeadline = Math.min(
+    performance.now() + retrievalTimeoutMs(),
+    started + turnBudget - answerReserve - 1000
+  );
+  const toolOptions = {
+    model: service.settings.systemActivityModel || getFunctionModel(),
+    datasetAvailable: Boolean(ctx.broker.getLocalService('dataset')),
+    domainsAllowed: workbenchContext.userProfile?.domainsAllowed || mapping?.domainsAllowed || [],
+    previous,
+  };
+  const toolNeed =
+    !incomingDocuments && !draftRequest && !understandingFailed
+      ? toolLoop.resolveCapabilityNeed(situation, envelope.userRequest, toolOptions)
+      : { situation, candidates: [], reason: 'no_data_need' };
+  situation = toolNeed.situation;
+  const cachedExtremum = Boolean(
+    toolNeed.refinement &&
+    /größte|groesste|höchste|hoechste|kleinste|niedrigste|maximum|minimum|largest|smallest/iu.test(
+      envelope.userRequest
+    ) &&
+    !/aktuell|neu\b|heute|erneut|nochmal|refresh|latest/iu.test(envelope.userRequest) &&
+    Date.now() - (pending?.evidenceRetrievedAt || 0) < 300000 &&
+    toolLoop.validateCachedReads(
+      ctx,
+      (pending?.retrieval?.evidence || []).filter(
+        (hit) =>
+          hit.retrievalSource === 'capability-read' &&
+          (hit.metadata?.sourceStatistics?.length || hit.metadata?.statistics?.length)
+      ),
+      { meta, domainsAllowed: toolOptions.domainsAllowed, model: toolOptions.model }
+    ).hits.length
+  );
+  if (cachedExtremum) situation = { ...situation, dataNeeds: '', followupKind: 'question' };
+  Object.assign(capabilityDiagnostics, {
+    candidateCount: toolNeed.candidates.length,
+    reason: toolNeed.reason,
+  });
+  const nextStepRequest =
+    !understanding.isDraftRequest(envelope.userRequest) && situation.followupKind === 'next_step';
+  const reuseTools = Boolean(
+    previous &&
+    (cachedExtremum ||
+      nextStepRequest ||
+      (situation.followupKind === 'question' && !situation.dataNeeds?.trim())) &&
+    pending?.retrieval &&
+    Date.now() - (pending.evidenceRetrievedAt || 0) < 300000
+  );
+  const reuseEvidence = reuseTools && nextStepRequest;
+  // Use the understood turn kind before deciding whether fresh retrieval is needed.
+  const prefetchedKnowledge =
+    !incomingDocuments && !draftRequest && !reuseEvidence
+      ? ctx
+          .call(
+            'personal-agent.collectWorkbenchEvidence',
+            {
+              situation: {
+                concern: envelope.userRequest.slice(0, 600),
+                situation: previous?.concern || '',
+                hypotheses: [],
+                retrievalTerms: [],
+              },
+            },
+            {
+              meta: { ...meta, workbenchEvidenceSources: ['knowledge-rag'] },
+              timeout: Math.max(1, Math.round(toolDeadline - performance.now())),
+            }
+          )
+          .catch(() => null)
+      : null;
+  if (situation.turnKind === 'smalltalk' && !situation.dataNeeds?.trim()) {
+    resolveMemoryRetrieval({ evidence: [] });
+    if (pending?.caseSelection)
+      await conversationAssistance.saveTurn(
+        service.conversationsDb,
+        p,
+        envelope,
+        continuation.advanceSelection(pending)
+      );
+    service.logger.info('Workbench turn phases and sources', { phaseTimes, sources: [] });
+    return {
+      state: 'assistance',
+      nonBinding: true,
+      responseText: 'Hallo! Wie kann ich dir helfen?',
+      situation,
+      phaseTimes,
+      sources: [],
+      latencyMs: Math.round(performance.now() - started),
+    };
+  }
+  let result = {};
+  let previousMemory = null;
+  let caseId;
+  let operation;
+  let assignment;
+  let caseDelivery;
+  let caseNotice = '';
+  let mergeProposal;
+  // Pure knowledge questions never create or advance case state.
+  if (
+    (caseChoice || ['work', 'review'].includes(situation.turnKind)) &&
+    !memoryStatement &&
+    !pending?.caseSuppressed &&
+    !pending?.caseSelectionExpired
+  ) {
+    let assignmentResponse;
+    await continuation.withTenantCaseAssignment(service, p, async () => {
+      conversation = await service.store.resolveConversation(
+        { tenantId: p.tenantId, client: envelope.channel, conversationId: envelope.conversationId },
+        { optional: true }
+      );
+      if (!conversation?.cetCaseId) {
+        assignment = await continuation.assignCase(
+          service,
+          ctx,
+          p,
+          envelope,
+          situation,
+          pending,
+          meta
+        );
+        if (assignment.deferred) return;
+        if (assignment.response) {
+          assignmentResponse = assignment.response;
+          return;
+        }
+        if (caseChoice) {
+          rawMessage = pending.caseSelection.message;
+          envelope = { ...envelope, userRequest: rawMessage };
+        }
+        if (assignment.selected) {
+          const existing = await service.loadVisibleCase(ctx, p, assignment.selected.cetCaseId);
+          caseDelivery = existing.asyncDelivery;
+          situation = continuation.mergeSituation(existing.knownContext?.situation, situation);
+          conversation = { cetCaseId: existing.cetCaseId };
+          caseNotice = `Das gehört zu ${caseLabel(assignment.selected)} – ich ergänze das neue Material dort.`;
+          mergeProposal = await continuation.duplicateProposal(
+            service,
+            p,
+            assignment.selected,
+            assignment.items
+          );
+        }
+      }
+      if (!conversation) {
+        const reservation = await service.store.reserveConversation({
+          tenantId: p.tenantId,
+          client: envelope.channel,
+          conversationId: envelope.conversationId,
+          openWebuiConversationId: envelope.openWebuiConversationId,
+          openWebuiUserId: envelope.openWebuiUserId,
+          openWebuiOrgId: envelope.openWebuiOrgId,
+          clientId: envelope.asyncDelivery.clientId,
+        });
+        if (!reservation.reserved)
+          conversation = await service.waitForConversationCase({
+            tenantId: p.tenantId,
+            client: envelope.channel,
+            conversationId: envelope.conversationId,
+          });
+      } else if (!conversation.cetCaseId) {
+        conversation = await service.waitForConversationCase({
+          tenantId: p.tenantId,
+          client: envelope.channel,
+          conversationId: envelope.conversationId,
+        });
+      }
+      previousMemory = conversation?.cetCaseId
+        ? await service.loadTurnMemory(p, conversation.cetCaseId)
+        : null;
+      operation = conversation ? 'continue' : 'classify';
+      const { documents: _documents, ...plainEnvelope } = envelope;
+      const routedEnvelope = {
+        ...plainEnvelope,
+        userRequest: understanding.routingRequest(situation),
+      };
+      result = await ctx.call(
+        `domain-router.${operation}`,
+        {
+          ...routedEnvelope,
+          ...(caseDelivery ? { asyncDelivery: caseDelivery } : {}),
+          requestedMode: operation,
+          ...(conversation ? { cetCaseId: conversation.cetCaseId } : {}),
+          disableKnowledgeRouting: true,
+          knownContext: {
+            // Do not promote client knownContext into model-derived facts.
+            situation: persistentSituation(situation),
+            userRequest: routedEnvelope.userRequest,
+            identifiers: situation.identifiers,
+            deadlines: situation.deadlines,
+            workbenchContext,
+            ...(previousMemory ? { cetTurnMemory: safeTurnMemory(previousMemory) } : {}),
+          },
+        },
+        { meta }
+      );
+      caseId = result.cetCaseId;
+      if (assignment?.selected)
+        await continuation.recordContribution(service, p, envelope, caseId, situation);
+      await service.store.linkConversation({
+        tenantId: p.tenantId,
+        client: envelope.channel,
+        conversationId: envelope.conversationId,
+        openWebuiConversationId: envelope.openWebuiConversationId,
+        openWebuiUserId: envelope.openWebuiUserId,
+        openWebuiOrgId: envelope.openWebuiOrgId,
+        cetCaseId: caseId,
+        caseStateVersion: result.caseStateVersion,
+        clientId: envelope.asyncDelivery.clientId,
+      });
+    });
+    if (assignmentResponse) {
+      resolveMemoryRetrieval({ evidence: [] });
+      return assignmentResponse;
+    }
+  }
+  if (result.primaryDomain) situation = { ...situation, primaryDomain: result.primaryDomain };
+  const prefetched = prefetchedKnowledge ? await prefetchedKnowledge : null;
+  const prefetchTrace = prefetched?.trace?.find((entry) => entry.source === 'knowledge-rag');
+  const knowledgeCache = prefetchTrace
+    ? {
+        status: prefetchTrace.status,
+        hits: prefetched.evidence.filter((hit) => hit.retrievalSource === 'knowledge-rag'),
+        trace: prefetchTrace,
+      }
+    : null;
+  const retrieveStarted = performance.now();
+  const tools =
+    situation.dataNeeds?.trim() &&
+    !incomingDocuments &&
+    !draftRequest &&
+    !reuseEvidence &&
+    !understandingFailed &&
+    access['capability-read'] !== false
+      ? toolLoop
+          .runCapabilityLoop(ctx, {
+            situation,
+            message: rawMessage,
+            meta,
+            mapping,
+            domainsAllowed:
+              workbenchContext.userProfile?.domainsAllowed || mapping?.domainsAllowed || [],
+            selectedCapabilities: (result.selectedCapabilities || []).map((entry) =>
+              typeof entry === 'string' ? entry : entry.capability
+            ),
+            model: service.settings.systemActivityModel || getFunctionModel(),
+            deadline: toolDeadline,
+            logger: service.logger,
+            previous,
+            candidates: toolNeed.reason === 'capability_match' ? toolNeed.candidates : undefined,
+            previousReads:
+              toolNeed.refinement && Date.now() - (pending?.evidenceRetrievedAt || 0) < 300000
+                ? (pending?.retrieval?.evidence || []).filter(
+                    (hit) => hit.retrievalSource === 'capability-read'
+                  )
+                : [],
+          })
+          .catch((error) => ({
+            evidence: [],
+            ms: Math.round(performance.now() - retrieveStarted),
+            trace: [
+              {
+                source: 'capability-read',
+                name: 'Werkzeugplanung',
+                status: 'unavailable',
+                called: false,
+                hitCount: 0,
+                ms: Math.round(performance.now() - retrieveStarted),
+                error: require('./prompt-scrubber')
+                  .scrubPromptText(error.message || 'Werkzeugplanung nicht verfügbar')
+                  .slice(0, 240),
+              },
+            ],
+          }))
+      : Promise.resolve({
+          trace: [
+            {
+              source: 'capability-read',
+              status: access['capability-read'] === false ? 'blocked' : 'skipped',
+              reason: access['capability-read'] === false ? 'blocked' : toolNeed.reason,
+              called: false,
+              hitCount: 0,
+              ms: 0,
+            },
+          ],
+          evidence: [],
+          ms: 0,
+        });
+  const codes = require('./workbench-codes');
+  const codeLookup = codes.resolveCodes(
+    { call: (name, params, options) => ctx.call(name, params, { ...options, meta }), meta },
+    situation,
+    access,
+    service.settings.workbenchCodeCatalog,
+    service.settings.workbenchKnowledgeSources || sourceDefaults
+  );
+
+  let retrieval;
+  const resolvedCodes = await toolLoop
+    .withinToolBudget(() => codeLookup, toolDeadline - performance.now())
+    .catch(() => ({ resolutions: [], evidence: [], trace: [] }));
+  try {
+    if (incomingDocuments) {
+      retrieval = { evidence: [], trace: [] };
+    } else if ((draftRequest || reuseEvidence) && pending?.retrieval) {
+      retrieval = {
+        ...pending.retrieval,
+        trace: (pending.retrieval.trace || [])
+          .filter((entry) => entry.source !== 'response_boundary')
+          .map((entry) => ({ ...entry, called: false, ms: 0 })),
+      };
+    } else {
+      retrieval = await toolLoop.withinToolBudget(
+        () =>
+          ctx.call(
+            'personal-agent.collectWorkbenchEvidence',
+            { situation },
+            {
+              meta: {
+                ...meta,
+                workbenchEvidenceAccess: access,
+                workbenchToolsManaged: true,
+                workbenchEvidenceSources: null,
+                workbenchPrefetchedKnowledge: knowledgeCache,
+                workbenchSelectedCapabilities: (result.selectedCapabilities || []).map((entry) =>
+                  typeof entry === 'string' ? entry : entry.capability
+                ),
+                workbenchEvidenceCaseId: caseId,
+              },
+              timeout: Math.max(1, Math.round(toolDeadline - performance.now())),
+            }
+          ),
+        toolDeadline - performance.now()
+      );
+    }
+    if (reuseTools && !reuseEvidence && !draftRequest) {
+      retrieval.evidence = [
+        ...(retrieval.evidence || []),
+        ...(pending.retrieval.evidence || []).filter(
+          (hit) => hit.retrievalSource === 'capability-read'
+        ),
+      ];
+      retrieval.toolTrace = pending.retrieval.toolTrace || [];
+    }
+    // Recheck the contract at the response boundary, including stubbed/custom facades.
+    const groups = new Map();
+    for (const hit of retrieval.evidence || []) {
+      const source = hit.retrievalSource || hit.source;
+      const sourcePolicy = (
+        service.settings.workbenchKnowledgeSources || sourceDefaults
+      ).sources.find((entry) => entry.id === source);
+      if (access[source] === false || (sourcePolicy?.requiresMapping && !access[source])) continue;
+      groups.set(source, [...(groups.get(source) || []), hit]);
+    }
+    const checks = [...groups].map(([source, hits]) =>
+      source === 'capability-read'
+        ? toolLoop.validateCachedReads(ctx, hits, {
+            meta,
+            domainsAllowed:
+              workbenchContext.userProfile?.domainsAllowed || mapping?.domainsAllowed || [],
+            model: service.settings.systemActivityModel || getFunctionModel(),
+          })
+        : filterEvidence(hits, situation, {
+            catalog: service.settings.workbenchKnowledgeSources,
+            source,
+          })
+    );
+    const filtered = {
+      hits: checks.flatMap((entry) => entry.hits),
+      rejected: checks.flatMap((entry) => entry.rejected),
+    };
+    retrieval = {
+      ...retrieval,
+      evidence: filtered.hits,
+      trace: [
+        ...(retrieval.trace || []).map((entry) =>
+          access[entry.source] === false
+            ? { ...entry, status: 'skipped', hitCount: 0, called: false }
+            : entry
+        ),
+        { source: 'response_boundary', rejected: filtered.rejected },
+      ],
+    };
+  } catch (error) {
+    retrieval = {
+      evidence: [],
+      noCallBoundaries: [],
+      trace: [
+        {
+          source: 'pipeline',
+          status: require('./workbench-retrieval').isSourceTimeout(error)
+            ? 'timeout'
+            : 'unavailable',
+          ms: Math.round(performance.now() - retrieveStarted),
+          error: error.type || error.name,
+        },
+      ],
+    };
+  }
+  situation.codeResolutions = resolvedCodes.resolutions;
+  situation.missingInformation = [
+    ...codes.unresolvedQuestions(resolvedCodes.resolutions),
+    ...situation.missingInformation,
+  ].slice(0, 10);
+  retrieval.evidence = [...resolvedCodes.evidence, ...(retrieval.evidence || [])];
+  retrieval.trace = [...(retrieval.trace || []), ...resolvedCodes.trace];
+  const toolResult = await tools;
+  phaseTimes.toolsMs = toolResult.ms;
+  Object.assign(
+    capabilityDiagnostics,
+    toolLoop.loopDiagnostics(
+      toolResult,
+      toolNeed.candidates.length,
+      toolNeed.reason,
+      Boolean(
+        situation.dataNeeds?.trim() &&
+        !incomingDocuments &&
+        !draftRequest &&
+        !reuseEvidence &&
+        !understandingFailed &&
+        access['capability-read'] !== false
+      )
+    )
+  );
+  const cachedTools =
+    draftRequest || reuseTools
+      ? (retrieval.toolTrace || []).filter((entry) => entry.status !== 'skipped')
+      : [];
+  retrieval.toolTrace = [
+    ...cachedTools.map((entry) => {
+      const allowed = retrieval.evidence.some(
+        (hit) => hit.retrievalSource === 'capability-read' && hit.source === entry.name
+      );
+      return allowed || entry.status !== 'available'
+        ? { ...entry, called: false, cached: true, ms: 0 }
+        : {
+            ...entry,
+            called: false,
+            status: 'blocked',
+            hitCount: 0,
+            ms: 0,
+            error: 'Frühere Datenabfrage mit aktuellen Rechten nicht freigegeben.',
+          };
+    }),
+    ...toolResult.trace,
+  ];
+  retrieval.toolCandidateCount = toolResult.candidateCount ?? toolNeed.candidates.length;
+  retrieval.evidence.push(...toolResult.evidence);
+  if (retrieval.toolTrace.length)
+    retrieval.trace = [
+      ...retrieval.trace.filter((entry) => entry.source !== 'capability-read'),
+      ...retrieval.toolTrace,
+    ];
+  phaseTimes.retrieveMs = Math.round(performance.now() - retrieveStarted);
+  const related = await relatedCaseContext(service, p, result.relatedCases);
+  retrieval.evidence.push(
+    ...related.items.map((item) => ({
+      source: 'related_case',
+      value: `Fall ${item.displayRef}: ${statusLabel(item.status)}. ${item.summary}`,
+      metadata: { cetCaseId: item.cetCaseId },
+    }))
+  );
+  resolveMemoryRetrieval(retrieval);
+  if (!memory.settled && toolDeadline > performance.now())
+    await toolLoop
+      .withinToolBudget(() => memory.job, Math.min(100, toolDeadline - performance.now()))
+      .catch(() => {});
+  const memoryContext =
+    !incomingDocuments && toolDeadline > performance.now()
+      ? await toolLoop
+          .withinToolBudget(
+            () => tenantMemory.related(memoryCtx, p, situation, envelope.userRequest),
+            toolDeadline - performance.now()
+          )
+          .catch(() => ({ evidence: [], text: '' }))
+      : { evidence: [], text: '' };
+  retrieval.evidence.push(...memoryContext.evidence);
+  const actorUpdated =
+    previous &&
+    situation.actorContext &&
+    JSON.stringify([previous.actorContext?.role, previous.actorContext?.organization]) !==
+      JSON.stringify([situation.actorContext.role, situation.actorContext.organization]);
+  const answerStarted = performance.now();
+  let reply;
+  let documentResult;
+  try {
+    documentResult = await documentFlow.documentReply(service, ctx, {
+      p,
+      envelope,
+      caseId: caseId || conversation?.cetCaseId,
+      situation,
+      retrieval: incomingDocuments ? null : retrieval,
+      meta,
+      access,
+      selectedCapabilities: result.selectedCapabilities,
+    });
+    reply = documentResult
+      ? documentFlow.documentAnswer(documentResult)
+      : await understanding.answer({
+          situation,
+          retrieval,
+          tenantId: p.tenantId,
+          asked: pending?.askedQuestions || [],
+          previousDraft: actorUpdated ? '' : pending?.draft || '',
+          suppressDraft: Boolean(actorUpdated),
+          message: envelope.userRequest,
+          followup: Boolean(previous),
+          nextStepOnly: Boolean(previous && nextStepRequest),
+          skipModel: false,
+          lastAnswer: pending?.lastAnswer || '',
+          logger: service.logger,
+        });
+  } finally {
+    phaseTimes.answerMs = Math.max(1, Math.round(performance.now() - answerStarted));
+  }
+  const { sourceMetadata } = require('./workbench-retrieval');
+  const sources = sourceMetadata(
+    retrieval.trace.map((entry) =>
+      entry.source === 'capability-read' && entry.name ? { ...entry, source: entry.name } : entry
+    )
+  );
+  service.logger.info('Workbench turn phases and sources', { phaseTimes, sources });
+  let draftId;
+  if (reply.draft && caseId)
+    draftId = await conversationAssistance.saveDraft(
+      service.conversationsDb,
+      p,
+      caseId,
+      reply.draft
+    );
+  let displayRef;
+  if (caseId) displayRef = await service.store.caseDisplayRef({ tenantId: p.tenantId, caseId });
+  let firstAutoCase = false;
+  if (displayRef && operation === 'classify') {
+    firstAutoCase = await service.store.claimAutoCaseHint(p);
+  }
+  const allowedDomains = situation.hypotheses
+    .filter((h) => h.kind === 'domain' && h.confidence >= 0.5)
+    .map((h) => h.id);
+  const choices =
+    result.uncertain &&
+    allowedDomains.some(
+      (domain) => normalizePhrase(domain) === normalizePhrase(result.primaryDomain)
+    )
+      ? choiceCandidates(result, service.settings.systemActivityModel).slice(0, 3)
+      : [];
+  memory.deferred = !memory.settled;
+  memory.renderedConfirmation = Boolean(memory.confirmation);
+  result.responseText = readableCaseText(
+    [
+      caseNotice,
+      memoryContext.text,
+      ...memory.paragraphs.filter((text) => !memoryContext.text.includes(text)),
+      reply.responseText,
+      memory.ambiguous,
+      memory.confirmation,
+      mergeProposal?.text,
+      choices.length
+        ? `Optional passende Funktion (Nummer oder Name):\n${choices.map((choice, index) => `${index + 1}. ${choice.label}`).join('\n')}`
+        : '',
+      displayRef && !caseNotice
+        ? `Fall ${displayRef}${firstAutoCase ? ' · Mit „Kein Fall“ kannst du ihn verwerfen.' : ''}`
+        : '',
+    ]
+      .concat(assignment?.question || '')
+      .filter(Boolean)
+      .join('\n\n')
+  );
+  result.requiredClarifications = reply.questions.map((item) => item.question);
+  result.noCallGuards = [
+    ...new Set([
+      ...(result.noCallGuards || []),
+      ...(workbenchContext.noCallGuards || []),
+      ...(retrieval.noCallBoundaries || []),
+    ]),
+  ];
+  if (caseId) {
+    let annotation;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        annotation = await ctx.call(
+          'domain-router.recordWorkbenchTurn',
+          {
+            cetCaseId: caseId,
+            caseStateVersion: result.caseStateVersion,
+            responseText: result.responseText.slice(0, 16000),
+            requiredClarifications: result.requiredClarifications,
+            noCallGuards: result.noCallGuards,
+          },
+          { meta }
+        );
+        break;
+      } catch (error) {
+        if (error.code !== 409 && error.status !== 409) throw error;
+        const latest = await service.loadVisibleCase(ctx, p, caseId);
+        // The router still rejects discarded cases; never bypass its state guard.
+        if (latest.disposition === 'discarded' || attempt === 3) throw error;
+        result.caseStateVersion = latest.caseStateVersion;
+      }
+    }
+    result.caseStateVersion = annotation.caseStateVersion;
+    await service.store.linkConversation({
+      tenantId: p.tenantId,
+      client: envelope.channel,
+      conversationId: envelope.conversationId,
+      cetCaseId: caseId,
+      caseStateVersion: result.caseStateVersion,
+    });
+  }
+  await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
+    ...(assignment?.deferred
+      ? { caseSelection: assignment.caseSelection, caseSelectionExpired: !assignment.caseSelection }
+      : pending?.caseSelection && !caseChoice
+        ? continuation.advanceSelection(pending)
+        : { caseSelection: null }),
+    ...(mergeProposal?.items.length
+      ? {
+          caseMergeProposal: {
+            cetCaseId: caseId,
+            sourceCaseIds: mergeProposal.items.map((item) => item.cetCaseId),
+          },
+        }
+      : {}),
+    situation,
+    retrieval,
+    tenantMemoryFactIds: memory.ids.length ? memory.ids : pending?.tenantMemoryFactIds || [],
+    evidenceRetrievedAt: draftRequest || reuseTools ? pending?.evidenceRetrievedAt : Date.now(),
+    draft: reply.draft,
+    offeredContent: '',
+    lastQuestion: '',
+    lastAnswer: reply.responseText.slice(0, 600),
+    askedQuestions: [...(pending?.askedQuestions || []), ...reply.questions],
+  });
+  memory.deferred = !memory.settled;
+  const turnMemory = caseId
+    ? await service.saveTurnMemory(p, {
+        caseId,
+        caseStateVersion: result.caseStateVersion,
+        previousMemory,
+        classification: result,
+        envelope: { ...envelope, userRequest: understanding.routingRequest(situation) },
+        mapping,
+        workbenchContext,
+      })
+    : null;
+  const eventSummary = caseId
+    ? await service.eventSummary(p, caseId, { clientId: envelope.asyncDelivery?.clientId })
+    : service.emptyEventSummary();
+  return {
+    ...service.chatResponse(operation || 'answer', result, eventSummary, turnMemory),
+    state: understandingFailed && !previous ? 'understanding_unavailable' : 'assistance',
+    nonBinding: true,
+    situation,
+    evidence: reply.evidence,
+    retrievalTrace: [...(retrieval.trace || []), reply.evidenceTrace],
+    answerAttempts: reply.answerAttempts,
+    answerStatus: reply.answerStatus,
+    metadata: {
+      ...reply.metadata,
+      ...(understandingFailed || understandingRecoveryReason
+        ? {
+            degraded: true,
+            degradedReason: understandingFailureReason || understandingRecoveryReason,
+            degradedPhase: 'understanding',
+          }
+        : {}),
+    },
+    phaseTimes,
+    sources,
+    ...documentFlow.documentResponseFields(documentResult, eventSummary),
+    ...(displayRef ? { caseDisplayRef: displayRef } : {}),
+    ...(draftId ? { draftId } : {}),
+    latencyMs: Math.round(performance.now() - started),
+  };
+}
+
+async function selectChoice(service, ctx, { p, mapping, envelope, conversation, meta }) {
+  if (!conversation?.cetCaseId) return null;
+  const state = await service.loadVisibleCase(ctx, p, conversation.cetCaseId);
+  const model = service.settings.systemActivityModel || getFunctionModel();
+  const choice = confirmedCapability(envelope.userRequest, state, model);
+  if (!choice) return null;
+  const situation = persistentSituation(state.knownContext.situation);
+  if (!situation) return null;
+  if (
+    !situation.hypotheses.some(
+      (hypothesis) =>
+        hypothesis.confidence >= 0.5 &&
+        (hypothesis.kind === 'domain'
+          ? normalizePhrase(hypothesis.id) === normalizePhrase(state.currentDomain)
+          : model.functions.some(
+              (fn) => fn.functionId === hypothesis.id && fn.capabilities.includes(choice.capability)
+            ))
+    )
+  )
+    return null;
+  const result = await ctx.call(
+    'domain-router.continue',
+    {
+      ...envelope,
+      cetCaseId: conversation.cetCaseId,
+      userRequest: understanding.routingRequest(situation),
+      disableKnowledgeRouting: true,
+      knownContext: { situation, capabilityChoice: envelope.userRequest },
+    },
+    { meta }
+  );
+  result.responseText = 'Die passende Funktion ist ausgewählt.';
+  result.requiredClarifications = [];
+  const workbenchContext = await service.loadWorkbenchContext(p, envelope, mapping);
+  const previousMemory = await service.loadTurnMemory(p, conversation.cetCaseId);
+  const memory = await service.saveTurnMemory(p, {
+    caseId: result.cetCaseId,
+    caseStateVersion: result.caseStateVersion,
+    previousMemory,
+    classification: result,
+    envelope: { ...envelope, userRequest: understanding.routingRequest(situation) },
+    mapping,
+    workbenchContext,
+  });
+  await service.store.linkConversation({
+    tenantId: p.tenantId,
+    client: envelope.channel,
+    conversationId: envelope.conversationId,
+    cetCaseId: result.cetCaseId,
+    caseStateVersion: result.caseStateVersion,
+  });
+  return {
+    ...service.chatResponse(
+      'continue',
+      result,
+      await service.eventSummary(p, result.cetCaseId),
+      memory
+    ),
+    nonBinding: true,
+    situation,
+  };
+}
+
+// Serialize each conversation; the case-assignment helper separately protects tenant writes.
+// Refresh persisted questions after waiting so parallel requests cannot repeat them.
+async function queuedContentTurn(service, ctx, input) {
+  const capabilityDiagnostics = {
+    status: 'skipped',
+    reason: 'no_data_need',
+    candidateCount: 0,
+    operations: [],
+    ms: 0,
+  };
+  const queues = (service.workbenchContentTurns ||= new Map());
+  const key = JSON.stringify([
+    input.p.tenantId,
+    input.p.actorId,
+    input.envelope.channel,
+    input.envelope.conversationId,
+  ]);
+  const previous = queues.get(key) || Promise.resolve();
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  queues.set(key, gate);
+  await previous;
+  try {
+    const pending = await conversationAssistance.readTurn(
+      service.conversationsDb,
+      input.p,
+      input.envelope
+    );
+    const conversation = await service.store.resolveConversation(
+      {
+        tenantId: input.p.tenantId,
+        client: input.envelope.channel,
+        conversationId: input.envelope.conversationId,
+      },
+      { optional: true }
+    );
+    return await runContentTurn(service, ctx, {
+      ...input,
+      pending,
+      conversation,
+      capabilityDiagnostics,
+    });
+  } catch (error) {
+    capabilityDiagnostics.reason = 'error';
+    throw error;
+  } finally {
+    service.logger.info('Workbench capability loop', capabilityDiagnostics);
+    release();
+    if (queues.get(key) === gate) queues.delete(key);
+  }
+}
+
+module.exports = { runContentTurn: queuedContentTurn, discard, selectChoice };

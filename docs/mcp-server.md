@@ -33,6 +33,23 @@ Any MCP-SDK client works too — see `tests/mcp-transport.test.js` for a
 full round-trip example using `@modelcontextprotocol/sdk`'s
 `StreamableHTTPClientTransport`.
 
+## Verhalten nach Deploy
+
+MCP-Sessions liegen ausschließlich im Arbeitsspeicher. Nach einem Deploy oder
+Neustart sind bisherige `mcp-session-id`-Werte ungültig. POST, GET und DELETE mit
+einer unbekannten oder abgelaufenen Session-ID antworten mit HTTP **404**; der
+bisherige Fehlerkörper bleibt erhalten. Der Client muss die alte Session-ID
+verwerfen, ohne Session-ID erneut `initialize` senden und danach die neue ID
+für Tool-Aufrufe verwenden. Anfragen ohne Session-ID, die kein `initialize`
+sind, erhalten weiterhin HTTP **400**.
+
+Für die administrative Token-Erstellung bleibt `npm run token:create --
+--tenant=anthrophic --user=claude --name=webclaude` auch bei erreichtem Token-Limit
+verfügbar. Der interne CLI-Pfad umgeht die Obergrenze aktiver Tokens; die
+Support-Token-Prüfung, Tenant-/User-Validierung und sichere Speicherung bleiben
+erhalten. REST-Token-Erstellung behält das konfigurierte Limit (standardmäßig 20).
+Bestehende Tokens werden dabei nicht widerrufen.
+
 ## The 9 tools
 
 | # | Tool | Maps to | Read-only? |

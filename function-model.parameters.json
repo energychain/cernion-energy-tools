@@ -1,0 +1,79 @@
+{
+  "version": "2",
+  "generatedAt": "1970-01-01T00:00:00.000Z",
+  "minWeight": 0.2,
+  "targetDensity": 0.15,
+  "baselineDensity": 0.49,
+  "mergeSimilarity": 0.6,
+  "automaticHubFrequency": 0.25,
+  "automaticHubMinimumFunctions": 10,
+  "hubFeatures": {
+    "services": [
+      "dashboard-api",
+      "interface-placeholder",
+      "vdmi"
+    ],
+    "entityTypes": [
+      "datapoint"
+    ],
+    "domains": [
+      "platform"
+    ]
+  },
+  "placeholderServices": [
+    "interface-placeholder"
+  ],
+  "featureWeights": {
+    "operations": 1,
+    "services": 0.5,
+    "dataSources": 1,
+    "entityTypes": 0.9,
+    "writesTo": 0.5,
+    "domains": 0.3,
+    "departments": 0.7,
+    "declaredActions": 1,
+    "keywords": 0.6,
+    "inputs": 0.6,
+    "keywordTokens": 0.55
+  },
+  "eventWeight": 1.4,
+  "writeReadWeight": 1.3,
+  "minimumSharedFeatures": 2,
+  "maxEvidenceContribution": 0.18,
+  "sharedWeight": 1,
+  "maxDegreeFraction": 0.25,
+  "groupingExcludedFeatures": [
+    "domains",
+    "departments"
+  ],
+  "groupingFeatureWeights": {
+    "operations": 0.3,
+    "services": 1,
+    "dataSources": 3,
+    "entityTypes": 2,
+    "writesTo": 2,
+    "domains": 0.1,
+    "departments": 0.2,
+    "declaredActions": 0.3,
+    "keywords": 0.01,
+    "inputs": 0.01,
+    "keywordTokens": 0.01
+  },
+  "keywordTokenMinimumLength": 4,
+  "degreeBudgetMinimumFunctions": 10,
+  "semanticSimilarityThreshold": 0.85,
+  "semanticGroupingWeight": 0.72,
+  "semanticNeighborWeight": 1,
+  "embeddingDecimals": 4,
+  "structuralEvidenceKinds": [
+    "operations",
+    "declaredActions",
+    "services",
+    "dataSources",
+    "entityTypes",
+    "writesTo"
+  ],
+  "embeddingBoilerplateMaxFraction": 0.2,
+  "maxSemanticGroupSize": 5,
+  "outputDimensionality": 768
+}

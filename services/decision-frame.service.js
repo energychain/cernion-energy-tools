@@ -26,6 +26,92 @@ const ENTITY_TYPE_VALUES = [
   'process_intent',
 ];
 
+const DECISION_FRAME_METADATA_SCHEMA = {
+  type: 'object',
+  additionalProperties: true,
+  description:
+    'Optional governance or process metadata persisted with the frame. For CR-LKA, ' +
+    'metadata.governanceArchitecture may carry changeRequest, candidateId, runCardId, ' +
+    'workedExample, readiness, resolutionValue and role/action boundaries.',
+  example: {
+    governanceArchitecture: {
+      changeRequest: 'CR-LKA-RV-001',
+      candidateId: 'CRC001',
+      runCardId: 'RC002_mako_clarification_to_m2c_revenue_risk',
+      workedExample: 'mako_m2c_resolution_value',
+      sideEffects: 'none',
+    },
+  },
+};
+
+const DECISION_FRAME_CREATE_REQUEST_BODY = {
+  required: true,
+  content: {
+    'application/json': {
+      schema: {
+        type: 'object',
+        required: ['situation', 'complication', 'question', 'domain'],
+        properties: {
+          situation: { type: 'string', minLength: 10 },
+          complication: { type: 'string', minLength: 10 },
+          question: { type: 'string', minLength: 5 },
+          answer: { type: 'string' },
+          domain: { type: 'string', enum: DOMAIN_VALUES },
+          role: { type: 'string', enum: ROLE_VALUES },
+          createdBy: { type: 'string' },
+          metadata: DECISION_FRAME_METADATA_SCHEMA,
+        },
+      },
+      examples: {
+        governanceFrame: {
+          summary: 'Create a decision frame with governance metadata',
+          value: {
+            situation:
+              'A MaKo clarification blocks cashflow attribution for a resolution candidate.',
+            complication:
+              'Evidence is incomplete and consequential actions must remain behind HITL.',
+            question: 'Which role can resolve the next governance step?',
+            domain: 'operational',
+            role: 'operations',
+            createdBy: 'agent-os',
+            metadata: DECISION_FRAME_METADATA_SCHEMA.example,
+          },
+        },
+      },
+    },
+  },
+};
+
+const DECISION_FRAME_UPDATE_REQUEST_BODY = {
+  required: true,
+  content: {
+    'application/json': {
+      schema: {
+        type: 'object',
+        properties: {
+          situation: { type: 'string', minLength: 10 },
+          complication: { type: 'string', minLength: 10 },
+          question: { type: 'string', minLength: 5 },
+          answer: { type: 'string' },
+          status: { type: 'string', enum: STATUS_VALUES },
+          role: { type: 'string', enum: ROLE_VALUES },
+          metadata: DECISION_FRAME_METADATA_SCHEMA,
+        },
+      },
+      examples: {
+        governanceFrameUpdate: {
+          summary: 'Update persisted governance metadata',
+          value: {
+            answer: 'Route to billing operations for evidence completion before approval.',
+            status: 'active',
+            metadata: DECISION_FRAME_METADATA_SCHEMA.example,
+          },
+        },
+      },
+    },
+  },
+};
+
 // ─── Schema for AI-assisted starter generation ────────────────────────────────
 
 const STARTER_SCHEMA = {
@@ -50,10 +136,45 @@ function docId(frameId) {
   return `df:${frameId}`;
 }
 
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function cloneMetadata(value) {
+  if (!isPlainObject(value)) return {};
+  return structuredClone(value);
+}
+
+function hasNonEmptyObject(value) {
+  return isPlainObject(value) && Object.keys(value).length > 0;
+}
+
+function governanceMetadataLines(metadata) {
+  if (!hasNonEmptyObject(metadata)) return [];
+
+  const lines = ['## Governance Metadata'];
+  const governance = isPlainObject(metadata.governanceArchitecture)
+    ? metadata.governanceArchitecture
+    : {};
+  const fields = ['changeRequest', 'candidateId', 'runCardId', 'workedExample', 'drl', 'rcr'];
+
+  for (const field of fields) {
+    if (governance[field] !== undefined && governance[field] !== null && governance[field] !== '') {
+      lines.push(`- **${field}:** ${governance[field]}`);
+    }
+  }
+
+  if (Array.isArray(governance.forbiddenActions) && governance.forbiddenActions.length > 0) {
+    lines.push(`- **forbiddenActions:** ${governance.forbiddenActions.join(', ')}`);
+  }
+
+  return lines.length > 1 ? lines : [];
+}
+
 // ─── Public projection ────────────────────────────────────────────────────────
 
 function toPublic(doc) {
-  return {
+  const result = {
     frameId: doc.frameId,
     situation: doc.situation,
     complication: doc.complication,
@@ -67,6 +188,12 @@ function toPublic(doc) {
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
+
+  if (hasNonEmptyObject(doc.metadata)) {
+    result.metadata = cloneMetadata(doc.metadata);
+  }
+
+  return result;
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
@@ -93,6 +220,7 @@ module.exports = {
       openapi: {
         summary: 'Create a SCQA decision frame',
         tags: [OPENAPI_TAG],
+        requestBody: DECISION_FRAME_CREATE_REQUEST_BODY,
       },
       params: {
         situation: { type: 'string', min: 10 },
@@ -102,6 +230,7 @@ module.exports = {
         domain: { type: 'enum', values: DOMAIN_VALUES },
         role: { type: 'enum', values: ROLE_VALUES, optional: true },
         createdBy: { type: 'string', optional: true },
+        metadata: { type: 'object', optional: true, default: {} },
       },
       async handler(ctx) {
         const frameId = makeFrameId();
@@ -118,6 +247,7 @@ module.exports = {
           role: ctx.params.role || null,
           status: 'draft',
           linkedEntities: [],
+          metadata: cloneMetadata(ctx.params.metadata || {}),
           createdBy: ctx.params.createdBy || null,
           createdAt: now,
           updatedAt: now,
@@ -229,6 +359,7 @@ module.exports = {
       openapi: {
         summary: 'Update a SCQA decision frame (patch answer, status, etc.)',
         tags: [OPENAPI_TAG],
+        requestBody: DECISION_FRAME_UPDATE_REQUEST_BODY,
       },
       params: {
         frameId: { type: 'string' },
@@ -238,6 +369,7 @@ module.exports = {
         answer: { type: 'string', optional: true },
         status: { type: 'enum', values: STATUS_VALUES, optional: true },
         role: { type: 'enum', values: ROLE_VALUES, optional: true },
+        metadata: { type: 'object', optional: true },
       },
       async handler(ctx) {
         const doc = await this._getDoc(ctx.params.frameId);
@@ -252,6 +384,8 @@ module.exports = {
           updated.answer = ctx.params.answer ? ctx.params.answer.trim() : null;
         if (ctx.params.status !== undefined) updated.status = ctx.params.status;
         if (ctx.params.role !== undefined) updated.role = ctx.params.role;
+        if (ctx.params.metadata !== undefined)
+          updated.metadata = cloneMetadata(ctx.params.metadata || {});
 
         await this.db.put(updated);
         return toPublic(updated);
@@ -464,6 +598,11 @@ module.exports = {
             lines.push(`- **${e.type}**: ${e.id}`);
           }
           lines.push('');
+        }
+
+        const metadataLines = governanceMetadataLines(doc.metadata);
+        if (metadataLines.length > 0) {
+          lines.push(...metadataLines, '');
         }
 
         return {

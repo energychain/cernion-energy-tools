@@ -338,3 +338,42 @@ describe('Pattern arrays', () => {
     SAFE_PATTERNS.forEach((p) => expect(p).toBeInstanceOf(RegExp));
   });
 });
+
+describe('value-based JSON prompt scrubbing', () => {
+  const { scrubPrompt, scrubPromptValues } = require('../src/prompt-scrubber');
+  test.each(['\n', '\t', '\r', '"', '\\'])('preserves escape %j and keys', (escape) => {
+    const input = { 'alice@example.org': [`a${escape}alice@example.org`, { m: '東京 ü' }], n: 7 };
+    const reidentMap = new Map();
+    const wire = scrubPrompt(JSON.stringify(input), { reidentMap });
+    const safe = JSON.parse(wire);
+    expect(safe['alice@example.org'][0]).toMatch(/MASKED/);
+    expect(safe['alice@example.org'][0].startsWith(`a${escape}`)).toBe(true);
+    const { restoreContext } = require('../src/workbench-identifier-context');
+    expect(restoreContext(safe, reidentMap)).toEqual(input);
+  });
+  test('shares reversible masks across values and does not catch masking failures', () => {
+    const reidentMap = new Map();
+    const safe = scrubPromptValues(['alice@example.org', { contact: 'alice@example.org' }], {
+      reidentMap,
+    });
+    expect(safe[0]).toBe(safe[1].contact);
+    expect(reidentMap.size).toBe(1);
+    const random = jest.spyOn(require('crypto'), 'randomBytes').mockImplementation(() => {
+      throw new Error('masking failure');
+    });
+    try {
+      expect(() => scrubPrompt('{"message":"alice@example.org"}')).toThrow('masking failure');
+    } finally {
+      random.mockRestore();
+    }
+  });
+  test('retains free text handling and propagates errors raised while traversing values', () => {
+    expect(scrubPrompt('[NOTE] alice@example.org')).not.toContain('alice@example.org');
+    const input = {
+      get message() {
+        throw new Error('content failure');
+      },
+    };
+    expect(() => scrubPromptValues(input)).toThrow('content failure');
+  });
+});

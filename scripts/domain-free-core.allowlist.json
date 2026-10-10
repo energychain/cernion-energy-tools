@@ -1,0 +1,826 @@
+{
+  "entries": [
+    {
+      "term": "deterministische",
+      "reason": "Generic deterministic execution requirement, independent of business domains."
+    },
+    {
+      "term": "dataset",
+      "reason": "Generic tenant table storage and read capability, independent of business domains."
+    },
+    {
+      "term": "workbook",
+      "reason": "Generic spreadsheet parser object."
+    },
+    {
+      "term": "sheet",
+      "reason": "Generic spreadsheet sheet identifier."
+    },
+    {
+      "term": "oemetadata",
+      "reason": "Existing metadata schema reused for the generic tenant catalog."
+    },
+    {
+      "term": "variance",
+      "reason": "Generic statistical quality metric."
+    },
+    {
+      "term": "monthly",
+      "reason": "Generic calendar aggregation."
+    },
+    {
+      "term": "quality",
+      "reason": "Generic data completeness and consistency metadata."
+    },
+    {
+      "term": "convention",
+      "reason": "Generic interval boundary convention."
+    },
+    {
+      "term": "integration",
+      "reason": "Generic arithmetic integration of a sampled quantity."
+    },
+    {
+      "term": "datei",
+      "reason": "Generic file input terminology."
+    },
+    {
+      "term": "upload",
+      "reason": "Generic transport terminology for a future file endpoint."
+    },
+    {
+      "term": "bedarf",
+      "reason": "Generic correction wording with no domain routing."
+    },
+    {
+      "term": "diagnostics",
+      "reason": "Generic per-turn execution telemetry; contains no subject data or domain routing rules."
+    },
+    {
+      "term": "bedeutung",
+      "reason": "Generic conceptual question form excluded from deterministic data-query triggers."
+    },
+    {
+      "term": "proof",
+      "reason": "Generic cache completeness caution; no domain-specific evidence logic."
+    },
+    {
+      "term": "bezug",
+      "reason": "Generic conversational reference in the data-needs instruction; no domain branch."
+    },
+    {
+      "term": "manual",
+      "reason": "Generic response-boundary variable for preventing manual-query instructions when a tool exists."
+    },
+    {
+      "term": "portal",
+      "reason": "Generic website reference in the manual-query response guard; no service or domain mapping."
+    },
+    {
+      "term": "profile",
+      "reason": "Existing server-side Workbench userProfile authorization contract; generic identity configuration, not domain rules."
+    },
+    {
+      "term": "new",
+      "resolverGeneric": true,
+      "reason": "Generic English news query vocabulary, below the reference corpus minimum length; never a Function target."
+    },
+    {
+      "term": "neuer",
+      "resolverGeneric": true,
+      "reason": "Generic German next-turn notice presentation; no domain behavior."
+    },
+    {
+      "term": "neues",
+      "resolverGeneric": true,
+      "reason": "Generic German next-turn notice overview question; no domain behavior."
+    },
+    {
+      "term": "arbeitsstand",
+      "reason": "Generic German system-activity question vocabulary; no domain branch."
+    },
+    {
+      "term": "account",
+      "reason": "Existing Workbench mailAccountDbPath persistence setting in the shared-service adapter; no domain behavior."
+    },
+    {
+      "term": "klaerfall",
+      "reason": "Generic case-status separation vocabulary; no domain branch."
+    },
+    {
+      "term": "klärfall",
+      "reason": "Generic case-status separation vocabulary; no domain branch."
+    },
+    {
+      "term": "doing",
+      "reason": "Generic English current-activity question wording."
+    },
+    {
+      "term": "warum",
+      "reason": "Generic German explanation question wording."
+    },
+    {
+      "term": "overview",
+      "reason": "Generic bounded system-state overview."
+    },
+    {
+      "term": "welche",
+      "reason": "Generic German selection question wording."
+    },
+    {
+      "term": "nicht",
+      "reason": "Generic German negation in state answers."
+    },
+    {
+      "term": "keine",
+      "reason": "Generic German negation in state answers."
+    },
+    {
+      "term": "rahmen",
+      "reason": "Generic finite attention-unit budget presentation."
+    },
+    {
+      "term": "offene",
+      "reason": "Generic open expectations/proposals presentation."
+    },
+    {
+      "term": "klärung",
+      "reason": "Generic safe clarification follow-up wording."
+    },
+    {
+      "term": "claim",
+      "reason": "Generic revision-protected scheduler execution claim; no domain behavior."
+    },
+    {
+      "term": "owner",
+      "reason": "Opaque scheduler instance identity on an execution claim."
+    },
+    {
+      "term": "deadline",
+      "reason": "Generic dueAt clock boundary used for adaptive wake intervals."
+    },
+    {
+      "term": "factors",
+      "reason": "Configurable numeric interval multipliers."
+    },
+    {
+      "term": "strategy",
+      "reason": "Existing Moleculer test broker registry configuration."
+    },
+    {
+      "term": "polling",
+      "reason": "Generic scheduling mode distinct from push events."
+    },
+    {
+      "term": "absent",
+      "reason": "Generic missing event/tenant metadata in neutral scheduler tests."
+    },
+    {
+      "term": "derived",
+      "reason": "Generic derivation of wake metadata from the Function contract."
+    },
+    {
+      "term": "activation",
+      "reason": "Activation contract and invariant metadata."
+    },
+    {
+      "term": "adapter",
+      "reason": "Test adapter interface for injecting real services."
+    },
+    {
+      "term": "agent",
+      "reason": "Generic SharedAgent correction target."
+    },
+    {
+      "term": "answer",
+      "reason": "Generic system activity response compared with digest."
+    },
+    {
+      "term": "baseline",
+      "reason": "Statistical baseline for graph density."
+    },
+    {
+      "term": "blocked",
+      "reason": "Existing guard result observed by the safety oracle."
+    },
+    {
+      "term": "budget",
+      "reason": "Tenant activation bound from the invariant contract."
+    },
+    {
+      "term": "candidate",
+      "reason": "Generic candidate trace during failure minimization."
+    },
+    {
+      "term": "capabilities",
+      "reason": "Function contract field populated from catalog data."
+    },
+    {
+      "term": "capability",
+      "reason": "Name des Katalogobjekts im Datenvertrag #693; allgemeines Vertragsvokabular, keine fachliche Fallunterscheidung."
+    },
+    {
+      "term": "catalog",
+      "reason": "Generic input data source, with no catalog-specific branches."
+    },
+    {
+      "term": "clearance",
+      "reason": "Existing sensitivity clearance authorization field."
+    },
+    {
+      "term": "confidence",
+      "reason": "Required function.touched.v1 payload field."
+    },
+    {
+      "term": "correction",
+      "reason": "Versioned correction event and generic target mutation."
+    },
+    {
+      "term": "coverage",
+      "reason": "Coverage contract and invariant metadata."
+    },
+    {
+      "term": "cross",
+      "reason": "Cross-group pair scoring in complete linkage."
+    },
+    {
+      "term": "cutoff",
+      "reason": "Generic timestamp boundary for configurable touch retention, independent of catalog contents."
+    },
+    {
+      "term": "evidence",
+      "reason": "Generic graph evidence contract."
+    },
+    {
+      "term": "evidenz",
+      "reason": "Required German report heading for human review."
+    },
+    {
+      "term": "factor",
+      "reason": "Numeric rarity multiplier."
+    },
+    {
+      "term": "functions",
+      "reason": "Generic Function collection from the common contract."
+    },
+    {
+      "term": "generation",
+      "reason": "Offline artifact generation and provenance."
+    },
+    {
+      "term": "handoff",
+      "reason": "Generic human responsibility transfer observation."
+    },
+    {
+      "term": "isolated",
+      "reason": "Graph degree statistic."
+    },
+    {
+      "term": "journal",
+      "reason": "JournalEntry contract and generic activity record."
+    },
+    {
+      "term": "knowledge",
+      "reason": "Generic forbidden response path in I-5; no domain content."
+    },
+    {
+      "term": "korrektur",
+      "reason": "Generic correction event summary from the shared contract."
+    },
+    {
+      "term": "learning",
+      "reason": "Upstream generic correction module path from #701."
+    },
+    {
+      "term": "lifecycle",
+      "reason": "SharedAgent contract field."
+    },
+    {
+      "term": "mismatch",
+      "reason": "Generic rejection of a mismatched tenant identifier."
+    },
+    {
+      "term": "operations",
+      "reason": "Function contract field; generic operation collection."
+    },
+    {
+      "term": "policy",
+      "reason": "Existing authorization policy observed without modification."
+    },
+    {
+      "term": "project",
+      "reason": "Generic projection function name."
+    },
+    {
+      "term": "projection",
+      "reason": "Generic projection module name."
+    },
+    {
+      "term": "question",
+      "reason": "Generic signal kind, no question text or domain example."
+    },
+    {
+      "term": "replay",
+      "reason": "Generic deterministic trace replay."
+    },
+    {
+      "term": "revision",
+      "reason": "PouchDB document revision checked by the test double."
+    },
+    {
+      "term": "routing",
+      "reason": "Catalog routingPattern field included as text only; no routing execution."
+    },
+    {
+      "term": "schedule",
+      "reason": "SharedAgent wake mode in the common contract."
+    },
+    {
+      "term": "schema version",
+      "reason": "Generic cache format metadata."
+    },
+    {
+      "term": "service",
+      "reason": "Generic upstream service paths and versioned event names."
+    },
+    {
+      "term": "simulation",
+      "reason": "Generic test harness terminology."
+    },
+    {
+      "term": "snapshot",
+      "reason": "Test-only observation envelope method."
+    },
+    {
+      "term": "sources",
+      "reason": "Function contract source references."
+    },
+    {
+      "term": "stale",
+      "reason": "Cache freshness and generated artifact drift diagnostics."
+    },
+    {
+      "term": "tenant",
+      "reason": "Tenant isolation in the common contract."
+    },
+    {
+      "term": "threshold",
+      "reason": "Configurable numeric similarity or edge threshold."
+    },
+    {
+      "term": "transition",
+      "reason": "Persistent lineage transition metadata."
+    },
+    {
+      "term": "verantwortung",
+      "reason": "Generic human/CET responsibility summary required by the Activation contract."
+    },
+    {
+      "term": "concept",
+      "reason": "Neutral intent-routing test request, without a catalog example."
+    },
+    {
+      "term": "contracts",
+      "reason": "Closed event payload contract assertions."
+    },
+    {
+      "term": "decision",
+      "reason": "Existing decision_support intent mode and authorization decision metadata."
+    },
+    {
+      "term": "delivery",
+      "reason": "Generic persisted event delivery state, not a business delivery process."
+    },
+    {
+      "term": "governance",
+      "reason": "Existing cernion-governance-assistant facade model identifier in entrypoint regressions."
+    },
+    {
+      "term": "intent",
+      "reason": "Existing generic Workbench intent mode."
+    },
+    {
+      "term": "management",
+      "reason": "Existing tenant management audience for coverage reads."
+    },
+    {
+      "term": "manager",
+      "reason": "Generic existing-role audience predicate."
+    },
+    {
+      "term": "matrix",
+      "reason": "Required paginated Person x Function read contract from #695."
+    },
+    {
+      "term": "period",
+      "reason": "Broker shutdown grace period in the fake-timer adapter."
+    },
+    {
+      "term": "boundary",
+      "reason": "Generic numerical hysteresis threshold boundary in exact/adjacent-value tests."
+    },
+    {
+      "term": "priority",
+      "reason": "Generic ordering of selected IDs before operation fanout when applying a configurable signal budget."
+    },
+    {
+      "term": "anchor",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "consumption",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "inventory",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "units",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "rejection",
+      "reason": "Generic compatibility, input-patch or feedback-rejection terminology in neutral #715 tests; no catalog-specific behavior."
+    },
+    {
+      "term": "advisory",
+      "reason": "Existing operation index kind advisory_plan; generic internal reasoning, not domain vocabulary."
+    },
+    {
+      "term": "dashboard",
+      "reason": "Existing operation index kind dashboard_read; generic read-only interface metadata."
+    },
+    {
+      "term": "deadline",
+      "reason": "Generic overdue timestamp finding, independent of function domain."
+    },
+    {
+      "term": "draft",
+      "reason": "Existing operation index kind draft_write and internal draft effect contract."
+    },
+    {
+      "term": "forbidden",
+      "reason": "Generic policy denial and neutral security fixtures."
+    },
+    {
+      "term": "guard",
+      "reason": "Generic authorization check and neutral backend-denial fixture."
+    },
+    {
+      "term": "guards",
+      "reason": "Existing authorization enforcement, independent of domain."
+    },
+    {
+      "term": "human",
+      "reason": "Epic #693 human responsibility and existing personaType contract."
+    },
+    {
+      "term": "inbox",
+      "reason": "Existing internal persona inbox channel required by #697."
+    },
+    {
+      "term": "persona",
+      "reason": "Existing human actor identity contract; no role-based routing."
+    },
+    {
+      "term": "persona-inbox",
+      "reason": "Existing internal proposal delivery service required by #697."
+    },
+    {
+      "term": "reconcile",
+      "reason": "Generic state reconciliation on activation events."
+    },
+    {
+      "term": "review",
+      "reason": "Generic human proposal review text, no function-specific behavior."
+    },
+    {
+      "term": "approval",
+      "reason": "Existing generic HITL/persona-inbox message type; human authorization workflow, no domain-specific approval logic."
+    },
+    {
+      "term": "persona inbox",
+      "reason": "Existing internal persona inbox channel name and generic error text; required proposal integration for #697."
+    },
+    {
+      "term": "freigabe",
+      "reason": "Existing German HITL/persona-inbox user text for generic human approval; #697 never approves or dispatches externally."
+    },
+    {
+      "term": "audit",
+      "reason": "Generic immutable correction audit records; no domain branch."
+    },
+    {
+      "term": "bestätigung",
+      "reason": "Generic German correction confirmation wording."
+    },
+    {
+      "term": "channel",
+      "reason": "Existing Workbench conversation channel key; no domain behavior."
+    },
+    {
+      "term": "hinweis",
+      "reason": "Generic notices preference wording."
+    },
+    {
+      "term": "overlay",
+      "reason": "Generic tenant graph overlay storage and projection."
+    },
+    {
+      "term": "recognition",
+      "reason": "Generic deterministic correction recognition."
+    },
+    {
+      "term": "zuständig",
+      "reason": "Generic German human responsibility correction vocabulary."
+    },
+    {
+      "term": "classification",
+      "reason": "Technical standing/contextual operation classification in the Signal catalog contract (#722); no domain branch."
+    },
+    {
+      "term": "readiness",
+      "reason": "Existing numeric readinessScore field role projected by generic Score suffix rules (#722); no domain-specific interpretation."
+    },
+    {
+      "term": "known context",
+      "reason": "Existing generic Case knownContext data contract read under the technical agent principal; no domain-specific context invented."
+    },
+    {
+      "term": "route",
+      "reason": "Generic dispatch terminology in capability routing score metadata and parameters (#730); no domain term or domain-specific branch."
+    },
+    {
+      "term": "entwurf",
+      "reason": "Generic German internal text draft presentation and effect classification, independent of any function domain."
+    },
+    {
+      "term": "dossier",
+      "reason": "Existing personal-agent.answerDossier Knowledge facade and its dossierMarkdown response; no domain branch."
+    },
+    {
+      "term": "situation",
+      "reason": "Generic domain-independent description of the user situation in the fixed understanding schema; no domain branch."
+    },
+    {
+      "term": "fehlende",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "lagebild",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "rollen",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "fachliche",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "interner",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "grounded",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "claims",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "belastbare",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "wunsch",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "schritt",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "clarification",
+      "reason": "Generic pipeline, clarification or analysis vocabulary; no specialist rule or domain-dependent branch."
+    },
+    {
+      "term": "pipeline",
+      "reason": "Generic pipeline, clarification or analysis vocabulary; no specialist rule or domain-dependent branch."
+    },
+    {
+      "term": "analysis",
+      "reason": "Generic pipeline, clarification or analysis vocabulary; no specialist rule or domain-dependent branch."
+    },
+    {
+      "term": "externe",
+      "reason": "Generic boundary for external effects, not a specialist domain term."
+    },
+    {
+      "term": "prompt",
+      "resolverGeneric": true,
+      "reason": "Generic privacy and prompt processing vocabulary; no domain behavior."
+    },
+    {
+      "term": "reversible",
+      "resolverGeneric": true,
+      "reason": "Generic privacy and prompt processing vocabulary; no domain behavior."
+    },
+    {
+      "term": "datum",
+      "resolverGeneric": true,
+      "reason": "Generic date provenance in the required situation schema; no domain-specific behavior."
+    },
+    {
+      "term": "nächste",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "nächstes",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "vorrang",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "annahme",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "daten",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "quellen",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "betrag",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "aussagen",
+      "reason": "Generic claim validation and rendering terminology; no domain-specific rules (#742)."
+    },
+    {
+      "term": "variante",
+      "reason": "Generic conditional draft label and schema description, shared across all domains; never used for domain routing or source selection."
+    },
+    {
+      "term": "thread",
+      "reason": "Generic correspondence and execution-thread terminology; no energy-market meaning or domain routing rule."
+    },
+    {
+      "term": "criterion",
+      "reason": "Generic review criterion index into retrieved evidence; no encoded domain standards."
+    },
+    {
+      "term": "kernaussagen",
+      "reason": "Generic document section summarization requested by issue 754; no domain terminology."
+    },
+    {
+      "term": "maßnahmen",
+      "reason": "Generic document action extraction requested by issue 754; no domain behavior."
+    },
+    {
+      "term": "offen",
+      "reason": "Generic German transparency instruction when review evidence is missing."
+    },
+    {
+      "term": "erfasst",
+      "reason": "Generic document review and evidence processing vocabulary (#754); no domain rules or routing."
+    },
+    {
+      "term": "bewertung",
+      "reason": "Generic document review and evidence processing vocabulary (#754); no domain rules or routing."
+    },
+    {
+      "term": "prüfung",
+      "reason": "Generic document review and evidence processing vocabulary (#754); no domain rules or routing."
+    },
+    {
+      "term": "energie",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "energy",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "leistung",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "modell",
+      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
+    },
+    {
+      "term": "paragraph",
+      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
+    },
+    {
+      "term": "power",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "recovery",
+      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
+    },
+    {
+      "term": "spannung",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "supply",
+      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
+    },
+    {
+      "term": "technical",
+      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
+    },
+    {
+      "term": "voltage",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "volume",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "welcher",
+      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
+    },
+    {
+      "term": "assessment",
+      "reason": "Generic statement commitment and model evaluation schema; no subject-specific rule."
+    },
+    {
+      "term": "wirkung",
+      "reason": "Generic organisational relevance criterion, independent of subject vocabulary."
+    },
+    {
+      "term": "virtual",
+      "reason": "Generic cold-start document-count prior for tenant frequency weighting."
+    },
+    {
+      "term": "gültig",
+      "reason": "Generic statement lifecycle presentation; no domain-specific validity rule."
+    },
+    {
+      "term": "abhängigkeit",
+      "reason": "Generic relationship label evaluated from retrieved knowledge by the model."
+    },
+    {
+      "term": "begründung",
+      "reason": "Generic explanation requirement for a statement relationship."
+    },
+    {
+      "term": "konflikt",
+      "reason": "Generic relationship label, never a domain-specific trigger."
+    },
+    {
+      "term": "unsicherheit",
+      "reason": "Generic uncertainty of model-supported statement relationships."
+    },
+    {
+      "term": "projektion",
+      "reason": "Generic document/evidence response wording and local projection; no domain routing, subject rules or specialist knowledge."
+    },
+    {
+      "term": "datenquelle",
+      "reason": "Generic document/evidence response wording and local projection; no domain routing, subject rules or specialist knowledge."
+    },
+    {
+      "term": "abruf",
+      "reason": "Generic document/evidence response wording and local projection; no domain routing, subject rules or specialist knowledge."
+    },
+    {
+      "term": "pruefung",
+      "reason": "Generic document/evidence response wording and local projection; no domain routing, subject rules or specialist knowledge."
+    },
+    {
+      "term": "lokal",
+      "reason": "Generic document/evidence response wording and local projection; no domain routing, subject rules or specialist knowledge."
+    },
+    {
+      "term": "sheet",
+      "reason": "Generic table/text processing and retrieval output wording; no domain-specific behavior."
+    },
+    {
+      "term": "speicher",
+      "reason": "Generic table/text processing and retrieval output wording; no domain-specific behavior."
+    },
+    {
+      "term": "general",
+      "reason": "Generic table/text processing and retrieval output wording; no domain-specific behavior."
+    },
+    {
+      "term": "treffer",
+      "reason": "Generic table/text processing and retrieval output wording; no domain-specific behavior."
+    }
+  ]
+}

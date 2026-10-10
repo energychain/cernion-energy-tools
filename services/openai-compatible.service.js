@@ -1,10 +1,19 @@
 const crypto = require('crypto');
+const coverageTurn = require('../src/function-coverage-turn');
+const { noticeDeliveryOptions, prependNotice } = require('../src/shared-service-notices');
 const { Errors } = require('moleculer');
 const { CHAT_MODES } = require('../src/personal-agent-routing');
 const llmClient = require('../src/llm-client');
+const { classifyRequestedEffect } = require('../src/operation-capability-classifier');
+const {
+  classifyWorkbenchIntent,
+  resolveWorkbenchFollowup,
+  isReadOnlyIntent,
+  renderWorkbenchResponse,
+} = require('../src/workbench-intent-router');
 
-const FACADE_MODEL = 'cernion-agent-mvp';
-const SUPPORTED_MODELS = new Set([FACADE_MODEL, 'cernion-agent', 'gpt-4o-mini', 'gpt-4o']);
+const { FACADE_MODEL, GOVERNANCE_MODEL, SUPPORTED_MODELS } = require('../src/openai-models');
+const { gatewayForbidden } = require('../src/auth/token-policy');
 const FACADE_IMAGE_MODEL = 'cernion-image-mvp';
 const MAX_IMAGE_COUNT = 4;
 const MAX_IMAGE_PROMPT_LENGTH = 4000;
@@ -58,7 +67,7 @@ function normalizeContent(content) {
   return '';
 }
 
-function normalizeMessages(rawMessages) {
+function normalizeMessages(rawMessages, { preserveDocuments = false } = {}) {
   if (!Array.isArray(rawMessages) || rawMessages.length === 0) {
     throw openAiError('messages must be a non-empty array.', 400, 'messages_required');
   }
@@ -77,7 +86,15 @@ function normalizeMessages(rawMessages) {
     // expected there, not a malformed request.
     const hasToolCalls =
       role === 'assistant' && Array.isArray(message?.tool_calls) && message.tool_calls.length > 0;
-    const content = compactString(normalizeContent(message?.content), 2000);
+    const rawContent = normalizeContent(message?.content);
+    const parsed = preserveDocuments
+      ? require('../src/workbench-document-input').documentInput(rawContent)
+      : null;
+    const content = preserveDocuments
+      ? parsed.documents.length
+        ? rawContent
+        : compactMarkdown(rawContent, require('../src/workbench-thread').maxInputChars())
+      : compactString(normalizeContent(message?.content), 2000);
 
     if (!content && !hasToolCalls) {
       throw openAiError(`messages[${index}].content is required.`, 400, 'message_content_required');
@@ -272,6 +289,11 @@ async function buildToolCallingChatCompletion(ctx, messages, tools, requestedMod
 
 module.exports = {
   name: 'openai-compatible',
+  hooks: {
+    before: { chatCompletions: coverageTurn.before },
+    after: { chatCompletions: coverageTurn.after },
+    error: { chatCompletions: coverageTurn.error },
+  },
 
   actions: {
     chatCompletions: {
@@ -430,16 +452,170 @@ module.exports = {
         // responsible for re-framing that object as buffered SSE chunks when the
         // caller requested stream=true — this action must stay transport-agnostic.
         const requestedModel = String(ctx.params.model || FACADE_MODEL).trim() || FACADE_MODEL;
+        const gateway = ctx.meta.apiToken?.type === 'gateway';
+        if (gateway && requestedModel !== GOVERNANCE_MODEL) gatewayForbidden();
         if (!SUPPORTED_MODELS.has(requestedModel)) {
           throw openAiError(
-            `Unsupported model '${requestedModel}'. Use '${FACADE_MODEL}'.`,
+            `Unsupported model '${requestedModel}'. Use '${FACADE_MODEL}' or '${GOVERNANCE_MODEL}'.`,
             400,
             'model_not_supported'
           );
         }
 
-        const messages = normalizeMessages(ctx.params.messages);
+        const messages = normalizeMessages(ctx.params.messages, {
+          preserveDocuments: requestedModel === GOVERNANCE_MODEL,
+        });
         const tools = normalizeTools(ctx.params.tools);
+        const metadata =
+          ctx.params.metadata && typeof ctx.params.metadata === 'object'
+            ? { ...ctx.params.metadata }
+            : {};
+        if (gateway) {
+          if (metadata.client && metadata.client !== ctx.meta.apiToken.client) gatewayForbidden();
+          metadata.client = ctx.meta.apiToken.client;
+          const tokenOrg = ctx.meta.apiToken.externalOrgId;
+          if (tokenOrg) {
+            if (metadata.openWebuiOrgId != null && metadata.openWebuiOrgId !== tokenOrg)
+              gatewayForbidden();
+            metadata.openWebuiOrgId = tokenOrg;
+          } else {
+            ctx.broker?.logger?.warn(
+              'Legacy gateway token without organization: metadata.openWebuiOrgId is required.'
+            );
+          }
+          const headers = ctx.meta.requestHeaders || {};
+          metadata.openWebuiUserId ??= headers['x-openwebui-user-id'];
+          metadata.openWebuiUserEmail = headers['x-openwebui-user-email'];
+          metadata.openWebuiConversationId ??=
+            metadata.conversationId ?? headers['x-openwebui-chat-id'];
+          if (
+            (!metadata.openWebuiUserId && !metadata.openWebuiUserEmail) ||
+            !metadata.openWebuiOrgId
+          ) {
+            throw openAiError(
+              'Für diesen Nutzer ist noch kein Zugang eingerichtet. Bitte wenden Sie sich an Ihre Administration.',
+              403,
+              'WORKBENCH_MAPPING_REQUIRED'
+            );
+          }
+        } else {
+          // Caller metadata/forwarded headers are never delegated identity without a gateway token.
+          delete metadata.openWebuiUserId;
+          delete metadata.openWebuiOrgId;
+          delete metadata.openWebuiUserEmail;
+        }
+
+        if (requestedModel === GOVERNANCE_MODEL) {
+          const latestUserIndex = findLatestUserMessageIndex(messages);
+          const documentInput = require('../src/workbench-document-input');
+          const rawQuestion = messages[latestUserIndex].content;
+          const parsed = documentInput.documentInput(rawQuestion);
+          const question = parsed.question;
+          const recentMessages = messages.slice(0, latestUserIndex).map((message) => ({
+            ...message,
+            content: documentInput.documentInput(message.content).question,
+          }));
+          const requestedEffect = classifyRequestedEffect(question);
+          const contentOnly =
+            parsed.documents.length > 0 ||
+            documentInput.documentReference(question) ||
+            require('../src/workbench-background-task').backgroundTask(question) ||
+            require('../src/workbench-thread').isDocumentInput(question);
+          let intentMode;
+          if (contentOnly || requestedEffect === 'draft_write') intentMode = 'decision_support';
+          else if (requestedEffect === 'external_effect') intentMode = 'tool_run_request';
+          else
+            intentMode = classifyWorkbenchIntent(question, {
+              cetCaseId: metadata.cetCaseId,
+              recentMessages,
+            });
+          const followup =
+            intentMode === 'knowledge_query'
+              ? resolveWorkbenchFollowup(question, { recentMessages })
+              : null;
+          const sourceAction =
+            isReadOnlyIntent(intentMode) &&
+            intentMode !== 'knowledge_query' &&
+            requestedEffect === 'advisory_plan'
+              ? 'workbench.query'
+              : 'workbench.chat';
+          const workbench = await ctx.call(
+            sourceAction,
+            {
+              client: metadata.client || 'open-webui',
+              channel: 'open-webui',
+              openWebuiConversationId: metadata.openWebuiConversationId || metadata.conversationId,
+              openWebuiUserId: metadata.openWebuiUserId,
+              ...(metadata.openWebuiUserEmail
+                ? { openWebuiUserEmail: metadata.openWebuiUserEmail }
+                : {}),
+              openWebuiOrgId: metadata.openWebuiOrgId,
+              clientId: metadata.clientId,
+              knownContext: metadata.context,
+              messages: recentMessages,
+              message: followup
+                ? `Vorheriges Thema (Gesprächskontext): ${followup.topic}\n${followup.observations.join('\n')}\nAktuelle Rückfrage: ${question}\nBitte erkläre den fachlichen Zusammenhang und die Bedeutung mit nötigen Einschränkungen und benötigten Details.`
+                : rawQuestion,
+              ...(isReadOnlyIntent(intentMode) ? { intentMode } : {}),
+              requestId: metadata.requestId,
+              correlationId: metadata.correlationId,
+              ...(isReadOnlyIntent(intentMode) ? { cetCaseId: metadata.cetCaseId } : {}),
+            },
+            ...noticeDeliveryOptions(ctx, tools)
+          );
+          const rendered = compactMarkdown(
+            renderWorkbenchResponse(workbench, intentMode, followup),
+            workbench.documentReview ? 1000000 : 6000
+          );
+          const content = prependNotice(workbench, rendered);
+          const promptTokens = estimateTokens(question);
+          const completionTokens = estimateTokens(content);
+          return {
+            id: `chatcmpl_${crypto.randomUUID().replace(/-/g, '')}`,
+            object: 'chat.completion',
+            created: Math.floor(Date.now() / 1000),
+            model: GOVERNANCE_MODEL,
+            choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' }],
+            usage: {
+              prompt_tokens: promptTokens,
+              completion_tokens: completionTokens,
+              total_tokens: promptTokens + completionTokens,
+            },
+            metadata: {
+              intentMode,
+              ...workbench.metadata,
+              ...(intentMode === 'system_activity_query' && workbench.resolution
+                ? { resolution: workbench.resolution }
+                : {}),
+              cetCaseId: workbench.cetCaseId,
+              caseStateVersion: workbench.caseStateVersion,
+              primaryDomain: workbench.primaryDomain,
+              readinessState: workbench.readinessState,
+              phaseTimes: workbench.phaseTimes,
+              sources: workbench.sources,
+              pendingEvents:
+                workbench.pendingEvents ??
+                workbench.eventSummary?.unacknowledged ??
+                workbench.eventSummary?.pending ??
+                workbench.events?.length ??
+                0,
+            },
+            cernion: {
+              facade: 'openai-compatible-cet-governed-workbench',
+              sourceAction,
+              intentMode,
+              safety: isReadOnlyIntent(intentMode)
+                ? 'cet_mapped_read_only_query'
+                : 'cet_classify_continue_forced_by_workbench',
+              tenantId:
+                ctx.meta.tenantId ||
+                ctx.meta.authUser?.tenantId ||
+                ctx.meta.apiToken?.tenantId ||
+                null,
+              result: workbench,
+            },
+          };
+        }
 
         // A caller-supplied `tools` array switches to a separate path: a
         // direct call to the configured background LLM (bypassing the
@@ -457,8 +633,6 @@ module.exports = {
         const latestUserIndex = findLatestUserMessageIndex(messages);
         const question = messages[latestUserIndex].content;
         const { promptHints, priorTurns } = buildConversationContext(messages, latestUserIndex);
-        const metadata =
-          ctx.params.metadata && typeof ctx.params.metadata === 'object' ? ctx.params.metadata : {};
 
         const result = await ctx.call('personal-agent.chat', {
           message: question,

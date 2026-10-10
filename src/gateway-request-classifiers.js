@@ -29,8 +29,16 @@ function isOperationsRunbookInvocation(method, requestPath) {
   return ['GET', 'POST'].includes(m);
 }
 
+function isDomainRouterAdvisoryInvocation(method, requestPath) {
+  const m = String(method || '').toUpperCase();
+  const pathOnly = String(requestPath || '').split('?')[0];
+  if (!pathOnly.startsWith('/api/domain-router/')) return false;
+  return ['GET', 'POST'].includes(m);
+}
+
 module.exports = {
   isReadMethod,
   isReadOnlySidecarInvocation,
   isOperationsRunbookInvocation,
+  isDomainRouterAdvisoryInvocation,
 };

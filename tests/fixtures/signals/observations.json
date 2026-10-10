@@ -1,0 +1,29 @@
+{
+  "standing": {
+    "status": "known",
+    "neutralScore": 1,
+    "itemCount": 0,
+    "findings": [],
+    "timestamp": "2026-01-01T00:00:00.000Z"
+  },
+  "contextual": {
+    "status": "needs_context",
+    "neutralScore": 0.4,
+    "blockingFindings": [
+      {
+        "code": "fixture-a",
+        "severity": "high"
+      }
+    ],
+    "timestamp": "2026-01-01T00:00:00.000Z",
+    "signals": [
+      {
+        "signalId": "fixture-context",
+        "label": "status",
+        "kind": "state",
+        "state": "needs_context",
+        "value": "needs_context"
+      }
+    ]
+  }
+}

@@ -187,6 +187,71 @@ describe('Agent Receipts Service', () => {
     expect(typeof archived.data.archivedAt).toBe('string');
   });
 
+  it('seeds CR-LKA-RV-001 receipt profiles as draft RC profiles', async () => {
+    const mako = await broker.call('agent-receipts.get', { id: 'mako-resolution-value-v1' });
+    const asset = await broker.call('agent-receipts.get', { id: 'asset-to-decision-v1' });
+
+    expect(mako.data).toEqual(
+      expect.objectContaining({
+        receiptId: 'mako-resolution-value-v1',
+        status: 'draft',
+        metadata: expect.objectContaining({
+          changeRequest: 'CR-LKA-RV-001',
+          candidateId: 'CRC001',
+          workedExample: 'mako_m2c_resolution_value',
+          rcTarget: 'v1.0',
+        }),
+      })
+    );
+    expect(mako.data.forbiddenInferences).toEqual(
+      expect.arrayContaining([
+        'send_market_partner_reply',
+        'change_master_data',
+        'approve_invoice',
+        'state_final_cashflow_amount',
+        'claim_final_revenue_without_evidence',
+      ])
+    );
+
+    expect(asset.data).toEqual(
+      expect.objectContaining({
+        receiptId: 'asset-to-decision-v1',
+        status: 'draft',
+        metadata: expect.objectContaining({
+          changeRequest: 'CR-LKA-RV-001',
+          candidateId: 'CRC004',
+          workedExample: 'asset_to_decision',
+          rcTarget: 'v1.0',
+        }),
+      })
+    );
+    expect(asset.data.forbiddenInferences).toEqual(
+      expect.arrayContaining([
+        'recommend_final_investment_decision',
+        'state_budget_commitment',
+        'mark_committee_ready',
+        'claim_committee_ready_without_evidence',
+      ])
+    );
+
+    const draftList = await broker.call('agent-receipts.list', {
+      status: 'draft',
+      tag: 'cr-lka-rv-001',
+      limit: 200,
+    });
+    const seededIds = draftList.data.map((entry) => entry.receiptId);
+    expect(seededIds).toEqual(
+      expect.arrayContaining(['mako-resolution-value-v1', 'asset-to-decision-v1'])
+    );
+
+    await expect(
+      broker.call('agent-receipts.select', {
+        forceReceipt: 'mako-resolution-value-v1',
+        message: 'APERAK Klärfall mit Abrechnung prüfen',
+      })
+    ).rejects.toMatchObject({ type: 'RECEIPT_DRAFT_NOT_ALLOWED' });
+  });
+
   it('hides archived receipts by default in list', async () => {
     await broker.call(
       'agent-receipts.create',
@@ -771,6 +836,37 @@ describe('Agent Receipts Service', () => {
     expect(withDrafts.data.selected).toBe(true);
     expect(withDrafts.data.mode).toBe('preferred');
     expect(withDrafts.data.receiptId).toBe('preferred-draft-v1');
+  });
+
+  it('prefers a ready first step on equal match scores even when the blocked receipt comes first', async () => {
+    const service = broker.getLocalService('agent-receipts');
+    const load = service.loadSelectableReceipts.bind(service);
+    const ordering = jest
+      .spyOn(service, 'loadSelectableReceipts')
+      .mockImplementation(async (options) =>
+        (await load(options)).sort((left, right) => left.receiptId.localeCompare(right.receiptId))
+      );
+    try {
+      for (const input of [
+        { message: 'Wer ist der Netzbetreiber?', knownContext: { city: 'Synthetic Town' } },
+        {
+          context: {
+            question: 'Wer ist der Netzbetreiber?',
+            knownContext: { city: 'Synthetic Town' },
+          },
+        },
+      ]) {
+        const result = await broker.call('agent-receipts.select', {
+          ...input,
+          includeEvaluation: true,
+        });
+        expect(result.data.receiptId).toBe('vnb-resolution-chain-v1');
+        expect(result.data.evaluation.plannedToolCalls[0].status).toBe('ready');
+        expect(result.data.evaluation.plannedToolCalls[1].status).toBe('scope-blocked');
+      }
+    } finally {
+      ordering.mockRestore();
+    }
   });
 
   // v0.54.6: city-only queries select vnb-resolution-chain-v1 (2-step resolution workflow)

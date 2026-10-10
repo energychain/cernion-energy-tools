@@ -1,0 +1,5 @@
+openpyxl==3.1.5
+et-xmlfile==2.0.0
+jsonschema==4.10.3
+attrs==23.2.0
+pyrsistent==0.20.0

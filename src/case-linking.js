@@ -1,0 +1,123 @@
+'use strict';
+
+const fs = require('node:fs');
+const { deny, visible } = require('./domain-router-policy');
+
+// Types and comparison rules are deployment data, never a domain vocabulary.
+function normalizeIdentifiers(entries = [], types = {}) {
+  if (!Array.isArray(entries) || entries.length > 20) deny('Invalid typed identifiers');
+  const result = new Map();
+  for (const entry of entries) {
+    const kind = entry?.kind || entry?.type;
+    if (typeof kind !== 'string' || typeof entry.value !== 'string')
+      deny('Invalid typed identifier');
+    const type = kind.normalize('NFKC').trim().toLowerCase();
+    const rules = types[type] || {};
+    let value = entry.value.normalize('NFKC').trim();
+    if (rules.stripWhitespace) value = value.replace(/\s+/gu, '');
+    if (rules.caseFold) value = value.toLowerCase();
+    if (!type || type.length > 100 || !value || value.length > 256)
+      deny('Invalid typed identifier');
+    result.set(JSON.stringify([type, value]), { kind: type, value });
+  }
+  return [...result.values()];
+}
+
+function matchingIdentifiers(source, target, types = {}) {
+  const { strongIdentifiers } = require('./case-continuation');
+  const keys = new Set((target.typedIdentifiers || []).map((id) => JSON.stringify(id)));
+  return strongIdentifiers(source.typedIdentifiers || [], types).filter((id) =>
+    keys.has(JSON.stringify(id))
+  );
+}
+
+function tenantCasePolicy(tenantId, registryFile) {
+  const tenants = fs.existsSync(registryFile)
+    ? JSON.parse(fs.readFileSync(registryFile, 'utf8'))
+    : [];
+  const policy = tenants.find((tenant) => tenant.tenantId === tenantId)?.sharedService || {};
+  const caseVisibility = policy.caseVisibility ?? 'tenant';
+  if (!['own', 'team', 'tenant'].includes(caseVisibility)) deny('Invalid case visibility');
+  // Legacy own/team settings remain readable but no longer divide a tenant's cases.
+  return { caseVisibility: 'tenant', identifierTypes: policy.identifierTypes || {} };
+}
+
+function rawContentAllowed(p, state) {
+  return visible(p, state);
+}
+
+function caseDescription(state) {
+  if (state.caseDescription) return state.caseDescription;
+  const situation = state.knownContext?.situation || {};
+  const title = [situation.title, situation.concern, situation.situation].find(
+    (text) =>
+      text &&
+      !/^(?:der|die) (?:nutzer|nutzerin|person) (?:fragt|möchte|will|bittet)/iu.test(text.trim())
+  );
+  const references = (state.typedIdentifiers || situation.identifiers || [])
+    .map(({ value }) => value)
+    .join(', ');
+  return [title || 'Vorgang', references].filter(Boolean).join(' · ').slice(0, 600);
+}
+
+function caseSummary(state) {
+  return {
+    caseId: state.cetCaseId,
+    cetCaseId: state.cetCaseId,
+    summary: caseDescription(state),
+    updatedAt: state.updatedAt,
+    lastEditedBy: state.lastEditedBy,
+    status: state.lastClassification?.readinessState || 'unknown',
+    responsible: [state.actorId],
+    identifiers: state.typedIdentifiers || [],
+  };
+}
+
+function identifierQueryMatches(state, query, types = {}) {
+  const text = String(query || '').normalize('NFKC');
+  return (state.typedIdentifiers || []).some(({ kind, value }) => {
+    const rules = types[kind] || {};
+    const comparable = rules.caseFold ? text.toLowerCase() : text;
+    const slash = String.fromCharCode(92);
+    const escaped = [...value]
+      .map((character) =>
+        '.*+?^${}()|[]'.includes(character) || character === slash ? slash + character : character
+      )
+      .join(rules.stripWhitespace ? slash + 's*' : '');
+    for (const match of comparable.matchAll(new RegExp(escaped, 'gu'))) {
+      const before = comparable[match.index - 1] || '';
+      const afterIndex = match.index + match[0].length;
+      const after = comparable[afterIndex] || '';
+      // Complete references, including values containing whitespace or punctuation.
+      // A typed prefix must match; it cannot be ignored as an untyped reference.
+      if (before === ':') {
+        const prefix = comparable.slice(0, match.index - 1).match(/(?:^|\s)([^\s:]+)$/u)?.[1];
+        if (prefix?.normalize('NFKC').toLowerCase() !== kind) continue;
+      } else if (/[\p{L}\p{N}_:./-]/u.test(before)) continue;
+      const sentenceEnd =
+        after === '.' && (!comparable[afterIndex + 1] || /\s/u.test(comparable[afterIndex + 1]));
+      if (/[\p{L}\p{N}_:./-]/u.test(after) && !sentenceEnd) continue;
+      return true;
+    }
+    return false;
+  });
+}
+
+function relatedCaseSentence(items) {
+  const { caseLabel } = require('./case-continuation');
+  const related = items.filter((item) => item.relationshipType === 'same_subject').slice(0, 3);
+  return related.length
+    ? `Zu diesen Kennungen gibt es bereits ${related.map(caseLabel).join('; ')}.`
+    : '';
+}
+
+module.exports = {
+  normalizeIdentifiers,
+  matchingIdentifiers,
+  tenantCasePolicy,
+  rawContentAllowed,
+  caseSummary,
+  caseDescription,
+  identifierQueryMatches,
+  relatedCaseSentence,
+};

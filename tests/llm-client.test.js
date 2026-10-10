@@ -87,6 +87,24 @@ describe('llm-client provider abstraction', () => {
     llmClient = require('../src/llm-client');
   }
 
+  test.each(['generateText', 'generateStructured', 'generateImage', 'generateChat'])(
+    '%s scrubs JSON values without damaging escaped newlines or keys',
+    async (method) => {
+      const prompt = JSON.stringify({ 'alice@example.org': { text: 'Zeile\nalice@example.org' } });
+      const options = { provider: 'gemini' };
+      if (method === 'generateStructured') await llmClient[method]({}, prompt, options);
+      else if (method === 'generateChat')
+        await llmClient[method]([{ role: 'user', content: prompt }], options);
+      else await llmClient[method](prompt, options);
+      const args = geminiAdapter[method].mock.calls[0];
+      const wire =
+        method === 'generateChat'
+          ? args[0][0].content
+          : args[method === 'generateStructured' ? 1 : 0];
+      const safe = JSON.parse(wire);
+      expect(safe['alice@example.org'].text).toBe('Zeile\n[EMAIL-MASKED]');
+    }
+  );
   beforeEach(() => {
     process.env = { ...envBackup };
     delete process.env.LLM_PROVIDER;
@@ -169,6 +187,19 @@ describe('llm-client provider abstraction', () => {
 
     expect(result).toEqual({ fallback: true });
     expect(geminiAdapter.generateText).toHaveBeenCalled();
+  });
+
+  it('strict per-turn budget skips fallback and makes only one provider request', async () => {
+    const failure = new Error('schema failed');
+    geminiAdapter.generateStructured.mockRejectedValueOnce(failure);
+    await expect(
+      llmClient.generateStructured({ type: 'object' }, 'test', {
+        maxRetries: 1,
+        structuredFallback: false,
+      })
+    ).rejects.toBe(failure);
+    expect(geminiAdapter.generateStructured).toHaveBeenCalledTimes(1);
+    expect(geminiAdapter.generateText).not.toHaveBeenCalled();
   });
 
   it('returns capability matrix for provider', () => {
@@ -311,5 +342,100 @@ describe('llm-client provider abstraction', () => {
       }
     );
     expect(ollamaAdapter.generateChat).not.toHaveBeenCalled();
+  });
+  test.each(['generateText', 'generateStructured'])(
+    'budgeted %s retries provider 429 once using retryAfter',
+    async (method) => {
+      jest.useFakeTimers();
+      const failure = Object.assign(new Error('quota'), { status: 429, retryAfter: 0.1 });
+      geminiAdapter[method]
+        .mockRejectedValueOnce(failure)
+        .mockResolvedValueOnce(method === 'generateText' ? 'ok' : '{"ok":true}');
+      const options = { transientRecovery: true, timeoutMs: 1000, structuredFallback: false };
+      const pending =
+        method === 'generateText'
+          ? llmClient[method]('ping', options)
+          : llmClient[method]({}, 'ping', options);
+      await jest.advanceTimersByTimeAsync(99);
+      expect(geminiAdapter[method]).toHaveBeenCalledTimes(1);
+      await jest.advanceTimersByTimeAsync(1);
+      await pending;
+      expect(geminiAdapter[method]).toHaveBeenCalledTimes(2);
+      expect(geminiAdapter[method].mock.calls[1].at(-1).timeoutMs).toBeLessThanOrEqual(900);
+      jest.useRealTimers();
+    }
+  );
+
+  test.each([429, 503, 504])(
+    'provider %s uses configured fallback inside same budget without workbench retries',
+    async (status) => {
+      const primary = 'configured-primary';
+      const secondary = 'configured-secondary';
+      geminiAdapter.generateText
+        .mockRejectedValueOnce(
+          Object.assign(new Error('provider failed'), { status, retryAfter: 90 })
+        )
+        .mockResolvedValueOnce('recovered');
+      const onRecovery = jest.fn();
+      expect(
+        await llmClient.generateText('ping', {
+          model: primary,
+          fallbackModel: secondary,
+          transientRecovery: true,
+          timeoutMs: 1000,
+          onRecovery,
+        })
+      ).toBe('recovered');
+      expect(geminiAdapter.generateText).toHaveBeenCalledTimes(2);
+      expect(geminiAdapter.generateText.mock.calls[1][1]).toMatchObject({ model: secondary });
+      expect(onRecovery).toHaveBeenCalledWith({ reason: expect.any(String) });
+    }
+  );
+
+  test('out-of-budget retryAfter without fallback fails immediately and authentication never switches model', async () => {
+    const failure = Object.assign(new Error('quota'), { status: 429, data: { retryAfter: 60 } });
+    geminiAdapter.generateText.mockRejectedValueOnce(failure);
+    await expect(
+      llmClient.generateText('ping', { transientRecovery: true, timeoutMs: 500 })
+    ).rejects.toBe(failure);
+    expect(geminiAdapter.generateText).toHaveBeenCalledTimes(1);
+    geminiAdapter.generateText
+      .mockClear()
+      .mockRejectedValueOnce(Object.assign(new Error('auth'), { status: 401 }));
+    await expect(
+      llmClient.generateText('ping', {
+        transientRecovery: true,
+        fallbackModel: 'configured-secondary',
+        timeoutMs: 500,
+      })
+    ).rejects.toMatchObject({ status: 401 });
+    expect(geminiAdapter.generateText).toHaveBeenCalledTimes(1);
+  });
+
+  test('timeout reserves remaining budget for fallback; fallback failure is terminal', async () => {
+    jest.useFakeTimers();
+    geminiAdapter.generateText
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockResolvedValueOnce('recovered');
+    const pending = llmClient.generateText('ping', {
+      transientRecovery: true,
+      fallbackModel: 'configured-secondary',
+      timeoutMs: 1000,
+    });
+    await jest.advanceTimersByTimeAsync(500);
+    expect(await pending).toBe('recovered');
+    expect(geminiAdapter.generateText.mock.calls[1][1].timeoutMs).toBeLessThanOrEqual(500);
+    jest.useRealTimers();
+    geminiAdapter.generateText
+      .mockReset()
+      .mockRejectedValue(Object.assign(new Error('down'), { status: 503 }));
+    await expect(
+      llmClient.generateText('ping', {
+        transientRecovery: true,
+        fallbackModel: 'configured-secondary',
+        timeoutMs: 1000,
+      })
+    ).rejects.toMatchObject({ status: 503 });
+    expect(geminiAdapter.generateText).toHaveBeenCalledTimes(2);
   });
 });

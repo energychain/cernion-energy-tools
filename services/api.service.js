@@ -16,19 +16,24 @@ const metrics = require('../src/metrics');
 const rateQuotaStore = require('../src/rate-quota-store');
 const tracing = require('../src/tracing');
 const { mergeObservabilityContext } = require('../src/observability-context');
-const { hasRole, mapRolesFromLegacyToken } = require('../src/auth/rbac');
+const { rolesFromToken, gatewayForbidden } = require('../src/auth/token-policy');
+const { SUPPORTED_MODELS, GOVERNANCE_MODEL } = require('../src/openai-models');
+const { hasRole } = require('../src/auth/rbac');
 const { validateTenantId, isTenantAllowed } = require('../src/tenant-context');
 const {
   isReadMethod,
   isReadOnlySidecarInvocation,
   isOperationsRunbookInvocation,
+  isDomainRouterAdvisoryInvocation,
 } = require('../src/gateway-request-classifiers');
 const { createMcpHttpHandlers } = require('../src/mcp-transport');
 const { createOAuthHttpHandlers } = require('../src/oauth-server');
+const { serveAiCatalog, advertiseAiCatalog } = require('../src/ai-catalog');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 const CONTENT_TYPE_HEADER = 'Content-Type';
 const CONTENT_TYPE_JSON = 'application/json; charset=utf-8';
+const OPENAI_COMPAT_BODY_LIMIT = process.env.OPENAI_COMPAT_BODY_LIMIT || '16MB';
 const ALLOWED_UPLOAD_EXTENSIONS = new Set([
   '.csv',
   '.tsv',
@@ -556,6 +561,26 @@ function buildOpenAiErrorBody(err) {
   };
 }
 
+function handleOpenAiRouteError(req, res, err) {
+  if (res.headersSent) return;
+  if (err?.type === 'entity.too.large' || resolveHttpStatus(err) === 413) {
+    const sizeBytes = Number(err.length ?? err.received ?? req.headers?.['content-length']);
+    this.logger.warn('OpenAI-Anfrage überschreitet das Body-Limit', {
+      sizeBytes: Number.isSafeInteger(sizeBytes) && sizeBytes >= 0 ? sizeBytes : null,
+      limitBytes: err.limit ?? null,
+      configuredLimit: OPENAI_COMPAT_BODY_LIMIT,
+    });
+    err = new Errors.MoleculerClientError(
+      `Die Datei oder der Chat-Kontext ist zu groß. Die aktuelle Grenze beträgt ${OPENAI_COMPAT_BODY_LIMIT}. Bitte teile die Datei auf, sende einen kleineren Ausschnitt oder starte einen neuen Chat mit weniger Verlauf.`,
+      413,
+      'request_body_too_large'
+    );
+  }
+  res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
+  res.writeHead(resolveHttpStatus(err));
+  res.end(JSON.stringify(buildOpenAiErrorBody(err)));
+}
+
 async function buildOpenAiFacadeMeta(service, req, facadePath = '/v1/chat/completions') {
   const authHeader = req?.headers?.authorization || req?.headers?.Authorization;
   const bearerToken =
@@ -605,6 +630,7 @@ async function buildOpenAiFacadeMeta(service, req, facadePath = '/v1/chat/comple
     });
 
     if (!verification?.valid) {
+      if (verification?.reason === 'GATEWAY_TOKEN_FORBIDDEN') gatewayForbidden();
       throw new Errors.MoleculerClientError(
         'Invalid or revoked API token.',
         401,
@@ -621,11 +647,20 @@ async function buildOpenAiFacadeMeta(service, req, facadePath = '/v1/chat/comple
       );
     }
 
-    const roles = mapRolesFromLegacyToken(verification.scope, verification.scopes);
-    enforceRbacForPath(roles, req?.method || 'POST', '/api/copilot/ask-cernion-agent');
+    const roles = rolesFromToken(verification);
+    if (verification.type !== 'gateway') {
+      enforceRbacForPath(roles, req?.method || 'POST', '/api/copilot/ask-cernion-agent');
+    }
     addLegacyTokenDeprecationHeaders({ meta });
     meta.apiToken = {
       id: verification.tokenId,
+      ...(verification.type
+        ? {
+            type: verification.type,
+            client: verification.client,
+            externalOrgId: verification.externalOrgId,
+          }
+        : {}),
       name: verification.name,
       scope: verification.scope,
       scopes: verification.scopes || [],
@@ -716,9 +751,28 @@ function buildOpenAiStreamChunks(response) {
   const finishReason = choice?.finish_reason || 'stop';
   const base = { id, object: 'chat.completion.chunk', created, model };
 
+  const noticeBlock = response?.cernion?.result?.noticeBlock;
+  const prefix =
+    typeof noticeBlock === 'string' && noticeBlock && content.startsWith(noticeBlock)
+      ? noticeBlock + (content.startsWith(`${noticeBlock}\n\n`) ? '\n\n' : '')
+      : '';
   return [
-    { ...base, choices: [{ index: 0, delta: { role: 'assistant' }, finish_reason: null }] },
-    { ...base, choices: [{ index: 0, delta: { content }, finish_reason: null }] },
+    {
+      ...base,
+      choices: [
+        {
+          index: 0,
+          delta: { role: 'assistant', ...(prefix ? { content: prefix } : {}) },
+          finish_reason: null,
+        },
+      ],
+    },
+    {
+      ...base,
+      choices: [
+        { index: 0, delta: { content: content.slice(prefix.length) }, finish_reason: null },
+      ],
+    },
     { ...base, choices: [{ index: 0, delta: {}, finish_reason: finishReason }] },
   ];
 }
@@ -846,24 +900,35 @@ async function handleOpenAiEmbeddings(req, res) {
 // Static OpenAPI-compatible model catalog for GET /v1/models. Intentionally
 // unauthenticated: OpenWebUI (and similar clients) call model discovery before
 // a user has necessarily supplied a working token, and the catalog is fixed,
-// non-tenant, non-secret metadata — the same shape every caller gets. Actual
+// non-tenant, non-secret metadata. Gateway discovery filters it to the governance model. Actual
 // completions still require a valid Cernion token via handleOpenAiChatCompletions.
 const OPENAI_MODEL_CATALOG = Object.freeze({
   object: 'list',
-  data: [
+  data: [...SUPPORTED_MODELS].map((id) =>
     Object.freeze({
-      id: 'cernion-agent-mvp',
+      id,
       object: 'model',
       created: 1700000000,
       owned_by: 'cernion',
-    }),
-  ],
+    })
+  ),
 });
 
-function handleOpenAiModels(req, res) {
+async function handleOpenAiModels(req, res) {
+  const token = extractRawToken(req);
+  const verification = token?.startsWith('ck_')
+    ? await this.broker.call('token-manager.verify', { token, method: 'GET', path: '/v1/models' })
+    : null;
+  const catalog =
+    verification?.valid && verification.type === 'gateway'
+      ? {
+          ...OPENAI_MODEL_CATALOG,
+          data: OPENAI_MODEL_CATALOG.data.filter((model) => model.id === GOVERNANCE_MODEL),
+        }
+      : OPENAI_MODEL_CATALOG;
   res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
   res.writeHead(200);
-  res.end(JSON.stringify(OPENAI_MODEL_CATALOG));
+  res.end(JSON.stringify(catalog));
 }
 
 function requiresHitlApproverRole(method, requestPath) {
@@ -950,11 +1015,39 @@ function enforceRbacForPath(roles, method, requestPath) {
     !isSessionSelfServiceEndpoint &&
     !isReadOnlySidecarInvocation(m, requestPath) &&
     !isChatgptSidecarTicketInvocation(m, requestPath) &&
-    !isOperationsRunbookInvocation(m, requestPath)
+    !isOperationsRunbookInvocation(m, requestPath) &&
+    !isDomainRouterAdvisoryInvocation(m, requestPath)
   ) {
     if (!hasRole(roles, 'full-access')) {
       throw new Errors.MoleculerClientError('Role required: full-access.', 403, 'ROLE_REQUIRED');
     }
+  }
+}
+
+// Route middleware also covers raw MCP/sidecar handlers, which bypass onBeforeCall.
+// Existing MCP auth and sidecar code remain responsible for every non-gateway token.
+async function restrictGatewayTransport(req, _res, next) {
+  try {
+    if (normalizeRequestPath(req) === '/api/token-manager/createCli') {
+      throw new Errors.MoleculerClientError(
+        'Token provisioning requires the local CLI.',
+        403,
+        'TOKEN_CLI_REQUIRED'
+      );
+    }
+    const token = extractRawToken(req);
+    if (token?.startsWith('ck_')) {
+      const verification = await this.broker.call('token-manager.verify', {
+        token,
+        method: req.method,
+        path: normalizeRequestPath(req),
+        trackUsage: false,
+      });
+      if (verification.reason === 'GATEWAY_TOKEN_FORBIDDEN') gatewayForbidden();
+    }
+    next();
+  } catch (error) {
+    next(error);
   }
 }
 
@@ -967,7 +1060,7 @@ module.exports = {
 
     ip: '0.0.0.0',
 
-    use: [],
+    use: [restrictGatewayTransport],
 
     // OpenAPI settings
     openapi: {
@@ -1288,7 +1381,7 @@ module.exports = {
 
         whitelist: [],
 
-        use: [],
+        use: [advertiseAiCatalog],
 
         mergeParams: true,
 
@@ -1299,6 +1392,8 @@ module.exports = {
         autoAliases: true,
 
         aliases: {
+          'GET /.well-known/ai-catalog.json': serveAiCatalog,
+          'GET /.well-known/ard.json': serveAiCatalog,
           'GET /'(req, res) {
             res.writeHead(302, { Location: '/api/docs' });
             res.end();
@@ -1475,14 +1570,16 @@ module.exports = {
           'GET /models': handleOpenAiModels,
         },
 
+        onError: handleOpenAiRouteError,
+
         bodyParsers: {
           json: {
             strict: false,
-            limit: '1MB',
+            limit: OPENAI_COMPAT_BODY_LIMIT,
           },
           urlencoded: {
             extended: true,
-            limit: '1MB',
+            limit: OPENAI_COMPAT_BODY_LIMIT,
           },
         },
       },
@@ -1523,7 +1620,6 @@ module.exports = {
         autoAliases: true,
 
         aliases: {
-          'POST /blindflug-radar/scan': 'v1.blindflug-radar.scan',
           'GET /openapi.json': 'api.openapi',
           'GET /openapi-copilot.json': 'api.openapiCopilot',
           'GET /docs'(req, res) {
@@ -1874,6 +1970,15 @@ module.exports = {
           'DELETE /companies/:id': 'company.delete',
           // Dashboard API (v0.19+) — UI-optimised aggregate endpoints
           // Agent Sidecar (v0.64+) — curated OpenClaw-safe tool facade
+          'POST /domain-router/classify': 'domain-router.classify',
+          'POST /domain-router/continue': 'domain-router.continue',
+          'POST /domain-router/explain': 'domain-router.explain',
+          'GET /domain-router/events': 'domain-router.events.list',
+          'POST /domain-router/events/:eventId/ack': 'domain-router.events.ack',
+          'POST /domain-router/cases/:caseId/related-sessions/discover':
+            'domain-router.related-sessions.discover',
+          'POST /domain-router/cases/:caseId/related-sessions/link':
+            'domain-router.related-sessions.link',
           'GET /agent-sidecar/tools': 'agent-sidecar.listTools',
           'POST /agent-sidecar/tools/:name/call': 'agent-sidecar.callTool',
           'GET /agent-sidecar/descriptor': 'agent-sidecar.descriptor',
@@ -2720,6 +2825,7 @@ module.exports = {
               });
 
               if (!verification?.valid) {
+                if (verification?.reason === 'GATEWAY_TOKEN_FORBIDDEN') gatewayForbidden();
                 if (verification?.reason === 'SCOPE_VIOLATION') {
                   throw new Errors.MoleculerClientError(
                     'Scope violation: read-only token cannot call this endpoint.',
@@ -2759,7 +2865,7 @@ module.exports = {
                 );
               }
 
-              const roles = mapRolesFromLegacyToken(verification.scope, verification.scopes);
+              const roles = rolesFromToken(verification);
               enforceRbacForPath(roles, req?.method, requestPath);
               addLegacyTokenDeprecationHeaders(ctx);
 

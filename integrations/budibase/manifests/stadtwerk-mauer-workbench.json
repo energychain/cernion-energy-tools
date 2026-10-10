@@ -14110,6 +14110,146 @@
         "batchId": { "type": "string" },
         "sourceClass": { "type": "string" }
       }
+    },
+    {
+      "name": "getDomainCaseRoutingAttentionSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-workbench-selected-target",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&targetId=domain-case-routing-attention",
+      "parameters": [
+        { "name": "tenantId", "default": "stadtwerk-mauer" },
+        { "name": "caseId", "default": "smm-budibase-workbench" }
+      ],
+      "transformer": "const tenantId=String(data.tenantId||'stadtwerk-mauer'); const caseId=String(data.caseId||'smm-budibase-workbench'); const sandboxBoundaryAllowed=data.sandboxBoundaryAllowed!==false; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:domain-case-routing-attention-panel',roleTarget:'ROLE_PROCESS_OWNER',caseId,tenantId,sourceClass:'domain_case_routing_attention_selector'}; return [{...base,rowKey:'domain_case_routing_attention_cet_case_id',label:'Selected case (cetCaseId)',value:'cet-case-smm-budibase-workbench-001',status:sandboxBoundaryAllowed?'selected':'blocked_outside_sandbox_tenant',dataClass:'synthetic_tenant_seed'},{...base,rowKey:'domain_case_routing_attention_linked_workbench_case',label:'Linked Workbench case',value:caseId,status:sandboxBoundaryAllowed?'bound':'blocked_outside_sandbox_tenant',dataClass:'synthetic_tenant_seed'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "caseId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "status": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDomainCaseRoutingAttentionSummaryRows",
+      "method": "POST",
+      "path": "/api/domain-router/explain",
+      "parameters": [
+        { "name": "tenantId", "default": "stadtwerk-mauer" }
+      ],
+      "body": {
+        "cetCaseId": "cet-case-smm-budibase-workbench-001",
+        "tenantId": "stadtwerk-mauer"
+      },
+      "transformer": "const known=(data&&typeof data==='object')?data:{}; if(known.type==='DOMAIN_ROUTER_POLICY_BLOCKED'||known.code===403||known.name==='MoleculerClientError'){return [];} const cetCaseId=String(known.cetCaseId||'cet-case-smm-budibase-workbench-001'); const caseStateVersion=known.caseStateVersion!=null?String(known.caseStateVersion):'not_yet_classified'; const activeDomain=String(known.primaryDomain||'unknown_pending_first_classification'); const transition=known.transition||{}; const transitionType=String(transition.type||'fallback'); const transitionReason=String(transition.reason||'No persisted routing decision yet for this synthetic case; advisory explain readback only.'); const readinessState=String(known.readinessState||'clarification'); const nextSafeStep=String(known.nextSafeStep||'Collect missing evidence and request responsible owner review'); const base={renderTarget:'budibase:stadtwerk-mauer-workbench:domain-case-routing-attention-panel',roleTarget:'ROLE_PROCESS_OWNER',cetCaseId,caseStateVersion,effectClass:'advisory_reasoning',safety:'advisory_readback_only',dataClass:'synthetic_tenant_seed',sourceClass:'domain_case_routing_attention_summary'}; return [{...base,rowKey:'domain_case_routing_attention_case_state',label:'cetCaseId / caseStateVersion',value:cetCaseId+' / v'+caseStateVersion},{...base,rowKey:'domain_case_routing_attention_active_domain',label:'Active domain',value:activeDomain},{...base,rowKey:'domain_case_routing_attention_last_decision',label:'Last routing decision ('+transitionType+')',value:transitionReason,dataClass:'advisory_reasoning'},{...base,rowKey:'domain_case_routing_attention_next_gate',label:'Next safe gate ('+readinessState+')',value:nextSafeStep,dataClass:'advisory_reasoning'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "cetCaseId": { "type": "string" },
+        "caseStateVersion": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "effectClass": { "type": "string" },
+        "safety": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDomainCaseRoutingAttentionEvidenceGapRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-detail",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        { "name": "tenantId", "default": "stadtwerk-mauer" },
+        { "name": "caseId", "default": "smm-budibase-workbench" }
+      ],
+      "transformer": "const found=data.found!==false&&data.sandboxBoundaryAllowed!==false; const missing=Array.isArray(data.missingEvidence)?data.missingEvidence:[]; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:domain-case-routing-attention-panel',roleTarget:'ROLE_PROCESS_OWNER',caseId:String(data.caseId||'smm-budibase-workbench'),sourceClass:'domain_case_routing_attention_evidence_gap'}; if(!found){return [{...base,rowKey:'domain_case_routing_attention_evidence_gap_blocked',label:'Evidence/Owner gap',value:'select the synthetic stadtwerk-mauer tenant and case before rendering evidence/owner gaps',state:'clarification',dataClass:'synthetic_tenant_seed'}];} if(!missing.length){return [{...base,rowKey:'domain_case_routing_attention_evidence_gap_none',label:'Evidence/Owner gap',value:'no open evidence gap on the selected synthetic case; human review may still be required',state:'human_review_required',dataClass:'advisory_reasoning'}];} return missing.map((item,index)=>({...base,rowKey:'domain_case_routing_attention_evidence_gap_'+(index+1),label:String(item.missingDataPoint||'evidence_gap'),value:String(item.enablesDossierAddition||'positive clarification required'),state:'clarification',dataClass:String(item.dataClass||'synthetic_tenant_seed')}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "caseId": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "state": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDomainCaseRoutingAttentionRelatedCaseRows",
+      "method": "POST",
+      "path": "/api/domain-router/cases/cet-case-smm-budibase-workbench-001/related-sessions/discover",
+      "parameters": [
+        { "name": "tenantId", "default": "stadtwerk-mauer" }
+      ],
+      "body": {
+        "tenantId": "stadtwerk-mauer"
+      },
+      "transformer": "const known=(data&&typeof data==='object')?data:{}; if(known.type==='DOMAIN_ROUTER_POLICY_BLOCKED'||known.code===403||known.name==='MoleculerClientError'){return [];} const relatedCases=Array.isArray(known.relatedCases)?known.relatedCases:[]; const relatedSessions=Array.isArray(known.relatedSessions)?known.relatedSessions:[]; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:domain-case-routing-attention-panel',roleTarget:'ROLE_PROCESS_OWNER',safeNextAction:'inspect_evidence_pointer_only_no_auto_link',sourceClass:'domain_case_routing_attention_related_case'}; const caseRows=relatedCases.map((item,index)=>({...base,rowKey:'domain_case_routing_attention_related_case_'+(index+1),kind:'related_case_evidence_pointer',label:String(item.cetCaseId||'related-case-'+(index+1)),relationshipType:String(item.relationshipType||'same_process'),confidence:item.confidence!=null?String(item.confidence):'',reason:String(item.reason||''),dataClass:'synthetic_tenant_seed'})); const sessionRows=relatedSessions.map((item,index)=>({...base,rowKey:'domain_case_routing_attention_related_session_'+(index+1),kind:'related_session_evidence_pointer',label:String(item.agentSessionId||'related-session-'+(index+1)),relationshipType:String(item.relationshipType||'same_process'),confidence:item.confidence!=null?String(item.confidence):'',reason:String(item.reason||''),dataClass:'sandbox_runtime_artifact'})); const rows=caseRows.concat(sessionRows); return rows.length?rows:[{...base,rowKey:'domain_case_routing_attention_related_case_none',kind:'no_related_case_found',label:'No authorized related case found yet',relationshipType:'',confidence:'',reason:'discover found no matched process/session identifiers for this synthetic case',dataClass:'synthetic_tenant_seed'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "kind": { "type": "string" },
+        "label": { "type": "string" },
+        "relationshipType": { "type": "string" },
+        "confidence": { "type": "string" },
+        "reason": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDomainCaseRoutingAttentionRoleFamilyRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-role-workbench-catalog",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        { "name": "tenantId", "default": "stadtwerk-mauer" },
+        { "name": "caseId", "default": "smm-budibase-workbench" }
+      ],
+      "transformer": "const rows=Array.isArray(data.roleRows)?data.roleRows:[]; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:domain-case-routing-attention-panel',sourceClass:'domain_case_routing_attention_role_family'}; if(!rows.length){return [{...base,rowKey:'domain_case_routing_attention_role_family_unavailable',roleTarget:'ROLE_PROCESS_OWNER',label:'Responsible role family',value:'select the synthetic stadtwerk-mauer tenant before rendering role-family ownership',status:'clarification',dataClass:'synthetic_tenant_seed'}];} return rows.map((role,index)=>({...base,rowKey:'domain_case_routing_attention_role_family_'+(index+1),roleTarget:String(role.roleKey||'ROLE_PROCESS_OWNER'),label:String(role.label||role.roleKey||'role'),value:String(role.readinessLabel||role.status||'unknown'),status:String(role.status||'unknown'),dataClass:'synthetic_tenant_seed'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "status": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDomainCaseRoutingAttentionNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-actions",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        { "name": "tenantId", "default": "stadtwerk-mauer" },
+        { "name": "caseId", "default": "smm-budibase-workbench" }
+      ],
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:domain-case-routing-attention-panel',roleTarget:'ROLE_PROCESS_OWNER',disabled:true,sourceClass:'domain_case_routing_attention_no_call_guard'}; const eventRow={...base,rowKey:'domain_case_routing_attention_event_not_polled',kind:'event_attention_boundary',boundary:'domain-router.events.list',status:'not_polled',safeAlternative:'use_a_separately_curated_delivery_aware_command_or_readback_contract',dataClass:'advisory_reasoning'}; const guardBoundaries=['domain-router.continue','domain-router.events.ack','domain-router.related-sessions.link']; const staticGuards=Array.from(new Set(notCalled.concat(guardBoundaries).concat(['budibase.table.write','personal-agent.execute','production.mutate','mako.dispatch','billing.release','settlement.prepareBilling','tariff.mutate','device-control.execute','external.connector.call','hitl.create','workflow.execute']))); const guardRows=staticGuards.map((action,index)=>({...base,rowKey:'domain_case_routing_attention_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),kind:'disabled_mutation_guard',boundary:String(action),status:'not_called',safeAlternative:'render_existing_read_only_domain_case_routing_attention_rows_only',dataClass:'advisory_reasoning'})); return [eventRow].concat(guardRows)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "kind": { "type": "string" },
+        "boundary": { "type": "string" },
+        "status": { "type": "string" },
+        "disabled": { "type": "boolean" },
+        "safeAlternative": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
     }
   ],
   "sections": [
@@ -15990,6 +16130,42 @@
       "title": "Versandbatch No-Call/No-Write Guards",
       "queryName": "getVersandbatchCompletionEvidenceNoCallRows",
       "tableTitle": "Verbotene/Nicht aufgerufene Operationen"
+    },
+    {
+      "id": "domain_case_routing_attention_selector",
+      "title": "Domain Case Routing Attention Selector",
+      "queryName": "getDomainCaseRoutingAttentionSelectorRows",
+      "tableTitle": "Selected synthetic case (cetCaseId / linked Workbench case)"
+    },
+    {
+      "id": "domain_case_routing_attention_summary",
+      "title": "Domain Case Routing Attention Summary",
+      "queryName": "getDomainCaseRoutingAttentionSummaryRows",
+      "tableTitle": "caseStateVersion, active domain, last routing decision and next safe gate"
+    },
+    {
+      "id": "domain_case_routing_attention_evidence_gap",
+      "title": "Domain Case Routing Attention Evidence/Owner Gap",
+      "queryName": "getDomainCaseRoutingAttentionEvidenceGapRows",
+      "tableTitle": "Positive clarification / human-review-required rows"
+    },
+    {
+      "id": "domain_case_routing_attention_related_cases",
+      "title": "Domain Case Routing Attention Related Cases",
+      "queryName": "getDomainCaseRoutingAttentionRelatedCaseRows",
+      "tableTitle": "Authorized related-case/session evidence pointers only, never auto-linked"
+    },
+    {
+      "id": "domain_case_routing_attention_role_family",
+      "title": "Domain Case Routing Attention Responsible Role Family",
+      "queryName": "getDomainCaseRoutingAttentionRoleFamilyRows",
+      "tableTitle": "Responsible role family from the existing Role Workbench catalog"
+    },
+    {
+      "id": "domain_case_routing_attention_no_call_guards",
+      "title": "Domain Case Routing Attention No-Call Guards",
+      "queryName": "getDomainCaseRoutingAttentionNoCallRows",
+      "tableTitle": "Event-not-polled boundary plus disabled continue/ack/link guards"
     }
   ],
   "notes": [
@@ -16070,6 +16246,8 @@
     "Datenpunktlisten Change-Control Gate panel (#521) is generated manifest composition, not a new Cernion endpoint. It composes only the existing controllability-data-alignment, redispatch-participation-readiness-status, redispatch-project-controlling-kpi-cockpit, owner-deadline-evidence-gate, stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the canonical stadtwerk-mauer-redispatch-participation-readiness-v1 Blueprint-Pack seed; no new datapoint-list persistence, Excel importer, Asset-MDM/MaStR mutation, Redispatch test engine or second demoProcessMatrix is introduced.",
     "Datenpunktlisten Change-Control Gate rows stay scalar/generated and synthetic: Budibase renders exactly three explicitly synthetic selector cases (existing_control_group_sufficient, data_point_version_or_control_group_clarification, test_call_evidence_or_owner_deadline_gap), data-point-list version/source snapshot, control-group/asset-scope and Asset/MaStR/internal match with public-context provenance kept separate, a change requirement of not_required/clarification/evidence_gap, verifying role/owner/due date, a provider assumption rendered only as an evidence pointer, expected test-call readiness impact, project-controlling/KPI evidence gaps, the reused canonical V/D/M/I matrix with roleLegend.M = Mitwirkend, transfer readiness and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending. Missing evidence always maps to clarification/human_review_required with a positive follow-up, never an automatic negative conclusion, approval or execution; no Excel/list import, data-point-list write, Asset-MDM/MaStR mutation, test call, Redispatch enrolment/dispatch, SMGW/CLS/device control, MaKo, billing, settlement, tariff, provider call, webhook, workflow/HITL/task creation, arbitrary Budibase table write, Personal-Agent branch or Rundeck execution is introduced.",
     "Versandbatch Completion-Evidence Review panel (#517) is generated manifest composition, not a new Cernion endpoint, Versand-, Billing- or Workflow-Engine. It composes only the existing cross-channel-vnb-signal-queue, owner-deadline-evidence-gate, evidence-freshness-guard and automation-risk-gate read models for exactly three explicitly synthetic selector cases (release_ready_receipt_missing, manual_handover_owner_due_gap — default-selected, return_or_completion_evidence_stale); no new endpoint, alias, dashboard action/builder, service, persistence model, connector, import path, process command, scheduler, notification or second generic signal queue is introduced.",
-    "Versandbatch Completion-Evidence Review rows stay scalar/generated and synthetic: Budibase renders batch/case-group id and explicitly synthetic source class, document version and release-evidence status, channel and shipment-status reference always as caller-supplied evidence rather than a verified delivery fact, manual handover state/owner role/due date, return/response freshness and snapshot-delta comparison, exception/missing-evidence/blocked-decision rows, a completion/receipt evidence pointer, an automation-risk summary rendered only as context, and positive human follow-up/next safe review gate rows. Missing or stale evidence always maps to clarification/human_review_required, never to automatic rejection, successful delivery, legal completion, billing correctness or settlement completion; no email/document sending, resend, delivery confirmation, billing, invoicing, posting, payment, settlement, MaKo, Redispatch dispatch, tariff/legal determination, mailbox/portal/ERP/CRM connector, customer contact, webhook, workflow/HITL/task creation, escalation, arbitrary Budibase table write, production data or Personal-Agent hardcoding is introduced."
+    "Versandbatch Completion-Evidence Review rows stay scalar/generated and synthetic: Budibase renders batch/case-group id and explicitly synthetic source class, document version and release-evidence status, channel and shipment-status reference always as caller-supplied evidence rather than a verified delivery fact, manual handover state/owner role/due date, return/response freshness and snapshot-delta comparison, exception/missing-evidence/blocked-decision rows, a completion/receipt evidence pointer, an automation-risk summary rendered only as context, and positive human follow-up/next safe review gate rows. Missing or stale evidence always maps to clarification/human_review_required, never to automatic rejection, successful delivery, legal completion, billing correctness or settlement completion; no email/document sending, resend, delivery confirmation, billing, invoicing, posting, payment, settlement, MaKo, Redispatch dispatch, tariff/legal determination, mailbox/portal/ERP/CRM connector, customer contact, webhook, workflow/HITL/task creation, escalation, arbitrary Budibase table write, production data or Personal-Agent hardcoding is introduced.",
+    "Domain Case Routing Attention panel (#599) is generated manifest composition, not a new Cernion endpoint or generic case service. It composes only the four named dashboard bricks (stadtwerk-mauer-workbench-selected-target, stadtwerk-mauer-case-detail, stadtwerk-mauer-case-actions, stadtwerk-mauer-role-workbench-catalog) plus the existing protected Domain Router explain and related-sessions.discover actions for exactly one explicitly synthetic case (cetCaseId cet-case-smm-budibase-workbench-001, linked Workbench case smm-budibase-workbench); no new backend endpoint, Capability Broker route or Hydration Registry rule is introduced.",
+    "Domain Case Routing Attention rows stay scalar/generated: Budibase renders the selected case identity, caseStateVersion, active domain, last routing decision (continue/reclassify/branch/clarify/handoff/fallback) and reason as advisory_reasoning, positively framed evidence/owner-gap rows (clarification or human_review_required, never an automatic negative conclusion), authorized related-case/session rows as evidence pointers only (never auto-linked from this panel), the responsible role family from the existing Role Workbench catalog, and an explicit event_attention_not_polled boundary row stating that GET /api/domain-router/events is never called from this panel because polling reconciles the case-event outbox and mutates pending events to delivered. continue, events.list, events.ack and related-sessions.link render only as disabled not_called guard rows with a safe alternative; no Budibase table write, workflow/HITL creation, external connector, MaKo/billing/settlement/tariff/device-control action, Personal-Agent hardcoding or production mutation is introduced."
   ]
 }

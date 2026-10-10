@@ -382,6 +382,39 @@ describe('Agent Service', () => {
 
   // ── analyze action ────────────────────────────────────────────
   describe('analyze action', () => {
+    it('does not invoke a capability-specific action for a real uncertain broker result', async () => {
+      const schema = require('../services/capability-broker.service');
+      const capabilityService = broker.createService(schema);
+      await broker.waitForServices('capability-broker');
+      const task = 'Prüfe die Anschlusskapazität am Umspannwerk.';
+      const recommendation = await broker.call('capability-broker.recommend', { task });
+      expect(recommendation.uncertain).toBe(true);
+      const { CURATED_CAPABILITIES } = require('../src/capability-catalog');
+      const actions = new Set(
+        recommendation.candidates.flatMap((candidate) => {
+          const row = CURATED_CAPABILITIES.find(
+            (item) => item.capability === candidate.capabilityId
+          );
+          return [...row.preferredActions, ...row.fallbackActions];
+        })
+      );
+      const spy = jest.spyOn(broker, 'call');
+      try {
+        _mockGenerateContent.mockResolvedValueOnce({
+          response: { text: () => makePlanResponse({ steps: [], requiredInputs: [] }) },
+        });
+        const result = await broker.call('agent.analyze', { problem: task });
+        expect(result.sessionId).toBeDefined();
+        expect(spy.mock.calls.some(([action]) => action === 'capability-broker.recommend')).toBe(
+          true
+        );
+        expect(spy.mock.calls.filter(([action]) => actions.has(action))).toEqual([]);
+      } finally {
+        spy.mockRestore();
+        await broker.destroyService(capabilityService);
+      }
+    });
+
     it('should reject missing problem parameter', async () => {
       await expect(broker.call('agent.analyze', {})).rejects.toThrow();
     });

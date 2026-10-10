@@ -47,6 +47,26 @@ const handler = PersonalAgentService.actions.answerDossier.handler;
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('answerDossier action', () => {
+  test('uncertainty also prevents the local EV/CO2 hydration supplement', async () => {
+    const ctx = buildCtx(
+      { question: 'Wann soll ich mein Elektroauto CO2-arm laden?', timeBudgetMs: 30000 },
+      {
+        'capability-broker.recommend': {
+          uncertain: true,
+          intent: 'clarify',
+          candidates: [
+            { capabilityId: 'ev_co2_charging_window', displayLabel: 'Ladefenster', score: 1 },
+          ],
+        },
+      }
+    );
+    const result = await handler.call(buildServiceHarness(), ctx);
+    expect(result.success).toBe(true);
+    expect(ctx.call.mock.calls.some(([action]) => action === 'energy-market.co2Intensity')).toBe(
+      false
+    );
+  });
+
   // 1. Renderer package and mandatory sections present
   test('dossierMarkdown is a renderer package and contains all mandatory dossier headings', async () => {
     const service = buildServiceHarness();
@@ -932,10 +952,15 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).toContain('Stadtwerke Tuebingen');
     expect(result.dossierMarkdown).not.toContain('69256 Mauer');
     expect(result.dossierMarkdown).not.toContain('10 MW');
-    expect(result.dossierMarkdown).not.toContain('2028');
+    // A random metadata UUID can contain a year fragment without leaking a project date.
+    const renderedFacts = result.dossierMarkdown.replace(
+      /\b[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}\b/gi,
+      '[UUID]'
+    );
+    expect(renderedFacts).not.toContain('2028');
     expect(result.dossierMarkdown).not.toContain('74889 Sinsheim');
     expect(result.dossierMarkdown).not.toContain('12 MW');
-    expect(result.dossierMarkdown).not.toContain('2029');
+    expect(renderedFacts).not.toContain('2029');
   });
 
   test('Wiesloch metering scenario is classified and stored with metering and asset facts', async () => {

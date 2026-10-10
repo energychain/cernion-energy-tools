@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('../src/canonical-order');
+
 /**
  * Redispatch Settlement Sandbox Service (v0.62)
  *
@@ -32,7 +34,9 @@ function nowIso() {
  * Compute a deterministic input hash from sorted artifact and datapoint refs.
  */
 function computeInputHash(inputArtifactRefs, datapointRefs) {
-  const sorted = [...(inputArtifactRefs || []), ...(datapointRefs || [])].sort();
+  const sorted = [...(inputArtifactRefs || []), ...(datapointRefs || [])].sort(
+    compareCanonicalStrings
+  );
   return crypto.createHash('sha256').update(JSON.stringify(sorted)).digest('hex').slice(0, 16);
 }
 

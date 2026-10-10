@@ -1,5 +1,7 @@
 const axios = require('axios');
-const API_BASE = 'http://127.0.0.1:3925';
+const { uatBaseUrl, jobPath, logRecord } = require('./src/operator-cli-security');
+const client = axios.create({ maxRedirects: 0, timeout: 30000 });
+const API_BASE = uatBaseUrl(process.env.UAT_API_BASE_URL);
 async function run() {
   try {
     const payload = {
@@ -12,31 +14,34 @@ async function run() {
         agentId: 'Stadtwerke_Goettingen_Netz',
       },
     };
-    const startRes = await axios.post(`${API_BASE}/api/personal-agent/chat`, payload);
+    const startRes = await client.post(`${API_BASE}/api/personal-agent/chat`, payload);
     const jobId = startRes.data.jobId;
-    console.log('JobId:', jobId);
+    console.log(logRecord('job-started', jobId));
     if (!jobId) {
-      console.log(startRes.data);
+      console.log(logRecord('missing-job-id', startRes.data));
       return;
     }
 
     while (true) {
-      const statusRes = await axios.get(`${API_BASE}/api/jobs/${jobId}/status`);
+      const statusRes = await client.get(`${API_BASE}${jobPath(jobId, 'status')}`);
       const status = statusRes.data.status;
-      console.log('Status:', status);
+      console.log(logRecord('job-status', status));
       if (status === 'completed') {
-        const resultRes = await axios.get(`${API_BASE}/api/jobs/${jobId}/result`);
+        const resultRes = await client.get(`${API_BASE}${jobPath(jobId, 'result')}`);
         console.log('\n--- RESULT ---');
-        console.log(JSON.stringify(resultRes.data, null, 2));
+        console.log(logRecord('job-result', resultRes.data));
         break;
       } else if (status === 'error' || status === 'failed') {
-        console.log('Error state:', statusRes.data);
+        console.log(logRecord('job-error', statusRes.data));
         break;
       }
       await new Promise((r) => setTimeout(r, 2000));
     }
   } catch (e) {
-    console.error('Crash/Error:', e.response?.data || e.message);
+    console.error(logRecord('request-failed', e.response?.data || e.message));
   }
 }
-run();
+run().catch((error) => {
+  console.error(logRecord('uat-failed', error.message));
+  process.exitCode = 1;
+});

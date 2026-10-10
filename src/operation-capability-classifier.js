@@ -536,7 +536,7 @@ const EXTRACTION_HINTS = [
   [/tenantid/i, 'tenant_id'],
   [/(^|_)id$/i, 'entity_id'],
   [/limit|pagesize|top/i, 'result_limit'],
-  [/offset|page$/i, 'pagination_offset'],
+  [/(?:offset)|(?:page$)/i, 'pagination_offset'],
   [/lat|lon|coordinate/i, 'geo_coordinate'],
 ];
 
@@ -730,7 +730,10 @@ function classifyOperation(op, options = {}) {
   };
 }
 
+const { classifyRequestedEffect } = require('./requested-effect');
+
 module.exports = {
+  classifyRequestedEffect,
   OPERATION_KINDS,
   CONSEQUENCE_LEVELS,
   EXECUTION_MODES,

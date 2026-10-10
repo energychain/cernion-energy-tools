@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cernion.de/schemas/stadtwerk-governance-architecture/cr-lka-rv-001.schema.json",
+  "title": "CR-LKA-RV-001 Run Card Value Projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "candidateId",
+    "runCardId",
+    "workedExample",
+    "roleProjection",
+    "resolutionValue",
+    "evidenceState",
+    "readiness",
+    "safetyBoundary",
+    "hitlBoundary",
+    "allowedActions",
+    "forbiddenActions",
+    "handoverSources"
+  ],
+  "properties": {
+    "candidateId": {
+      "type": "string"
+    },
+    "runCardId": {
+      "type": "string"
+    },
+    "workedExample": {
+      "type": "string",
+      "enum": [
+        "mako_m2c_resolution_value",
+        "asset_to_decision"
+      ]
+    },
+    "roleProjection": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "resolutionValue": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dimension",
+          "evidenceStatus",
+          "qualitativeImpact",
+          "confidence"
+        ],
+        "properties": {
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "billing_enablement",
+              "cashflow_acceleration",
+              "revenue_leakage_prevention",
+              "data_quality_improvement",
+              "compliance_audit_improvement",
+              "process_learning",
+              "customer_market_partner_deescalation",
+              "forecast_budget_confidence"
+            ]
+          },
+          "evidenceStatus": {
+            "type": "string",
+            "enum": [
+              "missing",
+              "partial",
+              "validated",
+              "blocked"
+            ]
+          },
+          "qualitativeImpact": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "requiredEvidence": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "forbiddenClaims": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "evidenceState": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drl",
+        "rcr",
+        "committeeReady"
+      ],
+      "properties": {
+        "drl": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "rcr": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "committeeReady": {
+          "type": "boolean"
+        }
+      }
+    },
+    "safetyBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "noExternalSend",
+        "noBillingApproval",
+        "noBudgetCommitment",
+        "requiresHitlForConsequentialAction"
+      ],
+      "properties": {
+        "noExternalSend": {
+          "const": true
+        },
+        "noBillingApproval": {
+          "const": true
+        },
+        "noBudgetCommitment": {
+          "const": true
+        },
+        "requiresHitlForConsequentialAction": {
+          "const": true
+        }
+      }
+    },
+    "hitlBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requiresHitl",
+        "requiredResolverRoles",
+        "pendingConfirmationActions"
+      ],
+      "properties": {
+        "requiresHitl": {
+          "const": true
+        },
+        "requiredResolverRoles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "pendingConfirmationActions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "allowedActions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbiddenActions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "handoverSources": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

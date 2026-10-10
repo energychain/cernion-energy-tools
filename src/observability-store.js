@@ -191,14 +191,14 @@ function enqueueWrite(operation) {
 function captureLog(entry) {
   const doc = buildLogDoc(entry);
   if (state.disabled) return doc;
-  enqueueWrite((db) => db.put(doc));
+  void enqueueWrite((db) => db.put(doc));
   return doc;
 }
 
 function captureMetric(entry) {
   const doc = buildMetricDoc(entry);
   if (state.disabled) return doc;
-  enqueueWrite((db) => db.put(doc));
+  void enqueueWrite((db) => db.put(doc));
   return doc;
 }
 

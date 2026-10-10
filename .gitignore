@@ -154,6 +154,7 @@ tmp/
 # Local manual test scripts (may contain sensitive tokens/email addresses)
 scripts/local/
 .gitnexus
+.venv-forecast/
 rcs-test-runs-*
 
 # Scratch/agent working artifacts (not part of repo deliverables)
