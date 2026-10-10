@@ -69,7 +69,7 @@ function validateFile(input) {
   const max = fileSetting('MAX_BYTES', 10 * 1024 * 1024);
   if (typeof contentBase64 !== 'string' || contentBase64.length > 4 * Math.ceil(max / 3))
     fileError(`Datei zu groß. Grenze: ${max} Bytes.`, 413, 'FILE_CHANNEL_LIMIT');
-  if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(contentBase64))
+  if (contentBase64.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(contentBase64))
     fileError('Ungültige Dateikodierung.');
   const bytes = Buffer.from(contentBase64, 'base64');
   if (!bytes.length || bytes.length > max)

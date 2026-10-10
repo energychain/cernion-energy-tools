@@ -178,3 +178,14 @@ test('scanner fail-closed, retention purge, expired deletion, and no content in 
     await app.cleanup();
   }
 });
+
+test('valid multi-megabyte base64 remains below the configured budget without regex-stack failure', () => {
+  const bytes = Buffer.alloc(5 * 1024 * 1024, 120);
+  const file = validateFile(original('Synthetic.txt', bytes));
+  expect(file.bytes.equals(bytes)).toBe(true);
+  expect(file.size).toBe(bytes.length);
+  for (const encoded of ['A===', 'AAAA!', 'AA=A', 'AAA'])
+    expect(() => validateFile({ name: 'Synthetic.txt', contentBase64: encoded })).toThrow(
+      'Dateikodierung'
+    );
+});
