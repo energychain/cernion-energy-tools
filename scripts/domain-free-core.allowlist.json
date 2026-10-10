@@ -755,6 +755,38 @@
       "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
     },
     {
+      "term": "assessment",
+      "reason": "Generic statement commitment and model evaluation schema; no subject-specific rule."
+    },
+    {
+      "term": "wirkung",
+      "reason": "Generic organisational relevance criterion, independent of subject vocabulary."
+    },
+    {
+      "term": "virtual",
+      "reason": "Generic cold-start document-count prior for tenant frequency weighting."
+    },
+    {
+      "term": "gültig",
+      "reason": "Generic statement lifecycle presentation; no domain-specific validity rule."
+    },
+    {
+      "term": "abhängigkeit",
+      "reason": "Generic relationship label evaluated from retrieved knowledge by the model."
+    },
+    {
+      "term": "begründung",
+      "reason": "Generic explanation requirement for a statement relationship."
+    },
+    {
+      "term": "konflikt",
+      "reason": "Generic relationship label, never a domain-specific trigger."
+    },
+    {
+      "term": "unsicherheit",
+      "reason": "Generic uncertainty of model-supported statement relationships."
+    },
+    {
       "term": "projektion",
       "reason": "Generic document/evidence response wording and local projection; no domain routing, subject rules or specialist knowledge."
     },

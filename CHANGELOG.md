@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Tenant-Gedächtnis (#766)
+
+- Organisationsrelevante Aussagen werden im bestehenden tenantweiten Object-Store festgehalten, einmal natürlich bestätigt und mit Quelle, Funktion, Datum und Audit-Historie abfragbar.
+- Gemeinsame seltene Anker lösen eine wissensgestützte Wechselwirkungsprüfung aus; Häufigkeit statt Fachlisten bestimmt die Gewichtung. Die zweite Person erhält die Verbindung im Chat, die erste einmal beim nächsten Kontakt.
+- Korrektur, Widerruf, Gültigkeitsende und aktuelle Clearance gelten auch für spätere Evidenz und Notices. Langsame Prüfungen bleiben im bestehenden Turn-Budget und liefern Ergebnisse im Hintergrund.
+- Synthetische Abnahme- und HTTP-Tests sichern beide Akteursreihenfolgen, Quellen, Tenant-Trennung, Sensitivität, Arbeitsrückwirkung und Ausschlüsse für Fragen, Smalltalk und Dokumentablage ab.
+
+
 All notable changes to the Cernion Energy Tools project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),

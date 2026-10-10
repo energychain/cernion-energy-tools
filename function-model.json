@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "7e8bd2136bad4b8cc35dc49294e938a8f5466f852db8761fcf06ab90565075ec",
+  "sourceHash": "42b723139c4ae73827ef67bf2197a1c94cc9e05216816df6b8b7f3a842a22073",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -118475,6 +118475,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-input.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-router-policy.js"
         },
         {
@@ -118508,6 +118512,10 @@
         {
           "kind": "service",
           "ref": "src/function-resolver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/gateway-request-classifiers.js"
         },
         {
           "kind": "service",
@@ -118567,6 +118575,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/mcp-execute-read-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/metrics.js"
         },
         {
@@ -118588,6 +118600,14 @@
         {
           "kind": "service",
           "ref": "src/oeo-mappings.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/openwebui-context.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/operation-capability-index.js"
         },
         {
           "kind": "service",
@@ -118699,7 +118719,27 @@
         },
         {
           "kind": "service",
+          "ref": "src/tabular-intelligence.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/tenant-context.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-memory-schema.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-memory-store.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-memory-write-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-memory.js"
         },
         {
           "kind": "service",
@@ -118735,11 +118775,43 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-answer-filter.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-background-task.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-capability-loop.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-codes.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-mode.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-document-input.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
+          "ref": "src/workbench-identifier-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifiers.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-json.js"
         },
         {
           "kind": "service",
@@ -118751,7 +118823,23 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-llm-repair.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-retrieval.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-thread.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-tool-answer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-understanding.js"
         },
         {
           "kind": "service",
@@ -189723,7 +189811,7 @@
       },
       {
         "service": "notices",
-        "ref": "services/shared-service-notices.service.js:214: spread event handlers"
+        "ref": "services/shared-service-notices.service.js:263: spread event handlers"
       },
       {
         "service": "system",

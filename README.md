@@ -440,6 +440,7 @@ User objective
 | [MCP_TOOLS.md](MCP_TOOLS.md) | MCP/tool reference |
 | [docs/SHARED_SERVICE_JOURNAL.md](docs/SHARED_SERVICE_JOURNAL.md) | RC3 append-only Shared Service Journal, deterministic digests and retention |
 | [docs/domain-router.md](docs/domain-router.md) | CET Domain Router, typisierte Fallverknüpfung, own/team/tenant-Sichtbarkeit und Case Event Outbox / MWI |
+| [docs/tenant-memory.md](docs/tenant-memory.md) | Tenant-Gedächtnis: Aussagen, gemeinsame Anker, Quellen, Korrektur und einmalige Hinweise |
 | [docs/open-webui-tenant-gateway.md](docs/open-webui-tenant-gateway.md) | RC3 Open WebUI / Cernion Workbench Tenant-Gateway access without AgentOS |
 | [llm.txt](llm.txt) | Machine-readable service and capability context |
 | [SECURITY.md](SECURITY.md) | Security policy |
@@ -460,6 +461,8 @@ Support and product feedback:
 ### Workbench: verstehen, antworten, Fall im Hintergrund
 
 Inhaltliche Nachrichten und eingefügte Fremdtexte werden über die zentrale LLM-Fassade in ein Lagebild übersetzt. CET antwortet mit relevanten Quellen und höchstens drei neuen fachlichen Rückfragen. Konkrete Arbeitsaufgaben erhalten einen Hintergrundfall; „Kein Fall“ nimmt ihn zurück. Wissens- und Statusfragen erzeugen keinen Fall. Versandwünsche führen zu einem Hinweis und auf ausdrücklichen Wunsch zu einem internen Entwurf. Quellenzuordnung und Relevanzschwelle sind in `src/workbench-knowledge-sources.json` konfiguriert. Details und Grenzen stehen im [Tenant-Gateway-Leitfaden](docs/open-webui-tenant-gateway.md) und im [Akzeptanzbericht zu #739](docs/validation/739-acceptance.md).
+
+Organisationsrelevante Aussagen hält CET tenantweit fest und bestätigt sie einmal mit „Hab ich festgehalten: …“. Seltene gemeinsame Anker verbinden Aussagen verschiedener Personen; erkannte Wechselwirkungen erscheinen im Gespräch und einmal beim nächsten Kontakt der anderen Person. Tenant-Trennung und Vertraulichkeitsstufen gelten bei jedem Zugriff. Details stehen im [Tenant-Gedächtnis-Leitfaden](docs/tenant-memory.md).
 
 ## Tenant-Datenkatalog
 
