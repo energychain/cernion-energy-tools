@@ -146,3 +146,34 @@ test('a task never acquires an additional purpose question', () => {
     })
   ).toEqual([]);
 });
+
+test.each([false, true])(
+  'an unresolved code asks naturally; actual provider failure=%s stays degraded',
+  async (failed) => {
+    const current = {
+      ...situation('task'),
+      codeResolutions: [{ kind: 'reference', value: 'X7', status: 'unavailable' }],
+      missingInformation: [
+        { key: 'code:X7', question: 'Was steht zu X7 in der Nachricht?', blocking: true },
+      ],
+    };
+    if (failed) llm.generateText.mockRejectedValue(new Error('Synthetic provider timeout'));
+    else
+      llm.generateText.mockResolvedValue(
+        JSON.stringify({
+          interpretation: [claim('X7 erklärt den offenen Punkt.')],
+          expectation: [],
+          nextSteps: [],
+          draft: [],
+        })
+      );
+    const result = await answer({
+      situation: current,
+      retrieval: { evidence: [] },
+      tenantId: 'synthetic',
+    });
+    expect(result.responseText).toContain('Was steht zu X7 in der Nachricht?');
+    expect(result.metadata.degraded).toBe(failed);
+    if (!failed) expect(result.responseText).not.toContain('Das Modell ist gerade nicht verfügbar');
+  }
+);

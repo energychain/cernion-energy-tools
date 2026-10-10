@@ -5,6 +5,8 @@ const os = require('node:os');
 const path = require('node:path');
 require('dotenv').config({ path: process.env.WORKBENCH_ENV_FILE || '.env', quiet: true });
 process.env.WORKBENCH_LLM_TIMEOUT_MS ||= '20000,45000';
+const quotaDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-813-quota-'));
+process.env.RATE_QUOTA_DIR = quotaDirectory;
 const { createLiveHarness } = require('./workbench-live-harness');
 const corpus = require('../tests/fixtures/workbench-813.generated.json');
 const report = {
@@ -68,7 +70,7 @@ async function validateConversation() {
               meta: {
                 cernionToken: process.env.CERNION_TOKEN,
                 apiToken: {
-                  tenantId: 'anonymous-validation',
+                  tenantId: `anonymous-validation-${run}`,
                   id: `synthetic-${scenario.id}`,
                   roles: ['ROLE_GRID_OPERATOR'],
                 },
@@ -145,7 +147,9 @@ async function validateConversation() {
   )
     process.exitCode = 1;
 }
-validateConversation().catch((error) => {
-  console.error('Live validation failed:', error.type || error.name);
-  process.exitCode = 1;
-});
+validateConversation()
+  .catch((error) => {
+    console.error('Live validation failed:', error.type || error.name);
+    process.exitCode = 1;
+  })
+  .finally(() => fs.rmSync(quotaDirectory, { recursive: true, force: true }));

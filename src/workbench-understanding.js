@@ -713,6 +713,7 @@ async function generateAnswerResult({
   situation,
   evidence,
   preparedEvidence,
+  questions,
   tenantId,
   followup,
   message,
@@ -804,11 +805,12 @@ async function generateAnswerResult({
           throw error;
         }
         if (
+          !(unresolved.length && questions.length && !draftRequested) &&
           !['interpretation', 'nextSteps', 'assumptions', 'draft'].some(
             (field) => parsed[field]?.length
           )
         ) {
-          const error = schemaError([], 'no_renderable_content');
+          const error = schemaError([], 'no_accepted_content');
           error.repairInstruction =
             'Die Antwort hatte keinen verwendbaren fachlichen Inhalt. Beantworte die konkrete aktuelle Frage direkt in interpretation, nicht mit Meta-Sätzen über die Person. expectation bleibt leer. Bei einem Arbeitsauftrag liefere das konkrete Ergebnis und die nächsten Schritte. Keine Fragen in claims.';
           throw error;
@@ -826,6 +828,7 @@ async function generateAnswerResult({
 }
 
 function answerOutcome({
+  questions,
   result,
   followup,
   answerStatus,
@@ -848,7 +851,11 @@ function answerOutcome({
     answerStatus = 'fallback';
     fallback ||= 'draft_missing';
   }
-  if (!draft && !claims.length) {
+  if (
+    !draft &&
+    !claims.length &&
+    !(unresolved.length && questions.length && !draftRequested && answerStatus !== 'fallback')
+  ) {
     answerStatus = 'fallback';
     fallback ||= 'no_renderable_content';
   }
@@ -870,6 +877,8 @@ function answerBody({
   if (draft && (isDraftRequest(message) || (!claims.length && answerStatus !== 'fallback')))
     return [];
   if (draftRequested && !draft) return [fallbackAnswer(situation, evidence, questions, true)];
+  if (!claims.length && answerStatus !== 'fallback' && questions.length)
+    return questions.map((item) => item.question);
   if (!claims.length) return [fallbackAnswer(situation, evidence, questions, draftRequested)];
   const questionLines = questions.map((item) => item.question);
   const steps = new Set(result.nextSteps || []);
@@ -964,6 +973,7 @@ async function answer({
       situation,
       evidence,
       preparedEvidence,
+      questions,
       tenantId,
       followup,
       message,
@@ -983,8 +993,9 @@ async function answer({
     const hasContent = ['interpretation', 'expectation', 'nextSteps', 'assumptions', 'draft'].some(
       (key) => parsed[key]?.length
     );
-    answerStatus = hasContent ? (evidence.length ? 'grounded' : 'model_knowledge') : 'fallback';
-    if (!hasContent) fallback = 'no_accepted_content';
+    const accepted = hasContent || (unresolved.length && questions.length && !draftRequested);
+    answerStatus = accepted ? (evidence.length ? 'grounded' : 'model_knowledge') : 'fallback';
+    if (!accepted) fallback = 'no_accepted_content';
   } catch (error) {
     if (!skipModel && !error.workbenchLogged)
       require('./workbench-llm-errors').logLlmError(logger, 'answer', error);
@@ -1017,6 +1028,7 @@ async function answer({
     }
   }
   const outcome = answerOutcome({
+    questions,
     result,
     followup,
     answerStatus,
