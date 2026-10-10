@@ -220,7 +220,13 @@ const invariants = {
       assert.ok(handoff.before.responsibility.cet);
       assert.equal(handoff.after.responsibility.cet, false);
       assert.ok(handoff.after.responsibility.humans.includes(handoff.secondActorId));
-      assert.ok(handoff.agents.every((agent) => ['sleeping', 'retired'].includes(agent.lifecycle)));
+      const matchingAgents = handoff.agents.filter(
+        (agent) =>
+          agent.tenantId === handoff.before.tenantId &&
+          agent.functionId === handoff.before.functionId
+      );
+      assert.ok(matchingAgents.length > 0, 'no matching tenant/function agent found for handoff');
+      assert.ok(matchingAgents.every((agent) => ['sleeping', 'retired'].includes(agent.lifecycle)));
     }
   },
 };
