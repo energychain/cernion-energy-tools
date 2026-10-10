@@ -37,7 +37,10 @@ const corpus = [
   },
   {
     id: 'counter',
-    turns: live.liveTurns.map((message, index) => ({ message, question: index === 0 ? true : 'optional' })),
+    turns: live.liveTurns.map((message, index) => ({
+      message,
+      question: index === 0 ? true : 'optional',
+    })),
   },
   {
     id: 'supplier',
