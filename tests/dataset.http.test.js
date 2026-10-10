@@ -163,4 +163,27 @@ describe('datasets through authenticated Open WebUI HTTP', () => {
     expect(deleted.status).toBe(200);
     expect(deleted.text).toContain('physisch gelöscht');
   });
+  test('a deleted file replayed by Open WebUI stays deleted across text representations', async () => {
+    attachment = generateDatasetFixture('markdown');
+    const replayed = await request('Wie hoch war die Spitzenlast?');
+    expect(replayed.status).toBe(200);
+    expect(replayed.text).toContain('kein zugänglicher Datensatz');
+    expect(replayed.text).not.toContain('Hab ich abgelegt:');
+    expect(
+      await app.broker.call(
+        'datapoint.datasetCatalog',
+        { operation: 'list' },
+        {
+          meta: {
+            authUser: {
+              tenantId: 'public',
+              userId: 'synthetic-uploader',
+              scope: 'read-only',
+              roles: ['ROLE_EDM'],
+            },
+          },
+        }
+      )
+    ).toEqual([]);
+  });
 });

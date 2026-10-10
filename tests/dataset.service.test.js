@@ -311,4 +311,41 @@ describe('tenant dataset catalog', () => {
       )
     ).toBe(true);
   });
+  test('deleted attachment replay neither recreates it nor deletes a different dataset', async () => {
+    const replayed = await upload('pairs');
+    expect(replayed.handled).toBe(true);
+    expect(replayed.responseText).toContain('kein zugänglicher Datensatz');
+    expect(replayed.responseText).not.toContain('Hab ich abgelegt:');
+    await call('dataset.turn', {
+      question: 'Bitte speichern.',
+      documents: [{ name: 'andere-synthetische-tabelle.csv', text: 'Tag;Wert\nA;2\nB;4' }],
+      conversationId: 'synthetic-other-chat',
+    });
+    const repeatedDelete = await call('dataset.turn', {
+      question: 'Lösch den Datensatz synthetischer-lastgang.csv.',
+      documents: [{ name: 'synthetischer-lastgang.csv', text: generateDatasetFixture('markdown') }],
+      conversationId: 'synthetic-chat',
+    });
+    expect(repeatedDelete.responseText).toContain('kein zugänglicher Datensatz');
+    const records = await call('datapoint.datasetCatalog', { operation: 'list' });
+    expect(records).toHaveLength(1);
+    expect(records[0].sourceName).toBe('andere-synthetische-tabelle.csv');
+    const newContent = await call('dataset.turn', {
+      question: 'Wie hoch war das Maximum in synthetischer-lastgang.csv?',
+      documents: [
+        { name: 'synthetischer-lastgang.csv', text: generateDatasetFixture('csv') },
+        {
+          name: 'synthetischer-lastgang.csv',
+          text: 'Zeit;Wert [kW]\n01.01.2026 00:00;2\n01.01.2026 00:15;4',
+        },
+      ],
+      conversationId: 'synthetic-chat',
+    });
+    expect(newContent.responseText).toContain('4 kW');
+    const current = await call('datapoint.datasetCatalog', { operation: 'list' });
+    expect(current).toHaveLength(2);
+    expect(
+      current.find((record) => record.sourceName === 'synthetischer-lastgang.csv').rowCount
+    ).toBe(2);
+  });
 });

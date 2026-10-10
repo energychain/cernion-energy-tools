@@ -15,13 +15,25 @@ const datasetCatalogActions = {
   datasetCatalog: {
     visibility: 'protected',
     params: {
-      operation: { type: 'enum', values: ['list', 'put', 'remove'] },
+      operation: { type: 'enum', values: ['list', 'deleted', 'put', 'remove'] },
       record: { type: 'object', optional: true },
       id: { type: 'string', optional: true },
     },
     async handler(ctx) {
       const p = principal(ctx),
         prefix = catalogPrefix(p.tenantId);
+      if (ctx.params.operation === 'deleted') {
+        const auditPrefix = `dataset-audit:${createHash('sha256').update(p.tenantId).digest('hex')}:`;
+        const { rows } = await this.db.allDocs({
+          startkey: auditPrefix,
+          endkey: `${auditPrefix}\uffff`,
+          include_docs: true,
+        });
+        return rows
+          .map((row) => row.doc)
+          .filter((doc) => doc.hash && canViewEvidence(doc, p.clearance, p.tenantId))
+          .map((doc) => ({ hash: doc.hash, id: doc.datasetId }));
+      }
       if (ctx.params.operation === 'list') {
         const { rows } = await this.db.allDocs({
           startkey: prefix,
@@ -52,6 +64,8 @@ const datasetCatalogActions = {
             tenantId: p.tenantId,
             datasetId: id,
             kind: 'deleted',
+            hash: previous.provenanceHash,
+            sensitivityLevel: previous.sensitivityLevel,
             actorId: p.actorId,
             at: new Date().toISOString(),
           });

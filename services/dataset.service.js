@@ -152,9 +152,18 @@ module.exports = {
       const pasted = !documents.length ? parseDatasetText(question, 'Eingefügte Tabelle') : [];
       tables.push(...pasted);
       const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
+      const deleted = tables.length
+        ? await ctx.call('datapoint.datasetCatalog', { operation: 'deleted' })
+        : [];
+      const replayed = [];
       const confirmations = [],
         ids = [];
       for (const table of tables) {
+        const deletion = deleted.find((record) => record.hash === table.hash);
+        if (deletion) {
+          replayed.push({ ...deletion, name: table.name });
+          continue;
+        }
         const duplicate = records.find((record) => record.hash === table.hash);
         if (duplicate) {
           ids.push(duplicate.id);
@@ -240,6 +249,31 @@ module.exports = {
         confirmations.push(
           `Hab ich abgelegt: ${record.title}, Version ${record.version}, ${record.period.from || 'Zeitraum ungeklärt'} bis ${record.period.to || 'ungeklärt'}, ${record.rowCount.toLocaleString('de-DE')} Werte, ${record.quality.missingValues} leere Werte und ${times.gaps} fehlende Intervalle, ${times.intervalMinutes || 'ungeklärtes'}-min-Raster${Object.values(semantic.units).filter(Boolean).length ? ' in ' + [...new Set(Object.values(semantic.units).filter(Boolean))].join(', ') : '; Einheit ungeklärt'}. ${semantic.assumptions.join(' ')}`
         );
+      }
+      const deletedReference = replayed.find(
+        (record) =>
+          question.toLocaleLowerCase().includes(record.name.toLocaleLowerCase()) &&
+          !records.some(
+            (active) =>
+              ids.includes(active.id) &&
+              active.sourceName.toLocaleLowerCase() === record.name.toLocaleLowerCase()
+          )
+      );
+      if (replayed.length && (replayed.length === tables.length || deletedReference)) {
+        const loop = await require('../src/workbench-capability-loop').runCapabilityLoop(ctx, {
+          meta: ctx.meta,
+          datasetRequest: {
+            question,
+            conversationId,
+            id: (deletedReference || replayed[0]).id,
+          },
+        });
+        return {
+          handled: true,
+          responseText: [loop.responseText, ...confirmations].filter(Boolean).join('\n\n'),
+          sources: loop.trace,
+          documents: ordinary,
+        };
       }
       if (!confirmations.length) {
         const candidates = matchingDatasets(

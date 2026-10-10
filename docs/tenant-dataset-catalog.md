@@ -34,13 +34,18 @@ werden dadurch nicht überschrieben. Mehrdeutige Datensätze werden zur Auswahl 
 - „Lösch den Datensatz …“ entfernt sämtliche Versionen dieser Datensatzfamilie aus
   SQLite und dem Katalog. SQLite verwendet `secure_delete`, WAL-Checkpoint und `VACUUM`;
   datapoint kompaktiert die entfernten Revisionen. Der separate Lösch-Audit enthält
-  Tenant, Akteur, Datensatz-ID und Datum, keine Zeilen.
+  Tenant, Akteur, Datensatz-ID, Inhaltshash, Vertraulichkeitsstufe und Datum, keine Zeilen.
 
 Open WebUI sendet Anhänge in jedem Turn erneut. Der Hash entsteht aus den vollständigen,
 typisierten Zellen. CSV, Markdown und Schlüssel/Wert-Darstellungen desselben Inhalts
 erzeugen weder neue Datensätze noch Versionen oder weitere Bestätigungssätze. Eine
 aktuelle Frage wird erneut deterministisch abgefragt. Für gewöhnliche Gesprächsaufträge
 werden bereits gespeicherte Tabellen aus dem Dokumentpfad entfernt.
+Der Hash im bestehenden Lösch-Audit verhindert auch, dass ein erneut gesendeter alter
+Anhang den gelöschten Datensatz wieder anlegt. Die aktuelle Frage wird über
+`dataset.query` mit dem ehrlichen Hinweis auf den nicht mehr vorhandenen Datensatz
+beantwortet; andere aktive Datensätze werden durch einen wiederholten Löschauftrag
+nicht entfernt.
 
 Kleine Tabellen werden nur für die aktuelle Rechenfrage ausgewertet, wenn sie unter der
 Wegwerfgrenze liegen und weder Zeitreihe noch Kennungsfelder enthalten. Im Zweifel
