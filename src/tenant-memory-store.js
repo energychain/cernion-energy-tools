@@ -80,18 +80,38 @@ async function mutate(ctx, p, id, change) {
 }
 function candidates(fact, facts) {
   const valid = facts.filter((item) => active(item));
+  // Resolve a bare base to its sole tenant qualifier, retaining separation when variants exist.
+  const variants = new Map();
+  for (const item of valid)
+    for (const key of item.anchorKeys) {
+      const [base, qualifier] = JSON.parse(key);
+      if (qualifier) {
+        if (!variants.has(base)) variants.set(base, new Set());
+        variants.get(base).add(qualifier);
+      }
+    }
+  const keys = (item) => [
+    ...new Set(
+      item.anchorKeys.map((key) => {
+        const [base, qualifier] = JSON.parse(key);
+        const choices = variants.get(base);
+        return JSON.stringify([base, qualifier || (choices?.size === 1 ? [...choices][0] : '')]);
+      })
+    ),
+  ];
   const frequency = new Map();
   for (const item of valid)
-    for (const anchor of new Set(item.anchorKeys))
-      frequency.set(anchor, (frequency.get(anchor) || 0) + 1);
-  // Four virtual documents give cold tenants a usable prior. No anchor types or vocabulary.
-  const strong = fact.anchorKeys.filter(
-    (anchor) => Math.log((valid.length + 4) / ((frequency.get(anchor) || 0) + 1)) >= Math.log(2)
+    for (const anchor of keys(item)) frequency.set(anchor, (frequency.get(anchor) || 0) + 1);
+  const strong = new Set(
+    keys(fact).filter(
+      (anchor) => Math.log((valid.length + 4) / ((frequency.get(anchor) || 0) + 1)) >= Math.log(2)
+    )
   );
   return valid.filter(
-    (item) => item.id !== fact.id && item.anchorKeys.some((anchor) => strong.includes(anchor))
+    (item) => item.id !== fact.id && keys(item).some((anchor) => strong.has(anchor))
   );
 }
+
 function ambiguous(anchors, facts) {
   for (const anchor of anchors.map(qualifiedAnchor).filter((item) => !item.qualifier)) {
     const base = normalizeAnchor(anchor.value);
@@ -136,6 +156,7 @@ module.exports = {
   namespace,
   key,
   normalizeAnchor,
+  qualifiedAnchor,
   anchorKeys,
   active,
   query,

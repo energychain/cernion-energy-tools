@@ -1,7 +1,7 @@
 # Tenant-Gedächtnis (#766)
 
 CET erkennt neue organisationsrelevante Aussagen beim Verstehen der aktuellen Nachricht.
-Ein kurzer Satz „Hab ich festgehalten: …“ bestätigt jede Aussage einmal. Wissensfragen,
+Ein kurzer Satz „Hab ich festgehalten: …“ bestätigt jede Aussage einmal. Reine Wissensfragen,
 Smalltalk, Einzelfälle, Hintergrundaufgaben und Dokument-/Tabellenablage erzeugen keine
 Aussagen. Das aktuelle Extraktionsfeld ist turngebunden; frühere Aussagen werden nicht
 nochmals aus dem Lagebild übernommen. Eine Aussage erzeugt keinen automatischen Fall.
@@ -14,7 +14,7 @@ Alle Aussagen und Beziehungen liegen im bestehenden Object-Store unter
 nach Namespace, Dokumenttyp, Ankern und bei Bedarf Urheber eingeschränkt. Der bestehende
 Object-Store-Evidenzkollektor stellt Aussagen und Beziehungen als Workbench-Quellen bereit.
 
-Aussagen enthalten Urheber, konfigurierte Funktion/Rolle, Datum, Wortlautkern, wörtliches
+Aussagen enthalten Urheber, konfigurierte Funktion/Rolle, Datum, Wortlautkern, normalisiert belegtes
 Belegstück, Verbindlichkeit, Anker, optionale Zeitangaben, Status, Beziehungsreferenzen und
 Audit-Historie. Der Tenant und die Clearance stammen aus dem authentifizierten, gegebenenfalls
 gemappten Principal. Innerhalb eines Tenants gilt `domain-router-policy.visible()`;
@@ -27,7 +27,9 @@ wird auch bei HTTP-Turns in neue Aussagen übernommen.
 ## Anker und Beziehungen
 
 Anker werden nur für den Vergleich normalisiert. Schreibvarianten können als belegte
-Aliases übernommen werden; Qualifikatoren bleiben Teil der Identität. Eine unqualifizierte
+Aliases übernommen werden; Qualifikatoren bleiben Teil der Identität. Der Begriff allein findet eine einzige
+Tenant-Variante; erst mehrere vorhandene Varianten verlangen eine Rückfrage. Das gilt
+für neue Beziehungen, Abfragen und spätere Arbeitsaufträge. Eine unqualifizierte
 Bezeichnung wird akzeptiert. Nur bereits vorhandene unterschiedliche Qualifikatoren
 innerhalb des sichtbaren Tenant-Bestands führen zu einer Rückfrage.
 
@@ -53,13 +55,17 @@ einen Hinweis über `shared-service-notices`. Notice-Schlüssel werden deduplizi
 und Gültigkeit werden bei Zustellung erneut geprüft. Eine zurückgenommene Beziehung wird
 nicht mehr zugestellt. Notice-Präferenzen und die bestehenden Zustellregeln gelten weiter.
 
-Prüfungen laufen parallel. Vor der Antwort wird höchstens 100 ms innerhalb des verbleibenden
-Retrieval-Budgets gewartet; ein späteres Ergebnis wird per Notice zugestellt. Aussagen bleiben
+Die lokale Ankersuche startet parallel zum Retrieval mit einem eigenen Budget von 200 ms.
+Die Prüfung übernimmt die im Turn abgerufenen externen Belege und prüft bei Quellen-
+Timeouts trotzdem lokale Beziehungen. Vor der Antwort wird höchstens 200 ms unabhängig vom
+Retrieval-Budget auf die Prüfung gewartet; ein späteres Ergebnis wird per Notice zugestellt. Aussagen bleiben
 bei Modellfehlern gespeichert. Ihr persistierter Prüfstatus und die gespeicherten Belege
 bilden eine dauerhafte Arbeitswarteschlange im Object-Store. Ein Hintergrundlauf nimmt
 ausstehende Prüfungen auch nach Neustarts wieder auf, ohne einen weiteren Turn der Quelle
 zu benötigen. Zustellschlüssel verhindern doppelte Hinweise. Ausstehende
-Jobs werden beim geordneten Stoppen abgewartet. Eine verspätete Speicherung bestätigt die
+Jobs werden beim geordneten Stoppen abgewartet. Recovery startet beim Stoppen keine
+weiteren Prüfungen; lokale Recovery-Aufrufe sind auf eine Sekunde begrenzt. Ein aktiver
+Recovery-Job bleibt bis zum Abschluss im Shutdown-Handle erhalten. Eine verspätete Speicherung bestätigt die
 Aussage beim nächsten Kontakt per Notice.
 
 „Streich das“, „gilt nicht mehr“ und „das stimmt so nicht“ beziehen sich auf die zuletzt
@@ -74,9 +80,24 @@ den Bezug zum Datenkatalog, ohne die Aussage oder ihre Historie zu entfernen.
 Ein ausdrücklich genanntes Gültigkeitsende schließt weitere Verknüpfungen aus; eine
 bloße früheste/späteste Planungsfrist wird nicht als Ablauf missverstanden.
 
-„Was wissen wir zu <Anker>?“ und „Was hat <Funktion> festgehalten?“ liefern Aussagen mit
+„Was wissen wir zu <Anker>?“ (auch „insgesamt zur“, ohne Modell-Markierung) und „Was hat <Funktion> festgehalten?“ liefern Aussagen mit
 Quelle, Datum, Status und aktiven Beziehungen. Spätere Arbeitsaufträge zu einem Anker
 bekommen diese Beziehungen als Evidenz; der Hinweis steht vor dem Arbeitsergebnis.
+
+## Erkennung und Beobachtbarkeit
+
+Eine mitgeteilte organisatorische Aussage bleibt trotz einer `knowledge`-Klassifikation
+speicherbar; belegte Extraktionen schärfen den Turn zu `work`. Reine Fragen bleiben
+ausgeschlossen. Für den Beleg gelten normalisierte Teilstrings oder mindestens 80 %
+Tokenüberdeckung (mindestens drei Tokens); lange Wörter tolerieren kurze Flexionssuffixe.
+Zahlen bleiben exakt, und jeder Ankerbegriff muss in der aktuellen Nachricht vorkommen.
+Plausibilitätshinweise ändern weder Speicherung noch Bestätigung einer Aussage.
+
+Jeder Workbench-Turn erzeugt genau eine Info-Zeile `Tenant memory`: Kandidaten, angenommene
+Aussagen, Ablehnungszähler (`basis_mismatch`, `not_eligible`, `no_anchor`, `ambiguous`),
+Ankertreffer, gestartete Prüfungen, Prüfstatus, Beziehungen und erzeugte Notices.
+Die Zeile enthält weder Nachrichten noch Anker, Personen oder Tenant-Kennungen.
+Delegierte Abfragen zählen zum aufrufenden Chat-Turn. Bei verzögerten Prüfungen wird sie nach Abschluss des Hintergrundjobs geschrieben.
 
 ## Abnahme
 

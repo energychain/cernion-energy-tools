@@ -128,10 +128,13 @@ module.exports = {
         )
           gatewayForbidden();
       },
-      chat: coverageTurn.before,
-      query: coverageTurn.before,
+      chat: [coverageTurn.before, require('../src/tenant-memory').beforeTurn],
+      query: [coverageTurn.before, require('../src/tenant-memory').beforeTurn],
     },
-    after: { chat: coverageTurn.after, query: coverageTurn.after },
+    after: {
+      chat: [coverageTurn.after, require('../src/tenant-memory').afterTurn],
+      query: [coverageTurn.after, require('../src/tenant-memory').afterTurn],
+    },
     error: { chat: coverageTurn.error, query: coverageTurn.error },
   },
   mixins: [...WORKBENCH_DATABASES.map(workbenchDbMixin), conversationAssistance.lifecycle],
