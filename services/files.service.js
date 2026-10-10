@@ -303,3 +303,9 @@ for (const kind of ['upload', 'download', 'remove', 'link']) {
   const action = module.exports.actions[kind];
   action.openapi = require('../src/file-channel-openapi').fileOpenApi(kind, action.openapi.summary);
 }
+
+// Original uploads and generated outputs share the same per-tenant write queue.
+// A concurrent publish must not replace a deduplicated object's link version.
+module.exports.hooks.before.publish = module.exports.hooks.before.upload;
+module.exports.hooks.after.publish = module.exports.hooks.after.upload;
+module.exports.hooks.error.publish = module.exports.hooks.error.upload;
