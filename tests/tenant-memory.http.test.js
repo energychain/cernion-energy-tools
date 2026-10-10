@@ -20,6 +20,7 @@ const fixture = require('./fixtures/tenant-memory.json');
 describe('tenant memory through authenticated OpenAI HTTP', () => {
   let app, env, base, gateway, otherGateway;
   beforeEach(async () => {
+    jest.clearAllMocks();
     env = { ...process.env };
     app = await createCaseBroker();
     Object.assign(process.env, {
@@ -32,6 +33,7 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
       WORKBENCH_DATASET_DB_PATH: path.join(app.dir, 'dataset-rows'),
       DATAPOINT_SCHEDULER_ENABLED: 'false',
     });
+    require('../src/rate-quota-store').resetForTests();
     fs.writeFileSync(
       app.registry,
       JSON.stringify([{ tenantId: 'public' }, { tenantId: 'tenant-other' }])
@@ -73,7 +75,8 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
           })),
           plausibility: [],
         };
-      const record = /^Die Leitung|^Das Stromnetz/.test(input.message);
+      const record = /^Die Leitung|^Das Stromnetz|^Gerade komme/.test(input.message);
+      const production = input.message.includes('Lindenallee');
       return {
         concern: 'Organisation planen',
         situation: input.message,
@@ -83,16 +86,27 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
         hypotheses: [],
         missingInformation: [],
         requestedAction: { description: '', externalEffect: false, draftRequested: false },
-        turnKind: record ? 'work' : 'knowledge',
+        turnKind: record && !production ? 'work' : 'knowledge',
         retrievalTerms: [],
         tenantMemory: {
           assertions: record
             ? [
                 {
                   text: input.message,
-                  basis: input.message,
+                  basis: production
+                    ? input.message
+                        .replace('aktuell ', '')
+                        .replace('akzeptieren können', 'akzeptieren kann')
+                        .replace('Die Kunden sollen zeitnah informiert werden.', '')
+                    : input.message,
                   commitment: 'planned',
-                  anchors: [{ value: 'Hauptstraße', qualifier: '', aliases: [] }],
+                  anchors: [
+                    {
+                      value: production ? 'Lindenallee' : 'Hauptstraße',
+                      qualifier: production ? 'Testbezirk' : '',
+                      aliases: [],
+                    },
+                  ],
                   time: {
                     from: '',
                     until: '',
@@ -165,7 +179,12 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
       },
       app.broker
     );
-    for (const item of [fixture.first, fixture.second]) {
+    for (const item of [
+      fixture.first,
+      fixture.second,
+      { actor: 'ben', functionLabel: 'Gasnetzplanung' },
+      { actor: 'anna', functionLabel: 'Stromnetz' },
+    ]) {
       await provisionMapping(
         {
           tenant: 'public',
@@ -186,6 +205,7 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
   });
   afterEach(async () => {
     await app.cleanup();
+    jest.restoreAllMocks();
     for (const key of Object.keys(process.env)) if (!(key in env)) delete process.env[key];
     Object.assign(process.env, env);
   });
@@ -213,6 +233,105 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
     const body = await response.json();
     return { status: response.status, body, text: body.choices?.[0]?.message?.content || '' };
   }
+  test.each([
+    ['ben', 'anna', false],
+    ['anna', 'ben', false],
+    ['ben', 'anna', true],
+    ['anna', 'ben', true],
+  ])('production regression: %s → %s, source timeout=%s', async (firstActor, secondActor, slow) => {
+    const people = {
+      ben: {
+        actor: 'ben',
+        functionLabel: 'Gasnetzplanung',
+        text: 'Gerade komme ich aus der Gasnetzplanung. Die Leitung in der Lindenallee müssen wir spätestens 2030 außer Betrieb nehmen. Die Kunden sollen zeitnah informiert werden.',
+      },
+      anna: {
+        actor: 'anna',
+        functionLabel: 'Stromnetz',
+        text: 'Das Stromnetz in der Lindenallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.',
+      },
+    };
+    if (slow) {
+      process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS = '80';
+      const original = app.broker.call.bind(app.broker);
+      jest.spyOn(app.broker, 'call').mockImplementation((name, ...args) => {
+        if (name === 'personal-agent.collectWorkbenchEvidence')
+          return new Promise((_, reject) =>
+            setTimeout(
+              () =>
+                reject(
+                  Object.assign(new Error('Synthetic source timeout'), {
+                    code: 504,
+                    type: 'SOURCE_TIMEOUT',
+                  })
+                ),
+              120
+            )
+          );
+        return original(name, ...args);
+      });
+    }
+    const memoryInfo = jest.spyOn(app.broker.logger, 'info');
+    const first = await request(people[firstActor]);
+    expect(first.status).toBe(200);
+    expect(first.text).toContain('Hab ich festgehalten:');
+    const second = await request(people[secondActor]);
+    expect(second.status).toBe(200);
+    expect(second.text).toContain('Hab ich festgehalten:');
+    await new Promise((resolve) => setImmediate(resolve));
+    const memoryLogs = memoryInfo.mock.calls.filter(([label]) => label === 'Tenant memory');
+    expect(memoryLogs).toHaveLength(2);
+    expect(memoryLogs[1][1]).toMatchObject({
+      candidates: 1,
+      accepted: 1,
+      assessmentStarted: 1,
+      relations: 1,
+      notices: 1,
+    });
+    expect(JSON.stringify(memoryLogs)).not.toMatch(/Lindenallee|Gasnetzplanung|ben|anna/);
+    if (slow)
+      expect(
+        app.broker.call.mock.calls.some(
+          ([name]) => name === 'personal-agent.collectWorkbenchEvidence'
+        )
+      ).toBe(true);
+    expect(second.text).toContain(firstActor);
+    expect(second.text).toContain(people[firstActor].functionLabel);
+    expect(second.text).toMatch(/\d{4}-\d{2}-\d{2}/);
+    expect(second.text).toContain('2030 bis 2034');
+    expect(second.text).not.toMatch(
+      /unverbindlich|versendet[^\n]*nichts|keine externe Handlung|Unverbindliche Einschätzung/i
+    );
+    const query = await request(people[secondActor], 'Was wissen wir insgesamt zur Lindenallee?');
+    expect(query.text).toContain('ben');
+    expect(query.text).toContain('anna');
+    expect(query.text).toContain('2030 bis 2034');
+    const draft = await request(
+      people.ben,
+      'Bitte entwirf mir die Kundeninformation zur Gasstilllegung in der Lindenallee.'
+    );
+    expect(draft.text).toContain('2030 bis 2034');
+    expect(draft.text).not.toMatch(
+      /unverbindlich|versendet[^\n]*nichts|keine externe Handlung|Unverbindliche Einschätzung/i
+    );
+    expect(draft.text.indexOf('2030 bis 2034')).toBeLessThan(
+      draft.text.indexOf('Wir berücksichtigen')
+    );
+    const next = await request(people[firstActor], 'Danke.');
+    if (firstActor === 'anna') expect(next.text).toContain('Hinweise für dich:');
+    else expect(draft.text).toContain('Hinweise für dich:');
+    const later = await request(people[firstActor], 'Danke nochmals.');
+    expect(later.text).not.toContain('Hinweise für dich:');
+    const docs = await app.call(
+      'object-store.query',
+      {
+        namespace: 'tenant:public:workbench_facts',
+        selector: { 'payload.type': 'tenant_memory_fact' },
+      },
+      auth(firstActor, ['ROLE_GRID_OPERATOR'], 'public')
+    );
+    expect(docs.docs).toHaveLength(2);
+  });
   test('AC-01/07/08: sources and one next-turn notice survive the HTTP renderer, queries use tenant memory', async () => {
     const first = await request(fixture.first);
     expect(first.status).toBe(200);
@@ -358,6 +477,8 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
       `${fixture.first.text} Neuer Bezug Projekt-S.`,
       'reverse-c'
     );
+    expect(c.status).toBe(200);
+    expect(c.body).not.toHaveProperty('error');
     expect(c.text).toContain('Doris');
     expect(c.text).toContain('Stromnetz');
     expect(c.text).toContain('2030 bis 2034');
