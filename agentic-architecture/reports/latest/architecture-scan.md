@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-10T07:22:47.615Z
+Generated: 2026-10-10T13:25:26.230Z
 
 ## Repository snapshot
 
-- Package: cernion-energy-tools 0.99.21
+- Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 1309
-- Services: 144
-- src/*.js files: 212
-- Tests: 330
-- Integrations files: 26
-- Markdown/docs files: 395
+- Files scanned: 1826
+- Services: 157
+- src/*.js files: 347
+- Tests: 458
+- Integrations files: 27
+- Markdown/docs files: 481
 
 ## Existing validation summary
 
@@ -26,19 +26,19 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 373 files
-- `docs`: 298 files
-- `src`: 259 files
-- `services`: 180 files
-- `agentic-architecture`: 46 files
+- `tests`: 520 files
+- `src`: 409 files
+- `docs`: 371 files
+- `services`: 193 files
+- `tools`: 85 files
+- `scripts`: 61 files
+- `agentic-architecture`: 47 files
+- `integrations`: 27 files
 - `.claude`: 26 files
-- `integrations`: 26 files
-- `scripts`: 23 files
-- `.github`: 9 files
+- `.github`: 11 files
 - `feedback`: 8 files
 - `.vscode`: 5 files
 - `examples`: 3 files
-- `tools`: 3 files
 - `fixtures_parallel`: 2 files
 - `fixtures_real`: 2 files
 - `reports`: 2 files
@@ -49,10 +49,10 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Agentic surface
 
-- Agent/capability/sidecar related files: 223
-- Routing/capability/broker/manifest files: 51
-- Evidence/HITL/receipt/dossier files: 67
-- OpenWebUI/ChatGPT adapter files: 25
+- Agent/capability/sidecar related files: 252
+- Routing/capability/broker/manifest files: 84
+- Evidence/HITL/receipt/dossier files: 74
+- OpenWebUI/ChatGPT adapter files: 28
 
 Primary agentic files:
 
@@ -130,6 +130,7 @@ Primary agentic files:
 - `cya` — services/cya.service.js (8 detected actions)
 - `dashboard-api` — services/dashboard-api.service.js (0 detected actions)
 - `datapoint` — services/datapoint.service.js (10 detected actions)
+- `dataset` — services/dataset.service.js (9 detected actions)
 - `datasource-cache` — services/datasource-cache.service.js (11 detected actions)
 - `datasource-classifier` — services/datasource-classifier.service.js (8 detected actions)
 - `datasource-connector` — services/datasource-connector.service.js (12 detected actions)
@@ -137,6 +138,7 @@ Primary agentic files:
 - `datasource-registry` — services/datasource-registry.service.js (9 detected actions)
 - `datasource-watcher` — services/datasource-watcher.service.js (2 detected actions)
 - `decision-frame` — services/decision-frame.service.js (2 detected actions)
+- `domain-router` — services/domain-router.service.js (5 detected actions)
 - `domain-routes` — services/domain-routes-management.service.js (5 detected actions)
 - `dossier-hydration` — services/dossier-hydration-management.service.js (5 detected actions)
 - `e2e-connection-check` — services/e2e-connection-check.service.js (9 detected actions)
@@ -163,37 +165,42 @@ Primary agentic files:
 - `flexibility-conductor-role-model` — services/flexibility-conductor-role-model.service.js (13 detected actions)
 - `fnav-commercial-hedging` — services/fnav-commercial-hedging.service.js (13 detected actions)
 - `forecast-engine` — services/forecast-engine.service.js (7 detected actions)
-- `forecast-sandbox` — services/forecast-sandbox.service.js (12 detected actions)
+- `forecast-sandbox` — services/forecast-sandbox.service.js (3 detected actions)
 - `forecast` — services/forecast.service.js (3 detected actions)
+- `activation` — services/function-activation.service.js (1 detected actions)
+- `function-coverage` — services/function-coverage.service.js (1 detected actions)
 - `gas-capacity-order-revision-gate` — services/gas-capacity-order-revision-gate.service.js (18 detected actions)
 - `gas-storage` — services/gas-storage.service.js (5 detected actions)
 - `gasnetz-waermeplanung` — services/gasnetz-waermeplanung.service.js (8 detected actions)
 - `german-grid` — services/german-grid.service.js (6 detected actions)
 - `ghost-asset-alert` — services/ghost-asset-alert.service.js (6 detected actions)
+- `governance-cards` — services/governance-cards.service.js (0 detected actions)
 - `governance` — services/governance.service.js (6 detected actions)
 - `grid-connection` — services/grid-connection.service.js (18 detected actions)
 - `grid-operations` — services/grid-operations.service.js (6 detected actions)
 - `hitl` — services/hitl.service.js (13 detected actions)
-- `in-memory-join` — services/in-memory-join.service.js (10 detected actions)
-- `interface-placeholder` — services/interface-placeholder.service.js (9 detected actions)
-- `investment-maturity-off-balance-gate` — services/investment-maturity-off-balance-gate.service.js (17 detected actions)
-- `investment-planning` — services/investment-planning.service.js (14 detected actions)
-- `job-status` — services/job-status.service.js (3 detected actions)
 
 ## Naming/shape drift signals
 
 Potential duplicate or overlapping slugs:
 
 - `services/agent.service.js`, `services/personal-agent.service.js`
+- `services/domain-router.service.js`, `src/domain-router.js`
 - `services/eeg-clawback-calculator.service.js`, `src/eeg-clawback-calculator.js`
 - `services/evidence-router.service.js`, `src/evidence-router.js`
+- `services/function-coverage.service.js`, `src/function-coverage.js`
+- `services/governance-cards.service.js`, `src/governance-cards.js`
+- `services/shared-service-journal.service.js`, `src/shared-service-journal.js`
+- `services/shared-service-learning.service.js`, `src/shared-service-learning.js`
+- `services/shared-service-notices.service.js`, `src/shared-service-notices.js`
+- `services/shared-service-wake.service.js`, `src/shared-service-wake.js`
 - `services/tabular-intelligence.service.js`, `src/tabular-intelligence.js`
 - `src/job-store/driver.js`, `src/rate-quota/driver.js`
 - `src/job-store/factory.js`, `src/rate-quota/factory.js`
 - `src/job-store/file-driver.js`, `src/rate-quota/file-driver.js`
 - `src/job-store/redis-compat-driver.js`, `src/rate-quota/redis-compat-driver.js`
 
-Services without obvious direct unit test by filename heuristic: 26
+Services without obvious direct unit test by filename heuristic: 27
 
 - `services/agnes-bottleneck.service.js`
 - `services/altdaten-assessment.service.js`
@@ -213,6 +220,7 @@ Services without obvious direct unit test by filename heuristic: 26
 - `services/regulatorische-entgeltlogik.service.js`
 - `services/reinvest-signal.service.js`
 - `services/reporting-governance.service.js`
+- `services/shared-service-agents.service.js`
 - `services/tenant-quota.service.js`
 - `services/vdmi-evidence.service.js`
 - `services/vdmi-findings.service.js`

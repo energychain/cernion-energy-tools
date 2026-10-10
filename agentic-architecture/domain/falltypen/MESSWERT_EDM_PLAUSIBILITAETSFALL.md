@@ -1,6 +1,6 @@
 # Messwert-/EDM-Plausibilitätsfall
 
-Generated: 2026-10-10T07:22:50.450Z
+Generated: 2026-10-10T13:25:30.222Z
 
 Status: observed
 Priority: 2
@@ -141,6 +141,7 @@ Der Messwert ist nicht abschließend als falsch belegt. Er ist aber plausibilisi
 
 ## Code-/Doku-Signale
 
+- `docs/validation/739-routing.json` (308 hits)
 - `src/capability-catalog.js` (299 hits)
 - `src/evidence-registry.js` (187 hits)
 - `services/api.service.js` (163 hits)
@@ -149,9 +150,11 @@ Der Messwert ist nicht abschließend als falsch belegt. Er ist aber plausibilisi
 - `services/dashboard-api/methods-part-05-of-14.js` (131 hits)
 - `services/forecast.service.js` (115 hits)
 - `services/dashboard-api/methods-part-02-of-14.js` (114 hits)
+- `docs/sonarcloud-security-review.json` (109 hits)
 - `services/dashboard-api/actions-part-01-of-8.js` (109 hits)
 - `services/capability-broker.service.js` (108 hits)
 - `services/agent.service.js` (100 hits)
+- `docs/reviews/730-capability-routing-evaluation.json` (97 hits)
 - `services/dashboard-api/methods-part-04-of-14.js` (96 hits)
 - `MCP_TOOLS.md` (94 hits)
 - `services/residual-load.service.js` (94 hits)
@@ -160,9 +163,6 @@ Der Messwert ist nicht abschließend als falsch belegt. Er ist aber plausibilisi
 - `services/forecast-engine.service.js` (81 hits)
 - `services/in-memory-join.service.js` (77 hits)
 - `src/cookbook-recipes.js` (77 hits)
+- `src/forecast-evaluation.js` (76 hits)
 - `services/dashboard-api/methods-part-03-of-14.js` (75 hits)
-- `services/energy-sharing-allocation.service.js` (73 hits)
-- `services/dashboard-api/methods-part-06-of-14.js` (72 hits)
-- `docs/ui-contracts/26-edm.md` (69 hits)
-- `services/dashboard-api/methods-part-07-of-14.js` (66 hits)
-- `services/nbp-monitor.service.js` (66 hits)
+- `src/workbench-activity-taxonomy.js` (75 hits)

@@ -4,9 +4,9 @@ const { compareCanonicalStrings } = require('./canonical-order');
 
 const fs = require('fs');
 const path = require('path');
-const { createHash, randomUUID } = require('crypto');
+const { createHash } = require('crypto');
 const MCP = require('./mcp-client');
-const { clock, STEP, shiftDate, dateOnly, instant } = require('./forecast-evaluation-time');
+const { clock, shiftDate, dateOnly, instant } = require('./forecast-evaluation-time');
 const HOUR = 3600000;
 const LOCATION = Object.freeze({
   id: 'DE-BY-Kempten-87435',

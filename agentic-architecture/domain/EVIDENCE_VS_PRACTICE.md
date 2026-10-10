@@ -1,6 +1,6 @@
 # Evidence vs Practice
 
-Generated: 2026-10-10T07:22:50.450Z
+Generated: 2026-10-10T13:25:30.222Z
 
 ## Rule
 
@@ -26,20 +26,21 @@ Evidenz begrenzt Behauptungen. Sie darf nicht verhindern, dass CET einen Fall fa
 - `src/answer-dossier-hydration-rules.json` (4049 hits)
 - `services/dashboard-api/methods-part-05-of-14.js` (1574 hits)
 - `services/dashboard-api/methods-part-04-of-14.js` (1416 hits)
+- `services/personal-agent/actions-part-01-of-1.js` (1200 hits)
 - `services/dashboard-api/methods-part-06-of-14.js` (1195 hits)
-- `services/personal-agent/actions-part-01-of-1.js` (1170 hits)
 - `services/dashboard-api/methods-part-03-of-14.js` (1119 hits)
 - `src/evidence-registry.js` (1100 hits)
-- `src/capability-catalog.js` (1026 hits)
+- `src/capability-catalog.js` (1024 hits)
 - `services/dashboard-api/methods-part-13-of-14.js` (660 hits)
 - `services/dashboard-api/methods-part-12-of-14.js` (642 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (636 hits)
 - `services/dashboard-api/methods-part-11-of-14.js` (550 hits)
 - `services/agent-receipts.service.js` (479 hits)
+- `function-model.report.md` (399 hits)
 - `services/personal-agent/shared.js` (355 hits)
 - `src/answer-dossier-builder.js` (335 hits)
-- `services/capability-broker.service.js` (295 hits)
-- `src/vdmi-blueprint-pack-seeds.js` (289 hits)
+- `src/vdmi-blueprint-pack-seeds.js` (309 hits)
+- `services/capability-broker.service.js` (296 hits)
 - `services/dashboard-api/methods-part-09-of-14.js` (279 hits)
 - `services/dashboard-api/actions-part-01-of-8.js` (263 hits)
 - `services/finance-agent.service.js` (256 hits)
@@ -47,4 +48,3 @@ Evidenz begrenzt Behauptungen. Sie darf nicht verhindern, dass CET einen Fall fa
 - `services/dashboard-api/actions-part-02-of-8.js` (236 hits)
 - `services/dashboard-api/actions-part-03-of-8.js` (223 hits)
 - `services/agent.service.js` (222 hits)
-- `services/dashboard-api/actions-part-07-of-8.js` (206 hits)
