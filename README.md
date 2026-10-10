@@ -131,6 +131,26 @@ the OpenAPI export is the source of truth.
 
 ## Agentic Components
 
+### Agentic Sitemap / AI Catalog
+
+`GET /.well-known/ai-catalog.json` and `GET /.well-known/ard.json` publish a public
+catalog generated on each request from the loaded service registry and live OpenAPI
+metadata. Each published REST service has an entry with action/capability tokens,
+representative queries and an inline OpenAPI contract. The catalog also links to
+the full OpenAPI document and `llm.txt`. Root responses advertise both discovery
+paths through HTTP `Link` headers; conditional requests support ETags.
+
+No manual JSON maintenance or LLM call is needed. Protected/private actions,
+service settings and runtime data are excluded. Catalog visibility grants no
+permission to invoke an action. See [deployment details](docs/DEPLOYMENT_RUNBOOK.md#agentic-sitemap--ai-catalog).
+
+The formats are drafts: [AI Catalog](https://ai-catalog.io/spec/) and
+[Agentic Resource Discovery](https://github.com/ards-project/ard-spec/blob/main/spec/ard.md).
+ARD now uses `ard.json`; the requested `ai-catalog.json` remains available for
+clients using the predecessor path. Offline tests validate both formats against
+pinned upstream schemas; `npm run sync:ai-catalog-schemas` refreshes those fixtures
+from the revision pinned in the sync script (Apache-2.0).
+
 ### Personal Agent
 
 `services/personal-agent.service.js` is the user-facing orchestration layer. It keeps
@@ -273,9 +293,9 @@ provider.
 
 The product boundary is intentionally split: OpenClaw is the agent runtime for conversation,
 tool orchestration, memory and answer synthesis. Cernion Energy Tools is the energy-domain
-evidence, policy, Knowledge RAG and read-only API layer behind answers about MaStR assets,
-grid context, Redispatch, Zielnetzplanung, 14a/14d EnWG duties, process intake and operational
-status.
+evidence, policy, Knowledge RAG and CET-governed process layer behind answers about MaStR assets,
+grid context, Redispatch, Zielnetzplanung, 14a/14d EnWG duties, process intake, Domain Router
+case state, Case Event Outbox/MWI and operational status.
 
 The sidecar consumes the Cernion Sidecar contract:
 
@@ -290,7 +310,9 @@ The sidecar consumes the Cernion Sidecar contract:
 
 The boundary is deliberately strict:
 
-- read-only Cernion evidence lookup uses a read-only token
+- Sidecar tokens identify tenant, actor and client context; CET authorization/governance is the permission boundary.
+- Domain Router and MWI tools may update internal CET PouchDB state such as case state, event delivery state and related-session links.
+- evidence/hydration lookups and Blueprint plans remain read-only where that is the actual operation.
 - process intake uses a separate process token and creates only `pending_confirmation` receipts
 - admin, token, HITL-resolve and production mutation paths are blocked
 - domain routing remains inside Cernion, not inside the sidecar
@@ -416,6 +438,10 @@ User objective
 | [docs/BACKEND_CONTEXT.md](docs/BACKEND_CONTEXT.md) | Backend context for UI/frontend work |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [MCP_TOOLS.md](MCP_TOOLS.md) | MCP/tool reference |
+| [docs/SHARED_SERVICE_JOURNAL.md](docs/SHARED_SERVICE_JOURNAL.md) | RC3 append-only Shared Service Journal, deterministic digests and retention |
+| [docs/domain-router.md](docs/domain-router.md) | CET Domain Router, typisierte Fallverknüpfung, own/team/tenant-Sichtbarkeit und Case Event Outbox / MWI |
+| [docs/tenant-memory.md](docs/tenant-memory.md) | Tenant-Gedächtnis: Aussagen, gemeinsame Anker, Quellen, Korrektur und einmalige Hinweise |
+| [docs/open-webui-tenant-gateway.md](docs/open-webui-tenant-gateway.md) | RC3 Open WebUI / Cernion Workbench Tenant-Gateway access without AgentOS |
 | [llm.txt](llm.txt) | Machine-readable service and capability context |
 | [SECURITY.md](SECURITY.md) | Security policy |
 
@@ -430,3 +456,17 @@ Support and product feedback:
 
 - [GitHub Issues](https://github.com/energychain/cernion-energy-tools/issues)
 - `dev@stromdao.com`
+
+
+### Workbench: verstehen, antworten, Fall im Hintergrund
+
+Inhaltliche Nachrichten und eingefügte Fremdtexte werden über die zentrale LLM-Fassade in ein Lagebild übersetzt. CET antwortet mit relevanten Quellen und höchstens drei neuen fachlichen Rückfragen. Konkrete Arbeitsaufgaben erhalten einen Hintergrundfall; „Kein Fall“ nimmt ihn zurück. Wissens- und Statusfragen erzeugen keinen Fall. Versandwünsche führen zu einem Hinweis und auf ausdrücklichen Wunsch zu einem internen Entwurf. Quellenzuordnung und Relevanzschwelle sind in `src/workbench-knowledge-sources.json` konfiguriert. Details und Grenzen stehen im [Tenant-Gateway-Leitfaden](docs/open-webui-tenant-gateway.md) und im [Akzeptanzbericht zu #739](docs/validation/739-acceptance.md).
+
+Organisationsrelevante Aussagen hält CET tenantweit fest und bestätigt sie einmal mit „Hab ich festgehalten: …“. Seltene gemeinsame Anker verbinden Aussagen verschiedener Personen; erkannte Wechselwirkungen erscheinen im Gespräch und einmal beim nächsten Kontakt der anderen Person. Tenant-Trennung und Vertraulichkeitsstufen gelten bei jedem Zugriff. Details stehen im [Tenant-Gedächtnis-Leitfaden](docs/tenant-memory.md).
+
+## Tenant-Datenkatalog
+
+Vollständige CSV-/XLSX-Texttabellen aus Open WebUI werden tenantweit als Nutzerangaben
+abgelegt und über `dataset.query` deterministisch ausgewertet. Gleicher Inhalt erzeugt
+auch bei erneut gesendeten Anhängen keine weitere Version oder Bestätigung.
+Einrichtung, Grenzen und Beispiele: [Tenant-Datenkatalog](docs/tenant-dataset-catalog.md).

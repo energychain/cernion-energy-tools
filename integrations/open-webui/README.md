@@ -14,12 +14,116 @@ uses its own env-only credential:
 - `cernion-process-intake-tool-server.js` — **draft-only** Process Intake preview (delegates to
   the existing Process Intake action). **This is not a production write path.**
 
+## RC3 Cernion Workbench / Tenant-Gateway setup
+
+For customer-facing Open WebUI access, prefer the RC3 Workbench path over direct tool wiring. Open
+WebUI remains the tenant-branded UI; `/api/workbench/*` maps Open-WebUI org/user/conversation ids to
+CET tenant/actor/case state, and `model: "cernion-governance-assistant"` forces the CET
+Workbench path through `/v1/chat/completions`. The latest user prompt is classified as
+`status_query`, `knowledge_query`, `data_lookup`, `case_start`, `case_followup`,
+`decision_support` or `tool_run_request`; the mode is returned as `metadata.intentMode`.
+Status and list queries use mapped, read-only Workbench actions without creating cases.
+Knowledge questions use the mapped Personal Agent in consultation mode. Case and tool
+requests retain the existing Workbench classify/continue and governance checks. Tool
+intent alone does not execute a tool. Empty or internal routing-policy responses are
+rendered from safe structured fields, with the original output retained in CET metadata.
+For status queries, pass `metadata.cetCaseId` or use an already linked conversation.
+
+Provisioning sequence:
+
+1. Create the Open-WebUI organization to CET tenant mapping:
+
+```bash
+curl -X POST https://api.cernion.de/api/workbench/admin/tenant-mappings \
+  -H "Authorization: Bearer <tenant-admin-or-platform-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client": "open-webui",
+    "externalOrgId": "owui-org-1",
+    "cetTenantId": "tenant-1",
+    "defaultClientId": "openwebui-tenant-1",
+    "enabled": true
+  }'
+```
+
+2. Create the Open-WebUI user to CET actor/role mapping:
+
+```bash
+curl -X POST https://api.cernion.de/api/workbench/admin/user-mappings \
+  -H "Authorization: Bearer <tenant-admin-or-platform-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client": "open-webui",
+    "externalOrgId": "owui-org-1",
+    "externalUserId": "owui-user-1",
+    "cetTenantId": "tenant-1",
+    "cetActorId": "user:mako-analyst",
+    "roles": ["ROLE_MARKET_COMMUNICATION", "ROLE_EDM"],
+    "sensitivityClearance": ["tenant_internal", "restricted"],
+    "defaultClientId": "openwebui-tenant-1",
+    "enabled": true
+  }'
+```
+
+3. Register the Workbench MWI delivery client before polling events:
+
+```bash
+curl -X POST https://api.cernion.de/api/workbench/delivery-clients \
+  -H "Authorization: Bearer <tenant-admin-or-platform-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "clientId": "openwebui-tenant-1",
+    "clientType": "open-webui",
+    "deliveryMode": "poll",
+    "ackMode": "explicit",
+    "eventTypes": ["clarification.required", "evidence.required", "evidence.available", "domain.changed"],
+    "enabled": true
+  }'
+```
+
+4. Configure Open WebUI with the CET OpenAI-compatible endpoint and use
+`cernion-governance-assistant`:
+
+```json
+{
+  "model": "cernion-governance-assistant",
+  "messages": [{ "role": "user", "content": "MSCONS fehlt, APERAK Z18 ist vorhanden." }],
+  "metadata": {
+    "client": "open-webui",
+    "openWebuiOrgId": "owui-org-1",
+    "openWebuiUserId": "owui-user-1",
+    "openWebuiConversationId": "owui-chat-1",
+    "clientId": "openwebui-tenant-1"
+  }
+}
+```
+
+5. Poll and acknowledge MWI events through the Workbench wrapper:
+
+```bash
+curl "https://api.cernion.de/api/workbench/events?clientId=openwebui-tenant-1&attentionOnly=true" \
+  -H "Authorization: Bearer <user-or-service-token>"
+
+curl -X POST https://api.cernion.de/api/workbench/events/<eventId>/ack \
+  -H "Authorization: Bearer <user-or-service-token>" \
+  -H "Content-Type: application/json" \
+  -d '{ "clientId": "openwebui-tenant-1" }'
+```
+
+Common fail-closed errors:
+
+- `WORKBENCH_TENANT_MAPPING_REQUIRED`: create `/api/workbench/admin/tenant-mappings` for the Open-WebUI organization.
+- `WORKBENCH_MAPPING_REQUIRED`: create `/api/workbench/admin/user-mappings` for the Open-WebUI user.
+- `WORKBENCH_DELIVERY_CLIENT_REQUIRED`: register `/api/workbench/delivery-clients` before event polling/ack.
+- `WORKBENCH_IDENTITY_INCOMPLETE`: send Open-WebUI user and organization ids together.
+- Evidence attach errors for unknown `evidenceType`, `sourceType`, missing sensitivity clearance or secret-like `sourceRef` fields are intentional fail-closed behavior.
+
 ## OpenAI-compatible Sidecar bridge
 
-The bridge lets an existing Open WebUI instance use a single, explicit Cernion Sidecar session as
-an OpenAI-compatible chat provider. Open WebUI remains only the interchangeable frontend;
-Cernion remains authoritative for capability routing, policy, evidence, lifecycle and all
-write-boundary decisions.
+The legacy bridge lets an existing Open WebUI instance use a single, explicit Cernion Sidecar
+session as an OpenAI-compatible chat provider. For customer-facing RC3 deployments use the
+Workbench setup above. Open WebUI remains only the interchangeable frontend; Cernion remains
+authoritative for capability routing, policy, evidence, lifecycle and all write-boundary decisions.
 
 Start the bridge after generating or receiving a Sidecar session manifest:
 
@@ -84,7 +188,7 @@ Start the adapter:
 
 ```bash
 CERNION_AGENT_SIDECAR_BASE_URL=http://127.0.0.1:3900 \
-CERNION_READONLY_TOKEN='<read-only token>' \
+CERNION_READONLY_TOKEN='<authenticated CET sidecar token>' \
 node integrations/open-webui/cernion-openapi-tool-server.js
 ```
 
@@ -221,3 +325,103 @@ control, HITL resolution, deployment, external messaging, webhooks, signatures, 
 approval, tenant mutations, or direct database paths. The Process Intake adapter's only permitted
 upstream call is `POST <CERNION_BASE_URL>/api/copilot-process/intents`, and it never decides
 policy itself — only Cernion and a human reviewer do.
+
+## Inbetriebnahme in vier Schritten (Gateway-Tokens, Issue #736)
+
+Die lokalen Provisionierungs-CLIs verwenden weiterhin den vorhandenen Bootstrap-Schutz:
+`CERNION_SUPPORT_TOKEN` muss konfiguriert sein und der passende Wert über
+`CERNION_SUPPORT_TOKEN_INPUT` oder `--support-token` vorliegen. Der Schlüssel gehört auf den
+CET-Server, nicht in Open WebUI. Alle Befehle im CET-Projektverzeichnis ausführen.
+
+1. **Gateway-Token erzeugen.**
+
+   ```bash
+   npm run token:create -- --tenant=stadtwerk-a --user=svc:open-webui --name=OpenWebUI --gateway --client=open-webui --org=owui-org-1
+   ```
+
+   Den einmalig ausgegebenen `data.token` sicher speichern. Der Datensatz trägt
+   `type: 'gateway'`, `client: 'open-webui'`, `tenantId` und `externalOrgId`, aber keine eigenen Rollen oder
+   Zusatz-Scopes. `--gateway` und `--roles` schließen sich aus.
+
+2. **Jeden Nutzer zuordnen und kontrollieren.**
+
+   ```bash
+   npm run workbench:map -- --tenant=stadtwerk-a --client=open-webui --org=owui-org-1 --email=user@example.org --actor=cet-user-1 --roles=ROLE_USER --clearance=tenant_internal
+   # Alternativ zur E-Mail: --user=owui-user-1 (nicht zusammen mit --email).
+   npm run workbench:map -- --tenant=stadtwerk-a --client=open-webui --list
+   ```
+
+   Die CLI legt Organisations- und Nutzer-Mapping über dieselben Admin-Actions und
+   Validierungen wie die REST-API an. `--clearance` ist optional; ohne Angabe ist die
+   Clearance leer. `--list` zeigt ausschließlich Mappings des angegebenen Mandanten/Clients.
+
+3. **Open WebUI verbinden.**
+
+   OpenAI-kompatible Verbindung auf `https://<cet-host>/v1` setzen, als API-Schlüssel den
+   Gateway-Token verwenden und `cernion-governance-assistant` als Standardmodell wählen.
+   In Open WebUI `ENABLE_FORWARD_USER_INFO_HEADERS=true` setzen. Die Organisation ist durch
+   `--org` am Token gebunden. Eine Standard-Verbindung genügt; Pipe, Function oder zusätzliche
+   Request-Metadata sind nicht erforderlich.
+
+   CET verwendet `X-OpenWebUI-User-Id`, `X-OpenWebUI-Chat-Id` und als optionalen Fallback
+   `X-OpenWebUI-User-Email`. E-Mail-Adressen werden getrimmt und kleingeschrieben, danach exakt
+   verglichen; es gibt keine Domain-, Alias- oder Teilstring-Suche. Eine bestehende User-ID-
+   Zuordnung hat immer Vorrang, auch wenn sie deaktiviert ist. Ein fehlendes oder deaktiviertes
+   Mapping bleibt gesperrt. Akteur, Rollen und Clearance kommen ausschließlich aus dem Mapping.
+   Explizite `metadata.openWebuiUserId` und `metadata.openWebuiConversationId` bzw.
+   `conversationId` haben Vorrang vor den jeweiligen Headern. `metadata.openWebuiOrgId` ist
+   optional: der Token-Wert wird verwendet, ein gleicher Metadata-Wert ist erlaubt und ein
+   abweichender ergibt 403. Identitäts-Header und Nutzer-/Organisations-Metadata werden bei
+   normalen API-Tokens nicht zur Delegation verwendet. Rollen-Header werden immer ignoriert.
+   Die offiziellen Namen und die Schalterwirkung sind in der
+   [Open-WebUI-Dokumentation](https://docs.openwebui.com/reference/env-configuration/#enable_forward_user_info_headers)
+   beschrieben. Die Standardnamen müssen beibehalten werden.
+
+   Der Gateway-Token erlaubt `GET /v1/models` (HTTP 200, ausschließlich
+   `cernion-governance-assistant`) und `POST /v1/chat/completions` mit diesem Modell sowie
+   die daraus entstehenden internen Workbench-Chat/Query-Aufrufe. Direkte Workbench-, Admin-,
+   Notices-, Domain-Router-, MCP- und Sidecar-Aufrufe sowie andere Modelle erhalten 403.
+
+   **Altfall:** Bereits gespeicherte Gateway-Tokens ohne `externalOrgId` benötigen weiterhin
+   `metadata.openWebuiOrgId`. Ein Hinweis im Server-Log macht auf diesen Fall aufmerksam.
+   Für den Header-only-Betrieb einen neuen Gateway-Token mit `--org` erzeugen und die
+   Verbindung umstellen. Neue Gateway-Tokens ohne `--org` werden abgewiesen.
+
+4. **Smoke-Test ausführen.**
+
+   ```bash
+   # GATEWAY_TOKEN enthält den zuvor einmalig ausgegebenen data.token.
+   curl --fail-with-body https://<cet-host>/v1/models -H "Authorization: Bearer $GATEWAY_TOKEN"
+   curl --fail-with-body https://<cet-host>/v1/chat/completions \
+     -H "Authorization: Bearer $GATEWAY_TOKEN" \
+     -H 'Content-Type: application/json' \
+     -H 'X-OpenWebUI-User-Id: owui-user-1' \
+     -H 'X-OpenWebUI-User-Email: user@example.org' \
+     -H 'X-OpenWebUI-Chat-Id: smoke-736' \
+     -d '{"model":"cernion-governance-assistant","messages":[{"role":"user","content":"Starte einen Fall: Netzanschluss für einen Batteriespeicher prüfen."}]}'
+   ```
+
+   Erwartet: HTTP 200, OpenAI-kompatible `choices` und CET-Metadata. Ein unbekannter Nutzer,
+   deaktiviertes Mapping oder fremder Mandant erhält 403. Bei fehlender Zuordnung enthält
+   die Antwort einen verständlichen Hinweis, sich an die Administration zu wenden.
+
+### Normale API-Tokens und Support-Rollen
+
+```bash
+npm run token:create -- --tenant=stadtwerk-a --user=admin --name=TenantAdmin --roles=ROLE_USER,ROLE_TENANT_ADMIN
+npm run token:create -- --tenant=stadtwerk-a --user=support --name=Support --roles=ROLE_ADMIN,ROLE_UTILITY_HQ --support
+```
+
+Die Rollen-Allowlist liegt zentral in `src/auth/token-policy.js`. Nicht erlaubte Rollen
+werden mit 422 abgewiesen. `ROLE_ADMIN` und die mandantenübergreifende `ROLE_UTILITY_HQ`
+setzen zusätzlich `--support` voraus. Support-Ausstellungen werden ohne Tokengeheimnis in
+`TOKEN_ROLE_AUDIT_FILE` (Standard: `uploads/.token-role-audit.jsonl`) auditiert. Bestehende
+Token-Datensätze erhalten keine neuen Rollen und behalten ihre bisherigen Scopes.
+
+Jede erfolgreiche Gateway-Delegation schreibt vor der Ausführung einen dauerhaften
+`workbench_gateway_delegation`-Datensatz in die Workbench-Identitätsdatenbank: Token-ID,
+Client, externe Nutzer-ID, CET-Akteur, Mandant und Zeitstempel; keine Gesprächsinhalte.
+Akteur, Rollen und Clearance stammen ausschließlich aus dem Mapping. Die interne
+Personenprojektion ist auf kontextuelle Lesezugriffe begrenzt (`read-only`); sie erbt
+keinen `full-access`-Scope vom Verbindungsschlüssel. Fachliche Rechte und No-Call-Guards
+werden weiterhin von CET geprüft. Fehler beim Mapping oder Audit bleiben fail-closed.

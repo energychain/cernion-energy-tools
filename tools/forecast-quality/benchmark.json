@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "cernion-edm-eleven-profiles-2024-v1",
+  "unit": "kWh",
+  "time_basis": "berlin",
+  "timezone": "Europe/Berlin",
+  "period_from": "2024-01-01",
+  "period_until": "2024-12-31",
+  "expected_profiles": 11,
+  "minimum_coverage": 1.0,
+  "quality_thresholds": {
+    "high_wape_percent": 10,
+    "medium_wape_percent": 30
+  },
+  "configuration": {
+    "mode": "rolling_day_ahead",
+    "relationship_mode": "auto",
+    "feature_set": [
+      "history",
+      "calendar"
+    ],
+    "selection_metric": "mae",
+    "recent_window_days": 84
+  },
+  "files": [
+    {
+      "file": "1_2020-2024.xlsx",
+      "sha256": "212d8fc3d66bf43c194db04613ababaafa2d7f4af4334d7d98d4b4f1e0b19bc4",
+      "series_id": "meter-1"
+    },
+    {
+      "file": "2_2020-2024.xlsx",
+      "sha256": "fcf6a0fcef70dca8c2cf2f739213294ba7f3fb52ee6c30e248fdbdf499af6b21",
+      "series_id": "meter-2"
+    },
+    {
+      "file": "3_2020-2024.xlsx",
+      "sha256": "3dcacb347acb171519777fb217f6ef5dbdc0df2890f29e71bae01380a113a587",
+      "series_id": "meter-3"
+    },
+    {
+      "file": "4_2021-2024.xlsx",
+      "sha256": "ca8ad548a90ccf735c993687c5239b00706444f3b7f8a9b32456255510153ecd",
+      "series_id": "meter-4"
+    },
+    {
+      "file": "5_2020-2024.xlsx",
+      "sha256": "4f32e696c1a4a5adeeb079b95fce8f8b5d84fc0c931284c725994ff92a9182e3",
+      "series_id": "meter-5"
+    },
+    {
+      "file": "6_2021-2024.xlsx",
+      "sha256": "a9510e10e477d80f6a7e243a253a39281c1857e6b800b6a310e9c6942dfbbebe",
+      "series_id": "meter-6"
+    },
+    {
+      "file": "7_2020-2024.xlsx",
+      "sha256": "a05461ca3daa92c06bbb328fefb0f3043194a2b30b4d47a7e76f7e66436231a7",
+      "series_id": "meter-7"
+    },
+    {
+      "file": "8_2020-2024.xlsx",
+      "sha256": "692afae365f2defeda649df647525691a6aabf9063ca0c9efd5b8c2fa6d8e97d",
+      "series_id": "meter-8"
+    },
+    {
+      "file": "9_2020-2024.xlsx",
+      "sha256": "b666fb0352aae42f389fb9218f592fe32b9a3c44225cdc291be9aea5756bef44",
+      "series_id": "meter-9"
+    },
+    {
+      "file": "10_2021-2024.xlsx",
+      "sha256": "b2c75b8359eca260da1ce7ca7d35e33f281f6d5c98903dd53f4e15d801ff6b68",
+      "series_id": "meter-10"
+    },
+    {
+      "file": "11_2020-2024.xlsx",
+      "sha256": "6238250fdf7147169b65a01aedf87f318a2539983c3b6d103649c4f30e3a6b45",
+      "series_id": "meter-11"
+    }
+  ]
+}

@@ -17,7 +17,7 @@ npm start                            # production start (port 3000)
 |---------|------|
 | `npm test` | All Jest tests with coverage (serial, `--experimental-vm-modules`) |
 | `npm run test:unit` | Unit tests only (no integration) |
-| `npm run test:unit:ci` | CI variant (`--runInBand --forceExit`) |
+| `npm run test:unit:ci` | Chunked CI runner (serial Jest, merged coverage) |
 | `npm run test:tdd-matrix` | TDD matrix parser + generated tests |
 | `npm run test:integration` | Integration tests (need real `CERNION_TOKEN`) |
 | `npm run test:custom` | Custom service tests |
@@ -25,7 +25,7 @@ npm start                            # production start (port 3000)
 | `npm run lint` | ESLint (flat config, ES2022, CommonJS) |
 | `npm run format` | Prettier (semi, singleQuote, trailingComma es5, printWidth 100) |
 | `npm run lint:hygiene` | SonarJS + security audit → `feedback/eslint-findings.txt` |
-| `npm run release:check` | Full release gate: `test:unit:ci → test:tdd-matrix → check:tdd-matrix-coverage → audit:openapi → check:llm → audit:security` |
+| `npm run release:check` | Full release gate: `test:unit:ci → test:tdd-matrix → check:tdd-matrix-coverage → audit:openapi → check:llm → check:operation-capability-index → check:quality-gate → audit:security` |
 | `npm run audit:openapi` | OpenAPI coverage/completeness |
 | `npm run generate:llm` | Generate `llm.txt` context file |
 | `npm run check:llm` | Verify `llm.txt` is in sync (--check mode) |
@@ -35,7 +35,7 @@ npm start                            # production start (port 3000)
 ## Testing quirks
 
 - Jest runs **serially** (`maxWorkers: 1`) — MCP sessions conflict if parallel
-- Coverage gates: branches 60%, functions 75%, lines 75%, statements 75%
+- Coverage gates: branches 63%, functions 80%, lines 79%, statements 79%
 - **Integration tests** (`*.integration.test.js`) require a real `CERNION_TOKEN` and running MCP server — excluded from `test:unit`
 - **TDD matrix** tests have a **hard 100% coverage gate** (`check:tdd-matrix-coverage` script) required for CI and release
 - `console.log`/`.info`/`.error` etc. are **mocked** in `tests/setup.js` — writes go to `jest.fn()` but output is suppressed
@@ -44,7 +44,7 @@ npm start                            # production start (port 3000)
 
 ## Architecture essentials
 
-- **Single-process Moleculer broker** — all 76 services in `services/` plus optional `custom-services/` load into one Node.js process via in-process transport
+- **Single-process Moleculer broker** — all 147 services in `services/` plus optional `custom-services/` load into one Node.js process via in-process transport
 - `index.js` — entrypoint: creates broker, loads all `*.service.js` from both dirs, starts
 - `services/api.service.js` — API gateway, REST on port 3000, Swagger UI at `/api/docs`
 - `src/` — shared libraries (LLM client, MCP client, connectors, auth, EDM, CYA agent, personal agent, etc.)

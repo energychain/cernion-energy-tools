@@ -1,0 +1,14 @@
+{
+  "model_family": "learned_states",
+  "extended_features": true,
+  "selection_metric": "rmse",
+  "selection_policy": "adaptive_rmse_v1",
+  "activity_model": true,
+  "issue_time": "18:00",
+  "feature_set": [
+    "history",
+    "calendar",
+    "context"
+  ],
+  "context_dataset_id": "REPLACE_WITH_PREPARED_CONTEXT_DATASET_ID"
+}

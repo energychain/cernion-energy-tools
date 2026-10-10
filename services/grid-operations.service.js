@@ -2139,7 +2139,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                         bdewCodes: ['9900244000009'],
                         marketRoles: ['VNB'],
                         address: { city: 'Gronau', postalCode: '48599', state: null },
-                        website: 'http://www.stadtwerke-gronau.de',
+                        website: 'https://www.stadtwerke-gronau.de',
                         mastrId: null,
                         lastUpdated: '2026-07-31T22:35:00.638935+00:00',
                       },

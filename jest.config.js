@@ -19,15 +19,18 @@ const globalCoverageThreshold = {
   },
 };
 
+const collectCoverageFrom = [
+  'src/**/*.js',
+  'services/**/*.js',
+  '!src/**/*.test.js',
+  '!src/**/*.spec.js',
+  '!services/api.service.js',
+];
+
 module.exports = {
   testEnvironment: 'node',
-  collectCoverageFrom: [
-    'src/**/*.js',
-    'services/**/*.js',
-    '!src/**/*.test.js',
-    '!src/**/*.spec.js',
-    '!services/api.service.js',
-  ],
+  modulePathIgnorePatterns: ['<rootDir>/.venv-forecast/'],
+  ...(process.env.CET_UNIT_CI_CHUNKED === '1' ? {} : { collectCoverageFrom }),
   // Keep strict global gates for full-suite runs, but avoid false failures
   // for explicitly selected subset runs (e.g. single service test files).
   ...(hasExplicitTestSelection ? {} : { coverageThreshold: globalCoverageThreshold }),

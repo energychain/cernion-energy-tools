@@ -1,0 +1,811 @@
+{
+  "mode": "live central LLM / stubbed sources; no test-instance retrieval",
+  "provider": "gemini",
+  "models": "gemini-3.5-flash-lite",
+  "answerModel": "gemini-flash-latest",
+  "budgets": "15000,45000",
+  "thinking": "minimal,default",
+  "followupThinking": "low",
+  "turns": [
+    {
+      "message": "Anonymisierte Mail eines Lieferanten an einen Netzbetreiber: Zu unserer Netzanmeldung zum Lieferbeginn vom 05.10.2026, DAR DE000000000001, Marktlokation 99000000001, Anschlussadresse Beispielstraße 1, fehlt laut unserem Bearbeitungsstand die Rückmeldung. Die Frist ist laut Mail überschritten. Bitte teilen Sie uns den Bearbeitungsstand mit. Kannst du mir helfen?",
+      "elapsedMs": 24130,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 2406,
+        "retrieveMs": 7,
+        "answerMs": 21585
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 36
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 4
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 5
+        },
+        {
+          "name": "willi-mako",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 4
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 2
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "capability-read",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 1
+        }
+      ],
+      "caseId": "a16aff1b-fd2f-4196-9d50-33c7070401da",
+      "answerStatus": "grounded",
+      "responseText": "Der Lieferant reklamiert eine ausbleibende Rückmeldung sowie eine angebliche Fristüberschreitung zu einer Netzanmeldung zum Lieferbeginn am 05.10.2026 (DAR DE000000000001, Marktlokation 99000000001, Beispielstraße 1) und fordert den Bearbeitungsstand an.\n\nDer Lieferant erwartet eine fachliche Prozessantwort auf seine Netzanmeldung zum Lieferbeginn, also eine Bestätigung oder eine begründete Ablehnung bzw. Klärung; eine bloße Eingangsbestätigung genügt fachlich nicht.\n\nPrüfe den im System dokumentierten Bearbeitungsstatus und die Historie zur DAR DE000000000001 sowie Marktlokation 99000000001 und leite keine Frist ungeprüft aus der Mail ab.\n\nGleiche ab, ob die zugehörige fachliche Marktkommunikationsnachricht (Zustimmung oder Ablehnung) bereits automatisiert versendet wurde oder ein Klärfall im System vorliegt.\n\nWähle die passende Entwurfsvariante anhand des tatsächlichen Prüfergebnisses aus und übermittle die Rückmeldung an den Lieferanten.\n\nIch gehe davon aus, dass wir die Anfrage aus Sicht des zuständigen Netzbetreibers beantworten – sonst sag Bescheid.\n\nEntwurf:\nVariante – nur wenn Falls die Prüfung ergibt, dass die Netzanmeldung bestätigt werden kann:\nGuten Tag,\n\nvielen Dank für Ihre Nachricht. Zur Netzanmeldung mit der DAR DE000000000001 an der Marktlokation 99000000001 (Beispielstraße 1) teilen wir Ihnen mit, dass der Lieferbeginn zum 05.10.2026 bestätigt werden kann. Die entsprechende Bestätigungsmeldung wurde bzw. wird über die reguläre Marktkommunikation an Sie übermittelt.\n\nFreundliche Grüße\nIhr Netzbetreiber\n\nVariante – nur wenn Falls die Netzanmeldung abgelehnt werden muss oder Klärungsbedarf besteht:\nGuten Tag,\n\nvielen Dank für Ihre Nachricht. Zur Netzanmeldung mit der DAR DE000000000001 an der Marktlokation 99000000001 (Beispielstraße 1) zum Lieferbeginn am 05.10.2026 teilen wir Ihnen mit, dass die Anmeldung in der vorliegenden Form nicht bestätigt werden kann. Grund hierfür ist: [GRUND_FUER_ABLEHNUNG_ODER_KLAERUNGSBEDARF]. Eine entsprechende Nachricht wird parallel über den elektronischen Datenaustausch versendet.\n\nFreundliche Grüße\nIhr Netzbetreiber\n\nQuellen: knowledge-rag: https://example.invalid/anonymous-process-note; willi-mako: https://example.invalid/anonymous-willi-note\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "situation": {
+        "concern": "Ein Lieferant beanstandet eine fehlende Rückmeldung und eine überschrittene Frist zu einer Netzanmeldung für den Lieferbeginn am 05.10.2026.",
+        "situation": "Der Lieferant hat eine anonymisierte Mail an den Netzbetreiber gesendet, in der er den aktuellen Bearbeitungsstand zur Netzanmeldung fordert.",
+        "participants": [
+          "Lieferant",
+          "Netzbetreiber"
+        ],
+        "identifiers": [
+          {
+            "kind": "DAR",
+            "value": "DE000000000001"
+          },
+          {
+            "kind": "Marktlokation",
+            "value": "99000000001"
+          }
+        ],
+        "deadlines": [
+          {
+            "value": "Die Frist ist laut Mail überschritten.",
+            "basis": "Die Frist ist laut Mail überschritten."
+          }
+        ],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-e2e-connection-check",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [],
+        "requestedAction": {
+          "description": "Den Bearbeitungsstand zur Netzanmeldung an den Lieferanten mitteilen.",
+          "externalEffect": true,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Netzanmeldung",
+          "Lieferbeginn",
+          "DAR DE000000000001",
+          "Marktlokation 99000000001",
+          "Bearbeitungsstand"
+        ],
+        "primaryDomain": "market_master_data"
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Anonymisierte Mail eines Lieferanten an einen Netzbetreiber: Zu unserer Netzanmeldung zum Lieferbeginn vom 05.10.2026, DAR DE000000000001, Marktlokation 99000000001, Anschlussadresse Beispielstraße 1, fehlt laut unserem · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        },
+        {
+          "source": "willi-mako",
+          "value": "Lieferbeginn und erwartete Marktkommunikations-Prozessantwort · Ein Lieferant beanstandet eine fehlende Rückmeldung und eine überschrittene Frist zu einer Netzanmeldung für den Lieferbeginn am 05.10.2026. Netzanmeldung Lieferbeginn DAR DE000000000001 Marktlokatio… Für den Lieferbeginn erwartet der Lieferant eine fachliche Prozessantwort auf seine Anmeldung: Bestätigung oder begründete Ablehnung beziehungsweise Klärung fehlender Angaben. Eingangsbestätigung allein ist keine fachliche Bestätigung. Den dokumentierten Status und die gültige Prozessversion prüfen; keine Frist aus der Mail ableiten. · URL: https://example.invalid/anonymous-willi-note",
+          "url": "https://example.invalid/anonymous-willi-note",
+          "metadata": {
+            "sourceId": "anonymous-willi-note",
+            "sectionId": null,
+            "score": 32
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E2"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "ms": 36,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 4,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 5,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "ms": 4,
+          "confidence": "none",
+          "rejected": []
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 2,
+          "rejected": []
+        },
+        {
+          "source": "analysis-planner",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 1,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": true
+    },
+    {
+      "message": "Die Eingangsbestätigung liegt vor. Was bedeutet das für den nächsten Schritt?",
+      "elapsedMs": 6759,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 2628,
+        "retrieveMs": 4,
+        "answerMs": 4069
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 4
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 2
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 2
+        },
+        {
+          "name": "willi-mako",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 1
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "capability-read",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        }
+      ],
+      "caseId": "a16aff1b-fd2f-4196-9d50-33c7070401da",
+      "answerStatus": "grounded",
+      "responseText": "Die Eingangsbestätigung bestätigt lediglich den technischen Empfang, ersetzt jedoch keine fachliche Entscheidung; als nächster Schritt muss daher die eigentliche fachliche Prozessantwort (Bestätigung oder begründete Ablehnung) zur Netzanmeldung geprüft und versendet werden.\n\nPrüfe den im System dokumentierten Status und die Historie zur DAR DE000000000001 sowie Marktlokation 99000000001, um die ausstehende fachliche Antwort vorzubereiten.\n\nVersende nach Prüfung der Netzanmeldung die reguläre fachliche Prozessantwort in Form einer Bestätigung oder begründeten Ablehnung an den Lieferanten.\n\nQuellen: willi-mako: https://example.invalid/anonymous-willi-note\n\nFall F-1",
+      "situation": {
+        "concern": "Die Eingangsbestätigung für die Netzanmeldung liegt vor, und es wird nach der Bedeutung für den nächsten Schritt gefragt.",
+        "situation": "Der Netzbetreiber hat die Eingangsbestätigung erhalten und prüft das weitere Vorgehen in Abstimmung mit dem bisherigen Sachstand zur Netzanmeldung.",
+        "participants": [
+          "Lieferant",
+          "Netzbetreiber"
+        ],
+        "identifiers": [
+          {
+            "kind": "DAR",
+            "value": "DE000000000001"
+          },
+          {
+            "kind": "Marktlokation",
+            "value": "99000000001"
+          }
+        ],
+        "deadlines": [
+          {
+            "value": "Die Frist ist laut Mail überschritten.",
+            "basis": "Die Frist ist laut Mail überschritten."
+          }
+        ],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-e2e-connection-check",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [],
+        "requestedAction": {
+          "description": "Den nächsten Bearbeitungsschritt auf Basis der vorliegenden Eingangsbestätigung festlegen und erläutern.",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Netzanmeldung",
+          "Lieferbeginn",
+          "DAR DE000000000001",
+          "Marktlokation 99000000001",
+          "Eingangsbestätigung",
+          "Bearbeitungsstand"
+        ],
+        "primaryDomain": "grid_connection"
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Die Eingangsbestätigung liegt vor. Was bedeutet das für den nächsten Schritt? Ein Lieferant beanstandet eine fehlende Rückmeldung und eine überschrittene Frist zu einer Netzanmeldung für den Lieferbeginn am 05.10.2026. A · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        },
+        {
+          "source": "willi-mako",
+          "value": "Lieferbeginn und erwartete Marktkommunikations-Prozessantwort · Die Eingangsbestätigung für die Netzanmeldung liegt vor, und es wird nach der Bedeutung für den nächsten Schritt gefragt. Netzanmeldung Lieferbeginn DAR DE000000000001 Marktlokation 99000000001 Einga… Für den Lieferbeginn erwartet der Lieferant eine fachliche Prozessantwort auf seine Anmeldung: Bestätigung oder begründete Ablehnung beziehungsweise Klärung fehlender Angaben. Eingangsbestätigung allein ist keine fachliche Bestätigung. Den dokumentierten Status und die gültige Prozessversion prüfen; keine Frist aus der Mail ableiten. · URL: https://example.invalid/anonymous-willi-note",
+          "url": "https://example.invalid/anonymous-willi-note",
+          "metadata": {
+            "sourceId": "anonymous-willi-note",
+            "sectionId": null,
+            "score": 32
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E2"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "ms": 4,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 2,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 2,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "ms": 1,
+          "confidence": "none",
+          "rejected": []
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 1,
+          "rejected": []
+        },
+        {
+          "source": "analysis-planner",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": true
+    },
+    {
+      "message": "Mach mir die Antwort fertig",
+      "elapsedMs": 4106,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 0,
+        "retrieveMs": 1,
+        "answerMs": 4052
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 0
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "willi-mako",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "capability-read",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        }
+      ],
+      "caseId": "a16aff1b-fd2f-4196-9d50-33c7070401da",
+      "answerStatus": "grounded",
+      "responseText": "Entwurf:\nVariante – nur wenn Die fachliche Prüfung der Netzanmeldung ist positiv abgeschlossen.:\nSehr geehrte Damen und Herren,\n\nzur Netzanmeldung für die Marktlokation 99000000001 (DAR DE000000000001) bestätigen wir hiermit den Lieferbeginn zum 05.10.2026.\n\nMit freundlichen Grüßen\nIhr Netzbetrieb\n\nVariante – nur wenn Die fachliche Prüfung der Netzanmeldung erfordert eine Ablehnung oder Klärung.:\nSehr geehrte Damen und Herren,\n\nzur Netzanmeldung für die Marktlokation 99000000001 (DAR DE000000000001) zum gewünschten Lieferbeginn am 05.10.2026 können wir der Anmeldung derzeit nicht zustimmen [GRUND_ABLEHNUNG_ODER_KLAERUNG].\n\nMit freundlichen Grüßen\nIhr Netzbetrieb\n\nFall F-1",
+      "situation": {
+        "concern": "Die Eingangsbestätigung für die Netzanmeldung liegt vor, und es wird nach der Bedeutung für den nächsten Schritt gefragt.",
+        "situation": "Der Netzbetreiber hat die Eingangsbestätigung erhalten und prüft das weitere Vorgehen in Abstimmung mit dem bisherigen Sachstand zur Netzanmeldung.",
+        "participants": [
+          "Lieferant",
+          "Netzbetreiber"
+        ],
+        "identifiers": [
+          {
+            "kind": "DAR",
+            "value": "DE000000000001"
+          },
+          {
+            "kind": "Marktlokation",
+            "value": "99000000001"
+          }
+        ],
+        "deadlines": [
+          {
+            "value": "Die Frist ist laut Mail überschritten.",
+            "basis": "Die Frist ist laut Mail überschritten."
+          }
+        ],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-e2e-connection-check",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [],
+        "requestedAction": {
+          "description": "Den nächsten Bearbeitungsschritt auf Basis der vorliegenden Eingangsbestätigung festlegen und erläutern.",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Netzanmeldung",
+          "Lieferbeginn",
+          "DAR DE000000000001",
+          "Marktlokation 99000000001",
+          "Eingangsbestätigung",
+          "Bearbeitungsstand"
+        ],
+        "primaryDomain": "grid_connection"
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Die Eingangsbestätigung liegt vor. Was bedeutet das für den nächsten Schritt? Ein Lieferant beanstandet eine fehlende Rückmeldung und eine überschrittene Frist zu einer Netzanmeldung für den Lieferbeginn am 05.10.2026. A · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        },
+        {
+          "source": "willi-mako",
+          "value": "Lieferbeginn und erwartete Marktkommunikations-Prozessantwort · Die Eingangsbestätigung für die Netzanmeldung liegt vor, und es wird nach der Bedeutung für den nächsten Schritt gefragt. Netzanmeldung Lieferbeginn DAR DE000000000001 Marktlokation 99000000001 Einga… Für den Lieferbeginn erwartet der Lieferant eine fachliche Prozessantwort auf seine Anmeldung: Bestätigung oder begründete Ablehnung beziehungsweise Klärung fehlender Angaben. Eingangsbestätigung allein ist keine fachliche Bestätigung. Den dokumentierten Status und die gültige Prozessversion prüfen; keine Frist aus der Mail ableiten. · URL: https://example.invalid/anonymous-willi-note",
+          "url": "https://example.invalid/anonymous-willi-note",
+          "metadata": {
+            "sourceId": "anonymous-willi-note",
+            "sectionId": null,
+            "score": 32
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E2"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": false,
+          "status": "available",
+          "hitCount": 1,
+          "ms": 0,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": false,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": false,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": false,
+          "status": "available",
+          "hitCount": 1,
+          "ms": 0,
+          "confidence": "none",
+          "rejected": []
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": false,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0,
+          "rejected": []
+        },
+        {
+          "source": "analysis-planner",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": true
+    }
+  ],
+  "answerDiagnostics": [
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "object"
+    },
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "object"
+    },
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "object"
+    }
+  ]
+}

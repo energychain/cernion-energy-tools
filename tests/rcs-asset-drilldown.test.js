@@ -213,8 +213,7 @@ describe('trace persistence', () => {
       executionMode: 'sync',
     });
 
-    // Wait briefly for safeRunCall to complete (it's fire-and-forget)
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Successful completion includes trace persistence; no timing grace period.
 
     const trace = await broker.call('rcs-simulation-run.getTrace', {
       runId: testRun.runId,

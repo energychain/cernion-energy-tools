@@ -23,10 +23,11 @@ OpenClaw
     -> agent-sidecar policy gate
       -> Personal Agent ask / Answer Dossier
       -> Capability Broker recommendation
+      -> Domain Router case state / Case Event Outbox
       -> Hydration Registry allowlisted read-only evidence/status action
 ```
 
-The host can inspect the manifest with `GET /api/agent-sidecar/tools`. Tool invocation uses `POST /api/agent-sidecar/tools/:name/call` with a read-only API token. The API gateway permits this specific POST for read-only tokens because the sidecar policy gate revalidates tenant, safety class, side effects and target action before any downstream call.
+The host can inspect the manifest with `GET /api/agent-sidecar/tools`. Tool invocation uses `POST /api/agent-sidecar/tools/:name/call` with an authenticated CET API token. The token identifies tenant, actor and client context; it is not the fachliche read/write permission boundary. The API gateway permits this specific POST for legacy read-only tokens because the sidecar policy gate and downstream CET services revalidate tenant, safety class, effect class, external-effect boundary and target action before any downstream call.
 
 ## Policy Rules
 
@@ -39,19 +40,25 @@ Every tool definition includes:
 - `rolePolicy`
 - `hitlPolicy`
 - `responseContract`
-- `sideEffects`
+- `sideEffects` (legacy compatibility hint)
+- `effectClass` (canonical CET effect model)
+- `externalSideEffects`
+- `requiresCetAuthorization`
+- `governanceBoundary`
+- `localStateEffects`
 
-Policy is enforced server-side in Cernion. Tool descriptions for MCP/OpenClaw are not a policy source.
+Policy is enforced server-side in Cernion. Tool descriptions for MCP/OpenClaw are not a policy source. Current Sidecar tools must advertise `externalSideEffects: false`; internal CET case/event state changes are represented with effect classes such as `internal_case_state` and `internal_event_outbox`.
 
 ## Smoke Path
 
 DevServer smoke should verify:
 
-- `GET /api/agent-sidecar/tools` returns exactly the five curated tools.
+- `GET /api/agent-sidecar/tools` returns the curated tools including Domain Router tools.
 - `cernion.list_readonly_capabilities` returns the same manifest through the tool-call endpoint.
+- `cernion.classify_task`, `cernion.continue_case`, `cernion.list_case_events` and `cernion.ack_case_event` can update internal CET case/event state through the policy gate.
 - `cernion.recommend_capability` returns a recommendation without executing its plan.
 - `cernion.get_evidence_status` can call a Hydration Registry allowlisted read-only status action.
-- A forbidden HITL/write/admin/token action returns `sidecar_policy_blocked`.
+- A forbidden HITL/write/admin/token/external-effect action returns `sidecar_policy_blocked`.
 
 No Personal Agent hardcoding is required for OpenClaw. Consumption stays in the manifest, policy gate, existing Cernion actions and generated API artifacts.
 

@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('../src/canonical-order');
+
 /**
  * Evidence Revalidation Service — Origin Session Carry-Forward (v0.58)
  *
@@ -72,7 +74,7 @@ function normalizeScope(scope) {
 
   if (typeof scope === 'object' && !Array.isArray(scope)) {
     const normalized = {};
-    for (const key of Object.keys(scope).sort()) {
+    for (const key of Object.keys(scope).sort(compareCanonicalStrings)) {
       const val = scope[key];
       if (val === null || val === undefined) continue;
       const coerced = typeof val === 'string' ? val.trim() : val;

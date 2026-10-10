@@ -38,36 +38,101 @@ function getClient() {
   return new GoogleGenerativeAI(apiKey);
 }
 
-async function generateText(prompt) {
-  const model = getClient().getGenerativeModel({ model: getModelName() });
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+function generationOptions(options) {
+  const config = options.temperature != null ? { temperature: options.temperature } : {};
+  if (options.responseMimeType) config.responseMimeType = options.responseMimeType;
+  if (options.responseSchema) {
+    config.responseMimeType = 'application/json';
+    config.responseSchema = options.responseSchema;
+  }
+  if (options.thinkingConfig) config.thinkingConfig = options.thinkingConfig;
+  else if (options.thinking != null) {
+    const value = String(options.thinking).toLowerCase();
+    if (['minimal', 'low', 'medium', 'high'].includes(value))
+      config.thinkingConfig = { thinkingLevel: value };
+    else if (Number.isInteger(Number(value)) && Number(value) >= -1)
+      config.thinkingConfig = { thinkingBudget: Number(value) };
+  }
+  return config;
+}
+
+async function contentWithThinkingFallback(modelParams, input, options) {
+  const client = getClient();
+  try {
+    return await client.getGenerativeModel(modelParams).generateContent(input);
+  } catch (error) {
+    const status = error.status || error.response?.status || error.code;
+    if (
+      Number(status) !== 400 ||
+      !/thinking/i.test(error.message || '') ||
+      !modelParams.generationConfig?.thinkingConfig
+    )
+      throw error;
+    const { thinkingConfig: _thinking, ...generationConfig } = modelParams.generationConfig;
+    require('../workbench-llm-errors').logLlmError(
+      options.logger,
+      'thinking retry without configuration',
+      error
+    );
+    return await client
+      .getGenerativeModel({ ...modelParams, generationConfig })
+      .generateContent(input);
+  }
+}
+
+async function generateText(prompt, options = {}) {
+  const result = await contentWithThinkingFallback(
+    {
+      model: options.model || getModelName(),
+      generationConfig: generationOptions(options),
+    },
+    prompt,
+    options
+  );
+  const text = result.response.text();
+  options.onResponseMetadata?.({
+    outputLength: text.length,
+    truncated: result.response.candidates?.[0]?.finishReason === 'MAX_TOKENS',
+  });
+  return text;
 }
 
 async function generateStructured(schema, prompt, options = {}) {
   const mode = options.structuredMode || 'schema';
 
   if (mode === 'json' || mode === 'tool') {
-    return await generateText(prompt);
+    return await generateText(prompt, options);
   }
 
-  const model = getClient().getGenerativeModel({
-    model: getModelName(),
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: schema,
+  const result = await contentWithThinkingFallback(
+    {
+      model: options.model || getModelName(),
+      generationConfig: {
+        ...generationOptions(options),
+        responseMimeType: 'application/json',
+        responseSchema: schema,
+      },
     },
-  });
-  const result = await model.generateContent(prompt);
+    prompt,
+    options
+  );
   return result.response.text();
 }
 
-async function embeddings(texts) {
+async function embeddings(texts, options = {}) {
   const model = getClient().getGenerativeModel({ model: getEmbeddingModelName() });
   const vectors = [];
 
   for (const text of texts) {
-    const response = await model.embedContent(String(text || ''));
+    const input = String(text || '');
+    const request =
+      options.outputDimensionality == null
+        ? input
+        : {
+            content: { role: 'user', parts: [{ text: input }] },
+            outputDimensionality: options.outputDimensionality,
+          };
+    const response = await model.embedContent(request);
     vectors.push(Array.isArray(response?.embedding?.values) ? response.embedding.values : []);
   }
 
@@ -148,7 +213,10 @@ function buildGeminiContents(messages) {
             args = {};
           }
           if (call?.id) toolCallNameById.set(call.id, name);
-          return { functionCall: { name, args } };
+          return {
+            functionCall: { name, args },
+            ...(call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {}),
+          };
         });
         contents.push({ role: 'model', parts });
       } else {
@@ -168,10 +236,11 @@ function buildGeminiContents(messages) {
         );
         responsePayload = { result: message.content ?? null };
       }
-      contents.push({
-        role: 'function',
-        parts: [{ functionResponse: { name, response: responsePayload } }],
-      });
+      const part = { functionResponse: { name, response: responsePayload } };
+      const previous = contents.at(-1);
+      if (previous?.role === 'user' && previous.parts.every((item) => item.functionResponse))
+        previous.parts.push(part);
+      else contents.push({ role: 'user', parts: [part] });
     }
   }
 
@@ -206,7 +275,7 @@ function toGeminiFunctionDeclarations(tools) {
     .map((tool) => ({
       name: tool.function.name,
       description: tool.function.description || '',
-      parameters: tool.function.parameters || { type: 'object', properties: {} },
+      parametersJsonSchema: tool.function.parameters || { type: 'object', properties: {} },
     }));
 }
 
@@ -217,7 +286,10 @@ async function generateChat(messages, options = {}) {
   const { contents, systemInstruction } = buildGeminiContents(messages);
   const functionDeclarations = toGeminiFunctionDeclarations(options.tools);
 
-  const modelParams = { model: options.model || getModelName() };
+  const modelParams = {
+    model: options.model || getModelName(),
+    generationConfig: generationOptions(options),
+  };
   if (systemInstruction) modelParams.systemInstruction = systemInstruction;
   if (functionDeclarations.length > 0) {
     modelParams.tools = [{ functionDeclarations }];
@@ -225,8 +297,7 @@ async function generateChat(messages, options = {}) {
     if (toolConfig) modelParams.toolConfig = toolConfig;
   }
 
-  const model = getClient().getGenerativeModel(modelParams);
-  const result = await model.generateContent({ contents });
+  const result = await contentWithThinkingFallback(modelParams, { contents }, options);
   const response = result.response;
 
   const functionCalls =
@@ -234,7 +305,16 @@ async function generateChat(messages, options = {}) {
   if (Array.isArray(functionCalls) && functionCalls.length > 0) {
     return {
       content: null,
-      toolCalls: functionCalls.map((call) => ({ name: call.name, args: call.args || {} })),
+      toolCalls: functionCalls.map((call, index) => {
+        const part = response.candidates?.[0]?.content?.parts?.filter(
+          (entry) => entry.functionCall
+        )[index];
+        return {
+          name: call.name,
+          args: call.args || {},
+          ...(part?.thoughtSignature ? { thoughtSignature: part.thoughtSignature } : {}),
+        };
+      }),
       finishReason: 'tool_calls',
     };
   }
@@ -254,6 +334,7 @@ function capabilities() {
 }
 
 module.exports = {
+  getEmbeddingModelName,
   id: 'gemini',
   generateText,
   generateStructured,

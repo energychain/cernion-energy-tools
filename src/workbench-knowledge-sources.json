@@ -1,0 +1,113 @@
+{
+  "minimumConfidence": 0.5,
+  "minimumScore": 0.65,
+  "minimumOverlap": 1,
+  "stopWords": [
+    "bitte",
+    "kannst",
+    "helfen",
+    "hilfe",
+    "einer",
+    "einen",
+    "eine",
+    "einem",
+    "dieser",
+    "dieses",
+    "wurde",
+    "werden",
+    "haben",
+    "hatte",
+    "welche",
+    "welcher",
+    "meine",
+    "unser",
+    "their",
+    "please",
+    "could",
+    "would",
+    "about",
+    "gegenüber",
+    "situation",
+    "anliegen",
+    "prüfen",
+    "klären",
+    "antwort",
+    "mail"
+  ],
+  "sources": [
+    {
+      "id": "knowledge-rag",
+      "domains": ["*"],
+      "functions": ["*"],
+      "scoreScale": "unit",
+      "collector": "collectCopilotKnowledgeEvidence",
+      "timeoutMs": 4000
+    },
+    {
+      "id": "datapoint",
+      "domains": ["*"],
+      "functions": ["*"],
+      "scoreScale": "none",
+      "collector": "collectCopilotDatapointEvidence",
+      "timeoutMs": 4000
+    },
+    {
+      "id": "object-store",
+      "domains": ["*"],
+      "functions": ["*"],
+      "scoreScale": "none",
+      "collector": "collectCopilotObjectEvidence",
+      "timeoutMs": 4000
+    },
+    {
+      "id": "willi-mako",
+      "domains": [
+        "market_communication",
+        "market_master_data",
+        "market-regulatory",
+        "grid_connection"
+      ],
+      "functions": [],
+      "scoreScale": "provider",
+      "collector": "collectCopilotMakoKnowledgeEvidence",
+      "timeoutMs": 10000,
+      "tenantSetting": "williMako"
+    },
+    {
+      "id": "knowledge-rag-federated",
+      "domains": ["market_communication", "regulatory", "grid_connection"],
+      "functions": [],
+      "scoreScale": "unit",
+      "collector": "collectCopilotFederatedKnowledgeEvidence",
+      "timeoutMs": 10000,
+      "tenantSetting": "federated"
+    },
+    {
+      "id": "analysis-planner",
+      "domains": ["grid_connection", "grid_planning"],
+      "functions": [],
+      "scoreScale": "none",
+      "collector": "collectCopilotPlanningEvidence",
+      "timeoutMs": 4000,
+      "restrictToPrimaryDomain": true,
+      "requiredIdentifierKinds": [
+        "Ort",
+        "Standort",
+        "Postleitzahl",
+        "PLZ",
+        "Adresse",
+        "Address",
+        "Location"
+      ]
+    },
+    {
+      "id": "capability-read",
+      "domains": ["*"],
+      "functions": ["*"],
+      "kind": "capability",
+      "scoreScale": "none",
+      "timeoutMs": 4000
+    }
+  ],
+  "defaultSource": "knowledge-rag"
+}

@@ -1,0 +1,8 @@
+{
+  "dashboard": "services/dashboard-api.service.js",
+  "store": "services/object-store.service.js",
+  "runtime": "services/stadtwerk-mauer-sandbox-runtime.service.js",
+  "seedModule": "src/vdmi-blueprint-pack-seeds.js",
+  "seedExport": "stadtwerkMauerPvMissingNap",
+  "seedFile": "src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json"
+}

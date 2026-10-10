@@ -20,7 +20,7 @@
 const { SchemaType } = require('@google/generative-ai');
 const { MoleculerError } = require('moleculer').Errors;
 const metrics = require('./metrics');
-const { scrubPromptText } = require('./prompt-scrubber');
+const { scrubPromptText, scrubPrompt } = require('./prompt-scrubber');
 const tracing = require('./tracing');
 const { getObservabilityContext } = require('./observability-context');
 const rateQuotaStore = require('./rate-quota-store');
@@ -54,33 +54,90 @@ function getMaxRetries(options = {}) {
   return Math.floor(retries);
 }
 
-function withTimeout(promise, timeoutMs) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      setTimeout(() => reject(new Error(`LLM timeout after ${timeoutMs}ms`)), timeoutMs);
-    }),
-  ]);
+async function withTimeout(promise, timeoutMs) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`LLM timeout after ${timeoutMs}ms`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function transientStatus(error) {
+  const status = Number(error.status || error.response?.status || error.code);
+  if (status === 429 || (status >= 500 && status <= 599)) return status;
+  return /timeout|budget/iu.test(String(error.message)) ? 504 : null;
+}
+
+function retryDelayMs(error) {
+  const delay =
+    error.retryAfter ??
+    error.data?.retryAfter ??
+    error.response?.headers?.['retry-after'] ??
+    error.errorDetails?.find((entry) => entry.retryDelay)?.retryDelay;
+  if (delay == null) return null;
+  if (typeof delay === 'object')
+    return Number(delay.seconds || 0) * 1000 + Number(delay.nanos || 0) / 1e6;
+  const seconds = Number(String(delay).replace(/s$/u, ''));
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
+  const date = Date.parse(delay);
+  return Number.isFinite(date) ? Math.max(0, date - Date.now()) : null;
+}
+
+function fallbackAvailable(state, options) {
+  return (
+    options.transientRecovery === true &&
+    options.fallbackModel &&
+    !state.usedFallback &&
+    options.fallbackModel !== options.model
+  );
+}
+
+function attemptBudget(state, options) {
+  const remaining =
+    options.transientRecovery === true ? state.deadline - performance.now() : getTimeoutMs(options);
+  if (remaining <= 0) throw state.lastError || new Error('LLM time budget exceeded');
+  return fallbackAvailable(state, options) ? remaining / 2 : remaining;
+}
+
+async function advanceRecovery(error, state, options) {
+  const status = transientStatus(error);
+  if (!status) throw error;
+  const delay = status === 429 ? retryDelayMs(error) : null;
+  const budget = state.deadline - performance.now();
+  if (status === 429 && !state.retriedQuota && delay != null && delay < budget - 1) {
+    state.retriedQuota = true;
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    return;
+  }
+  if (!fallbackAvailable(state, options) || budget <= 1) throw error;
+  state.usedFallback = true;
+  state.callOptions = { ...options, model: options.fallbackModel };
+  options.onRecovery?.({ reason: status === 429 ? 'provider_quota' : 'provider_unavailable' });
 }
 
 async function withRetries(task, options = {}) {
-  const retries = getMaxRetries(options);
-  const timeoutMs = getTimeoutMs(options);
-
-  let lastError;
+  const recovery = options.transientRecovery === true;
+  const retries = recovery ? 3 : getMaxRetries(options);
+  const state = { deadline: performance.now() + getTimeoutMs(options), callOptions: options };
   for (let attempt = 1; attempt <= retries; attempt++) {
+    const timeoutMs = attemptBudget(state, options);
     try {
-      return await withTimeout(task(), timeoutMs);
+      return await withTimeout(task({ ...state.callOptions, timeoutMs }), timeoutMs);
     } catch (error) {
-      lastError = error;
-      if (attempt < retries) {
-        const waitMs = Math.min(250 * attempt, 1000);
-        await new Promise((resolve) => setTimeout(resolve, waitMs));
+      state.lastError = error;
+      if (recovery) await advanceRecovery(error, state, options);
+      else if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, Math.min(250 * attempt, 1000)));
       }
     }
   }
-
-  throw lastError;
+  throw state.lastError;
 }
 
 function getAdapter() {
@@ -350,9 +407,9 @@ async function observeLlmCall(adapter, operation, options, usageInput, task) {
  */
 async function generateText(prompt, options = {}) {
   const adapter = getAdapter();
-  const scrubbedPrompt = scrubPromptText(prompt);
+  const scrubbedPrompt = scrubPrompt(prompt);
   return await observeLlmCall(adapter, 'generate_text', options, scrubbedPrompt, () =>
-    withRetries(() => adapter.generateText(scrubbedPrompt, options), options)
+    withRetries((attemptOptions) => adapter.generateText(scrubbedPrompt, attemptOptions), options)
   );
 }
 
@@ -370,14 +427,14 @@ async function generateText(prompt, options = {}) {
 async function generateStructured(responseSchema, prompt, options = {}) {
   const adapter = getAdapter();
   const mode = (options.structuredMode || getStructuredMode()).toLowerCase();
-  const scrubbedPrompt = scrubPromptText(prompt);
+  const scrubbedPrompt = scrubPrompt(prompt);
 
   try {
     const raw = await observeLlmCall(adapter, 'generate_structured', options, scrubbedPrompt, () =>
       withRetries(
-        () =>
+        (attemptOptions) =>
           adapter.generateStructured(responseSchema, scrubbedPrompt, {
-            ...options,
+            ...attemptOptions,
             structuredMode: mode,
           }),
         options
@@ -385,6 +442,7 @@ async function generateStructured(responseSchema, prompt, options = {}) {
     );
     return parseJsonResponse(raw);
   } catch (_error) {
+    if (options.structuredFallback === false) throw _error;
     process.stderr.write(
       `[llm-client] silent-catch-fallback (line 387): ${_error && _error.message}\n`
     );
@@ -448,7 +506,7 @@ async function generateImage(prompt, options = {}) {
     );
   }
 
-  const scrubbedPrompt = scrubPromptText(prompt);
+  const scrubbedPrompt = scrubPrompt(prompt);
   return await observeLlmCall(adapter, 'generate_image', options, scrubbedPrompt, () =>
     withRetries(() => adapter.generateImage(scrubbedPrompt, options), options)
   );
@@ -481,8 +539,7 @@ async function generateChat(messages, options = {}) {
 
   const scrubbedMessages = (Array.isArray(messages) ? messages : []).map((message) => ({
     ...message,
-    content:
-      typeof message?.content === 'string' ? scrubPromptText(message.content) : message?.content,
+    content: typeof message?.content === 'string' ? scrubPrompt(message.content) : message?.content,
   }));
   const usageInput = scrubbedMessages.map((message) => message.content || '').join('\n');
 
@@ -510,8 +567,15 @@ function capabilities() {
   };
 }
 
+/** Effective embedding identity, resolved by the configured adapter. */
+function embeddingConfiguration() {
+  const adapter = getAdapter();
+  return { provider: adapter.id, model: adapter.getEmbeddingModelName() };
+}
+
 module.exports = {
   SchemaType,
+  embeddingConfiguration,
   generateText,
   generateStructured,
   embeddings,

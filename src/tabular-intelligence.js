@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 const crypto = require('crypto');
 
 const PLAN_SCHEMA_VERSION = '1.0';
@@ -54,7 +56,7 @@ function canonicalize(value) {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (!value || typeof value !== 'object') return value;
   return Object.keys(value)
-    .sort()
+    .sort(compareCanonicalStrings)
     .reduce((result, key) => {
       result[key] = canonicalize(value[key]);
       return result;
@@ -145,7 +147,7 @@ function profileRows(rows, options = {}) {
   const names = new Set();
   safeRows.forEach((row) => Object.keys(row || {}).forEach((name) => names.add(name)));
 
-  const columns = [...names].sort().map((name) => {
+  const columns = [...names].sort(compareCanonicalStrings).map((name) => {
     const values = safeRows.map((row) => row?.[name]);
     const present = values.filter(
       (value) => value !== null && value !== undefined && String(value).trim() !== ''

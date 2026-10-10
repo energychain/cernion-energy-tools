@@ -24,6 +24,23 @@ describe('Willi-Mako Marktkommunikation Service', () => {
     await broker.stop();
   });
 
+  test('source metadata title survives search and structure projection instead of filename', async () => {
+    callWithNewSession.mockResolvedValue({
+      data: {
+        results: [
+          {
+            id: 'synthetic-source',
+            title: 'E_0622.json',
+            metadata: { documentTitle: 'Lesbarer Dokumenttitel' },
+            content: 'Einordnung aus der Dokumentation.',
+          },
+        ],
+      },
+    });
+    const result = await broker.call('willi-mako.resolveStructure', { query: 'Dokumentation' });
+    expect(result.data.sources[0].title).toBe('Lesbarer Dokumenttitel');
+  });
+
   describe('search action', () => {
     it('should be defined with the expected REST endpoint', () => {
       const action = broker.getLocalService('willi-mako').schema.actions.search;

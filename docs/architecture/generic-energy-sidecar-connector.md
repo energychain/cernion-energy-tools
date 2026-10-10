@@ -61,14 +61,14 @@ GET  /api/agent-sidecar/mcp/tools
 POST /api/agent-sidecar/mcp/tools/:name/call
 ```
 
-The POST bridge delegates to the same server-side policy gate as `/api/agent-sidecar/tools/:name/call`. Read-only API tokens are allowed only for these policy-gated sidecar call paths.
+The POST bridge delegates to the same server-side policy gate as `/api/agent-sidecar/tools/:name/call`. Authenticated CET API tokens are allowed for these policy-gated sidecar call paths; token scope is identity/client context, while CET RBAC/governance remains the permission boundary.
 
 ## Policy
 
 Allowed:
 
-- read-only/advisory tool discovery
-- calls to the five curated MVP tools
+- CET-governed tool discovery
+- calls to the curated Sidecar tools, including Domain Router/MWI internal state tools
 - Hydration Registry allowlisted read-only evidence/status calls through `cernion.get_evidence_status`
 - structured propagation of provider policy blocks
 
@@ -86,9 +86,9 @@ Blocked:
 
 OpenClaw can consume the descriptor as a generic HTTP/MCP-like provider:
 
-1. Store the Cernion read-only token in the OpenClaw secret store.
+1. Store the authenticated Cernion Sidecar token in the OpenClaw secret store.
 2. Fetch `/api/agent-sidecar/descriptor` or `/api/agent-sidecar/mcp/tools`.
-3. Present the five tools with their safety annotations.
+3. Present the curated tools with their safety and effect annotations.
 4. Invoke `POST /api/agent-sidecar/mcp/tools/:name/call` with explicit tenant context.
 5. Treat `sidecar_policy_blocked` as a provider-owned policy decision.
 

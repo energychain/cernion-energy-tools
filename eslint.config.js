@@ -2,7 +2,14 @@ const prettierConfig = require('eslint-plugin-prettier/recommended');
 
 module.exports = [
   {
-    ignores: ['node_modules/**', 'dist/**', 'coverage/**'],
+    ignores: [
+      'node_modules/**',
+      'dist/**',
+      'coverage/**',
+      '.venv-forecast/**',
+      '.gitnexus/**',
+      '.worktrees/**',
+    ],
   },
   {
     languageOptions: {

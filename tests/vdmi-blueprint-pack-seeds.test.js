@@ -13,6 +13,8 @@ const {
   REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE,
   REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
   REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE,
+  REQUIRED_MAKO_RESOLUTION_VALUE_REVIEW_EVIDENCE,
+  REQUIRED_MAKO_RESOLUTION_VALUE_REVIEW_ROLE_IDS,
   REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_EVIDENCE,
   REQUIRED_TABULAR_DECISION_INPUT_READINESS_EVIDENCE,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
@@ -35,6 +37,7 @@ const {
   stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerGridConnectionTransformationGate,
   stadtwerkMauerInvestmentOwnerDeadlineBudgetGate,
+  stadtwerkMauerMakoResolutionValueReview,
   stadtwerkMauerModelViabilityManagementReview,
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerMunicipalityPublicContextReadiness,
@@ -2928,5 +2931,294 @@ describe('VDMI Blueprint Pack seeds', () => {
         );
       }
     }
+  });
+
+  describe('MaKo/M2C Resolution Value Review seed (CR-LKA-RV-001 / CRC001)', () => {
+    test('exposes the seed as versioned, tenant-parametrizable read-only metadata', () => {
+      expect(stadtwerkMauerMakoResolutionValueReview).toMatchObject({
+        id: 'stadtwerk-mauer-mako-resolution-value-review-v1',
+        kind: 'vdmi_blueprint_pack_seed',
+        version: '1.0.0',
+        safetyClassification: 'read_only_blueprint_seed',
+        processFamily: 'market_communication_resolution_value_governance',
+        controlCase: 'mako_m2c_resolution_value_review',
+        changeRequest: 'CR-LKA-RV-001',
+        candidateId: 'CRC001',
+        workedExample: 'mako_m2c_resolution_value',
+        sideEffects: 'none',
+        demoTenant: {
+          tenantId: 'stadtwerk-mauer',
+          classification: 'synthetic_demo_tenant',
+        },
+      });
+
+      expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+        expect.objectContaining({
+          id: 'stadtwerk-mauer-mako-resolution-value-review-v1',
+          processFamily: 'market_communication_resolution_value_governance',
+          demoTenantId: 'stadtwerk-mauer',
+        })
+      );
+      expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-mako-resolution-value-review-v1')).toBe(
+        stadtwerkMauerMakoResolutionValueReview
+      );
+    });
+
+    test('references the role-workbench and dashboard bricks as metadata-only source hints, never executed', () => {
+      const seed = stadtwerkMauerMakoResolutionValueReview;
+      const expectedApis = [
+        ['GET', '/api/governance/role-workbench'],
+        ['GET', '/api/dashboard/market-communication-evidence-chain'],
+        ['GET', '/api/dashboard/evidence-grounding-confidence-audit'],
+        ['GET', '/api/dashboard/receipt-grounded-presentation-contract'],
+        ['GET', '/api/dashboard/owner-deadline-evidence-gate'],
+        ['GET', '/api/dashboard/decision-readiness-matrix'],
+      ];
+      expect(seed.sourceApis).toHaveLength(expectedApis.length);
+      for (const [method, path] of expectedApis) {
+        expect(seed.sourceApis).toContainEqual(
+          expect.objectContaining({ method, path, readOnly: true, invocation: 'source_hint_only' })
+        );
+      }
+      for (const hint of seed.allowedCommandHints) {
+        expect(hint.execution).toBe('metadata_only');
+      }
+    });
+
+    test('validates required roles, evidence, data classes and forbidden actions', () => {
+      const seed = stadtwerkMauerMakoResolutionValueReview;
+      const result = validateVdmiBlueprintPackSeed(seed);
+      expect(result).toEqual({ valid: true, errors: [] });
+
+      const roleIds = seed.roles.map((role) => role.roleId);
+      expect(roleIds).toEqual(
+        expect.arrayContaining(REQUIRED_MAKO_RESOLUTION_VALUE_REVIEW_ROLE_IDS)
+      );
+      expect(seed.roles.some((role) => role.relation === 'information')).toBe(true);
+
+      const evidenceIds = seed.evidenceRequirements.map((item) => item.id);
+      expect(evidenceIds).toEqual(
+        expect.arrayContaining(REQUIRED_MAKO_RESOLUTION_VALUE_REVIEW_EVIDENCE)
+      );
+      for (const item of seed.evidenceRequirements) {
+        expect(item.dataClass).toBe('syntheticTenantSeed');
+        expect(item.enablesDossierAddition).toEqual(expect.any(String));
+      }
+
+      expect(Object.keys(seed.dataClasses)).toEqual(expect.arrayContaining(REQUIRED_DATA_CLASSES));
+
+      expect(seed.forbiddenActions).toEqual(
+        expect.arrayContaining([
+          'send_market_partner_reply',
+          'change_master_data',
+          'approve_invoice',
+          'state_final_cashflow_amount',
+          'claim_final_revenue_without_evidence',
+          'mako_write',
+          'billing',
+          'settlement',
+          'smgw_cls_device_control',
+          'external_connector_call',
+          'hitl_create',
+          'public_context_mutation',
+          'production_mutation',
+          'personal_agent_hardcoding',
+        ])
+      );
+      expect(seed.publicContextMutationAllowed).toBe(false);
+      expect(seed.tenantProvisioningAllowed).toBe(false);
+      expect(seed.realWorldClaim).toBe('synthetic_demo_only');
+    });
+
+    test('keeps the qualitative-only Resolution Value framing and positive missing-evidence follow-ups', () => {
+      const seed = stadtwerkMauerMakoResolutionValueReview;
+      const resolutionValueEvidence = seed.evidenceRequirements.find(
+        (item) => item.id === 'qualitativeResolutionValueEvidence'
+      );
+      expect(resolutionValueEvidence.enablesDossierAddition).toEqual(
+        expect.stringContaining('qualitative')
+      );
+      expect(resolutionValueEvidence.enablesDossierAddition).not.toMatch(
+        /€|EUR|\d+([.,]\d+)?\s*(kWh|MWh)/
+      );
+
+      for (const item of seed.evidenceRequirements) {
+        expect(['clarification', 'evidence_gap']).toContain(item.missingState);
+        expect(item.enablesDossierAddition).toEqual(expect.stringContaining('Adds'));
+      }
+
+      const forbiddenClaimEvidence = seed.evidenceRequirements.find(
+        (item) => item.id === 'forbiddenClaimEvidence'
+      );
+      expect(forbiddenClaimEvidence.enablesDossierAddition).toEqual(
+        expect.stringContaining('forbidden')
+      );
+    });
+
+    test('keeps the HITL boundary and no-call guard explicit', () => {
+      const seed = stadtwerkMauerMakoResolutionValueReview;
+      const hitlRow = seed.demoProcessMatrix.rows.find((row) =>
+        row.evidenceRequirements.includes('hitlBoundaryEvidence')
+      );
+      expect(hitlRow).toMatchObject({
+        status: 'clarification',
+        gateOutcome: 'human_review_gate_pending_or_ready',
+      });
+      const noCallGuard = seed.evidenceRequirements.find(
+        (item) => item.id === 'noCallGuardEvidence'
+      );
+      expect(noCallGuard.enablesDossierAddition).toEqual(expect.stringContaining('never invoked'));
+      expect(seed.decisionPolicy.mustNotTrigger).toEqual(
+        expect.arrayContaining(['external_connector_call', 'hitl_create', 'mail_send'])
+      );
+    });
+
+    test('maps missing evidence to non-executing workbench clarification items for ROLE_MAKO_OWNER', () => {
+      const items = buildWorkbenchClarificationItems(stadtwerkMauerMakoResolutionValueReview);
+
+      expect(items).toHaveLength(REQUIRED_MAKO_RESOLUTION_VALUE_REVIEW_EVIDENCE.length);
+      for (const item of items) {
+        expect(item.execution).toBe('none');
+        expect(item.sourceSeedId).toBe(stadtwerkMauerMakoResolutionValueReview.id);
+        expect(item.roleHint).toBe('ROLE_MAKO_OWNER');
+      }
+      expect(items).toContainEqual(
+        expect.objectContaining({
+          evidenceId: 'confirmedInvoiceAmountEvidence',
+          state: 'evidence_gap',
+          execution: 'none',
+        })
+      );
+    });
+
+    test('exposes the canonical four-row Demo-Raum process matrix and keeps sync pending downstream', () => {
+      const seed = stadtwerkMauerMakoResolutionValueReview;
+      const matrix = seed.demoProcessMatrix;
+      const sync = buildDemoProcessMatrixSync(seed);
+      const draft = buildLandingRegistryDraftFromBlueprintSeed(seed);
+
+      expect(matrix.slug).toBe('mako-m2c-resolution-value-review');
+      expect(matrix.roleLegend).toMatchObject({
+        V: 'Verantwortlich',
+        D: 'Durchfuehrend',
+        M: 'Mitwirkend',
+        I: 'Informiert',
+      });
+      expect(matrix.headers).toEqual([
+        'Phase',
+        'V = Verantwortlich',
+        'D = Durchfuehrend',
+        'M = Mitwirkend',
+        'I = Informiert',
+        'Nachweise',
+      ]);
+      expect(matrix.rows).toHaveLength(4);
+      expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+
+      expect(matrix.rows.map((row) => ({ v: row.v, d: row.d, m: row.m, i: row.i }))).toEqual([
+        { v: 'ROLE_MAKO_OWNER', d: 'ROLE_MAKO_OWNER', m: 'ROLE_BILLING', i: 'ROLE_COMPLIANCE' },
+        { v: 'ROLE_MAKO_OWNER', d: 'ROLE_BILLING', m: 'ROLE_FINANCE', i: 'ROLE_COMPLIANCE' },
+        {
+          v: 'ROLE_MAKO_OWNER',
+          d: 'ROLE_CERNION_GOVERNANCE',
+          m: 'ROLE_BILLING',
+          i: 'ROLE_COMPLIANCE',
+        },
+        {
+          v: 'ROLE_MAKO_OWNER',
+          d: 'ROLE_CERNION_GOVERNANCE',
+          m: 'ROLE_FINANCE',
+          i: 'ROLE_COMPLIANCE',
+        },
+      ]);
+      expect(matrix.rows.map((row) => row.gateOutcome)).toEqual([
+        'case_scope_and_message_context_pending',
+        'financial_partner_owner_evidence_pending',
+        'qualitative_resolution_value_bounded',
+        'human_review_gate_pending_or_ready',
+      ]);
+
+      expect(sync).toMatchObject({
+        slug: 'mako-m2c-resolution-value-review',
+        synced: true,
+        rowCount: 4,
+        rowCountValid: true,
+        roleCellsClean: true,
+        dataClassesLimited: true,
+        downstreamHandoff: {
+          blueprintPack: 'complete',
+          landingRegistry: 'pending',
+          productiveDemoRoom: 'pending',
+        },
+      });
+      expect(draft).toMatchObject({
+        slug: 'mako-m2c-resolution-value-review',
+        seedId: 'stadtwerk-mauer-mako-resolution-value-review-v1',
+        syncProof: {
+          blueprintPack: { status: 'complete' },
+          productiveDemoRoom: { status: 'pending' },
+        },
+      });
+
+      for (const row of matrix.rows) {
+        for (const roleCell of [row.v, row.d, row.m, row.i]) {
+          expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+          expect(roleCell).not.toMatch(
+            /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+          );
+        }
+        expect(row.enablesDossierAddition).toEqual(expect.any(String));
+      }
+    });
+
+    test('rejects a clone missing a required evidence requirement', () => {
+      const clone = JSON.parse(JSON.stringify(stadtwerkMauerMakoResolutionValueReview));
+      clone.evidenceRequirements = clone.evidenceRequirements.filter(
+        (item) => item.id !== 'qualitativeResolutionValueEvidence'
+      );
+      const result = validateVdmiBlueprintPackSeed(clone);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.stringContaining('missing evidence requirement: qualitativeResolutionValueEvidence')
+      );
+    });
+
+    test('rejects a clone with a non-role matrix cell', () => {
+      const clone = JSON.parse(JSON.stringify(stadtwerkMauerMakoResolutionValueReview));
+      clone.demoProcessMatrix.rows[0].v = 'syntheticTenantSeed';
+      const result = validateVdmiBlueprintPackSeed(clone);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.stringContaining('role v must not be a data class')
+      );
+    });
+
+    test('rejects a clone where roleLegend.M is not exactly Mitwirkend', () => {
+      const clone = JSON.parse(JSON.stringify(stadtwerkMauerMakoResolutionValueReview));
+      clone.demoProcessMatrix.roleLegend.M = 'Mitwirkende';
+      const result = validateVdmiBlueprintPackSeed(clone);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.stringContaining('demoProcessMatrix.roleLegend.M must be Mitwirkend')
+      );
+    });
+
+    test('rejects a clone with an executable (non-metadata_only) command hint', () => {
+      const clone = JSON.parse(JSON.stringify(stadtwerkMauerMakoResolutionValueReview));
+      clone.allowedCommandHints[0].execution = 'live_call';
+      const result = validateVdmiBlueprintPackSeed(clone);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(expect.stringContaining('must be metadata_only'));
+    });
+
+    test('rejects a clone missing a required forbidden/consequential action guard', () => {
+      const clone = JSON.parse(JSON.stringify(stadtwerkMauerMakoResolutionValueReview));
+      clone.forbiddenActions = clone.forbiddenActions.filter((action) => action !== 'mako_write');
+      const result = validateVdmiBlueprintPackSeed(clone);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.stringContaining('missing forbidden action: mako_write')
+      );
+    });
   });
 });

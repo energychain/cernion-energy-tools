@@ -13,6 +13,7 @@ describe('MCP transport (real streamable-HTTP round trip)', () => {
   let broker;
   let httpServer;
   let baseUrl;
+  let handlers;
 
   beforeAll(async () => {
     broker = new ServiceBroker({ logger: false });
@@ -168,7 +169,7 @@ describe('MCP transport (real streamable-HTTP round trip)', () => {
     broker.createService(McpServerService);
     await broker.start();
 
-    const handlers = createMcpHttpHandlers(broker);
+    handlers = createMcpHttpHandlers(broker);
     httpServer = http.createServer(async (req, res) => {
       if (req.url !== '/mcp') {
         res.writeHead(404).end();
@@ -197,6 +198,59 @@ describe('MCP transport (real streamable-HTTP round trip)', () => {
     await client.connect(transport);
     return client;
   }
+
+  test.each(['POST', 'GET', 'DELETE'])('%s rejects an unknown session with 404', async (method) => {
+    const response = await fetch(baseUrl, {
+      method,
+      headers: { 'mcp-session-id': 'expired-session', 'Content-Type': 'application/json' },
+      ...(method === 'POST'
+        ? { body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }) }
+        : {}),
+    });
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: 'Unknown or expired mcp-session-id' });
+  });
+
+  test.each(['POST', 'GET', 'DELETE'])('%s without a session still returns 400', async (method) => {
+    const response = await fetch(baseUrl, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      ...(method === 'POST'
+        ? { body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }) }
+        : {}),
+    });
+    expect(response.status).toBe(400);
+  });
+
+  test('client reinitializes after a simulated restart and can call tools', async () => {
+    const transport = new StreamableHTTPClientTransport(new URL(baseUrl), {
+      requestInit: { headers: { Authorization: 'Bearer legacy-plain-token' } },
+    });
+    const client = new Client({ name: 'restart-client', version: '1.0.0' });
+    try {
+      await client.connect(transport);
+      const oldSessionId = transport.sessionId;
+      // Replacing the handlers discards the complete in-memory session map,
+      // just as a process restart does, without exposing it in production.
+      handlers = createMcpHttpHandlers(broker);
+      await expect(client.listTools()).rejects.toMatchObject({ code: 404 });
+      await client.close();
+      const freshTransport = new StreamableHTTPClientTransport(new URL(baseUrl), {
+        requestInit: { headers: { Authorization: 'Bearer legacy-plain-token' } },
+      });
+      await client.connect(freshTransport);
+      expect(freshTransport.sessionId).toBeTruthy();
+      expect(freshTransport.sessionId).not.toBe(oldSessionId);
+      const result = await client.callTool({
+        name: 'cernion_ask',
+        arguments: { question: 'after restart' },
+      });
+      expect(result.isError).not.toBe(true);
+      expect(result.content[0].text).toContain('answered: after restart');
+    } finally {
+      await client.close();
+    }
+  });
 
   test('lists exactly the 9 documented meta-tools', async () => {
     const client = await connectClient('legacy-plain-token');

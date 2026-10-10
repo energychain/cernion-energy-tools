@@ -2,6 +2,7 @@
 
 const { ServiceBroker } = require('moleculer');
 const TokenManagerService = require('../services/token-manager.service');
+const { validateTokenIdentity } = require('../src/auth/token-policy');
 const { upsertTenant, upsertUser } = require('../src/provisioning-registry');
 const {
   fail,
@@ -12,8 +13,7 @@ const {
   required,
 } = require('./provisioning-cli-utils');
 
-async function main() {
-  const args = parseArgs();
+async function provisionToken(args, broker) {
   requireSupport(args);
 
   const tenantId = required(args, 'tenant');
@@ -26,28 +26,47 @@ async function main() {
     .map((entry) => entry.trim())
     .filter(Boolean);
 
+  const roles =
+    args.roles === undefined
+      ? undefined
+      : required(args, 'roles')
+          .split(',')
+          .map((r) => r.trim());
+  const gateway = args.gateway === true;
+  const client = optional(args, 'client');
+  const externalOrgId = optional(args, 'org');
+  const support = args.support === true;
+  validateTokenIdentity({ gateway, client, externalOrgId, roles, support });
+
   const tenant = upsertTenant({ tenantId, name: optional(args, 'tenant-name', tenantId) });
   const user = upsertUser({ tenantId: tenant.tenantId, userId, email });
 
+  return broker.call('token-manager.createCli', {
+    name,
+    scope,
+    scopes,
+    gateway,
+    client,
+    externalOrgId,
+    roles,
+    support,
+    tenantId: tenant.tenantId,
+    userId: user.userId,
+  });
+}
+
+async function main() {
+  const args = parseArgs();
   const broker = new ServiceBroker({ logger: false, transporter: null });
   broker.createService(TokenManagerService);
   await broker.start();
   try {
-    const created = await broker.call('token-manager.createCli', {
-      name,
-      scope,
-      scopes,
-      tenantId: tenant.tenantId,
-      userId: user.userId,
-    });
-    printJson({
-      success: true,
-      data: created.data,
-      message: created.message,
-    });
+    const created = await provisionToken(args, broker);
+    printJson({ success: true, data: created.data, message: created.message });
   } finally {
     await broker.stop();
   }
 }
 
-main().catch(fail);
+if (require.main === module) main().catch(fail);
+module.exports = { provisionToken };

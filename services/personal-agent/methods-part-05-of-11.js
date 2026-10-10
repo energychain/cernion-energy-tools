@@ -391,9 +391,7 @@ module.exports = {
       }
 
       const suggestion = this.getRecoveryNextSuggestion(stopPoint, plan);
-      return taskTone === 'finance-risk'
-        ? `Nächster Schritt: ${suggestion} oder die fehlende Evidenz nachreichen.`
-        : `Nächster Schritt: ${suggestion} oder die fehlende Evidenz nachreichen.`;
+      return `Nächster Schritt: ${suggestion} oder die fehlende Evidenz nachreichen.`;
     }
 
     if (stopPoint.reasonCode === 'ACTION_FAILED') {

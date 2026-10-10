@@ -1,0 +1,22 @@
+{
+  "source": "User-supplied Ergebnis 2 table, 2026-09-26",
+  "file_mapping": "Rows assumed to follow files 1 through 11",
+  "unit": null,
+  "from": null,
+  "until": null,
+  "input_hashes": null,
+  "comparison_status": "unverified_provenance_do_not_claim_superiority",
+  "series": [
+    { "file": "1_2020-2024.xlsx", "rmse": 0.142, "mae": 0.081, "wape_percent": 124.5 },
+    { "file": "2_2020-2024.xlsx", "rmse": 1.174, "mae": 0.684, "wape_percent": 17.4 },
+    { "file": "3_2020-2024.xlsx", "rmse": 1.445, "mae": 1.198, "wape_percent": 120.2 },
+    { "file": "4_2021-2024.xlsx", "rmse": 1.763, "mae": 1.305, "wape_percent": 135.3 },
+    { "file": "5_2020-2024.xlsx", "rmse": 5.456, "mae": 4.476, "wape_percent": 100.1 },
+    { "file": "6_2021-2024.xlsx", "rmse": 2.609, "mae": 1.635, "wape_percent": 45.7 },
+    { "file": "7_2020-2024.xlsx", "rmse": 1.36, "mae": 0.94, "wape_percent": 104.7 },
+    { "file": "8_2020-2024.xlsx", "rmse": 0.634, "mae": 0.358, "wape_percent": 15.1 },
+    { "file": "9_2020-2024.xlsx", "rmse": 1.654, "mae": 1.264, "wape_percent": 40.9 },
+    { "file": "10_2021-2024.xlsx", "rmse": 0.122, "mae": 0.053, "wape_percent": 8.6 },
+    { "file": "11_2020-2024.xlsx", "rmse": 3.229, "mae": 1.77, "wape_percent": 39.7 }
+  ]
+}

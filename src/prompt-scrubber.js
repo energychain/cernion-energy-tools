@@ -193,26 +193,79 @@ function scrubForLLM(data, options = {}) {
  *
  * Targets: email addresses, IBANs, phone numbers.
  */
-function scrubPromptText(text) {
+function scrubPromptText(text, options = {}) {
   if (typeof text !== 'string') return text;
 
+  const salt = options.salt || crypto.randomBytes(8).toString('hex');
+  const mask = (value, kind) => {
+    const placeholder = options.reidentMap ? pseudonymise(value, salt) : `[${kind}-MASKED]`;
+    options.reidentMap?.set(placeholder, value);
+    return placeholder;
+  };
   let scrubbed = text;
   // Email addresses
-  scrubbed = scrubbed.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL-MASKED]');
-  // German IBANs
-  scrubbed = scrubbed.replace(
-    /\bDE\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{2}\b/g,
-    '[IBAN-MASKED]'
+  scrubbed = scrubbed.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, (value) =>
+    mask(value, 'EMAIL')
   );
-  // Phone numbers (German formats)
-  scrubbed = scrubbed.replace(/(\+49|0049|0)\s?[\d\s/.-]{8,15}/g, '[PHONE-MASKED]');
+  // German IBANs
+  scrubbed = scrubbed.replace(/\bDE\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{2}\b/g, (value) =>
+    mask(value, 'IBAN')
+  );
+  // Protect complete dates before scanning phones, including dates adjacent to times.
+  const dates = [];
+  scrubbed = scrubbed.replace(/\b(?:\d{2}\.\d{2}\.\d{4}|\d{4}-\d{2}-\d{2})\b/g, (date) => {
+    dates.push(date);
+    return `DATEPLACEHOLDER${(dates.length - 1).toString(36).replace(/\d/g, (digit) => String.fromCharCode(65 + Number(digit)))}END`;
+  });
+  scrubbed = scrubbed.replace(/(?<![\d.-])(\+49|0049|0)\s?[\d\s/.-]{8,15}/g, (value) =>
+    mask(value, 'PHONE')
+  );
+  scrubbed = scrubbed.replace(/DATEPLACEHOLDER([A-Za-z]+)END/g, (token) => {
+    const index = token
+      .slice('DATEPLACEHOLDER'.length, -3)
+      .replace(/[A-J]/g, (letter) => String(letter.charCodeAt(0) - 65));
+    return dates[parseInt(index, 36)];
+  });
 
   return scrubbed;
+}
+
+// Traverse content values only; property names are application/schema metadata.
+function mapStringValues(value, transform) {
+  if (typeof value === 'string') return transform(value);
+  if (Array.isArray(value)) return value.map((entry) => mapStringValues(entry, transform));
+  if (value && typeof value === 'object')
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, mapStringValues(entry, transform)])
+    );
+  return value;
+}
+
+function scrubPromptValues(value, options = {}) {
+  const sharedOptions = { ...options, salt: options.salt || crypto.randomBytes(8).toString('hex') };
+  return mapStringValues(value, (text) => scrubPromptText(text, sharedOptions));
+}
+
+function scrubPrompt(prompt, options = {}) {
+  if (typeof prompt !== 'string') return prompt;
+  let value;
+  // This catch classifies free text only. Scrubbing and serialization occur
+  // outside it, so masking errors always propagate to the caller.
+  try {
+    value = JSON.parse(prompt);
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+    return scrubPromptText(prompt, options);
+  }
+  return JSON.stringify(scrubPromptValues(value, options));
 }
 
 module.exports = {
   scrubForLLM,
   scrubPromptText,
+  mapStringValues,
+  scrubPromptValues,
+  scrubPrompt,
   isSensitiveField,
   SENSITIVE_PATTERNS,
   SAFE_PATTERNS,

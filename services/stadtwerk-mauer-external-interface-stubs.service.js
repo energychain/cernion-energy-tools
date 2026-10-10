@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('../src/canonical-order');
+
 const crypto = require('crypto');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId, tenantNamespace } = require('../src/tenant-context');
@@ -146,7 +148,7 @@ module.exports = {
           requestHash,
           deadlineAt: ctx.params.deadlineAt || null,
           requestMetadata: {
-            providedKeys: Object.keys(request).sort(),
+            providedKeys: Object.keys(request).sort(compareCanonicalStrings),
             requestHash,
           },
           missingEvidence,

@@ -129,17 +129,17 @@ describe('Capability Broker Service', () => {
     expect(result.recommendedCapabilities[0].capability).toBe('vnb_kpi_benchmark_comparison');
   });
 
-  it('falls back to interface-placeholder when no deterministic capability matches', async () => {
+  it('requests clarification without executing a gap marker when nothing matches', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Irgendetwas völlig Unbekanntes ohne erkennbare Prozesszuordnung',
       agentRole: 'portfolio_decision',
     });
 
-    expect(result.recommendedCapabilities[0].capability).toBe('interface_placeholder');
-    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
-    expect(
-      result.warnings.some((warning) => warning.includes('interface-placeholder fallback'))
-    ).toBe(true);
+    expect(result).toMatchObject({ uncertain: true, intent: 'clarify', candidates: [] });
+    expect(result.scoringBreakdown.usedFallback).toBe(true);
+    expect(result.recommendedCapabilities).toBeUndefined();
+    expect(result.recommendedPlan).toBeUndefined();
+    expect(result.operationCandidates).toBeUndefined();
   });
 
   it('classifies Stammdaten-/Marktrollen case type before tool routing', async () => {
@@ -2832,7 +2832,9 @@ describe('Capability Broker Service', () => {
       task: 'Erstelle Rechtsgutachten und provisioniere AccessManager IAM Rollen mit Credentials fuer Frist Nachhaltung.',
     });
 
-    expect(result.capability).not.toBe('owner_deadline_evidence_gate');
+    expect(result.uncertain).toBe(true);
+    expect(result.recommendedPlan).toBeUndefined();
+    expect(result.recommendedCapabilities).toBeUndefined();
   });
 
   it('routes RPA Fehlerfolgen / automation risk prompts to the read-only gate', async () => {
@@ -2911,7 +2913,9 @@ describe('Capability Broker Service', () => {
       task: 'Provisioniere Tenant stadtwerk-mauer, erstelle User und Token, schreibe Eve Agent Directory, starte Scheduler Channel Approval und fuehre Workflow aus.',
     });
 
-    expect(result.capability).not.toBe('stadtwerk_mauer_vdmi_profile');
+    expect(result.uncertain).toBe(true);
+    expect(result.recommendedPlan).toBeUndefined();
+    expect(result.recommendedCapabilities).toBeUndefined();
   });
 
   it('routes Stadtwerk Mauer capability projection prompts to the read-only projection capability', async () => {
@@ -2999,13 +3003,14 @@ describe('Capability Broker Service', () => {
   describe('operation capability index integration', () => {
     it('adds ranked operation candidates to ordinary recommendations', async () => {
       const result = await broker.call('capability-broker.recommend', {
-        task: 'What is the current German gas storage fill level?',
+        task: 'What is the current German gas storage fill level? cross_commodity_supply_security_lagebild',
       });
 
+      expect(result.uncertain).toBe(false);
       expect(result.operationCandidates.length).toBeGreaterThan(0);
       expect(result.operationCandidates[0]).toMatchObject({
-        operationId: 'gas-storage_countryStorage',
-        action: 'gas-storage.countryStorage',
+        operationId: 'gas-storage_supplySecurityCheck',
+        action: 'gas-storage.supplySecurityCheck',
         recommendedExecutionMode: 'direct',
       });
       expect(result.scoringBreakdown.operationCandidateCount).toBe(

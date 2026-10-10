@@ -960,7 +960,7 @@ module.exports = {
             };
 
             if (persistTrace) {
-              safeRunCall(ctx, 'rcs-simulation-run.saveTrace', {
+              await safeRunCall(ctx, 'rcs-simulation-run.saveTrace', {
                 runId,
                 assetId,
                 assetName: result.assetName,

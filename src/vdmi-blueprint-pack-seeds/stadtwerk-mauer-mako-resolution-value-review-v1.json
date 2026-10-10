@@ -1,0 +1,416 @@
+{
+  "id": "stadtwerk-mauer-mako-resolution-value-review-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer MaKo/M2C Resolution Value Review seed",
+  "processFamily": "market_communication_resolution_value_governance",
+  "controlCase": "mako_m2c_resolution_value_review",
+  "changeRequest": "CR-LKA-RV-001",
+  "candidateId": "CRC001",
+  "workedExample": "mako_m2c_resolution_value",
+  "sideEffects": "none",
+  "sourceApis": [
+    {
+      "operation": "GET /api/governance/role-workbench",
+      "path": "/api/governance/role-workbench",
+      "method": "GET",
+      "queryHint": "role=ROLE_MAKO_OWNER",
+      "workbenchBrick": "role_workbench_mako_owner",
+      "capability": "governance.roleWorkbenchProjection",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/market-communication-evidence-chain",
+      "path": "/api/dashboard/market-communication-evidence-chain",
+      "method": "GET",
+      "workbenchBrick": "market_communication_evidence_chain",
+      "capability": "dashboard-api.marketCommunicationEvidenceChainStatus",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/evidence-grounding-confidence-audit",
+      "path": "/api/dashboard/evidence-grounding-confidence-audit",
+      "method": "GET",
+      "workbenchBrick": "evidence_grounding_confidence_audit",
+      "capability": "dashboard-api.evidenceGroundingConfidenceAudit",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/receipt-grounded-presentation-contract",
+      "path": "/api/dashboard/receipt-grounded-presentation-contract",
+      "method": "GET",
+      "workbenchBrick": "receipt_grounded_presentation_contract",
+      "capability": "dashboard-api.receiptGroundedPresentationContract",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/owner-deadline-evidence-gate",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "method": "GET",
+      "workbenchBrick": "owner_deadline_evidence_gate",
+      "capability": "dashboard-api.ownerDeadlineEvidenceGateStatus",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/decision-readiness-matrix",
+      "path": "/api/dashboard/decision-readiness-matrix",
+      "method": "GET",
+      "workbenchBrick": "decision_readiness_matrix",
+      "capability": "dashboard-api.decisionReadinessMatrixStatus",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    }
+  ],
+  "governanceArchitectureAlignment": {
+    "description": "References the merged CR-LKA-RV-001 governanceArchitecture enrichment and the draft mako-resolution-value-v1 Agent Receipt instead of duplicating their policy/projection logic. This seed is static metadata only.",
+    "changeRequest": "CR-LKA-RV-001",
+    "candidateId": "CRC001",
+    "workedExample": "mako_m2c_resolution_value",
+    "sourceReceiptId": "mako-resolution-value-v1",
+    "sourceProjector": "src/role-workbench-projector.js#buildGovernanceArchitecture",
+    "resolutionValueKind": "qualitative_only",
+    "sideEffects": "none"
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; MaKo/M2C case, message/process, amount band, market-partner, owner and deadline references are synthetic review data, never a real MaLo/MeLo, invoice, market-partner or customer."
+  },
+  "roleQuestion": {
+    "actor": "ROLE_MAKO_OWNER",
+    "answerableIn": "under_one_minute",
+    "question": "Which MaKo/M2C clarification evidence is present or missing, what qualitative resolution value may safely be stated, which consequential claims/actions remain forbidden, who must clarify next, and what is the next human review gate?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Optional public, read-only MaKo/M2C regulatory or message-format context (e.g. APERAK/CONTRL clarification-process references) already blended into the virtual Stadtwerk. Immutable; excluded from reset/delete.",
+      "examples": ["public MaKo/M2C clarification-process reference", "public EDIFACT message-type label", "non-binding regulatory format note"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented case, message/process, amount band, partner, owner, deadline and evidence references for stadtwerk-mauer, aligned to CR-LKA-RV-001 candidate CRC001.",
+      "examples": ["synthetic MaKo/M2C case reference", "synthetic confirmed-invoice-amount band", "synthetic market-partner and owner hint"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable validator/render/smoke proof only, separate from public context and synthetic tenant data.",
+      "examples": ["matrix-sync render artifact", "qualitative resolution-value render proof", "no-call guard verification proof"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_MAKO_OWNER",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the MaKo/M2C Resolution Value review item and decides the qualitative resolution-value statement and next human review gate."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync, no-call boundary and source API hints without creating runtime records or contacting a market partner."
+    },
+    {
+      "roleId": "ROLE_BILLING",
+      "relation": "mitwirkend",
+      "responsibility": "Provides billing-side invoice-amount and process-evidence context without approving an invoice or posting a billing/settlement record."
+    },
+    {
+      "roleId": "ROLE_FINANCE",
+      "relation": "mitwirkend",
+      "responsibility": "Reviews finance-relevant evidence and forbidden-claim boundaries without stating a final cashflow or revenue figure."
+    },
+    {
+      "roleId": "ROLE_COMPLIANCE",
+      "relation": "information",
+      "responsibility": "Receives evidence-gap, qualitative resolution-value and HITL-boundary context for review without approving or blocking the case."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "caseScopeEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the synthetic MaKo/M2C case scope and CRC001 candidate reference once supplied, without opening a market-partner conversation."
+    },
+    {
+      "id": "messageAndProcessEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the synthetic clarification message and process-type reference (e.g. APERAK/CONTRL) as review evidence only."
+    },
+    {
+      "id": "sourceSnapshotEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the read-only role-workbench/evidence-chain source-snapshot reference without calling the live endpoint."
+    },
+    {
+      "id": "confirmedInvoiceAmountEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the synthetic confirmed-invoice-amount band as review context; never presents it as a real or final amount."
+    },
+    {
+      "id": "marketPartnerConfirmationEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the synthetic market-partner confirmation marker without sending or retrying an EDIFACT/API message."
+    },
+    {
+      "id": "ownerApprovalEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the synthetic owner-approval marker as review evidence, not as an invoice-approval action."
+    },
+    {
+      "id": "qualitativeResolutionValueEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the qualitative, non-numeric Resolution Value statement once supplied, aligned to the existing mako-resolution-value-v1 receipt contract."
+    },
+    {
+      "id": "evidenceGapEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the explicit missing-evidence list so a gap becomes a positive clarification follow-up, never a negative business fact."
+    },
+    {
+      "id": "forbiddenClaimEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the list of consequential claims/actions that remain forbidden until human review clears them."
+    },
+    {
+      "id": "clarificationOwnerEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the next clarification owner so the workbench item has a safe, accountable next step."
+    },
+    {
+      "id": "nextHumanGateEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the next human review gate label without creating a workflow, task or HITL record."
+    },
+    {
+      "id": "hitlBoundaryEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the HITL boundary marker confirming no automated resolver may close this case."
+    },
+    {
+      "id": "noCallGuardEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the no-call guard confirmation that this seed never invoked the referenced governance/dashboard endpoints."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "mako-m2c-resolution-value-review",
+    "title": "MaKo/M2C Resolution Value Review",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_MAKO_OWNER",
+        "d": "ROLE_MAKO_OWNER",
+        "m": "ROLE_BILLING",
+        "i": "ROLE_COMPLIANCE",
+        "evidenceRequirements": [
+          "caseScopeEvidence",
+          "messageAndProcessEvidence",
+          "sourceSnapshotEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "clarification",
+        "gateOutcome": "case_scope_and_message_context_pending",
+        "enablesDossierAddition": "Adds bounded case scope and message/process context before any evidence-gap or resolution-value review."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_MAKO_OWNER",
+        "d": "ROLE_BILLING",
+        "m": "ROLE_FINANCE",
+        "i": "ROLE_COMPLIANCE",
+        "evidenceRequirements": [
+          "confirmedInvoiceAmountEvidence",
+          "marketPartnerConfirmationEvidence",
+          "ownerApprovalEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "financial_partner_owner_evidence_pending",
+        "enablesDossierAddition": "Adds financial, market-partner and owner evidence-gap context without approving an invoice or sending a market-partner reply."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_MAKO_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_BILLING",
+        "i": "ROLE_COMPLIANCE",
+        "evidenceRequirements": [
+          "qualitativeResolutionValueEvidence",
+          "evidenceGapEvidence",
+          "forbiddenClaimEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "qualitative_resolution_value_bounded",
+        "enablesDossierAddition": "Adds the bounded qualitative resolution value and forbidden-claim list without stating a final cashflow/revenue figure."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_MAKO_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_FINANCE",
+        "i": "ROLE_COMPLIANCE",
+        "evidenceRequirements": [
+          "clarificationOwnerEvidence",
+          "nextHumanGateEvidence",
+          "hitlBoundaryEvidence",
+          "noCallGuardEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "human_review_gate_pending_or_ready",
+        "enablesDossierAddition": "Adds the next clarification owner, human review gate and HITL boundary status as review evidence only."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingOwner": "clarification",
+    "onReadyEvidence": "qualitative_resolution_value_bounded",
+    "allowedStates": ["clarification", "evidence_gap", "qualitative_resolution_value_bounded"],
+    "mustNotTrigger": [
+      "send_market_partner_reply",
+      "edifact_api_retry",
+      "mako_creation",
+      "a96_creation",
+      "mscons_creation",
+      "mako_dispatch",
+      "mako_write",
+      "approve_invoice",
+      "state_final_cashflow_amount",
+      "claim_final_revenue_without_evidence",
+      "change_master_data",
+      "sap_erp_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "workflow_create",
+      "hitl_create",
+      "mail_send",
+      "webhook_call",
+      "external_connector_call",
+      "budibase_table_write",
+      "rundeck_execute",
+      "smgw_cls_device_control",
+      "public_context_mutation",
+      "production_mutation",
+      "secret_key_handling",
+      "wallet_operation",
+      "personal_agent_hardcoding"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "id": "inspect-role-workbench-mako-owner",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only governance.roleWorkbenchProjection action; this seed must not invoke or mutate live role-workbench state."
+    },
+    {
+      "id": "inspect-market-communication-evidence-chain",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only MaKo/M2C evidence-chain dashboard brick without invoking it."
+    }
+  ],
+  "forbiddenActions": [
+    "send_market_partner_reply",
+    "edifact_api_retry",
+    "mako_creation",
+    "a96_creation",
+    "mscons_creation",
+    "mako_dispatch",
+    "mako_write",
+    "approve_invoice",
+    "state_final_cashflow_amount",
+    "claim_final_revenue_without_evidence",
+    "change_master_data",
+    "sap_erp_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "workflow_create",
+    "hitl_create",
+    "mail_send",
+    "webhook_call",
+    "external_connector_call",
+    "budibase_table_write",
+    "rundeck_execute",
+    "smgw_cls_device_control",
+    "landing_registry_publication",
+    "cernion_de_publication",
+    "public_context_mutation",
+    "production_mutation",
+    "secret_key_handling",
+    "wallet_operation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}

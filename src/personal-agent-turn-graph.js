@@ -1,5 +1,7 @@
 'use strict';
 
+const { randomUUID } = require('crypto');
+
 const MAX_NODES = 80;
 const MAX_EDGES = 140;
 
@@ -28,7 +30,7 @@ function sanitizeData(data = {}) {
 function normalizeNodeId(input, fallbackPrefix = 'node') {
   const raw = String(input || '').trim();
   if (!raw) {
-    return `${fallbackPrefix}_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+    return `${fallbackPrefix}_${randomUUID()}`;
   }
   return raw.replace(/[^a-zA-Z0-9:_-]/g, '_').slice(0, 120);
 }

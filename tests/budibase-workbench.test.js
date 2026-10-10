@@ -9056,4 +9056,288 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
   });
+
+  it('adds the Domain Case Routing Attention panel from exactly the six named existing reads (#599)', () => {
+    const names = [
+      'getDomainCaseRoutingAttentionSelectorRows',
+      'getDomainCaseRoutingAttentionSummaryRows',
+      'getDomainCaseRoutingAttentionEvidenceGapRows',
+      'getDomainCaseRoutingAttentionRelatedCaseRows',
+      'getDomainCaseRoutingAttentionRoleFamilyRows',
+      'getDomainCaseRoutingAttentionNoCallRows',
+    ];
+    const queries = manifest.queries.filter((query) => names.includes(query.name));
+    expect(queries).toHaveLength(names.length);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/stadtwerk-mauer-workbench-selected-target',
+        '/api/domain-router/explain',
+        '/api/dashboard/stadtwerk-mauer-case-detail',
+        '/api/domain-router/cases/cet-case-smm-budibase-workbench-001/related-sessions/discover',
+        '/api/dashboard/stadtwerk-mauer-role-workbench-catalog',
+        '/api/dashboard/stadtwerk-mauer-case-actions',
+      ])
+    );
+    // No query in this panel ever calls the case-events poll route.
+    expect(queries.some((query) => query.path.includes('/api/domain-router/events'))).toBe(false);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('domain_case_routing_attention'))
+        .map((section) => section.queryName)
+    ).toEqual(expect.arrayContaining(names));
+    expect(manifest.notes.join(' ')).toContain('Domain Case Routing Attention panel (#599)');
+    expect(manifest.notes.join(' ')).toContain('no new backend endpoint, Capability Broker route');
+    expect(manifest.notes.join(' ')).toContain('event_attention_not_polled');
+  });
+
+  it('renders the Domain Case Routing Attention selector for the authorized synthetic case', () => {
+    const rows = runTransformer('getDomainCaseRoutingAttentionSelectorRows', {
+      tenantId: 'stadtwerk-mauer',
+      caseId: 'smm-budibase-workbench',
+      sandboxBoundaryAllowed: true,
+    });
+    expectScalarRows(rows);
+    expectNoRawObjectText(rows);
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'domain_case_routing_attention_cet_case_id',
+          value: 'cet-case-smm-budibase-workbench-001',
+          status: 'selected',
+          dataClass: 'synthetic_tenant_seed',
+        }),
+        expect.objectContaining({
+          rowKey: 'domain_case_routing_attention_linked_workbench_case',
+          value: 'smm-budibase-workbench',
+          status: 'bound',
+        }),
+      ])
+    );
+
+    const blockedRows = runTransformer('getDomainCaseRoutingAttentionSelectorRows', {
+      tenantId: 'other-tenant',
+      caseId: 'smm-budibase-workbench',
+      sandboxBoundaryAllowed: false,
+    });
+    expect(blockedRows.every((row) => row.status === 'blocked_outside_sandbox_tenant')).toBe(true);
+  });
+
+  it('renders the Domain Case Routing Attention summary with cetCaseId, caseStateVersion, active domain and clarification/fallback labels', () => {
+    const classifiedRows = runTransformer('getDomainCaseRoutingAttentionSummaryRows', {
+      cetCaseId: 'cet-case-smm-budibase-workbench-001',
+      caseStateVersion: 3,
+      primaryDomain: 'grid_connection',
+      transition: { type: 'clarify', reason: 'Several domains require clarification' },
+      readinessState: 'clarification',
+      nextSafeStep: 'Collect missing evidence and request responsible owner review',
+    });
+    expectScalarRows(classifiedRows);
+    expectNoRawObjectText(classifiedRows);
+    expect(classifiedRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'domain_case_routing_attention_case_state',
+          cetCaseId: 'cet-case-smm-budibase-workbench-001',
+          caseStateVersion: '3',
+          value: 'cet-case-smm-budibase-workbench-001 / v3',
+        }),
+        expect.objectContaining({
+          rowKey: 'domain_case_routing_attention_active_domain',
+          value: 'grid_connection',
+        }),
+        expect.objectContaining({
+          rowKey: 'domain_case_routing_attention_last_decision',
+          label: 'Last routing decision (clarify)',
+          value: 'Several domains require clarification',
+        }),
+        expect.objectContaining({
+          rowKey: 'domain_case_routing_attention_next_gate',
+          label: 'Next safe gate (clarification)',
+        }),
+      ])
+    );
+
+    // No persisted case state yet: falls back to fallback/clarification labels, never an error leak.
+    const unclassifiedRows = runTransformer('getDomainCaseRoutingAttentionSummaryRows', {});
+    expectScalarRows(unclassifiedRows);
+    expect(
+      unclassifiedRows.find((row) => row.rowKey === 'domain_case_routing_attention_last_decision')
+    ).toMatchObject({ label: 'Last routing decision (fallback)' });
+
+    // Foreign/hidden case (Domain Router policy denial) yields no rendered data.
+    const deniedRows = runTransformer('getDomainCaseRoutingAttentionSummaryRows', {
+      name: 'MoleculerClientError',
+      code: 403,
+      type: 'DOMAIN_ROUTER_POLICY_BLOCKED',
+      message: 'Case not accessible',
+    });
+    expect(deniedRows).toEqual([]);
+  });
+
+  it('renders positively framed Domain Case Routing Attention evidence/owner-gap rows, never an automatic rejection', () => {
+    const gapRows = runTransformer('getDomainCaseRoutingAttentionEvidenceGapRows', {
+      found: true,
+      sandboxBoundaryAllowed: true,
+      caseId: 'smm-budibase-workbench',
+      missingEvidence: [
+        {
+          missingDataPoint: 'napReference',
+          enablesDossierAddition: 'add NAP reference evidence',
+          dataClass: 'syntheticTenantSeed',
+        },
+      ],
+    });
+    expectScalarRows(gapRows);
+    expectNoRawObjectText(gapRows);
+    expect(gapRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: 'napReference',
+          value: 'add NAP reference evidence',
+          state: 'clarification',
+        }),
+      ])
+    );
+    expect(gapRows.every((row) => row.state === 'clarification')).toBe(true);
+
+    const noGapRows = runTransformer('getDomainCaseRoutingAttentionEvidenceGapRows', {
+      found: true,
+      sandboxBoundaryAllowed: true,
+      caseId: 'smm-budibase-workbench',
+      missingEvidence: [],
+    });
+    expect(noGapRows).toEqual(
+      expect.arrayContaining([expect.objectContaining({ state: 'human_review_required' })])
+    );
+
+    const outsideSandboxRows = runTransformer('getDomainCaseRoutingAttentionEvidenceGapRows', {
+      found: false,
+      sandboxBoundaryAllowed: false,
+    });
+    expect(outsideSandboxRows.every((row) => row.state === 'clarification')).toBe(true);
+  });
+
+  it('renders authorized Domain Case Routing Attention related-case/session pointers, never auto-linked', () => {
+    const rows = runTransformer('getDomainCaseRoutingAttentionRelatedCaseRows', {
+      relatedCases: [
+        {
+          cetCaseId: 'cet-case-other-001',
+          relationshipType: 'same_process',
+          confidence: 0.8,
+          reason: 'processRef',
+        },
+      ],
+      relatedSessions: [
+        {
+          agentSessionId: 'session-001',
+          relationshipType: 'same_process',
+          confidence: 1,
+          reason: 'personal_agent_reference',
+        },
+      ],
+    });
+    expectScalarRows(rows);
+    expectNoRawObjectText(rows);
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'related_case_evidence_pointer',
+          label: 'cet-case-other-001',
+          reason: 'processRef',
+          safeNextAction: 'inspect_evidence_pointer_only_no_auto_link',
+        }),
+        expect.objectContaining({
+          kind: 'related_session_evidence_pointer',
+          label: 'session-001',
+          reason: 'personal_agent_reference',
+        }),
+      ])
+    );
+    expect(
+      rows.every((row) => row.safeNextAction === 'inspect_evidence_pointer_only_no_auto_link')
+    ).toBe(true);
+
+    // Foreign/hidden case denies discovery: no rendered related-case data.
+    const deniedRows = runTransformer('getDomainCaseRoutingAttentionRelatedCaseRows', {
+      name: 'MoleculerClientError',
+      code: 403,
+      type: 'DOMAIN_ROUTER_POLICY_BLOCKED',
+    });
+    expect(deniedRows).toEqual([]);
+  });
+
+  it('renders the Domain Case Routing Attention responsible role family from the existing role-catalog rows', () => {
+    const rows = runTransformer('getDomainCaseRoutingAttentionRoleFamilyRows', {
+      roleRows: [
+        {
+          roleKey: 'ROLE_NETZPLANUNG',
+          label: 'Zielnetzplanung',
+          status: 'available',
+          readinessLabel: 'ready',
+        },
+      ],
+    });
+    expectScalarRows(rows);
+    expectNoRawObjectText(rows);
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          roleTarget: 'ROLE_NETZPLANUNG',
+          label: 'Zielnetzplanung',
+          value: 'ready',
+          status: 'available',
+        }),
+      ])
+    );
+
+    const unavailableRows = runTransformer('getDomainCaseRoutingAttentionRoleFamilyRows', {
+      roleRows: [],
+    });
+    expect(unavailableRows).toEqual(
+      expect.arrayContaining([expect.objectContaining({ status: 'clarification' })])
+    );
+  });
+
+  it('renders the Domain Case Routing Attention event-not-polled boundary and disabled continue/ack/link guards', () => {
+    const rows = runTransformer('getDomainCaseRoutingAttentionNoCallRows', {
+      sourceActions: { notCalled: ['personal-agent.execute'] },
+    });
+    expectScalarRows(rows);
+    expectNoRawObjectText(rows);
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'domain_case_routing_attention_event_not_polled',
+          kind: 'event_attention_boundary',
+          boundary: 'domain-router.events.list',
+          status: 'not_polled',
+          safeAlternative: 'use_a_separately_curated_delivery_aware_command_or_readback_contract',
+        }),
+        expect.objectContaining({
+          kind: 'disabled_mutation_guard',
+          boundary: 'domain-router.continue',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          kind: 'disabled_mutation_guard',
+          boundary: 'domain-router.events.ack',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          kind: 'disabled_mutation_guard',
+          boundary: 'domain-router.related-sessions.link',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          kind: 'disabled_mutation_guard',
+          boundary: 'personal-agent.execute',
+          status: 'not_called',
+          disabled: true,
+        }),
+      ])
+    );
+  });
 });

@@ -32,6 +32,11 @@ function compactToolResult(tool, result) {
     targetAction: tool.targetAction,
     safetyClass: tool.safetyClass,
     sideEffects: tool.sideEffects,
+    effectClass: tool.effectClass,
+    requiresCetAuthorization: tool.requiresCetAuthorization,
+    externalSideEffects: tool.externalSideEffects,
+    governanceBoundary: tool.governanceBoundary,
+    localStateEffects: tool.localStateEffects,
     structuredContent: result,
   };
 }
@@ -83,6 +88,10 @@ module.exports = {
         const policyBlock = assertToolAllowed(tool, ctx, input);
         if (policyBlock) return policyBlock;
 
+        if (tool.targetAction.startsWith('domain-router.')) {
+          return compactToolResult(tool, await ctx.call(tool.targetAction, input));
+        }
+
         if (name === 'cernion.list_readonly_capabilities') {
           return compactToolResult(tool, buildSidecarManifest());
         }
@@ -124,6 +133,9 @@ module.exports = {
             // `query` is the documented compatibility alias for `question`
             // (energychain/cernion-energy-tools#271 request contract).
             question,
+            ...(input.taskEnvelope || input.cetCaseId
+              ? { taskEnvelope: input.taskEnvelope, cetCaseId: input.cetCaseId }
+              : {}),
             sessionId: input.sessionId,
             context,
             // Canonical structured input values for Blueprint REST-plan
@@ -141,6 +153,9 @@ module.exports = {
         if (name === 'cernion.answer_dossier') {
           const result = await ctx.call('personal-agent.answerDossier', {
             question: input.question,
+            ...(input.taskEnvelope || input.cetCaseId
+              ? { taskEnvelope: input.taskEnvelope, cetCaseId: input.cetCaseId }
+              : {}),
             sessionId: input.sessionId,
             domain: input.domain || 'auto',
             mode: input.mode || 'answer_dossier',

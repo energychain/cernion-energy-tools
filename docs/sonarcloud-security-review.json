@@ -1,0 +1,1188 @@
+{
+  "baselineRevision": "3ff225685ace53ed9fd14aecb04fe19fd39383ff",
+  "projectKey": "energychain_cernion-energy-tools",
+  "note": "Review candidates are not automatically dismissed. Code corrections and subsequent analysis can close some of these findings. Remaining source-to-sink flows require individual assessment and Sonar write access.",
+  "findings": [
+    {
+      "key": "AaD0OKUgwQPvNP8O1Y24",
+      "rule": "jssecurity:S8707",
+      "file": "scripts/run-forecast-portfolio-uat.js",
+      "baselineLine": 12,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKUgwQPvNP8O1Y24"
+    },
+    {
+      "key": "AaD0OKUgwQPvNP8O1Y23",
+      "rule": "jssecurity:S8707",
+      "file": "scripts/run-forecast-portfolio-uat.js",
+      "baselineLine": 47,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKUgwQPvNP8O1Y23"
+    },
+    {
+      "key": "AaD0OKZGwQPvNP8O1Y3F",
+      "rule": "jssecurity:S8707",
+      "file": "scripts/run-forecast-product-uat.js",
+      "baselineLine": 11,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKZGwQPvNP8O1Y3F"
+    },
+    {
+      "key": "AaD0OIMCwQPvNP8O1Y2g",
+      "rule": "jssecurity:S8707",
+      "file": "src/forecast-starter.js",
+      "baselineLine": 122,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OIMCwQPvNP8O1Y2g"
+    },
+    {
+      "key": "AaD0OIMCwQPvNP8O1Y2f",
+      "rule": "jssecurity:S8707",
+      "file": "src/forecast-starter.js",
+      "baselineLine": 124,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OIMCwQPvNP8O1Y2f"
+    },
+    {
+      "key": "AaD0OKfEwQPvNP8O1Y3L",
+      "rule": "pythonsecurity:S2083",
+      "file": "tools/forecast-portfolio/diagnose_regimes.py",
+      "baselineLine": 45,
+      "severity": "BLOCKER",
+      "category": "review_candidate_operator_cli",
+      "proposedReason": "main() parses --archive and --out using argparse. It is a local read-only diagnostic tool with an operator-chosen output path, not an HTTP endpoint; the reported source labels are misleading.",
+      "evidence": [
+        {
+          "file": "tools/forecast-portfolio/diagnose_regimes.py",
+          "line": 42,
+          "contract": "argparse operator CLI; integer-only meter IDs"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKfEwQPvNP8O1Y3L"
+    },
+    {
+      "key": "AaD0OKfEwQPvNP8O1Y3M",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-portfolio/diagnose_regimes.py",
+      "baselineLine": 45,
+      "severity": "MAJOR",
+      "category": "review_candidate_operator_cli",
+      "proposedReason": "main() parses --archive and --out using argparse. It is a local read-only diagnostic tool with an operator-chosen output path, not an HTTP endpoint; the reported source labels are misleading.",
+      "evidence": [
+        {
+          "file": "tools/forecast-portfolio/diagnose_regimes.py",
+          "line": 42,
+          "contract": "argparse operator CLI; integer-only meter IDs"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKfEwQPvNP8O1Y3M"
+    },
+    {
+      "key": "AaD0OKfwwQPvNP8O1Y3i",
+      "rule": "python:S2245",
+      "file": "tools/forecast-portfolio/engine.py",
+      "baselineLine": 397,
+      "severity": "MAJOR",
+      "category": "review_candidate_non_security_randomness",
+      "proposedReason": "Fixed seeds drive reproducible bootstrap confidence intervals or training-example sampling; values are not secrets, authentication tokens or security decisions. Replacing this RNG would change published model evidence.",
+      "evidence": [
+        {
+          "file": "tools/forecast-portfolio/engine.py",
+          "line": 397,
+          "contract": "Seeded model comparison / sampling only"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKfwwQPvNP8O1Y3i"
+    },
+    {
+      "key": "AaD0OKfwwQPvNP8O1Y3l",
+      "rule": "python:S2245",
+      "file": "tools/forecast-portfolio/engine.py",
+      "baselineLine": 421,
+      "severity": "MAJOR",
+      "category": "review_candidate_non_security_randomness",
+      "proposedReason": "Fixed seeds drive reproducible bootstrap confidence intervals or training-example sampling; values are not secrets, authentication tokens or security decisions. Replacing this RNG would change published model evidence.",
+      "evidence": [
+        {
+          "file": "tools/forecast-portfolio/engine.py",
+          "line": 421,
+          "contract": "Seeded model comparison / sampling only"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKfwwQPvNP8O1Y3l"
+    },
+    {
+      "key": "AaD0OKfWwQPvNP8O1Y3Q",
+      "rule": "pythonsecurity:S2083",
+      "file": "tools/forecast-portfolio/persistence.py",
+      "baselineLine": 14,
+      "severity": "BLOCKER",
+      "category": "review_candidate_internal_path_boundary",
+      "proposedReason": "Shared filesystem helpers are not security boundaries. The reported starter candidate receives an internal directory from src/forecast-product.js trainTask -> forecast-starter.candidate, not a REST-supplied path. Review other flows separately, retaining model checksum/basename and archive containment checks.",
+      "evidence": [
+        {
+          "file": "src/forecast-product.js",
+          "line": 28,
+          "contract": "trainTask constructs _starter internally"
+        },
+        {
+          "file": "tools/forecast-portfolio/runtime.py",
+          "line": 77,
+          "contract": "model basenames, checksums, untrusted skops types"
+        },
+        {
+          "file": "tools/forecast-product/transfer.py",
+          "line": 43,
+          "contract": "strict archive path allowlist and traversal rejection"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKfWwQPvNP8O1Y3Q"
+    },
+    {
+      "key": "AaD0OKfWwQPvNP8O1Y3U",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-portfolio/persistence.py",
+      "baselineLine": 14,
+      "severity": "MAJOR",
+      "category": "review_candidate_internal_path_boundary",
+      "proposedReason": "Shared filesystem helpers are not security boundaries. The reported starter candidate receives an internal directory from src/forecast-product.js trainTask -> forecast-starter.candidate, not a REST-supplied path. Review other flows separately, retaining model checksum/basename and archive containment checks.",
+      "evidence": [
+        {
+          "file": "src/forecast-product.js",
+          "line": 28,
+          "contract": "trainTask constructs _starter internally"
+        },
+        {
+          "file": "tools/forecast-portfolio/runtime.py",
+          "line": 77,
+          "contract": "model basenames, checksums, untrusted skops types"
+        },
+        {
+          "file": "tools/forecast-product/transfer.py",
+          "line": 43,
+          "contract": "strict archive path allowlist and traversal rejection"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKfWwQPvNP8O1Y3U"
+    },
+    {
+      "key": "AaD0OKfWwQPvNP8O1Y3T",
+      "rule": "pythonsecurity:S2083",
+      "file": "tools/forecast-portfolio/persistence.py",
+      "baselineLine": 22,
+      "severity": "BLOCKER",
+      "category": "review_candidate_internal_path_boundary",
+      "proposedReason": "Shared filesystem helpers are not security boundaries. The reported starter candidate receives an internal directory from src/forecast-product.js trainTask -> forecast-starter.candidate, not a REST-supplied path. Review other flows separately, retaining model checksum/basename and archive containment checks.",
+      "evidence": [
+        {
+          "file": "src/forecast-product.js",
+          "line": 28,
+          "contract": "trainTask constructs _starter internally"
+        },
+        {
+          "file": "tools/forecast-portfolio/runtime.py",
+          "line": 77,
+          "contract": "model basenames, checksums, untrusted skops types"
+        },
+        {
+          "file": "tools/forecast-product/transfer.py",
+          "line": 43,
+          "contract": "strict archive path allowlist and traversal rejection"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKfWwQPvNP8O1Y3T"
+    },
+    {
+      "key": "AaD0OKfWwQPvNP8O1Y3X",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-portfolio/persistence.py",
+      "baselineLine": 22,
+      "severity": "MAJOR",
+      "category": "review_candidate_internal_path_boundary",
+      "proposedReason": "Shared filesystem helpers are not security boundaries. The reported starter candidate receives an internal directory from src/forecast-product.js trainTask -> forecast-starter.candidate, not a REST-supplied path. Review other flows separately, retaining model checksum/basename and archive containment checks.",
+      "evidence": [
+        {
+          "file": "src/forecast-product.js",
+          "line": 28,
+          "contract": "trainTask constructs _starter internally"
+        },
+        {
+          "file": "tools/forecast-portfolio/runtime.py",
+          "line": 77,
+          "contract": "model basenames, checksums, untrusted skops types"
+        },
+        {
+          "file": "tools/forecast-product/transfer.py",
+          "line": 43,
+          "contract": "strict archive path allowlist and traversal rejection"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKfWwQPvNP8O1Y3X"
+    },
+    {
+      "key": "AaD0OKfWwQPvNP8O1Y3R",
+      "rule": "pythonsecurity:S2083",
+      "file": "tools/forecast-portfolio/persistence.py",
+      "baselineLine": 42,
+      "severity": "BLOCKER",
+      "category": "review_candidate_internal_path_boundary",
+      "proposedReason": "Shared filesystem helpers are not security boundaries. The reported starter candidate receives an internal directory from src/forecast-product.js trainTask -> forecast-starter.candidate, not a REST-supplied path. Review other flows separately, retaining model checksum/basename and archive containment checks.",
+      "evidence": [
+        {
+          "file": "src/forecast-product.js",
+          "line": 28,
+          "contract": "trainTask constructs _starter internally"
+        },
+        {
+          "file": "tools/forecast-portfolio/runtime.py",
+          "line": 77,
+          "contract": "model basenames, checksums, untrusted skops types"
+        },
+        {
+          "file": "tools/forecast-product/transfer.py",
+          "line": 43,
+          "contract": "strict archive path allowlist and traversal rejection"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKfWwQPvNP8O1Y3R"
+    },
+    {
+      "key": "AaD0OKfWwQPvNP8O1Y3W",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-portfolio/persistence.py",
+      "baselineLine": 42,
+      "severity": "MAJOR",
+      "category": "review_candidate_internal_path_boundary",
+      "proposedReason": "Shared filesystem helpers are not security boundaries. The reported starter candidate receives an internal directory from src/forecast-product.js trainTask -> forecast-starter.candidate, not a REST-supplied path. Review other flows separately, retaining model checksum/basename and archive containment checks.",
+      "evidence": [
+        {
+          "file": "src/forecast-product.js",
+          "line": 28,
+          "contract": "trainTask constructs _starter internally"
+        },
+        {
+          "file": "tools/forecast-portfolio/runtime.py",
+          "line": 77,
+          "contract": "model basenames, checksums, untrusted skops types"
+        },
+        {
+          "file": "tools/forecast-product/transfer.py",
+          "line": 43,
+          "contract": "strict archive path allowlist and traversal rejection"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKfWwQPvNP8O1Y3W"
+    },
+    {
+      "key": "AaD0OKfWwQPvNP8O1Y3S",
+      "rule": "pythonsecurity:S2083",
+      "file": "tools/forecast-portfolio/persistence.py",
+      "baselineLine": 43,
+      "severity": "BLOCKER",
+      "category": "review_candidate_internal_path_boundary",
+      "proposedReason": "Shared filesystem helpers are not security boundaries. The reported starter candidate receives an internal directory from src/forecast-product.js trainTask -> forecast-starter.candidate, not a REST-supplied path. Review other flows separately, retaining model checksum/basename and archive containment checks.",
+      "evidence": [
+        {
+          "file": "src/forecast-product.js",
+          "line": 28,
+          "contract": "trainTask constructs _starter internally"
+        },
+        {
+          "file": "tools/forecast-portfolio/runtime.py",
+          "line": 77,
+          "contract": "model basenames, checksums, untrusted skops types"
+        },
+        {
+          "file": "tools/forecast-product/transfer.py",
+          "line": 43,
+          "contract": "strict archive path allowlist and traversal rejection"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKfWwQPvNP8O1Y3S"
+    },
+    {
+      "key": "AaD0OKfWwQPvNP8O1Y3V",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-portfolio/persistence.py",
+      "baselineLine": 43,
+      "severity": "MAJOR",
+      "category": "review_candidate_internal_path_boundary",
+      "proposedReason": "Shared filesystem helpers are not security boundaries. The reported starter candidate receives an internal directory from src/forecast-product.js trainTask -> forecast-starter.candidate, not a REST-supplied path. Review other flows separately, retaining model checksum/basename and archive containment checks.",
+      "evidence": [
+        {
+          "file": "src/forecast-product.js",
+          "line": 28,
+          "contract": "trainTask constructs _starter internally"
+        },
+        {
+          "file": "tools/forecast-portfolio/runtime.py",
+          "line": 77,
+          "contract": "model basenames, checksums, untrusted skops types"
+        },
+        {
+          "file": "tools/forecast-product/transfer.py",
+          "line": 43,
+          "contract": "strict archive path allowlist and traversal rejection"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKfWwQPvNP8O1Y3V"
+    },
+    {
+      "key": "AaD0OKfWwQPvNP8O1Y3P",
+      "rule": "pythonsecurity:S2083",
+      "file": "tools/forecast-portfolio/persistence.py",
+      "baselineLine": 55,
+      "severity": "BLOCKER",
+      "category": "review_candidate_internal_path_boundary",
+      "proposedReason": "Shared filesystem helpers are not security boundaries. The reported starter candidate receives an internal directory from src/forecast-product.js trainTask -> forecast-starter.candidate, not a REST-supplied path. Review other flows separately, retaining model checksum/basename and archive containment checks.",
+      "evidence": [
+        {
+          "file": "src/forecast-product.js",
+          "line": 28,
+          "contract": "trainTask constructs _starter internally"
+        },
+        {
+          "file": "tools/forecast-portfolio/runtime.py",
+          "line": 77,
+          "contract": "model basenames, checksums, untrusted skops types"
+        },
+        {
+          "file": "tools/forecast-product/transfer.py",
+          "line": 43,
+          "contract": "strict archive path allowlist and traversal rejection"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKfWwQPvNP8O1Y3P"
+    },
+    {
+      "key": "AaD0OKh0wQPvNP8O1Y5F",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-portfolio/pilot_regimes.py",
+      "baselineLine": 45,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKh0wQPvNP8O1Y5F"
+    },
+    {
+      "key": "AaD0OKh0wQPvNP8O1Y5G",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-portfolio/pilot_regimes.py",
+      "baselineLine": 48,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKh0wQPvNP8O1Y5G"
+    },
+    {
+      "key": "AaD0OKgowQPvNP8O1Y4i",
+      "rule": "pythonsecurity:S2083",
+      "file": "tools/forecast-portfolio/runtime.py",
+      "baselineLine": 30,
+      "severity": "BLOCKER",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKgowQPvNP8O1Y4i"
+    },
+    {
+      "key": "AaD0OKf-wQPvNP8O1Y4H",
+      "rule": "pythonsecurity:S2083",
+      "file": "tools/forecast-portfolio/starter.py",
+      "baselineLine": 87,
+      "severity": "BLOCKER",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKf-wQPvNP8O1Y4H"
+    },
+    {
+      "key": "AaD0OKf-wQPvNP8O1Y4J",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-portfolio/starter.py",
+      "baselineLine": 87,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKf-wQPvNP8O1Y4J"
+    },
+    {
+      "key": "AaD0OKf-wQPvNP8O1Y4I",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-portfolio/starter.py",
+      "baselineLine": 132,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKf-wQPvNP8O1Y4I"
+    },
+    {
+      "key": "AaD0OKkgwQPvNP8O1Y6O",
+      "rule": "python:S2245",
+      "file": "tools/forecast-product/baseline_training.py",
+      "baselineLine": 104,
+      "severity": "MAJOR",
+      "category": "review_candidate_non_security_randomness",
+      "proposedReason": "Fixed seeds drive reproducible bootstrap confidence intervals or training-example sampling; values are not secrets, authentication tokens or security decisions. Replacing this RNG would change published model evidence.",
+      "evidence": [
+        {
+          "file": "tools/forecast-product/baseline_training.py",
+          "line": 104,
+          "contract": "Seeded model comparison / sampling only"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKkgwQPvNP8O1Y6O"
+    },
+    {
+      "key": "AaD0OKllwQPvNP8O1Y7N",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-product/forecast_product.py",
+      "baselineLine": 25,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKllwQPvNP8O1Y7N"
+    },
+    {
+      "key": "AaD0OKllwQPvNP8O1Y7P",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-product/forecast_product.py",
+      "baselineLine": 90,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKllwQPvNP8O1Y7P"
+    },
+    {
+      "key": "AaD0OKllwQPvNP8O1Y7O",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-product/forecast_product.py",
+      "baselineLine": 156,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKllwQPvNP8O1Y7O"
+    },
+    {
+      "key": "AaD0OKllwQPvNP8O1Y7M",
+      "rule": "pythonsecurity:S7044",
+      "file": "tools/forecast-product/forecast_product.py",
+      "baselineLine": 169,
+      "severity": "MAJOR",
+      "category": "review_candidate_fixed_origin_encoded_routes",
+      "proposedReason": "Client.__init__ validates the operator-selected origin and rejects URL credentials/query/fragment. NoRedirect refuses redirects; jobs use urllib.parse.quote(..., safe=\"\") and model/run IDs pass a 64-character SHA-256 identifier validator. Validate each call site before resolving.",
+      "evidence": [
+        {
+          "file": "tools/forecast-product/forecast_product.py",
+          "line": 142,
+          "contract": "NoRedirect and operator base URL validation"
+        },
+        {
+          "file": "tools/forecast-product/forecast_product.py",
+          "line": 195,
+          "contract": "identifier / await_result route construction"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKllwQPvNP8O1Y7M"
+    },
+    {
+      "key": "AaD0OKkCwQPvNP8O1Y52",
+      "rule": "jssecurity:S8707",
+      "file": "tools/forecast-product/starter_model.js",
+      "baselineLine": 40,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKkCwQPvNP8O1Y52"
+    },
+    {
+      "key": "AaD0OKkCwQPvNP8O1Y56",
+      "rule": "jssecurity:S8707",
+      "file": "tools/forecast-product/starter_model.js",
+      "baselineLine": 45,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKkCwQPvNP8O1Y56"
+    },
+    {
+      "key": "AaD0OKkCwQPvNP8O1Y53",
+      "rule": "jssecurity:S8707",
+      "file": "tools/forecast-product/starter_model.js",
+      "baselineLine": 49,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKkCwQPvNP8O1Y53"
+    },
+    {
+      "key": "AaD0OKkCwQPvNP8O1Y55",
+      "rule": "jssecurity:S8707",
+      "file": "tools/forecast-product/starter_model.js",
+      "baselineLine": 59,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKkCwQPvNP8O1Y55"
+    },
+    {
+      "key": "AaD0OKkCwQPvNP8O1Y54",
+      "rule": "jssecurity:S8707",
+      "file": "tools/forecast-product/starter_model.js",
+      "baselineLine": 63,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKkCwQPvNP8O1Y54"
+    },
+    {
+      "key": "AaD0OKkCwQPvNP8O1Y57",
+      "rule": "jssecurity:S8707",
+      "file": "tools/forecast-product/starter_model.js",
+      "baselineLine": 89,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKkCwQPvNP8O1Y57"
+    },
+    {
+      "key": "AaD0OKkCwQPvNP8O1Y50",
+      "rule": "jssecurity:S8707",
+      "file": "tools/forecast-product/starter_model.js",
+      "baselineLine": 110,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKkCwQPvNP8O1Y50"
+    },
+    {
+      "key": "AaD0OKkCwQPvNP8O1Y5y",
+      "rule": "jssecurity:S8707",
+      "file": "tools/forecast-product/starter_model.js",
+      "baselineLine": 121,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKkCwQPvNP8O1Y5y"
+    },
+    {
+      "key": "AaD0OKkCwQPvNP8O1Y5z",
+      "rule": "jssecurity:S8707",
+      "file": "tools/forecast-product/starter_model.js",
+      "baselineLine": 134,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKkCwQPvNP8O1Y5z"
+    },
+    {
+      "key": "AaD0OKkCwQPvNP8O1Y51",
+      "rule": "jssecurity:S8707",
+      "file": "tools/forecast-product/starter_model.js",
+      "baselineLine": 135,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKkCwQPvNP8O1Y51"
+    },
+    {
+      "key": "AaD0OKjWwQPvNP8O1Y5Z",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-product/transfer.py",
+      "baselineLine": 205,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKjWwQPvNP8O1Y5Z"
+    },
+    {
+      "key": "AaD0OKjWwQPvNP8O1Y5a",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-product/transfer.py",
+      "baselineLine": 269,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKjWwQPvNP8O1Y5a"
+    },
+    {
+      "key": "AaD0OKnhwQPvNP8O1Y7q",
+      "rule": "python:S2245",
+      "file": "tools/forecast-quality/compare_context.py",
+      "baselineLine": 71,
+      "severity": "MAJOR",
+      "category": "review_candidate_non_security_randomness",
+      "proposedReason": "Fixed seeds drive reproducible bootstrap confidence intervals or training-example sampling; values are not secrets, authentication tokens or security decisions. Replacing this RNG would change published model evidence.",
+      "evidence": [
+        {
+          "file": "tools/forecast-quality/compare_context.py",
+          "line": 71,
+          "contract": "Seeded model comparison / sampling only"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKnhwQPvNP8O1Y7q"
+    },
+    {
+      "key": "AaD0OKmlwQPvNP8O1Y7e",
+      "rule": "python:S2245",
+      "file": "tools/forecast-quality/compare_states.py",
+      "baselineLine": 146,
+      "severity": "MAJOR",
+      "category": "review_candidate_non_security_randomness",
+      "proposedReason": "Fixed seeds drive reproducible bootstrap confidence intervals or training-example sampling; values are not secrets, authentication tokens or security decisions. Replacing this RNG would change published model evidence.",
+      "evidence": [
+        {
+          "file": "tools/forecast-quality/compare_states.py",
+          "line": 146,
+          "contract": "Seeded model comparison / sampling only"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKmlwQPvNP8O1Y7e"
+    },
+    {
+      "key": "AaD0OKnKwQPvNP8O1Y7o",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/forecast-quality/run.py",
+      "baselineLine": 40,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKnKwQPvNP8O1Y7o"
+    },
+    {
+      "key": "AaD0OKi-wQPvNP8O1Y5M",
+      "rule": "python:S2245",
+      "file": "tools/xlsx-forecast-test/compare_portfolio_exports.py",
+      "baselineLine": 62,
+      "severity": "MAJOR",
+      "category": "review_candidate_non_security_randomness",
+      "proposedReason": "Fixed seeds drive reproducible bootstrap confidence intervals or training-example sampling; values are not secrets, authentication tokens or security decisions. Replacing this RNG would change published model evidence.",
+      "evidence": [
+        {
+          "file": "tools/xlsx-forecast-test/compare_portfolio_exports.py",
+          "line": 62,
+          "contract": "Seeded model comparison / sampling only"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKi-wQPvNP8O1Y5M"
+    },
+    {
+      "key": "AaD0OKi-wQPvNP8O1Y5P",
+      "rule": "pythonsecurity:S8707",
+      "file": "tools/xlsx-forecast-test/compare_portfolio_exports.py",
+      "baselineLine": 83,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AaD0OKi-wQPvNP8O1Y5P"
+    },
+    {
+      "key": "AZ_r1GvP3F1cw-NFkkAE",
+      "rule": "javascript:S5332",
+      "file": "services/grid-operations.service.js",
+      "baselineLine": 2142,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ_r1GvP3F1cw-NFkkAE"
+    },
+    {
+      "key": "AZ-6664B3YWEKSNp8y6a",
+      "rule": "javascript:S5443",
+      "file": "services/personal-agent/actions-part-01-of-1.js",
+      "baselineLine": 1736,
+      "severity": "CRITICAL",
+      "category": "review_candidate_documentation_only",
+      "proposedReason": "The reported /tmp path is an OpenAPI example string inside response metadata, not a filesystem operation. Actual attachment storage must be assessed independently.",
+      "evidence": [
+        {
+          "file": "services/personal-agent/actions-part-01-of-1.js",
+          "line": 1736,
+          "contract": "OpenAPI example, no filesystem sink at this location"
+        }
+      ],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ-6664B3YWEKSNp8y6a"
+    },
+    {
+      "key": "AZ8GUZGNEElb5M3Jbo-y",
+      "rule": "Web:S5725",
+      "file": "src/municipal-value.html",
+      "baselineLine": 7,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ8GUZGNEElb5M3Jbo-y"
+    },
+    {
+      "key": "AZ8A146OY4bzxJ9D2Ed_",
+      "rule": "jssecurity:S8707",
+      "file": "integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js",
+      "baselineLine": 44,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ8A146OY4bzxJ9D2Ed_"
+    },
+    {
+      "key": "AZ8A146OY4bzxJ9D2EeA",
+      "rule": "jssecurity:S8689",
+      "file": "integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js",
+      "baselineLine": 373,
+      "severity": "CRITICAL",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ8A146OY4bzxJ9D2EeA"
+    },
+    {
+      "key": "AZ8A146OY4bzxJ9D2EeB",
+      "rule": "jssecurity:S5145",
+      "file": "integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js",
+      "baselineLine": 411,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ8A146OY4bzxJ9D2EeB"
+    },
+    {
+      "key": "AZ5L11VQfnCpIWrOQn8p",
+      "rule": "jssecurity:S5145",
+      "file": "turn1.js",
+      "baselineLine": 19,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5L11VQfnCpIWrOQn8p"
+    },
+    {
+      "key": "AZ5L11VQfnCpIWrOQn8o",
+      "rule": "jssecurity:S5145",
+      "file": "turn1.js",
+      "baselineLine": 26,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5L11VQfnCpIWrOQn8o"
+    },
+    {
+      "key": "AZ5L11VQfnCpIWrOQn8q",
+      "rule": "jssecurity:S5145",
+      "file": "turn1.js",
+      "baselineLine": 33,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5L11VQfnCpIWrOQn8q"
+    },
+    {
+      "key": "AZ5CdPHhinvO25WaifL5",
+      "rule": "jssecurity:S5145",
+      "file": "run-uat-frankenthal.js",
+      "baselineLine": 30,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPHhinvO25WaifL5"
+    },
+    {
+      "key": "AZ5CdPHhinvO25WaifL1",
+      "rule": "jssecurity:S5145",
+      "file": "run-uat-frankenthal.js",
+      "baselineLine": 31,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPHhinvO25WaifL1"
+    },
+    {
+      "key": "AZ5CdPHhinvO25WaifL4",
+      "rule": "jssecurity:S5145",
+      "file": "run-uat-frankenthal.js",
+      "baselineLine": 32,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPHhinvO25WaifL4"
+    },
+    {
+      "key": "AZ5CdPHhinvO25WaifL3",
+      "rule": "jssecurity:S5145",
+      "file": "run-uat-frankenthal.js",
+      "baselineLine": 35,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPHhinvO25WaifL3"
+    },
+    {
+      "key": "AZ5CdPHhinvO25WaifL2",
+      "rule": "jssecurity:S5145",
+      "file": "run-uat-frankenthal.js",
+      "baselineLine": 37,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPHhinvO25WaifL2"
+    },
+    {
+      "key": "AZ5CdPIuinvO25WaifMN",
+      "rule": "jssecurity:S5145",
+      "file": "run-uat-goettingen.js",
+      "baselineLine": 33,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIuinvO25WaifMN"
+    },
+    {
+      "key": "AZ5CdPIuinvO25WaifMG",
+      "rule": "jssecurity:S5145",
+      "file": "run-uat-goettingen.js",
+      "baselineLine": 38,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIuinvO25WaifMG"
+    },
+    {
+      "key": "AZ5CdPIuinvO25WaifMH",
+      "rule": "jssecurity:S8476",
+      "file": "run-uat-goettingen.js",
+      "baselineLine": 43,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIuinvO25WaifMH"
+    },
+    {
+      "key": "AZ5CdPIuinvO25WaifMK",
+      "rule": "jssecurity:S7044",
+      "file": "run-uat-goettingen.js",
+      "baselineLine": 43,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIuinvO25WaifMK"
+    },
+    {
+      "key": "AZ5CdPIuinvO25WaifML",
+      "rule": "jssecurity:S7044",
+      "file": "run-uat-goettingen.js",
+      "baselineLine": 46,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIuinvO25WaifML"
+    },
+    {
+      "key": "AZ5CdPIuinvO25WaifMM",
+      "rule": "jssecurity:S8476",
+      "file": "run-uat-goettingen.js",
+      "baselineLine": 46,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIuinvO25WaifMM"
+    },
+    {
+      "key": "AZ5CdPIuinvO25WaifMJ",
+      "rule": "jssecurity:S5145",
+      "file": "run-uat-goettingen.js",
+      "baselineLine": 76,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIuinvO25WaifMJ"
+    },
+    {
+      "key": "AZ5CdPIuinvO25WaifMF",
+      "rule": "jssecurity:S5145",
+      "file": "run-uat-goettingen.js",
+      "baselineLine": 77,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIuinvO25WaifMF"
+    },
+    {
+      "key": "AZ5CdPIuinvO25WaifME",
+      "rule": "jssecurity:S5145",
+      "file": "run-uat-goettingen.js",
+      "baselineLine": 80,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIuinvO25WaifME"
+    },
+    {
+      "key": "AZ5CdPIuinvO25WaifMI",
+      "rule": "jssecurity:S5145",
+      "file": "run-uat-goettingen.js",
+      "baselineLine": 82,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIuinvO25WaifMI"
+    },
+    {
+      "key": "AZ5CdPIMinvO25WaifL7",
+      "rule": "jssecurity:S5145",
+      "file": "turn1.js",
+      "baselineLine": 17,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIMinvO25WaifL7"
+    },
+    {
+      "key": "AZ5CdPIMinvO25WaifMA",
+      "rule": "jssecurity:S7044",
+      "file": "turn1.js",
+      "baselineLine": 24,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIMinvO25WaifMA"
+    },
+    {
+      "key": "AZ5CdPIMinvO25WaifMC",
+      "rule": "jssecurity:S8476",
+      "file": "turn1.js",
+      "baselineLine": 24,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIMinvO25WaifMC"
+    },
+    {
+      "key": "AZ5CdPIMinvO25WaifL8",
+      "rule": "jssecurity:S8476",
+      "file": "turn1.js",
+      "baselineLine": 28,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIMinvO25WaifL8"
+    },
+    {
+      "key": "AZ5CdPIMinvO25WaifMB",
+      "rule": "jssecurity:S7044",
+      "file": "turn1.js",
+      "baselineLine": 28,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIMinvO25WaifMB"
+    },
+    {
+      "key": "AZ5CdPIMinvO25WaifL_",
+      "rule": "jssecurity:S5145",
+      "file": "turn1.js",
+      "baselineLine": 30,
+      "severity": "MINOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ5CdPIMinvO25WaifL_"
+    },
+    {
+      "key": "AZ-B9UROR0eOGOK6juy9",
+      "rule": "githubactions:S6505",
+      "file": ".github/workflows/maintenance-ci.yml",
+      "baselineLine": 145,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ-B9UROR0eOGOK6juy9"
+    },
+    {
+      "key": "AZ-B9UQ8R0eOGOK6juy3",
+      "rule": "githubactions:S6505",
+      "file": ".github/workflows/codeql.yml",
+      "baselineLine": 40,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ-B9UQ8R0eOGOK6juy3"
+    },
+    {
+      "key": "AZ-B9UROR0eOGOK6juy5",
+      "rule": "githubactions:S6505",
+      "file": ".github/workflows/maintenance-ci.yml",
+      "baselineLine": 26,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ-B9UROR0eOGOK6juy5"
+    },
+    {
+      "key": "AZ-B9UROR0eOGOK6juy7",
+      "rule": "githubactions:S6505",
+      "file": ".github/workflows/maintenance-ci.yml",
+      "baselineLine": 122,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ-B9UROR0eOGOK6juy7"
+    },
+    {
+      "key": "AZ-B9UQqR0eOGOK6juy1",
+      "rule": "githubactions:S6505",
+      "file": ".github/workflows/release.yml",
+      "baselineLine": 27,
+      "severity": "MAJOR",
+      "category": "needs_individual_review",
+      "proposedReason": "Inspect the complete source-to-sink flow before any Sonar disposition.",
+      "evidence": [],
+      "sonarDisposition": "not_changed",
+      "url": "https://sonarcloud.io/project/issues?id=energychain_cernion-energy-tools&open=AZ-B9UQqR0eOGOK6juy1"
+    }
+  ]
+}

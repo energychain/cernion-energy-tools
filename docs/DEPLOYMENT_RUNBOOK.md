@@ -251,6 +251,119 @@ journalctl -u cernion -f
 | `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-001` | Embedding-Modell für Cookbook-Suche |
 | `ASYNC_POLLER_DEBUG` | `false` | Detailliertes Logging für async Job-Poller |
 
+Workbench-Verstehen und Antworten verwenden getrennte Optionen über die zentrale
+`src/llm-client.js`-Fassade:
+
+| Variable | Default | Beschreibung |
+|----------|---------|--------------|
+| `WORKBENCH_LLM_MODEL` | Provider-Schnellmodell | Ein Modell für beide Phasen oder `Verstehen,Antworten`. Defaults: Gemini `gemini-3.5-flash-lite`, OpenAI-kompatibel `gpt-4o-mini`, Ollama `llama3.1:8b`. |
+| `WORKBENCH_LLM_TIMEOUT_MS` | `4500` | Ein Budget in Millisekunden oder `Verstehen,Antworten`, z. B. `4500,45000`. Ungültige Werte fallen auf 4500 ms zurück. |
+| `WORKBENCH_LLM_THINKING` | `minimal,default` | Gemini: Denkstufe `minimal`, `low`, `medium`, `high` oder numerisches Budget für Gemini 2.5. `default`/`standard` lässt das Denkbudget des Providers unverändert. Ein Wert oder `Verstehen,Antworten`; explizites `options.thinkingConfig` hat Vorrang. |
+
+Empfehlung: Verstehen mit einem schnellen Modell und niedrigem Denkbudget; Antworten
+mit einem starken Modell und dessen Standard-Denkbudget, mit bis zu 45 Sekunden Budget.
+Für Gemini beispielsweise:
+
+```dotenv
+WORKBENCH_LLM_MODEL=gemini-3.5-flash-lite,gemini-3.5-flash
+WORKBENCH_LLM_TIMEOUT_MS=4500,45000
+WORKBENCH_LLM_THINKING=minimal,default
+WORKBENCH_LLM_THINKING_FOLLOWUP=low
+WORKBENCH_RETRIEVAL_TIMEOUT_MS=12000
+```
+
+Gemini 3.5 Flash nutzt standardmäßig die Denkstufe `medium`
+([Provider-Dokumentation](https://ai.google.dev/gemini-api/docs/thinking)).
+Bei eigenen OpenAI-kompatiblen Endpunkten deren Modellnamen explizit setzen;
+Denkoptionen sind providerspezifisch. Ein vorgeschalteter Nginx-Proxy benötigt
+`proxy_read_timeout 120s;` (mindestens 120 Sekunden), damit CET auch bei längeren
+Modellaufrufen seine Antwort oder den Rückfall ausliefern kann.
+Nach Timeout oder Fehler bleibt eine kurze Antwort mit vorhandenem Lagebild,
+Quellen und verfügbarem Entwurf erhalten. Ohne Denkbudget-Konfiguration nutzt nur
+Verstehen `minimal`; Antworten nutzt den Provider-Standard. Für Folgeturns gilt
+`WORKBENCH_LLM_THINKING_FOLLOWUP=low`; `default` lässt den Provider entscheiden.
+Ein Gemini-400-Fehler wegen einer nicht unterstützten Denkstufe führt genau einmal
+zur Wiederholung ohne `thinkingConfig`, mit einer Warnung ohne Dokumentinhalt.
+
+Retrieval läuft parallel je Quelle. `WORKBENCH_RETRIEVAL_TIMEOUT_MS` setzt die
+Gesamtobergrenze (Default 12000 ms). Im Katalog
+`src/workbench-knowledge-sources.json` hat jede Quelle `timeoutMs`: Default 4000 ms,
+Willi-Mako und knowledge-rag-federated 10000 ms. Empfehlung: 12000 ms insgesamt
+und 10000 ms für beide Willi-Quellen, nicht das 4-s-Budget auf die gesamte Runde
+anwenden. Eine hängende Quelle wird mit `status=timeout` und `ms` ausgewiesen;
+andere Quellen werden unabhängig abgefragt. Willi-Suchtext: Anliegen plus
+retrievalTerms, maximal 200 Zeichen. knowledge-rag beginnt parallel zum Verstehen;
+seine Treffer werden anschließend erneut am aktuellen Lagebild geprüft.
+Allgemeine Willi- und Federated-Fachwissenssuche benötigen kein Personen-Mapping.
+Die serverseitige Mandantenregistrierung (`CERNION_TENANT_REGISTRY_FILE`, Default
+`uploads/.api-tenants.json`) steuert beide Zugangspfade, Workbench und Facade/MCP:
+
+```json
+[
+  {
+    "tenantId": "example-tenant",
+    "knowledgeSources": { "williMako": "on", "federated": "on" }
+  }
+]
+```
+
+Bestehende Mandanteneinträge um `knowledgeSources` ergänzen; andere Felder erhalten.
+Beide Werte sind `on|off`, Default `on`. Änderungen greifen ab dem nächsten Zugriff;
+`off` sperrt auch zuvor gespeicherte Workbench-Evidenz dieser Quelle. Ungültige Werte
+oder eine unlesbare Registrierungsdatei sperren diese Wissensquellen. Die Mandanten-ID
+stammt aus der authentifizierten Identität, niemals aus Chat oder Modellantwort.
+Beide Suchtexte werden vor der Übermittlung mit dem gemeinsamen PII-Scrubber und
+zusätzlichen Filtern für lokale Kennungen, Namen und Adressen bereinigt und auf
+200 Zeichen begrenzt. Prozess- und Nachrichtentypen bleiben Suchbegriffe.
+Die bestehenden Willi-Zuordnungen gelten weiterhin für die separaten APIs zur
+Session-Suche, Session-Evidenz und Fall-Verknüpfung; die Wissenssuche nutzt sie nicht.
+Der Wissenspfad ruft weiterhin `willi-mako.resolveStructure/search` und
+`knowledge-rag.federatedSearch` über den Cernion-MCP-Zugang auf. In CET wird
+`WILLI_MAKO_CET_SERVICE_TOKEN` bisher vom separaten Willi-Session-Connector genutzt.
+Für die Fachwissenssuche über Cernion-MCP ist kein zusätzlicher Willi-Service-Token
+erforderlich. Der bestehende Cernion-MCP-Zugang genügt;
+`WILLI_MAKO_CET_SERVICE_TOKEN` gehört ausschließlich zum separaten Session-Connector.
+Ziel sind Folgeturns unter 10 Sekunden auch mit starkem Antwortmodell; 45 Sekunden
+sind eine Obergrenze für den Modellaufruf, keine zugesicherte Antwortzeit.
+Erst- und Folgeturns mit der eingesetzten Modellkombination vor Ort messen.
+Folgeturns aktualisieren nur das gespeicherte Lagebild; Entwurfswünsche überspringen
+Verstehen und nutzen bereits gefundene Quellen unter den aktuellen Zugriffsrechten.
+Bei einem Fehler bleibt der letzte Entwurf erhalten oder entsteht ein Arbeitsentwurf
+aus den bekannten Angaben. Die Antwortmetadaten enthalten `phaseTimes`
+(`understandMs`, `retrieveMs`, `answerMs`) und `sources` (`name`, `status`,
+`hitCount`, `ms`). Dieselben Werte werden pro Turn ohne Dokumentinhalte protokolliert.
+
+#### Agentic Sitemap / AI Catalog
+
+Die öffentlichen GET-Endpunkte `/.well-known/ai-catalog.json` und
+`/.well-known/ard.json` liefern denselben automatisch erzeugten Katalog mit
+`Content-Type: application/ai-catalog+json`. Die Registry der laufenden Instanz
+und `api.openapi` bilden die Quelle; neu geladene Services erscheinen ohne
+Dateigenerierung oder Neustart. Nur veröffentlichte Aktionen mit REST-Vertrag
+werden als Serviceangebot aufgenommen. Interne Aktionen und Serviceeinstellungen
+werden nicht serialisiert. Die Beschreibung ersetzt keine Authentifizierung,
+RBAC- oder HITL-Prüfung beim eigentlichen Aufruf.
+
+`API_URL` auf den externen HTTP(S)-Origin setzen, z. B. `https://api.cernion.de`
+(ohne Pfad, Zugangsdaten oder Query), damit Dokumentations- und Artefakt-URLs hinter
+einem TLS-Reverse-Proxy stimmen. Ohne `API_URL` wird der direkte Host/TLS-Zustand
+des Requests verwendet; `X-Forwarded-*` allein bestimmt keine Katalogadresse.
+Nginx muss beide `/.well-known/`-Pfade an CET weiterreichen, falls es dafür eine
+eigene Location gibt. Die Root-Antworten enthalten `Link` mit `rel="ai-catalog"`
+und `rel="ard"`; `ETag`/`If-None-Match` erlauben 304-Antworten. Die Erzeugung
+benötigt keinen LLM-Schlüssel und ruft keine Fachaktion oder externe Quelle auf.
+
+```bash
+curl -i https://api.cernion.de/.well-known/ai-catalog.json
+curl -i https://api.cernion.de/.well-known/ard.json
+```
+
+Bei 503 / `AI_CATALOG_UNAVAILABLE` den konfigurierten `API_URL` und die
+Gateway-Metadatenerzeugung prüfen. Bestehende Endpunkte bleiben nutzbar.
+Der Katalog ist eine dynamische JSON-Ressource, keine manuell gepflegte Datei.
+Die Serviceeinträge enthalten native OpenAPI-Teilkontrakte; es werden keine
+A2A-Agenten, MCP-Server-Cards oder Vertrauensnachweise erfunden.
+
 #### MCP / Cernion Backend
 
 | Variable | Default | Beschreibung |
@@ -634,6 +747,23 @@ npm install
 # Ursache 4: .env fehlt oder GEMINI_API_KEY leer
 cat .env | grep GEMINI_API_KEY
 ```
+
+### Wake: gespeicherte Funktion nicht mehr eindeutig zuordenbar
+
+Nach einem Wechsel des Funktionsmodells können gespeicherte Wake-Einträge eine
+entfernte oder auf mehrere Nachfolger aufgeteilte Funktion referenzieren. Ältere
+Versionen brechen dabei den Brokerstart mit `WAKE_INVALID` / `Function identity must
+resolve unambiguously` ab. Die korrigierte Version startet weiter und meldet
+`Wake record suspended: unresolved function identity` mit Eintrags-ID, Funktions-ID
+und altem/aktuellem Modellhash einmal je Eintragsrevision und Prozessstart.
+
+Diese Einträge bleiben unverändert in `SHARED_SERVICE_WAKE_DB_PATH` (Default:
+`./data/shared_service_wake`) erhalten und werden weder durch Timer noch durch
+Push-Ereignisse ausgeführt. Gültige Einträge laufen weiter. Nicht die Wake-Datenbank
+löschen: Sie enthält auch laufende Zustände, Statistiken und Journal-Retries.
+Vor einer Wiederaufnahme die betroffenen Funktionszuordnungen und Agenten anhand
+des aktuellen Modells prüfen; eine mehrdeutige Lineage erlaubt keine automatische
+Auswahl eines Nachfolgers. Datenbankfehler werden weiterhin als Fehler behandelt.
 
 ### PouchDB-Fehler: `LEVEL_LOCKED`
 

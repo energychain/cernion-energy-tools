@@ -817,7 +817,10 @@ module.exports = {
 
             if (
               !selected ||
-              Number(evaluation.matchScore || 0) > Number(selected.evaluation.matchScore || 0)
+              Number(evaluation.matchScore || 0) > Number(selected.evaluation.matchScore || 0) ||
+              (Number(evaluation.matchScore || 0) === Number(selected.evaluation.matchScore || 0) &&
+                evaluation.plannedToolCalls?.[0]?.status === 'ready' &&
+                selected.evaluation.plannedToolCalls?.[0]?.status !== 'ready')
             ) {
               selected = {
                 receipt: candidate,

@@ -167,6 +167,8 @@ const CAPABILITY_DOMAIN_MAP = {
 // Covers every tag currently present in openapi-export.json. New services MUST
 // add their tag here or they surface as "unmapped" in the build stats.
 const OPENAPI_TAG_DOMAIN_MAP = {
+  'shared-service-learning': 'platform',
+  'Shared Service Notices': 'platform',
   'Actor Personas': 'platform',
   'Agent Manifest': 'platform',
   'Evidence Router': 'platform',
@@ -284,6 +286,9 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   // declarative routing-registry CRUD — agent infra, not a business domain
   'domain-routes': 'platform',
   'dossier-hydration': 'platform',
+  'Domain Router': 'platform',
+  'Governance Cards': 'governance',
+  Workbench: 'platform',
   // explicitly domain-neutral generic file/csv ingest monitoring infra
   'File Ingest Monitor': 'platform',
   'Redispatch Asset Register': 'redispatch',

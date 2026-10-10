@@ -14,6 +14,7 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
+const { knowledgeSourceAccess, knowledgeSearchText } = require('../src/workbench-knowledge-access');
 
 const OPENAPI_TAG = 'Willi-Mako Marktkommunikation';
 const MCP_TOOL = 'cernion_willi_mako_search';
@@ -28,13 +29,16 @@ function normalizeResultItem(item = {}, includeContent) {
   const normalized = {
     id: item.id,
     slug: item.slug,
-    title: item.title,
+    title: item.metadata?.documentTitle || item.metadata?.title || item.documentTitle || item.title,
     score: item.score,
     category: item.category,
     tags: Array.isArray(item.tags) ? item.tags : [],
     excerpt: item.excerpt,
     url: item.url,
   };
+  if (item.sectionId) normalized.sectionId = item.sectionId;
+  const sectionTitle = item.sectionTitle || item.metadata?.sectionTitle;
+  if (sectionTitle) normalized.sectionTitle = sectionTitle;
   if (includeContent && item.content !== undefined) {
     normalized.content = item.content;
   }
@@ -148,11 +152,15 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { query, limit, tag, category, includeContent } = ctx.params;
+        if (knowledgeSourceAccess(ctx)['willi-mako'] === false)
+          return { success: false, error: { code: 'KNOWLEDGE_SOURCE_DISABLED' } };
+        const { limit, tag, category, includeContent } = ctx.params;
+        const query = knowledgeSearchText({}, ctx.params.query);
+        if (!query) return { success: false, error: { code: 'KNOWLEDGE_QUERY_EMPTY' } };
         try {
           const rawResult = await CernionMCPClient.callWithNewSession(
             MCP_TOOL,
-            { query, limit, tag, category },
+            { query, limit, tag, category, includeContent },
             ctx.meta.cernionToken
           );
           return normalizeSearchResponse(rawResult, includeContent);
@@ -218,7 +226,13 @@ module.exports = {
       },
       async handler(ctx) {
         const { query, limit, tag, category } = ctx.params;
-        const searchResult = await ctx.call('willi-mako.search', { query, limit, tag, category });
+        const searchResult = await ctx.call('willi-mako.search', {
+          query,
+          limit,
+          tag,
+          category,
+          includeContent: true,
+        });
 
         if (!searchResult || searchResult.success === false) {
           return {
@@ -232,6 +246,9 @@ module.exports = {
         const sources = results.map((item) => ({
           id: item.id,
           title: item.title,
+          excerpt: String(item.excerpt || item.content || '').slice(0, 1200),
+          sectionId: item.sectionId || item.slug || null,
+          ...(item.sectionTitle ? { sectionTitle: item.sectionTitle } : {}),
           url: item.url,
           score: item.score,
         }));

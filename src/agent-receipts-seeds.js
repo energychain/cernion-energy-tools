@@ -400,6 +400,143 @@ const RECEIPT_SEEDS = Object.freeze([
       tableFirst: true,
     },
   },
+
+  {
+    receiptId: 'mako-resolution-value-v1',
+    version: 1,
+    status: 'draft',
+    title: 'MaKo/M2C Resolution Value Projection',
+    description:
+      'CR-LKA-RV-001 receipt profile for qualitative Resolution Value in MaKo/M2C clarification cases.',
+    domain: 'market-communication',
+
+    matching: {
+      domains: ['market-communication', 'billing', 'm2c'],
+      triggerTerms: ['APERAK', 'MSCONS', 'INVOIC', 'UTILMD', 'Klärfall', 'Abrechnung'],
+      workflowTypes: ['resolution_value_projection'],
+      requiredEntities: [],
+    },
+
+    requiredInputs: [],
+
+    toolPlan: {
+      steps: [
+        {
+          step: 1,
+          action: 'evidence-router.route',
+          description:
+            'Route MaKo/M2C clarification evidence gaps before qualitative resolution value statements.',
+          required: true,
+          evidence: {
+            requiredOutputFields: ['evidenceGaps', 'recommendedEvidence', 'routingBasis'],
+          },
+        },
+      ],
+    },
+
+    evidencePolicy: {
+      requiredEvidenceBeforeFinalization: [
+        'confirmed_invoice_amount',
+        'market_partner_confirmation',
+        'owner_approval',
+      ],
+    },
+
+    forbiddenInferences: [
+      'send_market_partner_reply',
+      'change_master_data',
+      'approve_invoice',
+      'state_final_cashflow_amount',
+      'claim_final_revenue_without_evidence',
+    ],
+
+    responsePolicy: {
+      verified:
+        'Verified: state only qualitative resolution value boundaries supported by confirmed invoice, partner and owner evidence.',
+      partial:
+        'Partial: list available evidence and gaps; do not present final cashflow or revenue conclusions.',
+      unverified:
+        'Unverified: ask for confirmed invoice amount, market partner confirmation and owner approval before finalization.',
+    },
+
+    tags: ['cr-lka-rv-001', 'mako', 'm2c', 'resolution-value', 'rc-v1'],
+    defaults: {},
+    metadata: {
+      changeRequest: 'CR-LKA-RV-001',
+      candidateId: 'CRC001',
+      workedExample: 'mako_m2c_resolution_value',
+      rcTarget: 'v1.0',
+    },
+  },
+
+  {
+    receiptId: 'asset-to-decision-v1',
+    version: 1,
+    status: 'draft',
+    title: 'Asset-to-Decision Governance Projection',
+    description:
+      'CR-LKA-RV-001 receipt profile for asset-state to budget/committee decision readiness.',
+    domain: 'asset-governance',
+
+    matching: {
+      domains: ['asset-governance', 'asset-management', 'grid-operations'],
+      triggerTerms: ['asset', 'Anlage', 'Zustand', 'Budget', 'Gremium', 'Investition'],
+      workflowTypes: ['asset_to_decision'],
+      requiredEntities: [],
+    },
+
+    requiredInputs: [],
+
+    toolPlan: {
+      steps: [
+        {
+          step: 1,
+          action: 'evidence-router.route',
+          description:
+            'Route asset-state, risk, budget and governance evidence gaps before decision-readiness framing.',
+          required: true,
+          evidence: {
+            requiredOutputFields: ['evidenceGaps', 'missingEvidence', 'routingBasis'],
+          },
+        },
+      ],
+    },
+
+    evidencePolicy: {
+      requiredEvidenceBeforeFinalization: [
+        'asset_condition_source',
+        'risk_quantification',
+        'budget_assumption',
+        'alternative_options',
+        'decision_owner',
+      ],
+    },
+
+    forbiddenInferences: [
+      'recommend_final_investment_decision',
+      'state_budget_commitment',
+      'mark_committee_ready',
+      'claim_committee_ready_without_evidence',
+    ],
+
+    responsePolicy: {
+      draft:
+        'Draft: frame asset-to-decision readiness as a provisional governance projection with explicit evidence gaps.',
+      partial:
+        'Partial: separate known asset/risk/budget facts from assumptions and missing alternatives.',
+      unverified:
+        'Unverified: do not mark committee-ready or recommend investment decisions without owner and evidence confirmation.',
+    },
+
+    tags: ['cr-lka-rv-001', 'asset-to-decision', 'budget', 'committee', 'rc-v1'],
+    defaults: {},
+    metadata: {
+      changeRequest: 'CR-LKA-RV-001',
+      candidateId: 'CRC004',
+      workedExample: 'asset_to_decision',
+      rcTarget: 'v1.0',
+    },
+  },
 ]);
 
 module.exports = {

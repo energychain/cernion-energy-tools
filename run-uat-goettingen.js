@@ -1,6 +1,8 @@
 const axios = require('axios');
+const { uatBaseUrl, jobPath, logRecord } = require('./src/operator-cli-security');
+const client = axios.create({ maxRedirects: 0, timeout: 30000 });
 
-const API_BASE = 'http://10.0.0.8:3900';
+const API_BASE = uatBaseUrl(process.env.UAT_API_BASE_URL);
 const SESSION_ID = 'uat-goettingen-v2-' + Date.now();
 const TENANT_ID = 'uat-tenant-goettingen-002';
 
@@ -11,7 +13,7 @@ async function delay(ms) {
 async function runTurn(turnNumber, message) {
   console.log(`\n======================================================`);
   console.log(`TURN ${turnNumber}`);
-  console.log(`USER: "${message}"`);
+  console.log(logRecord('user', { message }));
   console.log(`======================================================\n`);
 
   const payload = {
@@ -25,25 +27,25 @@ async function runTurn(turnNumber, message) {
   };
 
   try {
-    const startRes = await axios.post(`${API_BASE}/api/personal-agent/chat`, payload, {
+    const startRes = await client.post(`${API_BASE}/api/personal-agent/chat`, payload, {
       headers: { 'Content-Type': 'application/json' },
     });
 
     if (!startRes.data.jobId) {
-      console.log(`[ERROR] No jobId returned. Response:`, startRes.data);
+      console.log(logRecord('missing-job-id', startRes.data));
       return;
     }
 
     const jobId = startRes.data.jobId;
-    console.log(`[JOB STARTED] JobId: ${jobId}`);
+    console.log(logRecord('job-started', jobId));
 
     let resultData = null;
     let attempts = 0;
     while (attempts < 30) {
-      const statusRes = await axios.get(`${API_BASE}/api/jobs/${jobId}/status`);
+      const statusRes = await client.get(`${API_BASE}${jobPath(jobId, 'status')}`);
       const status = statusRes.data.status;
       if (status === 'completed') {
-        const resultRes = await axios.get(`${API_BASE}/api/jobs/${jobId}/result`);
+        const resultRes = await client.get(`${API_BASE}${jobPath(jobId, 'result')}`);
         resultData = resultRes.data;
         break;
       } else if (status === 'failed') {
@@ -73,17 +75,19 @@ async function runTurn(turnNumber, message) {
     const presentationType = resultData.presentationType || resultData.result?.presentationType;
     const markdown = resultData.presentation?.markdown || resultData.result?.presentation?.markdown;
 
-    console.log(`[PRESENTATION] Applied: ${presentationApplied}`);
-    console.log(`[PRESENTATION] Type: ${presentationType}`);
+    console.log(logRecord('presentation-applied', presentationApplied));
+    console.log(logRecord('presentation-type', presentationType));
 
     if (presentationApplied && markdown) {
-      console.log(`\n[MARKDOWN OUTPUT]\n${markdown}\n`);
+      console.log(logRecord('markdown', markdown));
     } else {
-      console.log(`\n[RAW REPLY]\n${reply}\n`);
+      console.log(logRecord('reply', reply));
     }
     return resultData;
   } catch (error) {
-    console.error(`[ERROR] Turn ${turnNumber} failed:`, error.response?.data || error.message);
+    console.error(
+      logRecord('turn-failed', { turnNumber, error: error.response?.data || error.message })
+    );
   }
 }
 
@@ -111,4 +115,7 @@ async function runUAT() {
   );
 }
 
-runUAT();
+runUAT().catch((error) => {
+  console.error(logRecord('uat-failed', error.message));
+  process.exitCode = 1;
+});

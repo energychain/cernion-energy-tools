@@ -1,0 +1,176 @@
+'use strict';
+
+const { normalizePhrase } = require('./function-resolver');
+const { scrubPromptText } = require('./prompt-scrubber');
+
+function words(text) {
+  return normalizePhrase(text).match(/[\p{L}\p{N}]{4,}/gu) || [];
+}
+
+function prepareAnswerEvidence(evidence, situation, limit = 500) {
+  const wanted = new Set(words([situation.concern, ...(situation.retrievalTerms || [])].join(' ')));
+  const documents = new Set(),
+    texts = new Set();
+  return evidence
+    .map((hit, index) => {
+      const value = String(hit.value || hit.summary || '');
+      const tokens = words(value);
+      const overlap = [...wanted].filter((word) => tokens.includes(word)).length;
+      const metadata = hit.metadata || {};
+      const score = Number(metadata.score ?? hit.score ?? 0);
+      return { hit, value, overlap, score: Number.isFinite(score) ? score : 0, index };
+    })
+    .sort((a, b) => b.overlap - a.overlap || b.score - a.score || a.index - b.index)
+    .filter(({ hit, value }) => {
+      const metadata = hit.metadata || {};
+      const document = metadata.sourceId || metadata.hitId || hit.url;
+      const section = metadata.sectionId || '';
+      const key = document ? `${hit.source}:${document}:${section}` : null;
+      const text = normalizePhrase(value);
+      if (!text || texts.has(text) || (key && documents.has(key))) return false;
+      texts.add(text);
+      if (key) documents.add(key);
+      return true;
+    })
+    .slice(0, 5)
+    .map(({ hit, value }) => {
+      let best = 0,
+        bestScore = -1;
+      for (let offset = 0; offset < value.length; offset += Math.max(1, Math.floor(limit / 3))) {
+        const found = new Set(words(value.slice(offset, offset + limit)));
+        const score = [...wanted].filter((word) => found.has(word)).length;
+        if (score > bestScore) {
+          best = offset;
+          bestScore = score;
+        }
+      }
+      return {
+        evidenceId: hit.evidenceId,
+        source: hit.source,
+        title: readableSourceTitle(hit),
+        value: value.slice(best, best + limit),
+      };
+    });
+}
+
+function copiesEvidence(text, evidence) {
+  const candidate = normalizePhrase(text);
+  if (candidate.length < 80) return false;
+  return evidence.some((hit) => {
+    const original = normalizePhrase(hit.value || '');
+    if (original.includes(candidate)) return true;
+    if (candidate.length < 121) return false;
+    for (let index = 0; index <= candidate.length - 121; index++) {
+      if (original.includes(candidate.slice(index, index + 121))) return true;
+    }
+    return false;
+  });
+}
+
+function safeSituationText(value, limit = 120) {
+  const text = scrubPromptText(String(value || ''))
+    .replace(/\[?(?:[A-Z]+-MASKED|MASKED-[\w-]+)\]?/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (/bestätig|zustimm|ablehn/i.test(text)) return '';
+  if (text.length <= limit) return text;
+  const shortened = text.slice(0, limit - 1).trimEnd();
+  const boundary = shortened.lastIndexOf(' ');
+  return `${boundary > limit * 0.6 ? shortened.slice(0, boundary) : shortened}…`;
+}
+
+function situationReference(situation) {
+  const { displayIdentifier, completeReference } = require('./workbench-identifiers');
+  const facts = [situation.concern, situation.situation].filter(Boolean).join(' ');
+  return (situation.identifiers || [])
+    .filter(displayIdentifier)
+    .filter((entry) => !facts.includes(entry.value) || completeReference(facts, entry.value))
+    .filter((entry) => !/[\n\r]/u.test(entry.kind))
+    .slice(0, 3)
+    .map((entry) => {
+      // Omit references that would be scrubbed or shortened, never list a fragment.
+      const value = safeSituationText(entry.value, 256);
+      return value === entry.value ? `${safeSituationText(entry.kind, 60)}: ${value}` : '';
+    })
+    .filter(Boolean)
+    .join(', ');
+}
+
+function readableSourceTitle(hit) {
+  const metadata = hit.metadata || {};
+  const candidates = [
+    metadata.documentTitle,
+    metadata.document?.title,
+    metadata.source?.title,
+    metadata.title,
+    hit.documentTitle,
+    hit.title,
+  ];
+  const clean = (value) =>
+    scrubPromptText(String(value || ''))
+      .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/giu, '')
+      .replace(/\[?(?:[A-Z]+-MASKED|MASKED-[\w-]+)\]?/gu, '')
+      .replace(/\s+/gu, ' ')
+      .trim();
+  for (const candidate of candidates) {
+    // Technical references are not document titles, even with their extension removed.
+    if (
+      !candidate ||
+      /^(?:[a-z]\)|\d+[.)]\s)|^[a-zäöü].*,/u.test(String(candidate)) ||
+      (candidate === hit.title &&
+        !metadata.title &&
+        !metadata.documentTitle &&
+        String(hit.value || hit.summary || '').startsWith(String(candidate))) ||
+      /\.[a-z][a-z0-9]{0,7}(?:$|\s)|^(?:[\w-]+\s+)?E[_-]\d+$|[/\\]/iu.test(candidate)
+    )
+      continue;
+    const title = clean(candidate);
+    if (
+      title &&
+      !/^[0-9a-f-]{16,}$/iu.test(title) &&
+      ![
+        hit.source,
+        hit.retrievalSource,
+        'Wissensquelle',
+        ...require('./workbench-knowledge-sources.json').sources.map((source) => source.id),
+      ]
+        .filter(Boolean)
+        .some((source) => title.toLocaleLowerCase() === String(source).toLocaleLowerCase())
+    )
+      return title.slice(0, 160);
+  }
+  return '';
+}
+
+function sourceLine(evidence) {
+  const labels = [
+    ...new Set(
+      evidence
+        .filter((hit) => hit.retrievalSource !== 'capability-read')
+        .map((hit) => {
+          const title = readableSourceTitle(hit);
+          if (!title) return '';
+          const sectionId = hit.metadata?.sectionId || hit.sectionId;
+          const section =
+            hit.metadata?.sectionTitle ||
+            hit.sectionTitle ||
+            (/^(?:Abschnitt|Kapitel|Seite|Section|Chapter|Page)\s+\S/iu.test(sectionId || '')
+              ? sectionId
+              : '');
+          const readableSection = readableSourceTitle({ title: section });
+          return [title, readableSection].filter(Boolean).join(' · ');
+        })
+        .filter(Boolean)
+    ),
+  ];
+  return labels.length ? `Quellen: ${labels.join('; ')}` : '';
+}
+
+module.exports = {
+  prepareAnswerEvidence,
+  copiesEvidence,
+  safeSituationText,
+  situationReference,
+  sourceLine,
+  readableSourceTitle,
+};
