@@ -125,7 +125,8 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
     });
     llm.generateText.mockResolvedValue(
       JSON.stringify({
-        expectation: [
+        expectation: [],
+        interpretation: [
           {
             text: 'Wir berücksichtigen die Angaben.',
             supported: 'model',
