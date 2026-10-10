@@ -12,6 +12,7 @@ const {
   findRuntimeCapability,
 } = require('../src/domain-routes-registry');
 const { rankOperations } = require('../src/operation-capability-index');
+const { classifyCaseTypes } = require('../src/case-type-routing');
 
 const MODES = new Set(['initial', 'next_step', 'repair', 'compare']);
 
@@ -3508,6 +3509,7 @@ module.exports = {
           ctx.params.knownContext && typeof ctx.params.knownContext === 'object'
             ? ctx.params.knownContext
             : {};
+        const caseTypeRouting = classifyCaseTypes(taskText, knownContext);
         const operationCandidates = rankOperations(taskText, {
           capability: capability.capability,
           domain: capability.domain,
@@ -3605,8 +3607,10 @@ module.exports = {
               reason: `Matched curated domain capability in ${capability.domain}.`,
               actions: preferredActionPath,
               hitlPolicy: capability.hitlPolicy || null,
+              caseTypeCandidates: caseTypeRouting.candidates.map((candidate) => candidate.id),
             },
           ],
+          caseTypeRouting,
           recommendedPlan,
           operationCandidates,
           requiredInputs,
