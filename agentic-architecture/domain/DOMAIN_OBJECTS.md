@@ -1,6 +1,6 @@
 # Domain Objects
 
-Generated: 2026-10-10T07:22:50.450Z
+Generated: 2026-10-10T13:25:30.222Z
 
 ## Stable objects for agentic development
 

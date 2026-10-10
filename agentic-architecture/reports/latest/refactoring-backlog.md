@@ -1,6 +1,6 @@
 # Shepherd Refactoring Backlog
 
-Generated: 2026-10-10T07:22:47.615Z
+Generated: 2026-10-10T13:25:26.230Z
 
 ## Safe first work packages
 
@@ -17,14 +17,21 @@ Generated: 2026-10-10T07:22:47.615Z
    - Output: ADR naming rule and small rename/refactor proposals only after GitNexus impact analysis.
 
 4. Service-test map hardening
-   - Services without obvious direct tests: 26.
+   - Services without obvious direct tests: 27.
    - Output: decide whether each is covered indirectly, needs a smoke test, or should be marked experimental.
 
 ## Duplicate/overlap candidates
 
 - `services/agent.service.js`, `services/personal-agent.service.js`
+- `services/domain-router.service.js`, `src/domain-router.js`
 - `services/eeg-clawback-calculator.service.js`, `src/eeg-clawback-calculator.js`
 - `services/evidence-router.service.js`, `src/evidence-router.js`
+- `services/function-coverage.service.js`, `src/function-coverage.js`
+- `services/governance-cards.service.js`, `src/governance-cards.js`
+- `services/shared-service-journal.service.js`, `src/shared-service-journal.js`
+- `services/shared-service-learning.service.js`, `src/shared-service-learning.js`
+- `services/shared-service-notices.service.js`, `src/shared-service-notices.js`
+- `services/shared-service-wake.service.js`, `src/shared-service-wake.js`
 - `services/tabular-intelligence.service.js`, `src/tabular-intelligence.js`
 - `src/job-store/driver.js`, `src/rate-quota/driver.js`
 - `src/job-store/factory.js`, `src/rate-quota/factory.js`
@@ -51,6 +58,7 @@ Generated: 2026-10-10T07:22:47.615Z
 - `services/regulatorische-entgeltlogik.service.js`
 - `services/reinvest-signal.service.js`
 - `services/reporting-governance.service.js`
+- `services/shared-service-agents.service.js`
 - `services/tenant-quota.service.js`
 - `services/vdmi-evidence.service.js`
 - `services/vdmi-findings.service.js`

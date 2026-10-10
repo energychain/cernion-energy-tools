@@ -1,6 +1,6 @@
 # Stammdaten-/Marktrollen-Klärfall
 
-Generated: 2026-10-10T07:22:50.450Z
+Generated: 2026-10-10T13:25:30.222Z
 
 Status: observed
 Priority: 1
@@ -116,11 +116,12 @@ Die Datenlage reicht nicht für eine abschließende Stammdatenaussage. Fachlich 
 - `services/utility-report.service.js` (310 hits)
 - `docs/agent-responses/rd-audit.json` (301 hits)
 - `src/report-builder.js` (237 hits)
-- `src/capability-catalog.js` (233 hits)
+- `src/capability-catalog.js` (231 hits)
 - `services/grid-operations.service.js` (191 hits)
 - `services/edm.service.js` (164 hits)
 - `services/capability-broker.service.js` (129 hits)
 - `services/finance-agent.service.js` (122 hits)
+- `docs/validation/739-routing.json` (115 hits)
 - `services/agent.service.js` (113 hits)
 - `services/mastr-quality.service.js` (112 hits)
 - `services/dashboard-api/methods-part-13-of-14.js` (102 hits)
@@ -134,7 +135,6 @@ Die Datenlage reicht nicht für eine abschließende Stammdatenaussage. Fachlich 
 - `services/energy-sharing.service.js` (74 hits)
 - `src/evidence-registry.js` (73 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (71 hits)
+- `docs/validation/752-before-cache.json` (70 hits)
 - `services/ewk-monitoring.service.js` (70 hits)
 - `src/answer-dossier-hydration-rules.json` (70 hits)
-- `src/agent-receipts-seeds.js` (64 hits)
-- `services/query.service.js` (62 hits)

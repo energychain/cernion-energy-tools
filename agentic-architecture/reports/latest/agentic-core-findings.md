@@ -1,45 +1,45 @@
 # Agentic Core Findings
 
-Generated: 2026-10-10T07:22:47.615Z
+Generated: 2026-10-10T13:25:26.230Z
 
 ## Current measurable surface
 
-- Agentic files: 223
-- Routing/capability files: 51
-- Evidence/HITL files: 67
+- Agentic files: 252
+- Routing/capability files: 84
+- Evidence/HITL files: 74
 - Operation capability index: present
 - OpenAPI export: present
 - llm.txt: present
 
 ## Domain term distribution
 
-- `evidence`: 19970 hits in 519 files
-- `tenant`: 10805 hits in 460 files
-- `broker`: 9228 hits in 428 files
-- `grid`: 8740 hits in 547 files
-- `agent`: 6541 hits in 586 files
-- `decision`: 6029 hits in 352 files
-- `stadtwerk`: 5087 hits in 210 files
-- `capability`: 4421 hits in 317 files
-- `vdmi`: 4130 hits in 256 files
-- `redispatch`: 3573 hits in 274 files
-- `hitl`: 3510 hits in 387 files
-- `market`: 3283 hits in 307 files
-- `forecast`: 2924 hits in 200 files
-- `receipt`: 2149 hits in 101 files
-- `regulator`: 2093 hits in 282 files
-- `personal-agent`: 1931 hits in 258 files
-- `edm`: 1917 hits in 253 files
-- `routing`: 1628 hits in 255 files
-- `workflow`: 1492 hits in 209 files
-- `mako`: 1155 hits in 195 files
-- `sidecar`: 899 hits in 91 files
-- `eog`: 715 hits in 83 files
-- `utility`: 563 hits in 68 files
-- `chatgpt`: 392 hits in 34 files
-- `willi`: 305 hits in 37 files
-- `openwebui`: 62 hits in 36 files
-- `open-webui`: 52 hits in 11 files
+- `evidence`: 24309 hits in 722 files
+- `tenant`: 14776 hits in 665 files
+- `broker`: 10695 hits in 569 files
+- `grid`: 9772 hits in 626 files
+- `agent`: 8280 hits in 726 files
+- `decision`: 6900 hits in 430 files
+- `capability`: 5641 hits in 446 files
+- `stadtwerk`: 5622 hits in 242 files
+- `forecast`: 4541 hits in 320 files
+- `vdmi`: 4525 hits in 292 files
+- `redispatch`: 4077 hits in 298 files
+- `market`: 3850 hits in 384 files
+- `hitl`: 3666 hits in 436 files
+- `regulator`: 2486 hits in 316 files
+- `receipt`: 2404 hits in 154 files
+- `edm`: 2372 hits in 330 files
+- `mako`: 2229 hits in 279 files
+- `routing`: 2014 hits in 315 files
+- `personal-agent`: 2012 hits in 301 files
+- `workflow`: 1582 hits in 232 files
+- `willi`: 1446 hits in 100 files
+- `sidecar`: 1001 hits in 109 files
+- `eog`: 749 hits in 90 files
+- `utility`: 614 hits in 93 files
+- `openwebui`: 512 hits in 65 files
+- `chatgpt`: 402 hits in 37 files
+- `open-webui`: 266 hits in 47 files
 
 ## Evidence and HITL files
 
@@ -65,6 +65,7 @@ Generated: 2026-10-10T07:22:47.615Z
 - `docs/use-cases/znp-production-readiness-evidence-gate.md`
 - `docs/v0.58-architecture/EVIDENCE_CARRY_FORWARD_ORIGIN_SIGNAL_SCENARIO.md`
 - `integrations/rundeck/jobs/cernion-revalidation-execute-dev.yaml`
+- `scripts/spike-739-evidence.js`
 - `services/agent-receipts.service.js`
 - `services/connection-rejection-evidence.service.js`
 - `services/dossier-hydration-management.service.js`
@@ -90,10 +91,15 @@ Generated: 2026-10-10T07:22:47.615Z
 - `src/evidence-planner.js`
 - `src/evidence-registry.js`
 - `src/evidence-router.js`
+- `src/mako-evidence-parser.js`
 - `src/receipt-grounded-presentation-contract.js`
 - `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-connection-deadline-evidence-queue-v1.json`
 - `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-cross-system-variance-evidence-matrix-v1.json`
 - `src/vdmi-hitl-role-derivation.js`
+- `src/workbench-answer-evidence.js`
+- `src/workbench-evidence.js`
+- `src/workbench-mail-evidence.js`
+- `src/workbench-web-evidence.js`
 - `tests/agent-receipts-seeds.test.js`
 - `tests/agent-receipts.service.test.js`
 - `tests/agent-receipts.vnb.test.js`
@@ -107,6 +113,7 @@ Generated: 2026-10-10T07:22:47.615Z
 - `tests/evidence-revalidation.service.test.js`
 - `tests/evidence-router.test.js`
 - `tests/hitl.service.test.js`
+- `tests/mako-evidence-parser.test.js`
 - `tests/personal-agent-auto-evidence-requirement.integration.test.js`
 - `tests/personal-agent-willi-mako-evidence.test.js`
 - `tests/personal-agent-work-out-loud-evidence-revalidation.integration.test.js`

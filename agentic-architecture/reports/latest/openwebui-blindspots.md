@@ -1,10 +1,10 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-10T07:22:47.615Z
+Generated: 2026-10-10T13:25:26.230Z
 
 ## Observed adapter surface
 
-- OpenWebUI/ChatGPT adapter files detected: 25
+- OpenWebUI/ChatGPT adapter files detected: 28
 - verify:open-webui npm script: present
 - verify:agent-shapes npm script: present
 
@@ -15,12 +15,14 @@ Detected files:
 - `docs/architecture/chatgpt-sidecar-oeo-trust-boundary.md`
 - `docs/architecture/chatgpt-sidecar-session-api-contract.md`
 - `docs/architecture/chatgpt-sidecar-session-ticket-gate.md`
+- `docs/open-webui-tenant-gateway.md`
 - `integrations/open-webui/cernion-openapi-tool-server.js`
 - `integrations/open-webui/cernion-openapi-tool-server.test.js`
 - `integrations/open-webui/cernion-process-intake-tool-server.js`
 - `integrations/open-webui/cernion-process-intake-tool-server.test.js`
 - `integrations/open-webui/cernion-sidecar-bridge.js`
 - `integrations/open-webui/cernion-sidecar-bridge.test.js`
+- `integrations/open-webui/cernion-workbench-tools.md`
 - `integrations/open-webui/docker-compose.yml`
 - `integrations/open-webui/http-json.js`
 - `integrations/open-webui/http-json.test.js`
@@ -32,6 +34,7 @@ Detected files:
 - `src/chatgpt-sidecar-prompt.js`
 - `src/chatgpt-sidecar-session-policy.js`
 - `src/chatgpt-sidecar-session-store.js`
+- `src/openwebui-context.js`
 - `tests/chatgpt-sidecar-session-policy.test.js`
 - `tests/chatgpt-sidecar-session-store.test.js`
 - `tests/chatgpt-sidecar.service.test.js`
@@ -50,29 +53,45 @@ Routing/capability/broker/manifest files:
 - `agentic-architecture/domain/CASE_TYPE_ROUTING.md`
 - `agentic-architecture/OPENWEBUI_AGENTIC_ROUTING.md`
 - `agentic-architecture/reports/latest/domain-abstraction/CASE_TYPE_ROUTING.md`
+- `capability-routing.parameters.json`
+- `docs/domain-router.md`
 - `docs/OPERATION_CAPABILITY_INDEX.md`
 - `docs/PUBLIC_WEBSITE_BACKLOG_AGENT_ROUTING.md`
+- `docs/reviews/730-capability-routing-evaluation.json`
+- `docs/reviews/730-capability-routing.md`
 - `docs/roadmap/resolved/16-capability-broker-v2.md`
 - `docs/use-cases/stadtwerk-mauer-capability-projection.md`
 - `docs/v0.52-implementation-plans/v0.52.1-capability-broker.md`
 - `docs/v0.58-architecture/DECLARATIVE_BLUEPRINT_AND_CASCADING_BROKER_SPEC.md`
+- `docs/validation/739-routing.json`
 - `docs/VNB_LOOKUP_ROUTING.md`
 - `integrations/budibase/manifests/case-view-manifest-stadtwerk-mauer-pv-missing-nap.json`
 - `integrations/budibase/manifests/case-view-manifest.js`
 - `integrations/budibase/manifests/stadtwerk-mauer-workbench.json`
 - `integrations/budibase/manifests/workbench-action-manifest-stadtwerk-mauer.json`
 - `operation-capability-index.json`
+- `scripts/check-capability-keywords.js`
+- `scripts/eval-capability-routing.js`
 - `scripts/generate-operation-capability-index.js`
+- `scripts/verify-capability-routing-baseline.js`
 - `services/agent-manifest.service.js`
 - `services/capability-broker.service.js`
+- `services/domain-router.service.js`
 - `services/domain-routes-management.service.js`
 - `services/evidence-router.service.js`
 - `services/mqtt-broker.service.js`
 - `src/agent-sidecar-tool-manifest.js`
 - `src/answer-dossier-domain-routes.json`
 - `src/capability-catalog.js`
+- `src/capability-clarification.js`
+- `src/capability-routing.js`
 - `src/case-type-routing.js`
 - `src/consultation-routing-guardrails.js`
+- `src/domain-router-contract.js`
+- `src/domain-router-events.js`
+- `src/domain-router-policy.js`
+- `src/domain-router-shadow-mixin.js`
+- `src/domain-router.js`
 - `src/domain-routes-registry.js`
 - `src/energy-sidecar-route-registry.js`
 - `src/evidence-router.js`
@@ -82,14 +101,29 @@ Routing/capability/broker/manifest files:
 - `src/operation-capability-index.js`
 - `src/personal-agent-routing-graph.js`
 - `src/personal-agent-routing.js`
+- `src/workbench-capability-loop.js`
+- `src/workbench-intent-router.js`
 - `tests/agent-manifest.service.test.js`
 - `tests/agent-sidecar-willi-mako-routing.test.js`
 - `tests/capability-broker.service.test.js`
+- `tests/capability-clarification.test.js`
+- `tests/capability-routing-cache-drift.test.js`
+- `tests/capability-routing-regression.test.js`
+- `tests/capability-routing.test.js`
+- `tests/capability-uncertain-consumers.test.js`
 - `tests/case-view-manifest.test.js`
 - `tests/consultation-to-execution-hybrid-router.regression.test.js`
+- `tests/domain-router-confirmation.test.js`
+- `tests/domain-router-regression.test.js`
+- `tests/domain-router-shadow.test.js`
+- `tests/domain-router.service.test.js`
 - `tests/domain-routes-management.service.test.js`
 - `tests/evidence-router.test.js`
+- `tests/fixtures/capability-keyword-cleanup.json`
+- `tests/fixtures/capability-routing-baseline.json`
+- `tests/fixtures/capability-routing-eval.json`
 - `tests/generate-operation-capability-index.test.js`
+- `tests/helpers/case-linking-broker.js`
 - `tests/l3-broker.test.js`
 - `tests/llm-manifest.test.js`
 - `tests/mqtt-broker.service.test.js`
@@ -98,15 +132,19 @@ Routing/capability/broker/manifest files:
 - `tests/personal-agent-routing-graph.test.js`
 - `tests/personal-agent-routing-policy.regression.test.js`
 - `tests/personal-agent-routing.test.js`
+- `tests/workbench-capability-loop.test.js`
+- `tests/workbench-intent-router.test.js`
 
 Service names that should be capability-mapped:
 
 - `Erneuerbare-Energien-Gesetz (EEG)`
 - `Stadtwerk Mauer`
 - `X-Tenant-Id`
+- `activation`
 - `agent-manifest`
 - `agent-receipts`
 - `agent-sidecar`
+- `agents`
 - `agnes-bottleneck`
 - `altdaten-assessment`
 - `api`
@@ -129,6 +167,7 @@ Service names that should be capability-mapped:
 - `cya`
 - `dashboard-api`
 - `datapoint`
+- `dataset`
 - `datasource-cache`
 - `datasource-classifier`
 - `datasource-connector`
@@ -137,6 +176,7 @@ Service names that should be capability-mapped:
 - `datasource-watcher`
 - `decision-frame`
 - `direktvermarkterName`
+- `domain-router`
 - `domain-routes`
 - `dossier-hydration`
 - `e2e-connection-check`
@@ -165,12 +205,14 @@ Service names that should be capability-mapped:
 - `forecast`
 - `forecast-engine`
 - `forecast-sandbox`
+- `function-coverage`
 - `gas-capacity-order-revision-gate`
 - `gas-storage`
 - `gasnetz-waermeplanung`
 - `german-grid`
 - `ghost-asset-alert`
 - `governance`
+- `governance-cards`
 - `grid-connection`
 - `grid-operations`
 - `hitl`
@@ -179,6 +221,7 @@ Service names that should be capability-mapped:
 - `investment-maturity-off-balance-gate`
 - `investment-planning`
 - `job-status`
+- `journal`
 - `knowledge-continuity-governance-gate`
 - `knowledge-rag`
 - `mastr-monitor`
@@ -191,6 +234,7 @@ Service names that should be capability-mapped:
 - `nbp-monitor`
 - `netzkoppelvertrag-workflow`
 - `nkp-reporting`
+- `notices`
 - `notification`
 - `nova`
 - `object-store`
@@ -213,11 +257,3 @@ Service names that should be capability-mapped:
 - `redispatch-readiness-gate`
 - `redispatch-settlement-sandbox`
 - `redispatch-special-case-gate`
-- `regulatorische-entgeltlogik`
-- `reinvest-signal`
-- `reporting-governance`
-- `residual-load`
-- `settlement`
-- `slp`
-- `stadtwerk-mauer-e2e-process-demo`
-- `stadtwerk-mauer-external-interface-stubs`

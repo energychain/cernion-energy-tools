@@ -1,6 +1,6 @@
 # Kunden-/Service-Klärfall
 
-Generated: 2026-10-10T07:22:50.450Z
+Generated: 2026-10-10T13:25:30.222Z
 
 Status: draft
 Priority: 3
@@ -130,28 +130,28 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 
 ## Code-/Doku-Signale
 
-- `src/capability-catalog.js` (478 hits)
+- `src/capability-catalog.js` (476 hits)
 - `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md` (322 hits)
 - `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md` (322 hits)
-- `services/capability-broker.service.js` (260 hits)
-- `agentic-architecture/reports/latest/architecture-scan.md` (233 hits)
+- `services/capability-broker.service.js` (259 hits)
+- `agentic-architecture/reports/latest/architecture-scan.md` (237 hits)
 - `src/report-builder.js` (174 hits)
 - `services/chatgpt-sidecar.service.js` (156 hits)
 - `feedback/HYGIENE_SPRINT.md` (145 hits)
+- `function-model.report.md` (138 hits)
 - `docs/v0.58-architecture/lagebild/tranche_c.md` (136 hits)
 - `src/cookbook-recipes.js` (129 hits)
 - `src/answer-dossier-hydration-rules.json` (127 hits)
 - `docs/v0.58-architecture/lagebild/roles_audit.md` (119 hits)
 - `docs/agent-responses/rd-audit.json` (118 hits)
-- `services/api.service.js` (111 hits)
+- `services/api.service.js` (114 hits)
+- `docs/ARCHITECTURE.md` (93 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (93 hits)
 - `docs/v0.52-implementation-plans/v0.52.8-conversational-onboarding.md` (89 hits)
 - `docs/v0.58-architecture/lagebild/tranche_b.md` (88 hits)
+- `docs/validation/739-routing.json` (88 hits)
 - `services/business-intelligence.service.js` (88 hits)
 - `docs/v0.58-architecture/LAGEBILD_EXPLORATION_PROTOCOL.md` (87 hits)
 - `src/evidence-registry.js` (85 hits)
 - `docs/BACKEND_CONTEXT.md` (84 hits)
 - `docs/v0.52-implementation-plans/v0.52.9-inhouse-data-multimodal.md` (81 hits)
-- `docs/v0.58-architecture/TARGET_ARCHITECTURE_LAYER_PLAN.md` (80 hits)
-- `docs/v0.52-implementation-plans/personal-agent-v052-architecture-tdd.md` (75 hits)
-- `services/agent.service.js` (74 hits)

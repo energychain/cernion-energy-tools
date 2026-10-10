@@ -1,21 +1,21 @@
 # Shepherd Summary
 
-Generated: 2026-10-10T07:22:50.518Z
-Run: 20261010T072152Z
-Branch: shepherd/runtime-refactor-20261010T072152Z
-Fingerprint: 3ca044bd30acbd0baec9c5690765645037a205e685463973211a789acfc5ca82
+Generated: 2026-10-10T13:25:30.300Z
+Run: 20261010T132416Z
+Branch: shepherd/runtime-refactor-20261010T132416Z
+Fingerprint: 91dcad35115ae64fb739cf0ac125dbef97433812b17c657f6ff4de63d93031f7
 
 ## Current measurable surface
 
-- Files: 1309
-- Services: 144
-- src JS files: 212
-- Tests: 330
-- Agentic files: 223
-- OpenWebUI/ChatGPT files: 25
-- Evidence/HITL files: 67
-- Routing/capability files: 51
-- Services without obvious direct filename-mapped test: 26
+- Files: 1826
+- Services: 157
+- src JS files: 347
+- Tests: 458
+- Agentic files: 252
+- OpenWebUI/ChatGPT files: 28
+- Evidence/HITL files: 74
+- Routing/capability files: 84
+- Services without obvious direct filename-mapped test: 27
 
 ## Artifact state
 
@@ -27,19 +27,19 @@ Fingerprint: 3ca044bd30acbd0baec9c5690765645037a205e685463973211a789acfc5ca82
 
 ## Top directories
 
-- `tests`: 373 files
-- `docs`: 298 files
-- `src`: 259 files
-- `services`: 180 files
-- `agentic-architecture`: 46 files
+- `tests`: 520 files
+- `src`: 409 files
+- `docs`: 371 files
+- `services`: 193 files
+- `tools`: 85 files
+- `scripts`: 61 files
+- `agentic-architecture`: 47 files
+- `integrations`: 27 files
 - `.claude`: 26 files
-- `integrations`: 26 files
-- `scripts`: 23 files
-- `.github`: 9 files
+- `.github`: 11 files
 - `feedback`: 8 files
 - `.vscode`: 5 files
 - `examples`: 3 files
-- `tools`: 3 files
 - `fixtures_parallel`: 2 files
 - `fixtures_real`: 2 files
 - `reports`: 2 files
@@ -51,20 +51,20 @@ Fingerprint: 3ca044bd30acbd0baec9c5690765645037a205e685463973211a789acfc5ca82
 ## Domain abstraction
 
 - Domain abstraction: present
-- Domain fingerprint: a1215df76456064bfe9dece399d6ccff4e6286526f3dd9864b43baf8bfd7b0fb
-- Candidate files: 841
+- Domain fingerprint: bb292bbd79a9af7c0f8900c64cedf2ce5cda76db44b283323d7cd2f9cf3e497a
+- Candidate files: 1088
 - Unclassified services: 0
 
 Cluster counts:
 
-- `casework-and-assistance` — Fallarbeit und Assistenz: 1 services, 25 top files
+- `casework-and-assistance` — Fallarbeit und Assistenz: 2 services, 25 top files
 - `evidence-and-trust` — Evidence, Nachweis und Vertrauen: 23 services, 25 top files
 - `mako-and-edm` — MaKo / EDM / Stammdaten: 8 services, 25 top files
-- `grid-and-connection` — Netz, Anschluss und Kapazität: 47 services, 25 top files
+- `grid-and-connection` — Netz, Anschluss und Kapazität: 46 services, 25 top files
 - `forecast-and-market` — Prognose, Markt und Portfolio: 15 services, 25 top files
 - `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files
 - `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files
-- `tenant-and-operation` — Tenant, Rollen und Betrieb: 37 services, 25 top files
+- `tenant-and-operation` — Tenant, Rollen und Betrieb: 50 services, 25 top files
 - `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files
 
 Case types:
@@ -93,6 +93,7 @@ Case types:
 - `services/regulatorische-entgeltlogik.service.js`
 - `services/reinvest-signal.service.js`
 - `services/reporting-governance.service.js`
+- `services/shared-service-agents.service.js`
 - `services/tenant-quota.service.js`
 - `services/vdmi-evidence.service.js`
 - `services/vdmi-findings.service.js`

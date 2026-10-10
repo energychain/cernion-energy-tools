@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-10T07:22:50.450Z
+Generated: 2026-10-10T13:25:30.222Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -30,20 +30,21 @@ Arbeitsmodell: CET soll unvollständige Vorgänge bearbeitbar machen: einordnen,
 Starke Code-/Doku-Signale:
 
 - `src/capability-catalog.js` (613 hits)
+- `services/workbench.service.js` (524 hits)
+- `docs/reviews/730-capability-routing-evaluation.json` (462 hits)
 - `src/answer-dossier-hydration-rules.json` (361 hits)
-- `services/personal-agent/actions-part-01-of-1.js` (356 hits)
-- `services/capability-broker.service.js` (303 hits)
+- `services/personal-agent/actions-part-01-of-1.js` (360 hits)
+- `services/capability-broker.service.js` (329 hits)
 - `services/dashboard-api/methods-part-09-of-14.js` (265 hits)
 - `services/dashboard-api/methods-part-08-of-14.js` (264 hits)
 - `services/dashboard-api/actions-part-06-of-8.js` (256 hits)
 - `services/dashboard-api/methods-part-10-of-14.js` (228 hits)
-- `src/consultation-execution-bridge.js` (195 hits)
-- `services/dashboard-api/methods-part-07-of-14.js` (191 hits)
-- `services/api.service.js` (166 hits)
-- `services/chatgpt-sidecar.service.js` (162 hits)
+- `src/workbench-content-turn.js` (213 hits)
+- `integrations/budibase/README.md` (196 hits)
 
 Zugeordnete Services nach Heuristik:
 
+- `domain-router` — services/domain-router.service.js (5 actions)
 - `personal-agent` — services/personal-agent.service.js
 
 ## Evidence, Nachweis und Vertrauen
@@ -55,11 +56,11 @@ Starke Code-/Doku-Signale:
 - `src/answer-dossier-hydration-rules.json` (4049 hits)
 - `services/dashboard-api/methods-part-05-of-14.js` (1574 hits)
 - `services/dashboard-api/methods-part-04-of-14.js` (1416 hits)
+- `services/personal-agent/actions-part-01-of-1.js` (1200 hits)
 - `services/dashboard-api/methods-part-06-of-14.js` (1195 hits)
-- `services/personal-agent/actions-part-01-of-1.js` (1170 hits)
 - `services/dashboard-api/methods-part-03-of-14.js` (1119 hits)
 - `src/evidence-registry.js` (1100 hits)
-- `src/capability-catalog.js` (1026 hits)
+- `src/capability-catalog.js` (1024 hits)
 - `services/dashboard-api/methods-part-13-of-14.js` (660 hits)
 - `services/dashboard-api/methods-part-12-of-14.js` (642 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (636 hits)
@@ -95,17 +96,17 @@ Arbeitsmodell: Viele Vorgänge sind fachlich richtige Klärprozesse mit unvollst
 Starke Code-/Doku-Signale:
 
 - `src/capability-catalog.js` (363 hits)
+- `docs/validation/739-routing.json` (271 hits)
 - `src/evidence-registry.js` (144 hits)
 - `services/api.service.js` (131 hits)
-- `services/capability-broker.service.js` (129 hits)
+- `services/capability-broker.service.js` (131 hits)
 - `src/answer-dossier-hydration-rules.json` (121 hits)
 - `services/dashboard-api/methods-part-05-of-14.js` (116 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (114 hits)
 - `services/dashboard-api/actions-part-01-of-8.js` (98 hits)
 - `services/dashboard-api/methods-part-03-of-14.js` (96 hits)
-- `services/dashboard-api/methods-part-04-of-14.js` (85 hits)
-- `services/dashboard-api/actions-part-03-of-8.js` (70 hits)
-- `services/dashboard-api/methods-part-06-of-14.js` (70 hits)
+- `docs/validation/746-answer-recovery-timeout-repeat-live.json` (93 hits)
+- `src/workbench-activity-taxonomy.js` (89 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -124,10 +125,11 @@ Arbeitsmodell: Netz- und Anschlussfälle brauchen Raum-/Zeit-/Asset-Kontext, pla
 
 Starke Code-/Doku-Signale:
 
-- `src/capability-catalog.js` (1063 hits)
+- `src/capability-catalog.js` (1056 hits)
+- `docs/validation/739-routing.json` (821 hits)
 - `docs/agent-responses/rd-audit.json` (719 hits)
 - `services/assets.service.js` (617 hits)
-- `services/capability-broker.service.js` (556 hits)
+- `services/capability-broker.service.js` (549 hits)
 - `src/answer-dossier-hydration-rules.json` (543 hits)
 - `services/grid-operations.service.js` (536 hits)
 - `src/evidence-registry.js` (536 hits)
@@ -135,7 +137,6 @@ Starke Code-/Doku-Signale:
 - `services/znp.service.js` (439 hits)
 - `src/report-builder.js` (434 hits)
 - `services/utility-report.service.js` (416 hits)
-- `services/grid-connection.service.js` (373 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -148,7 +149,6 @@ Zugeordnete Services nach Heuristik:
 - `cookbook` — services/cookbook.service.js (5 actions)
 - `customer-service` — services/customer-service.service.js (3 actions)
 - `datapoint` — services/datapoint.service.js (10 actions)
-- `decision-frame` — services/decision-frame.service.js (2 actions)
 - `e2e-connection-check` — services/e2e-connection-check.service.js (9 actions)
 - `edm` — services/edm.service.js (11 actions)
 - `eeg-clawback-calculator` — services/eeg-clawback-calculator.service.js (5 actions)
@@ -159,6 +159,7 @@ Zugeordnete Services nach Heuristik:
 - `finance-agent` — services/finance-agent.service.js (14 actions)
 - `gas-capacity-order-revision-gate` — services/gas-capacity-order-revision-gate.service.js (18 actions)
 - `ghost-asset-alert` — services/ghost-asset-alert.service.js (6 actions)
+- `grid-connection` — services/grid-connection.service.js (18 actions)
 
 ## Prognose, Markt und Portfolio
 
@@ -171,13 +172,13 @@ Starke Code-/Doku-Signale:
 - `src/capability-catalog.js` (243 hits)
 - `services/residual-load.service.js` (239 hits)
 - `services/in-memory-join.service.js` (234 hits)
+- `docs/validation/739-routing.json` (213 hits)
 - `services/agent.service.js` (211 hits)
 - `services/utility-report.service.js` (182 hits)
 - `src/cookbook-recipes.js` (176 hits)
 - `MCP_TOOLS.md` (157 hits)
 - `services/forecast-engine.service.js` (145 hits)
-- `src/answer-dossier-hydration-rules.json` (141 hits)
-- `services/dashboard-api/methods-part-13-of-14.js` (135 hits)
+- `docs/sonarcloud-security-review.json` (144 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -186,7 +187,7 @@ Zugeordnete Services nach Heuristik:
 - `entsoe` — services/entsoe.service.js (7 actions)
 - `flex` — services/flex.service.js (4 actions)
 - `forecast-engine` — services/forecast-engine.service.js (7 actions)
-- `forecast-sandbox` — services/forecast-sandbox.service.js (12 actions)
+- `forecast-sandbox` — services/forecast-sandbox.service.js (3 actions)
 - `forecast` — services/forecast.service.js (3 actions)
 - `german-grid` — services/german-grid.service.js (6 actions)
 - `in-memory-join` — services/in-memory-join.service.js (10 actions)
@@ -204,8 +205,9 @@ Arbeitsmodell: Steuerbarkeit ist ein Prozesszustand aus Technik, Vertrag, Marktr
 Starke Code-/Doku-Signale:
 
 - `docs/agent-responses/rd-audit.json` (836 hits)
-- `src/capability-catalog.js` (634 hits)
-- `services/capability-broker.service.js` (394 hits)
+- `src/capability-catalog.js` (629 hits)
+- `services/capability-broker.service.js` (390 hits)
+- `docs/validation/739-routing.json` (343 hits)
 - `src/validation-findings.js` (337 hits)
 - `src/report-builder.js` (199 hits)
 - `src/answer-dossier-hydration-rules.json` (197 hits)
@@ -214,7 +216,6 @@ Starke Code-/Doku-Signale:
 - `services/api.service.js` (154 hits)
 - `services/dashboard-api/methods-part-03-of-14.js` (141 hits)
 - `services/redispatch-expost.service.js` (116 hits)
-- `services/grid-operations.service.js` (104 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -228,7 +229,8 @@ Arbeitsmodell: Wärme-/Gasprozesse sind politisch, planerisch und datenfachlich 
 
 Starke Code-/Doku-Signale:
 
-- `src/capability-catalog.js` (429 hits)
+- `src/capability-catalog.js` (426 hits)
+- `docs/validation/739-routing.json` (257 hits)
 - `src/evidence-registry.js` (249 hits)
 - `services/capability-broker.service.js` (243 hits)
 - `src/answer-dossier-hydration-rules.json` (181 hits)
@@ -237,9 +239,8 @@ Starke Code-/Doku-Signale:
 - `services/znp.service.js` (89 hits)
 - `services/eog-calculator.service.js` (85 hits)
 - `docs/eog-calculator-quality-element.md` (77 hits)
+- `docs/reviews/730-capability-routing-evaluation.json` (74 hits)
 - `services/gasnetz-waermeplanung.service.js` (73 hits)
-- `services/api.service.js` (68 hits)
-- `services/dashboard-api/actions-part-04-of-8.js` (67 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -253,18 +254,18 @@ Arbeitsmodell: Ein selbstlaufender EVU-Assistent muss bei erster Nutzung Kontext
 
 Starke Code-/Doku-Signale:
 
+- `services/workbench.service.js` (582 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (492 hits)
+- `services/api.service.js` (453 hits)
 - `docs/v0.58-architecture/lagebild/roles_audit.md` (449 hits)
-- `services/api.service.js` (449 hits)
 - `services/dashboard-api/actions-part-06-of-8.js` (448 hits)
 - `services/dashboard-api/methods-part-09-of-14.js` (422 hits)
 - `services/agent-persona.service.js` (409 hits)
 - `services/personal-agent/actions-part-01-of-1.js` (393 hits)
-- `src/capability-catalog.js` (384 hits)
+- `src/capability-catalog.js` (381 hits)
 - `services/vdmi.service.js` (376 hits)
 - `src/answer-dossier-hydration-rules.json` (375 hits)
-- `src/vdmi-blueprint-pack-seeds.js` (355 hits)
-- `services/dashboard-api/methods-part-08-of-14.js` (321 hits)
+- `src/vdmi-blueprint-pack-seeds.js` (370 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -278,16 +279,16 @@ Zugeordnete Services nach Heuristik:
 - `company` — services/company.service.js (11 actions)
 - `cya` — services/cya.service.js (8 actions)
 - `dashboard-api` — services/dashboard-api.service.js
+- `dataset` — services/dataset.service.js (9 actions)
+- `decision-frame` — services/decision-frame.service.js (2 actions)
 - `energy-sharing-community` — services/energy-sharing-community.service.js (5 actions)
 - `evidence-requirement` — services/evidence-requirement.service.js (10 actions)
 - `evidence-revalidation` — services/evidence-revalidation.service.js (9 actions)
 - `flexibility-conductor-role-model` — services/flexibility-conductor-role-model.service.js (13 actions)
 - `fnav-commercial-hedging` — services/fnav-commercial-hedging.service.js (13 actions)
+- `activation` — services/function-activation.service.js (1 actions)
+- `function-coverage` — services/function-coverage.service.js (1 actions)
 - `gas-storage` — services/gas-storage.service.js (5 actions)
-- `hitl` — services/hitl.service.js (13 actions)
-- `interface-placeholder` — services/interface-placeholder.service.js (9 actions)
-- `investment-planning` — services/investment-planning.service.js (14 actions)
-- `notification` — services/notification.service.js (11 actions)
 
 ## OpenWebUI und agentisches Routing
 
@@ -295,18 +296,18 @@ Arbeitsmodell: Chat darf nicht nur Toolnamen sehen. Routing braucht Falltyp, Pro
 
 Starke Code-/Doku-Signale:
 
-- `services/capability-broker.service.js` (747 hits)
+- `services/capability-broker.service.js` (758 hits)
 - `services/chatgpt-sidecar.service.js` (335 hits)
-- `services/personal-agent/actions-part-01-of-1.js` (329 hits)
+- `services/personal-agent/actions-part-01-of-1.js` (330 hits)
+- `function-model.report.md` (309 hits)
 - `src/capability-catalog.js` (292 hits)
 - `services/domain-routes-management.service.js` (275 hits)
 - `src/answer-dossier-hydration-rules.json` (235 hits)
 - `services/personal-agent/methods-part-03-of-11.js` (234 hits)
-- `src/personal-agent-routing.js` (161 hits)
-- `src/cya-tool-registry.js` (155 hits)
-- `services/utility-report.service.js` (154 hits)
-- `services/api.service.js` (150 hits)
-- `docs/architecture/chatgpt-sidecar-session-api-contract.md` (130 hits)
+- `services/workbench.service.js` (232 hits)
+- `services/api.service.js` (187 hits)
+- `src/personal-agent-routing.js` (168 hits)
+- `docs/sonarcloud-security-review.json` (155 hits)
 
 Zugeordnete Services nach Heuristik:
 

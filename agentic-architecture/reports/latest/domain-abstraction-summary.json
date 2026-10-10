@@ -1,69 +1,69 @@
 {
-  "generatedAt": "2026-10-10T07:22:50.450Z",
+  "generatedAt": "2026-10-10T13:25:30.222Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261010T072152Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261010T132416Z",
   "counts": {
-    "files": 1309,
-    "candidateFiles": 841,
-    "services": 144,
-    "srcFiles": 257,
-    "docs": 395,
+    "files": 1826,
+    "candidateFiles": 1088,
+    "services": 157,
+    "srcFiles": 407,
+    "docs": 481,
     "unclassifiedServices": 0
   },
   "clusters": {
     "casework-and-assistance": {
       "label": "Fallarbeit und Assistenz",
       "files": 25,
-      "services": 1,
-      "hits": 4824
+      "services": 2,
+      "hits": 6106
     },
     "evidence-and-trust": {
       "label": "Evidence, Nachweis und Vertrauen",
       "files": 25,
       "services": 23,
-      "hits": 18830
+      "hits": 19072
     },
     "mako-and-edm": {
       "label": "MaKo / EDM / Stammdaten",
       "files": 25,
       "services": 8,
-      "hits": 2243
+      "hits": 2692
     },
     "grid-and-connection": {
       "label": "Netz, Anschluss und Kapazität",
       "files": 25,
-      "services": 47,
-      "hits": 10356
+      "services": 46,
+      "hits": 10922
     },
     "forecast-and-market": {
       "label": "Prognose, Markt und Portfolio",
       "files": 25,
       "services": 15,
-      "hits": 4082
+      "hits": 4269
     },
     "redispatch-and-controllability": {
       "label": "Redispatch, Steuerbarkeit und Flexibilität",
       "files": 25,
       "services": 3,
-      "hits": 4396
+      "hits": 4715
     },
     "gas-heat-and-eog": {
       "label": "Gas, Wärme und EOG",
       "files": 25,
       "services": 3,
-      "hits": 2399
+      "hits": 2687
     },
     "tenant-and-operation": {
       "label": "Tenant, Rollen und Betrieb",
       "files": 25,
-      "services": 37,
-      "hits": 7436
+      "services": 50,
+      "hits": 8028
     },
     "openwebui-agentic-routing": {
       "label": "OpenWebUI und agentisches Routing",
       "files": 25,
       "services": 7,
-      "hits": 4229
+      "hits": 4944
     }
   },
   "ambiguousTerms": [
@@ -120,7 +120,7 @@
         },
         {
           "path": "src/capability-catalog.js",
-          "hits": 233
+          "hits": 231
         },
         {
           "path": "services/grid-operations.service.js",
@@ -139,12 +139,12 @@
           "hits": 122
         },
         {
-          "path": "services/agent.service.js",
-          "hits": 113
+          "path": "docs/validation/739-routing.json",
+          "hits": 115
         },
         {
-          "path": "services/mastr-quality.service.js",
-          "hits": 112
+          "path": "services/agent.service.js",
+          "hits": 113
         }
       ]
     },
@@ -160,6 +160,10 @@
       ],
       "signalFiles": 25,
       "topSignalFiles": [
+        {
+          "path": "docs/validation/739-routing.json",
+          "hits": 308
+        },
         {
           "path": "src/capability-catalog.js",
           "hits": 299
@@ -193,12 +197,8 @@
           "hits": 114
         },
         {
-          "path": "services/dashboard-api/actions-part-01-of-8.js",
+          "path": "docs/sonarcloud-security-review.json",
           "hits": 109
-        },
-        {
-          "path": "services/capability-broker.service.js",
-          "hits": 108
         }
       ]
     },
@@ -216,7 +216,7 @@
       "topSignalFiles": [
         {
           "path": "src/capability-catalog.js",
-          "hits": 478
+          "hits": 476
         },
         {
           "path": "agentic-architecture/domain/ENERGY_DOMAIN_CANON.md",
@@ -228,11 +228,11 @@
         },
         {
           "path": "services/capability-broker.service.js",
-          "hits": 260
+          "hits": 259
         },
         {
           "path": "agentic-architecture/reports/latest/architecture-scan.md",
-          "hits": 233
+          "hits": 237
         },
         {
           "path": "src/report-builder.js",
@@ -247,12 +247,12 @@
           "hits": 145
         },
         {
-          "path": "docs/v0.58-architecture/lagebild/tranche_c.md",
-          "hits": 136
+          "path": "function-model.report.md",
+          "hits": 138
         },
         {
-          "path": "src/cookbook-recipes.js",
-          "hits": 129
+          "path": "docs/v0.58-architecture/lagebild/tranche_c.md",
+          "hits": 136
         }
       ]
     }
@@ -272,12 +272,12 @@
       "hits": 1416
     },
     {
-      "path": "services/dashboard-api/methods-part-06-of-14.js",
-      "hits": 1195
+      "path": "services/personal-agent/actions-part-01-of-1.js",
+      "hits": 1200
     },
     {
-      "path": "services/personal-agent/actions-part-01-of-1.js",
-      "hits": 1170
+      "path": "services/dashboard-api/methods-part-06-of-14.js",
+      "hits": 1195
     },
     {
       "path": "services/dashboard-api/methods-part-03-of-14.js",
@@ -289,7 +289,7 @@
     },
     {
       "path": "src/capability-catalog.js",
-      "hits": 1026
+      "hits": 1024
     },
     {
       "path": "services/dashboard-api/methods-part-13-of-14.js",
@@ -312,6 +312,10 @@
       "hits": 479
     },
     {
+      "path": "function-model.report.md",
+      "hits": 399
+    },
+    {
       "path": "services/personal-agent/shared.js",
       "hits": 355
     },
@@ -320,12 +324,12 @@
       "hits": 335
     },
     {
-      "path": "services/capability-broker.service.js",
-      "hits": 295
+      "path": "src/vdmi-blueprint-pack-seeds.js",
+      "hits": 309
     },
     {
-      "path": "src/vdmi-blueprint-pack-seeds.js",
-      "hits": 289
+      "path": "services/capability-broker.service.js",
+      "hits": 296
     },
     {
       "path": "services/dashboard-api/methods-part-09-of-14.js",
@@ -334,11 +338,7 @@
     {
       "path": "services/dashboard-api/actions-part-01-of-8.js",
       "hits": 263
-    },
-    {
-      "path": "services/finance-agent.service.js",
-      "hits": 256
     }
   ],
-  "fingerprint": "a1215df76456064bfe9dece399d6ccff4e6286526f3dd9864b43baf8bfd7b0fb"
+  "fingerprint": "bb292bbd79a9af7c0f8900c64cedf2ce5cda76db44b283323d7cd2f9cf3e497a"
 }
