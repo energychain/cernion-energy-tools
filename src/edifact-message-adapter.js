@@ -91,7 +91,7 @@ function parseMessage(message, separators, findings) {
           'negative_amount',
           message,
           segment.index,
-          `Negativer Betrag ${formatDatasetNumber(amount / 100)} in Nachricht ${number}; Vorzeichen fachlich prüfen.`
+          `Negativer Betrag ${formatDatasetNumber(amount / 100)} in Nachricht ${number}; Die fachliche Einordnung des Vorzeichens ist ungeklärt.`
         )
       );
   }
@@ -166,7 +166,7 @@ function parseMessage(message, separators, findings) {
   if (message.type === 'MSCONS') {
     // The shared tokenizer has already decoded escapes; encode again for the
     // existing domain parser, keeping its interface and quality mapping intact.
-    const escape = (s) => s.replace(/[?+:'']/gu, (char) => '?' + char);
+    const escape = (s) => s.replace(/[?+:']/gu, (char) => '?' + char);
     const raw = segments
       .map((s) => s.tag + '+' + s.elements.map((e) => e.map(escape).join(':')).join('+') + "'")
       .join('');
@@ -463,12 +463,10 @@ function query(pool, record, input) {
         `Summe der ausgewiesenen Gesamtbeträge: ${formatDatasetNumber(sum / 100)} ${currency} (${amounts.length} Nachrichten; Summenabweichungen bleiben ausgewiesen).`
       );
     }
-    const unresolved = record.structured.resolutions.filter((c) => c.status !== 'resolved');
-    if (unresolved.length)
-      lines.push(
-        `Bedeutung ungeklärt: ${unresolved.map((c) => `${c.tag} ${c.value}`).join(', ')}.`
-      );
   }
+  const unresolved = record.structured.resolutions.filter((c) => c.status !== 'resolved');
+  if (unresolved.length)
+    lines.push(`Bedeutung ungeklärt: ${unresolved.map((c) => `${c.tag} ${c.value}`).join(', ')}.`);
   for (const code of record.structured.resolutions.filter((c) => c.status === 'resolved'))
     lines.push(
       ...code.sources.map(

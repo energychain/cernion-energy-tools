@@ -1,6 +1,6 @@
 {
   "issue": 814,
-  "at": "2026-10-10T22:46:29.288Z",
+  "at": "2026-10-10T22:57:43.953Z",
   "inputBytes": 595027,
   "fixture": "synthetic generator only",
   "modelAccess": "central LLM facade; real configured provider",
@@ -9,92 +9,92 @@
     {
       "run": 1,
       "question": "Was kannst Du mir zu dieser Nachricht sagen?",
-      "elapsedMs": 11282,
+      "elapsedMs": 10646,
       "phaseTimes": {
-        "answerMs": 1585
+        "answerMs": 1271
       },
       "passed": true,
-      "responseText": "Absender SYNTHETIC-SENDER, Empfänger SYNTHETIC-RECEIVER, Datum 250115 1200. 3 Nachrichten (INVOIC), 18050 Segmente; Inhalt im Datenkatalog abgelegt.\n\n- Nachricht SYN-INV-002: Positionssumme 1.220 weicht vom Nettobetrag 1.227 ab. (Nachricht SYN2, Segment 6030).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Vorzeichen fachlich prüfen. (Nachricht SYN3, Segment 12044).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Vorzeichen fachlich prüfen. (Nachricht SYN3, Segment 12046).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Vorzeichen fachlich prüfen. (Nachricht SYN3, Segment 12048).\n\nINVOIC SYN-INV-001 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.210 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-003 (D:04B:UN:SYNTHETIC), 2025-01-15: -25 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nSumme der ausgewiesenen Gesamtbeträge: 2.412 EUR (3 Nachrichten; Summenabweichungen bleiben ausgewiesen).\n\nBedeutung ungeklärt: BGM 380, DTM 137, DTM 163, DTM 164, NAD MS, NAD MR, LOC 172, MOA 203, MOA 79, MOA 124, MOA 77.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10.\n\nWorum geht’s dir – um einen Überblick, eine Prüfung oder die Aufschlüsselung einzelner Nachrichten?"
+      "responseText": "Absender SYNTHETIC-SENDER, Empfänger SYNTHETIC-RECEIVER, Datum 250115 1200. 3 Nachrichten (INVOIC), 18050 Segmente; Inhalt im Datenkatalog abgelegt.\n\n- Nachricht SYN-INV-002: Positionssumme 1.220 weicht vom Nettobetrag 1.227 ab. (Nachricht SYN2, Segment 6030).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Die fachliche Einordnung des Vorzeichens ist ungeklärt. (Nachricht SYN3, Segment 12044).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Die fachliche Einordnung des Vorzeichens ist ungeklärt. (Nachricht SYN3, Segment 12046).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Die fachliche Einordnung des Vorzeichens ist ungeklärt. (Nachricht SYN3, Segment 12048).\n\nINVOIC SYN-INV-001 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.210 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-003 (D:04B:UN:SYNTHETIC), 2025-01-15: -25 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nSumme der ausgewiesenen Gesamtbeträge: 2.412 EUR (3 Nachrichten; Summenabweichungen bleiben ausgewiesen).\n\nBedeutung ungeklärt: BGM 380, DTM 137, DTM 163, DTM 164, NAD MS, NAD MR, LOC 172, MOA 203, MOA 79, MOA 124, MOA 77.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10.\n\nWorum geht’s dir – um einen Überblick, eine Prüfung oder die Aufschlüsselung einzelner Nachrichten?"
     },
     {
       "run": 1,
       "question": "Schlüssele Rechnung SYN-INV-002 auf",
-      "elapsedMs": 1202,
+      "elapsedMs": 1271,
       "phaseTimes": {
-        "answerMs": 1132
+        "answerMs": 1224
       },
       "passed": true,
-      "responseText": "INVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nMOA 203 (line), Segment 6028: 1.220 EUR.\n\nMOA 79 (net), Segment 6030: 1.227 EUR.\n\nMOA 124 (tax), Segment 6031: 0 EUR.\n\nMOA 77 (total), Segment 6032: 1.227 EUR.\n\nPosition 1, ab Segment 6027.\n\nNachricht SYN-INV-002: Positionssumme 1.220 weicht vom Nettobetrag 1.227 ab. (Segment 6030).\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10."
+      "responseText": "INVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nMOA 203 (line), Segment 6028: 1.220 EUR.\n\nMOA 79 (net), Segment 6030: 1.227 EUR.\n\nMOA 124 (tax), Segment 6031: 0 EUR.\n\nMOA 77 (total), Segment 6032: 1.227 EUR.\n\nPosition 1, ab Segment 6027.\n\nNachricht SYN-INV-002: Positionssumme 1.220 weicht vom Nettobetrag 1.227 ab. (Segment 6030).\n\nBedeutung ungeklärt: BGM 380, DTM 137, DTM 163, DTM 164, NAD MS, NAD MR, LOC 172, MOA 203, MOA 79, MOA 124, MOA 77.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10."
     },
     {
       "run": 1,
       "question": "Welche Rechnungen über 1.000 €?",
-      "elapsedMs": 1337,
+      "elapsedMs": 1198,
       "phaseTimes": {
-        "answerMs": 1259
+        "answerMs": 1127
       },
       "passed": true,
-      "responseText": "INVOIC SYN-INV-001 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.210 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10."
+      "responseText": "INVOIC SYN-INV-001 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.210 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nBedeutung ungeklärt: BGM 380, DTM 137, DTM 163, DTM 164, NAD MS, NAD MR, LOC 172, MOA 203, MOA 79, MOA 124, MOA 77.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10."
     },
     {
       "run": 2,
       "question": "Was kannst Du mir zu dieser Nachricht sagen?",
-      "elapsedMs": 1342,
+      "elapsedMs": 1199,
       "phaseTimes": {
-        "answerMs": 1243
+        "answerMs": 1120
       },
       "passed": true,
-      "responseText": "Absender SYNTHETIC-SENDER, Empfänger SYNTHETIC-RECEIVER, Datum 250115 1200. 3 Nachrichten (INVOIC), 18050 Segmente; Inhalt im Datenkatalog abgelegt.\n\n- Nachricht SYN-INV-002: Positionssumme 1.220 weicht vom Nettobetrag 1.227 ab. (Nachricht SYN2, Segment 6030).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Vorzeichen fachlich prüfen. (Nachricht SYN3, Segment 12044).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Vorzeichen fachlich prüfen. (Nachricht SYN3, Segment 12046).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Vorzeichen fachlich prüfen. (Nachricht SYN3, Segment 12048).\n\nINVOIC SYN-INV-001 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.210 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-003 (D:04B:UN:SYNTHETIC), 2025-01-15: -25 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nSumme der ausgewiesenen Gesamtbeträge: 2.412 EUR (3 Nachrichten; Summenabweichungen bleiben ausgewiesen).\n\nBedeutung ungeklärt: BGM 380, DTM 137, DTM 163, DTM 164, NAD MS, NAD MR, LOC 172, MOA 203, MOA 79, MOA 124, MOA 77.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10.\n\nWorum geht’s dir – um einen Überblick, eine Prüfung oder die Aufschlüsselung einzelner Nachrichten?"
+      "responseText": "Absender SYNTHETIC-SENDER, Empfänger SYNTHETIC-RECEIVER, Datum 250115 1200. 3 Nachrichten (INVOIC), 18050 Segmente; Inhalt im Datenkatalog abgelegt.\n\n- Nachricht SYN-INV-002: Positionssumme 1.220 weicht vom Nettobetrag 1.227 ab. (Nachricht SYN2, Segment 6030).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Die fachliche Einordnung des Vorzeichens ist ungeklärt. (Nachricht SYN3, Segment 12044).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Die fachliche Einordnung des Vorzeichens ist ungeklärt. (Nachricht SYN3, Segment 12046).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Die fachliche Einordnung des Vorzeichens ist ungeklärt. (Nachricht SYN3, Segment 12048).\n\nINVOIC SYN-INV-001 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.210 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-003 (D:04B:UN:SYNTHETIC), 2025-01-15: -25 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nSumme der ausgewiesenen Gesamtbeträge: 2.412 EUR (3 Nachrichten; Summenabweichungen bleiben ausgewiesen).\n\nBedeutung ungeklärt: BGM 380, DTM 137, DTM 163, DTM 164, NAD MS, NAD MR, LOC 172, MOA 203, MOA 79, MOA 124, MOA 77.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10.\n\nWorum geht’s dir – um einen Überblick, eine Prüfung oder die Aufschlüsselung einzelner Nachrichten?"
     },
     {
       "run": 2,
       "question": "Schlüssele Rechnung SYN-INV-002 auf",
-      "elapsedMs": 1259,
+      "elapsedMs": 1234,
       "phaseTimes": {
-        "answerMs": 1152
+        "answerMs": 1182
       },
       "passed": true,
-      "responseText": "INVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nMOA 203 (line), Segment 6028: 1.220 EUR.\n\nMOA 79 (net), Segment 6030: 1.227 EUR.\n\nMOA 124 (tax), Segment 6031: 0 EUR.\n\nMOA 77 (total), Segment 6032: 1.227 EUR.\n\nPosition 1, ab Segment 6027.\n\nNachricht SYN-INV-002: Positionssumme 1.220 weicht vom Nettobetrag 1.227 ab. (Segment 6030).\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10."
+      "responseText": "INVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nMOA 203 (line), Segment 6028: 1.220 EUR.\n\nMOA 79 (net), Segment 6030: 1.227 EUR.\n\nMOA 124 (tax), Segment 6031: 0 EUR.\n\nMOA 77 (total), Segment 6032: 1.227 EUR.\n\nPosition 1, ab Segment 6027.\n\nNachricht SYN-INV-002: Positionssumme 1.220 weicht vom Nettobetrag 1.227 ab. (Segment 6030).\n\nBedeutung ungeklärt: BGM 380, DTM 137, DTM 163, DTM 164, NAD MS, NAD MR, LOC 172, MOA 203, MOA 79, MOA 124, MOA 77.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10."
     },
     {
       "run": 2,
       "question": "Welche Rechnungen über 1.000 €?",
-      "elapsedMs": 1180,
+      "elapsedMs": 1244,
       "phaseTimes": {
-        "answerMs": 1124
+        "answerMs": 1202
       },
       "passed": true,
-      "responseText": "INVOIC SYN-INV-001 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.210 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10."
+      "responseText": "INVOIC SYN-INV-001 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.210 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nBedeutung ungeklärt: BGM 380, DTM 137, DTM 163, DTM 164, NAD MS, NAD MR, LOC 172, MOA 203, MOA 79, MOA 124, MOA 77.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10."
     },
     {
       "run": 3,
       "question": "Was kannst Du mir zu dieser Nachricht sagen?",
-      "elapsedMs": 1393,
+      "elapsedMs": 1344,
       "phaseTimes": {
-        "answerMs": 1304
+        "answerMs": 1273
       },
       "passed": true,
-      "responseText": "Absender SYNTHETIC-SENDER, Empfänger SYNTHETIC-RECEIVER, Datum 250115 1200. 3 Nachrichten (INVOIC), 18050 Segmente; Inhalt im Datenkatalog abgelegt.\n\n- Nachricht SYN-INV-002: Positionssumme 1.220 weicht vom Nettobetrag 1.227 ab. (Nachricht SYN2, Segment 6030).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Vorzeichen fachlich prüfen. (Nachricht SYN3, Segment 12044).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Vorzeichen fachlich prüfen. (Nachricht SYN3, Segment 12046).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Vorzeichen fachlich prüfen. (Nachricht SYN3, Segment 12048).\n\nINVOIC SYN-INV-001 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.210 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-003 (D:04B:UN:SYNTHETIC), 2025-01-15: -25 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nSumme der ausgewiesenen Gesamtbeträge: 2.412 EUR (3 Nachrichten; Summenabweichungen bleiben ausgewiesen).\n\nBedeutung ungeklärt: BGM 380, DTM 137, DTM 163, DTM 164, NAD MS, NAD MR, LOC 172, MOA 203, MOA 79, MOA 124, MOA 77.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10.\n\nWorum geht’s dir – um einen Überblick, eine Prüfung oder die Aufschlüsselung einzelner Nachrichten?"
+      "responseText": "Absender SYNTHETIC-SENDER, Empfänger SYNTHETIC-RECEIVER, Datum 250115 1200. 3 Nachrichten (INVOIC), 18050 Segmente; Inhalt im Datenkatalog abgelegt.\n\n- Nachricht SYN-INV-002: Positionssumme 1.220 weicht vom Nettobetrag 1.227 ab. (Nachricht SYN2, Segment 6030).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Die fachliche Einordnung des Vorzeichens ist ungeklärt. (Nachricht SYN3, Segment 12044).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Die fachliche Einordnung des Vorzeichens ist ungeklärt. (Nachricht SYN3, Segment 12046).\n- Negativer Betrag -25 in Nachricht SYN-INV-003; Die fachliche Einordnung des Vorzeichens ist ungeklärt. (Nachricht SYN3, Segment 12048).\n\nINVOIC SYN-INV-001 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.210 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-003 (D:04B:UN:SYNTHETIC), 2025-01-15: -25 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nSumme der ausgewiesenen Gesamtbeträge: 2.412 EUR (3 Nachrichten; Summenabweichungen bleiben ausgewiesen).\n\nBedeutung ungeklärt: BGM 380, DTM 137, DTM 163, DTM 164, NAD MS, NAD MR, LOC 172, MOA 203, MOA 79, MOA 124, MOA 77.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10.\n\nWorum geht’s dir – um einen Überblick, eine Prüfung oder die Aufschlüsselung einzelner Nachrichten?"
     },
     {
       "run": 3,
       "question": "Schlüssele Rechnung SYN-INV-002 auf",
-      "elapsedMs": 1123,
+      "elapsedMs": 1216,
       "phaseTimes": {
-        "answerMs": 1074
+        "answerMs": 1149
       },
       "passed": true,
-      "responseText": "INVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nMOA 203 (line), Segment 6028: 1.220 EUR.\n\nMOA 79 (net), Segment 6030: 1.227 EUR.\n\nMOA 124 (tax), Segment 6031: 0 EUR.\n\nMOA 77 (total), Segment 6032: 1.227 EUR.\n\nPosition 1, ab Segment 6027.\n\nNachricht SYN-INV-002: Positionssumme 1.220 weicht vom Nettobetrag 1.227 ab. (Segment 6030).\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10."
+      "responseText": "INVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nMOA 203 (line), Segment 6028: 1.220 EUR.\n\nMOA 79 (net), Segment 6030: 1.227 EUR.\n\nMOA 124 (tax), Segment 6031: 0 EUR.\n\nMOA 77 (total), Segment 6032: 1.227 EUR.\n\nPosition 1, ab Segment 6027.\n\nNachricht SYN-INV-002: Positionssumme 1.220 weicht vom Nettobetrag 1.227 ab. (Segment 6030).\n\nBedeutung ungeklärt: BGM 380, DTM 137, DTM 163, DTM 164, NAD MS, NAD MR, LOC 172, MOA 203, MOA 79, MOA 124, MOA 77.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10."
     },
     {
       "run": 3,
       "question": "Welche Rechnungen über 1.000 €?",
-      "elapsedMs": 1177,
+      "elapsedMs": 1129,
       "phaseTimes": {
-        "answerMs": 1114
+        "answerMs": 1080
       },
       "passed": true,
-      "responseText": "INVOIC SYN-INV-001 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.210 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10."
+      "responseText": "INVOIC SYN-INV-001 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.210 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nINVOIC SYN-INV-002 (D:04B:UN:SYNTHETIC), 2025-01-15: 1.227 EUR; Zeitraum 2025-01-01 bis 2025-01-31; Lokationen SYNTHETIC-LOCATION.\n\nBedeutung ungeklärt: BGM 380, DTM 137, DTM 163, DTM 164, NAD MS, NAD MR, LOC 172, MOA 203, MOA 79, MOA 124, MOA 77.\n\nHerkunft: Synthetic.txt · EDIFACT, Version 1; Nutzerangabe von Synthetic Person am 2026-10-10."
     }
   ],
   "calls": [
