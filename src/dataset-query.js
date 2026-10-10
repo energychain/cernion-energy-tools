@@ -139,23 +139,23 @@ function executeDatasetQuery(pool, record, input) {
     sql = `SELECT * FROM (${sql}) WHERE 1=1`;
     if (input.from) {
       sql += ` AND ${quoteDatasetField(utcAlias)} >= ?`;
-      params.push(
-        require('./dataset-time').normalizeDatasetTimes(
-          [{ time: input.from }],
-          'time',
-          semantic.timezone
-        ).utc[0]
-      );
+      const from = require('./dataset-time').normalizeDatasetTimes(
+        [{ time: input.from }],
+        'time',
+        semantic.timezone
+      ).utc[0];
+      if (!from) throw new Error('Ungültiger Zeitfilter.');
+      params.push(from);
     }
     if (input.to) {
       sql += ` AND ${quoteDatasetField(utcAlias)} < ?`;
-      params.push(
-        require('./dataset-time').normalizeDatasetTimes(
-          [{ time: input.to }],
-          'time',
-          semantic.timezone
-        ).utc[0]
-      );
+      const to = require('./dataset-time').normalizeDatasetTimes(
+        [{ time: input.to }],
+        'time',
+        semantic.timezone
+      ).utc[0];
+      if (!to) throw new Error('Ungültiger Zeitfilter.');
+      params.push(to);
     }
   }
   const { plan, plannedSql, plannedParams, scopeSql, scopeParams } = compileDatasetPlan(
@@ -308,7 +308,11 @@ function executeDatasetQuery(pool, record, input) {
   lines.push(...semantic.assumptions);
   const question = input.question || '';
   const overview = /auffäll|auffaell|überblick|ueberblick|zusammenfassung|overview/i.test(question);
-  const summary = summaries.find((entry) => entry.present);
+  const aggregate = plan.operations.find((operation) => operation.op === 'aggregate');
+  const requestedFields = new Set(aggregate.metrics.map((metric) => metric.field).filter(Boolean));
+  const summary = summaries.find(
+    (entry) => entry.present && (!requestedFields.size || requestedFields.has(entry.field))
+  );
   const origin = `Herkunft: ${record.title}, Version ${record.version}; ${provenance}.`;
   let answer = lines.slice(1).join('\n\n');
   if (!overview && summary) {
@@ -327,7 +331,7 @@ function executeDatasetQuery(pool, record, input) {
       answer =
         summary.integral == null
           ? 'Eine Energierechnung ist ohne bestätigte Einheit und Zeitraster nicht möglich.'
-          : `Die Energie ${requestedYear ? `im Jahr ${requestedYear}` : `im Zeitraum ${period}`} beträgt ${formatDatasetNumber(summary.integral)} ${summary.integralUnit} (${formatDatasetNumber((summary.integral * (units[summary.integralUnit]?.factor || 1)) / 1000000)} MWh).${summary.missing ? ` ${summary.missing} leere Werte wurden ausgelassen, nicht geschätzt.` : ''}`;
+          : `Die Energie ${requestedYear ? `im Jahr ${requestedYear}` : `im Zeitraum ${period}`} beträgt ${formatDatasetNumber(summary.integral)} ${summary.integralUnit}${summary.integralUnit !== 'MWh' ? ` (${formatDatasetNumber((summary.integral * (units[summary.integralUnit]?.factor || 1)) / 1000000)} MWh)` : ''}.${summary.missing ? ` ${summary.missing} leere Werte wurden ausgelassen, nicht geschätzt.` : ''}`;
     } else if (/anzahl|wie viele|count/i.test(question)) {
       answer = `Die Abfrage umfasst ${formatDatasetNumber(summary.rows)} Zeilen.`;
     } else if (/summe|gesamt/i.test(question)) {
@@ -339,7 +343,6 @@ function executeDatasetQuery(pool, record, input) {
     } else if (/spitzen|maxim|höchst|hoechst|größt|groesst/i.test(question)) {
       answer = `Die Spitzenlast lag bei ${formatDatasetNumber(summary.max)} ${summary.unit}${summary.peak?.at ? ` am ${summary.peak.at} (${semantic.timezone})` : ''}.`;
     } else {
-      const aggregate = plan.operations.find((operation) => operation.op === 'aggregate');
       const labels = {
         count: 'Anzahl',
         avg: 'Mittelwert',
@@ -362,6 +365,30 @@ function executeDatasetQuery(pool, record, input) {
         )
         .join('\n');
     }
+  }
+  if (!overview && aggregate.metrics.length > 1) {
+    const labels = {
+      count: 'Anzahl',
+      avg: 'Mittelwert',
+      min: 'Minimum',
+      max: 'Maximum',
+      sum: 'Summe',
+    };
+    answer = result
+      .map((row) =>
+        aggregate.metrics
+          .map((metric) => {
+            const value = row[metric.as];
+            const unit =
+              metric.fn === 'count'
+                ? 'Zeilen'
+                : semantic.units[metric.field] || 'Einheit ungeklärt';
+            const field = metric.field ? ` (${metric.field})` : '';
+            return `${labels[metric.fn]}${field}: ${typeof value === 'number' ? formatDatasetNumber(value) : value} ${unit}.`;
+          })
+          .join(' ')
+      )
+      .join('\n');
   }
   return {
     responseText: `${answer}\n\n${origin}`,

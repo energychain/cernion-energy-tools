@@ -221,6 +221,8 @@ describe('datasets through authenticated Open WebUI HTTP', () => {
       ['Spitzenlast 2025?', 'Die Spitzenlast beträgt 9.999 kW.', '1.243,7 kW'],
       ['Jahresenergie 2025?', 'energie_summe: 3.478,874 MWh', '3.478,874 MWh'],
       ['Spitzenlast 2025?', 'Wir berücksichtigen die Angaben.', '1.243,7 kW'],
+      ['Spitzenlast 2025?', 'Die Spitzenlast beträgt 14 kW.', '1.243,7 kW'],
+      ['Spitzenlast 2025?', 'Die Spitzenlast beträgt -1.243,7 kW.', '1.243,7 kW'],
     ]) {
       llm.generateText.mockResolvedValue(
         JSON.stringify({

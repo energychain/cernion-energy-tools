@@ -491,14 +491,21 @@ async function runCapabilityLoop(
     });
     const origin = result.responseText.split('\n\n').at(-1);
     const evidenceNumbers = new Set(
-      (result.responseText.match(/\d+(?:[.,]\d+)*/g) || []).flatMap((value) => [
+      (result.responseText.match(/[-−+]?\d+(?:[.,]\d+)*/g) || []).flatMap((value) => [
         value,
         ...(/^\d{2}\.\d{2}\.\d{4}$/.test(value) ? value.split('.') : []),
       ])
     );
-    const replyNumbers = reply.responseText.match(/\d+(?:[.,]\d+)*/g) || [];
+    const replyNumbers = reply.responseText.match(/[-−+]?\d+(?:[.,]\d+)*/g) || [];
+    const quantities = (text) =>
+      (text.match(/[-−+]?\d+(?:[.,]\d+)*\s*(?:MWh|kWh|Wh|MW|kW|W)\b/g) || []).map((value) =>
+        value.replace(/\s+/g, '').replace('−', '-')
+      );
+    const evidenceQuantities = new Set(quantities(result.responseText));
     const groundedNumbers =
-      replyNumbers.length > 0 && replyNumbers.every((value) => evidenceNumbers.has(value));
+      replyNumbers.length > 0 &&
+      replyNumbers.every((value) => evidenceNumbers.has(value)) &&
+      quantities(reply.responseText).every((value) => evidenceQuantities.has(value));
     const responseText =
       reply.answerStatus === 'grounded' &&
       groundedNumbers &&

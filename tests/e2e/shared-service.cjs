@@ -566,6 +566,7 @@ async function main() {
   assert(notice, 'next mapped turn displays the gap notice');
   assert.match(text, /Für deine aktuelle Arbeit fehlen noch Angaben\./);
   assert(!/\b[LR]-\d+|missingEvidence/.test(text));
+  assert(next.metadata.notices.some((item) => item.ref === notice));
   assert(!/attention_|Push source unavailable/.test(text));
   await snapshot('5 next-turn notice');
   let proposal;

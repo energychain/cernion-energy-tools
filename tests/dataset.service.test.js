@@ -241,6 +241,55 @@ describe('tenant dataset catalog', () => {
     expect(mean.responseText).toContain('397,2 kW');
     expect(mean.responseText.match(/Herkunft:/g)).toHaveLength(1);
   });
+  test.each(['from', 'to'])(
+    'invalid %s boundaries fail instead of returning an empty result',
+    async (key) => {
+      await expect(
+        call('dataset.query', { question: 'Energie?', [key]: 'invalid-date' })
+      ).rejects.toThrow('Ungültiger Zeitfilter');
+    }
+  );
+  test('selected measures, multiple metrics and native MWh retain their own result values', async () => {
+    const { executeDatasetQuery } = require('../src/dataset-query');
+    const { normalizeDatasetTimes } = require('../src/dataset-time');
+    const [base] = await call('datapoint.datasetCatalog', { operation: 'list' });
+    const table = parseDatasetText(
+      'Zeitstempel (Beginn);Erste [MW];Zweite [MW]\n01.01.2025 00:00;1;3\n01.01.2025 00:15;2;4'
+    )[0];
+    const times = normalizeDatasetTimes(table.rows, base.semantic.timeField, 'Europe/Berlin');
+    const record = {
+      ...base,
+      id: `ds_${require('node:crypto').randomBytes(16).toString('hex')}`,
+      columns: table.profile.columns,
+      profile: table.profile,
+      quality: times,
+      semantic: { ...base.semantic, units: { 'Erste [MW]': 'MW', 'Zweite [MW]': 'MW' } },
+    };
+    const pool = broker.getLocalService('dataset').datasetPool;
+    pool.putRows(record.tenantId, record.id, table.rows, record.columns, times.utc, times.local);
+    const query = (question, metrics) =>
+      executeDatasetQuery(pool, record, {
+        question,
+        plan: {
+          sources: [{ alias: 'table', sourceId: record.id }],
+          operations: [{ op: 'aggregate', metrics }],
+        },
+      });
+    try {
+      const metric = { fn: 'max', field: 'Zweite [MW]', as: 'second_max' };
+      expect(query('Spitzenlast?', [metric]).responseText).toContain('4 MW');
+      const multiple = query('Maximum und Mittelwert?', [
+        metric,
+        { fn: 'avg', field: 'Erste [MW]', as: 'first_mean' },
+      ]);
+      expect(multiple.responseText).toContain('4 MW');
+      expect(multiple.responseText).toContain('1,5 MW');
+      expect(multiple.responseText).not.toMatch(/second_max|first_mean/);
+      expect(query('Energie?', [metric]).responseText.match(/1,75 MWh/g)).toHaveLength(1);
+    } finally {
+      pool.removeRows(record.tenantId, record.id);
+    }
+  });
   test('repeated attachments in all renderings produce neither versions nor confirmations', async () => {
     for (const format of ['csv', 'markdown', 'pairs']) {
       const response = await upload(format);

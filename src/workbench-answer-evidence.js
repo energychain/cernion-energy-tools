@@ -128,8 +128,10 @@ function readableSourceTitle(hit) {
         !metadata.title &&
         !metadata.documentTitle &&
         String(hit.value || hit.summary || '').startsWith(String(candidate))) ||
-      (candidate !== metadata.documentName &&
-        /\.[a-z][a-z0-9]{0,7}(?:$|\s)|^(?:[\w-]+\s+)?E[_-]?\d+$|[/\\]/iu.test(candidate))
+      /^(?:[\w-]+\s+)?E[_-]?\d+(?:\.[a-z\d]{1,8})?$|^[0-9a-f-]{16,}(?:\.[a-z\d]{1,8})?$|[/\\]/iu.test(
+        candidate
+      ) ||
+      (candidate !== metadata.documentName && /\.[a-z][a-z0-9]{0,7}(?:$|\s)/iu.test(candidate))
     )
       continue;
     const title = clean(candidate);

@@ -181,6 +181,11 @@ async function attachNotices(ctx, result, facts) {
         timeout: 1500,
       }
     );
+    if (notice.items?.length)
+      result = {
+        ...result,
+        metadata: { ...result.metadata, notices: notice.items },
+      };
     if (fullQueue) return { ...result, noticeQueue: notice, noticeBlock: notice.block };
     if (!notice.block) return result;
     if (meta.sharedServiceNoticesDefer) return { ...result, noticeBlock: notice.block };

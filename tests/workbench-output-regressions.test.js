@@ -293,6 +293,11 @@ test('register status config translates codes without modifying stored results',
     data: [{ einheitBetriebsstatus: 'in Betrieb' }],
   });
   expect(data.data[0].einheitBetriebsstatus).toBe(35);
+  for (const value of [null, '', undefined]) {
+    expect(
+      readableToolData('energy-market.installations', { einheitBetriebsstatus: value })
+    ).toEqual({ einheitBetriebsstatus: value });
+  }
 });
 
 test('document filename metadata is a title with its section; text contents never substitute for metadata', () => {
@@ -305,4 +310,12 @@ test('document filename metadata is a title with its section; text contents neve
     ])
   ).toBe('Quellen: Synthetischer Leitfaden.pdf · Kapitel 3');
   expect(sourceLine([{ value: 'Synthetischer Leitfaden ohne Titelmetadaten' }])).toBe('');
+  for (const documentName of [
+    '/uploads/tenant/report.pdf',
+    'uploads\\report.pdf',
+    'E-123',
+    'E-123.pdf',
+    '12345678-abcd-1234-abcd-123456789abc.pdf',
+  ])
+    expect(sourceLine([{ metadata: { documentName } }])).toBe('');
 });

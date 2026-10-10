@@ -300,6 +300,7 @@ test('full news queue: no resolver, embeddings, Knowledge or RAG; consumed by sh
   expect(answer.noticeQueue.items).toHaveLength(7);
   const result = await hook.after(ctx, answer);
   expect(result.noticeQueue.items).toHaveLength(7);
+  expect(result.metadata.notices).toEqual(result.noticeQueue.items);
   expect(renderSystemActivity(result)).not.toContain('V-7');
   expect((await env.call('list')).items).toEqual([]);
 });

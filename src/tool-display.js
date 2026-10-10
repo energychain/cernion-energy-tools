@@ -6,7 +6,9 @@ function displayValue(field, value) {
   if (field.values?.[value]) return field.values[value];
   if (!field.lookup) return '';
   const label = require(`./${field.lookup.module}`).resolveLabel(field.lookup.field, value);
-  return label === String(value) ? '' : label.charAt(0).toLocaleLowerCase('de-DE') + label.slice(1);
+  return !label || label === String(value)
+    ? ''
+    : label.charAt(0).toLocaleLowerCase('de-DE') + label.slice(1);
 }
 
 function readableToolFilters(operation, parameters = {}) {
