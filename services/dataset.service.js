@@ -272,6 +272,7 @@ module.exports = {
           handled: true,
           responseText: [loop.responseText, ...confirmations].filter(Boolean).join('\n\n'),
           sources: loop.trace,
+          answerMs: loop.answerMs,
           documents: ordinary,
         };
       }
@@ -352,7 +353,7 @@ module.exports = {
         }
         if (
           !candidates.length ||
-          !/welche.*daten|wie\s+(?:hoch|viel|groß|gross)|summe|maximum|minimum|gesamt|daten|werte|mittel|durchschnitt|auffäll|auffaell|lücken|luecken|ausreißer|ausreisser|zeitumstellung/i.test(
+          !/welche.*daten|wie\s+(?:hoch|viel|groß|gross)|summe|spitzen|energie|überblick|ueberblick|maximum|minimum|gesamt|daten|werte|mittel|durchschnitt|auffäll|auffaell|lücken|luecken|ausreißer|ausreisser|zeitumstellung/i.test(
             question
           )
         )
@@ -372,6 +373,7 @@ module.exports = {
           handled: Boolean(text),
           responseText: text,
           sources: loop.trace,
+          answerMs: loop.answerMs,
           documents: ordinary,
         };
       }

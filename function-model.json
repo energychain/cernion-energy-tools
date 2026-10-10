@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "42b723139c4ae73827ef67bf2197a1c94cc9e05216816df6b8b7f3a842a22073",
+  "sourceHash": "686efe16d180c5aafd2e1443a629891b4a6ae421e5b3577200a95914d822d7db",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -118748,6 +118748,10 @@
         {
           "kind": "service",
           "ref": "src/tool-coverage-planner.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tool-display.js"
         },
         {
           "kind": "service",

@@ -15,12 +15,14 @@ const model = {
     {
       functionId: 'fn-a',
       label: 'Function A',
+      capabilities: [],
       operations: [],
       neighbors: [{ functionId: 'fn-b', weight: 1 }],
     },
     {
       functionId: 'fn-b',
       label: 'Function B',
+      capabilities: ['synthetic.notice'],
       operations: ['notice-source.read'],
       neighbors: [{ functionId: 'fn-a', weight: 1 }],
     },
@@ -167,7 +169,7 @@ test('AC-01/02/09: covered neighbor, once, recipient visibility, tenant and stab
   await env.proposal();
   let result = await env.call('list');
   expect(result.items).toHaveLength(1);
-  expect(result.block).toContain('V-1');
+  expect(result.block).not.toContain('V-1');
   expect(result.block).not.toContain('PRIVATE');
   const ref = result.items[0].ref;
   result = await env.call('completeTurn', { turnRef: 'turn-a' });
@@ -239,7 +241,7 @@ test('AC-05/06: structured suppression, off and proposals_only preserve base res
   hook.before(ctx);
   const base = { responseText: 'Original answer.' };
   const result = await hook.after(ctx, base);
-  expect(result.responseText).toMatch(/Hinweise für dich:[\s\S]*\n\nOriginal answer\.$/);
+  expect(result.responseText).toBe('Original answer.');
   expect(base.responseText).toBe('Original answer.');
 });
 
@@ -298,7 +300,7 @@ test('full news queue: no resolver, embeddings, Knowledge or RAG; consumed by sh
   expect(answer.noticeQueue.items).toHaveLength(7);
   const result = await hook.after(ctx, answer);
   expect(result.noticeQueue.items).toHaveLength(7);
-  expect(renderSystemActivity(result)).toContain('V-7');
+  expect(renderSystemActivity(result)).not.toContain('V-7');
   expect((await env.call('list')).items).toEqual([]);
 });
 
@@ -353,7 +355,7 @@ test('AC-07: governance renderer prepends deferred block and leaves original con
   expect(result.choices[0].message.content).toContain('Original.');
 });
 
-test('same function is grouped deterministically while every short reference remains visible', () => {
+test('notices retain internal references only in structured items', () => {
   const block = renderNoticeBlock(
     [
       { kind: 'proposal', ref: 'V-1', functionId: 'fn-a' },
@@ -362,8 +364,8 @@ test('same function is grouped deterministically while every short reference rem
     0,
     model
   );
-  expect(block).toContain('V-1');
-  expect(block).toContain('V-2');
+  expect(block).not.toContain('V-1');
+  expect(block).not.toContain('V-2');
 });
 
 test('repeated responsibility transfers and tier entries remain distinct, equal retries do not', async () => {
@@ -525,3 +527,39 @@ test.each(['neu', 'Neues', 'laufen', 'gerade', 'aktuell', 'momentan', 'new', 'ru
     expect(resolveFunctions(word).status).toBe('none');
   }
 );
+
+test('chat notices require current function and case relevance; hidden notices remain queued', async () => {
+  env = await setup();
+  await env.proposal();
+  const call = (turnRef, context) =>
+    env.broker.call(
+      'notices.completeTurn',
+      { ...identity, turnRef },
+      { meta: { ...meta, noticeTurnContext: context } }
+    );
+  expect(
+    (await call('unrelated', { operations: ['synthetic-other.read'], capabilities: [] })).items
+  ).toEqual([]);
+  expect((await env.call('list')).items).toHaveLength(1);
+  const related = await call('related', { operations: [], capabilities: ['synthetic.notice'] });
+  expect(related.items).toHaveLength(1);
+  expect(related.block).toContain('Für deine aktuelle Arbeit');
+  expect(related.block).not.toMatch(/V-\d|fn-|Function|PRIVATE/);
+  expect(
+    (await call('again', { operations: [], capabilities: ['synthetic.notice'] })).items
+  ).toEqual([]);
+});
+test('responsibility changes are suppressed without current work relevance', async () => {
+  env = await setup();
+  await env.emit('function.activation.changed.v1', {
+    functionId: 'fn-b',
+    responsibility: { cet: true },
+    attention: { tier: 'established' },
+  });
+  const response = await env.broker.call(
+    'notices.completeTurn',
+    { ...identity, turnRef: 'technical' },
+    { meta: { ...meta, noticeTurnContext: { operations: [], capabilities: [] } } }
+  );
+  expect(response.block).toBe('');
+});

@@ -242,3 +242,67 @@ test('raw JSON, parameter codes and internal messages from a model are filtered 
     /```|operationalStatus|"35"|Kandidatenliste|Aufrufbudget|skipped/u
   );
 });
+
+test.each([
+  'Okay, hier eine leicht verständliche Zusammenfassung von § 56',
+  'Hier sind die wichtigsten Punkte',
+  'Gerne erkläre ich den Abschnitt',
+])('source title excludes generated introductory sentences: %s', (title) => {
+  expect(sourceLine([{ title, value: 'anderer Inhalt', metadata: { title } }])).toBe('');
+  const line = sourceLine([
+    { title, metadata: { sourceTitle: 'Synthetisches Dokument', sectionTitle: 'Abschnitt 56' } },
+  ]);
+  expect(line).toBe('Quellen: Synthetisches Dokument · Abschnitt 56');
+  expect(line).not.toMatch(/Okay|Hier|E[_-]\d|[0-9a-f]{8}-/i);
+});
+test('tool provenance uses executed filters and German retrieval time', () => {
+  const hit = {
+    retrievalSource: 'capability-read',
+    metadata: {
+      sourceId: 'read-1',
+      sourceLabel: 'MaStR',
+      parameters: {
+        installationType: 'solar',
+        operationalStatus: '35',
+        minCapacityKW: 100,
+        location: 'Uslar',
+      },
+    },
+  };
+  const text = toolReport(
+    [
+      {
+        name: 'energy-market.installations',
+        status: 'available',
+        called: true,
+        sourceId: 'read-1',
+        at: '2026-10-10T08:28:00Z',
+      },
+    ],
+    [hit],
+    'Wieviele gibt es?'
+  );
+  expect(text).toContain('MaStR, Solar, in Betrieb, > 100 kW, Uslar');
+  expect(text).toContain('10.10.2026, 10:28');
+  expect(text).not.toMatch(/Wieviele|35|operationalStatus/);
+});
+test('register status config translates codes without modifying stored results', () => {
+  const { readableToolData } = require('../src/tool-display');
+  const data = { data: [{ einheitBetriebsstatus: 35 }] };
+  expect(readableToolData('energy-market.installations', data)).toEqual({
+    data: [{ einheitBetriebsstatus: 'in Betrieb' }],
+  });
+  expect(data.data[0].einheitBetriebsstatus).toBe(35);
+});
+
+test('document filename metadata is a title with its section; text contents never substitute for metadata', () => {
+  expect(
+    sourceLine([
+      {
+        metadata: { documentName: 'Synthetischer Leitfaden.pdf', sectionTitle: 'Kapitel 3' },
+        value: 'Okay, hier ist die Zusammenfassung.',
+      },
+    ])
+  ).toBe('Quellen: Synthetischer Leitfaden.pdf · Kapitel 3');
+  expect(sourceLine([{ value: 'Synthetischer Leitfaden ohne Titelmetadaten' }])).toBe('');
+});

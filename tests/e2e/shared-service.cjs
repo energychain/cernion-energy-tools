@@ -545,9 +545,14 @@ async function main() {
   );
   assert.equal(sequence, 1);
   await snapshot('4 creator gap after one case turn');
+  const noticeQueue = await call(
+    'notices.list',
+    { tenantId, actorId: actor('alice') },
+    auth('alice')
+  );
+  const notice = noticeQueue.items.find((item) => item.kind === 'gap')?.ref;
   const next = await turn('alice', 'Was gibt es Neues?');
   const text = next.choices[0].message.content;
-  const notice = text.match(/L-\d+/)?.[0];
   if (!notice)
     console.log(
       'notice diagnostic',
@@ -559,6 +564,8 @@ async function main() {
       })
     );
   assert(notice, 'next mapped turn displays the gap notice');
+  assert.match(text, /Für deine aktuelle Arbeit fehlen noch Angaben\./);
+  assert(!/\b[LR]-\d+|missingEvidence/.test(text));
   assert(!/attention_|Push source unavailable/.test(text));
   await snapshot('5 next-turn notice');
   let proposal;

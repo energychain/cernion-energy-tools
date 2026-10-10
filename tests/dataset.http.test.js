@@ -148,6 +148,104 @@ describe('datasets through authenticated Open WebUI HTTP', () => {
     );
     expect(foreign.status).toBe(403);
   });
+  test('HTTP answers peak, yearly energy and anomalies through the normal answer phase', async () => {
+    const outputs = [
+      ['Spitzenlast 2025?', 'Die Spitzenlast beträgt 1.243,7 kW (14.01.2025, 18:15 Uhr).'],
+      [
+        'Jahresenergie 2025?',
+        'Die Jahresenergie beträgt 3.478,874 MWh; vier leere Werte sind ausgelassen.',
+      ],
+      [
+        'Gibt es Auffälligkeiten?',
+        'Es gibt 4 leere Werte und 2 Zeitumstellungen; die Spitze liegt bei 1.243,7 kW.',
+      ],
+    ];
+    for (const [question, text] of outputs) {
+      llm.generateText.mockResolvedValue(
+        JSON.stringify({
+          interpretation: [
+            {
+              text,
+              origin: 'evidence',
+              supported: 'evidence',
+              completedAction: false,
+              specific: true,
+              evidenceIds: ['E1'],
+            },
+          ],
+          expectation: [],
+          nextSteps: [],
+          assumptions: [],
+          draft: [],
+        })
+      );
+      const response = await request(question);
+      expect(response.status).toBe(200);
+      expect(response.body.metadata.phaseTimes.answerMs).toBeGreaterThan(0);
+      expect(response.text).toContain(text);
+      expect(response.text).not.toMatch(
+        /energie_summe:|spitzenlast:|auffaelligkeiten_count:|13\.915/
+      );
+      expect(response.text.match(/Herkunft:/g)).toHaveLength(1);
+    }
+    const [prompt] = llm.generateText.mock.calls.at(-1);
+    expect(prompt).not.toContain('Zeitstempel (Beginn);');
+    expect(prompt).not.toContain('rows":[');
+    const colleague = await request(
+      'Wie hoch war die Jahresenergie 2025?',
+      'synthetic-colleague',
+      'year-check',
+      false
+    );
+    expect(colleague.text).toContain('3.478,874 MWh');
+    const result = await app.broker.call(
+      'dataset.query',
+      { question: 'Spitzenlast 2025?' },
+      {
+        meta: {
+          authUser: {
+            tenantId: 'public',
+            userId: 'synthetic-colleague',
+            roles: ['ROLE_EDM'],
+            scope: 'read-only',
+          },
+        },
+      }
+    );
+    expect(result.rowCount).toBe(35040);
+    expect(result.summaries[0].integral / 1000).toBeCloseTo(3478.874, 9);
+    llm.generateText.mockReset();
+  });
+  test('model cannot invent dataset figures or expose internal result keys', async () => {
+    for (const [question, text, expected] of [
+      ['Spitzenlast 2025?', 'Die Spitzenlast beträgt 9.999 kW.', '1.243,7 kW'],
+      ['Jahresenergie 2025?', 'energie_summe: 3.478,874 MWh', '3.478,874 MWh'],
+      ['Spitzenlast 2025?', 'Wir berücksichtigen die Angaben.', '1.243,7 kW'],
+    ]) {
+      llm.generateText.mockResolvedValue(
+        JSON.stringify({
+          interpretation: [
+            {
+              text,
+              origin: 'evidence',
+              supported: 'evidence',
+              completedAction: false,
+              specific: true,
+              evidenceIds: ['E1'],
+            },
+          ],
+          expectation: [],
+          nextSteps: [],
+          assumptions: [],
+          draft: [],
+        })
+      );
+      const response = await request(question);
+      expect(response.text).toContain(expected);
+      expect(response.text).not.toMatch(/9\.999|energie_summe:/);
+    }
+    llm.generateText.mockReset();
+  });
   test('reattached file does not prevent semantic correction or deletion', async () => {
     llm.generateStructured.mockResolvedValueOnce({
       title: 'Synthetic.csv',

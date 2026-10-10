@@ -604,8 +604,20 @@ module.exports = {
     },
     async present(ctx, p, doc) {
       const items = [];
+      const context = ctx.meta.noticeTurnContext;
+      const coverage = require('../src/function-coverage');
+      const relevant = context
+        ? new Set(coverage.mapSignals(context, this.model, coverage.configuration()).functionIds)
+        : null;
       for (const item of eligibleNotices(doc, this.model))
-        if (await this.canSee(ctx, p, item)) {
+        if (
+          (item.kind === 'memory' ||
+            ctx.params.fullQueue ||
+            !context ||
+            (relevant.has(item.functionId) &&
+              (!item.context?.ref || item.context.ref === context.caseId))) &&
+          (await this.canSee(ctx, p, item))
+        ) {
           const publicItem = this.publicNotice(item);
           if (item.kind === 'gap') {
             const doc = await this.broker

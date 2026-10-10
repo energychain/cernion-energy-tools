@@ -90,7 +90,8 @@
     "src/workbench-document-flow.js",
     "src/workbench-document-passages.js",
     "src/workbench-document-question.js",
-    "src/workbench-tool-answer.js"
+    "src/workbench-tool-answer.js",
+    "src/tool-display.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

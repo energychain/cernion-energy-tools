@@ -151,6 +151,7 @@ async function attachNotices(ctx, result, facts) {
   // Governance completions delegate once; Workbench uses the mapped principal.
   if (ctx.action?.name === 'openai-compatible.chatCompletions') return result;
   try {
+    collect(result, facts);
     const meta = facts.noticeMeta || facts.meta || ctx.meta;
     const p = principal({ meta });
     const fullQueue = result.state === 'notices';
@@ -168,7 +169,17 @@ async function attachNotices(ctx, result, facts) {
           !!result.structuredOutput,
         fullQueue,
       },
-      { meta, timeout: 1500 }
+      {
+        meta: {
+          ...meta,
+          noticeTurnContext: {
+            capabilities: [...facts.capabilities],
+            operations: [...facts.operations],
+            caseId: result.cetCaseId || ctx.params.cetCaseId || null,
+          },
+        },
+        timeout: 1500,
+      }
     );
     if (fullQueue) return { ...result, noticeQueue: notice, noticeBlock: notice.block };
     if (!notice.block) return result;

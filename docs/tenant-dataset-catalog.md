@@ -99,3 +99,24 @@ Die fehlende beziehungsweise doppelte Ortszeitstunde ist nach UTC-Normalisierung
 gewöhnliche Datenlücke oder Duplikat. Vier leere Messwerte werden nicht geschätzt und
 bei Summen ausgelassen. Ausreißer sind statistische Hinweise (drei Standardabweichungen),
 keine Behauptung eines fachlichen Fehlers.
+
+## Antwort- und Kalenderfilterregeln
+
+Datensatzfragen durchlaufen die normale Antwortphase mit aggregierter `dataset.query`-
+Evidenz und `answerMs`. Zahlen bleiben an das deterministische Ergebnis gebunden;
+bei Antwortausfall bleibt eine passende Kurzantwort mit Herkunft verfügbar.
+Spitzenwert-, Energie- und Mittelwertfragen liefern gezielte Sätze. Nur Überblicks-
+und Auffälligkeitsfragen erhalten einen Bericht. Mittelwerte werden auf eine,
+Energiesummen in MWh auf höchstens drei Nachkommastellen deutsch formatiert.
+
+Datum und Zeit ohne Offset in `from`/`to` beziehen sich auf die Datensatzzeitzone;
+explizite Offsetgrenzen bezeichnen Zeitpunkte. Kalendergrenzen im Abfrageplan werden
+lokal ausgewertet, auch wenn die Planphase eine Mitternachtsgrenze mit `Z` liefert.
+`to` ist exklusiv. Leistungssummen ohne Zeitfaktor sind im Executor verboten;
+Energie entsteht ausschließlich durch Integration mit dem bestätigten Zeitraster.
+
+Shared-Service-Notices im Chat benötigen aktuellen Funktions- und gegebenenfalls
+Fallbezug sowie die bestehenden Sichtbarkeitsprüfungen. Fachfremde Hinweise bleiben
+in der Warteschlange. Der vollständige Neuigkeitenabruf und Tenant-Gedächtnis-Notices
+behalten ihren bisherigen Zugriffspfad; interne Referenzen bleiben strukturiert
+für Reaktionen verfügbar und erscheinen nicht im Hinweistext.
