@@ -1,15 +1,17 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-10T01:20:18.598Z
+Generated: 2026-10-10T01:35:10.285Z
 
 ## Observed adapter surface
 
-- OpenWebUI/ChatGPT adapter files detected: 23
+- OpenWebUI/ChatGPT adapter files detected: 25
 - verify:open-webui npm script: present
 - verify:agent-shapes npm script: present
 
 Detected files:
 
+- `agentic-architecture/OPENWEBUI_AGENTIC_ROUTING.md`
+- `agentic-architecture/reports/latest/openwebui-blindspots.md`
 - `docs/architecture/chatgpt-sidecar-oeo-trust-boundary.md`
 - `docs/architecture/chatgpt-sidecar-session-api-contract.md`
 - `docs/architecture/chatgpt-sidecar-session-ticket-gate.md`
@@ -45,6 +47,7 @@ Detected files:
 
 Routing/capability/broker/manifest files:
 
+- `agentic-architecture/OPENWEBUI_AGENTIC_ROUTING.md`
 - `docs/OPERATION_CAPABILITY_INDEX.md`
 - `docs/PUBLIC_WEBSITE_BACKLOG_AGENT_ROUTING.md`
 - `docs/roadmap/resolved/16-capability-broker-v2.md`

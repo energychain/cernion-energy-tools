@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-10T01:20:18.598Z
+Generated: 2026-10-10T01:35:10.285Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.21
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 1262
+- Files scanned: 1279
 - Services: 144
 - src/*.js files: 211
 - Tests: 330
 - Integrations files: 26
-- Markdown/docs files: 353
+- Markdown/docs files: 367
 
 ## Existing validation summary
 
@@ -33,6 +33,7 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 - `.claude`: 26 files
 - `integrations`: 26 files
 - `scripts`: 23 files
+- `agentic-architecture`: 17 files
 - `.github`: 9 files
 - `feedback`: 8 files
 - `.vscode`: 5 files
@@ -45,17 +46,33 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 - `.editorconfig`: 1 files
 - `.env.example`: 1 files
 - `.eslintrc.hygiene.json`: 1 files
-- `.gitignore`: 1 files
 
 ## Agentic surface
 
-- Agent/capability/sidecar related files: 177
-- Routing/capability/broker/manifest files: 47
+- Agent/capability/sidecar related files: 194
+- Routing/capability/broker/manifest files: 48
 - Evidence/HITL/receipt/dossier files: 65
-- OpenWebUI/ChatGPT adapter files: 23
+- OpenWebUI/ChatGPT adapter files: 25
 
 Primary agentic files:
 
+- `agentic-architecture/AGENTIC_CORE_DIRECTIVE.md`
+- `agentic-architecture/ARCHITECTURE_CANON.md`
+- `agentic-architecture/DOMAIN_ONTOLOGY.md`
+- `agentic-architecture/E2E_PROCESS_MAP.md`
+- `agentic-architecture/NAMING_CONVENTIONS.md`
+- `agentic-architecture/OPENWEBUI_AGENTIC_ROUTING.md`
+- `agentic-architecture/README.md`
+- `agentic-architecture/REFACTORING_BACKLOG.md`
+- `agentic-architecture/reports/latest/agentic-core-findings.md`
+- `agentic-architecture/reports/latest/architecture-scan.md`
+- `agentic-architecture/reports/latest/canon-update-proposal.md`
+- `agentic-architecture/reports/latest/openwebui-blindspots.md`
+- `agentic-architecture/reports/latest/refactoring-backlog.md`
+- `agentic-architecture/reports/latest/scan-complete.txt`
+- `agentic-architecture/reports/latest/scan-summary.json`
+- `agentic-architecture/SHEPHERD_SUMMARY.md`
+- `agentic-architecture/shepherd-fingerprint.json`
 - `AGENTS.md`
 - `docs/agent-decision-enums.ts`
 - `docs/agent-responses/alloc-list.json`
@@ -79,23 +96,6 @@ Primary agentic files:
 - `docs/architecture/chatgpt-sidecar-oeo-trust-boundary.md`
 - `docs/architecture/chatgpt-sidecar-session-api-contract.md`
 - `docs/architecture/chatgpt-sidecar-session-ticket-gate.md`
-- `docs/architecture/generic-energy-sidecar-connector.md`
-- `docs/architecture/openclaw-cernion-sidecar-mvp.md`
-- `docs/architecture/openclaw-cernion-sidecar-setup.md`
-- `docs/architecture/personal-agent-knowledge-rag-v052.md`
-- `docs/copilot-agent.json`
-- `docs/FINANCE_AGENT_STROMDAO_REST_TEST.md`
-- `docs/MULTI_AGENT_CONCEPT.md`
-- `docs/OPERATION_CAPABILITY_INDEX.md`
-- `docs/PUBLIC_WEBSITE_BACKLOG_AGENT_ROUTING.md`
-- `docs/roadmap/resolved/16-capability-broker-v2.md`
-- `docs/roadmap/resolved/25-v0.54.2-personal-agent-runtime-selection-plan-prompt.md`
-- `docs/test-plans/personal-agent-multi-turn-domain-e2e.md`
-- `docs/uat-cya-agent-banken-due-diligence.html`
-- `docs/ui-contracts/29-finance-agent.md`
-- `docs/ui-contracts/41-personal-agent.md`
-- `docs/use-cases/stadtwerk-mauer-capability-projection.md`
-- `docs/v0.52-implementation-plans/personal-agent-multi-turn-domain-e2e.md`
 
 ## Service inventory
 

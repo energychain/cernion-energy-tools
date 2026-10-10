@@ -1,23 +1,23 @@
 {
-  "generatedAt": "2026-10-10T01:20:18.598Z",
+  "generatedAt": "2026-10-10T01:35:10.285Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261010T011853Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261010T013403Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
     "version": "0.99.21"
   },
   "counts": {
-    "files": 1262,
+    "files": 1279,
     "services": 144,
     "srcJs": 211,
     "tests": 330,
     "integrations": 26,
-    "docs": 353,
-    "agentFiles": 177,
-    "openWebUiFiles": 23,
+    "docs": 367,
+    "agentFiles": 194,
+    "openWebUiFiles": 25,
     "evidenceFiles": 65,
-    "routingFiles": 47,
+    "routingFiles": 48,
     "servicesWithoutTests": 26
   },
   "artifacts": {
@@ -55,6 +55,10 @@
     {
       "dir": "scripts",
       "files": 23
+    },
+    {
+      "dir": "agentic-architecture",
+      "files": 17
     },
     {
       "dir": ".github",
@@ -102,10 +106,6 @@
     },
     {
       "dir": ".eslintrc.hygiene.json",
-      "files": 1
-    },
-    {
-      "dir": ".gitignore",
       "files": 1
     }
   ],
@@ -319,112 +319,112 @@
   ],
   "domainTermCounts": {
     "agent": {
-      "files": 551,
-      "hits": 6278
+      "files": 563,
+      "hits": 6395
     },
     "personal-agent": {
-      "files": 246,
-      "hits": 1886
+      "files": 251,
+      "hits": 1908
     },
     "sidecar": {
-      "files": 81,
-      "hits": 860
+      "files": 86,
+      "hits": 890
     },
     "capability": {
-      "files": 289,
-      "hits": 4308
+      "files": 302,
+      "hits": 4355
     },
     "broker": {
-      "files": 413,
-      "hits": 9176
+      "files": 417,
+      "hits": 9193
     },
     "openwebui": {
-      "files": 4,
-      "hits": 5
+      "files": 15,
+      "hits": 27
     },
     "open-webui": {
-      "files": 7,
-      "hits": 35
+      "files": 11,
+      "hits": 52
     },
     "chatgpt": {
-      "files": 22,
-      "hits": 363
+      "files": 29,
+      "hits": 384
     },
     "evidence": {
-      "files": 484,
-      "hits": 19779
+      "files": 497,
+      "hits": 19872
     },
     "receipt": {
-      "files": 89,
-      "hits": 2116
+      "files": 94,
+      "hits": 2140
     },
     "hitl": {
-      "files": 352,
-      "hits": 3411
+      "files": 363,
+      "hits": 3436
     },
     "routing": {
-      "files": 223,
-      "hits": 1530
+      "files": 233,
+      "hits": 1556
     },
     "workflow": {
-      "files": 196,
-      "hits": 1471
+      "files": 202,
+      "hits": 1481
     },
     "tenant": {
-      "files": 441,
-      "hits": 10769
+      "files": 449,
+      "hits": 10786
     },
     "market": {
-      "files": 293,
-      "hits": 3261
+      "files": 297,
+      "hits": 3267
     },
     "grid": {
-      "files": 535,
-      "hits": 8702
+      "files": 539,
+      "hits": 8719
     },
     "redispatch": {
-      "files": 260,
-      "hits": 3534
+      "files": 264,
+      "hits": 3553
     },
     "forecast": {
-      "files": 185,
-      "hits": 2882
+      "files": 189,
+      "hits": 2897
     },
     "edm": {
-      "files": 226,
-      "hits": 1805
+      "files": 230,
+      "hits": 1826
     },
     "mako": {
-      "files": 178,
-      "hits": 1119
+      "files": 181,
+      "hits": 1125
     },
     "willi": {
-      "files": 32,
-      "hits": 290
+      "files": 35,
+      "hits": 297
     },
     "vdmi": {
-      "files": 246,
-      "hits": 4089
+      "files": 251,
+      "hits": 4123
     },
     "eog": {
-      "files": 69,
-      "hits": 687
+      "files": 73,
+      "hits": 693
     },
     "stadtwerk": {
-      "files": 203,
-      "hits": 5068
+      "files": 211,
+      "hits": 5088
     },
     "utility": {
-      "files": 61,
-      "hits": 551
+      "files": 63,
+      "hits": 554
     },
     "regulator": {
-      "files": 264,
-      "hits": 2070
+      "files": 270,
+      "hits": 2080
     },
     "decision": {
-      "files": 333,
-      "hits": 5997
+      "files": 338,
+      "hits": 6007
     }
   },
   "validationSummary": "build: ok\nlint: ok\ntest-unit-ci: skipped (set SHEPHERD_FULL=1)\naudit-openapi: skipped (set SHEPHERD_FULL=1)\ncheck-llm: skipped (set SHEPHERD_FULL=1)\ngitnexus-analyze: skipped (set SHEPHERD_FULL=1)"
