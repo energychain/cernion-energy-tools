@@ -1,20 +1,20 @@
 # Shepherd Summary
 
-Generated: 2026-10-10T01:20:19.466Z
-Run: 20261010T011853Z
-Branch: shepherd/architecture-20261010T011852Z
-Fingerprint: 35df7315e4d091a91f2cc34cc18ecfbdcfb90d0d4c03f5dde83563fd51c5dde6
+Generated: 2026-10-10T01:35:11.164Z
+Run: 20261010T013403Z
+Branch: shepherd/runtime-refactor-20261010T013402Z
+Fingerprint: 0cf6f82ff3c471137366e54b515903e19f3c19244b631d0216bf98f5ecc58cb5
 
 ## Current measurable surface
 
-- Files: 1262
+- Files: 1279
 - Services: 144
 - src JS files: 211
 - Tests: 330
-- Agentic files: 177
-- OpenWebUI/ChatGPT files: 23
+- Agentic files: 194
+- OpenWebUI/ChatGPT files: 25
 - Evidence/HITL files: 65
-- Routing/capability files: 47
+- Routing/capability files: 48
 - Services without obvious direct filename-mapped test: 26
 
 ## Artifact state
@@ -34,6 +34,7 @@ Fingerprint: 35df7315e4d091a91f2cc34cc18ecfbdcfb90d0d4c03f5dde83563fd51c5dde6
 - `.claude`: 26 files
 - `integrations`: 26 files
 - `scripts`: 23 files
+- `agentic-architecture`: 17 files
 - `.github`: 9 files
 - `feedback`: 8 files
 - `.vscode`: 5 files
@@ -46,7 +47,6 @@ Fingerprint: 35df7315e4d091a91f2cc34cc18ecfbdcfb90d0d4c03f5dde83563fd51c5dde6
 - `.editorconfig`: 1 files
 - `.env.example`: 1 files
 - `.eslintrc.hygiene.json`: 1 files
-- `.gitignore`: 1 files
 
 ## Coverage review candidates
 
