@@ -65,16 +65,17 @@ function parameterSchema(operation, api) {
 
 function candidatesFor(
   situation,
-  { model, index, api, domainsAllowed = [], selectedCapabilities = [] }
+  { model, index, api, domainsAllowed = [], selectedCapabilities = [], datasetAvailable = true }
 ) {
   const hypotheses = (situation.hypotheses || []).filter((h) => h.confidence >= 0.5);
   const datasetAllowed =
-    !domainsAllowed.length ||
-    model.functions.some((fn) =>
-      fn.domains.some((domain) =>
-        domainsAllowed.some((allowed) => normalizePhrase(domain) === normalizePhrase(allowed))
-      )
-    );
+    datasetAvailable &&
+    (!domainsAllowed.length ||
+      model.functions.some((fn) =>
+        fn.domains.some((domain) =>
+          domainsAllowed.some((allowed) => normalizePhrase(domain) === normalizePhrase(allowed))
+        )
+      ));
   const functions = model.functions.filter((fn) =>
     hypotheses.some((h) =>
       h.kind === 'function'
@@ -98,6 +99,7 @@ function candidatesFor(
   const operations = index.operations.filter(
     (op) =>
       safeRead(op) &&
+      (op.action !== 'dataset.query' || datasetAllowed) &&
       ((op.action === 'dataset.query' && datasetAllowed) ||
         rankedIds.has(op.operationId) ||
         op.capabilityCandidates?.some((id) => selectedCapabilities.includes(id)) ||
@@ -371,6 +373,7 @@ async function runCapabilityLoop(
   } = {}
 ) {
   const started = performance.now();
+  const datasetAvailable = Boolean(ctx.broker?.getLocalService?.('dataset'));
   const trace = [],
     evidence = [],
     observations = [];
@@ -416,6 +419,7 @@ async function runCapabilityLoop(
     model,
     index,
     api,
+    datasetAvailable,
     domainsAllowed,
     selectedCapabilities,
     previous,
@@ -463,6 +467,7 @@ async function runCapabilityLoop(
       model,
       index,
       api,
+      datasetAvailable,
       domainsAllowed,
       selectedCapabilities,
     });

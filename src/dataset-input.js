@@ -167,6 +167,26 @@ function timestampMillis(value) {
       calendar.getUTCDate() !== parts[2]
     )
       throw new Error('Ungültiges Kalenderdatum in der Tabelle.');
+    const suffix = raw.slice((dottedDate || iso)[0].length);
+    const clock = suffix.match(/^(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2})(?:[.,](\d{1,3}))?)?)?$/);
+    if (clock) {
+      const hour = Number(clock[1] || 0),
+        minute = Number(clock[2] || 0),
+        second = Number(clock[3] || 0);
+      if (hour > 23 || minute > 59 || second > 59)
+        throw new Error('Ungültige Uhrzeit in der Tabelle.');
+      // Floating wall clocks are independent of the server timezone. Explicit
+      // offsets continue through the shared parser and retain their instant.
+      return Date.UTC(
+        parts[0],
+        parts[1] - 1,
+        parts[2],
+        hour,
+        minute,
+        second,
+        Number((clock[4] || '').padEnd(3, '0'))
+      );
+    }
   }
   return parseDate(value)?.getTime() ?? null;
 }

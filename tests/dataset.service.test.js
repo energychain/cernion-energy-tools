@@ -12,6 +12,49 @@ const Dataset = require('../services/dataset.service');
 const Datapoint = require('../services/datapoint.service');
 
 describe('tenant dataset catalog', () => {
+  it('normalizes floating and offset timestamps independently of server timezone', () => {
+    const { normalizeDatasetTimes } = require('../src/dataset-time');
+    const original = process.env.TZ;
+    try {
+      for (const timezone of ['UTC', 'Europe/Berlin']) {
+        process.env.TZ = timezone;
+        for (const value of [
+          '14.01.2025 18:15',
+          '2025-01-14 18:15:00',
+          '2025-01-14T18:15:00+01:00',
+        ])
+          expect(normalizeDatasetTimes([{ Zeit: value }], 'Zeit', 'Europe/Berlin').utc).toEqual([
+            '2025-01-14T17:15:00.000Z',
+          ]);
+      }
+    } finally {
+      if (original === undefined) delete process.env.TZ;
+      else process.env.TZ = original;
+    }
+  });
+  it('offers the dataset read only when its backend is available for the turn', () => {
+    const { candidatesFor } = require('../src/workbench-capability-loop');
+    const options = {
+      model: require('../src/function-model').getFunctionModel(),
+      index: require('../src/operation-capability-index').loadOperationCapabilityIndex(),
+      api: require('../openapi-export.json'),
+    };
+    const situation = {
+      dataNeeds: 'Nutzerdatensatz Spitzenwert',
+      hypotheses: [],
+      retrievalTerms: [],
+    };
+    expect(
+      candidatesFor(situation, { ...options, datasetAvailable: false }).some(
+        (entry) => entry.operation.action === 'dataset.query'
+      )
+    ).toBe(false);
+    expect(
+      candidatesFor(situation, { ...options, datasetAvailable: true }).some(
+        (entry) => entry.operation.action === 'dataset.query'
+      )
+    ).toBe(true);
+  });
   it('does not parse an assistant draft with labelled lines as a table', () => {
     expect(parseDatasetText('Antwort.\nEntwurf:\nBetreff: Rückmeldung\nGuten Tag,\nText.')).toEqual(
       []

@@ -199,6 +199,7 @@ async function runContentTurn(
   const toolLoop = require('./workbench-capability-loop');
   const toolOptions = {
     model: service.settings.systemActivityModel || getFunctionModel(),
+    datasetAvailable: Boolean(ctx.broker.getLocalService('dataset')),
     domainsAllowed: workbenchContext.userProfile?.domainsAllowed || mapping?.domainsAllowed || [],
     previous,
   };
