@@ -189,3 +189,15 @@ test('valid multi-megabyte base64 remains below the configured budget without re
       'Dateikodierung'
     );
 });
+
+test('Office text extraction rejects nested and unterminated tags before document use', async () => {
+  for (const xml of ['<w:document><<script>synthetic</w:document>', '<w:document><w:t']) {
+    const bytes = syntheticOffice('docx', { 'word/document.xml': xml });
+    const file = {
+      ...validateFile(original('Synthetic.docx', bytes)),
+      contentBase64: bytes.toString('base64'),
+      fileId: 'a'.repeat(64),
+    };
+    await expect(extractOriginal(file)).rejects.toThrow('Beschädigtes Office-XML');
+  }
+});

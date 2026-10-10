@@ -17,7 +17,7 @@ function fileReferences(value) {
     };
   });
 }
-async function prepareFileTurn(service, ctx, p, envelope, meta) {
+async function loadReferencedDocuments(ctx, envelope, meta) {
   const refs = envelope.fileRefs || [];
   if (refs.length) {
     const documents = [];
@@ -36,6 +36,9 @@ async function prepareFileTurn(service, ctx, p, envelope, meta) {
       fileError('Dokumente überschreiten gemeinsam das Textbudget.', 413);
     envelope.documents = documents;
   }
+}
+async function prepareFileTurn(service, ctx, p, envelope, meta) {
+  await loadReferencedDocuments(ctx, envelope, meta);
   const match = envelope.userRequest.match(
     /^(?:lösche|loesche)\s+(?:die\s+)?datei\s+([a-f0-9]{64})[.!]?$/i
   );
@@ -79,7 +82,7 @@ async function prepareFileTurn(service, ctx, p, envelope, meta) {
           ])
           .filter((level) => ['restricted', 'highly_sensitive'].includes(level))
       ),
-    ].sort();
+    ].sort((a, b) => a.localeCompare(b));
     const sensitivityLevel =
       levels[
         Math.max(

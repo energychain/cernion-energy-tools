@@ -106,7 +106,7 @@ class Filter:
             if not file or not user or (file.user_id != user.id and user.role != "admin" and not await resolved(has_access_to_file(source_id, "read", user))):
                 raise ValueError("CET-Dateikanal: kein Zugriff auf die Originaldatei.")
             stored_path = Path(await asyncio.to_thread(Storage.get_file, file.path))
-            def read_bounded():
+            def read_bounded(stored_path=stored_path):
                 with stored_path.open("rb") as source:
                     content = source.read(self.valves.MAX_BYTES + 1)
                 if len(content) > self.valves.MAX_BYTES:

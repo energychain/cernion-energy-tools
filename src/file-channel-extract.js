@@ -25,54 +25,63 @@ function officeEntries(bytes) {
   for (let i = 0; i < count; i++) {
     if (offset + 46 > end || bytes.readUInt32LE(offset) !== 0x02014b50)
       fileError('Ungültiges Office-Archiv.');
-    const flags = bytes.readUInt16LE(offset + 8),
-      method = bytes.readUInt16LE(offset + 10);
-    const compressed = bytes.readUInt32LE(offset + 20),
-      expanded = bytes.readUInt32LE(offset + 24);
-    const nameLength = bytes.readUInt16LE(offset + 28),
-      extraLength = bytes.readUInt16LE(offset + 30),
-      commentLength = bytes.readUInt16LE(offset + 32);
-    const next = offset + 46 + nameLength + extraLength + commentLength;
-    const name = bytes.subarray(offset + 46, offset + 46 + nameLength).toString('utf8');
-    if (
-      next > end ||
-      flags & 1 ||
-      ![0, 8].includes(method) ||
-      /(^\/|\\|\x00|(?:^|\/)\.\.(?:\/|$)|vbaProject|embeddings\/)/i.test(name) ||
-      entries.has(name)
-    )
-      fileError('Unsicheres Office-Archiv.');
-    total += expanded;
-    if (total > budget || expanded > budget || compressed > bytes.length)
-      fileError('Office-Datei überschreitet das Entpackbudget.', 413, 'FILE_CHANNEL_LIMIT');
-    const local = bytes.readUInt32LE(offset + 42);
-    if (local + 30 > offset || bytes.readUInt32LE(local) !== 0x04034b50)
-      fileError('Ungültiger Office-Eintrag.');
-    const start = local + 30 + bytes.readUInt16LE(local + 26) + bytes.readUInt16LE(local + 28);
-    if (start + compressed > offset) fileError('Ungültiger Office-Eintrag.');
-    let data;
-    try {
-      data =
-        method === 0
-          ? bytes.subarray(start, start + compressed)
-          : inflateRawSync(bytes.subarray(start, start + compressed), {
-              maxOutputLength: Math.max(1, expanded),
-            });
-    } catch (_error) {
-      fileError('Beschädigte Office-Datei.');
-    }
-    if (data.length !== expanded) fileError('Ungültige Office-Eintragsgröße.');
-    if (/\.rels$/.test(name) && /TargetMode\s*=\s*["']External["']/i.test(data.toString()))
-      fileError('Externe Office-Verknüpfungen sind nicht erlaubt.');
-    if (
-      /\.xml$/.test(name) &&
-      /<!DOCTYPE|<!ENTITY|<Override\b[^>]*macroEnabled/i.test(data.toString())
-    )
-      fileError('Unsichere Office-XML-Inhalte.');
+    const { name, data, next } = officeEntry(bytes, offset, end, budget - total);
+    total += data.length;
+    if (total > budget || entries.has(name))
+      fileError(
+        'Office-Datei überschreitet das Entpackbudget oder enthält doppelte Einträge.',
+        413
+      );
     entries.set(name, data);
     offset = next;
   }
   return entries;
+}
+function officeEntry(bytes, offset, end, budget) {
+  const flags = bytes.readUInt16LE(offset + 8),
+    method = bytes.readUInt16LE(offset + 10);
+  const compressed = bytes.readUInt32LE(offset + 20),
+    expanded = bytes.readUInt32LE(offset + 24);
+  const nameLength = bytes.readUInt16LE(offset + 28),
+    extraLength = bytes.readUInt16LE(offset + 30),
+    commentLength = bytes.readUInt16LE(offset + 32);
+  const next = offset + 46 + nameLength + extraLength + commentLength;
+  const name = bytes.subarray(offset + 46, offset + 46 + nameLength).toString('utf8');
+  if (
+    next > end ||
+    flags & 1 ||
+    ![0, 8].includes(method) ||
+    /(^\/|\\|(?:^|\/)\.\.(?:\/|$)|vbaProject|embeddings\/)/i.test(name) ||
+    name.includes(String.fromCharCode(0))
+  )
+    fileError('Unsicheres Office-Archiv.');
+  if (expanded > budget || compressed > bytes.length)
+    fileError('Office-Datei überschreitet das Entpackbudget.', 413, 'FILE_CHANNEL_LIMIT');
+  const local = bytes.readUInt32LE(offset + 42);
+  if (local + 30 > offset || bytes.readUInt32LE(local) !== 0x04034b50)
+    fileError('Ungültiger Office-Eintrag.');
+  const start = local + 30 + bytes.readUInt16LE(local + 26) + bytes.readUInt16LE(local + 28);
+  if (start + compressed > offset) fileError('Ungültiger Office-Eintrag.');
+  let data;
+  try {
+    data =
+      method === 0
+        ? bytes.subarray(start, start + compressed)
+        : inflateRawSync(bytes.subarray(start, start + compressed), {
+            maxOutputLength: Math.max(1, expanded),
+          });
+  } catch (_error) {
+    fileError('Beschädigte Office-Datei.');
+  }
+  if (data.length !== expanded) fileError('Ungültige Office-Eintragsgröße.');
+  if (name.endsWith('.rels') && /TargetMode\s*=\s*["']External["']/i.test(data.toString()))
+    fileError('Externe Office-Verknüpfungen sind nicht erlaubt.');
+  if (
+    name.endsWith('.xml') &&
+    /<!DOCTYPE|<!ENTITY|<Override\b[^>]*macroEnabled/i.test(data.toString())
+  )
+    fileError('Unsichere Office-XML-Inhalte.');
+  return { name, data, next };
 }
 function validateOffice(bytes, extension) {
   const entries = officeEntries(bytes);
@@ -86,14 +95,31 @@ function validateOffice(bytes, extension) {
   return entries;
 }
 function xmlText(xml) {
-  return xml
-    .replace(/<\/(?:w:p|a:p)>/g, '\n')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&');
+  // Parse tag boundaries once instead of repeatedly deleting patterns. Literal nested
+  // '<' and unclosed tags are malformed XML and fail closed.
+  const text = [];
+  let start = 0;
+  while (start < xml.length) {
+    const open = xml.indexOf('<', start);
+    if (open < 0) {
+      text.push(xml.slice(start));
+      break;
+    }
+    text.push(xml.slice(start, open));
+    const close = xml.indexOf('>', open + 1);
+    if (close < 0) fileError('Beschädigtes Office-XML.');
+    const tag = xml.slice(open + 1, close);
+    if (tag.includes('<')) fileError('Beschädigtes Office-XML.');
+    if (tag === '/w:p' || tag === '/a:p') text.push('\n');
+    start = close + 1;
+  }
+  return text
+    .join('')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&apos;', "'")
+    .replaceAll('&amp;', '&');
 }
 async function extractOriginal(file) {
   const bytes = Buffer.from(file.contentBase64, 'base64');
