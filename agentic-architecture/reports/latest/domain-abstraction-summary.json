@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-10T02:12:08.294Z",
+  "generatedAt": "2026-10-10T03:02:13.755Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261010T021102Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261010T030056Z",
   "counts": {
-    "files": 1279,
-    "candidateFiles": 811,
+    "files": 1296,
+    "candidateFiles": 828,
     "services": 144,
     "srcFiles": 256,
-    "docs": 367,
+    "docs": 383,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -93,6 +93,170 @@
       "directive": "Bei Publishing/Comms andere Begriffe verwenden; bei MaKo explizit EDM/Marktpartner/Prozesskontext nennen."
     }
   ],
+  "caseTypes": [
+    {
+      "id": "stammdaten_marktrollen_klaerfall",
+      "title": "Stammdaten-/Marktrollen-Klärfall",
+      "maturity": "observed",
+      "priority": 1,
+      "clusterIds": [
+        "mako-and-edm",
+        "casework-and-assistance",
+        "openwebui-agentic-routing"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "services/utility-report.service.js",
+          "hits": 310
+        },
+        {
+          "path": "docs/agent-responses/rd-audit.json",
+          "hits": 301
+        },
+        {
+          "path": "src/report-builder.js",
+          "hits": 237
+        },
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 233
+        },
+        {
+          "path": "services/grid-operations.service.js",
+          "hits": 191
+        },
+        {
+          "path": "services/edm.service.js",
+          "hits": 164
+        },
+        {
+          "path": "services/capability-broker.service.js",
+          "hits": 129
+        },
+        {
+          "path": "services/finance-agent.service.js",
+          "hits": 122
+        },
+        {
+          "path": "services/agent.service.js",
+          "hits": 113
+        },
+        {
+          "path": "services/mastr-quality.service.js",
+          "hits": 112
+        }
+      ]
+    },
+    {
+      "id": "messwert_edm_plausibilitaetsfall",
+      "title": "Messwert-/EDM-Plausibilitätsfall",
+      "maturity": "observed",
+      "priority": 2,
+      "clusterIds": [
+        "mako-and-edm",
+        "forecast-and-market",
+        "evidence-and-trust"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 299
+        },
+        {
+          "path": "src/evidence-registry.js",
+          "hits": 187
+        },
+        {
+          "path": "services/api.service.js",
+          "hits": 163
+        },
+        {
+          "path": "src/answer-dossier-hydration-rules.json",
+          "hits": 144
+        },
+        {
+          "path": "services/energy-market.service.js",
+          "hits": 139
+        },
+        {
+          "path": "services/dashboard-api/methods-part-05-of-14.js",
+          "hits": 131
+        },
+        {
+          "path": "services/forecast.service.js",
+          "hits": 115
+        },
+        {
+          "path": "services/dashboard-api/methods-part-02-of-14.js",
+          "hits": 114
+        },
+        {
+          "path": "services/dashboard-api/actions-part-01-of-8.js",
+          "hits": 109
+        },
+        {
+          "path": "services/capability-broker.service.js",
+          "hits": 108
+        }
+      ]
+    },
+    {
+      "id": "kunden_service_klaerfall",
+      "title": "Kunden-/Service-Klärfall",
+      "maturity": "draft",
+      "priority": 3,
+      "clusterIds": [
+        "casework-and-assistance",
+        "tenant-and-operation",
+        "openwebui-agentic-routing"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 478
+        },
+        {
+          "path": "agentic-architecture/domain/ENERGY_DOMAIN_CANON.md",
+          "hits": 318
+        },
+        {
+          "path": "agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md",
+          "hits": 318
+        },
+        {
+          "path": "services/capability-broker.service.js",
+          "hits": 260
+        },
+        {
+          "path": "agentic-architecture/reports/latest/architecture-scan.md",
+          "hits": 234
+        },
+        {
+          "path": "src/report-builder.js",
+          "hits": 174
+        },
+        {
+          "path": "services/chatgpt-sidecar.service.js",
+          "hits": 156
+        },
+        {
+          "path": "feedback/HYGIENE_SPRINT.md",
+          "hits": 145
+        },
+        {
+          "path": "docs/v0.58-architecture/lagebild/tranche_c.md",
+          "hits": 136
+        },
+        {
+          "path": "src/cookbook-recipes.js",
+          "hits": 129
+        }
+      ]
+    }
+  ],
   "unclassifiedServices": [],
   "topEvidenceFiles": [
     {
@@ -176,5 +340,5 @@
       "hits": 256
     }
   ],
-  "fingerprint": "214f0461f2a35d8fa2ef28f9b689c4e41917d275223a289104f14304f5721622"
+  "fingerprint": "47e7eb94ace055ebd887e8a146a25dc321c970f0f665a833bef3b187d6221596"
 }

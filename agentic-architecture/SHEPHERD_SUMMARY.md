@@ -1,19 +1,19 @@
 # Shepherd Summary
 
-Generated: 2026-10-10T02:12:08.358Z
-Run: 20261010T021102Z
-Branch: shepherd/architecture-20261010T021102Z
-Fingerprint: dc1e2f43eb02400ce4343481bcdb16d9fa229c3f13a6650f363a40f5cb375f9e
+Generated: 2026-10-10T03:02:13.833Z
+Run: 20261010T030056Z
+Branch: shepherd/architecture-20261010T030056Z
+Fingerprint: 2a1dda425078748b30b5ee543148ca9fdb4721e660c26584e1b109ab974ec54d
 
 ## Current measurable surface
 
-- Files: 1279
+- Files: 1296
 - Services: 144
 - src JS files: 211
 - Tests: 330
-- Agentic files: 194
+- Agentic files: 211
 - OpenWebUI/ChatGPT files: 25
-- Evidence/HITL files: 65
+- Evidence/HITL files: 67
 - Routing/capability files: 48
 - Services without obvious direct filename-mapped test: 26
 
@@ -31,10 +31,10 @@ Fingerprint: dc1e2f43eb02400ce4343481bcdb16d9fa229c3f13a6650f363a40f5cb375f9e
 - `docs`: 298 files
 - `src`: 258 files
 - `services`: 180 files
+- `agentic-architecture`: 34 files
 - `.claude`: 26 files
 - `integrations`: 26 files
 - `scripts`: 23 files
-- `agentic-architecture`: 17 files
 - `.github`: 9 files
 - `feedback`: 8 files
 - `.vscode`: 5 files
@@ -51,8 +51,8 @@ Fingerprint: dc1e2f43eb02400ce4343481bcdb16d9fa229c3f13a6650f363a40f5cb375f9e
 ## Domain abstraction
 
 - Domain abstraction: present
-- Domain fingerprint: 214f0461f2a35d8fa2ef28f9b689c4e41917d275223a289104f14304f5721622
-- Candidate files: 811
+- Domain fingerprint: 47e7eb94ace055ebd887e8a146a25dc321c970f0f665a833bef3b187d6221596
+- Candidate files: 828
 - Unclassified services: 0
 
 Cluster counts:
@@ -66,6 +66,12 @@ Cluster counts:
 - `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files
 - `tenant-and-operation` — Tenant, Rollen und Betrieb: 37 services, 25 top files
 - `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files
+
+Case types:
+
+- `stammdaten_marktrollen_klaerfall` — Stammdaten-/Marktrollen-Klärfall: 25 signal files, maturity observed
+- `messwert_edm_plausibilitaetsfall` — Messwert-/EDM-Plausibilitätsfall: 25 signal files, maturity observed
+- `kunden_service_klaerfall` — Kunden-/Service-Klärfall: 25 signal files, maturity draft
 
 ## Coverage review candidates
 

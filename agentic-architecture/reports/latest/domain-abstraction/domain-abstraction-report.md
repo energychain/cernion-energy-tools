@@ -1,11 +1,11 @@
 # Domain Abstraction Report
 
-Generated: 2026-10-10T02:12:08.294Z
+Generated: 2026-10-10T03:02:13.755Z
 
-- Candidate files scanned: 811
+- Candidate files scanned: 828
 - Services classified: 144
 - Unclassified services: 0
-- Fingerprint: 214f0461f2a35d8fa2ef28f9b689c4e41917d275223a289104f14304f5721622
+- Fingerprint: 47e7eb94ace055ebd887e8a146a25dc321c970f0f665a833bef3b187d6221596
 
 ## Cluster counts
 
@@ -18,6 +18,12 @@ Generated: 2026-10-10T02:12:08.294Z
 - `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files, 2399 top-file hits
 - `tenant-and-operation` — Tenant, Rollen und Betrieb: 37 services, 25 top files, 7436 top-file hits
 - `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files, 4229 top-file hits
+
+## Case type coverage
+
+- `stammdaten_marktrollen_klaerfall` — Stammdaten-/Marktrollen-Klärfall: 25 signal files, maturity observed
+- `messwert_edm_plausibilitaetsfall` — Messwert-/EDM-Plausibilitätsfall: 25 signal files, maturity observed
+- `kunden_service_klaerfall` — Kunden-/Service-Klärfall: 25 signal files, maturity draft
 
 ## Shepherd interpretation
 
