@@ -9,6 +9,15 @@ function catalogPrefix(tenantId) {
   return `dataset:${createHash('sha256').update(tenantId).digest('hex')}:`;
 }
 
+function visibleDataset(doc, p) {
+  return (
+    canViewEvidence(doc, p.clearance, p.tenantId) &&
+    (doc.requiredClearance || []).every((level) =>
+      canViewEvidence({ ...doc, sensitivityLevel: level }, p.clearance, p.tenantId)
+    )
+  );
+}
+
 // Stored in the existing datapoint DB, outside the public dp: namespace.
 // Thus legacy datapoint listing/export endpoints cannot expose tenant records.
 const datasetCatalogActions = {
@@ -31,7 +40,7 @@ const datasetCatalogActions = {
         });
         return rows
           .map((row) => row.doc)
-          .filter((doc) => doc.hash && canViewEvidence(doc, p.clearance, p.tenantId))
+          .filter((doc) => doc.hash && visibleDataset(doc, p))
           .map((doc) => ({ hash: doc.hash, id: doc.datasetId }));
       }
       if (ctx.params.operation === 'list') {
@@ -42,7 +51,7 @@ const datasetCatalogActions = {
         });
         return rows
           .map((row) => row.doc)
-          .filter((doc) => canViewEvidence(doc, p.clearance, p.tenantId))
+          .filter((doc) => visibleDataset(doc, p))
           .map((doc) => doc.data.value);
       }
       const input = ctx.params.record;
@@ -54,8 +63,7 @@ const datasetCatalogActions = {
       } catch (error) {
         if (error.status !== 404) throw error;
       }
-      if (previous && !canViewEvidence(previous, p.clearance, p.tenantId))
-        deny('Dataset not accessible');
+      if (previous && !visibleDataset(previous, p)) deny('Dataset not accessible');
       if (ctx.params.operation === 'remove') {
         if (previous) {
           await this.db.put({
@@ -66,6 +74,7 @@ const datasetCatalogActions = {
             kind: 'deleted',
             hash: previous.provenanceHash,
             sensitivityLevel: previous.sensitivityLevel,
+            requiredClearance: previous.requiredClearance || [],
             actorId: p.actorId,
             at: new Date().toISOString(),
           });
@@ -76,11 +85,14 @@ const datasetCatalogActions = {
       }
       if (input.tenantId !== p.tenantId) deny('Tenant mismatch');
       assertSensitivityAllowed(input.sensitivityLevel, p.clearance);
+      for (const level of input.requiredClearance || [])
+        assertSensitivityAllowed(level, p.clearance);
       const doc = {
         _id: `${prefix}${id}`,
         ...(previous ? { _rev: previous._rev } : {}),
         tenantId: p.tenantId,
         sensitivityLevel: input.sensitivityLevel,
+        requiredClearance: input.requiredClearance || [],
         name: id,
         description: input.title,
         owner: input.provenance.person,

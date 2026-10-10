@@ -113,6 +113,12 @@ module.exports = {
             responseText: `${record.title}, Version ${record.version}: ${record.rowCount} Zeilen, ${record.period.from || 'Zeitraum ungeklärt'} bis ${record.period.to || 'ungeklärt'}; Nutzerangabe von ${record.provenance.person} am ${record.provenance.at.slice(0, 10)}.`,
             datasets: [{ id: record.id, title: record.title }],
           };
+        if (record.structuredFormat)
+          return require('../src/structured-message').queryStructured(
+            this.datasetPool,
+            record,
+            ctx.params
+          );
         const plan = ctx.params.plan || (await datasetQueryPlan(record, ctx.params.question));
         return executeDatasetQuery(this.datasetPool, record, { ...ctx.params, plan });
       },
@@ -141,6 +147,8 @@ module.exports = {
   },
   methods: {
     async datasetTurn(ctx, p) {
+      const structured = await require('../src/structured-message').structuredTurn(this, ctx, p);
+      if (structured) return structured;
       const { question, documents, conversationId } = ctx.params;
       const ordinary = [],
         tables = [];

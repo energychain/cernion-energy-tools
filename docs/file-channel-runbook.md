@@ -63,7 +63,7 @@ Office-Makros, eingebettete Objekte und externe Verknüpfungen werden abgewiesen
 | Einstellung | Default | Bedeutung |
 | --- | --- | --- |
 | `CET_FILE_MAX_BYTES` | 10485760 | Originalgröße, vor Decodierung geprüft |
-| `CET_FILE_ALLOWED_TYPES` | pdf,docx,xlsx,csv,pptx,txt,eml | Teilmenge der implementierten Allowlist |
+| `CET_FILE_ALLOWED_TYPES` | pdf,docx,xlsx,csv,pptx,txt,eml,edi,edifact | Teilmenge der implementierten Allowlist |
 | `CET_FILE_MAX_EXPANDED_BYTES` | 33554432 | Summe aller Office-ZIP-Einträge |
 | `CET_FILE_MAX_SHEET_ROWS` | 50000 | Zeilengrenze je XLSX-Blatt |
 | `CET_FILE_RETENTION_DAYS` | 30 | Aufbewahrung; Abruf verweigert nach Ablauf |

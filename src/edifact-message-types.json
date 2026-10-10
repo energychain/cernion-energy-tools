@@ -1,0 +1,35 @@
+{
+  "INVOIC": {
+    "label": "Rechnungen",
+    "required": ["BGM", "DTM", "MOA"],
+    "amounts": { "line": ["203"], "net": ["79"], "tax": ["124"], "total": ["77"] },
+    "groupStarts": ["LIN"],
+    "date": "137",
+    "from": "163",
+    "to": "164"
+  },
+  "MSCONS": {
+    "label": "Messwerte",
+    "required": ["BGM", "LOC", "QTY"],
+    "groupStarts": ["LOC", "CCI"],
+    "date": "137",
+    "from": "163",
+    "to": "164"
+  },
+  "UTILMD": {
+    "label": "Vorgänge",
+    "required": ["BGM", "IDE"],
+    "groupStarts": ["IDE"],
+    "date": "137",
+    "from": "163",
+    "to": "164"
+  },
+  "APERAK": {
+    "label": "Statusmeldungen",
+    "required": ["BGM"],
+    "groupStarts": ["ERC"],
+    "date": "137",
+    "from": "163",
+    "to": "164"
+  }
+}

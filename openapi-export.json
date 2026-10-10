@@ -76179,6 +76179,8 @@
                         "text/csv",
                         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                         "text/plain",
+                        "application/edifact",
+                        "application/edifact",
                         "message/rfc822"
                       ]
                     },
@@ -76236,6 +76238,8 @@
                       "text/csv",
                       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                       "text/plain",
+                      "application/edifact",
+                      "application/edifact",
                       "message/rfc822"
                     ]
                   },
@@ -76301,6 +76305,12 @@
                 }
               },
               "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/edifact": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
