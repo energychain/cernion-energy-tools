@@ -48,7 +48,8 @@ function prepareAnswerEvidence(evidence, situation, limit = 500) {
         evidenceId: hit.evidenceId,
         source: hit.source,
         title: readableSourceTitle(hit),
-        value: value.slice(best, best + limit),
+        value:
+          hit.source === 'dataset.query' ? value.slice(0, 12000) : value.slice(best, best + limit),
       };
     });
 }
@@ -100,10 +101,13 @@ function readableSourceTitle(hit) {
   const metadata = hit.metadata || {};
   const candidates = [
     metadata.documentTitle,
+    metadata.sourceTitle,
+    metadata.documentName,
     metadata.document?.title,
     metadata.source?.title,
     metadata.title,
     hit.documentTitle,
+    hit.sourceTitle,
     hit.title,
   ];
   const clean = (value) =>
@@ -116,12 +120,18 @@ function readableSourceTitle(hit) {
     // Technical references are not document titles, even with their extension removed.
     if (
       !candidate ||
+      /^(?:okay|ok\b|hier\b|gerne\b|natürlich\b|klar\b|ich\b|dies(?:e|er|es)\b|das ist\b)/iu.test(
+        String(candidate).trim()
+      ) ||
       /^(?:[a-z]\)|\d+[.)]\s)|^[a-zäöü].*,/u.test(String(candidate)) ||
       (candidate === hit.title &&
         !metadata.title &&
         !metadata.documentTitle &&
         String(hit.value || hit.summary || '').startsWith(String(candidate))) ||
-      /\.[a-z][a-z0-9]{0,7}(?:$|\s)|^(?:[\w-]+\s+)?E[_-]\d+$|[/\\]/iu.test(candidate)
+      /^(?:[\w-]+\s+)?E[_-]?\d+(?:\.[a-z\d]{1,8})?$|^[0-9a-f-]{16,}(?:\.[a-z\d]{1,8})?$|[/\\]/iu.test(
+        candidate
+      ) ||
+      (candidate !== metadata.documentName && /\.[a-z][a-z0-9]{0,7}(?:$|\s)/iu.test(candidate))
     )
       continue;
     const title = clean(candidate);

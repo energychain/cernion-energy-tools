@@ -7,7 +7,7 @@ function quoteDatasetField(name) {
   return `"${String(name).replaceAll('"', '""')}"`;
 }
 function formatDatasetNumber(value) {
-  return Number(value).toLocaleString('de-DE', { maximumFractionDigits: 9 });
+  return Number(value).toLocaleString('de-DE', { maximumFractionDigits: 3 });
 }
 
 function compileDatasetPlan(record, input, sql, params, utcAlias, localAlias) {
@@ -43,12 +43,19 @@ function compileDatasetPlan(record, input, sql, params, utcAlias, localAlias) {
         value = operation.value;
       const ops = { eq: '=', neq: '<>', gt: '>', gte: '>=', lt: '<', lte: '<=' };
       if (operation.field === record.semantic.timeField && ops[operation.operator]) {
-        field = quoteDatasetField(utcAlias);
-        value = require('./dataset-time').normalizeDatasetTimes(
-          [{ [operation.field]: value }],
-          operation.field,
-          record.semantic.timezone
-        ).utc[0];
+        if (
+          ['eq', 'neq'].includes(operation.operator) &&
+          /^\d{4}(?:-\d{2}(?:-\d{2})?)?$/.test(String(value))
+        ) {
+          field = `substr(${quoteDatasetField(localAlias)},1,${String(value).length})`;
+        } else {
+          field = quoteDatasetField(utcAlias);
+          value = require('./dataset-time').normalizeDatasetTimes(
+            [{ [operation.field]: String(value).replace(/T00:00:00(?:\.000)?Z$/, 'T00:00:00') }],
+            operation.field,
+            record.semantic.timezone
+          ).utc[0];
+        }
         if (!value) throw new Error('Ungültiger Zeitfilter.');
       }
       if (ops[operation.operator]) {
@@ -61,6 +68,13 @@ function compileDatasetPlan(record, input, sql, params, utcAlias, localAlias) {
       scopeSql = plannedSql;
       scopeParams = [...plannedParams];
       const group = (operation.groupBy || []).map(quoteDatasetField);
+      if (
+        operation.metrics.some(
+          (metric) =>
+            metric.fn === 'sum' && units[record.semantic.units[metric.field]]?.dimension === 'power'
+        )
+      )
+        throw new Error('Leistungswerte dürfen nur mit Zeitraster zu Energie integriert werden.');
       const metrics = operation.metrics.map(
         (metric) =>
           `${metric.fn.toUpperCase()}(${metric.field ? quoteDatasetField(metric.field) : '*'}) AS ${quoteDatasetField(metric.as)}`
@@ -114,17 +128,34 @@ function executeDatasetQuery(pool, record, input) {
   while (occupied.has(localAlias.toLowerCase())) localAlias += '_';
   let sql = `SELECT ${select}, utc AS ${quoteDatasetField(utcAlias)}, local_time AS ${quoteDatasetField(localAlias)} FROM ${table}`;
   let params = [];
+  const requestedYear = String(input.question || '').match(/\b(20\d{2})\b/)?.[1];
+  if (requestedYear && !input.from && !input.to && timeIndex >= 0) {
+    sql = `SELECT * FROM (${sql}) WHERE substr(${quoteDatasetField(localAlias)},1,4) = ?`;
+    params.push(requestedYear);
+  }
   if (input.from || input.to) {
     if (timeIndex < 0) throw new Error('Kein Zeitfeld für diesen Filter vorhanden.');
-    // UTC limits are explicit; local month/day grouping uses the original local date.
+    // Floating boundaries use dataset wall time; explicit offsets remain instants.
     sql = `SELECT * FROM (${sql}) WHERE 1=1`;
     if (input.from) {
       sql += ` AND ${quoteDatasetField(utcAlias)} >= ?`;
-      params.push(new Date(input.from).toISOString());
+      const from = require('./dataset-time').normalizeDatasetTimes(
+        [{ time: input.from }],
+        'time',
+        semantic.timezone
+      ).utc[0];
+      if (!from) throw new Error('Ungültiger Zeitfilter.');
+      params.push(from);
     }
     if (input.to) {
       sql += ` AND ${quoteDatasetField(utcAlias)} < ?`;
-      params.push(new Date(input.to).toISOString());
+      const to = require('./dataset-time').normalizeDatasetTimes(
+        [{ time: input.to }],
+        'time',
+        semantic.timezone
+      ).utc[0];
+      if (!to) throw new Error('Ungültiger Zeitfilter.');
+      params.push(to);
     }
   }
   const { plan, plannedSql, plannedParams, scopeSql, scopeParams } = compileDatasetPlan(
@@ -201,10 +232,12 @@ function executeDatasetQuery(pool, record, input) {
             )
             .all(...params)
         : [];
+    const publishedStats = { ...stats };
+    if (scale?.dimension === 'power') delete publishedStats.sum;
     summaries.push({
       field: column.name,
       unit,
-      ...stats,
+      ...publishedStats,
       peak,
       missing: stats.rows - stats.present,
       missingAt,
@@ -244,7 +277,7 @@ function executeDatasetQuery(pool, record, input) {
       continue;
     }
     lines.push(
-      `${summary.field}: Maximum ${formatDatasetNumber(summary.max)} ${summary.unit}${summary.peak?.at ? ` am ${summary.peak.at} (${semantic.timezone})` : ''}; Minimum ${formatDatasetNumber(summary.min)} ${summary.unit}; Mittelwert ${formatDatasetNumber(summary.mean)} ${summary.unit} aus ${summary.present} vorhandenen Werten. ${summary.missing} leere Werte und ${summary.outliers} statistische Ausreißer (mehr als drei Standardabweichungen).`
+      `${summary.field}: Maximum ${formatDatasetNumber(summary.max)} ${summary.unit}${summary.peak?.at ? ` am ${summary.peak.at} (${semantic.timezone})` : ''}; Minimum ${formatDatasetNumber(summary.min)} ${summary.unit}; Mittelwert ${Number(summary.mean).toLocaleString('de-DE', { maximumFractionDigits: 1 })} ${summary.unit} aus ${summary.present} vorhandenen Werten. ${summary.missing} leere Werte und ${summary.outliers} statistische Ausreißer (mehr als drei Standardabweichungen).`
     );
     if (summary.missingAt.length)
       lines.push(
@@ -273,30 +306,93 @@ function executeDatasetQuery(pool, record, input) {
     `${record.quality.gaps} fehlende Zeitintervalle; ${record.quality.duplicates} doppelte Zeitpunkte nach Zeitzonenauflösung. ${record.quality.transitions.length} Zeitumstellungen${record.quality.transitions.length ? ': ' + record.quality.transitions.map((transition) => `${transition.at} (${transition.offsetMinutes > 0 ? '+' : ''}${transition.offsetMinutes} Minuten)`).join('; ') : ''}.`
   );
   lines.push(...semantic.assumptions);
-  const resultUnits = Object.fromEntries(
-    plan.operations
-      .filter((operation) => operation.op === 'aggregate')
-      .flatMap((operation) =>
-        operation.metrics.map((metric) => [
-          metric.as,
-          metric.fn === 'count' ? 'Zeilen' : semantic.units[metric.field] || 'Einheit ungeklärt',
-        ])
-      )
+  const question = input.question || '';
+  const overview = /auffäll|auffaell|überblick|ueberblick|zusammenfassung|overview/i.test(question);
+  const aggregate = plan.operations.find((operation) => operation.op === 'aggregate');
+  const requestedFields = new Set(aggregate.metrics.map((metric) => metric.field).filter(Boolean));
+  const summary = summaries.find(
+    (entry) => entry.present && (!requestedFields.size || requestedFields.has(entry.field))
   );
-  if (input.plan)
-    lines.push(
-      ...result.map(
-        (row) =>
-          Object.entries(row)
-            .map(
-              ([name, value]) =>
-                `${name}: ${typeof value === 'number' ? `${formatDatasetNumber(value)} ${resultUnits[name] || semantic.units[name] || 'Einheit ungeklärt'}` : value}`
-            )
-            .join('; ') + `; Zeitraum ${period}.`
+  const origin = `Herkunft: ${record.title}, Version ${record.version}; ${provenance}.`;
+  let answer = lines.slice(1).join('\n\n');
+  if (!overview && summary) {
+    if (/monat|month/i.test(question)) {
+      answer = summary.monthly
+        .map(
+          (month) =>
+            `${month.month}: ${formatDatasetNumber(month.value)} ${month.unit} (${semantic.timezone}).`
+        )
+        .join('\n');
+    } else if (
+      /energie|arbeit/i.test(question) ||
+      (/summe|gesamt/i.test(question) &&
+        ['power', 'energy'].includes(units[summary.unit]?.dimension))
+    ) {
+      answer =
+        summary.integral == null
+          ? 'Eine Energierechnung ist ohne bestätigte Einheit und Zeitraster nicht möglich.'
+          : `Die Energie ${requestedYear ? `im Jahr ${requestedYear}` : `im Zeitraum ${period}`} beträgt ${formatDatasetNumber(summary.integral)} ${summary.integralUnit}${summary.integralUnit !== 'MWh' ? ` (${formatDatasetNumber((summary.integral * (units[summary.integralUnit]?.factor || 1)) / 1000000)} MWh)` : ''}.${summary.missing ? ` ${summary.missing} leere Werte wurden ausgelassen, nicht geschätzt.` : ''}`;
+    } else if (/anzahl|wie viele|count/i.test(question)) {
+      answer = `Die Abfrage umfasst ${formatDatasetNumber(summary.rows)} Zeilen.`;
+    } else if (/summe|gesamt/i.test(question)) {
+      answer = `Die Summe beträgt ${formatDatasetNumber(summary.sum)} ${summary.unit}.`;
+    } else if (/mittel|durchschnitt/i.test(question)) {
+      answer = `Der Mittelwert beträgt ${Number(summary.mean).toLocaleString('de-DE', { maximumFractionDigits: 1 })} ${summary.unit}.`;
+    } else if (/minim|niedrig|kleinst/i.test(question)) {
+      answer = `Der niedrigste Wert beträgt ${formatDatasetNumber(summary.min)} ${summary.unit}.`;
+    } else if (/spitzen|maxim|höchst|hoechst|größt|groesst/i.test(question)) {
+      answer = `Die Spitzenlast lag bei ${formatDatasetNumber(summary.max)} ${summary.unit}${summary.peak?.at ? ` am ${summary.peak.at} (${semantic.timezone})` : ''}.`;
+    } else {
+      const labels = {
+        count: 'Anzahl',
+        avg: 'Mittelwert',
+        min: 'Minimum',
+        max: 'Maximum',
+        sum: 'Summe',
+      };
+      answer = result
+        .map((row) =>
+          aggregate.metrics
+            .map((metric) => {
+              const value = row[metric.as];
+              const unit =
+                metric.fn === 'count'
+                  ? 'Zeilen'
+                  : semantic.units[metric.field] || 'Einheit ungeklärt';
+              return `${labels[metric.fn]}: ${typeof value === 'number' ? formatDatasetNumber(value) : value} ${unit}.`;
+            })
+            .join(' ')
+        )
+        .join('\n');
+    }
+  }
+  if (!overview && aggregate.metrics.length > 1) {
+    const labels = {
+      count: 'Anzahl',
+      avg: 'Mittelwert',
+      min: 'Minimum',
+      max: 'Maximum',
+      sum: 'Summe',
+    };
+    answer = result
+      .map((row) =>
+        aggregate.metrics
+          .map((metric) => {
+            const value = row[metric.as];
+            const unit =
+              metric.fn === 'count'
+                ? 'Zeilen'
+                : semantic.units[metric.field] || 'Einheit ungeklärt';
+            const field = metric.field ? ` (${metric.field})` : '';
+            return `${labels[metric.fn]}${field}: ${typeof value === 'number' ? formatDatasetNumber(value) : value} ${unit}.`;
+          })
+          .join(' ')
       )
-    );
+      .join('\n');
+  }
   return {
-    responseText: lines.join('\n\n'),
+    responseText: `${answer}\n\n${origin}`,
+    rowCount: db.prepare(`SELECT COUNT(*) AS n FROM (${sql})`).get(...params).n,
     datasetId: record.id,
     version: record.version,
     summaries,

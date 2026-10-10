@@ -114,7 +114,7 @@ test('AC-01 executes catalogued read with delegated identity and evidence proven
   expect(response.responseText).toContain('Synthetic A');
   expect(response.responseText).toContain('Herkunft:');
   expect(response.responseText).not.toContain('energy-market.installations');
-  expect(response.responseText).toContain('Abruf:');
+  expect(response.responseText).toContain('Abruf ');
   expect(response.responseText).not.toContain('kein Zugriff');
 });
 
