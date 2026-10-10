@@ -72,10 +72,14 @@ function basisMatches(basis, message) {
     (token) =>
       words.has(token) ||
       (token.length >= 6 &&
-        /^[\p{L}]+$/u.test(token) &&
+        /^\p{L}+$/u.test(token) &&
         [...words].some(
           (word) =>
-            word.length >= 6 && /^[\p{L}]+$/u.test(word) && token.slice(0, -2) === word.slice(0, -2)
+            word.length >= 6 &&
+            /^\p{L}+$/u.test(word) &&
+            Math.abs(token.length - word.length) <= 2 &&
+            token.slice(0, Math.min(token.length, word.length) - 2) ===
+              word.slice(0, Math.min(token.length, word.length) - 2)
         ))
   );
   return tokens.length >= 3 && covered.length / tokens.length >= 0.8;
@@ -99,10 +103,19 @@ function matchesAnchor(anchor, message, identifiers = []) {
     )
       return false;
     // An explicitly supplied parenthesized qualifier must agree, even if unknown locally.
-    const suffix = [...String(message).matchAll(/([^()]*)\(([^()]+)\)/g)].find((match) =>
-      store.normalizeAnchor(match[1]).endsWith(base)
-    );
-    if (suffix && qualifier && store.normalizeAnchor(suffix[2]) !== qualifier) return false;
+    const fragments = String(message).split('(');
+    const suffix = fragments
+      .slice(1)
+      .find(
+        (part, index) =>
+          part.includes(')') && ` ${store.normalizeAnchor(fragments[index])}`.endsWith(` ${base}`)
+      );
+    if (
+      suffix &&
+      qualifier &&
+      store.normalizeAnchor(suffix.slice(0, suffix.indexOf(')'))) !== qualifier
+    )
+      return false;
     return true;
   });
 }
@@ -137,7 +150,7 @@ function selectedAnchors(facts, message, identifiers = []) {
   return { facts: matched, ambiguous: '' };
 }
 function observation(ctx) {
-  return (ctx.meta.tenantMemoryObservation ||= {
+  ctx.meta.tenantMemoryObservation ||= {
     candidates: 0,
     accepted: 0,
     rejected: {},
@@ -146,7 +159,8 @@ function observation(ctx) {
     assessmentResult: 'not_started',
     relations: 0,
     notices: 0,
-  });
+  };
+  return ctx.meta.tenantMemoryObservation;
 }
 function beforeTurn(ctx) {
   if (ctx.options?.parentCtx?.action?.name === 'workbench.chat') return;
@@ -156,13 +170,16 @@ function beforeTurn(ctx) {
 function afterTurn(ctx, result) {
   if (ctx.options?.parentCtx?.action?.name === 'workbench.chat') return result;
   const stats = observation(ctx);
-  Promise.allSettled(observationJobs.get(stats) || []).then(() => logObservation(ctx));
+  void Promise.allSettled(observationJobs.get(stats) || [])
+    .then(() => logObservation(ctx))
+    .catch(() => ctx.broker.logger.warn('Tenant memory observation unavailable'));
   return result;
 }
 function logObservation(ctx) {
   const stats = observation(ctx);
   if (stats.logged) return;
-  const { logged: _logged, ...counts } = stats;
+  const counts = { ...stats };
+  delete counts.logged;
   stats.logged = true;
   ctx.broker.logger.info('Tenant memory', counts);
 }
@@ -184,7 +201,15 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags 
     const facts = [];
     const confirmations = [];
     for (const assertion of assertions) {
-      const ambiguity = store.ambiguous(assertion.anchors, existing);
+      const messageWords = ` ${store.normalizeAnchor(message)} `;
+      const groundedAnchors = assertion.anchors.map((anchor) => {
+        const qualified = store.qualifiedAnchor(anchor);
+        return qualified.qualifier &&
+          !messageWords.includes(` ${store.normalizeAnchor(qualified.qualifier)} `)
+          ? { ...qualified, qualifier: '' }
+          : qualified;
+      });
+      const ambiguity = store.ambiguous(groundedAnchors, existing);
       if (ambiguity) {
         stats.rejected.ambiguous = (stats.rejected.ambiguous || 0) + 1;
         return {
@@ -531,7 +556,9 @@ async function related(ctx, p, situation, message) {
     identifiers
   );
   const matched = selection.facts;
-  observation(ctx).anchorHits += matched.length;
+  const stats = observation(ctx);
+  stats.anchorHits += matched.length;
+  if (selection.ambiguous) stats.rejected.ambiguous = (stats.rejected.ambiguous || 0) + 1;
   const paragraphs = [];
   for (const id of new Set(matched.flatMap((fact) => fact.relationIds))) {
     try {
@@ -555,16 +582,19 @@ async function queryResponse(ctx, p, message, selector = {}) {
   if (!available(ctx)) return null;
   const facts = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
   const term = store.normalizeAnchor(selector.anchor || selector.functionLabel || '');
-  const selection = selector.functionLabel
-    ? {
-        facts: facts.filter((fact) =>
-          store.normalizeAnchor(fact.person.functionLabel).includes(term)
-        ),
-        ambiguous: '',
-      }
-    : !term && !message
-      ? { facts, ambiguous: '' }
-      : selectedAnchors(facts, selector.anchor || message);
+  let selection;
+  if (selector.functionLabel) {
+    selection = {
+      facts: facts.filter((fact) =>
+        store.normalizeAnchor(fact.person.functionLabel).includes(term)
+      ),
+      ambiguous: '',
+    };
+  } else if (!term && !message) {
+    selection = { facts, ambiguous: '' };
+  } else {
+    selection = selectedAnchors(facts, selector.anchor || message);
+  }
   const matches = selection.facts;
   observation(ctx).anchorHits += matches.length;
   if (selection.ambiguous) observation(ctx).rejected.ambiguous = 1;
@@ -596,12 +626,13 @@ async function preturn(ctx, p, envelope, pending) {
   )
     return null;
   const message = envelope.userRequest.trim();
-  const anchor = message.match(
-    /^was wissen wir (?:insgesamt\s+)?(?:zu|zur|zum|über)\s+(.+?)[?!.]*$/i
-  );
-  const fn = message.match(/^was hat (?:die |der |das )?(.+?) festgehalten[?!.]*$/i);
-  if (anchor || fn)
-    return queryResponse(ctx, p, message, { anchor: anchor?.[1], functionLabel: fn?.[1] });
+  let end = message.length;
+  while (end > 0 && '?!.'.includes(message[end - 1])) end--;
+  const question = message.slice(0, end).trimEnd();
+  const prefix = question.match(/^was wissen wir (?:insgesamt\s+)?(?:zu|zur|zum|über)\s+/i);
+  const anchor = prefix ? question.slice(prefix[0].length) : '';
+  const fn = question.match(/^was hat (?:die |der |das )?(.+?) festgehalten$/i);
+  if (anchor || fn) return queryResponse(ctx, p, message, { anchor, functionLabel: fn?.[1] });
   const revoke = /^(?:streich das|gilt nicht mehr|(?:das )?widerrufe ich)[.!\s]*$/i.test(message);
   const correct = /^(?:das stimmt so nicht|korrigier(?:e)? das)[.!\s]*$/i.test(message);
   if (revoke || correct) {

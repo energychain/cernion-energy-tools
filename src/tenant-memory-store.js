@@ -102,11 +102,13 @@ function candidates(fact, facts) {
   const frequency = new Map();
   for (const item of valid)
     for (const anchor of keys(item)) frequency.set(anchor, (frequency.get(anchor) || 0) + 1);
-  const strong = keys(fact).filter(
-    (anchor) => Math.log((valid.length + 4) / ((frequency.get(anchor) || 0) + 1)) >= Math.log(2)
+  const strong = new Set(
+    keys(fact).filter(
+      (anchor) => Math.log((valid.length + 4) / ((frequency.get(anchor) || 0) + 1)) >= Math.log(2)
+    )
   );
   return valid.filter(
-    (item) => item.id !== fact.id && keys(item).some((anchor) => strong.includes(anchor))
+    (item) => item.id !== fact.id && keys(item).some((anchor) => strong.has(anchor))
   );
 }
 
@@ -154,6 +156,7 @@ module.exports = {
   namespace,
   key,
   normalizeAnchor,
+  qualifiedAnchor,
   anchorKeys,
   active,
   query,

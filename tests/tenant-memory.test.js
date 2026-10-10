@@ -126,6 +126,15 @@ describe('tenant memory acceptance and lifecycle', () => {
     const text =
       'Das Vorhaben Projekt-Q startet spätestens 2034. Alle Beteiligten werden informiert.';
     const item = assertion(text, [{ value: 'Projekt-Q', qualifier: '', aliases: [] }]);
+    const inflected = assertion('Planung Projekt-Q beginnt', [
+      { value: 'Projekt-Q', qualifier: '', aliases: [] },
+    ]);
+    expect(
+      memory.acceptedAssertion(
+        { ...inflected, basis: 'Planungen Projekt-Q beginnen' },
+        inflected.text
+      )
+    ).toBe(true);
     expect(
       memory.acceptedAssertion(
         { ...item, basis: 'das vorhaben projekt q startet spätestens 2034' },
@@ -150,6 +159,31 @@ describe('tenant memory acceptance and lifecycle', () => {
         text
       )
     ).toBe(false);
+  });
+
+  test('long punctuation runs in anchor queries and qualified matching remain bounded', async () => {
+    const ctx = context(app),
+      p = principal();
+    const text = 'Planung Projekt-Q Testbezirk';
+    await memory.capture(ctx, p, {
+      situation: situation(text, [
+        assertion(text, [{ value: 'Projekt-Q', qualifier: 'Testbezirk', aliases: [] }]),
+      ]),
+      envelope: { userRequest: text, conversationId: 'long-anchor', channel: 'api' },
+    });
+    const noise = '.'.repeat(50000);
+    const started = performance.now();
+    expect(
+      (
+        await memory.preturn(ctx, p, {
+          userRequest: `Was wissen wir insgesamt zur ${noise} Projekt-Q?`,
+        })
+      ).statements
+    ).toHaveLength(1);
+    expect((await memory.related(ctx, p, {}, `Plane ${noise} Projekt-Q.`)).evidence).toHaveLength(
+      1
+    );
+    expect(performance.now() - started).toBeLessThan(2000);
   });
 
   test('a sole qualified tenant anchor works bare; multiple variants require clarification in queries and work', async () => {
@@ -523,6 +557,7 @@ describe('tenant memory acceptance and lifecycle', () => {
     await add('A', 'a');
     await add('B', 'b');
     expect((await add('', 'ambiguous')).ambiguous).toMatch(/A oder B|B oder A/);
+    expect((await add('A', 'inferred-qualifier')).ambiguous).toMatch(/A oder B|B oder A/);
   });
 
   test('AC-06/07: audited revocation, expiry, tenant and clearance isolation', async () => {
