@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Produktionsnacharbeit zu #774/#776, #755/#779 und #723: gezielte Datensatzantworten
+  über den normalen Antwortpfad mit `answerMs`, deutsche Rundung und eine Herkunftszeile.
+  Kalenderfilter nutzen die Datensatzzeitzone; rohe Leistungssummen sind gesperrt.
+- Werkzeugherkunft nennt ausgeführte Filter und verständliche Registerzustände.
+  Shared-Service-Hinweise passen zur aktuellen Arbeit und enthalten keine internen
+  Kennungen; Tenant-Gedächtnis-Hinweise behalten ihre bisherige Zustellung.
+  Generierte Einleitungssätze werden nicht als Quellentitel angezeigt.
+
 - Tenant-Datenkatalog (Phase 1, #774): strukturierte Open-WebUI-Anhänge erkennen,
   vollständige Zeilen tenantweise in SQLite und OEMetadata im bestehenden datapoint-Katalog
   speichern; deterministische Abfragen mit Einheit, Zeitbezug und Nutzerprovenienz.

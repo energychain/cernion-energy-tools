@@ -465,8 +465,58 @@ async function runCapabilityLoop(
         Math.round((deadline || started + retrievalTimeoutMs()) - performance.now())
       ),
     });
+    const datasetEvidence = {
+      source: 'dataset.query',
+      retrievalSource: 'capability-read',
+      title: 'Nutzerdatensatz',
+      value: result.responseText,
+      metadata: { tenantId: p.tenantId, datasetId: result.datasetId, version: result.version },
+    };
+    const reply = await require('./workbench-understanding').answer({
+      situation: {
+        concern: message || datasetRequest.question,
+        situation: message || datasetRequest.question,
+        hypotheses: [],
+        identifiers: [],
+        deadlines: [],
+        missingInformation: [],
+        requestedAction: { externalEffect: false },
+        outputKind: 'analysis',
+      },
+      retrieval: { evidence: [datasetEvidence], toolTrace: [] },
+      tenantId: p.tenantId,
+      message: message || datasetRequest.question,
+      followup: true,
+      logger,
+    });
+    const origin = result.responseText.split('\n\n').at(-1);
+    const evidenceNumbers = new Set(
+      (result.responseText.match(/[-−+]?\d+(?:[.,]\d+)*/g) || []).flatMap((value) => [
+        value,
+        ...(/^\d{2}\.\d{2}\.\d{4}$/.test(value) ? value.split('.') : []),
+      ])
+    );
+    const replyNumbers = reply.responseText.match(/[-−+]?\d+(?:[.,]\d+)*/g) || [];
+    const quantities = (text) =>
+      (text.match(/[-−+]?\d+(?:[.,]\d+)*\s*(?:MWh|kWh|Wh|MW|kW|W)\b/g) || []).map((value) =>
+        value.replace(/\s+/g, '').replace('−', '-')
+      );
+    const evidenceQuantities = new Set(quantities(result.responseText));
+    const groundedNumbers =
+      replyNumbers.length > 0 &&
+      replyNumbers.every((value) => evidenceNumbers.has(value)) &&
+      quantities(reply.responseText).every((value) => evidenceQuantities.has(value));
+    const responseText =
+      reply.answerStatus === 'grounded' &&
+      groundedNumbers &&
+      !/\b[\p{L}][\p{L}\d]*_[\p{L}\d_]+\s*:/u.test(reply.responseText)
+        ? [reply.responseText, origin?.startsWith('Herkunft:') ? origin : '']
+            .filter(Boolean)
+            .join('\n\n')
+        : result.responseText;
     return {
-      responseText: result.responseText,
+      responseText,
+      answerMs: reply.answerMs,
       evidence: [
         {
           source: 'dataset.query',
@@ -753,7 +803,9 @@ async function runCapabilityLoop(
           // Preserve canonical evidence locally; the answer masks its complete context.
           // Only the scrubbed observation is sent back to the planner below.
           const boundedResult = boundedJson(observation.data, limit, observation);
-          const value = boundedResult.value;
+          const value = JSON.stringify(
+            require('./tool-display').readableToolData(entry.name, JSON.parse(boundedResult.value))
+          );
           const protectedResult = opaqueContext({ data: JSON.parse(value) });
           plannerValue = JSON.stringify(protectedResult.value.data);
           let reference = 0;
@@ -797,8 +849,9 @@ async function runCapabilityLoop(
               statistics: observation.statistics,
               sourceStatistics: observation.sourceStatistics,
               matchedRowCount: observation.matchedRowCount,
-              filterText: message.trim().replace(/\s+/g, ' ').slice(0, 240),
+              filterText: require('./tool-display').readableToolFilters(entry.name, args.input),
               sourceLabel:
+                require('./tool-display').catalog[entry.name]?.source ||
                 result.metadata?.source?.title ||
                 result.metadata?.title ||
                 candidate.operation.summary,
@@ -905,7 +958,7 @@ function validateCachedReads(
   return { hits: accepted, rejected };
 }
 
-function toolReport(trace = [], evidence = [], message = '') {
+function toolReport(trace = [], evidence = [], _message = '') {
   return trace
     .filter((entry) => entry.status === 'available' && (entry.called || entry.cached))
     .map((entry) => {
@@ -917,11 +970,21 @@ function toolReport(trace = [], evidence = [], message = '') {
       );
       if (!hit) return '';
       const label = hit.metadata?.sourceLabel || 'Datenquelle';
-      const filter = hit.metadata?.filterText || message.trim().replace(/\s+/g, ' ').slice(0, 240);
+      const filter =
+        hit.metadata?.filterText ||
+        require('./tool-display').readableToolFilters(entry.name, hit.metadata?.parameters);
       const safeFilter = require('./workbench-tool-answer').internalToolText(filter, [hit])
         ? ''
         : filter;
-      return `Herkunft: ${label}; Abruf: ${entry.at}${safeFilter ? `; Filter laut Anfrage: ${safeFilter}` : ''}.`;
+      const at = new Date(entry.at).toLocaleString('de-DE', {
+        timeZone: 'Europe/Berlin',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      return `Herkunft: ${label}${safeFilter ? `, ${safeFilter}` : ''}; Abruf ${at}.`;
     })
     .join('\n\n');
 }

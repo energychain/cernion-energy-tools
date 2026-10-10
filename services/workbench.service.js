@@ -1535,6 +1535,10 @@ module.exports = {
             { meta: correctionMeta }
           );
           if (datasetTurn.handled) {
+            this.logger.info('Workbench turn phases and sources', {
+              phaseTimes: { answerMs: datasetTurn.answerMs || 0 },
+              sources: datasetTurn.sources || [],
+            });
             await conversationAssistance.saveTurn(this.conversationsDb, p, envelope, {
               tenantMemoryFactIds: [],
             });
@@ -1543,6 +1547,7 @@ module.exports = {
               nonBinding: true,
               responseText: datasetTurn.responseText,
               sources: datasetTurn.sources || [],
+              phaseTimes: { answerMs: datasetTurn.answerMs || 0 },
             };
           }
           if (datasetTurn.documents) envelope.documents = datasetTurn.documents;
