@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `69a0d67c4ef35b3c1fc5f1a09722b38f1d419d6d3c4842561b41585bb0c7c05a`
+Source SHA-256: `b6e42dda941afaed50d8340d94af4b34a2ef719f67ad76845bfda4d99fc58a7f`
 
 Capabilities: 172; functions: 110.
 Function vectors: 95/110; missing or incompatible capability vectors: 25.
@@ -14,7 +14,7 @@ Maximum degree target: ≤ 0.25 × 110 = 27.5; met: yes.
 
 Candidate degree before mutual selection: {"minimum":0,"median":3.5,"maximum":36,"isolatedFraction":0.2727272727272727}; pruned directed edges: 70; peer limit: 27.
 
-Operation index entries without action: 19/989.
+Operation index entries without action: 19/990.
 
 All curated capabilities are assigned once, including entries without resolvable operations.
 Edges describe catalog evidence only; they grant no authorization.
@@ -510,7 +510,7 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (74)
+## unresolvedStaticEvents (76)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:216: dynamic emission"}
@@ -528,6 +528,8 @@ None.
 - {"service":"cya","ref":"services/cya.service.js:3412: dynamic emission"}
 - {"service":"cya","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"cya","ref":"src/llm-client.js:216: dynamic emission"}
+- {"service":"dataset","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"dataset","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"datasource-classifier","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"decision-frame","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"decision-frame","ref":"src/llm-client.js:216: dynamic emission"}

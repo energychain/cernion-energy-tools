@@ -1,6 +1,7 @@
 {
   "minimumLength": 5,
   "corePaths": [
+    "src/dataset-*.js",
     "services/shared-service-notices.service.js",
     "src/shared-service-notices.js",
     "src/function-model.js",

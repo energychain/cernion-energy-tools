@@ -64,6 +64,7 @@ module.exports = {
   },
 
   actions: {
+    ...require('../src/dataset-catalog').datasetCatalogActions,
     // ------------------------------------------------------------------
     // create — create a direct metadata datapoint (no session promotion)
     // ------------------------------------------------------------------

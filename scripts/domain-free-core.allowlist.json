@@ -1,6 +1,58 @@
 {
   "entries": [
     {
+      "term": "deterministische",
+      "reason": "Generic deterministic execution requirement, independent of business domains."
+    },
+    {
+      "term": "dataset",
+      "reason": "Generic tenant table storage and read capability, independent of business domains."
+    },
+    {
+      "term": "workbook",
+      "reason": "Generic spreadsheet parser object."
+    },
+    {
+      "term": "sheet",
+      "reason": "Generic spreadsheet sheet identifier."
+    },
+    {
+      "term": "oemetadata",
+      "reason": "Existing metadata schema reused for the generic tenant catalog."
+    },
+    {
+      "term": "variance",
+      "reason": "Generic statistical quality metric."
+    },
+    {
+      "term": "monthly",
+      "reason": "Generic calendar aggregation."
+    },
+    {
+      "term": "quality",
+      "reason": "Generic data completeness and consistency metadata."
+    },
+    {
+      "term": "convention",
+      "reason": "Generic interval boundary convention."
+    },
+    {
+      "term": "integration",
+      "reason": "Generic arithmetic integration of a sampled quantity."
+    },
+    {
+      "term": "datei",
+      "reason": "Generic file input terminology."
+    },
+    {
+      "term": "upload",
+      "reason": "Generic transport terminology for a future file endpoint."
+    },
+    {
+      "term": "bedarf",
+      "reason": "Generic correction wording with no domain routing."
+    },
+    {
       "term": "diagnostics",
       "reason": "Generic per-turn execution telemetry; contains no subject data or domain routing rules."
     },

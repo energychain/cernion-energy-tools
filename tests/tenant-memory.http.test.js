@@ -9,6 +9,8 @@ const Notices = require('../services/shared-service-notices.service');
 const TokenManager = require('../services/token-manager.service');
 const Api = require('../services/api.service');
 const OpenAI = require('../services/openai-compatible.service');
+const Dataset = require('../services/dataset.service');
+const Datapoint = require('../services/datapoint.service');
 const { GOVERNANCE_MODEL } = require('../src/openai-models');
 const { provisionToken } = require('../scripts/provision-token');
 const { provisionMapping } = require('../scripts/provision-workbench-mapping');
@@ -27,6 +29,8 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
       CERNION_USER_REGISTRY_FILE: path.join(app.dir, 'users.json'),
       TOKEN_ROLE_AUDIT_FILE: path.join(app.dir, 'audit.jsonl'),
       RATE_QUOTA_DIR: path.join(app.dir, 'quotas'),
+      WORKBENCH_DATASET_DB_PATH: path.join(app.dir, 'dataset-rows'),
+      DATAPOINT_SCHEDULER_ENABLED: 'false',
     });
     fs.writeFileSync(
       app.registry,
@@ -50,6 +54,11 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
     });
     app.broker.createService({ ...Api, settings: { ...Api.settings, port: 0 } });
     app.broker.createService(OpenAI);
+    app.broker.createService({
+      ...Datapoint,
+      settings: { ...Datapoint.settings, dbPath: path.join(app.dir, 'dataset-catalog') },
+    });
+    app.broker.createService(Dataset);
     llm.generateStructured.mockImplementation(async (_schema, prompt) => {
       const input = JSON.parse(prompt);
       if (input.fact)
@@ -277,6 +286,26 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
     expect(query.text).not.toContain('Charly');
     const own = await request(fixture.first, 'Was wissen wir zu Hauptstraße?');
     expect(own.text).toContain('Charly');
+  });
+  test('table storage stays in the dataset catalog and never creates tenant assertions', async () => {
+    const response = await request(
+      fixture.first,
+      `<context><source name="Synthetic.csv">timestamp;value\n2031-01-01T00:00:00Z;1\n2031-01-01T00:15:00Z;2</source></context><user_query>${fixture.first.text}</user_query>`,
+      'table-only'
+    );
+    expect(response.status).toBe(200);
+    const meta = auth('Charly', ['ROLE_GRID_OPERATOR'], 'public');
+    const catalog = await app.call('datapoint.datasetCatalog', { operation: 'list' }, meta);
+    expect(catalog).toHaveLength(1);
+    const facts = await app.call(
+      'object-store.query',
+      {
+        namespace: 'tenant:public:workbench_facts',
+        selector: { 'payload.type': 'tenant_memory_fact' },
+      },
+      meta
+    );
+    expect(facts.docs).toHaveLength(0);
   });
   test('AC-02: reverse order in fresh conversations retains symmetric links', async () => {
     const d = await request(

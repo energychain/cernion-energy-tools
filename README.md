@@ -463,3 +463,10 @@ Support and product feedback:
 Inhaltliche Nachrichten und eingefügte Fremdtexte werden über die zentrale LLM-Fassade in ein Lagebild übersetzt. CET antwortet mit relevanten Quellen und höchstens drei neuen fachlichen Rückfragen. Konkrete Arbeitsaufgaben erhalten einen Hintergrundfall; „Kein Fall“ nimmt ihn zurück. Wissens- und Statusfragen erzeugen keinen Fall. Versandwünsche führen zu einem Hinweis und auf ausdrücklichen Wunsch zu einem internen Entwurf. Quellenzuordnung und Relevanzschwelle sind in `src/workbench-knowledge-sources.json` konfiguriert. Details und Grenzen stehen im [Tenant-Gateway-Leitfaden](docs/open-webui-tenant-gateway.md) und im [Akzeptanzbericht zu #739](docs/validation/739-acceptance.md).
 
 Organisationsrelevante Aussagen hält CET tenantweit fest und bestätigt sie einmal mit „Hab ich festgehalten: …“. Seltene gemeinsame Anker verbinden Aussagen verschiedener Personen; erkannte Wechselwirkungen erscheinen im Gespräch und einmal beim nächsten Kontakt der anderen Person. Tenant-Trennung und Vertraulichkeitsstufen gelten bei jedem Zugriff. Details stehen im [Tenant-Gedächtnis-Leitfaden](docs/tenant-memory.md).
+
+## Tenant-Datenkatalog
+
+Vollständige CSV-/XLSX-Texttabellen aus Open WebUI werden tenantweit als Nutzerangaben
+abgelegt und über `dataset.query` deterministisch ausgewertet. Gleicher Inhalt erzeugt
+auch bei erneut gesendeten Anhängen keine weitere Version oder Bestätigung.
+Einrichtung, Grenzen und Beispiele: [Tenant-Datenkatalog](docs/tenant-dataset-catalog.md).
