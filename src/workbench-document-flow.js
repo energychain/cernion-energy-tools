@@ -202,7 +202,22 @@ function renderReview(result) {
 
 function storedPassage(documents, question) {
   const reference = documentReference(question);
-  if (!reference) return null;
+  const edge =
+    /\b(?:anfang|beginn|erste(?:n|r)?\s+(?:zeile|absatz)|ende|schluss|letzte(?:n|r)?\s+(?:zeile|absatz))\b/iu.test(
+      question
+    );
+  if (!reference && !edge) return null;
+  if (edge && !reference) {
+    const last = /ende|schluss|letzte/iu.test(question);
+    return documents
+      .map((document) => {
+        const lines = document.text.split(/\r?\n/u).filter((line) => line.trim());
+        const line = last ? lines.at(-1) : lines[0];
+        const quote = last ? line.slice(-1500) : line.slice(0, 1500);
+        return `Am ${last ? 'Ende' : 'Anfang'} von ${document.name} steht: „${last && line.length > 1500 ? '…' : ''}${quote}${!last && line.length > 1500 ? '…' : ''}“`;
+      })
+      .join('\n\n');
+  }
   const found = [];
   for (const document of documents) {
     const spans = documentSections(document.text)
@@ -354,10 +369,31 @@ async function documentReply(
     },
   });
   const identity = documentIdentity(p, caseId);
+  let attached = [];
   if (envelope.documents?.length)
-    await attachDocuments(service.store, identity, envelope.documents);
+    attached = await attachDocuments(service.store, identity, envelope.documents, {
+      logger: service.logger,
+    });
+  const added = attached.filter((entry) => !entry.duplicate).length;
+  const storageNote = added ? `${added} Dokument(e) als Fallgrundlage gespeichert.` : '';
   const documents = await loadDocuments(service.store, identity);
   if (!documents.length) return null;
+  const question = envelope.userRequest;
+  const reviewRequested = isReviewRequest(question) || documentDraftRequested(question);
+  if (!reviewRequested && !/\b(?:ergebnis|review|prüfung|pruefung)\b/iu.test(question)) {
+    const table = documents.some((document) =>
+      require('./workbench-document-question').documentTable(document.text)
+    );
+    const answer =
+      (!table && storedPassage(documents, question)) ||
+      (
+        await require('./workbench-document-question').documentQuestion(documents, question, {
+          tenantId: p.tenantId,
+          logger: service.logger,
+        })
+      )?.responseText;
+    if (answer) return { responseText: [answer, storageNote].filter(Boolean).join('\n\n') };
+  }
   const passage = storedPassage(documents, envelope.userRequest);
   if (passage) return { responseText: passage };
   const key = reviewKey(p, envelope, caseId);
@@ -383,7 +419,7 @@ async function documentReply(
       retrieval: null,
     });
   }
-  if (visible && !envelope.documents?.length && !documentDraftRequested(envelope.userRequest)) {
+  if (visible && !added && !documentDraftRequested(envelope.userRequest)) {
     if (job.state === 'ready') {
       await service.conversationsDb.put({ ...job, state: 'delivered' });
       return { responseText: renderReview(job.result), result: job.result };
@@ -406,16 +442,8 @@ async function documentReply(
       };
     }
   }
-  if (
-    !isReviewRequest(envelope.userRequest) &&
-    situation.turnKind !== 'review' &&
-    !documentDraftRequested(envelope.userRequest)
-  )
-    return envelope.documents?.length
-      ? {
-          responseText: `${documents.length} Dokument(e) als Fallgrundlage gespeichert. Du kannst nach Kapitel oder Seite fragen oder ein Review beauftragen. Die Vollständigkeit der übermittelten Texte ist nicht bestätigt.`,
-        }
-      : null;
+  if (!isReviewRequest(envelope.userRequest) && !documentDraftRequested(envelope.userRequest))
+    return storageNote ? { responseText: storageNote } : null;
   const options = reviewOptions();
   const maps = documents.reduce(
     (sum, document) => sum + documentSections(document.text, options.chunkChars).length,
@@ -446,9 +474,29 @@ async function documentFollowup(service, { p, envelope, caseId, access }) {
     return null;
   const documents = await loadDocuments(service.store, documentIdentity(p, caseId));
   if (!documents.length) return null;
+  if (
+    !isReviewRequest(envelope.userRequest) &&
+    !/\b(?:ergebnis|review|prüfung|pruefung)\b/iu.test(envelope.userRequest)
+  ) {
+    const table = documents.some((document) =>
+      require('./workbench-document-question').documentTable(document.text)
+    );
+    if (table)
+      return require('./workbench-document-question').documentQuestion(
+        documents,
+        envelope.userRequest,
+        { tenantId: p.tenantId, logger: service.logger }
+      );
+  }
   const passage = storedPassage(documents, envelope.userRequest);
   if (passage) return { responseText: passage };
   const job = await readJob(service, reviewKey(p, envelope, caseId));
+  if (!job && !isReviewRequest(envelope.userRequest))
+    return require('./workbench-document-question').documentQuestion(
+      documents,
+      envelope.userRequest,
+      { tenantId: p.tenantId, logger: service.logger }
+    );
   if (!jobScope(job, p, caseId, access) || !jobMatchesDocuments(job, documents)) return null;
   if (job.state === 'ready') {
     await service.conversationsDb.put({ ...job, state: 'delivered' });

@@ -15,6 +15,8 @@ const {
   executeOperations,
   validateAndBindPlan,
   MAX_SOURCE_ROWS,
+  parseNumber,
+  hashValue,
 } = require('./tabular-intelligence');
 const { retrievalTimeoutMs, isSourceTimeout } = require('./workbench-retrieval');
 
@@ -245,6 +247,13 @@ function rowsIn(value) {
     const rows = rowsIn(value[key]);
     if (rows) return rows;
   }
+  for (const child of Object.values(value)) {
+    if (Array.isArray(child) && child.every((row) => row && typeof row === 'object')) return child;
+    if (child && !Array.isArray(child) && typeof child === 'object') {
+      const rows = rowsIn(child);
+      if (rows) return rows;
+    }
+  }
   return null;
 }
 
@@ -303,24 +312,89 @@ function summarizeResult(result, projection, tenantId, observations) {
     if (op.op === 'select') available = new Set(op.columns);
   }
   const summary = executeOperations(input, plan.operations, 20);
+  const allRows = executeOperations(input, plan.operations, MAX_SOURCE_ROWS).rows;
+  const aggregateAt = plan.operations.findIndex((op) => op.op === 'aggregate');
+  const sourceRows = executeOperations(
+    input,
+    plan.operations
+      .slice(0, aggregateAt < 0 ? plan.operations.length : aggregateAt)
+      .filter((op) => !['select', 'limit'].includes(op.op)),
+    MAX_SOURCE_ROWS
+  ).rows;
+  const sourceStatistics = numericStatistics(sourceRows);
+  const statistics = numericStatistics(
+    executeOperations(
+      input,
+      plan.operations.filter((op) => op.op !== 'limit'),
+      MAX_SOURCE_ROWS
+    ).rows
+  );
+  // Without an explicit ranking, put extrema before the sample so cutting rows
+  // from the tail cannot lose the largest entries.
+  if (!operations.some((op) => ['sort', 'limit', 'aggregate'].includes(op.op))) {
+    const primary = statistics[0];
+    const ranked = primary
+      ? [...allRows].sort(
+          (a, b) =>
+            (parseNumber(b[primary.field]) ?? -Infinity) -
+            (parseNumber(a[primary.field]) ?? -Infinity)
+        )
+      : allRows;
+    summary.rows = [
+      ...new Map(
+        [...statistics.map((stat) => stat.maxRow), ...ranked].map((row) => [hashValue(row), row])
+      ).values(),
+    ].slice(0, 20);
+  }
   return {
     ...summary,
-    allRows: executeOperations(input, plan.operations, MAX_SOURCE_ROWS).rows,
+    allRows,
+    statistics,
+    sourceStatistics,
+    matchedRowCount: sourceRows.length,
     count: rows.length,
     data: summary.rows,
   };
 }
 
-function boundedJson(data, limit) {
+function numericStatistics(rows) {
+  const fields = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+  return fields.flatMap((field) => {
+    const values = rows
+      .map((row) => ({ row, value: parseNumber(row[field]) }))
+      .filter((entry) => entry.value !== null);
+    if (!values.length) return [];
+    const max = values.reduce((a, b) => (a.value >= b.value ? a : b));
+    const min = values.reduce((a, b) => (a.value <= b.value ? a : b));
+    return [{ field, min: min.value, minRow: min.row, max: max.value, maxRow: max.row }];
+  });
+}
+
+function boundedJson(data, limit, summary = {}) {
   const value = JSON.stringify(data);
-  if (value.length <= limit) return { value, truncated: false };
-  const frame = { truncated: true, data: structuredClone(data) };
-  if (Array.isArray(frame.data)) {
-    while (frame.data.length && JSON.stringify(frame).length > limit) frame.data.pop();
-  } else if (frame.data && typeof frame.data === 'object') {
-    const keys = Object.keys(frame.data);
-    while (keys.length && JSON.stringify(frame).length > limit) delete frame.data[keys.pop()];
-  } else frame.data = null;
+  if (
+    value.length <= limit &&
+    !(summary.fullResultRowCount > (rowsIn(data)?.length ?? summary.fullResultRowCount))
+  )
+    return { value, truncated: false };
+  const rows = rowsIn(data);
+  if (!rows)
+    throw new Error(
+      'Das Ergebnis lässt sich innerhalb des Ausgabebudgets nicht vollständig darstellen.'
+    );
+  const frame = {
+    truncated: true,
+    count: summary.count ?? data?.count ?? rows.length,
+    data: structuredClone(data),
+  };
+  if (summary.statistics?.length) frame.statistics = summary.statistics;
+  const retainedRows = rowsIn(frame.data);
+  while (retainedRows.length && JSON.stringify(frame).length > limit) retainedRows.pop();
+  // Never turn a successful payload into a success flag or an empty sample.
+  if (rows.length && !retainedRows.length && !frame.statistics?.length)
+    throw new Error(
+      'Ein Datensatz überschreitet das Ausgabebudget; eine gezielte Projektion ist erforderlich.'
+    );
   const serialized = JSON.stringify(frame);
   if (serialized.length > limit) throw new Error('Ausgabebudget zu klein für gültige Daten');
   return { value: serialized, truncated: true };
@@ -509,6 +583,7 @@ async function runCapabilityLoop(
     { role: 'user', content: JSON.stringify(safe.value) },
   ];
   const maximum = positiveSetting('WORKBENCH_MAX_TOOL_CALLS', 3, 12);
+  const attempted = new Map();
   let calls = 0;
   try {
     while (calls < maximum && performance.now() < deadline) {
@@ -572,6 +647,19 @@ async function runCapabilityLoop(
           );
           entry.parameters = args.input;
           entry.projection = args.projection;
+          const requestKey = hashValue({
+            operation: candidate.operation.action,
+            input: args.input,
+          });
+          if (attempted.has(requestKey)) {
+            const earlier = attempted.get(requestKey);
+            // Repeated requests never spend backend time, including failed reads.
+            plannerValue = earlier.value;
+            entry.status = 'duplicate';
+            entry.sourceId = earlier.sourceId;
+            throw Object.assign(new Error('Bereits angefragt.'), { duplicateRead: true });
+          }
+          attempted.set(requestKey, { value: 'Bereits angefragt; keine erneute Abfrage.' });
           entry.called = true;
           entry.status = 'unavailable';
           const result = await bounded(
@@ -596,9 +684,9 @@ async function runCapabilityLoop(
           const limit = positiveSetting('WORKBENCH_TOOL_RESULT_CHARS', 6000, 16000);
           // Preserve canonical evidence locally; the answer masks its complete context.
           // Only the scrubbed observation is sent back to the planner below.
-          const boundedResult = boundedJson(observation.data, limit);
+          const boundedResult = boundedJson(observation.data, limit, observation);
           const value = boundedResult.value;
-          const protectedResult = opaqueContext({ data: observation.data });
+          const protectedResult = opaqueContext({ data: JSON.parse(value) });
           plannerValue = JSON.stringify(protectedResult.value.data);
           let reference = 0;
           for (const [placeholder, original] of protectedResult.reidentMap) {
@@ -606,11 +694,25 @@ async function runCapabilityLoop(
             plannerValue = plannerValue.replaceAll(placeholder, scoped);
             safe.reidentMap.set(scoped, original);
           }
-          plannerValue = boundedJson(JSON.parse(plannerValue), limit).value;
+          try {
+            plannerValue = boundedJson(JSON.parse(plannerValue), limit).value;
+          } catch {
+            // Masking may lengthen references. Preserve canonical evidence even
+            // when only numeric summaries fit into the planner context.
+            plannerValue = JSON.stringify({
+              count: observation.count,
+              statistics: observation.statistics?.map(({ field, min, max }) => ({
+                field,
+                min,
+                max,
+              })),
+            });
+          }
           entry.status = 'available';
           entry.hitCount = observation.count;
           entry.truncated = boundedResult.truncated || observation.fullResultRowCount > 20;
           entry.sourceId = `${entry.name}:${calls}`;
+          attempted.set(requestKey, { value: plannerValue, sourceId: entry.sourceId });
           currentEvidence = {
             source: entry.name,
             retrievalSource: 'capability-read',
@@ -623,6 +725,15 @@ async function runCapabilityLoop(
               at,
               parameters: args.input,
               projection: args.projection,
+              rowCount: observation.count,
+              statistics: observation.statistics,
+              sourceStatistics: observation.sourceStatistics,
+              matchedRowCount: observation.matchedRowCount,
+              filterText: message.trim().replace(/\s+/g, ' ').slice(0, 240),
+              sourceLabel:
+                result.metadata?.source?.title ||
+                result.metadata?.title ||
+                candidate.operation.summary,
               truncated: entry.truncated,
               dataStand:
                 'Abrufzeit ist kein bestätigter Datenstand; Vollständigkeit nicht zugesichert.',
@@ -630,11 +741,13 @@ async function runCapabilityLoop(
           };
           evidence.push(currentEvidence);
         } catch (error) {
-          entry.status = isSourceTimeout(error)
-            ? 'timeout'
-            : entry.called
-              ? 'unavailable'
-              : 'blocked';
+          entry.status = error.duplicateRead
+            ? 'duplicate'
+            : isSourceTimeout(error)
+              ? 'timeout'
+              : entry.called
+                ? 'unavailable'
+                : 'blocked';
           entry.error = scrubPromptText(
             error.message || error.type || 'Werkzeug fehlgeschlagen'
           ).slice(0, 240);
@@ -724,26 +837,23 @@ function validateCachedReads(
   return { hits: accepted, rejected };
 }
 
-function toolReport(trace = [], evidence = []) {
+function toolReport(trace = [], evidence = [], message = '') {
   return trace
+    .filter((entry) => entry.status === 'available' && (entry.called || entry.cached))
     .map((entry) => {
-      if (entry.status !== 'available')
-        return `${entry.name || 'Datenabfrage'}: ${entry.error || entry.status}`;
       const hit = evidence.find(
         (item) =>
           entry.sourceId &&
           item.retrievalSource === 'capability-read' &&
           item.metadata?.sourceId === entry.sourceId
       );
-      const value = hit?.value?.replace(/`/g, '\\u0060');
-      return [
-        `Nachgesehen: ${entry.name}; ${entry.hitCount} Datensätze; Parameter ${JSON.stringify(entry.parameters || {}).slice(0, 600)}; Zeitpunkt ${entry.at}. ${entry.truncated ? 'Ausgabe gekürzt. ' : ''}Abrufzeit ist kein bestätigter Datenstand; Vollständigkeit nicht zugesichert.`,
-        ...(value
-          ? [
-              `Ergebnis${entry.cached ? ' (bereits nachgesehen)' : ''}:\n\n\`\`\`json\n${value}\n\`\`\``,
-            ]
-          : []),
-      ].join('\n\n');
+      if (!hit) return '';
+      const label = hit.metadata?.sourceLabel || 'Datenquelle';
+      const filter = hit.metadata?.filterText || message.trim().replace(/\s+/g, ' ').slice(0, 240);
+      const safeFilter = require('./workbench-tool-answer').internalToolText(filter, [hit])
+        ? ''
+        : filter;
+      return `Herkunft: ${label}; Abruf: ${entry.at}${safeFilter ? `; Filter laut Anfrage: ${safeFilter}` : ''}.`;
     })
     .join('\n\n');
 }
@@ -756,6 +866,7 @@ module.exports = {
   safeRead,
   parameterSchema,
   summarizeResult,
+  boundedJson,
   toolReport,
   validateCachedReads,
   withinToolBudget: bounded,

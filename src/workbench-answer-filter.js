@@ -49,6 +49,8 @@ function filterAnswer(
     const rejectedConditions = new Set();
     const filtered = original.filter((claim) => {
       const rules = [];
+      if (require('./workbench-tool-answer').internalToolText(claim.text, evidence))
+        rules.push('raw_tool_output');
       if (
         unresolved.some(
           (code) =>

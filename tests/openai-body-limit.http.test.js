@@ -127,7 +127,10 @@ describe('document admission budget', () => {
       `<context><source name="synthetic-load.csv">${text}</source></context><user_query>Bitte aufnehmen.</user_query>`
     );
     expect(parsed.documents[0].text).toBe(text);
-    const store = { saveEvidence: jest.fn(async () => ({})) };
+    const store = {
+      listEvidence: jest.fn(async () => []),
+      saveEvidence: jest.fn(async () => ({})),
+    };
     await attachDocuments(
       store,
       { tenantId: 'tenant-body-test', actorId: 'person-test', caseId: 'case-test' },
