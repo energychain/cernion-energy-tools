@@ -1,0 +1,15 @@
+{
+  "synthetic": true,
+  "generator": "scripts/generate-dataset-fixtures.js",
+  "rows": 35040,
+  "peakKW": 1243.7,
+  "peakLocal": "14.01.2025 18:15",
+  "energyMWh": 3478.874,
+  "missingValues": 4,
+  "timezone": "Europe/Berlin",
+  "formats": [
+    "csv",
+    "markdown",
+    "pairs"
+  ]
+}

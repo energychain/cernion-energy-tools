@@ -68,6 +68,13 @@ function candidatesFor(
   { model, index, api, domainsAllowed = [], selectedCapabilities = [] }
 ) {
   const hypotheses = (situation.hypotheses || []).filter((h) => h.confidence >= 0.5);
+  const datasetAllowed =
+    !domainsAllowed.length ||
+    model.functions.some((fn) =>
+      fn.domains.some((domain) =>
+        domainsAllowed.some((allowed) => normalizePhrase(domain) === normalizePhrase(allowed))
+      )
+    );
   const functions = model.functions.filter((fn) =>
     hypotheses.some((h) =>
       h.kind === 'function'
@@ -91,7 +98,8 @@ function candidatesFor(
   const operations = index.operations.filter(
     (op) =>
       safeRead(op) &&
-      (rankedIds.has(op.operationId) ||
+      ((op.action === 'dataset.query' && datasetAllowed) ||
+        rankedIds.has(op.operationId) ||
         op.capabilityCandidates?.some((id) => selectedCapabilities.includes(id)) ||
         functions.some((fn) => fn.operations.includes(op.action)) ||
         hypotheses.some(
@@ -105,13 +113,25 @@ function candidatesFor(
               (h) => h.kind === 'domain' && normalizePhrase(cap.domain) === normalizePhrase(h.id)
             ) && cap.preferredActions?.includes(op.action)
         )) &&
-      model.functions.some((fn) => fn.operations.includes(op.action)) &&
-      (!domainsAllowed.length ||
+      ((op.action === 'dataset.query' && datasetAllowed) ||
+        model.functions.some((fn) => fn.operations.includes(op.action))) &&
+      ((op.action === 'dataset.query' && datasetAllowed) ||
+        !domainsAllowed.length ||
         op.domains.some((d) =>
           domainsAllowed.some((allowed) => normalizePhrase(d) === normalizePhrase(allowed))
         ))
   );
-  return rankOperations(query, { index: { operations }, limit: 8 }).flatMap((ranked, i) => {
+  const datasetOperation = operations.find((operation) => operation.action === 'dataset.query');
+  const rankedOperations = rankOperations(query, {
+    index: { operations },
+    limit: datasetOperation ? 7 : 8,
+  });
+  if (
+    datasetOperation &&
+    !rankedOperations.some((operation) => operation.operationId === datasetOperation.operationId)
+  )
+    rankedOperations.push({ operationId: datasetOperation.operationId, score: 0 });
+  return rankedOperations.flatMap((ranked, i) => {
     const operation = operations.find((op) => op.operationId === ranked.operationId);
     const schema = parameterSchema(operation, api);
     if (!schema) return [];
@@ -121,7 +141,11 @@ function candidatesFor(
         score: ranked.score,
         schema,
         name: `read_${i}`,
-        fn: model.functions.find((fn) => fn.operations.includes(operation.action)),
+        fn:
+          model.functions.find((fn) => fn.operations.includes(operation.action)) ||
+          (operation.action === 'dataset.query'
+            ? { operations: ['dataset.query'], capabilities: [] }
+            : undefined),
       },
     ];
   });
@@ -343,12 +367,51 @@ async function runCapabilityLoop(
     previous,
     previousReads = [],
     candidates: preparedCandidates,
+    datasetRequest,
   } = {}
 ) {
   const started = performance.now();
   const trace = [],
     evidence = [],
     observations = [];
+  if (datasetRequest) {
+    const p = principal({ meta });
+    const auth = meta.authUser || meta.apiToken;
+    const scopes = new Set([auth.scope, ...(auth.scopes || [])]);
+    if (!scopes.has('full-access') && !scopes.has('read-only'))
+      throw new Error('Leseberechtigung für dataset.query erforderlich.');
+    const result = await ctx.call('dataset.query', datasetRequest, {
+      meta,
+      retries: 0,
+      timeout: Math.max(
+        1,
+        Math.round((deadline || started + retrievalTimeoutMs()) - performance.now())
+      ),
+    });
+    return {
+      responseText: result.responseText,
+      evidence: [
+        {
+          source: 'dataset.query',
+          retrievalSource: 'capability-read',
+          title: 'Nutzerdatensatz',
+          value: result.responseText,
+          metadata: { tenantId: p.tenantId, datasetId: result.datasetId, version: result.version },
+        },
+      ],
+      trace: [
+        {
+          source: 'capability-read',
+          name: 'dataset.query',
+          status: 'available',
+          called: true,
+          hitCount: result.summaries?.length || result.datasets?.length || 0,
+          ms: Math.round(performance.now() - started),
+        },
+      ],
+      ms: Math.round(performance.now() - started),
+    };
+  }
   const need = resolveCapabilityNeed(situation, message, {
     model,
     index,

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "06a60451744e6fa5e4b18a9a8bb3780d70627eb04f4d444c75bd18da49b3e03b",
+  "sourceHash": "4961e20f40e8ee45517990c04798e685d75da808b5ed1c51995cb7c148bc1ad2",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -1105,7 +1105,7 @@
       "new": 6,
       "previousSourceHash": "1f0866ec0eb79538c3201e4fbbdfa19ac60fd987e4db6ec7cf73d380090bf44e"
     },
-    "indexOperationCount": 989,
+    "indexOperationCount": 990,
     "indexOperationsWithoutAction": 19,
     "capabilityCount": 172,
     "functionCount": 110,
@@ -4756,6 +4756,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/async-job-poller.js"
         },
         {
@@ -4776,6 +4784,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cya-a2a-protocol.js"
         },
         {
@@ -4788,7 +4804,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-config.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
         },
         {
           "kind": "service",
@@ -4801,6 +4829,10 @@
         {
           "kind": "service",
           "ref": "src/format-response.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -4837,6 +4869,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -4920,7 +4956,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -8663,6 +8707,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/async-job-poller.js"
         },
         {
@@ -8679,11 +8731,35 @@
         },
         {
           "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/flex-calculator.js"
         },
         {
           "kind": "service",
           "ref": "src/format-response.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -8708,6 +8784,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -8783,7 +8863,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -11980,7 +12068,27 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/auth-role-helpers.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
         },
         {
           "kind": "service",
@@ -11992,7 +12100,27 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/interface-placeholder-schema.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -12020,7 +12148,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         }
       ],
       "capabilities": [
@@ -18912,7 +19048,27 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/auth-role-helpers.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
         },
         {
           "kind": "service",
@@ -18928,7 +19084,23 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-config.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -18965,6 +19137,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -19036,7 +19212,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -29445,6 +29629,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/async-job-poller.js"
         },
         {
@@ -29461,6 +29653,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cya-ontology-graph.js"
         },
         {
@@ -29469,7 +29669,23 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/format-response.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -29498,6 +29714,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -29569,7 +29789,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -33042,6 +33270,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/async-job-poller.js"
         },
         {
@@ -33054,6 +33290,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cya-ontology-graph.js"
         },
         {
@@ -33062,7 +33306,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-config.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
         },
         {
           "kind": "service",
@@ -33075,6 +33331,10 @@
         {
           "kind": "service",
           "ref": "src/format-response.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -33103,6 +33363,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -33178,7 +33442,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -52530,7 +52802,27 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/auth-role-helpers.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
         },
         {
           "kind": "service",
@@ -52542,7 +52834,27 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/interface-placeholder-schema.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -52570,7 +52882,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         }
       ],
       "capabilities": [
@@ -65425,11 +65745,31 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/audit-oemetadata-builder.js"
         },
         {
           "kind": "service",
+          "ref": "src/auth-role-helpers.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
         },
         {
           "kind": "service",
@@ -65441,11 +65781,27 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/edm-csv-importer.js"
         },
         {
           "kind": "service",
           "ref": "src/edm-sqlite-pool.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -65474,6 +65830,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -65545,7 +65905,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         }
       ],
       "capabilities": [
@@ -70627,6 +70995,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/async-job-poller.js"
         },
         {
@@ -70635,11 +71011,35 @@
         },
         {
           "kind": "service",
+          "ref": "src/auth-role-helpers.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/canonical-order.js"
         },
         {
           "kind": "service",
           "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -70672,6 +71072,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -70739,11 +71143,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
         },
         {
           "kind": "service",
           "ref": "src/workbench-activity-taxonomy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -78898,7 +79310,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/async-job-runner.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/auth-role-helpers.js"
         },
         {
           "kind": "service",
@@ -78906,11 +79330,35 @@
         },
         {
           "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cya-a2a-protocol.js"
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-config.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -78939,6 +79387,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -79018,7 +79470,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -81532,7 +81992,43 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/auth-role-helpers.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -81561,6 +82057,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -81628,7 +82128,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -83831,6 +84339,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/async-job-poller.js"
         },
         {
@@ -83840,6 +84356,14 @@
         {
           "kind": "service",
           "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
         },
         {
           "kind": "service",
@@ -83855,7 +84379,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-config.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
         },
         {
           "kind": "service",
@@ -83872,6 +84408,10 @@
         {
           "kind": "service",
           "ref": "src/format-response.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -83908,6 +84448,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -83987,7 +84531,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -92326,6 +92878,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/async-job-poller.js"
         },
         {
@@ -92335,6 +92895,14 @@
         {
           "kind": "service",
           "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
         },
         {
           "kind": "service",
@@ -92350,11 +92918,27 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-config.js"
         },
         {
           "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/format-response.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -92391,6 +92975,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -92474,7 +93062,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -101911,7 +102507,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/async-job-poller.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/auth-role-helpers.js"
         },
         {
           "kind": "service",
@@ -101919,7 +102527,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cya-a2a-protocol.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-catalog.js"
         },
         {
           "kind": "service",
@@ -101927,7 +102547,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/format-response.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -101964,6 +102596,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -102047,7 +102683,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -106784,6 +107428,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/async-job-poller.js"
         },
         {
@@ -106796,7 +107448,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cya-a2a-protocol.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-catalog.js"
         },
         {
           "kind": "service",
@@ -106804,7 +107468,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/format-response.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -106841,6 +107517,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -106928,7 +107608,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -117783,6 +118471,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-router-policy.js"
         },
         {
@@ -117864,6 +118556,10 @@
         {
           "kind": "service",
           "ref": "src/mako-edifact-signal.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -118036,6 +118732,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-answer-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -120580,11 +121280,47 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/audit-oemetadata-builder.js"
         },
         {
           "kind": "service",
+          "ref": "src/auth-role-helpers.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -120609,6 +121345,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -120676,11 +121416,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
         },
         {
           "kind": "service",
           "ref": "src/vnb-monitor-defaults.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         }
       ],
       "capabilities": [
@@ -126172,7 +126920,27 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/auth-role-helpers.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
         },
         {
           "kind": "service",
@@ -126188,7 +126956,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-config.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
         },
         {
           "kind": "service",
@@ -126201,6 +126981,10 @@
         {
           "kind": "service",
           "ref": "src/edm-sqlite-pool.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -126237,6 +127021,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -126312,7 +127100,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -130427,7 +131223,39 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/auth-role-helpers.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
         },
         {
           "kind": "service",
@@ -130436,6 +131264,10 @@
         {
           "kind": "service",
           "ref": "src/edm-sqlite-pool.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -130460,6 +131292,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -130527,7 +131363,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         }
       ],
       "capabilities": [
@@ -134695,11 +135539,47 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/audit-oemetadata-builder.js"
         },
         {
           "kind": "service",
+          "ref": "src/auth-role-helpers.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -134724,6 +135604,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -134791,7 +135675,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         }
       ],
       "capabilities": [
@@ -156805,11 +157697,31 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/async-job-runner.js"
         },
         {
           "kind": "service",
+          "ref": "src/auth-role-helpers.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
         },
         {
           "kind": "service",
@@ -156889,7 +157801,23 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-config.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -156918,6 +157846,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -156994,6 +157926,14 @@
         {
           "kind": "service",
           "ref": "src/validation-findings.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         },
         {
           "kind": "service",
@@ -162842,6 +163782,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/async-job-runner.js"
         },
         {
@@ -162850,7 +163798,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/auth-role-helpers.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/clarification-policy-registry.js"
         },
         {
           "kind": "service",
@@ -162862,7 +163822,19 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-config.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dossier-hydration-registry.js"
         },
         {
           "kind": "service",
@@ -162871,6 +163843,10 @@
         {
           "kind": "service",
           "ref": "src/edm-sqlite-pool.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -162899,6 +163875,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/mako-evidence-parser.js"
         },
         {
           "kind": "service",
@@ -162974,7 +163954,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-evidence.js"
         }
       ],
       "capabilities": [
@@ -188555,6 +189543,14 @@
       },
       {
         "service": "cya",
+        "ref": "src/llm-client.js:216: dynamic emission"
+      },
+      {
+        "service": "dataset",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "dataset",
         "ref": "src/llm-client.js:216: dynamic emission"
       },
       {

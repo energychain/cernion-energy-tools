@@ -5,6 +5,15 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+- Tenant-Datenkatalog (Phase 1, #774): strukturierte Open-WebUI-Anhänge erkennen,
+  vollständige Zeilen tenantweise in SQLite und OEMetadata im bestehenden datapoint-Katalog
+  speichern; deterministische Abfragen mit Einheit, Zeitbezug und Nutzerprovenienz.
+- Inhalts-Hash verhindert doppelte Versionen und Bestätigungen bei erneut übermittelten
+  CSV-, Markdown- und XLSX-Textanhängen. Semantikkorrektur, Historie, Löschung mit Audit,
+  konfigurierbare Grenzen und synthetische Referenztests ergänzen den Chatfluss.
+
 ## [0.99.22] — 2026-09-27
 
 ### Fixed
