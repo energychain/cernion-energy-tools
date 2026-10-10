@@ -9,6 +9,10 @@
 
 ## Unreleased — Tenant-Gedächtnis (#766)
 
+- Recovery standardmäßig alle 30 Sekunden mit konfigurierbarem Prüfbudget, persistiertem Backoff, Batch- und Versuchslimit sowie Abschalter; unveränderte Mutationen schreiben nicht erneut. Quota-Wartezeiten bleiben über Neustarts erhalten.
+- Organisationsrelevante Mitteilungen trotz fachlichem Einwand extrahieren; Turn-Beobachtung sofort ausgeben, erfundene Anker-Qualifikatoren entfernen und providergeeignetes Prüfungsschema aus dem bestehenden Helfer verwenden.
+- Gedächtnisabfragen mit bekannten Ankern vor dem Datensatzpfad beantworten; Personen und Klartextfunktionen mit deutschem Datum und Prüfstatus anzeigen. Synthetische Live-Abnahme nutzt das echte konfigurierte Modell in beiden Reihenfolgen je zweimal.
+
 - Produktionsnacharbeit: normalisierter Belegabgleich mit Mindestüberdeckung und belegten Ankern; organisatorische Mitteilungen auch bei Wissensklassifikation speichern, Plausibilitätshinweise getrennt bestätigen.
 - Qualifizierte Anker über den Begriff im Tenant finden; mehrere Varianten erfordern Rückfrage. Lokale Suche und Prüfung funktionieren unabhängig vom externen Retrieval-Budget, auch bei Quellen-Timeouts.
 - HTTP-Regressionen mit zwei synthetischen Akteuren in beiden Reihenfolgen sichern Gesamtwissen, Quellen, einmalige Notices und Wechselwirkungen vor Entwürfen. Pro Chat-Turn protokolliert CET ausschließlich Gedächtniszähler und Prüfstatus.

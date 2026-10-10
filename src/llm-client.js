@@ -574,6 +574,7 @@ function embeddingConfiguration() {
 }
 
 module.exports = {
+  retryDelayMs,
   SchemaType,
   embeddingConfiguration,
   generateText,

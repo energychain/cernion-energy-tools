@@ -70,7 +70,7 @@ async function mutate(ctx, p, id, change) {
   for (let attempt = 0; attempt < 4; attempt++) {
     const doc = await get(ctx, p, id);
     const payload = change(structuredClone(doc.payload));
-    if (!payload) return doc.payload;
+    if (!payload || JSON.stringify(payload) === JSON.stringify(doc.payload)) return doc.payload;
     try {
       return (await put(ctx, p, payload, doc._rev)).payload;
     } catch (error) {
@@ -127,7 +127,20 @@ function ambiguous(anchors, facts) {
   return null;
 }
 function source(fact) {
-  return `${fact.person.name} (${fact.person.functionLabel || fact.person.roles.join(', ')}, ${fact.at})`;
+  const date = new Date(fact.at).toLocaleDateString('de-DE', {
+    timeZone: 'Europe/Berlin',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+  const label = fact.person.functionLabel;
+  const technical = require('./function-model')
+    .getFunctionModel()
+    .functions.some((fn) => [fn.functionId, fn.label, fn.displayLabel].includes(label));
+  const functionLabel = technical
+    ? 'Funktion noch nicht in Klartext hinterlegt'
+    : label || 'Funktion nicht angegeben';
+  return `${fact.person.name} (${functionLabel}, ${date})`;
 }
 function factText(fact) {
   const labels = {
@@ -136,7 +149,13 @@ function factText(fact) {
     revoked: 'widerrufen',
     expired: 'abgelaufen',
   };
-  return `${source(fact)}: „${fact.text}“ (${labels[active(fact) ? 'valid' : fact.status === 'valid' ? 'expired' : fact.status]}).`;
+  const checking =
+    fact.checking === 'failed'
+      ? ` Prüfung fehlgeschlagen: ${fact.checkingFailure?.message || 'Versuchsgrenze erreicht'}.`
+      : fact.checking === 'pending'
+        ? ' Prüfung ausstehend.'
+        : '';
+  return `${source(fact)}: „${fact.text}“ (${labels[active(fact) ? 'valid' : fact.status === 'valid' ? 'expired' : fact.status]}).${checking}`;
 }
 async function relationText(ctx, p, id) {
   const relation = (await get(ctx, p, id)).payload;

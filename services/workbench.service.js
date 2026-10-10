@@ -1523,12 +1523,12 @@ module.exports = {
           call: (name, params, options) =>
             ctx.call(name, params, { meta: { ...correctionMeta, ...options?.meta } }),
         };
-        if (pending?.tenantMemoryFactIds?.length) {
+        if (pending?.tenantMemoryFactIds?.length || !envelope.documents?.length) {
           const priorityReply = await require('../src/tenant-memory').preturn(
             memoryContext,
             p,
             envelope,
-            pending
+            { ...pending, queryOnly: !pending?.tenantMemoryFactIds?.length }
           );
           if (priorityReply) return priorityReply;
         }
