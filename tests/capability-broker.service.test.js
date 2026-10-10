@@ -142,6 +142,49 @@ describe('Capability Broker Service', () => {
     ).toBe(true);
   });
 
+  it('classifies Stammdaten-/Marktrollen case type before tool routing', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'MaLo und MeLo passen nicht zur Adresse; der VNB und Lieferant sind unklar.',
+    });
+
+    expect(result.caseTypeRouting.schemaVersion).toBe('cernion.caseTypeRouting.v1');
+    expect(result.caseTypeRouting.primary.id).toBe('stammdaten_marktrollen_klaerfall');
+    expect(result.caseTypeRouting.primary.nextBestActions).toEqual(
+      expect.arrayContaining(['wahrscheinlichsten Klärpfad und Rückfrage vorbereiten'])
+    );
+    expect(result.recommendedCapabilities[0].caseTypeCandidates).toContain(
+      'stammdaten_marktrollen_klaerfall'
+    );
+  });
+
+  it('classifies Messwert-/EDM plausibility case type without requiring final evidence', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Der Lastgang hat eine Datenlücke und der Messwert wirkt als Ersatzwert unplausibel.',
+      knownContext: { meloId: 'DE0012345678901234567890123456789' },
+    });
+
+    expect(result.caseTypeRouting.primary.id).toBe('messwert_edm_plausibilitaetsfall');
+    expect(result.caseTypeRouting.assistancePrinciple).toMatch(
+      /blockiert nicht Fallstrukturierung/
+    );
+    expect(result.caseTypeRouting.primary.evidenceRequirements).toEqual(
+      expect.arrayContaining(['Messobjekt, Zeitraum und Wertstatus'])
+    );
+  });
+
+  it('classifies Kunden-/Service clarification case type as pre-routing context', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Kunde fragt zur Rechnung und zum Zählerstand, aber Vertragskonto und Zeitraum fehlen.',
+    });
+
+    expect(result.caseTypeRouting.primary.id).toBe('kunden_service_klaerfall');
+    expect(result.caseTypeRouting.primary.clarificationQuestions).toEqual(
+      expect.arrayContaining([
+        'Welche Identifikatoren fehlen: Vertragskonto, Zählpunkt, Zeitraum oder Adresse?',
+      ])
+    );
+  });
+
   it('routes portfolio logic prompts to znp.assessPortfolio', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Bitte ZNP Portfolio-Logik für Projekt abc prüfen inkl. Layer 0/2/2.5 und fNAV',
