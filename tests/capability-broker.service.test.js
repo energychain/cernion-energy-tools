@@ -185,6 +185,46 @@ describe('Capability Broker Service', () => {
     );
   });
 
+  it('classifies Netzanschluss-/Kapazitäts-Klärfall as a domain case type', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte Netzanschluss und Anschlussleistung für eine PV-Einspeisung am Netzverknüpfungspunkt prüfen.',
+    });
+
+    expect(result.caseTypeRouting.candidates.map((candidate) => candidate.id)).toContain(
+      'netzanschluss_kapazitaets_klaerfall'
+    );
+  });
+
+  it('classifies Prognose-/Abweichungsfall as a domain case type', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Die Prognoseabweichung zwischen Lastprognose und Ist-Wert im Portfolio ist auffällig.',
+    });
+
+    expect(result.caseTypeRouting.candidates.map((candidate) => candidate.id)).toContain(
+      'prognose_abweichungsfall'
+    );
+  });
+
+  it('classifies Redispatch-/Steuerbarkeits-Readiness as a domain case type', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Redispatch Readiness und Steuerbarkeit der Anlage mit Flexibilität und Fernschaltung prüfen.',
+    });
+
+    expect(result.caseTypeRouting.candidates.map((candidate) => candidate.id)).toContain(
+      'redispatch_steuerbarkeits_readiness'
+    );
+  });
+
+  it('classifies Wärme-/Gas-/EOG-Szenariofall as a domain case type', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Wärmeplanung Gas EOG Szenario für ein Gebiet mit offenen Klärpunkten vorbereiten.',
+    });
+
+    expect(result.caseTypeRouting.candidates.map((candidate) => candidate.id)).toContain(
+      'waerme_gas_eog_szenariofall'
+    );
+  });
+
   it('routes portfolio logic prompts to znp.assessPortfolio', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Bitte ZNP Portfolio-Logik für Projekt abc prüfen inkl. Layer 0/2/2.5 und fNAV',
