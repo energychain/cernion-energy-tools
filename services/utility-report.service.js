@@ -1782,7 +1782,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         this.logger.info(`[UtilityReport] ${p.reportId} – Phase 1: Identification`);
 
         // If BDEW provided directly, skip the search step entirely.
-        const firstPartner = null;
+        let firstPartner = null;
         if (!bdew) {
           // Step 1a: try cernion_market_partners with each alternative query variant.
           // buildVnbSearchQueries generates: original + stripped city + "Stadtwerke <city>".
