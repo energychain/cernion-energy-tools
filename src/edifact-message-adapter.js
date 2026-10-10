@@ -453,7 +453,7 @@ function query(pool, record, input) {
   if (!threshold && !invoice) {
     if (rows.length > shown.length)
       lines.push(
-        `${rows.length - shown.length} weitere Nachrichten gespeichert; für Einzelheiten bitte gezielt abfragen.`
+        `${rows.length - shown.length} weitere Nachrichten gespeichert; ${shown.length} Nachrichten sind einzeln dargestellt.`
       );
     const currencies = [...new Set(rows.map((r) => r.Waehrung).filter(Boolean))];
     for (const currency of currencies) {
@@ -495,7 +495,9 @@ function query(pool, record, input) {
   };
 }
 
-function accepts(question) {
+function accepts(question, { explicitOnly = false } = {}) {
+  if (explicitOnly)
+    return /nachricht|rechnung|qualifier|edifact|invoic|mscons|utilmd|aperak/iu.test(question);
   return /nachricht|rechnung|betrag|qualifier|code|aufschlüss|aufschluess|überblick|ueberblick|auffäll|auffaell|summe|zeitreihe|vorgang/iu.test(
     question
   );

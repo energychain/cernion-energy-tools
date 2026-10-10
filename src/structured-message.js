@@ -2,7 +2,7 @@
 
 const { randomUUID, createHash } = require('node:crypto');
 const { profileRows } = require('./tabular-intelligence');
-const { datasetSetting, datasetLimit } = require('./dataset-input');
+const { datasetSetting, datasetLimit, parseDatasetText } = require('./dataset-input');
 const config = require('./structured-message-adapters.json');
 const adapters = config.adapters.map((entry) => ({
   ...entry,
@@ -30,7 +30,7 @@ async function structuredTurn(service, ctx, p) {
     }))
     .filter((entry) => entry.adapter);
   if (!incoming.length) {
-    if (documents.length) return null;
+    if (documents.length || parseDatasetText(question, 'Eingefügte Tabelle').length) return null;
     const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
     let associated = records.filter(
       (r) =>
@@ -40,9 +40,26 @@ async function structuredTurn(service, ctx, p) {
           r.provenance.conversationId === conversationId ||
           r.structured.conversations?.includes(conversationId))
     );
+    const hasContext = associated.length > 0;
     if (!associated.length)
       associated = records.filter((r) => r.current !== false && r.structuredFormat);
     if (associated.length !== 1 || !adapterFor(associated[0].structuredFormat).accepts(question))
+      return null;
+    const competing = records.some(
+      (record) =>
+        record.current !== false &&
+        !record.structuredFormat &&
+        (!hasContext ||
+          record.provenance.conversationId === conversationId ||
+          question.includes(record.sourceName) ||
+          ctx.params.previousReads?.some(
+            (read) => read.source === 'dataset.query' && read.metadata?.datasetId === record.id
+          ))
+    );
+    if (
+      competing &&
+      !adapterFor(associated[0].structuredFormat).accepts(question, { explicitOnly: true })
+    )
       return null;
     if (/lösch|loesch|delete|korrigier/iu.test(question)) return null;
     const result = await ctx.call('dataset.query', {

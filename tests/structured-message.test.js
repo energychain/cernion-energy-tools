@@ -194,3 +194,41 @@ describe('structured messages in tenant dataset catalog', () => {
     expect(full.some((record) => record.sourceName === privateDoc.name)).toBe(true);
   });
 });
+
+describe('structured messages preserve ordinary dataset routing', () => {
+  test.each(['table-chat', 'message-chat'])(
+    'does not steal an ambiguous table sum in %s',
+    async (conversationId) => {
+      const records = require('../scripts/generate-edifact-fixtures').generateRoutingCatalogFixture(
+        conversationId
+      );
+      const call = jest.fn().mockResolvedValue(records);
+      const result = await require('../src/structured-message').structuredTurn(
+        {},
+        {
+          params: { question: 'Wie hoch ist die Summe?', documents: [], conversationId },
+          call,
+        },
+        {}
+      );
+      expect(result).toBeNull();
+      expect(call.mock.calls.every(([action]) => action === 'datapoint.datasetCatalog')).toBe(true);
+    }
+  );
+  test('a newly pasted generated table takes precedence over prior messages', async () => {
+    const question =
+      'Überblick:\n' +
+      require('../scripts/generate-dataset-fixtures').generateDatasetFixture('markdown');
+    const call = jest.fn();
+    const result = await require('../src/structured-message').structuredTurn(
+      {},
+      {
+        params: { question, documents: [], conversationId: 'message-chat' },
+        call,
+      },
+      {}
+    );
+    expect(result).toBeNull();
+    expect(call).not.toHaveBeenCalled();
+  });
+});

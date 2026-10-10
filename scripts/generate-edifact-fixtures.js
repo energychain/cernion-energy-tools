@@ -62,5 +62,28 @@ function generateEscapedFixture(custom = false) {
     ? 'UNA*;,! ~UNH;SYN;INVOIC*D*04B*UN~FTX;AAI;;;a!;b!*c!~d!!e~'
     : "UNH+SYN+INVOIC:D:04B:UN'FTX+AAI+++a?+b?:c?'d??e'";
 }
+function generateRoutingCatalogFixture(conversationId) {
+  return [
+    {
+      id: 'synthetic-message',
+      sourceName: 'Synthetic.edi',
+      current: true,
+      structuredFormat: 'edifact',
+      structured: { conversations: ['message-chat'] },
+      provenance: { conversationId: 'message-chat' },
+    },
+    {
+      id: 'synthetic-table',
+      sourceName: 'Synthetic.csv',
+      current: true,
+      provenance: { conversationId },
+    },
+  ];
+}
 if (require.main === module) process.stdout.write(generateEdifactFixture());
-module.exports = { generateEdifactFixture, syntheticMessage, generateEscapedFixture };
+module.exports = {
+  generateEdifactFixture,
+  syntheticMessage,
+  generateEscapedFixture,
+  generateRoutingCatalogFixture,
+};
