@@ -1797,6 +1797,7 @@ module.exports = {
         roleFamilies: profile.roleFamilies || [],
         domainsAllowed: profile.domainsAllowed || [],
         sensitivityClearance: profile.sensitivityClearance || [],
+        conversationContext: profile.conversationContext || null,
         language: profile.language || null,
         tone: profile.tone || null,
         defaultNoCallGuards: profile.defaultNoCallGuards || [],

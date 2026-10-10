@@ -44,7 +44,8 @@ describe('Case continuation #764 with persisted router and workbench', () => {
     });
     llm.generateText.mockResolvedValue(
       JSON.stringify({
-        expectation: [
+        expectation: [],
+        interpretation: [
           {
             text: 'Prüfe die neuen Angaben.',
             supported: 'model',
@@ -582,7 +583,8 @@ describe('Case continuation #764 with persisted router and workbench', () => {
   test('AC04: enum text in generated answer or case descriptions uses the central readable mapping', async () => {
     llm.generateText.mockResolvedValue(
       JSON.stringify({
-        expectation: [
+        expectation: [],
+        interpretation: [
           {
             text: 'Der Stand ist evidence_required und human_review_required.',
             supported: 'model',

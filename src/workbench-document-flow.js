@@ -379,6 +379,24 @@ async function documentReply(
   const documents = await loadDocuments(service.store, identity);
   if (!documents.length) return null;
   const question = envelope.userRequest;
+  if (['orientation', 'filing'].includes(situation.conversationShape)) {
+    const reply = await require('./workbench-understanding').answer({
+      situation,
+      tenantId: p.tenantId,
+      message: question,
+      retrieval: {
+        evidence: documents.slice(0, 3).map((doc) => ({
+          source: doc.name,
+          retrievalSource: 'documents',
+          value: doc.text.slice(0, 1200),
+          metadata: { name: doc.name },
+        })),
+      },
+      logger: service.logger,
+    });
+    reply.responseText = [reply.responseText, storageNote].filter(Boolean).join('\n\n');
+    return { responseText: reply.responseText, conversationReply: reply };
+  }
   const reviewRequested = isReviewRequest(question) || documentDraftRequested(question);
   if (!reviewRequested && !/\b(?:ergebnis|review|prüfung|pruefung)\b/iu.test(question)) {
     const table = documents.some((document) =>

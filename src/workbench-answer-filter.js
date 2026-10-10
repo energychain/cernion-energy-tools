@@ -5,6 +5,8 @@ const { exactToken } = require('./workbench-codes');
 const { normalizePhrase } = require('./function-resolver');
 const { bindingDraftPatterns } = require('./workbench-code-catalog.json');
 const REASONS = {
+  meta_text: 'Direkt antworten, keine Sätze über den Nutzer oder den Anfragenden.',
+  imperative_question: 'Keine getarnten Rückfragen als Imperativ.',
   unresolved_code: 'Keine Aussagen von ungeklärten Codes abhängig machen.',
   salutation: 'Eine neutrale Anrede verwenden.',
   binding_draft: 'Keine verbindliche Prozessantwort oder Bestätigung vorwegnehmen.',
@@ -49,6 +51,13 @@ function filterAnswer(
     const rejectedConditions = new Set();
     const filtered = original.filter((claim) => {
       const rules = [];
+      if (require('./workbench-conversation-shape').forbiddenMeta(claim.text))
+        rules.push('meta_text');
+      if (
+        field !== 'draft' &&
+        require('./workbench-conversation-shape').imperativeQuestion(claim.text)
+      )
+        rules.push('imperative_question');
       if (require('./workbench-tool-answer').internalToolText(claim.text, evidence))
         rules.push('raw_tool_output');
       if (

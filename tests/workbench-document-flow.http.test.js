@@ -270,4 +270,102 @@ describe('document flow through authenticated HTTP', () => {
       llm.generateStructured.mockImplementation(original);
     }
   });
+  test('conversation shape, one question, durable context and self-knowledge survive authenticated HTTP', async () => {
+    const originalStructured = llm.generateStructured.getMockImplementation();
+    const originalText = llm.generateText.getMockImplementation();
+    const question = {
+      key: 'purpose',
+      reason: 'purpose',
+      question: 'Geht es dir um Überblick, Prüfung oder einen Entwurf?',
+      blocking: false,
+      decisive: false,
+      answered: false,
+    };
+    llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+      const { message, previous } = JSON.parse(prompt);
+      const response = message.startsWith('Ich bin');
+      const search = message.startsWith('Sind');
+      return {
+        concern: 'System X',
+        situation: '',
+        participants: [],
+        identifiers: [],
+        deadlines: [],
+        hypotheses: [],
+        missingInformation: [{ ...question, answered: response || search }],
+        requestedAction: { description: '', externalEffect: false, draftRequested: false },
+        turnKind: 'knowledge',
+        retrievalTerms: ['System X'],
+        conversationShape: search ? 'knowledge' : 'orientation',
+        selfKnowledge: { requested: search, query: 'System X' },
+        ...(response
+          ? {
+              conversationContext: {
+                role: 'Team A',
+                goal: 'Überblick',
+                preference: '',
+                basis: message,
+                durable: true,
+              },
+            }
+          : previous?.conversationContext
+            ? { conversationContext: previous.conversationContext }
+            : {}),
+      };
+    });
+    llm.generateText.mockImplementation(async (prompt) => {
+      const { situation } = JSON.parse(prompt);
+      const text = situation.selfKnowledge?.requested
+        ? 'Die verfügbaren Bestände enthalten keinen passenden Fall.'
+        : situation.conversationContext?.role
+          ? 'Für Team A kann ich dir die Abläufe im Überblick erläutern.'
+          : 'Ich kann System X fachlich einordnen und Dateien daraus auswerten.';
+      return JSON.stringify({
+        interpretation: [
+          {
+            text,
+            origin: 'model',
+            supported: 'model',
+            specific: false,
+            completedAction: false,
+            evidenceIds: [],
+          },
+        ],
+        expectation: [],
+        nextSteps: [],
+        assumptions: [],
+        draft: [],
+      });
+    });
+    try {
+      const replies = [];
+      for (const message of [
+        'Kennst du System X?',
+        'Ich bin in Team A und möchte einen Überblick.',
+        'Sind dir dazu schon Fälle bekannt?',
+      ]) {
+        const result = await request(message, 'person-a', 'conversation-shape-http');
+        expect(result.status).toBe(200);
+        replies.push(result.body.choices[0].message.content);
+      }
+      expect(replies[0].match(/\?/g) || []).toHaveLength(1);
+      expect(replies[1]).toContain('Für Team A');
+      expect(replies[1]).not.toContain('?');
+      expect(replies[2]).not.toContain('?');
+      for (const source of ['Fälle', 'Tenant-Gedächtnis', 'Dokumente', 'Datensätze'])
+        expect(replies[2]).toContain(source);
+      expect(replies.join('\n')).not.toMatch(
+        /Der Nutzer|Der Anfragende|Es wird erwartet|Nenne|Kläre/u
+      );
+      const profile = await app.workbench.store.getUserContext({
+        tenantId: 'public',
+        actorId: 'person-a',
+      });
+      expect(profile.conversationContext.role).toBe('Team A');
+      expect(profile.conversationContext.goal).toBe('Überblick');
+    } finally {
+      llm.generateStructured.mockImplementation(originalStructured);
+      llm.generateText.mockImplementation(originalText);
+    }
+  });
 });
