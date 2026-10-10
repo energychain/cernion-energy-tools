@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-10T02:12:05.722Z
+Generated: 2026-10-10T03:02:10.527Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.21
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 1279
+- Files scanned: 1296
 - Services: 144
 - src/*.js files: 211
 - Tests: 330
 - Integrations files: 26
-- Markdown/docs files: 367
+- Markdown/docs files: 383
 
 ## Existing validation summary
 
@@ -30,10 +30,10 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 - `docs`: 298 files
 - `src`: 258 files
 - `services`: 180 files
+- `agentic-architecture`: 34 files
 - `.claude`: 26 files
 - `integrations`: 26 files
 - `scripts`: 23 files
-- `agentic-architecture`: 17 files
 - `.github`: 9 files
 - `feedback`: 8 files
 - `.vscode`: 5 files
@@ -49,9 +49,9 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Agentic surface
 
-- Agent/capability/sidecar related files: 194
+- Agent/capability/sidecar related files: 211
 - Routing/capability/broker/manifest files: 48
-- Evidence/HITL/receipt/dossier files: 65
+- Evidence/HITL/receipt/dossier files: 67
 - OpenWebUI/ChatGPT adapter files: 25
 
 Primary agentic files:
@@ -59,6 +59,14 @@ Primary agentic files:
 - `agentic-architecture/AGENTIC_CORE_DIRECTIVE.md`
 - `agentic-architecture/ARCHITECTURE_CANON.md`
 - `agentic-architecture/DOMAIN_ONTOLOGY.md`
+- `agentic-architecture/domain/AMBIGUOUS_TERMS.md`
+- `agentic-architecture/domain/DOMAIN_OBJECTS.md`
+- `agentic-architecture/domain/domain-abstraction-report.md`
+- `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md`
+- `agentic-architecture/domain/EVIDENCE_VS_PRACTICE.md`
+- `agentic-architecture/domain/HUMAN_DECISION_POINTS.md`
+- `agentic-architecture/domain/NATURAL_WORKFLOWS.md`
+- `agentic-architecture/domain/PROCESS_PATTERNS.md`
 - `agentic-architecture/E2E_PROCESS_MAP.md`
 - `agentic-architecture/NAMING_CONVENTIONS.md`
 - `agentic-architecture/OPENWEBUI_AGENTIC_ROUTING.md`
@@ -67,6 +75,15 @@ Primary agentic files:
 - `agentic-architecture/reports/latest/agentic-core-findings.md`
 - `agentic-architecture/reports/latest/architecture-scan.md`
 - `agentic-architecture/reports/latest/canon-update-proposal.md`
+- `agentic-architecture/reports/latest/domain-abstraction-summary.json`
+- `agentic-architecture/reports/latest/domain-abstraction/AMBIGUOUS_TERMS.md`
+- `agentic-architecture/reports/latest/domain-abstraction/DOMAIN_OBJECTS.md`
+- `agentic-architecture/reports/latest/domain-abstraction/domain-abstraction-report.md`
+- `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md`
+- `agentic-architecture/reports/latest/domain-abstraction/EVIDENCE_VS_PRACTICE.md`
+- `agentic-architecture/reports/latest/domain-abstraction/HUMAN_DECISION_POINTS.md`
+- `agentic-architecture/reports/latest/domain-abstraction/NATURAL_WORKFLOWS.md`
+- `agentic-architecture/reports/latest/domain-abstraction/PROCESS_PATTERNS.md`
 - `agentic-architecture/reports/latest/openwebui-blindspots.md`
 - `agentic-architecture/reports/latest/refactoring-backlog.md`
 - `agentic-architecture/reports/latest/scan-complete.txt`
@@ -79,23 +96,6 @@ Primary agentic files:
 - `docs/agent-responses/alloc-list.status`
 - `docs/agent-responses/es-list.json`
 - `docs/agent-responses/es-list.status`
-- `docs/agent-responses/es-validate.json`
-- `docs/agent-responses/es-validate.status`
-- `docs/agent-responses/gc-list.json`
-- `docs/agent-responses/gc-list.status`
-- `docs/agent-responses/gc-validate.json`
-- `docs/agent-responses/gc-validate.status`
-- `docs/agent-responses/mq-audit.json`
-- `docs/agent-responses/mq-audit.status`
-- `docs/agent-responses/mq-list.json`
-- `docs/agent-responses/mq-list.status`
-- `docs/agent-responses/rd-audit.json`
-- `docs/agent-responses/rd-audit.status`
-- `docs/agent-responses/rd-list.json`
-- `docs/agent-responses/rd-list.status`
-- `docs/architecture/chatgpt-sidecar-oeo-trust-boundary.md`
-- `docs/architecture/chatgpt-sidecar-session-api-contract.md`
-- `docs/architecture/chatgpt-sidecar-session-ticket-gate.md`
 
 ## Service inventory
 

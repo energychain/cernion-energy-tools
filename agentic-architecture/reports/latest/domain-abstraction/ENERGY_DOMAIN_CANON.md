@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-10T02:12:08.294Z
+Generated: 2026-10-10T03:02:13.755Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -14,6 +14,12 @@ CET soll nicht nur Evidenz liefern, sondern energiewirtschaftliche Fälle bearbe
 - Practice Layer: fachlich übliche Bearbeitung, Plausibilisierung, Rückfragen, implizite Prozesslogik.
 - Decision Layer: menschliche Arbeitsentscheidung, Eskalation, Freigabe, externe Kommunikation, Budget/Spend.
 - Assistance Layer: natürliche Antwort, strukturierter Arbeitsstand, Next Best Action, Dokumentationsvorschlag.
+
+## Foundational case types
+
+- `stammdaten_marktrollen_klaerfall` — Stammdaten-/Marktrollen-Klärfall (observed)
+- `messwert_edm_plausibilitaetsfall` — Messwert-/EDM-Plausibilitätsfall (observed)
+- `kunden_service_klaerfall` — Kunden-/Service-Klärfall (draft)
 
 ## Domain clusters
 

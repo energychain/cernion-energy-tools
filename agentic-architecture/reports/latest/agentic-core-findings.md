@@ -1,48 +1,50 @@
 # Agentic Core Findings
 
-Generated: 2026-10-10T02:12:05.722Z
+Generated: 2026-10-10T03:02:10.527Z
 
 ## Current measurable surface
 
-- Agentic files: 194
+- Agentic files: 211
 - Routing/capability files: 48
-- Evidence/HITL files: 65
+- Evidence/HITL files: 67
 - Operation capability index: present
 - OpenAPI export: present
 - llm.txt: present
 
 ## Domain term distribution
 
-- `evidence`: 19872 hits in 497 files
-- `tenant`: 10786 hits in 449 files
-- `broker`: 9192 hits in 417 files
-- `grid`: 8719 hits in 539 files
-- `agent`: 6412 hits in 563 files
-- `decision`: 6007 hits in 338 files
+- `evidence`: 19928 hits in 508 files
+- `tenant`: 10802 hits in 458 files
+- `broker`: 9213 hits in 422 files
+- `grid`: 8737 hits in 545 files
+- `agent`: 6498 hits in 576 files
+- `decision`: 6021 hits in 346 files
 - `stadtwerk`: 5087 hits in 210 files
-- `capability`: 4352 hits in 302 files
-- `vdmi`: 4123 hits in 251 files
-- `redispatch`: 3553 hits in 264 files
-- `hitl`: 3436 hits in 363 files
-- `market`: 3267 hits in 297 files
-- `forecast`: 2897 hits in 189 files
-- `receipt`: 2140 hits in 94 files
-- `regulator`: 2080 hits in 270 files
-- `personal-agent`: 1903 hits in 251 files
-- `edm`: 1826 hits in 230 files
-- `routing`: 1558 hits in 233 files
-- `workflow`: 1481 hits in 202 files
-- `mako`: 1125 hits in 181 files
-- `sidecar`: 887 hits in 86 files
-- `eog`: 693 hits in 73 files
-- `utility`: 554 hits in 63 files
-- `chatgpt`: 384 hits in 29 files
-- `willi`: 297 hits in 35 files
+- `capability`: 4400 hits in 311 files
+- `vdmi`: 4130 hits in 256 files
+- `redispatch`: 3573 hits in 274 files
+- `hitl`: 3485 hits in 376 files
+- `market`: 3277 hits in 303 files
+- `forecast`: 2915 hits in 195 files
+- `receipt`: 2147 hits in 99 files
+- `regulator`: 2087 hits in 276 files
+- `personal-agent`: 1929 hits in 256 files
+- `edm`: 1863 hits in 242 files
+- `routing`: 1582 hits in 244 files
+- `workflow`: 1490 hits in 209 files
+- `mako`: 1149 hits in 193 files
+- `sidecar`: 899 hits in 88 files
+- `eog`: 715 hits in 83 files
+- `utility`: 560 hits in 65 files
+- `chatgpt`: 392 hits in 31 files
+- `willi`: 305 hits in 37 files
 - `open-webui`: 52 hits in 11 files
-- `openwebui`: 32 hits in 15 files
+- `openwebui`: 48 hits in 26 files
 
 ## Evidence and HITL files
 
+- `agentic-architecture/domain/EVIDENCE_VS_PRACTICE.md`
+- `agentic-architecture/reports/latest/domain-abstraction/EVIDENCE_VS_PRACTICE.md`
 - `docs/architecture/consultation-mode-evidence-hydration.md`
 - `docs/n8n-answer-dossier-test.md`
 - `docs/roadmap/resolved/12-hitl-workflow.md`
