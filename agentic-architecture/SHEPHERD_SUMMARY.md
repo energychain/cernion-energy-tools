@@ -1,9 +1,9 @@
 # Shepherd Summary
 
-Generated: 2026-10-10T01:46:40.373Z
-Run: 20261010T014527Z
-Branch: shepherd/runtime-refactor-20261010T014527Z
-Fingerprint: e6cf6b82390d30abea9e6a34b53eab70ce957bf32abc021bd88d28b06ba7964f
+Generated: 2026-10-10T02:12:08.358Z
+Run: 20261010T021102Z
+Branch: shepherd/architecture-20261010T021102Z
+Fingerprint: dc1e2f43eb02400ce4343481bcdb16d9fa229c3f13a6650f363a40f5cb375f9e
 
 ## Current measurable surface
 
@@ -48,6 +48,25 @@ Fingerprint: e6cf6b82390d30abea9e6a34b53eab70ce957bf32abc021bd88d28b06ba7964f
 - `.env.example`: 1 files
 - `.eslintrc.hygiene.json`: 1 files
 
+## Domain abstraction
+
+- Domain abstraction: present
+- Domain fingerprint: 214f0461f2a35d8fa2ef28f9b689c4e41917d275223a289104f14304f5721622
+- Candidate files: 811
+- Unclassified services: 0
+
+Cluster counts:
+
+- `casework-and-assistance` — Fallarbeit und Assistenz: 1 services, 25 top files
+- `evidence-and-trust` — Evidence, Nachweis und Vertrauen: 23 services, 25 top files
+- `mako-and-edm` — MaKo / EDM / Stammdaten: 8 services, 25 top files
+- `grid-and-connection` — Netz, Anschluss und Kapazität: 47 services, 25 top files
+- `forecast-and-market` — Prognose, Markt und Portfolio: 15 services, 25 top files
+- `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files
+- `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files
+- `tenant-and-operation` — Tenant, Rollen und Betrieb: 37 services, 25 top files
+- `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files
+
 ## Coverage review candidates
 
 - `services/agnes-bottleneck.service.js`
@@ -79,4 +98,4 @@ Fingerprint: e6cf6b82390d30abea9e6a34b53eab70ce957bf32abc021bd88d28b06ba7964f
 
 ## Next Shepherd action
 
-Use this summary as the current architecture directive input. Runtime refactors must be implemented in small branches after GitNexus impact analysis; this automated Shepherd commit is docs/canon only.
+Use this summary as the current architecture directive input. Runtime refactors must be implemented in small branches after GitNexus impact analysis; domain abstraction artifacts are a working model and must not be treated as final regulatory truth.
