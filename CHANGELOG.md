@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased — Asset-to-Decision Readiness Blueprint-Pack-Seed (#592)
+
+- Neuer statischer, read-only VDMI Blueprint-Pack-Seed `stadtwerk-mauer-asset-to-decision-readiness-v1`
+  für den CR-LKA-RV-001 Asset-to-Decision Review: vier kanonische Prozessmatrix-Zeilen, sechs
+  V/D/M/I-Spalten und Nachweise pro Zeile, ausschließlich für den synthetischen Demo-Tenant
+  `stadtwerk-mauer`.
+- Acht bestehende Investment-/Governance-Endpunkte (Investment-Data-Review-Queue,
+  Investment-Risk-Translation, Owner-Deadline-Budget-Gate, Committee-Steering-Cards,
+  Decision-Readiness-Matrix, Evidence-Grounding-Confidence-Audit,
+  Receipt-Grounded-Presentation-Contract, Role-Workbench) sind als `source_hint_only`
+  referenziert und werden vom Seed nicht aufgerufen.
+- Budget-Commitment, Committee-Ready-Status und finale Investitionsempfehlung bleiben explizit
+  gesperrt; jede fehlende Evidenz erzeugt einen positiven Klärungs-Folgeschritt statt einer
+  Ablehnung. Blueprint-Pack/Cernion-Energy-Tools ist `complete`, Landing-Registry und
+  Produktivseite bleiben `pending`.
+
 ## Unreleased — Originaldateikanal (#790)
 
 - Versionierter Open-WebUI-Filter überträgt autorisierte Originaldateien an CET und sendet im Chat nur Hash-/Dateireferenzen; der bestehende Text-Fallback bleibt erhalten.
