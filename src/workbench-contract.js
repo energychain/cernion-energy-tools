@@ -99,6 +99,9 @@ function normalizeTaskEnvelope(input = {}, mapping = {}) {
   );
   return {
     schemaVersion: '1.1',
+    ...(input.fileRefs != null
+      ? { fileRefs: require('./file-channel-turn').fileReferences(input.fileRefs) }
+      : {}),
     channel: normalizeChannel(input.channel || 'open-webui'),
     conversationId: conversation.conversationId,
     userRequest,

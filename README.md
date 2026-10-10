@@ -470,3 +470,7 @@ Vollständige CSV-/XLSX-Texttabellen aus Open WebUI werden tenantweit als Nutzer
 abgelegt und über `dataset.query` deterministisch ausgewertet. Gleicher Inhalt erzeugt
 auch bei erneut gesendeten Anhängen keine weitere Version oder Bestätigung.
 Einrichtung, Grenzen und Beispiele: [Tenant-Datenkatalog](docs/tenant-dataset-catalog.md).
+
+## Originaldateien im Chat (#790)
+
+Installation des versionierten Open-WebUI-Filters, signierte Downloads, Dateilimits und Aufbewahrung: [Runbook](docs/file-channel-runbook.md). Ohne installierten Filter bleibt der bisherige Dokument-Textweg erhalten.

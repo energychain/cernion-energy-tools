@@ -450,3 +450,7 @@ salutations, closing greetings and signature lines never carry it.
 The regressions in `tests/fixtures/workbench-758.json` are synthetic, with no original person or
 customer text. `tests/workbench-758.test.js`, the broker pipeline regression and authenticated
 HTTP-e2e cover conversation continuity, dimensions, provider errors, saved facts and draft continuity.
+
+## Originaldateien im Chat (#790)
+
+Installation des versionierten Open-WebUI-Filters, signierte Downloads, Dateilimits und Aufbewahrung: [Runbook](file-channel-runbook.md). Ohne installierten Filter bleibt der bisherige Dokument-Textweg erhalten.

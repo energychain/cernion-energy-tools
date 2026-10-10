@@ -117,7 +117,10 @@ function memoryNamespaceAfter(ctx, result) {
 
 module.exports = {
   name: 'object-store',
-  hooks: { before: { '*': memoryNamespaceBefore }, after: { '*': memoryNamespaceAfter } },
+  hooks: {
+    before: { '*': [require('../src/file-channel-policy').guardFileStore, memoryNamespaceBefore] },
+    after: { '*': memoryNamespaceAfter },
+  },
 
   mixins: [
     createPouchDbLifecycleMixin({

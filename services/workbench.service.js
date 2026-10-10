@@ -1506,6 +1506,14 @@ module.exports = {
         coverageTurn.mapped(ctx, this.metaForMapping(ctx, p, mapping));
         const correctionMeta = this.metaForMapping(ctx, p, mapping);
         p = principal({ meta: correctionMeta }, ctx.params);
+        const fileReply = await require('../src/file-channel-turn').prepareFileTurn(
+          this,
+          ctx,
+          p,
+          envelope,
+          correctionMeta
+        );
+        if (fileReply) return fileReply;
         const background = require('../src/workbench-background-task');
         if (background.backgroundTask(envelope.userRequest))
           return background.answerBackgroundTask(envelope.userRequest, p.tenantId, this.logger);
