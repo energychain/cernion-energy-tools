@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-10-10T01:46:39.541Z
+Generated: 2026-10-10T02:12:05.722Z
 
 ## Current measurable surface
 

@@ -1,0 +1,180 @@
+{
+  "generatedAt": "2026-10-10T02:12:08.294Z",
+  "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261010T021102Z",
+  "counts": {
+    "files": 1279,
+    "candidateFiles": 811,
+    "services": 144,
+    "srcFiles": 256,
+    "docs": 367,
+    "unclassifiedServices": 0
+  },
+  "clusters": {
+    "casework-and-assistance": {
+      "label": "Fallarbeit und Assistenz",
+      "files": 25,
+      "services": 1,
+      "hits": 4817
+    },
+    "evidence-and-trust": {
+      "label": "Evidence, Nachweis und Vertrauen",
+      "files": 25,
+      "services": 23,
+      "hits": 18830
+    },
+    "mako-and-edm": {
+      "label": "MaKo / EDM / Stammdaten",
+      "files": 25,
+      "services": 8,
+      "hits": 2243
+    },
+    "grid-and-connection": {
+      "label": "Netz, Anschluss und Kapazität",
+      "files": 25,
+      "services": 47,
+      "hits": 10356
+    },
+    "forecast-and-market": {
+      "label": "Prognose, Markt und Portfolio",
+      "files": 25,
+      "services": 15,
+      "hits": 4082
+    },
+    "redispatch-and-controllability": {
+      "label": "Redispatch, Steuerbarkeit und Flexibilität",
+      "files": 25,
+      "services": 3,
+      "hits": 4396
+    },
+    "gas-heat-and-eog": {
+      "label": "Gas, Wärme und EOG",
+      "files": 25,
+      "services": 3,
+      "hits": 2399
+    },
+    "tenant-and-operation": {
+      "label": "Tenant, Rollen und Betrieb",
+      "files": 25,
+      "services": 37,
+      "hits": 7436
+    },
+    "openwebui-agentic-routing": {
+      "label": "OpenWebUI und agentisches Routing",
+      "files": 25,
+      "services": 7,
+      "hits": 4229
+    }
+  },
+  "ambiguousTerms": [
+    {
+      "term": "Evidenz",
+      "risk": "Kann als Beweiszwang missverstanden werden und natürliche Fallarbeit blockieren.",
+      "directive": "Unterscheide harte Nachweispflicht, fachliche Plausibilisierung und Arbeitsannahme."
+    },
+    {
+      "term": "Freigabe",
+      "risk": "Klingt nach finaler Entscheidung, obwohl CET oft nur vorbereitet oder prüft.",
+      "directive": "Für unsichere fachliche Zwischenschritte Befassung, Klärpunkt, Prüfauftrag oder nächster Arbeitsschritt verwenden."
+    },
+    {
+      "term": "Routing",
+      "risk": "Reduziert Facharbeit auf Toolauswahl.",
+      "directive": "Routing als Fall- und Prozesszustandsentscheidung modellieren, nicht nur als Service-/Action-Mapping."
+    },
+    {
+      "term": "Capability",
+      "risk": "Kann zu technisch bleiben und fachliche Absicht verstecken.",
+      "directive": "Jede Capability braucht Intent, Actor, Prozesszustand, Evidence Boundary, HITL Boundary und natürliche Antwortform."
+    },
+    {
+      "term": "Marktkommunikation",
+      "risk": "Doppeldeutig zwischen energiewirtschaftlicher MaKo und Publishing/Kommunikation.",
+      "directive": "Bei Publishing/Comms andere Begriffe verwenden; bei MaKo explizit EDM/Marktpartner/Prozesskontext nennen."
+    }
+  ],
+  "unclassifiedServices": [],
+  "topEvidenceFiles": [
+    {
+      "path": "src/answer-dossier-hydration-rules.json",
+      "hits": 4049
+    },
+    {
+      "path": "services/dashboard-api/methods-part-05-of-14.js",
+      "hits": 1574
+    },
+    {
+      "path": "services/dashboard-api/methods-part-04-of-14.js",
+      "hits": 1416
+    },
+    {
+      "path": "services/dashboard-api/methods-part-06-of-14.js",
+      "hits": 1195
+    },
+    {
+      "path": "services/personal-agent/actions-part-01-of-1.js",
+      "hits": 1170
+    },
+    {
+      "path": "services/dashboard-api/methods-part-03-of-14.js",
+      "hits": 1119
+    },
+    {
+      "path": "src/evidence-registry.js",
+      "hits": 1100
+    },
+    {
+      "path": "src/capability-catalog.js",
+      "hits": 1026
+    },
+    {
+      "path": "services/dashboard-api/methods-part-13-of-14.js",
+      "hits": 660
+    },
+    {
+      "path": "services/dashboard-api/methods-part-12-of-14.js",
+      "hits": 642
+    },
+    {
+      "path": "services/dashboard-api/methods-part-07-of-14.js",
+      "hits": 636
+    },
+    {
+      "path": "services/dashboard-api/methods-part-11-of-14.js",
+      "hits": 550
+    },
+    {
+      "path": "services/agent-receipts.service.js",
+      "hits": 479
+    },
+    {
+      "path": "services/personal-agent/shared.js",
+      "hits": 355
+    },
+    {
+      "path": "src/answer-dossier-builder.js",
+      "hits": 335
+    },
+    {
+      "path": "services/capability-broker.service.js",
+      "hits": 295
+    },
+    {
+      "path": "src/vdmi-blueprint-pack-seeds.js",
+      "hits": 289
+    },
+    {
+      "path": "services/dashboard-api/methods-part-09-of-14.js",
+      "hits": 279
+    },
+    {
+      "path": "services/dashboard-api/actions-part-01-of-8.js",
+      "hits": 263
+    },
+    {
+      "path": "services/finance-agent.service.js",
+      "hits": 256
+    }
+  ],
+  "fingerprint": "214f0461f2a35d8fa2ef28f9b689c4e41917d275223a289104f14304f5721622"
+}
