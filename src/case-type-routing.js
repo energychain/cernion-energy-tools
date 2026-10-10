@@ -111,7 +111,7 @@ const CASE_TYPES = [
   {
     id: 'kunden_service_klaerfall',
     title: 'Kunden-/Service-Klärfall',
-    maturity: 'draft',
+    maturity: 'routable',
     priority: 3,
     searchTerms: [
       'kunde',
@@ -133,6 +133,16 @@ const CASE_TYPES = [
       'speicher',
       'rückfrage',
       'rueckfrage',
+
+      'vertragskonto',
+      'kundennummer',
+      'abschlag',
+      'lieferstelle',
+      'kundenservice',
+      'zählerstand',
+      'zaehlerstand',
+      'rechnung hoch',
+      'falscher zählerstand',
     ],
     signals: [
       'Kunde beschreibt Problem ohne klare Prozesszuordnung',
