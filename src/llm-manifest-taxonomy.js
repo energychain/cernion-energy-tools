@@ -170,6 +170,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   Files: 'platform',
   'shared-service-learning': 'platform',
   'Shared Service Notices': 'platform',
+  'Tenant Memory Policy': 'platform',
   'Actor Personas': 'platform',
   'Agent Manifest': 'platform',
   'Evidence Router': 'platform',

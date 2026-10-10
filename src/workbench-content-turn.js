@@ -268,9 +268,27 @@ async function runContentTurn(
     performance.now() + retrievalTimeoutMs(),
     started + turnBudget - answerReserve - 1000
   );
+  const datasetCandidates =
+    ctx.broker.getLocalService('dataset') &&
+    !incomingDocuments &&
+    !draftRequest &&
+    !understandingFailed
+      ? await ctx
+          .call('datapoint.datasetCatalog', { operation: 'list' }, { meta })
+          .then((records) =>
+            require('./dataset-routing').selectDatasetCandidates(records, envelope.userRequest, {
+              conversationId: envelope.conversationId,
+              previousReads: pending?.retrieval?.evidence || [],
+              previousSubject: previous?.concern || '',
+              newDatasetIds: envelope.datasetIds || [],
+            })
+          )
+          .catch(() => [])
+      : [];
   const toolOptions = {
     model: service.settings.systemActivityModel || getFunctionModel(),
     datasetAvailable: Boolean(ctx.broker.getLocalService('dataset')),
+    datasetCandidates,
     domainsAllowed: workbenchContext.userProfile?.domainsAllowed || mapping?.domainsAllowed || [],
     previous,
   };
@@ -500,6 +518,7 @@ async function runContentTurn(
       ? toolLoop
           .runCapabilityLoop(ctx, {
             situation,
+            datasetCandidates,
             message: rawMessage,
             meta,
             mapping,
@@ -818,6 +837,7 @@ async function runContentTurn(
       reply.responseText,
       memory.ambiguous,
       memory.confirmation,
+      ...(envelope.datasetConfirmations || []),
       mergeProposal?.text,
       choices.length
         ? `Optional passende Funktion (Nummer oder Name):\n${choices.map((choice, index) => `${index + 1}. ${choice.label}`).join('\n')}`
@@ -887,7 +907,11 @@ async function runContentTurn(
       : {}),
     situation,
     retrieval,
-    tenantMemoryFactIds: memory.ids.length ? memory.ids : pending?.tenantMemoryFactIds || [],
+    tenantMemoryFactIds: memory.ids.length
+      ? memory.ids
+      : retrieval.evidence?.some((hit) => hit.source === 'dataset.query')
+        ? []
+        : pending?.tenantMemoryFactIds || [],
     evidenceRetrievedAt: draftRequest || reuseTools ? pending?.evidenceRetrievedAt : Date.now(),
     draft: reply.draft,
     offeredContent: '',
