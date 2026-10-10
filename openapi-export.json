@@ -30254,6 +30254,73 @@
         }
       }
     },
+    "/api/dataset/query": {
+      "get": {
+        "operationId": "dataset_query",
+        "summary": "Query tenant datasets deterministically with user provenance",
+        "tags": [
+          "Datapoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "Dataset answer in sentences with units, time and provenance"
+          }
+        },
+        "parameters": [
+          {
+            "name": "question",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "conversationId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "plan",
+            "in": "query",
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "x-agentable": true
+      }
+    },
     "/api/datasource-cache/:sourceId": {
       "get": {
         "operationId": "datasource-cache_query",

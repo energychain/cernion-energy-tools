@@ -2,14 +2,14 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "cd849fd0e1466e183fc0303412bab901fcf56a2c29ee0902bd70ff5c6ecdf2b7",
+  "sourceOpenApiHash": "46edf13bd0bb35b3574edade3bc8d57e640585a08b1868803f27ded5dbc36cb7",
   "coverage": {
-    "rawOperationCount": 1245,
-    "operationCount": 989,
-    "agentableCount": 987,
+    "rawOperationCount": 1246,
+    "operationCount": 990,
+    "agentableCount": 988,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 427,
+      "data_read": 428,
       "admin": 21,
       "object_store_write": 264,
       "process_step": 26,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 970,
+    "resolvedActionCount": 971,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -36835,6 +36835,118 @@
       "aliases": [
         "GET /api/datapoints/snapshots"
       ]
+    },
+    {
+      "operationId": "dataset_query",
+      "method": "GET",
+      "path": "/api/dataset/query",
+      "service": "dataset",
+      "action": "dataset.query",
+      "summary": "Query tenant datasets deterministically with user provenance",
+      "tags": [
+        "Datapoints"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "dataset.query"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "dataset:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "question",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "entity_id"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_end"
+          },
+          {
+            "name": "conversationId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "plan",
+            "in": "query",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "dataset",
+          "query",
+          "tenant",
+          "datasets",
+          "deterministically",
+          "with",
+          "user",
+          "provenance",
+          "datapoints"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me query tenant datasets deterministically with user provenance"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
     },
     {
       "operationId": "datasource-cache_invalidate",

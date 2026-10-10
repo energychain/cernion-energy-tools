@@ -17,6 +17,16 @@ function documentInput(input) {
       'WORKBENCH_DOCUMENT_LIMIT'
     );
   const parsed = parseOpenWebUIContext(input);
+  if (!parsed.documents.length) {
+    const lines = parsed.question.split(/\r?\n/);
+    const trailingQuestion =
+      /\?\s*$/.test(lines.at(-1)) && !/[;\t|]/.test(lines.at(-1)) ? lines.pop() : '';
+    const tableText = lines.join('\n');
+    if (require('./dataset-input').parseDatasetText(tableText).length) {
+      parsed.documents.push({ name: 'Eingefügte Tabelle', text: tableText, id: null });
+      parsed.question = trailingQuestion || 'Tabelle auswerten.';
+    }
+  }
   if (parsed.documents.reduce((sum, doc) => sum + doc.text.length, 0) > maxDocuments)
     throw new Errors.MoleculerClientError(
       `Das Dokument ist zu groß. Die Aufnahmegrenze beträgt ${maxDocuments.toLocaleString('de-DE')} Zeichen. Bitte teile das Dokument auf oder sende einen kleineren Ausschnitt.`,

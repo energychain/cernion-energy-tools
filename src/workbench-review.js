@@ -359,4 +359,4 @@ async function reviewDocuments(
   }
 }
 
-module.exports = { reviewDocuments, reviewOptions, MAP_SCHEMA, REVIEW_SCHEMA };
+module.exports = { reviewDocuments, reviewOptions, MAP_SCHEMA, REVIEW_SCHEMA, facadeSchema };

@@ -1506,6 +1506,25 @@ module.exports = {
         const background = require('../src/workbench-background-task');
         if (background.backgroundTask(envelope.userRequest))
           return background.answerBackgroundTask(envelope.userRequest, p.tenantId, this.logger);
+        if (this.broker.getLocalService('dataset')) {
+          const datasetTurn = await ctx.call(
+            'dataset.turn',
+            {
+              question: envelope.userRequest,
+              documents: envelope.documents || [],
+              conversationId: envelope.conversationId,
+            },
+            { meta: correctionMeta }
+          );
+          if (datasetTurn.handled)
+            return {
+              state: 'assistance',
+              nonBinding: true,
+              responseText: datasetTurn.responseText,
+              sources: datasetTurn.sources || [],
+            };
+          if (datasetTurn.documents) envelope.documents = datasetTurn.documents;
+        }
         const pending = await conversationAssistance.readTurn(this.conversationsDb, p, envelope);
         const conversation = await this.store.resolveConversation(
           {
