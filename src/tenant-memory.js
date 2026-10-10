@@ -52,18 +52,34 @@ function person(p, mapping, situation, ctx) {
       p.roles.join(', '),
   };
 }
-async function capture(ctx, p, { situation, envelope, mapping }) {
+function acceptedAssertion(item, message) {
+  return Boolean(
+    item.text?.trim() &&
+    item.basis?.trim() &&
+    message.includes(item.basis) &&
+    item.anchors?.some((anchor) => anchor.value?.trim())
+  );
+}
+function matchesAnchor(anchor, message, identifiers = []) {
+  const words = ` ${store.normalizeAnchor(message)} `;
+  return store.anchorKeys(anchor).some((key) => {
+    const [base, qualifier] = JSON.parse(key);
+    const phrase = [base, qualifier].filter(Boolean).join(' ');
+    return (
+      words.includes(` ${phrase} `) ||
+      identifiers.some((value) => {
+        const normalized = store.normalizeAnchor(value);
+        return normalized === phrase;
+      })
+    );
+  });
+}
+async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags }) {
   const message = envelope.userRequest;
   const extracted = eligible(message, situation, envelope)
     ? situation.tenantMemory?.assertions || []
     : [];
-  const assertions = extracted.filter(
-    (item) =>
-      item.text?.trim() &&
-      item.basis?.trim() &&
-      message.includes(item.basis) &&
-      item.anchors?.length
-  );
+  const assertions = extracted.filter((item) => acceptedAssertion(item, message));
   if (!assertions.length) return { facts: [], ids: [], confirmation: '', ambiguous: '' };
   return serialized(p, async () => {
     const existing = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
@@ -92,7 +108,8 @@ async function capture(ctx, p, { situation, envelope, mapping }) {
         id,
         type: 'tenant_memory_fact',
         tenantId: p.tenantId,
-        sensitivityFlags: ctx.params.sensitivityFlags || [],
+        sensitivityFlags: sensitivityFlags || ctx.params.sensitivityFlags || [],
+        recoveryPrincipal: { ...p },
         person: person(p, mapping, situation, ctx),
         at,
         text: assertion.text,
@@ -209,6 +226,11 @@ async function assess(ctx, p, fact, retrieval) {
       if (!latest.every((entry) => store.active(entry))) return;
       try {
         await store.get(ctx, p, id);
+        for (const entry of latest)
+          await store.mutate(ctx, p, entry.id, (value) => ({
+            ...value,
+            relationIds: [...new Set([...value.relationIds, id])],
+          }));
         return;
       } catch (error) {
         if (error.code !== 404) throw error;
@@ -301,23 +323,81 @@ function start(service, ctx, p, input) {
   state.job = job;
   return state;
 }
+// Facts are the durable work queue, so recovery introduces no second persistence layer.
+async function recover(service) {
+  if (service.tenantMemoryRecovering || service.tenantMemoryJobs?.size) return;
+  const objects = service.broker.getLocalService('object-store');
+  if (!objects?.db) return;
+  service.tenantMemoryRecovering = true;
+  try {
+    const pending = [];
+    for (let skip = 0; ; skip += 1000) {
+      const page = await objects.db.find({
+        selector: {
+          'payload.type': 'tenant_memory_fact',
+          'payload.checking': 'pending',
+        },
+        limit: 1000,
+        skip,
+      });
+      pending.push(...page.docs);
+      if (page.docs.length < 1000) break;
+    }
+    for (const doc of pending) {
+      const fact = doc.payload;
+      const p = fact.recoveryPrincipal;
+      if (!p || doc.ns !== store.namespace(p) || !store.active(fact)) continue;
+      const meta = {
+        apiToken: {
+          id: p.actorId,
+          tenantId: p.tenantId,
+          roles: p.roles,
+          sensitivityFlags: p.clearance,
+          scope: 'agentos-session',
+        },
+      };
+      const ctx = {
+        broker: service.broker,
+        meta,
+        params: {},
+        call: (name, params, options) =>
+          service.broker.call(name, params, { meta: { ...meta, ...options?.meta } }),
+      };
+      try {
+        await assess(ctx, p, fact, { evidence: fact.checkingEvidence || [] });
+        await deferredNotices(ctx, p, fact);
+      } catch (error) {
+        service.logger.warn('Tenant memory recovery pending', {
+          errorClass: error.type || error.name,
+        });
+      }
+    }
+  } finally {
+    service.tenantMemoryRecovering = false;
+  }
+}
+function startRecovery(service) {
+  service.tenantMemoryRecoveryTimer = setInterval(() => {
+    service.tenantMemoryRecoveryJob = recover(service).catch((error) =>
+      service.logger.warn('Tenant memory recovery unavailable', {
+        errorClass: error.type || error.name,
+      })
+    );
+  }, 1000);
+  service.tenantMemoryRecoveryTimer.unref();
+}
+async function stopRecovery(service) {
+  clearInterval(service.tenantMemoryRecoveryTimer);
+  await service.tenantMemoryRecoveryJob;
+}
 async function related(ctx, p, situation, message) {
   if (!available(ctx)) return { evidence: [], text: '' };
   const facts = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
-  const words = store.normalizeAnchor(message);
-  const identifiers = new Set(
-    (situation.identifiers || []).map((entry) => store.normalizeAnchor(entry.value))
-  );
+  const identifiers = (situation.identifiers || []).map((entry) => entry.value);
   const matched = facts.filter(
     (fact) =>
       store.active(fact) &&
-      fact.anchors.some((anchor) =>
-        [anchor.value, ...(anchor.aliases || [])].some(
-          (value) =>
-            words.includes(store.normalizeAnchor(value)) ||
-            identifiers.has(store.normalizeAnchor(value))
-        )
-      )
+      fact.anchors.some((anchor) => matchesAnchor(anchor, message, identifiers))
   );
   const paragraphs = [];
   for (const id of new Set(matched.flatMap((fact) => fact.relationIds))) {
@@ -347,9 +427,7 @@ async function queryResponse(ctx, p, message, selector) {
       !term ||
       (selector.functionLabel
         ? store.normalizeAnchor(fact.person.functionLabel).includes(term)
-        : fact.anchors.some((anchor) =>
-            store.normalizeAnchor(`${anchor.value} ${anchor.qualifier}`).includes(term)
-          ))
+        : fact.anchors.some((anchor) => matchesAnchor(anchor, selector.anchor || '')))
   );
   const lines = matches.map(store.factText);
   for (const id of new Set(matches.flatMap((fact) => fact.relationIds))) {
@@ -444,6 +522,10 @@ async function correctFacts(ctx, p, envelope, pending, correction) {
   };
 }
 module.exports = {
+  acceptedAssertion,
+  recover,
+  startRecovery,
+  stopRecovery,
   available,
   eligible,
   capture,

@@ -733,6 +733,42 @@
     {
       "term": "unsicherheit",
       "reason": "Generic uncertainty of model-supported statement relationships."
+    },
+    {
+      "term": "projektion",
+      "reason": "Generic document/evidence response wording and local projection; no domain routing, subject rules or specialist knowledge."
+    },
+    {
+      "term": "datenquelle",
+      "reason": "Generic document/evidence response wording and local projection; no domain routing, subject rules or specialist knowledge."
+    },
+    {
+      "term": "abruf",
+      "reason": "Generic document/evidence response wording and local projection; no domain routing, subject rules or specialist knowledge."
+    },
+    {
+      "term": "pruefung",
+      "reason": "Generic document/evidence response wording and local projection; no domain routing, subject rules or specialist knowledge."
+    },
+    {
+      "term": "lokal",
+      "reason": "Generic document/evidence response wording and local projection; no domain routing, subject rules or specialist knowledge."
+    },
+    {
+      "term": "sheet",
+      "reason": "Generic table/text processing and retrieval output wording; no domain-specific behavior."
+    },
+    {
+      "term": "speicher",
+      "reason": "Generic table/text processing and retrieval output wording; no domain-specific behavior."
+    },
+    {
+      "term": "general",
+      "reason": "Generic table/text processing and retrieval output wording; no domain-specific behavior."
+    },
+    {
+      "term": "treffer",
+      "reason": "Generic table/text processing and retrieval output wording; no domain-specific behavior."
     }
   ]
 }

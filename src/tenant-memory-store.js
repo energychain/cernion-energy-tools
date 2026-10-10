@@ -1,5 +1,6 @@
 'use strict';
 
+const { writeCapability } = require('./tenant-memory-write-policy');
 const { createHash } = require('node:crypto');
 const { visible, deny } = require('./domain-router-policy');
 const { normalizePhrase } = require('./function-resolver');
@@ -54,12 +55,16 @@ async function get(ctx, p, id) {
 }
 async function put(ctx, p, payload, rev) {
   if (!visible(p, payload)) deny('Statement not accessible');
-  return ctx.call('object-store.put', {
-    namespace: namespace(p),
-    key: payload.id,
-    payload,
-    ...(rev ? { _rev: rev } : {}),
-  });
+  return ctx.call(
+    'object-store.put',
+    {
+      namespace: namespace(p),
+      key: payload.id,
+      payload,
+      ...(rev ? { _rev: rev } : {}),
+    },
+    { meta: { tenantMemoryWrite: writeCapability } }
+  );
 }
 async function mutate(ctx, p, id, change) {
   for (let attempt = 0; attempt < 4; attempt++) {

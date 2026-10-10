@@ -65,11 +65,21 @@ function isConflictError(err) {
 
 // The existing generic store remains unchanged for other namespaces. Tenant statements
 // inherit the same authenticated tenant and clearance contract as Workbench cases.
+function authorizeMemoryWrite(ctx) {
+  const { deny } = require('../src/domain-router-policy');
+  if (
+    /\.(?:put|delete)$/.test(ctx.action.name) &&
+    (ctx.action.name.endsWith('.delete') ||
+      ctx.meta.tenantMemoryWrite !== require('../src/tenant-memory-write-policy').writeCapability)
+  )
+    deny('Use the audited tenant memory workflow');
+}
 async function memoryNamespaceBefore(ctx) {
   if (!String(ctx.params.namespace || '').endsWith(':workbench_facts')) return;
   const { principal, visible, deny } = require('../src/domain-router-policy');
   const p = principal(ctx);
   if (ctx.params.namespace !== `tenant:${p.tenantId}:workbench_facts`) deny('Tenant mismatch');
+  authorizeMemoryWrite(ctx);
   if (ctx.params.payload && !visible(p, ctx.params.payload)) deny('Statement not accessible');
   if (ctx.action.name.endsWith('.query'))
     ctx.params.selector = {

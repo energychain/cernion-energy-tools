@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "1f92f3c6e6983edb3b98dfc1c3d14a28b5bf381c1247759feace4741ed8b61e4",
+  "sourceHash": "6c263057390e7c0054e25c24a2c67f8ba118aec0d046bd0a22dfa135b1bedb4c",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -118035,6 +118035,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/tenant-memory-write-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/tenant-memory.js"
         },
         {
@@ -118124,6 +118128,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-thread.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-tool-answer.js"
         },
         {
           "kind": "service",

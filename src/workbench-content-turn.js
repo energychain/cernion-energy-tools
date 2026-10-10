@@ -201,7 +201,8 @@ async function runContentTurn(
     broker: ctx.broker,
     meta,
     params: ctx.params,
-    call: (name, params) => ctx.call(name, params, { meta }),
+    call: (name, params, options) =>
+      ctx.call(name, params, { meta: { ...meta, ...options?.meta } }),
   };
   if (!incomingDocuments && !understandingFailed && situation.tenantMemory?.query?.requested)
     return tenantMemory.queryResponse(
@@ -239,15 +240,26 @@ async function runContentTurn(
       roleFamilies: workbenchContext.userProfile?.roleFamilies || mapping?.roleFamilies,
     },
     retrieval: memoryRetrieval,
+    sensitivityFlags: [
+      ...new Set([...(state?.sensitivityFlags || []), ...(ctx.params.sensitivityFlags || [])]),
+    ],
   });
   const memoryStatement =
     !understandingFailed &&
     !draftRequest &&
     tenantMemory.eligible(envelope.userRequest, situation, envelope) &&
-    situation.tenantMemory?.assertions?.some(
-      (item) => item.basis && envelope.userRequest.includes(item.basis)
+    situation.tenantMemory?.assertions?.some((item) =>
+      tenantMemory.acceptedAssertion(item, envelope.userRequest)
     );
   const toolLoop = require('./workbench-capability-loop');
+  const answerReserve = understanding.llmOptions(p.tenantId, 'answer', Boolean(previous)).timeoutMs;
+  const turnBudget =
+    Number(process.env.WORKBENCH_TURN_TIMEOUT_MS) ||
+    understanding.llmOptions(p.tenantId).timeoutMs + retrievalTimeoutMs() + answerReserve + 3000;
+  const toolDeadline = Math.min(
+    performance.now() + retrievalTimeoutMs(),
+    started + turnBudget - answerReserve - 1000
+  );
   const toolOptions = {
     model: service.settings.systemActivityModel || getFunctionModel(),
     domainsAllowed: workbenchContext.userProfile?.domainsAllowed || mapping?.domainsAllowed || [],
@@ -258,6 +270,24 @@ async function runContentTurn(
       ? toolLoop.resolveCapabilityNeed(situation, envelope.userRequest, toolOptions)
       : { situation, candidates: [], reason: 'no_data_need' };
   situation = toolNeed.situation;
+  const cachedExtremum = Boolean(
+    toolNeed.refinement &&
+    /größte|groesste|höchste|hoechste|kleinste|niedrigste|maximum|minimum|largest|smallest/iu.test(
+      envelope.userRequest
+    ) &&
+    !/aktuell|neu\b|heute|erneut|nochmal|refresh|latest/iu.test(envelope.userRequest) &&
+    Date.now() - (pending?.evidenceRetrievedAt || 0) < 300000 &&
+    toolLoop.validateCachedReads(
+      ctx,
+      (pending?.retrieval?.evidence || []).filter(
+        (hit) =>
+          hit.retrievalSource === 'capability-read' &&
+          (hit.metadata?.sourceStatistics?.length || hit.metadata?.statistics?.length)
+      ),
+      { meta, domainsAllowed: toolOptions.domainsAllowed, model: toolOptions.model }
+    ).hits.length
+  );
+  if (cachedExtremum) situation = { ...situation, dataNeeds: '', followupKind: 'question' };
   Object.assign(capabilityDiagnostics, {
     candidateCount: toolNeed.candidates.length,
     reason: toolNeed.reason,
@@ -266,7 +296,9 @@ async function runContentTurn(
     !understanding.isDraftRequest(envelope.userRequest) && situation.followupKind === 'next_step';
   const reuseTools = Boolean(
     previous &&
-    (nextStepRequest || (situation.followupKind === 'question' && !situation.dataNeeds?.trim())) &&
+    (cachedExtremum ||
+      nextStepRequest ||
+      (situation.followupKind === 'question' && !situation.dataNeeds?.trim())) &&
     pending?.retrieval &&
     Date.now() - (pending.evidenceRetrievedAt || 0) < 300000
   );
@@ -287,7 +319,7 @@ async function runContentTurn(
             },
             {
               meta: { ...meta, workbenchEvidenceSources: ['knowledge-rag'] },
-              timeout: retrievalTimeoutMs(),
+              timeout: Math.max(1, Math.round(toolDeadline - performance.now())),
             }
           )
           .catch(() => null)
@@ -449,7 +481,6 @@ async function runContentTurn(
       }
     : null;
   const retrieveStarted = performance.now();
-  const toolDeadline = retrieveStarted + retrievalTimeoutMs();
   const tools =
     situation.dataNeeds?.trim() &&
     !incomingDocuments &&
@@ -521,7 +552,9 @@ async function runContentTurn(
   );
 
   let retrieval;
-  const resolvedCodes = await codeLookup;
+  const resolvedCodes = await toolLoop
+    .withinToolBudget(() => codeLookup, toolDeadline - performance.now())
+    .catch(() => ({ resolutions: [], evidence: [], trace: [] }));
   try {
     if (incomingDocuments) {
       retrieval = { evidence: [], trace: [] };
@@ -847,7 +880,7 @@ async function runContentTurn(
     situation,
     retrieval,
     tenantMemoryFactIds: memory.ids.length ? memory.ids : pending?.tenantMemoryFactIds || [],
-    evidenceRetrievedAt: draftRequest || reuseEvidence ? pending?.evidenceRetrievedAt : Date.now(),
+    evidenceRetrievedAt: draftRequest || reuseTools ? pending?.evidenceRetrievedAt : Date.now(),
     draft: reply.draft,
     offeredContent: '',
     lastQuestion: '',

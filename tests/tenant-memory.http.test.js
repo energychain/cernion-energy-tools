@@ -3,7 +3,7 @@
 jest.mock('../src/llm-client', () => ({ generateStructured: jest.fn(), generateText: jest.fn() }));
 const fs = require('node:fs');
 const path = require('node:path');
-const { createCaseBroker } = require('./helpers/case-linking-broker');
+const { createCaseBroker, auth } = require('./helpers/case-linking-broker');
 const ObjectStore = require('../services/object-store.service');
 const Notices = require('../services/shared-service-notices.service');
 const TokenManager = require('../services/token-manager.service');
@@ -17,7 +17,7 @@ const fixture = require('./fixtures/tenant-memory.json');
 
 describe('tenant memory through authenticated OpenAI HTTP', () => {
   let app, env, base, gateway, otherGateway;
-  beforeAll(async () => {
+  beforeEach(async () => {
     env = { ...process.env };
     app = await createCaseBroker();
     Object.assign(process.env, {
@@ -175,7 +175,7 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
       });
     }
   });
-  afterAll(async () => {
+  afterEach(async () => {
     await app.cleanup();
     for (const key of Object.keys(process.env)) if (!(key in env)) delete process.env[key];
     Object.assign(process.env, env);
@@ -232,6 +232,51 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
     expect(foreign.status).toBe(200);
     expect(foreign.text).toContain('noch keine sichtbaren Aussagen');
     expect(foreign.text).not.toContain('Charly');
+  });
+  test('HTTP statements inherit active-case classification and remain hidden from un-cleared actors', async () => {
+    const mapping = await app.workbench.store.getUserMapping({
+      client: 'open-webui',
+      externalOrgId: 'org-test',
+      externalUserId: 'Charly',
+    });
+    await app.workbench.store.saveUserMapping({ ...mapping, sensitivityClearance: ['restricted'] });
+    const classified = await app.call(
+      'domain-router.classify',
+      {
+        userRequest: 'Synthetic restricted planning case',
+        disableKnowledgeRouting: true,
+        sensitivityFlags: ['restricted'],
+        knownContext: {
+          situation: {
+            concern: 'Plan',
+            situation: 'Plan',
+            identifiers: [],
+            participants: [],
+            deadlines: [],
+            hypotheses: [],
+            missingInformation: [],
+            requestedAction: { description: '', externalEffect: false, draftRequested: false },
+            turnKind: 'work',
+            retrievalTerms: [],
+          },
+        },
+      },
+      auth('Charly', ['ROLE_GRID_OPERATOR'], 'public', ['restricted'])
+    );
+    await app.workbench.store.linkConversation({
+      tenantId: 'public',
+      client: 'open-webui',
+      conversationId: 'classified',
+      cetCaseId: classified.cetCaseId,
+    });
+    const recorded = await request(fixture.first, fixture.first.text, 'classified');
+    expect(recorded.body).not.toHaveProperty('error');
+    expect(recorded.status).toBe(200);
+    expect(recorded.text).toContain('Hab ich festgehalten:');
+    const query = await request(fixture.second, 'Was wissen wir zu Hauptstraße?');
+    expect(query.text).not.toContain('Charly');
+    const own = await request(fixture.first, 'Was wissen wir zu Hauptstraße?');
+    expect(own.text).toContain('Charly');
   });
   test('AC-02: reverse order in fresh conversations retains symmetric links', async () => {
     const d = await request(

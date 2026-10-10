@@ -1508,7 +1508,11 @@ module.exports = {
           return background.answerBackgroundTask(envelope.userRequest, p.tenantId, this.logger);
         const pending = await conversationAssistance.readTurn(this.conversationsDb, p, envelope);
         const memoryReply = await require('../src/tenant-memory').preturn(
-          { ...ctx, call: (name, params) => ctx.call(name, params, { meta: correctionMeta }) },
+          {
+            ...ctx,
+            call: (name, params, options) =>
+              ctx.call(name, params, { meta: { ...correctionMeta, ...options?.meta } }),
+          },
           p,
           envelope,
           pending
@@ -1706,8 +1710,10 @@ module.exports = {
   },
   async started() {
     await startLocalProvisioning(this);
+    require('../src/tenant-memory').startRecovery(this);
   },
   async stopped() {
+    await require('../src/tenant-memory').stopRecovery(this);
     await Promise.allSettled([...(this.workbenchDocumentReviews?.values() || [])]);
     await Promise.allSettled([...(this.tenantMemoryJobs || [])]);
     await stopLocalProvisioning(this);

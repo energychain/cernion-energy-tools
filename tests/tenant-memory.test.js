@@ -56,7 +56,8 @@ function context(app, actor = 'Charly', tenantId = 'tenant-a', clearance = []) {
     broker: app.broker,
     params: {},
     meta,
-    call: (name, params) => app.call(name, params, meta),
+    call: (name, params, options) =>
+      app.broker.call(name, params, { meta: { ...meta, ...options?.meta } }),
   };
 }
 const principal = (actor = 'Charly', tenantId = 'tenant-a', clearance = []) => ({
@@ -119,6 +120,130 @@ describe('tenant memory acceptance and lifecycle', () => {
   });
   afterEach(async () => {
     await app.cleanup();
+  });
+
+  test('public store writes and deletes cannot bypass source correction or erase audit', async () => {
+    const text = fixture.first.text;
+    const captured = await memory.capture(context(app), principal(), {
+      situation: situation(text, [assertion(text)]),
+      envelope: { userRequest: text, conversationId: 'protected', channel: 'api' },
+    });
+    const params = { namespace: store.namespace(principal()), key: captured.ids[0] };
+    for (const actor of ['Charly', 'Doris']) {
+      await expect(
+        app.call(
+          'object-store.put',
+          { ...params, payload: { ...captured.facts[0], text: 'tampered' } },
+          auth(actor)
+        )
+      ).rejects.toMatchObject({ code: 403 });
+      await expect(app.call('object-store.delete', params, auth(actor))).rejects.toMatchObject({
+        code: 403,
+      });
+    }
+    expect(
+      (await store.get(context(app), principal(), captured.ids[0])).payload.audit
+    ).toHaveLength(1);
+  });
+
+  test('prefixes and other qualified locations do not supply remembered evidence', async () => {
+    for (const anchor of [
+      { value: 'ID-17', qualifier: '', aliases: [] },
+      { value: 'Hauptstraße', qualifier: 'Nordstadt', aliases: ['Hauptstrasse'] },
+    ]) {
+      const text = `Plan für ${anchor.value} ${anchor.qualifier}.`;
+      await memory.capture(context(app), principal(), {
+        situation: situation(text, [assertion(text, [anchor])]),
+        envelope: { userRequest: text, conversationId: text, channel: 'api' },
+      });
+    }
+    for (const message of ['Bitte plane ID-1.', 'Bitte plane Hauptstraße (Südstadt).']) {
+      expect((await memory.related(context(app), principal(), {}, message)).evidence).toHaveLength(
+        0
+      );
+      expect(
+        (
+          await memory.queryResponse(context(app), principal(), message, {
+            anchor: message.replace('Bitte plane ', ''),
+          })
+        ).statements
+      ).toHaveLength(0);
+    }
+    expect(
+      (await memory.related(context(app), principal(), {}, 'Plane Hauptstraße (Nordstadt).'))
+        .evidence
+    ).toHaveLength(1);
+  });
+
+  test.each([
+    { text: '', basis: 'Plan', anchors: [{ value: 'X' }] },
+    { text: 'Plan', basis: 'Plan', anchors: [] },
+  ])('rejected extraction cannot suppress normal case assignment: %j', async (item) => {
+    expect(memory.acceptedAssertion(item, 'Plan')).toBe(false);
+    const capture = await memory.capture(context(app), principal(), {
+      situation: situation('Plan', [item]),
+      envelope: { userRequest: 'Plan', channel: 'api', conversationId: 'invalid' },
+    });
+    expect(capture.ids).toEqual([]);
+    llm.generateStructured.mockResolvedValueOnce(situation('Plan', [item]));
+    const reply = await app.call('workbench.chat', {
+      userRequest: 'Plan',
+      channel: 'api',
+      conversationId: 'invalid-flow',
+    });
+    expect(reply.cetCaseId || reply.caseSelection || reply.state === 'case_selection').toBeTruthy();
+  });
+
+  test('startup resumes persisted checks without another source turn and deduplicates notices', async () => {
+    for (const item of [fixture.first, fixture.second])
+      await memory.capture(context(app, item.actor), principal(item.actor), {
+        situation: situation(item.text, [assertion(item.text)]),
+        envelope: { userRequest: item.text, conversationId: item.actor, channel: 'api' },
+      });
+    const captured = await store.query(context(app), principal(), {
+      'payload.type': 'tenant_memory_fact',
+    });
+    await memory.assess(context(app), principal(), captured[0], {});
+    for (const fact of captured)
+      await store.mutate(context(app), principal(), fact.id, (value) => ({
+        ...value,
+        checking: 'pending',
+        relationIds: [],
+      }));
+    await app.broker.stop();
+    const { ServiceBroker } = require('moleculer');
+    const broker = new ServiceBroker({ logger: false, transporter: null });
+    const workbench = broker.createService({
+      ...require('../services/workbench.service'),
+      settings: app.workbench.settings,
+    });
+    broker.createService({ ...ObjectStore, settings: { dbPath: path.join(app.dir, 'objects') } });
+    broker.createService({
+      ...Notices,
+      settings: { ...Notices.settings, dbPath: path.join(app.dir, 'notices') },
+    });
+    try {
+      await broker.start();
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const restored = { ...app, broker };
+      const facts = await store.query(context(restored), principal(), {
+        'payload.type': 'tenant_memory_fact',
+      });
+      expect(
+        facts.every((fact) => fact.checking === 'complete' && fact.relationIds.length === 1)
+      ).toBe(true);
+      await memory.recover(workbench);
+      for (const actor of ['Charly', 'Doris']) {
+        const notices = await broker.call(
+          'notices.list',
+          { tenantId: 'tenant-a', actorId: actor },
+          { meta: auth(actor) }
+        );
+        expect(notices.items.filter((item) => item.kind === 'memory')).toHaveLength(1);
+      }
+    } finally {
+      await broker.stop();
+    }
   });
 
   test.each([

@@ -101,6 +101,7 @@ function readableSourceTitle(hit) {
   const candidates = [
     metadata.documentTitle,
     metadata.document?.title,
+    metadata.source?.title,
     metadata.title,
     hit.documentTitle,
     hit.title,
@@ -115,6 +116,11 @@ function readableSourceTitle(hit) {
     // Technical references are not document titles, even with their extension removed.
     if (
       !candidate ||
+      /^(?:[a-z]\)|\d+[.)]\s)|^[a-zäöü].*,/u.test(String(candidate)) ||
+      (candidate === hit.title &&
+        !metadata.title &&
+        !metadata.documentTitle &&
+        String(hit.value || hit.summary || '').startsWith(String(candidate))) ||
       /\.[a-z][a-z0-9]{0,7}(?:$|\s)|^(?:[\w-]+\s+)?E[_-]\d+$|[/\\]/iu.test(candidate)
     )
       continue;
@@ -140,6 +146,7 @@ function sourceLine(evidence) {
   const labels = [
     ...new Set(
       evidence
+        .filter((hit) => hit.retrievalSource !== 'capability-read')
         .map((hit) => {
           const title = readableSourceTitle(hit);
           if (!title) return '';

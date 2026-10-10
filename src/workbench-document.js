@@ -93,8 +93,28 @@ async function attachDocuments(store, identity, documents, options = {}) {
     return evidence;
   });
   const saved = [];
-  for (const evidence of prepared)
-    saved.push(await store.saveEvidence({ ...evidence, ...identity }));
+  const existing = await store.listEvidence(identity);
+  for (const evidence of prepared) {
+    const duplicate = existing.find(
+      (entry) => entry.extracts?.document && entry.fileHash === evidence.fileHash
+    );
+    if (duplicate) {
+      saved.push({ ...duplicate, duplicate: true, duplicateOf: duplicate.evidenceId });
+      continue;
+    }
+    const result = await store.saveEvidence({ ...evidence, ...identity });
+    saved.push(result);
+    existing.push(result);
+    if (!result.duplicate)
+      options.logger?.info('Workbench document stored', {
+        name: evidence.extracts.document.name,
+        chars: evidence.extracts.document.text.length,
+        lines: evidence.extracts.document.text.split(/\r\n|\r|\n/u).length,
+        tabular: Boolean(
+          require('./workbench-document-question').documentTable(evidence.extracts.document.text)
+        ),
+      });
+  }
   return saved;
 }
 

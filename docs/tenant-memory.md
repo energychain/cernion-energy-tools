@@ -20,6 +20,9 @@ Audit-Historie. Der Tenant und die Clearance stammen aus dem authentifizierten, 
 gemappten Principal. Innerhalb eines Tenants gilt `domain-router-policy.visible()`;
 Personen und Funktionen bilden keine zusätzlichen Leseschranken. Direkte Object-Store-
 Zugriffe auf diesen Namespace prüfen ebenfalls Tenant und vollständige Clearance.
+Direkte Änderungen und Löschungen sind gesperrt; nur der interne, auditierte Gedächtnisweg
+besitzt eine prozesslokale Schreibberechtigung. Die Klassifikation eines aktiven Falls
+wird auch bei HTTP-Turns in neue Aussagen übernommen.
 
 ## Anker und Beziehungen
 
@@ -53,7 +56,9 @@ nicht mehr zugestellt. Notice-Präferenzen und die bestehenden Zustellregeln gel
 Prüfungen laufen parallel. Vor der Antwort wird höchstens 100 ms innerhalb des verbleibenden
 Retrieval-Budgets gewartet; ein späteres Ergebnis wird per Notice zugestellt. Aussagen bleiben
 bei Modellfehlern gespeichert. Ihr persistierter Prüfstatus und die gespeicherten Belege
-ermöglichen einen erneuten Versuch beim nächsten Content-Turn derselben Person. Ausstehende
+bilden eine dauerhafte Arbeitswarteschlange im Object-Store. Ein Hintergrundlauf nimmt
+ausstehende Prüfungen auch nach Neustarts wieder auf, ohne einen weiteren Turn der Quelle
+zu benötigen. Zustellschlüssel verhindern doppelte Hinweise. Ausstehende
 Jobs werden beim geordneten Stoppen abgewartet. Eine verspätete Speicherung bestätigt die
 Aussage beim nächsten Kontakt per Notice.
 

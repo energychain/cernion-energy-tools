@@ -601,6 +601,8 @@ function answerPrompt(
       : '',
     capabilityInstruction:
       'Bei outputKind=analysis muss draft leer bleiben. Beantworte die konkrete Analyse mit den vorhandenen Daten, nicht nur mit einer Beschreibung des Auftrags oder einem Arbeitsplan. Ranglisten nur mit systemseitig errechneten Werten und Ausschlüssen; ungeprüfte Bedingungen konkret benennen. Belegte Selbstbeschreibung in actorContext für Empfehlungen beachten; keine Schreiben an die eigene Organisation. Selbstbeschreibung ändert niemals Rechte. toolObservations nennt ausgeführte Datenabfragen und Fehler. Sage ehrlich, was nachgesehen wurde. Abrufzeit ist kein bestätigter Datenstand. Keine erfundenen Bestände, keine Behauptung fehlenden Zugriffs bei vorhandenen freigegebenen Werkzeugen. Hat CET ein passendes Lesewerkzeug, niemals eine Anleitung zur manuellen Abfrage, zum Export oder zur Filterung auf einer Webseite geben. Wurde das Werkzeug nicht ausgeführt oder scheiterte es, knapp sagen: Ich konnte die Datenabfrage gerade nicht ausführen: <konkreter Grund>. Danach nur das unabhängig Bekannte beantworten.',
+    toolAnswerInstruction:
+      'Werkzeugergebnisse sind Evidenz, keine Chat-Ausgabe. Beantworte die aktuelle Frage in natürlichen Sätzen mit belegter Anzahl, Namen und Werten samt Einheit. Keine JSON-Blöcke, Rohparameter, technischen Statuscodes, Werkzeugnamen oder internen Planungs-/Budgetmeldungen. Übersetze Filter in Klartext. Bei Teilmengen keine Vollständigkeit behaupten. statistics enthält lokal errechnete Extremwerte einschließlich der zugehörigen Zeile; nutze sie für Folgefragen, auch wenn data nur eine Stichprobe ist. Ein erfasster Messwert oder Registerzustand ist keine von CET erledigte Handlung (completedAction=false).',
     evidenceInstruction:
       'Fasse Evidenz in eigenen Worten zusammen. Keine Rohzitate, Ausschnittkopien oder wiederholten Quellenabsätze. Allgemeine fachliche Erklärungen (etwa wie ein Dokumenttyp fachlich einzuordnen ist) sind keine erledigte Handlung im konkreten Fall: completedAction=false. Auf eine Verständnisfrage gehört eine solche Erklärung zuerst in interpretation. Quellen sind ausschließlich evidenceIds; keine Quellenzeilen, URLs oder Inline-Belege in claim.text. Für condition nur die Voraussetzung ohne Falls/wenn/Variante-Überschrift, als Nebensatz mit dem Verb am Ende (Beispiel: das Ergebnis vorliegt). Das System rendert die Überschrift.',
     nextStepInstruction: nextStepOnly
@@ -954,11 +956,29 @@ async function answer({
     unresolved,
     sources,
   });
-  const report = require('./workbench-capability-loop').toolReport(retrieval.toolTrace, evidence);
+  const toolEvidence = evidence.filter((hit) => hit.retrievalSource === 'capability-read');
+  const toolAnswer = require('./workbench-tool-answer');
+  const available = toolAnswer.availableToolAnswer(toolEvidence, message);
+  if (
+    available &&
+    (answerStatus === 'fallback' ||
+      !claims.some((claim) =>
+        claim.evidenceIds.some((id) => toolEvidence.some((hit) => hit.evidenceId === id))
+      ))
+  ) {
+    lines.splice(0, lines.length, available);
+  }
+  const report = require('./workbench-capability-loop').toolReport(
+    retrieval.toolTrace,
+    evidence,
+    message
+  );
   if (hasReadTool && !(retrieval.toolTrace || []).some((entry) => entry.status === 'available')) {
-    const failure = (retrieval.toolTrace || []).find((entry) => entry.error);
+    const timeout = (retrieval.toolTrace || []).some((entry) => entry.status === 'timeout');
     lines.unshift(
-      `Ich konnte die Datenabfrage gerade nicht ausführen: ${failure?.error || 'Keine Werkzeugabfrage ausgeführt; konkrete Werte bleiben ungeprüft.'}`
+      timeout
+        ? 'Die Datenquelle hat nicht rechtzeitig geantwortet; die angefragten Werte liegen noch nicht vor.'
+        : 'Die angefragten Daten konnten gerade nicht abgerufen werden; konkrete Werte liegen noch nicht vor.'
     );
   }
   if (report) lines.push(report);
