@@ -323,7 +323,7 @@ function start(service, ctx, p, input) {
   state.job = job;
   return state;
 }
-// Facts are the durable work queue, so recovery introduces no second persistence layer.
+// Facts are the durable work queue; recovery uses the existing object store.
 async function recover(service) {
   if (service.tenantMemoryRecovering || service.tenantMemoryJobs?.size) return;
   const objects = service.broker.getLocalService('object-store');
