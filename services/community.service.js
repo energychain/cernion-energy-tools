@@ -562,8 +562,8 @@ module.exports = {
 
         const template = COMMUNITY_INTENTS[detectedIntent];
         let reply = template.reply;
-        let sources = [...template.sources];
-        let openQuestions = [...template.consultation.openQuestions];
+        const sources = [...template.sources];
+        const openQuestions = [...template.consultation.openQuestions];
         let executionReadiness = template.consultation.executionReadiness;
 
         // 2. Location entity extraction (5-digit German Postcode or known cities)
