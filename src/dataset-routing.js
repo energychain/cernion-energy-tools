@@ -23,8 +23,8 @@ async function selectDatasetCandidates(
       (years.length === 0 ||
         years.every(
           (year) =>
-            Number(year) >= Number(String(record.period?.from || '').slice(0, 4)) &&
-            Number(year) <= Number(String(record.period?.to || '').slice(0, 4))
+            Number(year) >= Number(String(record.period?.from || '').match(/\b20\d{2}\b/)?.[0]) &&
+            Number(year) <= Number(String(record.period?.to || '').match(/\b20\d{2}\b/)?.[0])
         )) &&
       (previousReads.some(
         (hit) =>

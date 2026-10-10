@@ -51,6 +51,27 @@ test.each(fixture.questions.filter((entry) => ['external', 'memory'].includes(en
   }
 );
 
+test.each([
+  { from: '2025-01-01T00:00:00Z', to: '2025-12-31T23:45:00Z' },
+  { from: '01.01.2025 00:00', to: '31.12.2025 23:45' },
+])('calendar relevance accepts confirmed German and ISO catalog dates: %j', async (period) => {
+  const previousReads = [
+    { source: 'dataset.query', metadata: { tenantId: record.tenantId, datasetId: record.id } },
+  ];
+  expect(
+    await selectDatasetCandidates([{ ...record, period }], 'Wie hoch war die Jahresenergie 2025?', {
+      previousReads,
+    })
+  ).toHaveLength(1);
+  expect(llm.generateStructured).not.toHaveBeenCalled();
+  llm.generateStructured.mockResolvedValue({ datasetIds: [] });
+  expect(
+    await selectDatasetCandidates([{ ...record, period }], 'Wie hoch war die Jahresenergie 2024?', {
+      previousReads,
+    })
+  ).toEqual([]);
+});
+
 test('a generic follow-up uses only its previously grounded tenant dataset, without another selector call', async () => {
   const reads = [
     { source: 'dataset.query', metadata: { tenantId: record.tenantId, datasetId: record.id } },
