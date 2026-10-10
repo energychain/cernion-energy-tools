@@ -29,6 +29,7 @@ function available(ctx) {
 function eligible(message, situation, envelope) {
   return (
     !envelope.documents?.length &&
+    !envelope.datasetIds?.length &&
     !backgroundTask(message) &&
     !isDocumentInput(message) &&
     !documentReference(message) &&
@@ -295,6 +296,12 @@ async function deferredNotices(ctx, p, fact) {
   }
 }
 async function assess(ctx, p, fact, retrieval) {
+  if (!store.active((await store.get(ctx, p, fact.id)).payload)) return [];
+  if (await require('./tenant-memory-policy').exhaust(ctx, p, fact)) return [];
+  await store.mutate(ctx, p, fact.id, (value) => ({
+    ...value,
+    attempts: Number(value.attempts || 0) + 1,
+  }));
   const all = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
   const weighted = new Set(store.candidates(fact, all).map((item) => item.id));
   const shared = fact.anchorKeys.length
@@ -517,6 +524,7 @@ async function recover(service) {
           ),
       };
       try {
+        if (await require('./tenant-memory-policy').exhaust(ctx, p, fact)) continue;
         await assess(ctx, p, fact, { evidence: fact.checkingEvidence || [] });
         await deferredNotices(ctx, p, fact);
       } catch (error) {
@@ -617,6 +625,127 @@ async function queryResponse(ctx, p, message, selector = {}) {
       'Dazu haben wir noch keine sichtbaren Aussagen festgehalten.',
   };
 }
+function correctionMatches(fact, message) {
+  const words = store.normalizeAnchor(message).split(' ');
+  const factWords = new Set(store.normalizeAnchor(fact.text).split(' '));
+  const numbers = words.filter((word) => /^\d+$/.test(word));
+  if (numbers.some((number) => !factWords.has(number))) return false;
+  const anchors = (fact.anchors || []).some((anchor) => matchesAnchor(anchor, message));
+  if (!anchors) return false;
+  const content = words.filter((word) => word.length >= 6 && factWords.has(word));
+  return content.length >= 2 || numbers.length > 0;
+}
+async function requestCorrection(ctx, p, envelope, correction, facts) {
+  const id = store.key([
+    'correction-request',
+    p.actorId,
+    envelope.channel,
+    envelope.conversationId,
+  ]);
+  const record = {
+    id,
+    type: 'tenant_memory_correction_request',
+    tenantId: p.tenantId,
+    sensitivityFlags: [...new Set(facts.flatMap((fact) => fact.sensitivityFlags || []))],
+    actorId: p.actorId,
+    conversationId: envelope.conversationId,
+    channel: envelope.channel,
+    correction,
+    candidates: facts.map((fact) => ({ id: fact.id, text: fact.text, status: fact.status })),
+    status: 'pending',
+    expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+  };
+  try {
+    const prior = await store.get(ctx, p, id);
+    await store.put(ctx, p, record, prior._rev);
+  } catch (error) {
+    if (error.code !== 404) throw error;
+    await store.put(ctx, p, record);
+  }
+  await require('./tenant-memory-policy').audit(ctx, p, 'confirmation_requested', {
+    factIds: facts.map((fact) => fact.id),
+    sensitivityFlags: record.sensitivityFlags,
+  });
+  return {
+    state: 'tenant_memory_confirmation',
+    nonBinding: true,
+    responseText:
+      facts.length > 1
+        ? `Welche Aussage meinst du? Antworte mit der Nummer.\n${facts.map((fact, index) => `${index + 1}. ${store.factText({ ...fact, text: fact.text.slice(0, 240) })}`).join('\n')}`
+        : `Diese Aussage stammt von ${store.source(facts[0])}: „${facts[0].text}“. Soll ich sie wirklich ${correction.kind === 'revoked' ? 'widerrufen' : 'korrigieren'}? Bitte bestätige mit „Ja, bestätigen“.`,
+  };
+}
+async function resumeCorrection(ctx, p, envelope) {
+  const message = envelope.userRequest.trim();
+  if (!/^(?:ja(?:,? bestätigen)?|bestätigen|nein|abbrechen|[1-9]\d*)[.!\s]*$/i.test(message))
+    return null;
+  const id = store.key([
+    'correction-request',
+    p.actorId,
+    envelope.channel,
+    envelope.conversationId,
+  ]);
+  let request;
+  try {
+    request = (await store.get(ctx, p, id)).payload;
+  } catch (error) {
+    if (error.code === 404) return null;
+    throw error;
+  }
+  if (request.status !== 'pending' || Date.parse(request.expiresAt) <= Date.now()) return null;
+  if (/^(?:nein|abbrechen)/i.test(message)) {
+    await store.mutate(ctx, p, id, (value) => ({ ...value, status: 'cancelled' }));
+    await require('./tenant-memory-policy').audit(ctx, p, 'confirmation_cancelled');
+    return { nonBinding: true, responseText: 'Die Änderung ist abgebrochen.' };
+  }
+  if (request.candidates.length > 1) {
+    const index = Number.parseInt(message, 10) - 1;
+    const selected = request.candidates[index];
+    if (!selected)
+      return { nonBinding: true, responseText: 'Bitte wähle eine der angegebenen Nummern.' };
+    const latest = (await store.get(ctx, p, selected.id)).payload;
+    if (latest.text !== selected.text || latest.status !== selected.status) {
+      await store.mutate(ctx, p, id, (value) => ({ ...value, status: 'stale' }));
+      return {
+        nonBinding: true,
+        responseText:
+          'Die Aussage hat sich inzwischen geändert. Bitte nenne die gewünschte Aussage erneut.',
+      };
+    }
+    await store.mutate(ctx, p, id, (value) => ({ ...value, status: 'selected' }));
+    return correctFacts(ctx, p, { ...envelope, userRequest: request.correction.basis }, null, {
+      ...request.correction,
+      factId: selected.id,
+    });
+  }
+  if (/^\d/.test(message))
+    return { nonBinding: true, responseText: 'Bitte bestätige mit „Ja, bestätigen“.' };
+  const selected = request.candidates[0];
+  const fact = (await store.get(ctx, p, selected.id)).payload;
+  if (fact.text !== selected.text || fact.status !== selected.status) {
+    await store.mutate(ctx, p, id, (value) => ({ ...value, status: 'stale' }));
+    return {
+      nonBinding: true,
+      responseText:
+        'Die Aussage hat sich inzwischen geändert. Bitte nenne die gewünschte Aussage erneut.',
+    };
+  }
+  await require('./tenant-memory-policy').change(
+    ctx,
+    p,
+    fact.id,
+    request.correction.kind,
+    request.correction.basis,
+    { confirmed: true }
+  );
+  await store.mutate(ctx, p, id, (value) => ({ ...value, status: 'complete' }));
+  return {
+    state: 'tenant_memory_corrected',
+    nonBinding: true,
+    responseText:
+      'Die Aussage ist widerrufen bzw. korrigiert. Die Änderung ist auditiert; die Quelle erhält eine Notice.',
+  };
+}
 async function preturn(ctx, p, envelope, pending) {
   if (
     !available(ctx) ||
@@ -633,8 +762,17 @@ async function preturn(ctx, p, envelope, pending) {
   const anchor = prefix ? question.slice(prefix[0].length) : '';
   const fn = question.match(/^was hat (?:die |der |das )?(.+?) festgehalten$/i);
   if (anchor || fn) return queryResponse(ctx, p, message, { anchor, functionLabel: fn?.[1] });
-  const revoke = /^(?:streich das|gilt nicht mehr|(?:das )?widerrufe ich)[.!\s]*$/i.test(message);
-  const correct = /^(?:das stimmt so nicht|korrigier(?:e)? das)[.!\s]*$/i.test(message);
+  const selection = await resumeCorrection(ctx, p, envelope);
+  if (selection) return selection;
+  if (
+    /^(?:wie|was|wann|wer|warum|wieso|welche)\b/i.test(message) ||
+    /(?:nicht|keinesfalls)\s+(?:streich|widerruf|korrig)/i.test(message)
+  )
+    return null;
+  const revoke = /(?:\bstreich(?:e|en)?\b|\bwiderruf(?:e|en)?\b|gilt nicht mehr)/i.test(message);
+  const correct =
+    /^(?:das stimmt so nicht|korrigier(?:e)? das)[.!\s]*$/i.test(message) ||
+    /bitte[^.!?]*korrigier/i.test(message);
   if (revoke || correct) {
     const correction = { kind: revoke ? 'revoked' : 'corrected', basis: message, factId: '' };
     return correctFacts(ctx, p, envelope, pending, correction);
@@ -650,7 +788,16 @@ async function correctFacts(ctx, p, envelope, pending, correction) {
   )
     return null;
   let ids = correction.factId ? [correction.factId] : pending?.tenantMemoryFactIds || [];
-  if (!ids.length) {
+  const named =
+    !/^(?:streich das|gilt nicht mehr|(?:das )?widerrufe ich|das stimmt so nicht|korrigier(?:e)? das)[.!\s]*$/i.test(
+      envelope.userRequest
+    );
+  if (named && !correction.factId) {
+    const facts = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
+    ids = facts
+      .filter((fact) => store.active(fact) && correctionMatches(fact, correction.basis))
+      .map((fact) => fact.id);
+  } else if (!ids.length) {
     const own = await store.query(ctx, p, {
       'payload.type': 'tenant_memory_fact',
       'payload.person.actorId': p.actorId,
@@ -658,33 +805,19 @@ async function correctFacts(ctx, p, envelope, pending, correction) {
       'payload.channel': envelope.channel,
     });
     ids = own
+      .filter((fact) => store.active(fact))
       .sort((a, b) => b.at.localeCompare(a.at))
       .slice(0, 1)
       .map((fact) => fact.id);
   }
   if (!ids.length)
     return { responseText: 'Welche festgehaltene Aussage meinst du?', nonBinding: true };
+  const facts = await Promise.all(ids.map(async (id) => (await store.get(ctx, p, id)).payload));
+  if (facts.length > 1 || facts.some((fact) => fact.person.actorId !== p.actorId))
+    return requestCorrection(ctx, p, envelope, correction, facts);
   await serialized(p, async () => {
     for (const id of ids)
-      await store.mutate(ctx, p, id, (fact) => {
-        if (fact.person.actorId !== p.actorId)
-          require('./domain-router-policy').deny('Only the source can correct this statement');
-        if (fact.status !== 'valid') return null;
-        return {
-          ...fact,
-          status: correction.kind,
-          audit: [
-            ...fact.audit,
-            {
-              kind: correction.kind,
-              actorId: p.actorId,
-              at: new Date().toISOString(),
-              basis: correction.basis,
-              previousText: fact.text,
-            },
-          ],
-        };
-      });
+      await require('./tenant-memory-policy').change(ctx, p, id, correction.kind, correction.basis);
   });
   return {
     state: 'tenant_memory_corrected',

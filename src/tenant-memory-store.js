@@ -135,6 +135,7 @@ function factText(fact) {
     corrected: 'korrigiert',
     revoked: 'widerrufen',
     expired: 'abgelaufen',
+    deleted: 'gelöscht',
   };
   return `${source(fact)}: „${fact.text}“ (${labels[active(fact) ? 'valid' : fact.status === 'valid' ? 'expired' : fact.status]}).`;
 }

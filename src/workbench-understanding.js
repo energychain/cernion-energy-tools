@@ -915,6 +915,34 @@ async function answer({
       fallback ||= 'no_accepted_content';
     }
   }
+  // Dataset claims must retain the executor's quantities and timestamps. Validate
+  // each claim against its cited sources so unrelated sources may still coexist.
+  const datasetEvidence = evidence.filter((hit) => hit.source === 'dataset.query');
+  if (datasetEvidence.length) {
+    for (const field of ['interpretation', 'expectation', 'nextSteps', 'assumptions', 'draft']) {
+      result[field] = (result[field] || []).filter((claim) => {
+        const cited = evidence.filter((hit) => claim.evidenceIds?.includes(hit.evidenceId));
+        if (!cited.some((hit) => hit.source === 'dataset.query')) return true;
+        const values = cited.map((hit) => hit.value).join(' ');
+        const quantities = (text) =>
+          (text.match(/[-−+]?\d+(?:[.,]\d+)*\s*(?:MWh|kWh|Wh|MW|kW|W)\b/g) || []).map((value) =>
+            value.replace(/\s+/g, '').replace('−', '-')
+          );
+        const allowed = new Set(quantities(values));
+        const numbers = new Set(
+          (values.match(/[-−+]?\d+(?:[.,]\d+)*/g) || []).flatMap((value) => [
+            value,
+            ...(/^\d{2}\.\d{2}\.\d{4}$/.test(value) ? value.split('.') : []),
+          ])
+        );
+        return (
+          !/\b[\p{L}][\p{L}\d]*_[\p{L}\d_]+\s*:/u.test(claim.text) &&
+          quantities(claim.text).every((value) => allowed.has(value)) &&
+          (claim.text.match(/[-−+]?\d+(?:[.,]\d+)*/g) || []).every((value) => numbers.has(value))
+        );
+      });
+    }
+  }
   const outcome = answerOutcome({
     result,
     followup,
@@ -967,11 +995,57 @@ async function answer({
   if (
     available &&
     (answerStatus === 'fallback' ||
-      !claims.some((claim) =>
-        claim.evidenceIds.some((id) => toolEvidence.some((hit) => hit.evidenceId === id))
+      !claims.some(
+        (claim) =>
+          claim.evidenceIds.some((id) => toolEvidence.some((hit) => hit.evidenceId === id)) &&
+          (!datasetEvidence.length ||
+            /\d+(?:[.,]\d+)*\s*(?:Zeilen|Werte|MWh|kWh|Wh|MW|kW|W)\b/.test(claim.text))
       ))
   ) {
     lines.splice(0, lines.length, available);
+  }
+  if (
+    datasetEvidence.length &&
+    /auffäll|auffaell|überblick|ueberblick|zusammenfassung/i.test(message)
+  ) {
+    const otherClaims = claims
+      .filter(
+        (claim) =>
+          !claim.evidenceIds.some((id) => datasetEvidence.some((hit) => hit.evidenceId === id))
+      )
+      .map((claim) => claim.text);
+    lines.splice(
+      0,
+      lines.length,
+      ...otherClaims,
+      toolAnswer.availableToolAnswer(datasetEvidence, message)
+    );
+  }
+  if (
+    datasetEvidence.length &&
+    /spitzen|maxim|minim|höchst|hoechst|niedrig|kleinst/i.test(message)
+  ) {
+    const timestamps = datasetEvidence.flatMap((hit) => [
+      ...hit.value.matchAll(/ am (\d{2}\.\d{2}\.\d{4}) (\d{2}:\d{2})/g),
+    ]);
+    const rendered = lines.join(' ');
+    if (
+      timestamps.length &&
+      !timestamps.some((match) => rendered.includes(match[1]) && rendered.includes(match[2]))
+    ) {
+      const otherClaims = claims
+        .filter(
+          (claim) =>
+            !claim.evidenceIds.some((id) => datasetEvidence.some((hit) => hit.evidenceId === id))
+        )
+        .map((claim) => claim.text);
+      lines.splice(
+        0,
+        lines.length,
+        ...otherClaims,
+        toolAnswer.availableToolAnswer(datasetEvidence, message)
+      );
+    }
   }
   const report = require('./workbench-capability-loop').toolReport(
     retrieval.toolTrace,

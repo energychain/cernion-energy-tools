@@ -1,0 +1,1114 @@
+{
+  "synthetic": true,
+  "mode": "Configured live model via llm-client; real Workbench, dataset executor and catalog; controlled synthetic MaStR, memory and empty knowledge source backends.",
+  "reference": {
+    "synthetic": true,
+    "generator": "scripts/generate-dataset-fixtures.js",
+    "rows": 35040,
+    "peakKW": 1243.7,
+    "peakLocal": "14.01.2025 18:15",
+    "energyMWh": 3478.874,
+    "missingValues": 4,
+    "timezone": "Europe/Berlin",
+    "formats": [
+      "csv",
+      "markdown",
+      "pairs"
+    ]
+  },
+  "runsPerQuestion": 3,
+  "turns": [
+    {
+      "kind": "overview",
+      "run": 1,
+      "question": "Gibt es Auffälligkeiten?",
+      "passed": true,
+      "checks": {
+        "rows": true,
+        "missing": true,
+        "peak": true,
+        "energy": true
+      },
+      "elapsedMs": 3991,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 1650,
+        "retrieveMs": 918,
+        "toolsMs": 917,
+        "answerMs": 1106
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 376
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 2
+        },
+        {
+          "name": "willi-mako",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "dataset.query",
+          "status": "available",
+          "hitCount": 35040,
+          "ms": 391
+        },
+        {
+          "name": "Werkzeugplanung",
+          "status": "unavailable",
+          "hitCount": 0,
+          "ms": 916
+        }
+      ],
+      "backendCalls": [],
+      "modelCalls": [
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateText"
+        }
+      ],
+      "responseText": "Prüfe die vier leeren Werte und den statistischen Ausreißer im Lastgang.\n\nDie Abfrage umfasst 35040 Zeilen.\n\nWirkleistung Bezug [kW]: Maximum 1.243,7 kW am 14.01.2025 18:15 (Europe/Berlin); Minimum 397,1 kW am 13.07.2025 04:30 (Europe/Berlin); Mittelwert 397,2 kW aus 35036 vorhandenen Werten. 4 leere Werte und 1 statistische Ausreißer (mehr als drei Standardabweichungen).\n\nLeere Werte am 12.03.2025 09:00; 12.03.2025 09:15; 03.07.2025 14:30; 20.11.2025 02:45 (Europe/Berlin).\n\nSumme über die vorhandenen Werte: 3.478.874 kWh (3.478,874 MWh); Rechenweg: Summe der Werte × 0,25 h. Leere Werte werden ausgelassen, nicht geschätzt.\n\n0 fehlende Zeitintervalle; 0 doppelte Zeitpunkte nach Zeitzonenauflösung. 2 Zeitumstellungen: 2025-03-30T01:00:00.000Z (+60 Minuten); 2025-10-26T01:00:00.000Z (-60 Minuten).\n\nZeitzone Europe/Berlin und Intervallbeginn angenommen; bitte bei Bedarf korrigieren.\n\nHerkunft: Lastgang Hauptstraße 2025, Version 1; Nutzerangabe von Synthetische Person am 2026-10-10.\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen."
+    },
+    {
+      "kind": "overview",
+      "run": 2,
+      "question": "Gibt es Auffälligkeiten?",
+      "passed": true,
+      "checks": {
+        "rows": true,
+        "missing": true,
+        "peak": true,
+        "energy": true
+      },
+      "elapsedMs": 3749,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 1470,
+        "retrieveMs": 874,
+        "toolsMs": 874,
+        "answerMs": 1249
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 398
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "willi-mako",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "dataset.query",
+          "status": "available",
+          "hitCount": 35040,
+          "ms": 400
+        },
+        {
+          "name": "Werkzeugplanung",
+          "status": "unavailable",
+          "hitCount": 0,
+          "ms": 874
+        }
+      ],
+      "backendCalls": [],
+      "modelCalls": [
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateText"
+        }
+      ],
+      "responseText": "Die Abfrage umfasst 35040 Zeilen.\n\nWirkleistung Bezug [kW]: Maximum 1.243,7 kW am 14.01.2025 18:15 (Europe/Berlin); Minimum 397,1 kW am 13.07.2025 04:30 (Europe/Berlin); Mittelwert 397,2 kW aus 35036 vorhandenen Werten. 4 leere Werte und 1 statistische Ausreißer (mehr als drei Standardabweichungen).\n\nLeere Werte am 12.03.2025 09:00; 12.03.2025 09:15; 03.07.2025 14:30; 20.11.2025 02:45 (Europe/Berlin).\n\nSumme über die vorhandenen Werte: 3.478.874 kWh (3.478,874 MWh); Rechenweg: Summe der Werte × 0,25 h. Leere Werte werden ausgelassen, nicht geschätzt.\n\n0 fehlende Zeitintervalle; 0 doppelte Zeitpunkte nach Zeitzonenauflösung. 2 Zeitumstellungen: 2025-03-30T01:00:00.000Z (+60 Minuten); 2025-10-26T01:00:00.000Z (-60 Minuten).\n\nZeitzone Europe/Berlin und Intervallbeginn angenommen; bitte bei Bedarf korrigieren.\n\nHerkunft: Lastgang Hauptstraße 2025, Version 1; Nutzerangabe von Synthetische Person am 2026-10-10.\n\nFall F-2"
+    },
+    {
+      "kind": "overview",
+      "run": 3,
+      "question": "Gibt es Auffälligkeiten?",
+      "passed": true,
+      "checks": {
+        "rows": true,
+        "missing": true,
+        "peak": true,
+        "energy": true
+      },
+      "elapsedMs": 4321,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 1469,
+        "retrieveMs": 943,
+        "toolsMs": 943,
+        "answerMs": 1697
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 486
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "willi-mako",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "dataset.query",
+          "status": "available",
+          "hitCount": 35040,
+          "ms": 486
+        },
+        {
+          "name": "Werkzeugplanung",
+          "status": "unavailable",
+          "hitCount": 0,
+          "ms": 943
+        }
+      ],
+      "backendCalls": [],
+      "modelCalls": [
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateText"
+        }
+      ],
+      "responseText": "Die Abfrage umfasst 35040 Zeilen.\n\nWirkleistung Bezug [kW]: Maximum 1.243,7 kW am 14.01.2025 18:15 (Europe/Berlin); Minimum 397,1 kW am 13.07.2025 04:30 (Europe/Berlin); Mittelwert 397,2 kW aus 35036 vorhandenen Werten. 4 leere Werte und 1 statistische Ausreißer (mehr als drei Standardabweichungen).\n\nLeere Werte am 12.03.2025 09:00; 12.03.2025 09:15; 03.07.2025 14:30; 20.11.2025 02:45 (Europe/Berlin).\n\nSumme über die vorhandenen Werte: 3.478.874 kWh (3.478,874 MWh); Rechenweg: Summe der Werte × 0,25 h. Leere Werte werden ausgelassen, nicht geschätzt.\n\n0 fehlende Zeitintervalle; 0 doppelte Zeitpunkte nach Zeitzonenauflösung. 2 Zeitumstellungen: 2025-03-30T01:00:00.000Z (+60 Minuten); 2025-10-26T01:00:00.000Z (-60 Minuten).\n\nZeitzone Europe/Berlin und Intervallbeginn angenommen; bitte bei Bedarf korrigieren.\n\nHerkunft: Lastgang Hauptstraße 2025, Version 1; Nutzerangabe von Synthetische Person am 2026-10-10.\n\nFall F-3"
+    },
+    {
+      "kind": "peak",
+      "run": 1,
+      "question": "Wie hoch war die Spitzenlast und wann?",
+      "passed": true,
+      "checks": {
+        "peak": true,
+        "timestamp": true
+      },
+      "elapsedMs": 3648,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 1521,
+        "retrieveMs": 959,
+        "toolsMs": 958,
+        "answerMs": 985
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 525
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "willi-mako",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "dataset.query",
+          "status": "available",
+          "hitCount": 35040,
+          "ms": 526
+        },
+        {
+          "name": "Werkzeugplanung",
+          "status": "unavailable",
+          "hitCount": 0,
+          "ms": 958
+        }
+      ],
+      "backendCalls": [],
+      "modelCalls": [
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateText"
+        }
+      ],
+      "responseText": "Die Spitzenlast lag bei 1.243,7 kW am 14.01.2025 18:15 (Europe/Berlin).\n\nHerkunft: Lastgang Hauptstraße 2025, Version 1; Nutzerangabe von Synthetische Person am 2026-10-10.\n\nFall F-4"
+    },
+    {
+      "kind": "peak",
+      "run": 2,
+      "question": "Wie hoch war die Spitzenlast und wann?",
+      "passed": true,
+      "checks": {
+        "peak": true,
+        "timestamp": true
+      },
+      "elapsedMs": 3757,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 1456,
+        "retrieveMs": 962,
+        "toolsMs": 961,
+        "answerMs": 1122
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 464
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "willi-mako",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "dataset.query",
+          "status": "available",
+          "hitCount": 35040,
+          "ms": 472
+        },
+        {
+          "name": "Werkzeugplanung",
+          "status": "unavailable",
+          "hitCount": 0,
+          "ms": 961
+        }
+      ],
+      "backendCalls": [],
+      "modelCalls": [
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateText"
+        }
+      ],
+      "responseText": "Die Spitzenlast des Lastgangs Hauptstraße 2025 betrug 1.243,7 kW und trat am 14.01.2025 um 18:15 Uhr auf.\n\nPrüfen Sie bei Bedarf die Validität der umliegenden Lastgänge auf Plausibilität.\n\n\n\nHerkunft: Lastgang Hauptstraße 2025, Version 1; Nutzerangabe von Synthetische Person am 2026-10-10.\n\nFall F-5"
+    },
+    {
+      "kind": "peak",
+      "run": 3,
+      "question": "Wie hoch war die Spitzenlast und wann?",
+      "passed": true,
+      "checks": {
+        "peak": true,
+        "timestamp": true
+      },
+      "elapsedMs": 3972,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 1643,
+        "retrieveMs": 959,
+        "toolsMs": 959,
+        "answerMs": 1172
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 532
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "willi-mako",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "dataset.query",
+          "status": "available",
+          "hitCount": 35040,
+          "ms": 534
+        },
+        {
+          "name": "Werkzeugplanung",
+          "status": "unavailable",
+          "hitCount": 0,
+          "ms": 959
+        }
+      ],
+      "backendCalls": [],
+      "modelCalls": [
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateText"
+        }
+      ],
+      "responseText": "Die Spitzenlast lag bei 1.243,7 kW am 14.01.2025 18:15 (Europe/Berlin).\n\nHerkunft: Lastgang Hauptstraße 2025, Version 1; Nutzerangabe von Synthetische Person am 2026-10-10.\n\nFall F-6"
+    },
+    {
+      "kind": "energy",
+      "run": 1,
+      "question": "Wie hoch war die Jahresenergie 2025?",
+      "passed": true,
+      "checks": {
+        "energy": true
+      },
+      "elapsedMs": 4441,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 1607,
+        "retrieveMs": 952,
+        "toolsMs": 952,
+        "answerMs": 1143
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 507
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "willi-mako",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "dataset.query",
+          "status": "available",
+          "hitCount": 35040,
+          "ms": 508
+        },
+        {
+          "name": "Werkzeugplanung",
+          "status": "unavailable",
+          "hitCount": 0,
+          "ms": 952
+        }
+      ],
+      "backendCalls": [],
+      "modelCalls": [
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateText"
+        }
+      ],
+      "responseText": "Wie hoch war die Jahresenergie 2025 für den Datensatz Lastgang Hauptstraße 2025?\n\nDie Jahresenergie 2025 für den Lastgang Hauptstraße 2025 beträgt 3.478.874 kWh bzw. 3.478,874 MWh, wobei 4 leere Werte ausgelassen wurden.\n\nPrüfen Sie bei Bedarf die Auslassung der 4 leeren Werte im Lastgang Hauptstraße 2025.\n\n\n\nHerkunft: Lastgang Hauptstraße 2025, Version 1; Nutzerangabe von Synthetische Person am 2026-10-10.\n\nFall F-7"
+    },
+    {
+      "kind": "energy",
+      "run": 2,
+      "question": "Wie hoch war die Jahresenergie 2025?",
+      "passed": true,
+      "checks": {
+        "energy": true
+      },
+      "elapsedMs": 4248,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 1481,
+        "retrieveMs": 897,
+        "toolsMs": 897,
+        "answerMs": 1078
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 473
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "willi-mako",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "dataset.query",
+          "status": "available",
+          "hitCount": 35040,
+          "ms": 477
+        },
+        {
+          "name": "Werkzeugplanung",
+          "status": "unavailable",
+          "hitCount": 0,
+          "ms": 897
+        }
+      ],
+      "backendCalls": [],
+      "modelCalls": [
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateText"
+        }
+      ],
+      "responseText": "Wie hoch war die Jahresenergie 2025?\n\nDie Jahresenergie 2025 für den Lastgang Hauptstraße beträgt 3.478.874 kWh (3.478,874 MWh), wobei 4 leere Werte ausgelassen wurden.\n\nPrüfen Sie die vollständigen Lastgangdaten auf eventuelle Plausibilitäten.\n\n\n\nHerkunft: Lastgang Hauptstraße 2025, Version 1; Nutzerangabe von Synthetische Person am 2026-10-10.\n\nFall F-8"
+    },
+    {
+      "kind": "energy",
+      "run": 3,
+      "question": "Wie hoch war die Jahresenergie 2025?",
+      "passed": true,
+      "checks": {
+        "energy": true
+      },
+      "elapsedMs": 4146,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 1458,
+        "retrieveMs": 969,
+        "toolsMs": 969,
+        "answerMs": 1044
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 548
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "willi-mako",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "dataset.query",
+          "status": "available",
+          "hitCount": 35040,
+          "ms": 550
+        },
+        {
+          "name": "Werkzeugplanung",
+          "status": "unavailable",
+          "hitCount": 0,
+          "ms": 969
+        }
+      ],
+      "backendCalls": [],
+      "modelCalls": [
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateText"
+        }
+      ],
+      "responseText": "Die Energie im Jahr 2025 beträgt 3.478.874 kWh (3.478,874 MWh). 4 leere Werte wurden ausgelassen, nicht geschätzt.\n\nHerkunft: Lastgang Hauptstraße 2025, Version 1; Nutzerangabe von Synthetische Person am 2026-10-10."
+    },
+    {
+      "kind": "external",
+      "run": 1,
+      "question": "Wie viele Solaranlagen über 100 kW sind laut Marktstammdatenregister in Uslar in Betrieb?",
+      "passed": true,
+      "checks": {
+        "noDataset": true,
+        "marketRead": true
+      },
+      "elapsedMs": 6032,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 2020,
+        "retrieveMs": 1964,
+        "toolsMs": 1964,
+        "answerMs": 1323
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "willi-mako",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "installations",
+          "status": "blocked",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "energy-market.installations",
+          "status": "available",
+          "hitCount": 2,
+          "ms": 12
+        },
+        {
+          "name": "energy-market.installations",
+          "status": "blocked",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "Werkzeugbudget",
+          "status": "limited",
+          "hitCount": 0,
+          "ms": 0
+        }
+      ],
+      "backendCalls": [
+        {
+          "operation": "energy-market.installations",
+          "parameters": {
+            "location": "Uslar",
+            "minCapacityKW": 100,
+            "installationType": "solar"
+          }
+        }
+      ],
+      "modelCalls": [
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateText"
+        }
+      ],
+      "responseText": "Welche konkreten Daten liegen im Marktstammdatenregister für Uslar vor?\n\nDer Nutzer möchte wissen, wie viele Solaranlagen mit einer Leistung von über 100 kW laut Marktstammdatenregister in Uslar in Betrieb sind.\n\nDie im Marktstammdatenregister abgefragten Daten für Uslar auswerten und dem Nutzer das Ergebnis mit der Anzahl der Solaranlagen über 100 kW mitteilen.\n\n\n\nHerkunft: MaStR, Solar, in Betrieb, > 100 kW, Uslar; Abruf 11.10.2026, 00:41."
+    },
+    {
+      "kind": "external",
+      "run": 2,
+      "question": "Wie viele Solaranlagen über 100 kW sind laut Marktstammdatenregister in Uslar in Betrieb?",
+      "passed": true,
+      "checks": {
+        "noDataset": true,
+        "marketRead": true
+      },
+      "elapsedMs": 5762,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 1829,
+        "retrieveMs": 1958,
+        "toolsMs": 1957,
+        "answerMs": 1257
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 2
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "willi-mako",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "energy-market.installations",
+          "status": "available",
+          "hitCount": 2,
+          "ms": 7
+        },
+        {
+          "name": "energy-market.installations",
+          "status": "duplicate",
+          "hitCount": 0,
+          "ms": 1
+        }
+      ],
+      "backendCalls": [
+        {
+          "operation": "energy-market.installations",
+          "parameters": {
+            "location": "Uslar",
+            "minCapacityKW": 100,
+            "operationalStatus": "35",
+            "installationType": "solar"
+          }
+        }
+      ],
+      "modelCalls": [
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateText"
+        }
+      ],
+      "responseText": "Die vorhandene Abfrage enthält 2 Datensätze. Der größte erfasste Wert bei Synthetic installation 2 beträgt 151 kW.\n\nHerkunft: MaStR, Solar, in Betrieb, > 100 kW, Uslar; Abruf 11.10.2026, 00:41."
+    },
+    {
+      "kind": "external",
+      "run": 3,
+      "question": "Wie viele Solaranlagen über 100 kW sind laut Marktstammdatenregister in Uslar in Betrieb?",
+      "passed": true,
+      "checks": {
+        "noDataset": true,
+        "marketRead": true
+      },
+      "elapsedMs": 5371,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 1720,
+        "retrieveMs": 1798,
+        "toolsMs": 1797,
+        "answerMs": 1184
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 4
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "willi-mako",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "energy-market.installations",
+          "status": "available",
+          "hitCount": 2,
+          "ms": 8
+        }
+      ],
+      "backendCalls": [
+        {
+          "operation": "energy-market.installations",
+          "parameters": {
+            "location": "Uslar",
+            "limit": 2000,
+            "minCapacityKW": 100,
+            "installationType": "solar"
+          }
+        }
+      ],
+      "modelCalls": [
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateStructured"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateChat"
+        },
+        {
+          "method": "generateText"
+        }
+      ],
+      "responseText": "Laut der Marktdatenabfrage befinden sich in Uslar zwei Solaranlagen mit einer Leistung von über 100 kW im Betrieb.\n\nDer Nutzer fragt nach der Anzahl von Solaranlagen mit einer Leistung von über 100 kW in Uslar auf Basis des Marktstammdatenregisters.\n\nDie im Marktstammdatenregister abgefragten Daten für Uslar auswerten und die genaue Anzahl der Anlagen über 100 kW benennen.\n\n\n\nHerkunft: MaStR, Solar, in Betrieb, > 100 kW, Uslar; Abruf 11.10.2026, 00:42."
+    },
+    {
+      "kind": "memory",
+      "run": 1,
+      "question": "Was wissen wir insgesamt zum Ahornweg?",
+      "passed": true,
+      "checks": {
+        "noDataset": true,
+        "memory": true
+      },
+      "elapsedMs": 5,
+      "state": "tenant_memory_query",
+      "sources": [],
+      "backendCalls": [],
+      "modelCalls": [],
+      "responseText": "Synthetische Planung (Planung, 2025-01-02T10:00:00.000Z): „Für den Ahornweg ist eine gemeinsame Bestandsprüfung beschlossen.“ (gültig)."
+    },
+    {
+      "kind": "memory",
+      "run": 2,
+      "question": "Was wissen wir insgesamt zum Ahornweg?",
+      "passed": true,
+      "checks": {
+        "noDataset": true,
+        "memory": true
+      },
+      "elapsedMs": 3,
+      "state": "tenant_memory_query",
+      "sources": [],
+      "backendCalls": [],
+      "modelCalls": [],
+      "responseText": "Synthetische Planung (Planung, 2025-01-02T10:00:00.000Z): „Für den Ahornweg ist eine gemeinsame Bestandsprüfung beschlossen.“ (gültig)."
+    },
+    {
+      "kind": "memory",
+      "run": 3,
+      "question": "Was wissen wir insgesamt zum Ahornweg?",
+      "passed": true,
+      "checks": {
+        "noDataset": true,
+        "memory": true
+      },
+      "elapsedMs": 3,
+      "state": "tenant_memory_query",
+      "sources": [],
+      "backendCalls": [],
+      "modelCalls": [],
+      "responseText": "Synthetische Planung (Planung, 2025-01-02T10:00:00.000Z): „Für den Ahornweg ist eine gemeinsame Bestandsprüfung beschlossen.“ (gültig)."
+    }
+  ],
+  "passed": true
+}

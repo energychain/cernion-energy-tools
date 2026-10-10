@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `b432fa2845dfc6f8b00fb79622d80b93522edca1ec40c00ca53b9adeb282bbc0`
+Source SHA-256: `0df6fa7800b18b15e92970d7f722d13dd89f59cfcc8b2d117c46d218e75aaa9b`
 
 Capabilities: 172; functions: 110.
 Function vectors: 95/110; missing or incompatible capability vectors: 25.
@@ -14,7 +14,7 @@ Maximum degree target: ≤ 0.25 × 110 = 27.5; met: yes.
 
 Candidate degree before mutual selection: {"minimum":0,"median":3.5,"maximum":36,"isolatedFraction":0.2727272727272727}; pruned directed edges: 70; peer limit: 27.
 
-Operation index entries without action: 19/994.
+Operation index entries without action: 19/998.
 
 All curated capabilities are assigned once, including entries without resolvable operations.
 Edges describe catalog evidence only; they grant no authorization.
@@ -572,7 +572,7 @@ None.
 - {"service":"residual-load","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"shared-service-agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"shared-service-agent","ref":"src/llm-client.js:216: dynamic emission"}
-- {"service":"notices","ref":"services/shared-service-notices.service.js:263: spread event handlers"}
+- {"service":"notices","ref":"services/shared-service-notices.service.js:266: spread event handlers"}
 - {"service":"system","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"system","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"tabular","ref":"src/job-store.js:67: dynamic emission"}

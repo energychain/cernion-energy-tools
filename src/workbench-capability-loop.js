@@ -67,11 +67,20 @@ function parameterSchema(operation, api) {
 
 function candidatesFor(
   situation,
-  { model, index, api, domainsAllowed = [], selectedCapabilities = [], datasetAvailable = true }
+  {
+    model,
+    index,
+    api,
+    domainsAllowed = [],
+    selectedCapabilities = [],
+    datasetAvailable = false,
+    datasetCandidates = [],
+  }
 ) {
   const hypotheses = (situation.hypotheses || []).filter((h) => h.confidence >= 0.5);
   const datasetAllowed =
     datasetAvailable &&
+    datasetCandidates.length > 0 &&
     (!domainsAllowed.length ||
       model.functions.some((fn) =>
         fn.domains.some((domain) =>
@@ -138,6 +147,11 @@ function candidatesFor(
   return rankedOperations.flatMap((ranked, i) => {
     const operation = operations.find((op) => op.operationId === ranked.operationId);
     const schema = parameterSchema(operation, api);
+    if (schema && operation.action === 'dataset.query') {
+      delete schema.properties.plan;
+      schema.properties.id = { type: 'string', enum: datasetCandidates.map((record) => record.id) };
+      schema.required = [...new Set([...schema.required, 'id'])];
+    }
     if (!schema) return [];
     return [
       {
@@ -145,6 +159,7 @@ function candidatesFor(
         score: ranked.score,
         schema,
         name: `read_${i}`,
+        ...(operation.action === 'dataset.query' ? { datasetCandidates } : {}),
         fn:
           model.functions.find((fn) => fn.operations.includes(operation.action)) ||
           (operation.action === 'dataset.query'
@@ -179,7 +194,8 @@ function resolveCapabilityNeed(situation, message, options = {}) {
       text
     );
   const explicit = Boolean(situation.dataNeeds?.trim());
-  if (!explicit && (!concrete || conceptual || knowledgeList))
+  const datasetMatch = Boolean(options.datasetCandidates?.length);
+  if (!explicit && !datasetMatch && (!concrete || conceptual || knowledgeList))
     return { situation, candidates: [], reason: 'no_data_need', refinement: false };
   const querySituation = {
     ...situation,
@@ -189,7 +205,12 @@ function resolveCapabilityNeed(situation, message, options = {}) {
   };
   const candidates = candidatesFor(querySituation, { ...options, model, index, api });
   const threshold = positiveSetting('WORKBENCH_TOOL_TRIGGER_MIN_SCORE', 14, 10000);
-  const matched = explicit ? candidates : candidates.filter((entry) => entry.score >= threshold);
+  const matched = explicit
+    ? candidates
+    : candidates.filter(
+        (entry) =>
+          entry.score >= threshold || (datasetMatch && entry.operation.action === 'dataset.query')
+      );
   if (!explicit && !matched.length)
     return { situation, candidates: [], reason: 'no_candidates', refinement };
   return {
@@ -443,7 +464,7 @@ async function runCapabilityLoop(
     previous,
     previousReads = [],
     candidates: preparedCandidates,
-    datasetRequest,
+    datasetCandidates = [],
   } = {}
 ) {
   const started = performance.now();
@@ -451,99 +472,12 @@ async function runCapabilityLoop(
   const trace = [],
     evidence = [],
     observations = [];
-  if (datasetRequest) {
-    const p = principal({ meta });
-    const auth = meta.authUser || meta.apiToken;
-    const scopes = new Set([auth.scope, ...(auth.scopes || [])]);
-    if (!scopes.has('full-access') && !scopes.has('read-only'))
-      throw new Error('Leseberechtigung für dataset.query erforderlich.');
-    const result = await ctx.call('dataset.query', datasetRequest, {
-      meta,
-      retries: 0,
-      timeout: Math.max(
-        1,
-        Math.round((deadline || started + retrievalTimeoutMs()) - performance.now())
-      ),
-    });
-    const datasetEvidence = {
-      source: 'dataset.query',
-      retrievalSource: 'capability-read',
-      title: 'Nutzerdatensatz',
-      value: result.responseText,
-      metadata: { tenantId: p.tenantId, datasetId: result.datasetId, version: result.version },
-    };
-    const reply = await require('./workbench-understanding').answer({
-      situation: {
-        concern: message || datasetRequest.question,
-        situation: message || datasetRequest.question,
-        hypotheses: [],
-        identifiers: [],
-        deadlines: [],
-        missingInformation: [],
-        requestedAction: { externalEffect: false },
-        outputKind: 'analysis',
-      },
-      retrieval: { evidence: [datasetEvidence], toolTrace: [] },
-      tenantId: p.tenantId,
-      message: message || datasetRequest.question,
-      followup: true,
-      logger,
-    });
-    const origin = result.responseText.split('\n\n').at(-1);
-    const evidenceNumbers = new Set(
-      (result.responseText.match(/[-−+]?\d+(?:[.,]\d+)*/g) || []).flatMap((value) => [
-        value,
-        ...(/^\d{2}\.\d{2}\.\d{4}$/.test(value) ? value.split('.') : []),
-      ])
-    );
-    const replyNumbers = reply.responseText.match(/[-−+]?\d+(?:[.,]\d+)*/g) || [];
-    const quantities = (text) =>
-      (text.match(/[-−+]?\d+(?:[.,]\d+)*\s*(?:MWh|kWh|Wh|MW|kW|W)\b/g) || []).map((value) =>
-        value.replace(/\s+/g, '').replace('−', '-')
-      );
-    const evidenceQuantities = new Set(quantities(result.responseText));
-    const groundedNumbers =
-      replyNumbers.length > 0 &&
-      replyNumbers.every((value) => evidenceNumbers.has(value)) &&
-      quantities(reply.responseText).every((value) => evidenceQuantities.has(value));
-    const responseText =
-      reply.answerStatus === 'grounded' &&
-      groundedNumbers &&
-      !/\b[\p{L}][\p{L}\d]*_[\p{L}\d_]+\s*:/u.test(reply.responseText)
-        ? [reply.responseText, origin?.startsWith('Herkunft:') ? origin : '']
-            .filter(Boolean)
-            .join('\n\n')
-        : result.responseText;
-    return {
-      responseText,
-      answerMs: reply.answerMs,
-      evidence: [
-        {
-          source: 'dataset.query',
-          retrievalSource: 'capability-read',
-          title: 'Nutzerdatensatz',
-          value: result.responseText,
-          metadata: { tenantId: p.tenantId, datasetId: result.datasetId, version: result.version },
-        },
-      ],
-      trace: [
-        {
-          source: 'capability-read',
-          name: 'dataset.query',
-          status: 'available',
-          called: true,
-          hitCount: result.summaries?.length || result.datasets?.length || 0,
-          ms: Math.round(performance.now() - started),
-        },
-      ],
-      ms: Math.round(performance.now() - started),
-    };
-  }
   const need = resolveCapabilityNeed(situation, message, {
     model,
     index,
     api,
     datasetAvailable,
+    datasetCandidates,
     domainsAllowed,
     selectedCapabilities,
     previous,
@@ -592,6 +526,7 @@ async function runCapabilityLoop(
       index,
       api,
       datasetAvailable,
+      datasetCandidates,
       domainsAllowed,
       selectedCapabilities,
     });
@@ -599,7 +534,7 @@ async function runCapabilityLoop(
     type: 'function',
     function: {
       name,
-      description: `${operation.action}: ${operation.summary}. Parameter ausschließlich aus belegten Angaben.`,
+      description: `${operation.action}: ${operation.summary}. Parameter ausschließlich aus belegten Angaben.${operation.action === 'dataset.query' ? ` Passende Katalogeinträge (untrusted Metadaten): ${JSON.stringify(datasetCandidates.map(({ id, title, sourceName, semantic, period }) => ({ id, title, filename: sourceName, anchors: semantic.anchors, units: semantic.units, period })))}` : ''}`,
       parameters: {
         type: 'object',
         properties: {
@@ -701,21 +636,34 @@ async function runCapabilityLoop(
     { role: 'user', content: JSON.stringify(safe.value) },
   ];
   const maximum = positiveSetting('WORKBENCH_MAX_TOOL_CALLS', 3, 12);
+  let standardCalls = candidates
+    .filter((candidate) => candidate.operation.action === 'dataset.query')
+    .flatMap((candidate) =>
+      datasetCandidates
+        .filter((record) => require('./dataset-semantics').standardDatasetPlan(record, message))
+        .map((record) => ({
+          name: candidate.name,
+          args: { input: { id: record.id, question: message } },
+        }))
+    );
   const attempted = new Map();
   let calls = 0;
   try {
     while (calls < maximum && performance.now() < deadline) {
-      const reply = await bounded(
-        () =>
-          llm.generateChat(messages, {
-            ...require('./workbench-understanding').llmOptions(tenantId),
-            logger,
-            tools,
-            maxRetries: 0,
-            timeoutMs: Math.max(1, Math.round(deadline - performance.now())),
-          }),
-        deadline - performance.now()
-      );
+      const reply = standardCalls.length
+        ? { toolCalls: standardCalls }
+        : await bounded(
+            () =>
+              llm.generateChat(messages, {
+                ...require('./workbench-understanding').llmOptions(tenantId),
+                logger,
+                tools,
+                maxRetries: 0,
+                timeoutMs: Math.max(1, Math.round(deadline - performance.now())),
+              }),
+            deadline - performance.now()
+          );
+      standardCalls = [];
       if (!reply.toolCalls?.length) break;
       const firstCall = calls + 1;
       messages.push({
@@ -750,6 +698,16 @@ async function runCapabilityLoop(
           if (typeof provided.projection === 'string')
             provided.projection = JSON.parse(provided.projection);
           const args = restoreContext(provided, safe.reidentMap);
+          if (candidate.operation.action === 'dataset.query') {
+            if (args.projection?.operations?.length)
+              throw new Error('Datensatzkennzahlen werden im Executor berechnet.');
+            args.input = { ...args.input, question: message };
+            const record = datasetCandidates.find((item) => item.id === args.input.id);
+            if (record && require('./dataset-semantics').standardDatasetPlan(record, message)) {
+              delete args.input.from;
+              delete args.input.to;
+            }
+          }
           assertBoundInput(args, tenantId);
           if (candidate.schema.properties.tenantId && args.input) args.input.tenantId = tenantId;
           const validate = ajv.compile(candidate.schema);
@@ -792,12 +750,15 @@ async function runCapabilityLoop(
           if (result?.success === false) throw new Error('Backend meldet fehlgeschlagene Abfrage');
           if (Buffer.byteLength(JSON.stringify(result)) > 2000000)
             throw new Error('Ergebnis überschreitet das Bytebudget (2000000)');
-          observation = summarizeResult(
-            safeOutput(result, tenantId),
-            args.projection,
-            tenantId,
-            observations
-          );
+          observation =
+            candidate.operation.action === 'dataset.query'
+              ? { data: { responseText: result.responseText }, count: result.rowCount || 0 }
+              : summarizeResult(
+                  safeOutput(result, tenantId),
+                  args.projection,
+                  tenantId,
+                  observations
+                );
           observations.push(observation);
           const limit = positiveSetting('WORKBENCH_TOOL_RESULT_CHARS', 6000, 16000);
           // Preserve canonical evidence locally; the answer masks its complete context.
@@ -837,8 +798,11 @@ async function runCapabilityLoop(
             source: entry.name,
             retrievalSource: 'capability-read',
             title: `Werkzeug ${entry.name}`,
-            value,
+            value: entry.name === 'dataset.query' ? result.responseText : value,
             metadata: {
+              ...(entry.name === 'dataset.query'
+                ? { datasetId: result.datasetId, version: result.version }
+                : {}),
               title: `Werkzeug ${entry.name}`,
               sourceId: entry.sourceId,
               tenantId,
@@ -969,6 +933,8 @@ function toolReport(trace = [], evidence = [], _message = '') {
           item.metadata?.sourceId === entry.sourceId
       );
       if (!hit) return '';
+      if (entry.name === 'dataset.query')
+        return hit.value.split('\n\n').find((line) => line.startsWith('Herkunft:')) || '';
       const label = hit.metadata?.sourceLabel || 'Datenquelle';
       const filter =
         hit.metadata?.filterText ||

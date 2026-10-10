@@ -1533,10 +1533,19 @@ module.exports = {
           if (priorityReply) return priorityReply;
         }
         if (this.broker.getLocalService('dataset')) {
+          const lastDataset =
+            !pending?.tenantMemoryFactIds?.length &&
+            /^(?:korrigier(?:e)? das|das stimmt so nicht)[.!\s]*$/i.test(envelope.userRequest) &&
+            pending?.retrieval?.evidence?.find(
+              (hit) => hit.source === 'dataset.query' && hit.metadata?.tenantId === p.tenantId
+            );
+          const datasetQuestion = lastDataset?.metadata?.datasetId
+            ? `Datensatz ${lastDataset.metadata.datasetId}: ${envelope.userRequest}`
+            : envelope.userRequest;
           const datasetTurn = await ctx.call(
             'dataset.turn',
             {
-              question: envelope.userRequest,
+              question: datasetQuestion,
               documents: envelope.documents || [],
               conversationId: envelope.conversationId,
             },
@@ -1559,6 +1568,8 @@ module.exports = {
             };
           }
           if (datasetTurn.documents) envelope.documents = datasetTurn.documents;
+          envelope.datasetConfirmations = datasetTurn.confirmations || [];
+          envelope.datasetIds = datasetTurn.datasetIds || [];
         }
         const memoryReply = await require('../src/tenant-memory').preturn(
           memoryContext,
@@ -1566,7 +1577,13 @@ module.exports = {
           envelope,
           pending
         );
-        if (memoryReply) return memoryReply;
+        if (memoryReply) {
+          memoryReply.responseText = [
+            memoryReply.responseText,
+            ...(envelope.datasetConfirmations || []),
+          ].join('\n\n');
+          return memoryReply;
+        }
         const conversation = await this.store.resolveConversation(
           {
             tenantId: p.tenantId,
