@@ -2,16 +2,16 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "46edf13bd0bb35b3574edade3bc8d57e640585a08b1868803f27ded5dbc36cb7",
+  "sourceOpenApiHash": "c898ed01bda9c78460d06d53388290051610cb0d17d85bfb38af9bdd929d75e8",
   "coverage": {
-    "rawOperationCount": 1246,
-    "operationCount": 990,
-    "agentableCount": 988,
+    "rawOperationCount": 1250,
+    "operationCount": 994,
+    "agentableCount": 992,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 428,
+      "data_read": 430,
       "admin": 21,
-      "object_store_write": 264,
+      "object_store_write": 266,
       "process_step": 26,
       "process_start": 50,
       "advisory_plan": 48,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 971,
+    "resolvedActionCount": 975,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -93751,6 +93751,364 @@
         "curated": false
       },
       "actionResolutionReason": "route_alias_has_no_static_action",
+      "aliases": []
+    },
+    {
+      "operationId": "files_upload",
+      "method": "POST",
+      "path": "/v1/files",
+      "service": "unknown",
+      "action": "files.upload",
+      "summary": "Store an original file in the authenticated tenant",
+      "tags": [
+        "Files"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "unknown.files_upload"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "unknown:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "unknown"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "name",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "contentBase64",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "mimeType",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "sensitivityLevel",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiOrgId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "files",
+          "upload",
+          "store",
+          "an",
+          "original",
+          "file",
+          "in",
+          "authenticated",
+          "tenant",
+          "unknown"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please store an original file in the authenticated tenant"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "files_remove",
+      "method": "DELETE",
+      "path": "/v1/files/:fileId",
+      "service": "unknown",
+      "action": "files.remove",
+      "summary": "Physically remove an authorized file and revoke its links",
+      "tags": [
+        "Files"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "unknown.files_remove"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "File"
+      ],
+      "requiredScopes": [
+        "unknown:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "unknown"
+      ],
+      "sideEffects": [
+        "deletes_stored_object"
+      ],
+      "idempotency": "idempotent",
+      "rollbackHint": "Deletion is generally not reversible via API - restore from backup/audit trail if available.",
+      "parameters": {
+        "required": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "openWebuiOrgId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "files",
+          "remove",
+          "physically",
+          "an",
+          "authorized",
+          "file",
+          "revoke",
+          "its",
+          "links",
+          "unknown"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please physically remove an authorized file and revoke its links"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "files_download",
+      "method": "GET",
+      "path": "/v1/files/:fileId/content",
+      "service": "unknown",
+      "action": "files.download",
+      "summary": "Download a signed tenant-bound file; audit each retrieval",
+      "tags": [
+        "Files"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "unknown.files_download"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "File"
+      ],
+      "requiredScopes": [
+        "unknown:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "ticket",
+            "in": "query",
+            "type": "string",
+            "description": "Signed seven-day capability; current tenant authentication is also required.",
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "openWebuiOrgId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "files",
+          "download",
+          "signed",
+          "tenant",
+          "bound",
+          "file;",
+          "audit",
+          "each",
+          "retrieval",
+          "unknown"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me download a signed tenant-bound file; audit each retrieval"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "files_link",
+      "method": "GET",
+      "path": "/v1/files/:fileId/link",
+      "service": "unknown",
+      "action": "files.link",
+      "summary": "Create a seven-day signed link for an authorized file",
+      "tags": [
+        "Files"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "unknown.files_link"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "File"
+      ],
+      "requiredScopes": [
+        "unknown:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "openWebuiOrgId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "files",
+          "link",
+          "create",
+          "seven",
+          "day",
+          "signed",
+          "an",
+          "authorized",
+          "file",
+          "unknown"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me create a seven-day signed link for an authorized file"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
       "aliases": []
     },
     {

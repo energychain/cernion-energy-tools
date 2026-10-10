@@ -76136,6 +76136,332 @@
         }
       }
     },
+    "/v1/files": {
+      "post": {
+        "operationId": "files_upload",
+        "summary": "Store an original file in the authenticated tenant",
+        "tags": [
+          "Files"
+        ],
+        "responses": {
+          "200": {
+            "description": "Store an original file in the authenticated tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "fileId",
+                    "name",
+                    "mimeType",
+                    "size",
+                    "hash"
+                  ],
+                  "properties": {
+                    "fileId": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "hash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "mimeType": {
+                      "type": "string",
+                      "enum": [
+                        "application/pdf",
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        "text/csv",
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        "text/plain",
+                        "message/rfc822"
+                      ]
+                    },
+                    "size": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "duplicate": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Mapping, tenant, confidentiality or signed-link authorization denied"
+          },
+          "413": {
+            "description": "Configured file/expanded archive budget exceeded"
+          },
+          "422": {
+            "description": "Invalid file type, name or encoding"
+          }
+        },
+        "description": "Authenticated tenant and current Workbench mapping/clearance required. Gateway credentials delegate no independent privileges. No file contents are logged.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "contentBase64"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "contentBase64": {
+                    "type": "string",
+                    "format": "byte"
+                  },
+                  "mimeType": {
+                    "type": "string",
+                    "enum": [
+                      "application/pdf",
+                      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                      "text/csv",
+                      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                      "text/plain",
+                      "message/rfc822"
+                    ]
+                  },
+                  "sensitivityLevel": {
+                    "type": "string",
+                    "enum": [
+                      "public",
+                      "tenant_internal",
+                      "restricted",
+                      "highly_sensitive"
+                    ],
+                    "default": "tenant_internal"
+                  },
+                  "openWebuiOrgId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/files/:fileId/content": {
+      "get": {
+        "operationId": "files_download",
+        "summary": "Download a signed tenant-bound file; audit each retrieval",
+        "tags": [
+          "Files"
+        ],
+        "responses": {
+          "200": {
+            "description": "Download a signed tenant-bound file; audit each retrieval",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.presentationml.presentation": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "message/rfc822": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Mapping, tenant, confidentiality or signed-link authorization denied"
+          },
+          "413": {
+            "description": "Configured file/expanded archive budget exceeded"
+          },
+          "422": {
+            "description": "Invalid file type, name or encoding"
+          }
+        },
+        "description": "Authenticated tenant and current Workbench mapping/clearance required. Gateway credentials delegate no independent privileges. No file contents are logged.",
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          {
+            "name": "openWebuiOrgId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ticket",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            },
+            "description": "Signed seven-day capability; current tenant authentication is also required."
+          }
+        ]
+      }
+    },
+    "/v1/files/:fileId/link": {
+      "get": {
+        "operationId": "files_link",
+        "summary": "Create a seven-day signed link for an authorized file",
+        "tags": [
+          "Files"
+        ],
+        "responses": {
+          "200": {
+            "description": "Create a seven-day signed link for an authorized file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Mapping, tenant, confidentiality or signed-link authorization denied"
+          },
+          "413": {
+            "description": "Configured file/expanded archive budget exceeded"
+          },
+          "422": {
+            "description": "Invalid file type, name or encoding"
+          }
+        },
+        "description": "Authenticated tenant and current Workbench mapping/clearance required. Gateway credentials delegate no independent privileges. No file contents are logged.",
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          {
+            "name": "openWebuiOrgId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/files/:fileId": {
+      "delete": {
+        "operationId": "files_remove",
+        "summary": "Physically remove an authorized file and revoke its links",
+        "tags": [
+          "Files"
+        ],
+        "responses": {
+          "200": {
+            "description": "Physically remove an authorized file and revoke its links",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Mapping, tenant, confidentiality or signed-link authorization denied"
+          },
+          "413": {
+            "description": "Configured file/expanded archive budget exceeded"
+          },
+          "422": {
+            "description": "Invalid file type, name or encoding"
+          }
+        },
+        "description": "Authenticated tenant and current Workbench mapping/clearance required. Gateway credentials delegate no independent privileges. No file contents are logged.",
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          {
+            "name": "openWebuiOrgId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/v1/chat/completions": {
       "post": {
         "operationId": "createChatCompletion",

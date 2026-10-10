@@ -146,7 +146,10 @@ module.exports = {
         tables = [];
       for (const document of documents) {
         const parsed = parseDatasetText(document.text, document.name);
-        if (parsed.length) tables.push(...parsed);
+        if (parsed.length)
+          tables.push(
+            ...parsed.map((table) => ({ ...table, sensitivityLevel: document.sensitivityLevel }))
+          );
         else ordinary.push(document);
       }
       const pasted = !documents.length ? parseDatasetText(question, 'Eingefügte Tabelle') : [];
@@ -194,7 +197,7 @@ module.exports = {
           sourceName: table.name,
           sheet: table.sheet,
           title: semantic.title,
-          sensitivityLevel: ctx.params.sensitivityLevel,
+          sensitivityLevel: table.sensitivityLevel || ctx.params.sensitivityLevel,
           semantic,
           columns,
           profile: table.profile,

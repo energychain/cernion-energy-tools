@@ -196,6 +196,7 @@ function buildOperationFromAction(actionRef, actionDef) {
 // api.service.js) map 1:1 to the broker action that actually carries the
 // `openapi` metadata this exporter reads.
 const V1_FUNCTION_ALIAS_ACTIONS = {
+  ...require('../src/file-channel-http').FILE_ALIAS_ACTIONS,
   'POST /chat/completions': 'openai-compatible.chatCompletions',
   'POST /images/generations': 'openai-compatible.imageGenerations',
   'POST /embeddings': 'openai-compatible.embeddings',

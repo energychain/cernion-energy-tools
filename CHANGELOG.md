@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Originaldateikanal (#790)
+
+- Versionierter Open-WebUI-Filter überträgt autorisierte Originaldateien an CET und sendet im Chat nur Hash-/Dateireferenzen; der bestehende Text-Fallback bleibt erhalten.
+- Tenantgebundene Ablage im bestehenden Object Store, Dublettenschutz, Typ-/Größen-/Office-Archivprüfung, Vertraulichkeit und optionaler Virenscan-Hook.
+- Sieben Tage gültige signierte Downloads mit aktueller Workbench-Zuordnung, Audit pro Abruf und angemeldetem Open-WebUI-Proxy; erzeugte Dateien werden als Fallunterlagen referenziert.
+- Alle XLSX-Blätter und gespeicherte Formelergebnisse gelangen in den bestehenden Datenkatalog; Chat-Löschung, Aufbewahrung, Installation und Security-Review sind dokumentiert und synthetisch getestet.
+
 ## Unreleased — Tenant-Gedächtnis (#766)
 
 - Produktionsnacharbeit: normalisierter Belegabgleich mit Mindestüberdeckung und belegten Ankern; organisatorische Mitteilungen auch bei Wissensklassifikation speichern, Plausibilitätshinweise getrennt bestätigen.
