@@ -20,7 +20,10 @@ function recoveryOptions() {
   return {
     intervalMs: positiveSetting('TENANT_MEMORY_RECOVERY_INTERVAL_MS', 30000),
     batchSize: positiveSetting('TENANT_MEMORY_RECOVERY_BATCH_SIZE', 5),
-    maxAttempts: positiveSetting('TENANT_MEMORY_RECOVERY_MAX_ATTEMPTS', 5),
+    maxAttempts: positiveSetting(
+      'TENANT_MEMORY_RECOVERY_MAX_ATTEMPTS',
+      require('./tenant-memory-policy').MAX_ATTEMPTS
+    ),
     backoffMs: positiveSetting('TENANT_MEMORY_RECOVERY_BACKOFF_MS', 30000),
     maxBackoffMs: positiveSetting('TENANT_MEMORY_RECOVERY_MAX_BACKOFF_MS', 3600000),
     toolTimeoutMs: positiveSetting('TENANT_MEMORY_TOOL_TIMEOUT_MS', 10000),
@@ -60,11 +63,7 @@ async function attemptAssessment(ctx, p, fact, retrieval) {
     const options = recoveryOptions();
     const attempts = (latest.attempts || 0) + 1;
     if (attempts > options.maxAttempts) {
-      await store.mutate(ctx, p, fact.id, (value) => ({
-        ...value,
-        checking: 'failed',
-        checkingFailure: { message: 'Versuchsgrenze erreicht' },
-      }));
+      await require('./tenant-memory-policy').exhaust(ctx, p, latest);
       observation(ctx).assessmentResult = 'failed';
       ctx.broker.logger.warn('Tenant memory assessment failed', {
         tenantId: p.tenantId,
@@ -79,11 +78,12 @@ async function attemptAssessment(ctx, p, fact, retrieval) {
       options.maxBackoffMs,
       options.backoffMs * 2 ** Math.min(attempts - 1, 30)
     );
-    await store.mutate(ctx, p, fact.id, (value) => ({
-      ...value,
-      attempts,
-      nextAttemptAt: new Date(Date.now() + delay).toISOString(),
-    }));
+    const claimed = await store.mutate(ctx, p, fact.id, (value) =>
+      store.active(value) && value.checking === 'pending'
+        ? { ...value, attempts, nextAttemptAt: new Date(Date.now() + delay).toISOString() }
+        : null
+    );
+    if (!store.active(claimed) || claimed.checking !== 'pending') return [];
     try {
       return await assess(ctx, p, latest, retrieval);
     } catch (error) {
@@ -91,12 +91,12 @@ async function attemptAssessment(ctx, p, fact, retrieval) {
       const retryAfterMs = llm.retryDelayMs?.(error) || 0;
       const nextAttemptAt = new Date(Date.now() + Math.max(delay, retryAfterMs)).toISOString();
       const checking = attempts >= options.maxAttempts ? 'failed' : 'pending';
-      await store.mutate(ctx, p, fact.id, (value) => ({
-        ...value,
-        checking,
-        checkingFailure: failure,
-        nextAttemptAt,
-      }));
+      const failed = await store.mutate(ctx, p, fact.id, (value) =>
+        store.active(value) && value.checking === 'pending'
+          ? { ...value, checkingFailure: failure, nextAttemptAt }
+          : null
+      );
+      if (checking === 'failed') await require('./tenant-memory-policy').exhaust(ctx, p, failed);
       observation(ctx).assessmentResult = checking;
       ctx.broker.logger.warn('Tenant memory assessment failed', {
         ...failure,
@@ -131,6 +131,7 @@ function available(ctx) {
 function eligible(message, situation, envelope) {
   return (
     !envelope.documents?.length &&
+    !envelope.datasetIds?.length &&
     !backgroundTask(message) &&
     !isDocumentInput(message) &&
     !documentReference(message) &&
@@ -386,15 +387,62 @@ function plausibilityText(item, evidence) {
   });
   return `${item.reason} Quelle: ${sources.join('; ')}`;
 }
-async function deferredNotices(ctx, p, fact) {
+async function deferredNotices(ctx, p, fact, includeActor = true) {
+  if (!ctx.broker.getLocalService('notices')) return;
   const latest = (await store.get(ctx, p, fact.id)).payload;
-  if (latest.plausibility?.length) await enqueue(ctx, p, p.actorId, fact.id, [fact.id]);
-  for (const relationId of latest.relationIds) {
-    const relation = (await store.get(ctx, p, relationId)).payload;
-    await enqueue(ctx, p, p.actorId, relationId, relation.factIds);
+  if (!store.active(latest) || latest.checking !== 'complete' || !latest.noticesPending) return;
+  if (latest.nextNoticeAttemptAt && Date.parse(latest.nextNoticeAttemptAt) > Date.now()) return;
+  const attempts = (latest.noticeAttempts || 0) + 1;
+  const options = recoveryOptions();
+  const delay = Math.min(options.maxBackoffMs, options.backoffMs * 2 ** Math.min(attempts - 1, 30));
+  await store.mutate(ctx, p, fact.id, (value) =>
+    store.active(value) && value.noticesPending
+      ? {
+          ...value,
+          noticeAttempts: attempts,
+          nextNoticeAttemptAt: new Date(Date.now() + delay).toISOString(),
+        }
+      : null
+  );
+  try {
+    if (includeActor && latest.plausibility?.length)
+      await enqueue(ctx, p, p.actorId, fact.id, [fact.id]);
+    for (const relationId of latest.relationIds) {
+      const relation = (await store.get(ctx, p, relationId)).payload;
+      const recipients = new Set(includeActor ? [p.actorId] : []);
+      for (const id of relation.factIds) {
+        const related = (await store.get(ctx, p, id)).payload;
+        if (store.active(related) && related.person.actorId !== p.actorId)
+          recipients.add(related.person.actorId);
+      }
+      for (const actorId of recipients)
+        await enqueue(ctx, p, actorId, relationId, relation.factIds);
+    }
+    await store.mutate(ctx, p, fact.id, (value) => ({
+      ...value,
+      noticesPending: false,
+      nextNoticeAttemptAt: '',
+      noticeFailure: null,
+    }));
+  } catch (error) {
+    const failure = errorDetails(error, p);
+    await store.mutate(ctx, p, fact.id, (value) =>
+      store.active(value) && value.noticesPending
+        ? {
+            ...value,
+            noticeFailure: failure,
+            nextNoticeAttemptAt: new Date(
+              Date.now() + Math.max(delay, llm.retryDelayMs?.(error) || 0)
+            ).toISOString(),
+          }
+        : null
+    );
+    ctx.broker.logger.warn('Tenant memory notice pending', failure);
+    throw error;
   }
 }
 async function assess(ctx, p, fact, retrieval) {
+  if (!store.active((await store.get(ctx, p, fact.id)).payload)) return [];
   const all = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
   const weighted = new Set(store.candidates(fact, all).map((item) => item.id));
   const shared = fact.anchorKeys.length
@@ -414,10 +462,10 @@ async function assess(ctx, p, fact, retrieval) {
     observation(ctx).assessmentResult = 'no_candidates';
     return [];
   }
-  await store.mutate(ctx, p, fact.id, (value) => ({
-    ...value,
-    checkingEvidence: knowledge.slice(0, 10),
-  }));
+  const prepared = await store.mutate(ctx, p, fact.id, (value) =>
+    store.active(value) ? { ...value, checkingEvidence: knowledge.slice(0, 10) } : null
+  );
+  if (!store.active(prepared)) return [];
   const evidence = knowledge.slice(0, 10).map((hit, i) => ({
     id: `K${i + 1}`,
     value: hit.value,
@@ -438,8 +486,13 @@ async function assess(ctx, p, fact, retrieval) {
   const result = restoreContext(raw, safe.reidentMap);
   if (
     !validateJudgment(result) ||
-    !selected.every((candidate) =>
-      result.relations.some((item) => item.candidateId === candidate.id)
+    !['effects', 'relations'].every(
+      (field) =>
+        result[field].length === selected.length &&
+        selected.every(
+          (candidate) =>
+            result[field].filter((item) => item.candidateId === candidate.id).length === 1
+        )
     )
   )
     throw new Error('Invalid Workbench tenant memory judgment');
@@ -498,20 +551,24 @@ async function assess(ctx, p, fact, retrieval) {
       observation(ctx).relations++;
       texts.push(await store.relationText(ctx, p, id));
     }
-    if (candidate.person.actorId !== p.actorId)
-      await enqueue(ctx, p, candidate.person.actorId, id, factIds);
   }
   const plausibility = (result.plausibility || [])
     .map((item) => plausibilityText(item, evidence))
     .filter(Boolean);
   texts.push(...plausibility);
-  await store.mutate(ctx, p, fact.id, (value) => ({
-    ...value,
-    checking: 'complete',
-    checkingFailure: null,
-    nextAttemptAt: '',
-    plausibility,
-  }));
+  const completed = await store.mutate(ctx, p, fact.id, (value) =>
+    store.active(value)
+      ? {
+          ...value,
+          checking: 'complete',
+          checkingFailure: null,
+          nextAttemptAt: '',
+          plausibility,
+          noticesPending: true,
+        }
+      : null
+  );
+  if (!store.active(completed)) return [];
   observation(ctx).assessmentResult = 'complete';
   return texts.filter(Boolean);
 }
@@ -551,11 +608,11 @@ function start(service, ctx, p, input) {
         fact.checkingEvidence ? { evidence: fact.checkingEvidence } : retrieval || {}
       );
       state.paragraphs.push(...texts);
-      if (state.deferred) await deferredNotices(ctx, p, fact);
+      await deferredNotices(ctx, p, fact, state.deferred);
     }
   })()
     .catch((error) => {
-      if (!['pending', 'failed'].includes(observation(ctx).assessmentResult))
+      if (!['pending', 'failed', 'complete'].includes(observation(ctx).assessmentResult))
         observation(ctx).assessmentResult = 'unavailable';
       service.logger.warn('Tenant memory unavailable', errorDetails(error, p));
     })
@@ -586,25 +643,36 @@ async function recover(service) {
   service.tenantMemoryRecovering = true;
   try {
     const pending = [];
-    for (let skip = 0; ; skip += 1000) {
+    const batchSize = recoveryOptions().batchSize;
+    const now = new Date().toISOString();
+    const ready = (field) => ({
+      $or: [{ [field]: { $exists: false } }, { [field]: '' }, { [field]: { $lte: now } }],
+    });
+    for (let skip = 0; pending.length < batchSize; skip += 1000) {
       const page = await objects.db.find({
         selector: {
           'payload.type': 'tenant_memory_fact',
-          'payload.checking': 'pending',
+          $or: [
+            { $and: [{ 'payload.checking': 'pending' }, ready('payload.nextAttemptAt')] },
+            { $and: [{ 'payload.noticesPending': true }, ready('payload.nextNoticeAttemptAt')] },
+          ],
         },
         limit: 1000,
         skip,
       });
-      pending.push(...page.docs);
+      for (const doc of page.docs) {
+        const fact = doc.payload;
+        const p = fact.recoveryPrincipal;
+        if (!p || doc.ns !== store.namespace(p) || !store.active(fact)) continue;
+        pending.push(doc);
+        if (pending.length >= batchSize) break;
+      }
       if (page.docs.length < 1000) break;
     }
-    let processed = 0;
     for (const doc of pending) {
-      if (service.tenantMemoryStopping || processed >= recoveryOptions().batchSize) break;
+      if (service.tenantMemoryStopping) break;
       const fact = doc.payload;
       const p = fact.recoveryPrincipal;
-      if (!p || doc.ns !== store.namespace(p) || !store.active(fact) || !due(fact)) continue;
-      processed++;
       const meta = {
         tenantId: p.tenantId,
         apiToken: {
@@ -732,6 +800,127 @@ async function queryResponse(ctx, p, message, selector = {}) {
       'Dazu haben wir noch keine sichtbaren Aussagen festgehalten.',
   };
 }
+function correctionMatches(fact, message) {
+  const words = store.normalizeAnchor(message).split(' ');
+  const factWords = new Set(store.normalizeAnchor(fact.text).split(' '));
+  const numbers = words.filter((word) => /^\d+$/.test(word));
+  if (numbers.some((number) => !factWords.has(number))) return false;
+  const anchors = (fact.anchors || []).some((anchor) => matchesAnchor(anchor, message));
+  if (!anchors) return false;
+  const content = words.filter((word) => word.length >= 6 && factWords.has(word));
+  return content.length >= 2 || numbers.length > 0;
+}
+async function requestCorrection(ctx, p, envelope, correction, facts) {
+  const id = store.key([
+    'correction-request',
+    p.actorId,
+    envelope.channel,
+    envelope.conversationId,
+  ]);
+  const record = {
+    id,
+    type: 'tenant_memory_correction_request',
+    tenantId: p.tenantId,
+    sensitivityFlags: [...new Set(facts.flatMap((fact) => fact.sensitivityFlags || []))],
+    actorId: p.actorId,
+    conversationId: envelope.conversationId,
+    channel: envelope.channel,
+    correction,
+    candidates: facts.map((fact) => ({ id: fact.id, text: fact.text, status: fact.status })),
+    status: 'pending',
+    expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+  };
+  try {
+    const prior = await store.get(ctx, p, id);
+    await store.put(ctx, p, record, prior._rev);
+  } catch (error) {
+    if (error.code !== 404) throw error;
+    await store.put(ctx, p, record);
+  }
+  await require('./tenant-memory-policy').audit(ctx, p, 'confirmation_requested', {
+    factIds: facts.map((fact) => fact.id),
+    sensitivityFlags: record.sensitivityFlags,
+  });
+  return {
+    state: 'tenant_memory_confirmation',
+    nonBinding: true,
+    responseText:
+      facts.length > 1
+        ? `Welche Aussage meinst du? Antworte mit der Nummer.\n${facts.map((fact, index) => `${index + 1}. ${store.factText({ ...fact, text: fact.text.slice(0, 240) })}`).join('\n')}`
+        : `Diese Aussage stammt von ${store.source(facts[0])}: „${facts[0].text}“. Soll ich sie wirklich ${correction.kind === 'revoked' ? 'widerrufen' : 'korrigieren'}? Bitte bestätige mit „Ja, bestätigen“.`,
+  };
+}
+async function resumeCorrection(ctx, p, envelope) {
+  const message = envelope.userRequest.trim();
+  if (!/^(?:ja(?:,? bestätigen)?|bestätigen|nein|abbrechen|[1-9]\d*)[.!\s]*$/i.test(message))
+    return null;
+  const id = store.key([
+    'correction-request',
+    p.actorId,
+    envelope.channel,
+    envelope.conversationId,
+  ]);
+  let request;
+  try {
+    request = (await store.get(ctx, p, id)).payload;
+  } catch (error) {
+    if (error.code === 404) return null;
+    throw error;
+  }
+  if (request.status !== 'pending' || Date.parse(request.expiresAt) <= Date.now()) return null;
+  if (/^(?:nein|abbrechen)/i.test(message)) {
+    await store.mutate(ctx, p, id, (value) => ({ ...value, status: 'cancelled' }));
+    await require('./tenant-memory-policy').audit(ctx, p, 'confirmation_cancelled');
+    return { nonBinding: true, responseText: 'Die Änderung ist abgebrochen.' };
+  }
+  if (request.candidates.length > 1) {
+    const index = Number.parseInt(message, 10) - 1;
+    const selected = request.candidates[index];
+    if (!selected)
+      return { nonBinding: true, responseText: 'Bitte wähle eine der angegebenen Nummern.' };
+    const latest = (await store.get(ctx, p, selected.id)).payload;
+    if (latest.text !== selected.text || latest.status !== selected.status) {
+      await store.mutate(ctx, p, id, (value) => ({ ...value, status: 'stale' }));
+      return {
+        nonBinding: true,
+        responseText:
+          'Die Aussage hat sich inzwischen geändert. Bitte nenne die gewünschte Aussage erneut.',
+      };
+    }
+    await store.mutate(ctx, p, id, (value) => ({ ...value, status: 'selected' }));
+    return correctFacts(ctx, p, { ...envelope, userRequest: request.correction.basis }, null, {
+      ...request.correction,
+      factId: selected.id,
+    });
+  }
+  if (/^\d/.test(message))
+    return { nonBinding: true, responseText: 'Bitte bestätige mit „Ja, bestätigen“.' };
+  const selected = request.candidates[0];
+  const fact = (await store.get(ctx, p, selected.id)).payload;
+  if (fact.text !== selected.text || fact.status !== selected.status) {
+    await store.mutate(ctx, p, id, (value) => ({ ...value, status: 'stale' }));
+    return {
+      nonBinding: true,
+      responseText:
+        'Die Aussage hat sich inzwischen geändert. Bitte nenne die gewünschte Aussage erneut.',
+    };
+  }
+  await require('./tenant-memory-policy').change(
+    ctx,
+    p,
+    fact.id,
+    request.correction.kind,
+    request.correction.basis,
+    { confirmed: true }
+  );
+  await store.mutate(ctx, p, id, (value) => ({ ...value, status: 'complete' }));
+  return {
+    state: 'tenant_memory_corrected',
+    nonBinding: true,
+    responseText:
+      'Die Aussage ist widerrufen bzw. korrigiert. Die Änderung ist auditiert; die Quelle erhält eine Notice.',
+  };
+}
 async function preturn(ctx, p, envelope, pending) {
   if (
     !available(ctx) ||
@@ -753,9 +942,18 @@ async function preturn(ctx, p, envelope, pending) {
       ? null
       : reply;
   }
+  const selection = await resumeCorrection(ctx, p, envelope);
+  if (selection) return selection;
   if (pending?.queryOnly) return null;
-  const revoke = /^(?:streich das|gilt nicht mehr|(?:das )?widerrufe ich)[.!\s]*$/i.test(message);
-  const correct = /^(?:das stimmt so nicht|korrigier(?:e)? das)[.!\s]*$/i.test(message);
+  if (
+    /^(?:wie|was|wann|wer|warum|wieso|welche)\b/i.test(message) ||
+    /(?:nicht|keinesfalls)\s+(?:streich|widerruf|korrig)/i.test(message)
+  )
+    return null;
+  const revoke = /(?:\bstreich(?:e|en)?\b|\bwiderruf(?:e|en)?\b|gilt nicht mehr)/i.test(message);
+  const correct =
+    /^(?:das stimmt so nicht|korrigier(?:e)? das)[.!\s]*$/i.test(message) ||
+    /bitte[^.!?]*korrigier/i.test(message);
   if (revoke || correct) {
     const correction = { kind: revoke ? 'revoked' : 'corrected', basis: message, factId: '' };
     return correctFacts(ctx, p, envelope, pending, correction);
@@ -771,7 +969,16 @@ async function correctFacts(ctx, p, envelope, pending, correction) {
   )
     return null;
   let ids = correction.factId ? [correction.factId] : pending?.tenantMemoryFactIds || [];
-  if (!ids.length) {
+  const named =
+    !/^(?:streich das|gilt nicht mehr|(?:das )?widerrufe ich|das stimmt so nicht|korrigier(?:e)? das)[.!\s]*$/i.test(
+      envelope.userRequest
+    );
+  if (named && !correction.factId) {
+    const facts = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
+    ids = facts
+      .filter((fact) => store.active(fact) && correctionMatches(fact, correction.basis))
+      .map((fact) => fact.id);
+  } else if (!ids.length) {
     const own = await store.query(ctx, p, {
       'payload.type': 'tenant_memory_fact',
       'payload.person.actorId': p.actorId,
@@ -779,33 +986,19 @@ async function correctFacts(ctx, p, envelope, pending, correction) {
       'payload.channel': envelope.channel,
     });
     ids = own
+      .filter((fact) => store.active(fact))
       .sort((a, b) => b.at.localeCompare(a.at))
       .slice(0, 1)
       .map((fact) => fact.id);
   }
   if (!ids.length)
     return { responseText: 'Welche festgehaltene Aussage meinst du?', nonBinding: true };
+  const facts = await Promise.all(ids.map(async (id) => (await store.get(ctx, p, id)).payload));
+  if (facts.length > 1 || facts.some((fact) => fact.person.actorId !== p.actorId))
+    return requestCorrection(ctx, p, envelope, correction, facts);
   await serialized(p, async () => {
     for (const id of ids)
-      await store.mutate(ctx, p, id, (fact) => {
-        if (fact.person.actorId !== p.actorId)
-          require('./domain-router-policy').deny('Only the source can correct this statement');
-        if (fact.status !== 'valid') return null;
-        return {
-          ...fact,
-          status: correction.kind,
-          audit: [
-            ...fact.audit,
-            {
-              kind: correction.kind,
-              actorId: p.actorId,
-              at: new Date().toISOString(),
-              basis: correction.basis,
-              previousText: fact.text,
-            },
-          ],
-        };
-      });
+      await require('./tenant-memory-policy').change(ctx, p, id, correction.kind, correction.basis);
   });
   return {
     state: 'tenant_memory_corrected',

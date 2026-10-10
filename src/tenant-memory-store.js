@@ -148,6 +148,7 @@ function factText(fact) {
     corrected: 'korrigiert',
     revoked: 'widerrufen',
     expired: 'abgelaufen',
+    deleted: 'gelöscht',
   };
   const checking =
     fact.checking === 'failed'

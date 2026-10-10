@@ -120,3 +120,36 @@ Fallbezug sowie die bestehenden Sichtbarkeitsprüfungen. Fachfremde Hinweise ble
 in der Warteschlange. Der vollständige Neuigkeitenabruf und Tenant-Gedächtnis-Notices
 behalten ihren bisherigen Zugriffspfad; interne Referenzen bleiben strukturiert
 für Reaktionen verfügbar und erscheinen nicht im Hinweistext.
+
+### Relevanz und reproduzierbare Kennzahlen
+
+Ein vorhandener Datensatz ist keine automatische Antwortquelle. Die Workbench prüft
+Katalogmetadaten (Titel/Dateiname, Anker, Größenart und Zeitraum) zusammen mit der aktuellen
+Frage und dem zuletzt belegten Gesprächsbezug. Ohne passenden Bezug bleibt `dataset.query`
+aus der Kandidatenliste. Passende Tabellen und andere Lesewerkzeuge können im selben
+Capability-Lauf abgefragt werden; Tenant-Gedächtnisfragen behalten ihren bestehenden Pfad.
+Auch eine neue Datei wird zuerst abgelegt und bestätigt, ohne eine fremde Frage auf die
+Tabelle umzuleiten.
+
+Standardfragen nach Überblick, Qualität, Min/Max, Mittelwert, Summe/Energie und Kalenderwerten
+werden ohne LLM-Abfrageplan berechnet. Die Kennzahlenbasis umfasst sämtliche Zeilen des
+Datensatzes beziehungsweise des angefragten Zeitraums. Interne Messwertfilter beeinflussen
+nur die erweiterte Auswertung, nicht Zeilen-/Leerwertzahlen, Integral oder Qualitätsbefunde.
+Minima und Maxima enthalten den zugehörigen Zeitpunkt; das gilt auch für gruppierte
+Abfragen. Lücken und Zeitumstellungen werden für den tatsächlichen Zeitraum ausgewertet.
+
+Die reproduzierbare Live-Prüfung verwendet ausschließlich generierte synthetische Daten:
+
+```bash
+WORKBENCH_ENV_FILE=/path/to/configured.env \
+WORKBENCH_VALIDATION_REPORT=/tmp/dataset-routing-live.json \
+node scripts/validate-workbench-dataset-routing-live.js
+```
+
+Der Modellweg ist die zentrale LLM-Fassade ohne Modellüberschreibung. Katalog, Executor und
+Workbench laufen real; Register- und Gedächtnisquellen liefern kontrollierte synthetische
+Antworten. Der Bericht prüft drei unabhängige Läufe je Frage gegen 35.040 Zeilen, vier
+Leerwerte, 1.243,7 kW am 14.01.2025 um 18:15 und 3.478,874 MWh sowie zwei fremde Fragen.
+Die fremden Fragen müssen das Registerwerkzeug beziehungsweise das Tenant-Gedächtnis
+nutzen und dürfen keine Datensatzantwort liefern. Ein fehlgeschlagener Check führt zu
+Exit-Code 1.

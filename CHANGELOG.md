@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Datensatz-Routing und Kennzahlen (#774/#794)
+
+- Datensätze sind passende Kandidaten der bestehenden Werkzeugschleife; fremde Register- und Gedächtnisfragen werden auch bei genau einer Tabelle nicht umgeleitet. Upload-Bestätigungen begleiten die normale Antwort.
+- Standardkennzahlen kommen ohne LLM-Abfrageplan aus dem vollständigen Datensatz beziehungsweise angefragten Zeitraum. Min/Max enthalten Zeitpunkte; interne Wertfilter verändern keine Qualitäts- oder Gesamtzahlen.
+- Drei Live-Modellläufe je synthetischer Referenzfrage und Fremdfrage werden durch ein wiederholbares Validierungsskript geprüft; Rohzeilen bleiben lokal.
+
 ## Unreleased — Originaldateikanal (#790)
 
 - Versionierter Open-WebUI-Filter überträgt autorisierte Originaldateien an CET und sendet im Chat nur Hash-/Dateireferenzen; der bestehende Text-Fallback bleibt erhalten.
@@ -12,6 +18,8 @@
 - Recovery standardmäßig alle 30 Sekunden mit konfigurierbarem Prüfbudget, persistiertem Backoff, Batch- und Versuchslimit sowie Abschalter; unveränderte Mutationen schreiben nicht erneut. Quota-Wartezeiten bleiben über Neustarts erhalten.
 - Organisationsrelevante Mitteilungen trotz fachlichem Einwand extrahieren; Turn-Beobachtung sofort ausgeben, erfundene Anker-Qualifikatoren entfernen und providergeeignetes Prüfungsschema aus dem bestehenden Helfer verwenden.
 - Gedächtnisabfragen mit bekannten Ankern vor dem Datensatzpfad beantworten; Personen und Klartextfunktionen mit deutschem Datum und Prüfstatus anzeigen. Synthetische Live-Abnahme nutzt das echte konfigurierte Modell in beiden Reihenfolgen je zweimal.
+
+- Tenant-Gedächtnis: benannter Widerruf über Chatgrenzen, bestätigte Fremdkorrektur mit Audit/Notice sowie geschützter Admin-Weg für Auflistung, Widerruf, Redaktion und Bereinigung ausgeschöpfter Prüfungen.
 
 - Produktionsnacharbeit: normalisierter Belegabgleich mit Mindestüberdeckung und belegten Ankern; organisatorische Mitteilungen auch bei Wissensklassifikation speichern, Plausibilitätshinweise getrennt bestätigen.
 - Qualifizierte Anker über den Begriff im Tenant finden; mehrere Varianten erfordern Rückfrage. Lokale Suche und Prüfung funktionieren unabhängig vom externen Retrieval-Budget, auch bei Quellen-Timeouts.
@@ -130,6 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `tests/workbench-activity-taxonomy.test.js` and extended `tests/workbench.service.test.js` for #634 to cover the energy-utility activity families, required evidence/action/governance metadata, representative prompt matching, Domain Router taxonomy consultation and Workbench `/api/workbench/activities` listing/lookup behavior.
 
 ## [Unreleased]
+
 
 - Workbench Context and Case Inbox (#627/#636): adds CET-owned user/workspace context profiles, playbook registry, and persisted inbox tasks so Open WebUI clients receive role-aware task guidance without storing raw chat history.
 ### Added

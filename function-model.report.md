@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `6a74b88afde28039acb32fb63abef1e4a968cd6c5d4b419befb39654000f175c`
+Source SHA-256: `87bd90893a8afa9403c5f9b730c49668940dd4043a889e2b4ccac6c289736f85`
 
 Capabilities: 172; functions: 110.
 Function vectors: 95/110; missing or incompatible capability vectors: 25.
@@ -14,7 +14,7 @@ Maximum degree target: ≤ 0.25 × 110 = 27.5; met: yes.
 
 Candidate degree before mutual selection: {"minimum":0,"median":3.5,"maximum":36,"isolatedFraction":0.2727272727272727}; pruned directed edges: 70; peer limit: 27.
 
-Operation index entries without action: 19/994.
+Operation index entries without action: 19/998.
 
 All curated capabilities are assigned once, including entries without resolvable operations.
 Edges describe catalog evidence only; they grant no authorization.
@@ -510,7 +510,7 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (76)
+## unresolvedStaticEvents (78)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:216: dynamic emission"}
@@ -572,11 +572,13 @@ None.
 - {"service":"residual-load","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"shared-service-agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"shared-service-agent","ref":"src/llm-client.js:216: dynamic emission"}
-- {"service":"notices","ref":"services/shared-service-notices.service.js:263: spread event handlers"}
+- {"service":"notices","ref":"services/shared-service-notices.service.js:266: spread event handlers"}
 - {"service":"system","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"system","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"tabular","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"tabular","ref":"src/llm-client.js:216: dynamic emission"}
+- {"service":"tenant-memory-policy","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"tenant-memory-policy","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"token-manager","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"token-manager","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"utility-report","ref":"src/job-store.js:67: dynamic emission"}

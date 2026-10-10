@@ -72,6 +72,12 @@ function assessments() {
     const input = JSON.parse(prompt);
     if (input.fact)
       return {
+        effects: input.candidates.map((item) => ({
+          candidateId: item.id,
+          possibleConsequence: 'Synthetische Folge',
+          affectedWork: 'Synthetische Planung',
+          availabilityLimit: 'Synthetische Grenze',
+        })),
         relations: input.candidates.map((item) => ({
           candidateId: item.id,
           kind: 'gap',
@@ -182,6 +188,127 @@ describe('tenant memory acceptance and lifecycle', () => {
     }
   });
 
+  test('completed assessment survives notice failure and restart without another model call', async () => {
+    const first = await memory.capture(context(app), principal(), {
+      situation: situation(fixture.first.text, [assertion(fixture.first.text)]),
+      envelope: { userRequest: fixture.first.text, conversationId: 'notice-first', channel: 'api' },
+    });
+    await store.mutate(context(app), principal(), first.ids[0], (value) => ({
+      ...value,
+      checking: 'complete',
+    }));
+    const ctx = context(app, 'Doris'),
+      p = principal('Doris');
+    const second = await memory.capture(ctx, p, {
+      situation: situation(fixture.second.text, [assertion(fixture.second.text)]),
+      envelope: {
+        userRequest: fixture.second.text,
+        conversationId: 'notice-second',
+        channel: 'api',
+      },
+    });
+    await memory.attemptAssessment(ctx, p, second.facts[0], { evidence: [] });
+    expect((await store.get(ctx, p, second.ids[0])).payload).toMatchObject({
+      checking: 'complete',
+      noticesPending: true,
+    });
+    const modelCalls = llm.generateStructured.mock.calls.length;
+    const original = app.broker.call.bind(app.broker);
+    let fail = true;
+    const calls = jest.spyOn(app.broker, 'call').mockImplementation((name, ...args) => {
+      if (name === 'notices.enqueueMemory' && fail) {
+        fail = false;
+        return Promise.reject(new Error('Synthetic notice outage'));
+      }
+      return original(name, ...args);
+    });
+    try {
+      await memory.recover(app.workbench);
+      const pending = (await store.get(ctx, p, second.ids[0])).payload;
+      expect(pending).toMatchObject({
+        checking: 'complete',
+        noticesPending: true,
+        noticeAttempts: 1,
+      });
+      expect(Date.parse(pending.nextNoticeAttemptAt)).toBeGreaterThan(Date.now());
+      calls.mockClear();
+      await memory.recover(app.workbench);
+      expect(calls.mock.calls.filter(([name]) => name === 'notices.enqueueMemory')).toHaveLength(0);
+      await store.mutate(ctx, p, second.ids[0], (value) => ({
+        ...value,
+        nextNoticeAttemptAt: new Date(0).toISOString(),
+      }));
+      await memory.recover(app.workbench);
+      expect((await store.get(ctx, p, second.ids[0])).payload.noticesPending).toBe(false);
+      for (const actorId of ['Charly', 'Doris']) {
+        const notices = await app.call(
+          'notices.list',
+          { tenantId: p.tenantId, actorId },
+          auth(actorId)
+        );
+        expect(notices.items.filter((item) => item.kind === 'memory')).toHaveLength(1);
+      }
+      await memory.recover(app.workbench);
+      expect(llm.generateStructured).toHaveBeenCalledTimes(modelCalls);
+    } finally {
+      calls.mockRestore();
+    }
+  });
+
+  test('recovery stops reading a backlog after collecting one configured batch', async () => {
+    const p = principal();
+    const docs = Array.from({ length: 1000 }, (_, i) => ({
+      ns: store.namespace(p),
+      payload: { id: `synthetic-${i}`, status: 'valid', checking: 'pending', recoveryPrincipal: p },
+    }));
+    const find = jest.fn().mockResolvedValue({ docs });
+    const call = jest.fn().mockRejectedValue(new Error('Synthetic unavailable local store'));
+    const service = {
+      broker: { getLocalService: () => ({ db: { find } }), call },
+      logger: { warn: jest.fn() },
+    };
+    await memory.recover(service);
+    expect(find).toHaveBeenCalledTimes(1);
+    expect(call).toHaveBeenCalledTimes(memory.recoveryOptions().batchSize);
+    expect(find.mock.calls[0][0].selector.$or).toHaveLength(2);
+  });
+
+  test.each(['missing', 'empty', 'duplicate', 'foreign'])(
+    'JSON-only assessment rejects %s per-candidate effects',
+    async (kind) => {
+      const facts = [];
+      for (const actor of ['Charly', 'Doris']) {
+        const text = `Synthetische Planung Hauptstraße ${actor}`;
+        facts.push(
+          ...(
+            await memory.capture(context(app, actor), principal(actor), {
+              situation: situation(text, [assertion(text)]),
+              envelope: { userRequest: text, conversationId: actor, channel: 'api' },
+            })
+          ).facts
+        );
+      }
+      const base = llm.generateStructured.getMockImplementation();
+      llm.generateStructured.mockImplementationOnce(async (schema, prompt) => {
+        expect(schema.required).toContain('effects');
+        const value = await base(schema, prompt);
+        if (kind === 'missing') delete value.effects;
+        if (kind === 'empty') value.effects = [];
+        if (kind === 'duplicate') value.effects.push(value.effects[0]);
+        if (kind === 'foreign') value.effects[0].candidateId = 'unknown-candidate';
+        return value;
+      });
+      await expect(
+        memory.attemptAssessment(context(app, 'Doris'), principal('Doris'), facts[1], {
+          evidence: [],
+        })
+      ).rejects.toThrow('Invalid Workbench tenant memory judgment');
+      expect(
+        (await store.get(context(app, 'Doris'), principal('Doris'), facts[1].id)).payload.checking
+      ).toBe('pending');
+    }
+  );
+
   test('unspoken object categories never split a shared anchor into invented variants', async () => {
     const facts = [];
     for (const [actor, qualifier] of [
@@ -222,7 +349,7 @@ describe('tenant memory acceptance and lifecycle', () => {
     llm.generateStructured.mockImplementationOnce(async (_schema, _prompt, options) => {
       expect(options).toMatchObject(memory.assessmentOptions(p.tenantId));
       await new Promise((resolve) => setTimeout(resolve, 1100));
-      return { relations: [], plausibility: [] };
+      return { effects: [], relations: [], plausibility: [] };
     });
     await memory.recover(app.workbench);
     expect((await store.get(ctx, p, captured.ids[0])).payload.checking).toBe('complete');
@@ -241,7 +368,7 @@ describe('tenant memory acceptance and lifecycle', () => {
         ).facts
       );
     }
-    llm.generateStructured.mockResolvedValueOnce({ relations: [], plausibility: [] });
+    llm.generateStructured.mockResolvedValueOnce({ effects: [], relations: [], plausibility: [] });
     await expect(
       memory.attemptAssessment(context(app, 'Doris'), principal('Doris'), facts[1], {})
     ).rejects.toThrow('Invalid Workbench tenant memory judgment');
@@ -481,6 +608,7 @@ describe('tenant memory acceptance and lifecycle', () => {
     });
     expect(captured.confirmation).toContain('Hab ich festgehalten:');
     llm.generateStructured.mockResolvedValue({
+      effects: [],
       relations: [],
       plausibility: [{ reason: 'Das widerspricht der synthetischen Regel.', evidenceIds: ['K1'] }],
     });
@@ -1056,6 +1184,14 @@ describe('tenant memory acceptance and lifecycle', () => {
     state.deferred = true;
     state.renderedConfirmation = true;
     release({
+      effects: [
+        {
+          candidateId: first.ids[0],
+          possibleConsequence: 'Synthetische Folge',
+          affectedWork: 'Synthetische Planung',
+          availabilityLimit: 'Synthetische Grenze',
+        },
+      ],
       relations: [
         {
           candidateId: first.ids[0],
@@ -1151,6 +1287,14 @@ describe('tenant memory acceptance and lifecycle', () => {
       );
     }
     llm.generateStructured.mockResolvedValue({
+      effects: [
+        {
+          candidateId: captured[0].id,
+          possibleConsequence: 'Synthetische Folge',
+          affectedWork: 'Synthetische Planung',
+          availabilityLimit: 'Synthetische Grenze',
+        },
+      ],
       relations: [
         {
           candidateId: captured[0].id,
@@ -1167,6 +1311,14 @@ describe('tenant memory acceptance and lifecycle', () => {
       []
     );
     llm.generateStructured.mockResolvedValue({
+      effects: [
+        {
+          candidateId: captured[0].id,
+          possibleConsequence: 'Synthetische Folge',
+          affectedWork: 'Synthetische Planung',
+          availabilityLimit: 'Synthetische Grenze',
+        },
+      ],
       relations: [{ candidateId: captured[0].id, kind: 'invented', reason: 'Wrong' }],
       plausibility: [],
     });
@@ -1312,6 +1464,7 @@ describe('tenant memory acceptance and lifecycle', () => {
       envelope: { userRequest: text, channel: 'api', conversationId: 'rules' },
     });
     llm.generateStructured.mockResolvedValue({
+      effects: [],
       relations: [],
       plausibility: [
         { reason: 'Das widerspricht Regel R-17.', evidenceIds: ['K1'] },

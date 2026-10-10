@@ -100,7 +100,62 @@ async function datasetSemantics(table, tenantId, question, previous) {
   return defaults;
 }
 
+function standardDatasetPlan(record, question) {
+  const text = String(question || '').toLocaleLowerCase('de-DE');
+  if (
+    !/welche daten haben wir|auffäll|auffaell|überblick|ueberblick|zusammenfassung|spitzen|maxim|minim|höchst|hoechst|niedrig|kleinst|mittel|durchschnitt|energie|arbeit|summe|gesamt|zeilen|anzahl|wie viele|count|rows|leere|lücken|luecken|zeitumstellung|monat/i.test(
+      text
+    )
+  )
+    return null;
+  // Explicit predicates/groupings beyond calendar summaries still need a schema-bound plan.
+  if (
+    /vergleich|korrel|gruppier|zwischen|bis|je\s|pro\s|mehr als|weniger als|größer als|groesser als|über\s+\d|unter\s+\d/i.test(
+      text
+    )
+  )
+    return null;
+  const plan = require('./tabular-intelligence').heuristicPlan(question, record.profile, record.id);
+  const localDate = text.match(/\b(\d{2})\.(\d{2})\.(20\d{2})\b/);
+  let calendar = localDate
+    ? `${localDate[3]}-${localDate[2]}-${localDate[1]}`
+    : text.match(/\b(20\d{2}-\d{2}(?:-\d{2})?)\b/)?.[1];
+  const normalize = require('./function-resolver').normalizePhrase;
+  const normalized = ` ${normalize(text)} `;
+  const monthIndex = Array.from({ length: 12 }, (_, month) =>
+    normalize(
+      new Intl.DateTimeFormat('de-DE', { month: 'long', timeZone: 'UTC' }).format(
+        new Date(Date.UTC(2000, month, 1))
+      )
+    )
+  ).findIndex((month) => normalized.includes(` ${month} `));
+  if (!calendar && monthIndex >= 0) {
+    const years = [record.period?.from, record.period?.to].map(
+      (value) => String(value || '').match(/20\d{2}/)?.[0]
+    );
+    const year = text.match(/\b20\d{2}\b/)?.[0] || (years[0] === years[1] ? years[0] : null);
+    if (!year) return null;
+    calendar = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+  }
+  if (calendar && record.semantic.timeField)
+    plan.operations.unshift({
+      op: 'filter',
+      field: record.semantic.timeField,
+      operator: 'eq',
+      value: calendar,
+    });
+  const metrics = plan.operations.find((operation) => operation.op === 'aggregate').metrics;
+  if (
+    metrics[0].fn === 'sum' &&
+    require('./dataset-units.json')[record.semantic.units[metrics[0].field]]?.dimension === 'power'
+  )
+    metrics[0] = { fn: 'count', as: 'rowCount' };
+  return plan;
+}
+
 async function datasetQueryPlan(record, question) {
+  const standard = standardDatasetPlan(record, question);
+  if (standard) return standard;
   const { validateAndBindPlan, heuristicPlan } = require('./tabular-intelligence');
   const profile = structuredClone(record.profile);
   profile.columns.forEach((column) => delete column.examples);
@@ -205,4 +260,4 @@ async function datasetQueryPlan(record, question) {
   return safePlan(validateAndBindPlan(fallback, record.tenantId));
 }
 
-module.exports = { datasetSemantics, datasetQueryPlan };
+module.exports = { datasetSemantics, datasetQueryPlan, standardDatasetPlan };

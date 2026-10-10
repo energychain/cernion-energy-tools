@@ -25,6 +25,8 @@ function compileDatasetPlan(record, input, sql, params, utcAlias, localAlias) {
   let available = new Set(
     columns.filter((column) => !column.sensitive).map((column) => column.name)
   );
+  let metricScopeSql = sql,
+    metricScopeParams = [...params];
   let plannedSql = sql,
     plannedParams = [...params];
   // SQL identifiers are schema-checked, values are bound, and raw SQL is never accepted.
@@ -58,6 +60,12 @@ function compileDatasetPlan(record, input, sql, params, utcAlias, localAlias) {
         }
         if (!value) throw new Error('Ungültiger Zeitfilter.');
       }
+      if (operation.field === record.semantic.timeField) {
+        if (ops[operation.operator]) {
+          scopeSql = `SELECT * FROM (${scopeSql}) WHERE ${field} ${ops[operation.operator]} ?`;
+          scopeParams.push(value);
+        }
+      }
       if (ops[operation.operator]) {
         plannedSql = `SELECT * FROM (${plannedSql}) WHERE ${field} ${ops[operation.operator]} ?`;
         plannedParams.push(value);
@@ -65,8 +73,8 @@ function compileDatasetPlan(record, input, sql, params, utcAlias, localAlias) {
         plannedSql = `SELECT * FROM (${plannedSql}) WHERE ${field} IS ${operation.operator === 'notNull' ? 'NOT ' : ''}NULL`;
       else throw new Error('Dieser Filter wird noch nicht unterstützt.');
     } else if (operation.op === 'aggregate') {
-      scopeSql = plannedSql;
-      scopeParams = [...plannedParams];
+      metricScopeSql = plannedSql;
+      metricScopeParams = [...plannedParams];
       const group = (operation.groupBy || []).map(quoteDatasetField);
       if (
         operation.metrics.some(
@@ -111,7 +119,15 @@ function compileDatasetPlan(record, input, sql, params, utcAlias, localAlias) {
   }
   if (!plan.operations.some((operation) => operation.op === 'aggregate'))
     throw new Error('Nur zusammengefasste Abfrageergebnisse sind freigegeben.');
-  return { plan, plannedSql, plannedParams, scopeSql, scopeParams };
+  return {
+    plan,
+    plannedSql,
+    plannedParams,
+    scopeSql,
+    scopeParams,
+    metricScopeSql,
+    metricScopeParams,
+  };
 }
 
 function executeDatasetQuery(pool, record, input) {
@@ -158,16 +174,36 @@ function executeDatasetQuery(pool, record, input) {
       params.push(to);
     }
   }
-  const { plan, plannedSql, plannedParams, scopeSql, scopeParams } = compileDatasetPlan(
-    record,
-    input,
-    sql,
-    params,
-    utcAlias,
-    localAlias
-  );
+  const {
+    plan,
+    plannedSql,
+    plannedParams,
+    scopeSql,
+    scopeParams,
+    metricScopeSql,
+    metricScopeParams,
+  } = compileDatasetPlan(record, input, sql, params, utcAlias, localAlias);
   sql = scopeSql;
   params = scopeParams;
+  const scopedTimes =
+    timeIndex >= 0
+      ? db
+          .prepare(
+            `SELECT ${quoteDatasetField(utcAlias)} AS time FROM (${sql}) ORDER BY ${quoteDatasetField(utcAlias)}`
+          )
+          .all(...params)
+      : [];
+  const quality =
+    timeIndex >= 0
+      ? require('./dataset-time').normalizeDatasetTimes(
+          scopedTimes,
+          'time',
+          semantic.timezone,
+          record.quality.intervalMinutes
+        )
+      : record.quality;
+  delete quality.utc;
+  delete quality.local;
   const summaries = [];
   const intervalHours = record.quality.intervalMinutes / 60;
   for (let i = 0; i < columns.length; i++) {
@@ -182,7 +218,12 @@ function executeDatasetQuery(pool, record, input) {
       .get(...params);
     const peak = db
       .prepare(
-        `SELECT ${field} AS value${timeIndex >= 0 ? `, ${quoteDatasetField(semantic.timeField)} AS at, ${quoteDatasetField(utcAlias)} AS utc` : ''} FROM (${sql}) WHERE ${field} IS NOT NULL ORDER BY ${field} DESC LIMIT 1`
+        `SELECT ${field} AS value${timeIndex >= 0 ? `, ${quoteDatasetField(semantic.timeField)} AS at, ${quoteDatasetField(utcAlias)} AS utc` : ''} FROM (${sql}) WHERE ${field} IS NOT NULL ORDER BY ${field} DESC, ${quoteDatasetField(utcAlias)} ASC LIMIT 1`
+      )
+      .get(...params);
+    const trough = db
+      .prepare(
+        `SELECT ${field} AS value${timeIndex >= 0 ? `, ${quoteDatasetField(semantic.timeField)} AS at, ${quoteDatasetField(utcAlias)} AS utc` : ''} FROM (${sql}) WHERE ${field} IS NOT NULL ORDER BY ${field} ASC, ${quoteDatasetField(utcAlias)} ASC LIMIT 1`
       )
       .get(...params);
     const missingAt =
@@ -239,6 +280,7 @@ function executeDatasetQuery(pool, record, input) {
       unit,
       ...publishedStats,
       peak,
+      trough,
       missing: stats.rows - stats.present,
       missingAt,
       outliers,
@@ -277,7 +319,7 @@ function executeDatasetQuery(pool, record, input) {
       continue;
     }
     lines.push(
-      `${summary.field}: Maximum ${formatDatasetNumber(summary.max)} ${summary.unit}${summary.peak?.at ? ` am ${summary.peak.at} (${semantic.timezone})` : ''}; Minimum ${formatDatasetNumber(summary.min)} ${summary.unit}; Mittelwert ${Number(summary.mean).toLocaleString('de-DE', { maximumFractionDigits: 1 })} ${summary.unit} aus ${summary.present} vorhandenen Werten. ${summary.missing} leere Werte und ${summary.outliers} statistische Ausreißer (mehr als drei Standardabweichungen).`
+      `${summary.field}: Maximum ${formatDatasetNumber(summary.max)} ${summary.unit}${summary.peak?.at ? ` am ${summary.peak.at} (${semantic.timezone})` : ''}; Minimum ${formatDatasetNumber(summary.min)} ${summary.unit}${summary.trough?.at ? ` am ${summary.trough.at} (${semantic.timezone})` : ''}; Mittelwert ${Number(summary.mean).toLocaleString('de-DE', { maximumFractionDigits: 1 })} ${summary.unit} aus ${summary.present} vorhandenen Werten. ${summary.missing} leere Werte und ${summary.outliers} statistische Ausreißer (mehr als drei Standardabweichungen).`
     );
     if (summary.missingAt.length)
       lines.push(
@@ -303,16 +345,69 @@ function executeDatasetQuery(pool, record, input) {
       lines.push('Eine Integration ist ohne bestätigtes Zeitraster nicht möglich.');
   }
   lines.push(
-    `${record.quality.gaps} fehlende Zeitintervalle; ${record.quality.duplicates} doppelte Zeitpunkte nach Zeitzonenauflösung. ${record.quality.transitions.length} Zeitumstellungen${record.quality.transitions.length ? ': ' + record.quality.transitions.map((transition) => `${transition.at} (${transition.offsetMinutes > 0 ? '+' : ''}${transition.offsetMinutes} Minuten)`).join('; ') : ''}.`
+    `${quality.gaps} fehlende Zeitintervalle; ${quality.duplicates} doppelte Zeitpunkte nach Zeitzonenauflösung. ${quality.transitions.length} Zeitumstellungen${quality.transitions.length ? ': ' + quality.transitions.map((transition) => `${transition.at} (${transition.offsetMinutes > 0 ? '+' : ''}${transition.offsetMinutes} Minuten)`).join('; ') : ''}.`
   );
   lines.push(...semantic.assumptions);
   const question = input.question || '';
-  const overview = /auffäll|auffaell|überblick|ueberblick|zusammenfassung|overview/i.test(question);
+  const overview =
+    /welche daten haben wir|auffäll|auffaell|überblick|ueberblick|zusammenfassung|overview|leere|lücken|luecken|fehlende|zeitumstellung|ausreißer|ausreisser/i.test(
+      question
+    );
   const aggregate = plan.operations.find((operation) => operation.op === 'aggregate');
   const requestedFields = new Set(aggregate.metrics.map((metric) => metric.field).filter(Boolean));
   const summary = summaries.find(
     (entry) => entry.present && (!requestedFields.size || requestedFields.has(entry.field))
   );
+  const standard = require('./dataset-semantics').standardDatasetPlan(record, question);
+  const groups = aggregate.groupBy || [];
+  const labels = {
+    count: 'Anzahl',
+    avg: 'Mittelwert',
+    min: 'Minimum',
+    max: 'Maximum',
+    sum: 'Summe',
+  };
+  const metricAnswer = result
+    .map((row) => {
+      const groupSql = groups.map((field) => `${quoteDatasetField(field)} IS ?`).join(' AND ');
+      const groupParams = groups.map((field) => row[field]);
+      const values = aggregate.metrics
+        .map((metric) => {
+          const canonical =
+            standard && !groups.length && summaries.find((entry) => entry.field === metric.field);
+          const value = canonical
+            ? {
+                min: canonical.min,
+                max: canonical.max,
+                avg: canonical.mean,
+                sum: canonical.sum,
+                count: canonical.rows,
+              }[metric.fn]
+            : metric.fn === 'count' && standard && !groups.length
+              ? db.prepare(`SELECT COUNT(*) AS n FROM (${sql})`).get(...params).n
+              : row[metric.as];
+          const unit =
+            metric.fn === 'count' ? 'Zeilen' : semantic.units[metric.field] || 'Einheit ungeklärt';
+          const extremum =
+            canonical && ['min', 'max'].includes(metric.fn)
+              ? metric.fn === 'max'
+                ? canonical.peak
+                : canonical.trough
+              : ['min', 'max'].includes(metric.fn) && timeIndex >= 0
+                ? db
+                    .prepare(
+                      `SELECT ${quoteDatasetField(semantic.timeField)} AS at FROM (${metricScopeSql}) WHERE ${quoteDatasetField(metric.field)} IS NOT NULL${groupSql ? ` AND ${groupSql}` : ''} ORDER BY ${quoteDatasetField(metric.field)} ${metric.fn === 'max' ? 'DESC' : 'ASC'}, ${quoteDatasetField(utcAlias)} ASC LIMIT 1`
+                    )
+                    .get(...metricScopeParams, ...groupParams)
+                : null;
+          return `${labels[metric.fn]}${metric.field ? ` (${metric.field})` : ''}: ${typeof value === 'number' ? formatDatasetNumber(value) : value} ${unit}${extremum?.at ? ` am ${extremum.at} (${semantic.timezone})` : ''}.`;
+        })
+        .join(' ');
+      return [groups.map((field) => `${field}: ${row[field]}`).join(', '), values]
+        .filter(Boolean)
+        .join(' — ');
+    })
+    .join('\n');
   const origin = `Herkunft: ${record.title}, Version ${record.version}; ${provenance}.`;
   let answer = lines.slice(1).join('\n\n');
   if (!overview && summary) {
@@ -339,57 +434,23 @@ function executeDatasetQuery(pool, record, input) {
     } else if (/mittel|durchschnitt/i.test(question)) {
       answer = `Der Mittelwert beträgt ${Number(summary.mean).toLocaleString('de-DE', { maximumFractionDigits: 1 })} ${summary.unit}.`;
     } else if (/minim|niedrig|kleinst/i.test(question)) {
-      answer = `Der niedrigste Wert beträgt ${formatDatasetNumber(summary.min)} ${summary.unit}.`;
+      answer = `Der niedrigste Wert beträgt ${formatDatasetNumber(summary.min)} ${summary.unit}${summary.trough?.at ? ` am ${summary.trough.at} (${semantic.timezone})` : ''}.`;
     } else if (/spitzen|maxim|höchst|hoechst|größt|groesst/i.test(question)) {
       answer = `Die Spitzenlast lag bei ${formatDatasetNumber(summary.max)} ${summary.unit}${summary.peak?.at ? ` am ${summary.peak.at} (${semantic.timezone})` : ''}.`;
     } else {
-      const labels = {
-        count: 'Anzahl',
-        avg: 'Mittelwert',
-        min: 'Minimum',
-        max: 'Maximum',
-        sum: 'Summe',
-      };
-      answer = result
-        .map((row) =>
-          aggregate.metrics
-            .map((metric) => {
-              const value = row[metric.as];
-              const unit =
-                metric.fn === 'count'
-                  ? 'Zeilen'
-                  : semantic.units[metric.field] || 'Einheit ungeklärt';
-              return `${labels[metric.fn]}: ${typeof value === 'number' ? formatDatasetNumber(value) : value} ${unit}.`;
-            })
-            .join(' ')
-        )
-        .join('\n');
+      answer = metricAnswer;
     }
   }
-  if (!overview && aggregate.metrics.length > 1) {
-    const labels = {
-      count: 'Anzahl',
-      avg: 'Mittelwert',
-      min: 'Minimum',
-      max: 'Maximum',
-      sum: 'Summe',
-    };
-    answer = result
-      .map((row) =>
-        aggregate.metrics
-          .map((metric) => {
-            const value = row[metric.as];
-            const unit =
-              metric.fn === 'count'
-                ? 'Zeilen'
-                : semantic.units[metric.field] || 'Einheit ungeklärt';
-            const field = metric.field ? ` (${metric.field})` : '';
-            return `${labels[metric.fn]}${field}: ${typeof value === 'number' ? formatDatasetNumber(value) : value} ${unit}.`;
-          })
-          .join(' ')
-      )
-      .join('\n');
-  }
+  if (
+    !overview &&
+    (aggregate.metrics.length > 1 ||
+      groups.length ||
+      (!standard &&
+        plan.operations.some(
+          (operation) => operation.op === 'filter' && operation.field !== semantic.timeField
+        )))
+  )
+    answer = metricAnswer;
   return {
     responseText: `${answer}\n\n${origin}`,
     rowCount: db.prepare(`SELECT COUNT(*) AS n FROM (${sql})`).get(...params).n,
@@ -398,7 +459,7 @@ function executeDatasetQuery(pool, record, input) {
     summaries,
     result,
     provenance,
-    quality: record.quality,
+    quality,
   };
 }
 

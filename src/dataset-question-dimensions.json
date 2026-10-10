@@ -1,0 +1,10 @@
+[
+  {
+    "pattern": "^wie hoch (?:war|ist) die spitzenlast(?: und wann)?[?!.\\s]*$",
+    "dimensions": ["power"]
+  },
+  {
+    "pattern": "^wie hoch (?:war|ist) die jahresenergie(?: 20\\d{2})?[?!.\\s]*$",
+    "dimensions": ["power", "energy"]
+  }
+]

@@ -6,6 +6,7 @@ const path = require('node:path');
 const { createCaseBroker, auth } = require('./helpers/case-linking-broker');
 const ObjectStore = require('../services/object-store.service');
 const Notices = require('../services/shared-service-notices.service');
+const MemoryPolicy = require('../services/tenant-memory-policy.service');
 const TokenManager = require('../services/token-manager.service');
 const Api = require('../services/api.service');
 const OpenAI = require('../services/openai-compatible.service');
@@ -61,10 +62,19 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
       settings: { ...Datapoint.settings, dbPath: path.join(app.dir, 'dataset-catalog') },
     });
     app.broker.createService(Dataset);
+    app.broker.createService(MemoryPolicy);
     llm.generateStructured.mockImplementation(async (_schema, prompt) => {
       const input = JSON.parse(prompt);
+      if (input.datasets) return { datasetIds: input.datasets.map((record) => record.id) };
+      if (input.profile) return null;
       if (input.fact)
         return {
+          effects: input.candidates.map((item) => ({
+            candidateId: item.id,
+            possibleConsequence: 'Synthetische Folge',
+            affectedWork: 'Synthetische Planung',
+            availabilityLimit: 'Synthetische Grenze',
+          })),
           relations: input.candidates.map((item) => ({
             candidateId: item.id,
             kind: 'gap',
@@ -417,6 +427,46 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
     expect(query.text).not.toContain('Charly');
     const own = await request(fixture.first, 'Was wissen wir zu Hauptstraße?');
     expect(own.text).toContain('Charly');
+  });
+  test('tenant admin policy is reachable through authenticated HTTP and rejects ordinary roles', async () => {
+    await request(fixture.first, fixture.first.text, 'admin-seed');
+    const token = (
+      await provisionToken(
+        {
+          tenant: 'public',
+          user: 'synthetic-admin',
+          name: 'Synthetic admin',
+          roles: 'ROLE_TENANT_ADMIN',
+        },
+        app.broker
+      )
+    ).data.token;
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    const result = await fetch(`${base}/api/tenant-memory-policy/statements`, { headers });
+    expect(result.status).toBe(200);
+    const body = await result.json();
+    expect(body.statements).toHaveLength(1);
+    const revoked = await fetch(
+      `${base}/api/tenant-memory-policy/statements/${body.statements[0].id}/revoke`,
+      { method: 'POST', headers, body: JSON.stringify({ reason: 'Synthetic cleanup' }) }
+    );
+    expect(revoked.status).toBe(200);
+    expect((await revoked.json()).status).toBe('revoked');
+    const ordinary = (
+      await provisionToken(
+        {
+          tenant: 'public',
+          user: 'synthetic-user',
+          name: 'Synthetic ordinary',
+          roles: 'ROLE_GRID_OPERATOR',
+        },
+        app.broker
+      )
+    ).data.token;
+    const denied = await fetch(`${base}/api/tenant-memory-policy/statements`, {
+      headers: { Authorization: `Bearer ${ordinary}` },
+    });
+    expect(denied.status).toBe(403);
   });
   test('table storage stays in the dataset catalog and never creates tenant assertions', async () => {
     const response = await request(

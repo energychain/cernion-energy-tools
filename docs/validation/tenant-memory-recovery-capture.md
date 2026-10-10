@@ -13,7 +13,8 @@ Ergebnisse aus dem Skript in `tenant-memory-live.json`.
   30 Sekunden. `Retry-After` geht vor; es gibt keinen sofortigen Retry in der Fassade.
 - Das Assessment übergab Schema-Einschränkungen, die der echte strukturierte Providerpfad
   zurückwies. Es nutzt nun die bestehende Provider-Schema-Konvertierung; die vollständige
-  lokale Validierung bleibt bestehen und verlangt ein Urteil für jeden Kandidaten.
+  lokale Validierung verlangt genau eine Folgenprüfung und ein Urteil für jeden Kandidaten,
+  auch bei JSON-only-Adaptern.
 - Die Verstehen-Anweisung konnte örtliche Planungen als Einzelfall ausschließen. Zusätzlich
   paraphrasierte das Modell `basis` und erfand Kategorien als Ankerqualifikatoren. Die
   Anweisung trennt Erfassen von Zustimmung; die vorhandene budgetierte Reparatur korrigiert
@@ -25,6 +26,9 @@ Ergebnisse aus dem Skript in `tenant-memory-live.json`.
   Quelltyp überschreibt. Sie wird nicht als externe Regel für Plausibilitätshinweise verwendet.
 - Die Info-Zeile hing am Abschluss des Hintergrundjobs. Sie wird nun sofort pro Turn ausgegeben;
   Hintergrund- und Recovery-Ergebnisse haben eigene Zeilen, mit Tenant und sicheren Fehlerdetails.
+- Notice-Zustellung bleibt nach abgeschlossener Modellprüfung als eigener persistierter
+  Auftrag erhalten. Zustellfehler werden mit Backoff nachgeholt, ohne neuen Modellaufruf.
+  Recovery sammelt nur fällige Aufträge und stoppt die Seitensuche nach einem Batch.
 - Bekannte Gedächtnisanker werden auch in frischen Gesprächen vor dem Datensatzpfad abgefragt.
   Bestehende Datensatzkorrekturen behalten ihren Gesprächsbezug.
 
@@ -60,7 +64,9 @@ Upstream-Impact wurde vor Symboländerungen geprüft. HIGH: `understand` (zwei d
 Aufrufer, 13 betroffene Symbole, vier Content-Turn-Flows), `source`/`factText` (Quellenanzeige
 und Evidenz), sowie die neuen gemeinsamen Konfigurations-/Assessment-Einstiegspunkte.
 Der unverändert wiederverwendete Provider-Schema-Helfer hat ebenfalls HIGH-Impact.
-Recovery, per-Turn-Logging und der isolierte Live-Validator wurden als LOW eingestuft.
+Notice-Nachholung hat ebenfalls HIGH-Impact (zwei direkte Aufrufer, sechs betroffene
+Symbole, vier Content-Turn-Flows). Recovery, per-Turn-Logging und der isolierte Live-Validator
+wurden als LOW eingestuft.
 Die genaue Änderungsprüfung erfolgt zusätzlich vor dem Commit und gegen `origin/main`.
 
 Lokale Gates und CI werden in der AC-Tabelle des PR mit Ergebnissen auf dem finalen Head

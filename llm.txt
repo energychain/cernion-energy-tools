@@ -182,7 +182,7 @@ recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (13 capabilities · 9 recipes · 497 operations)
+### platform (13 capabilities · 9 recipes · 501 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, energy_sidecar_route_registry, evidence_grounding_confidence_audit, evu_api_migration_diagnostics, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
@@ -204,6 +204,7 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 ## Release Provenance
 ### Unreleased (from CHANGELOG)
 ## [Unreleased]
+
 
 - Workbench Context and Case Inbox (#627/#636): adds CET-owned user/workspace context profiles, playbook registry, and persisted inbox tasks so Open WebUI clients receive role-aware task guidance without storing raw chat history.
 ### Added
@@ -245,17 +246,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/vdmi-blueprint-pack-seeds.test.js` — 15 new tests for #591 covering the MaKo/M2C Resolution Value Review seed: catalog lookup/list registration, the six `source_hint_only` read-model references and `metadata_only` command hints, full validator coverage (required roles/evidence/data classes/forbidden actions), qualitative-only Resolution Value framing with positive missing-evidence follow-ups, the explicit HITL boundary/no-call guard, non-executing workbench-clarification-item mapping for `ROLE_MAKO_OWNER`, the exact four-row canonical matrix (roles, gate outcomes, pending downstream sync) via `buildDemoProcessMatrixSync`/`buildLandingRegistryDraftFromBlueprintSeed`, and five negative cases (missing required evidence key, non-role matrix cell, wrong `roleLegend.M`, an executable command hint, and a missing forbidden/consequential-action guard). Full suite: `tests/vdmi-blueprint-pack-seeds.test.js` — 1 suite / 87 tests pass.
 
 ## Source File Hashes
-- CHANGELOG.md: 5e62a0e44dd2282c619440779d13e5ac0fda3fe63fc4279e59c6c15d155b5849
+- CHANGELOG.md: 0f4f543004c74f8cbc592645ddc0d0fcf0e5edf1e54cf82643b54da4baf01324
 - README.md: 67a992384663f1affcc36c4429e4d8173112d2bd9bf6b5e227daa205f285d547
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: b0a662fd9aa255721bd0e0c90f9bd41627c18b61f10200661e4e45c92d4e091c
-- openapi-export.json: c898ed01bda9c78460d06d53388290051610cb0d17d85bfb38af9bdd929d75e8
+- openapi-export.json: 9fd484415dd4cf97487fb2ba2c4a42023ef67b078474d9d5f49bb0bca90f3f5c
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 1131
-- operation_count: 1250
+- path_count: 1135
+- operation_count: 1254
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 32e5d95d36f24ba6a1fa5555ef5bb9831f60d4da6b63459db5d5d8fcf27fa3fb
+- llm_txt_sha256: e3279e2a28da5dc24517e5b134fa47b574006679ec43583ed63a0bde31269f17
