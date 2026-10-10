@@ -18,6 +18,7 @@ describe('structured messages through authenticated chat and original-file HTTP'
       headers: {
         Authorization: `Bearer ${gateway.token}`,
         'Content-Type': 'application/json',
+        Connection: 'close',
         'X-OpenWebUI-User-Id': user,
       },
       body: JSON.stringify(body),
