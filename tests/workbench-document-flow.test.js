@@ -256,7 +256,7 @@ describe('document conversation integration', () => {
       expect(pending.responseText).toContain('läuft noch');
       expect(pending.pendingEvents).toBeGreaterThan(0);
       const repeated = await turn(packed('Bewerte den Plan.'));
-      expect(repeated.responseText).toContain('läuft bereits');
+      expect(repeated.responseText).toContain('läuft noch');
       expect(service.workbenchDocumentReviews.size).toBe(1);
     } finally {
       clearTimeout(timer);

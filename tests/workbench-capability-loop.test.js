@@ -112,8 +112,9 @@ test('AC-01 executes catalogued read with delegated identity and evidence proven
     retrieval: { evidence: result.evidence, toolTrace: result.trace },
   });
   expect(response.responseText).toContain('Synthetic A');
-  expect(response.responseText).toContain('Nachgesehen: energy-market.installations');
-  expect(response.responseText).toContain('kein bestätigter Datenstand');
+  expect(response.responseText).toContain('Herkunft:');
+  expect(response.responseText).not.toContain('energy-market.installations');
+  expect(response.responseText).toContain('Abruf:');
   expect(response.responseText).not.toContain('kein Zugriff');
 });
 
@@ -179,7 +180,8 @@ test('AC-03 maximum calls and total elapsed budget apply even to nonsettling rea
     toolCalls: Array(5).fill(call({ installationType: 'solar' })),
   });
   const result = await run();
-  expect(ctx.call).toHaveBeenCalledTimes(2);
+  expect(ctx.call).toHaveBeenCalledTimes(1);
+  expect(result.trace.some((entry) => entry.status === 'duplicate')).toBe(true);
   expect(result.trace.at(-1).status).toBe('limited');
   ctx.call.mockClear().mockImplementation(() => new Promise(() => {}));
   const start = performance.now();
@@ -205,9 +207,8 @@ test('AC-03 tool failure is concrete and does not skip the independent answer', 
   });
   expect(llm.generateText).toHaveBeenCalled();
   expect(response.answerStatus).not.toBe('fallback');
-  expect(response.responseText).toContain(
-    'energy-market.installations: Synthetic backend unavailable'
-  );
+  expect(response.responseText).toContain('konkrete Werte liegen noch nicht vor');
+  expect(response.responseText).not.toContain('Synthetic backend unavailable');
   expect(response.draft).toBe('');
 });
 test('no data need means no planner or backend call, including follow-up', async () => {
@@ -697,7 +698,7 @@ test('catalog ranking retains an explicit read when the situation hypothesis is 
   expect(candidatesFor(explicit, { model, index, api, domainsAllowed: ['unrelated'] })).toEqual([]);
 });
 
-test('canonical tool results are rendered even when the model only describes the task', async () => {
+test('available evidence produces a sentence when the model only describes the task', async () => {
   ctx.call.mockResolvedValue({
     success: true,
     data: { results: [{ reference: 'synthetic-01001', value: 7 }] },
@@ -716,10 +717,10 @@ test('canonical tool results are rendered even when the model only describes the
     situation,
     retrieval: { evidence: result.evidence, toolTrace: result.trace },
   });
-  expect(response.responseText).toContain('Ergebnis:');
-  expect(response.responseText).toContain('synthetic-01001');
-  expect(response.responseText).toContain('"value":7');
-  expect(response.responseText).toContain('Parameter {"installationType":"solar"}');
+  expect(response.responseText).toContain('beträgt 7');
+  expect(response.responseText).not.toContain('```');
+  expect(response.responseText).not.toContain('Parameter');
+  expect(response.responseText).not.toContain('installationType');
   expect(response.responseText).not.toContain('MASKED');
 });
 
@@ -735,17 +736,33 @@ test.each([
   expect(result.trace[0].error).toContain(reason);
 });
 
-test('display result cap is enforced and its provenance declares truncation', async () => {
-  process.env.WORKBENCH_TOOL_RESULT_CHARS = '60';
-  ctx.call.mockResolvedValue({ success: true, data: { results: [{ value: 'x'.repeat(1000) }] } });
+test('oversize nested response retains count and largest entries while removing rows only', async () => {
+  process.env.WORKBENCH_TOOL_RESULT_CHARS = '1200';
+  ctx.call.mockResolvedValue({
+    success: true,
+    data: {
+      payload: {
+        entries: Array.from({ length: 200 }, (_, i) => ({
+          name: `Synthetic ${i}`,
+          valueKW: i,
+          description: 'x'.repeat(120),
+        })),
+      },
+    },
+  });
   llm.generateChat.mockResolvedValueOnce({ toolCalls: [call({ installationType: 'solar' })] });
   const result = await run();
-  expect(result.evidence[0].value.length).toBeLessThanOrEqual(60);
-  expect(JSON.parse(result.evidence[0].value)).toMatchObject({ truncated: true });
+  const hit = result.evidence[0];
+  expect(hit.value.length).toBeLessThanOrEqual(1200);
+  const output = JSON.parse(hit.value);
+  expect(output).toMatchObject({ truncated: true, count: 200 });
+  expect(output.data.length).toBeGreaterThan(0);
+  expect(output.data[0]).toMatchObject({ name: 'Synthetic 199', valueKW: 199 });
+  expect(output.data.slice(0, 3).map((row) => row.valueKW)).toEqual([199, 198, 197]);
+  expect(output.statistics[0]).toMatchObject({ max: 199, maxRow: { name: 'Synthetic 199' } });
   const planner = JSON.parse(llm.generateChat.mock.calls[1][0].at(-1).content);
-  expect(JSON.parse(planner.result)).toMatchObject({ truncated: true });
-  expect(result.evidence[0].metadata.truncated).toBe(true);
-  expect(result.trace[0]).toMatchObject({ status: 'available', truncated: true });
+  expect(JSON.parse(planner.result).count).toBe(200);
+  expect(hit.metadata.truncated).toBe(true);
 });
 
 test('a later read can bind a protected reference discovered in an earlier tool result', async () => {
@@ -890,9 +907,7 @@ test.each(['available', 'unavailable'])(
     expect(response.responseText).not.toContain('filtere selbst');
     expect(response.responseText).toContain('Die Auswertung ist noch nicht vollständig');
     if (status === 'unavailable')
-      expect(response.responseText).toContain(
-        'Ich konnte die Datenabfrage gerade nicht ausführen: Zeitbudget erschöpft'
-      );
+      expect(response.responseText).toContain('konkrete Werte liegen noch nicht vor');
   }
 );
 
@@ -985,10 +1000,10 @@ test('fallback turns log exactly once and follow-up planner reuses authorized pr
       { ...input, message: refinementQuestion },
       meta
     );
-    expect(reads).toHaveBeenCalledTimes(2);
+    expect(reads).toHaveBeenCalledTimes(1);
     expect(second.responseText).toContain('Synthetic Large');
     expect(second.responseText).not.toContain('Synthetic Small');
-    expect(reads.mock.calls[1][0].params).toEqual(reads.mock.calls[0][0].params);
+    expect(llm.generateChat).toHaveBeenCalledTimes(2);
     const loopLogs = logs.mock.calls.filter(([line]) => line === 'Workbench capability loop');
     expect(loopLogs).toHaveLength(2);
     expect(loopLogs.map(([, value]) => value)).toEqual([
@@ -999,9 +1014,9 @@ test('fallback turns log exactly once and follow-up planner reuses authorized pr
         operations: [operation.action],
       }),
       expect.objectContaining({
-        status: 'started',
+        status: 'skipped',
         reason: 'capability_match',
-        operations: [operation.action],
+        operations: [],
       }),
     ]);
     expect(JSON.stringify(loopLogs)).not.toContain('Uslar');
@@ -1010,7 +1025,7 @@ test('fallback turns log exactly once and follow-up planner reuses authorized pr
       { ...input, message: 'Was ist das Marktstammdatenregister?' },
       meta
     );
-    expect(reads).toHaveBeenCalledTimes(2);
+    expect(reads).toHaveBeenCalledTimes(1);
     expect(knowledge.sources).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: 'capability-read', status: 'skipped' }),
@@ -1056,7 +1071,12 @@ test('HTTP-e2e: empty dataNeeds triggers registry query and refinement with dele
           observed.push(context.meta);
           return {
             success: true,
-            data: { results: [{ municipality: 'Synthetic A', capacityKW: 300 }] },
+            data: {
+              results: [
+                { name: 'Synthetic A', capacityKW: 300 },
+                { name: 'Synthetic B', capacityKW: 900 },
+              ],
+            },
           };
         },
       },
@@ -1111,9 +1131,16 @@ test('HTTP-e2e: empty dataNeeds triggers registry query and refinement with dele
         ),
       ],
     });
-  llm.generateText.mockResolvedValue(
+  llm.generateText.mockImplementation(async (prompt) =>
     JSON.stringify({
-      interpretation: [claim('Synthetic A ist im Ergebnis enthalten.', ['E1'])],
+      interpretation: [
+        claim(
+          JSON.parse(prompt).message.includes('davon')
+            ? 'Die größte davon ist Synthetic B mit 900 kW.'
+            : 'In Uslar enthält die MaStR-Abfrage zwei Solaranlagen über 100 kW in Betrieb.',
+          ['E1']
+        ),
+      ],
       expectation: [],
       nextSteps: [],
       draft: [],
@@ -1161,9 +1188,16 @@ test('HTTP-e2e: empty dataNeeds triggers registry query and refinement with dele
         expect.objectContaining({ name: operation.action, status: 'available' }),
       ])
     );
-    expect(observed).toHaveLength(2);
+    expect(observed).toHaveLength(1);
+    const answerText = refinedPayload.choices[0].message.content;
+    expect(answerText).toContain('Die größte davon ist Synthetic B mit 900 kW');
+    expect(answerText).toContain('Herkunft:');
+    expect(answerText).not.toMatch(
+      /```|operationalStatus|"35"|Aufrufbudget|Werkzeug außerhalb|Datenabfrage: skipped/u
+    );
+    expect(llm.generateChat).toHaveBeenCalledTimes(2);
     expect((await request('unmapped-person')).status).toBe(403);
-    expect(observed).toHaveLength(2);
+    expect(observed).toHaveLength(1);
   } finally {
     await environment.cleanup();
   }
@@ -1230,4 +1264,107 @@ test('a plain multiline data question still triggers without any extra understan
   ).toBe('capability_match');
   expect(llm.generateStructured).not.toHaveBeenCalled();
   expect(llm.generateChat).not.toHaveBeenCalled();
+});
+
+test('tool timeout leaves reserved answer time and uses completed results', async () => {
+  const { createCaseBroker } = require('./helpers/case-linking-broker');
+  const environment = await createCaseBroker();
+  process.env.WORKBENCH_LLM_TIMEOUT_MS = '1000,1000';
+  process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS = '10000';
+  process.env.WORKBENCH_TURN_TIMEOUT_MS = '2800';
+  environment.broker.createService({
+    name: 'energy-market',
+    actions: {
+      installations: {
+        requiredRoles: ['ROLE_GRID_OPERATOR'],
+        handler: () => ({
+          success: true,
+          data: { results: [{ name: 'Synthetic Completed', capacityKW: 300 }] },
+        }),
+      },
+    },
+  });
+  llm.generateStructured.mockResolvedValue(situation);
+  llm.generateChat
+    .mockResolvedValueOnce({ toolCalls: [call({ installationType: 'solar' })] })
+    .mockImplementation(() => new Promise(() => {}));
+  llm.generateText.mockImplementation(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return JSON.stringify({
+      interpretation: [claim('Synthetic Completed hat 300 kW.', ['E1'])],
+      expectation: [],
+      nextSteps: [],
+      draft: [],
+    });
+  });
+  await environment.broker.start();
+  try {
+    const result = await environment.call(
+      'workbench.chat',
+      {
+        channel: 'open-webui',
+        conversationId: 'synthetic-reserve',
+        message: 'MaStR installations capacity',
+      },
+      meta
+    );
+    expect(result.responseText).toContain('Synthetic Completed hat 300 kW');
+    expect(result.phaseTimes.toolsMs).toBeLessThan(1200);
+    expect(result.phaseTimes.answerMs).toBeGreaterThanOrEqual(190);
+    expect(result.retrievalTrace.some((entry) => entry.status === 'timeout')).toBe(true);
+    expect(result.responseText).not.toContain('Modell gerade nicht verfügbar');
+    expect(llm.generateText.mock.calls[0][1].timeoutMs).toBeGreaterThan(900);
+  } finally {
+    await environment.cleanup();
+  }
+});
+
+test('a count aggregation retains original extrema for the largest-entry follow-up without new reads', async () => {
+  const { createCaseBroker } = require('./helpers/case-linking-broker');
+  const environment = await createCaseBroker();
+  const reads = jest.fn(() => ({
+    success: true,
+    data: {
+      results: [
+        { name: 'Synthetic Small', capacityKW: 200 },
+        { name: 'Synthetic Large', capacityKW: 900 },
+      ],
+    },
+  }));
+  environment.broker.createService({
+    name: 'energy-market',
+    actions: { installations: { requiredRoles: ['ROLE_GRID_OPERATOR'], handler: reads } },
+  });
+  llm.generateStructured.mockResolvedValue(situation);
+  llm.generateChat.mockResolvedValueOnce({
+    toolCalls: [
+      call(
+        { installationType: 'solar' },
+        { operations: [{ op: 'aggregate', groupBy: [], metrics: [{ fn: 'count', as: 'count' }] }] }
+      ),
+    ],
+  });
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({ interpretation: [], expectation: [], nextSteps: [], draft: [] })
+  );
+  await environment.broker.start();
+  try {
+    const input = {
+      channel: 'open-webui',
+      conversationId: 'synthetic-count-then-largest',
+      message: registryQuestion,
+    };
+    await environment.call('workbench.chat', input, meta);
+    const followup = await environment.call(
+      'workbench.chat',
+      { ...input, message: refinementQuestion },
+      meta
+    );
+    expect(reads).toHaveBeenCalledTimes(1);
+    expect(followup.responseText).toContain('Synthetic Large');
+    expect(followup.responseText).toContain('900 kW');
+    expect(llm.generateChat).toHaveBeenCalledTimes(2);
+  } finally {
+    await environment.cleanup();
+  }
 });
