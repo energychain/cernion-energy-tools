@@ -1506,6 +1506,21 @@ module.exports = {
         const background = require('../src/workbench-background-task');
         if (background.backgroundTask(envelope.userRequest))
           return background.answerBackgroundTask(envelope.userRequest, p.tenantId, this.logger);
+        const pending = await conversationAssistance.readTurn(this.conversationsDb, p, envelope);
+        const memoryContext = {
+          ...ctx,
+          call: (name, params, options) =>
+            ctx.call(name, params, { meta: { ...correctionMeta, ...options?.meta } }),
+        };
+        if (pending?.tenantMemoryFactIds?.length) {
+          const priorityReply = await require('../src/tenant-memory').preturn(
+            memoryContext,
+            p,
+            envelope,
+            pending
+          );
+          if (priorityReply) return priorityReply;
+        }
         if (this.broker.getLocalService('dataset')) {
           const datasetTurn = await ctx.call(
             'dataset.turn',
@@ -1516,22 +1531,21 @@ module.exports = {
             },
             { meta: correctionMeta }
           );
-          if (datasetTurn.handled)
+          if (datasetTurn.handled) {
+            await conversationAssistance.saveTurn(this.conversationsDb, p, envelope, {
+              tenantMemoryFactIds: [],
+            });
             return {
               state: 'assistance',
               nonBinding: true,
               responseText: datasetTurn.responseText,
               sources: datasetTurn.sources || [],
             };
+          }
           if (datasetTurn.documents) envelope.documents = datasetTurn.documents;
         }
-        const pending = await conversationAssistance.readTurn(this.conversationsDb, p, envelope);
         const memoryReply = await require('../src/tenant-memory').preturn(
-          {
-            ...ctx,
-            call: (name, params, options) =>
-              ctx.call(name, params, { meta: { ...correctionMeta, ...options?.meta } }),
-          },
+          memoryContext,
           p,
           envelope,
           pending

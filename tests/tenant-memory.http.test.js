@@ -307,6 +307,45 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
     );
     expect(facts.docs).toHaveLength(0);
   });
+  test('bare correction follows the latest statement or dataset without changing the other', async () => {
+    const table =
+      '<context><source name="Synthetic.csv">timestamp;value\n2031-01-01T00:00:00Z;1\n2031-01-01T00:15:00Z;2</source></context><user_query>Tabelle behalten.</user_query>';
+    const conversation = 'mixed-correction';
+    expect((await request(fixture.first, table, conversation)).status).toBe(200);
+    expect((await request(fixture.first, fixture.first.text, conversation)).text).toContain(
+      'Hab ich festgehalten:'
+    );
+    const corrected = await request(fixture.first, 'korrigier das', conversation);
+    expect(corrected.text).toContain('als korrigiert');
+    const meta = auth('Charly', ['ROLE_GRID_OPERATOR'], 'public');
+    const query = () =>
+      app.call(
+        'object-store.query',
+        {
+          namespace: 'tenant:public:workbench_facts',
+          selector: { 'payload.type': 'tenant_memory_fact' },
+        },
+        meta
+      );
+    expect((await query()).docs[0].payload.status).toBe('corrected');
+    const next = `${fixture.first.text} Andere Variante.`;
+    expect((await request(fixture.first, next, conversation)).text).toContain(
+      'Hab ich festgehalten:'
+    );
+    const tableAnswer = await request(
+      fixture.first,
+      table.replace('Tabelle behalten.', 'Welche Daten haben wir?'),
+      conversation
+    );
+    expect(tableAnswer.status).toBe(200);
+    expect(tableAnswer.text).toContain('Synthetic');
+    const datasetCorrection = await request(fixture.first, 'korrigier das', conversation);
+    expect(datasetCorrection.text).toContain('Semantikkorrektur');
+    expect((await query()).docs.find((doc) => doc.payload.text === next).payload.status).toBe(
+      'valid'
+    );
+    expect(await app.call('datapoint.datasetCatalog', { operation: 'list' }, meta)).toHaveLength(1);
+  });
   test('AC-02: reverse order in fresh conversations retains symmetric links', async () => {
     const d = await request(
       fixture.second,

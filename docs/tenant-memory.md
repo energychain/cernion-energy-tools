@@ -67,6 +67,10 @@ festgehaltene eigene Aussage im Gespräch. Eine ausdrücklich genannte Referenz 
 das Verstehen-Schema korrigiert werden. Korrektur/Widerruf wird mit Zeitpunkt, Urheber,
 Belegstück und vorherigem Wortlaut auditiert; Ersatzangaben erzeugen eine neue Aussage.
 Nur die Quelle kann ihre Aussage verändern. Historische Aussagen bleiben abfragbar.
+Bei einer kurzen Korrektur zwischen Gedächtnisaussage und Tabellenantwort gilt der
+aktuelle Gesprächsbezug: Eine zuletzt festgehaltene Aussage bleibt korrigierbar, auch
+wenn Tabellen im Tenant vorhanden sind. Eine anschließende Tabellenantwort wechselt
+den Bezug zum Datenkatalog, ohne die Aussage oder ihre Historie zu entfernen.
 Ein ausdrücklich genanntes Gültigkeitsende schließt weitere Verknüpfungen aus; eine
 bloße früheste/späteste Planungsfrist wird nicht als Ablauf missverstanden.
 
