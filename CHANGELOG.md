@@ -2,6 +2,10 @@
 
 ## Unreleased — Tenant-Gedächtnis (#766)
 
+- Produktionsnacharbeit: normalisierter Belegabgleich mit Mindestüberdeckung und belegten Ankern; organisatorische Mitteilungen auch bei Wissensklassifikation speichern, Plausibilitätshinweise getrennt bestätigen.
+- Qualifizierte Anker über den Begriff im Tenant finden; mehrere Varianten erfordern Rückfrage. Lokale Suche und Prüfung funktionieren unabhängig vom externen Retrieval-Budget, auch bei Quellen-Timeouts.
+- HTTP-Regressionen mit zwei synthetischen Akteuren in beiden Reihenfolgen sichern Gesamtwissen, Quellen, einmalige Notices und Wechselwirkungen vor Entwürfen. Pro Chat-Turn protokolliert CET ausschließlich Gedächtniszähler und Prüfstatus.
+
 - Organisationsrelevante Aussagen werden im bestehenden tenantweiten Object-Store festgehalten, einmal natürlich bestätigt und mit Quelle, Funktion, Datum und Audit-Historie abfragbar.
 - Gemeinsame seltene Anker lösen eine wissensgestützte Wechselwirkungsprüfung aus; Häufigkeit statt Fachlisten bestimmt die Gewichtung. Die zweite Person erhält die Verbindung im Chat, die erste einmal beim nächsten Kontakt.
 - Korrektur, Widerruf, Gültigkeitsende und aktuelle Clearance gelten auch für spätere Evidenz und Notices. Langsame Prüfungen bleiben im bestehenden Turn-Budget und liefern Ergebnisse im Hintergrund.

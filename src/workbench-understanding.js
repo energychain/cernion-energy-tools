@@ -367,8 +367,13 @@ async function understand({
       ? catalog.domains.includes(hypothesis.id)
       : catalog.functions.some((fn) => fn.id === hypothesis.id)
   );
-  if (['knowledge', 'smalltalk', 'review'].includes(result.turnKind) && result.tenantMemory)
-    result.tenantMemory.assertions = [];
+  if (
+    result.tenantMemory?.assertions?.some((item) =>
+      require('./tenant-memory').acceptedAssertion(item, message)
+    ) &&
+    require('./tenant-memory').eligible(message, result, { documents: [] })
+  )
+    result.turnKind = 'work';
   // Keep the work item when the person asks about its next step.
   if (previous?.turnKind === 'work' && result.turnKind === 'knowledge') {
     result.turnKind = 'work';

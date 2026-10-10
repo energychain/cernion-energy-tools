@@ -225,6 +225,14 @@ async function runContentTurn(
     );
     if (correction && !situation.tenantMemory?.assertions?.length) return correction;
   }
+  const memoryContextJob = !incomingDocuments
+    ? require('./workbench-capability-loop')
+        .withinToolBudget(
+          () => tenantMemory.related(memoryCtx, p, situation, envelope.userRequest),
+          200
+        )
+        .catch(() => ({ evidence: [], text: '' }))
+    : Promise.resolve({ evidence: [], text: '' });
   let resolveMemoryRetrieval;
   const memoryRetrieval = new Promise((resolve) => {
     resolveMemoryRetrieval = resolve;
@@ -718,19 +726,18 @@ async function runContentTurn(
     }))
   );
   resolveMemoryRetrieval(retrieval);
-  if (!memory.settled && toolDeadline > performance.now())
-    await toolLoop
-      .withinToolBudget(() => memory.job, Math.min(100, toolDeadline - performance.now()))
-      .catch(() => {});
-  const memoryContext =
-    !incomingDocuments && toolDeadline > performance.now()
-      ? await toolLoop
-          .withinToolBudget(
-            () => tenantMemory.related(memoryCtx, p, situation, envelope.userRequest),
-            toolDeadline - performance.now()
-          )
-          .catch(() => ({ evidence: [], text: '' }))
-      : { evidence: [], text: '' };
+  if (!memory.settled) await toolLoop.withinToolBudget(() => memory.job, 200).catch(() => {});
+  const memoryContext = await memoryContextJob;
+  // Re-read local relations after a new assertion's assessment, using a separate local budget.
+  if (memory.paragraphs.length && !incomingDocuments) {
+    const current = await toolLoop
+      .withinToolBudget(
+        () => tenantMemory.related(memoryCtx, p, situation, envelope.userRequest),
+        100
+      )
+      .catch(() => null);
+    if (current) Object.assign(memoryContext, current);
+  }
   retrieval.evidence.push(...memoryContext.evidence);
   const actorUpdated =
     previous &&

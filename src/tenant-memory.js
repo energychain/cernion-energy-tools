@@ -12,6 +12,7 @@ const { documentReference } = require('./workbench-document-input');
 
 const validateJudgment = new (require('ajv'))({ allErrors: true }).compile(ASSESSMENT_SCHEMA);
 const queues = new Map();
+const observationJobs = new WeakMap();
 async function serialized(p, work) {
   const prior = queues.get(p.tenantId) || Promise.resolve();
   const next = prior.catch(() => {}).then(work);
@@ -31,7 +32,8 @@ function eligible(message, situation, envelope) {
     !backgroundTask(message) &&
     !isDocumentInput(message) &&
     !documentReference(message) &&
-    !['smalltalk', 'knowledge', 'review'].includes(situation.turnKind)
+    !['smalltalk', 'review'].includes(situation.turnKind) &&
+    !pureQuestion(message)
   );
 }
 function person(p, mapping, situation, ctx) {
@@ -52,33 +54,129 @@ function person(p, mapping, situation, ctx) {
       p.roles.join(', '),
   };
 }
-function acceptedAssertion(item, message) {
-  return Boolean(
-    item.text?.trim() &&
-    item.basis?.trim() &&
-    message.includes(item.basis) &&
-    item.anchors?.some((anchor) => anchor.value?.trim())
+// A question-only turn cannot turn a model extraction into an assertion.
+function pureQuestion(message) {
+  return /\?\s*$/.test(message) && !/[.!]\s+\S/.test(message);
+}
+function basisMatches(basis, message) {
+  const normalized = store.normalizeAnchor(basis);
+  const original = store.normalizeAnchor(message);
+  if (!normalized) return false;
+  if (` ${original} `.includes(` ${normalized} `)) return true;
+  const tokens = [...new Set(normalized.split(' '))];
+  if (tokens.some((token) => /\d/.test(token) && !original.split(' ').includes(token)))
+    return false;
+  const words = new Set(original.split(' '));
+  // Long tokens tolerate a short inflection suffix; numbers and short words remain exact.
+  const covered = tokens.filter(
+    (token) =>
+      words.has(token) ||
+      (token.length >= 6 &&
+        /^[\p{L}]+$/u.test(token) &&
+        [...words].some(
+          (word) =>
+            word.length >= 6 && /^[\p{L}]+$/u.test(word) && token.slice(0, -2) === word.slice(0, -2)
+        ))
   );
+  return tokens.length >= 3 && covered.length / tokens.length >= 0.8;
+}
+function rejectionReason(item, message) {
+  if (!item.anchors?.length || !item.anchors.every((anchor) => matchesAnchor(anchor, message)))
+    return 'no_anchor';
+  if (!item.text?.trim() || !basisMatches(item.basis, message)) return 'basis_mismatch';
+  return '';
+}
+function acceptedAssertion(item, message) {
+  return !rejectionReason(item, message);
 }
 function matchesAnchor(anchor, message, identifiers = []) {
   const words = ` ${store.normalizeAnchor(message)} `;
   return store.anchorKeys(anchor).some((key) => {
     const [base, qualifier] = JSON.parse(key);
-    const phrase = [base, qualifier].filter(Boolean).join(' ');
-    return (
-      words.includes(` ${phrase} `) ||
-      identifiers.some((value) => {
-        const normalized = store.normalizeAnchor(value);
-        return normalized === phrase;
-      })
+    if (
+      !words.includes(` ${base} `) &&
+      !identifiers.some((value) => store.normalizeAnchor(value) === base)
+    )
+      return false;
+    // An explicitly supplied parenthesized qualifier must agree, even if unknown locally.
+    const suffix = [...String(message).matchAll(/([^()]*)\(([^()]+)\)/g)].find((match) =>
+      store.normalizeAnchor(match[1]).endsWith(base)
     );
+    if (suffix && qualifier && store.normalizeAnchor(suffix[2]) !== qualifier) return false;
+    return true;
   });
+}
+function selectedAnchors(facts, message, identifiers = []) {
+  let matched = facts.filter((fact) =>
+    fact.anchors.some((anchor) => matchesAnchor(anchor, message, identifiers))
+  );
+  const words = ` ${store.normalizeAnchor(message)} `;
+  const anchors = matched.flatMap((fact) => fact.anchors);
+  for (const key of new Set(anchors.flatMap(store.anchorKeys).map((key) => JSON.parse(key)[0]))) {
+    const variants = [
+      ...new Set(
+        anchors
+          .flatMap(store.anchorKeys)
+          .map(JSON.parse)
+          .filter(([base, qualifier]) => base === key && qualifier)
+          .map(([, qualifier]) => qualifier)
+      ),
+    ];
+    const chosen = variants.filter((qualifier) => words.includes(` ${qualifier} `));
+    if (variants.length > 1 && !chosen.length)
+      return { facts: [], ambiguous: `Welchen Bezug meinst du: ${variants.join(' oder ')}?` };
+    if (chosen.length)
+      matched = matched.filter(
+        (fact) =>
+          !fact.anchors
+            .flatMap(store.anchorKeys)
+            .map(JSON.parse)
+            .some(([base, qualifier]) => base === key && qualifier && !chosen.includes(qualifier))
+      );
+  }
+  return { facts: matched, ambiguous: '' };
+}
+function observation(ctx) {
+  return (ctx.meta.tenantMemoryObservation ||= {
+    candidates: 0,
+    accepted: 0,
+    rejected: {},
+    anchorHits: 0,
+    assessmentStarted: 0,
+    assessmentResult: 'not_started',
+    relations: 0,
+    notices: 0,
+  });
+}
+function beforeTurn(ctx) {
+  if (ctx.options?.parentCtx?.action?.name === 'workbench.chat') return;
+  delete ctx.meta.tenantMemoryObservation;
+  observation(ctx);
+}
+function afterTurn(ctx, result) {
+  if (ctx.options?.parentCtx?.action?.name === 'workbench.chat') return result;
+  const stats = observation(ctx);
+  Promise.allSettled(observationJobs.get(stats) || []).then(() => logObservation(ctx));
+  return result;
+}
+function logObservation(ctx) {
+  const stats = observation(ctx);
+  if (stats.logged) return;
+  const { logged: _logged, ...counts } = stats;
+  stats.logged = true;
+  ctx.broker.logger.info('Tenant memory', counts);
 }
 async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags }) {
   const message = envelope.userRequest;
-  const extracted = eligible(message, situation, envelope)
-    ? situation.tenantMemory?.assertions || []
-    : [];
+  const stats = observation(ctx);
+  const candidates = situation.tenantMemory?.assertions || [];
+  stats.candidates += candidates.length;
+  const allowed = eligible(message, situation, envelope);
+  for (const item of candidates) {
+    const reason = allowed ? rejectionReason(item, message) : 'not_eligible';
+    if (reason) stats.rejected[reason] = (stats.rejected[reason] || 0) + 1;
+  }
+  const extracted = allowed ? situation.tenantMemory?.assertions || [] : [];
   const assertions = extracted.filter((item) => acceptedAssertion(item, message));
   if (!assertions.length) return { facts: [], ids: [], confirmation: '', ambiguous: '' };
   return serialized(p, async () => {
@@ -87,13 +185,15 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags 
     const confirmations = [];
     for (const assertion of assertions) {
       const ambiguity = store.ambiguous(assertion.anchors, existing);
-      if (ambiguity)
+      if (ambiguity) {
+        stats.rejected.ambiguous = (stats.rejected.ambiguous || 0) + 1;
         return {
           facts,
           ids: facts.map((item) => item.id),
           confirmation: confirmations.join('\n'),
           ambiguous: `Welchen Bezug meinst du mit „${ambiguity.value}“: ${ambiguity.variants.join(' oder ')}?`,
         };
+      }
       const id = store.key([
         'statement',
         p.actorId,
@@ -129,6 +229,7 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags 
       await store.put(ctx, p, fact);
       existing.push(fact);
       facts.push(fact);
+      stats.accepted++;
       confirmations.push(`Hab ich festgehalten: ${fact.text}`);
     }
     return {
@@ -140,14 +241,16 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags 
   });
 }
 async function enqueue(ctx, p, actorId, relationId, factIds, confirmation = false) {
-  if (ctx.broker.getLocalService('notices'))
-    await ctx.call('notices.enqueueMemory', {
+  if (ctx.broker.getLocalService('notices')) {
+    const result = await ctx.call('notices.enqueueMemory', {
       tenantId: p.tenantId,
       actorId,
       relationId,
       factIds,
       confirmation,
     });
+    if (result.queued) observation(ctx).notices++;
+  }
 }
 function plausibilityText(item, evidence) {
   const refs = evidence.filter((hit) => item.evidenceIds?.includes(hit.id));
@@ -172,7 +275,7 @@ async function assess(ctx, p, fact, retrieval) {
   const shared = fact.anchorKeys.length
     ? await store.query(ctx, p, {
         'payload.type': 'tenant_memory_fact',
-        'payload.anchorKeys': { $elemMatch: { $in: fact.anchorKeys } },
+        'payload.id': { $in: [...weighted] },
       })
     : [];
   const selected = shared.filter((item) => weighted.has(item.id)).slice(0, 10);
@@ -180,7 +283,9 @@ async function assess(ctx, p, fact, retrieval) {
     (hit) => hit.retrievalSource !== 'tenant-memory'
   );
   if (!selected.length && !knowledge.length) {
-    await store.mutate(ctx, p, fact.id, (value) => ({ ...value, checking: 'complete' }));
+    if (!retrieval.unavailable)
+      await store.mutate(ctx, p, fact.id, (value) => ({ ...value, checking: 'complete' }));
+    observation(ctx).assessmentResult = 'no_candidates';
     return [];
   }
   await store.mutate(ctx, p, fact.id, (value) => ({
@@ -193,6 +298,7 @@ async function assess(ctx, p, fact, retrieval) {
     source: hit.source,
     url: hit.url || hit.metadata?.url,
   }));
+  observation(ctx).assessmentStarted++;
   const safe = opaqueContext({ fact, candidates: selected, evidence });
   const raw = await llm.generateStructured(
     toFacadeSchema(ASSESSMENT_SCHEMA),
@@ -256,7 +362,10 @@ async function assess(ctx, p, fact, retrieval) {
         }));
       fresh = true;
     });
-    if (fresh) texts.push(await store.relationText(ctx, p, id));
+    if (fresh) {
+      observation(ctx).relations++;
+      texts.push(await store.relationText(ctx, p, id));
+    }
     if (candidate.person.actorId !== p.actorId)
       await enqueue(ctx, p, candidate.person.actorId, id, factIds);
   }
@@ -269,6 +378,7 @@ async function assess(ctx, p, fact, retrieval) {
     checking: 'complete',
     plausibility,
   }));
+  observation(ctx).assessmentResult = 'complete';
   return texts.filter(Boolean);
 }
 function start(service, ctx, p, input) {
@@ -297,10 +407,12 @@ function start(service, ctx, p, input) {
       'payload.person.actorId': p.actorId,
     });
     if (!pending.length) return;
-    const retrieval = await require('./workbench-capability-loop').withinToolBudget(
-      () => input.retrieval,
-      require('./workbench-retrieval').retrievalTimeoutMs()
-    );
+    const retrieval = await require('./workbench-capability-loop')
+      .withinToolBudget(
+        () => input.retrieval,
+        require('./workbench-retrieval').retrievalTimeoutMs()
+      )
+      .catch(() => ({ evidence: [], unavailable: true }));
     for (const fact of pending.filter((entry) => store.active(entry))) {
       const texts = await assess(
         ctx,
@@ -312,20 +424,27 @@ function start(service, ctx, p, input) {
       if (state.deferred) await deferredNotices(ctx, p, fact);
     }
   })()
-    .catch((error) =>
-      service.logger.warn('Tenant memory unavailable', { errorClass: error.type || error.name })
-    )
+    .catch((error) => {
+      observation(ctx).assessmentResult = 'unavailable';
+      service.logger.warn('Tenant memory unavailable', { errorClass: error.type || error.name });
+    })
     .finally(() => {
       state.settled = true;
       service.tenantMemoryJobs.delete(job);
     });
   service.tenantMemoryJobs.add(job);
+  observationJobs.set(observation(ctx), [job]);
   state.job = job;
   return state;
 }
 // Facts are the durable work queue; recovery uses the existing object store.
 async function recover(service) {
-  if (service.tenantMemoryRecovering || service.tenantMemoryJobs?.size) return;
+  if (
+    service.tenantMemoryStopping ||
+    service.tenantMemoryRecovering ||
+    service.tenantMemoryJobs?.size
+  )
+    return;
   const objects = service.broker.getLocalService('object-store');
   if (!objects?.db) return;
   service.tenantMemoryRecovering = true;
@@ -344,6 +463,7 @@ async function recover(service) {
       if (page.docs.length < 1000) break;
     }
     for (const doc of pending) {
+      if (service.tenantMemoryStopping) break;
       const fact = doc.payload;
       const p = fact.recoveryPrincipal;
       if (!p || doc.ns !== store.namespace(p) || !store.active(fact)) continue;
@@ -361,7 +481,15 @@ async function recover(service) {
         meta,
         params: {},
         call: (name, params, options) =>
-          service.broker.call(name, params, { meta: { ...meta, ...options?.meta } }),
+          require('./workbench-capability-loop').withinToolBudget(
+            () =>
+              service.broker.call(name, params, {
+                timeout: 1000,
+                ...options,
+                meta: { ...meta, ...options?.meta },
+              }),
+            1000
+          ),
       };
       try {
         await assess(ctx, p, fact, { evidence: fact.checkingEvidence || [] });
@@ -377,7 +505,9 @@ async function recover(service) {
   }
 }
 function startRecovery(service) {
+  service.tenantMemoryStopping = false;
   service.tenantMemoryRecoveryTimer = setInterval(() => {
+    if (service.tenantMemoryRecovering || service.tenantMemoryJobs?.size) return;
     service.tenantMemoryRecoveryJob = recover(service).catch((error) =>
       service.logger.warn('Tenant memory recovery unavailable', {
         errorClass: error.type || error.name,
@@ -387,6 +517,7 @@ function startRecovery(service) {
   service.tenantMemoryRecoveryTimer.unref();
 }
 async function stopRecovery(service) {
+  service.tenantMemoryStopping = true;
   clearInterval(service.tenantMemoryRecoveryTimer);
   await service.tenantMemoryRecoveryJob;
 }
@@ -394,11 +525,13 @@ async function related(ctx, p, situation, message) {
   if (!available(ctx)) return { evidence: [], text: '' };
   const facts = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
   const identifiers = (situation.identifiers || []).map((entry) => entry.value);
-  const matched = facts.filter(
-    (fact) =>
-      store.active(fact) &&
-      fact.anchors.some((anchor) => matchesAnchor(anchor, message, identifiers))
+  const selection = selectedAnchors(
+    facts.filter((fact) => store.active(fact)),
+    message,
+    identifiers
   );
+  const matched = selection.facts;
+  observation(ctx).anchorHits += matched.length;
   const paragraphs = [];
   for (const id of new Set(matched.flatMap((fact) => fact.relationIds))) {
     try {
@@ -415,20 +548,26 @@ async function related(ctx, p, situation, message) {
       value: store.factText(fact),
       metadata: { namespace: store.namespace(p), key: fact.id },
     })),
-    text: paragraphs.join('\n\n'),
+    text: selection.ambiguous || paragraphs.join('\n\n'),
   };
 }
-async function queryResponse(ctx, p, message, selector) {
+async function queryResponse(ctx, p, message, selector = {}) {
   if (!available(ctx)) return null;
   const facts = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
   const term = store.normalizeAnchor(selector.anchor || selector.functionLabel || '');
-  const matches = facts.filter(
-    (fact) =>
-      !term ||
-      (selector.functionLabel
-        ? store.normalizeAnchor(fact.person.functionLabel).includes(term)
-        : fact.anchors.some((anchor) => matchesAnchor(anchor, selector.anchor || '')))
-  );
+  const selection = selector.functionLabel
+    ? {
+        facts: facts.filter((fact) =>
+          store.normalizeAnchor(fact.person.functionLabel).includes(term)
+        ),
+        ambiguous: '',
+      }
+    : !term && !message
+      ? { facts, ambiguous: '' }
+      : selectedAnchors(facts, selector.anchor || message);
+  const matches = selection.facts;
+  observation(ctx).anchorHits += matches.length;
+  if (selection.ambiguous) observation(ctx).rejected.ambiguous = 1;
   const lines = matches.map(store.factText);
   for (const id of new Set(matches.flatMap((fact) => fact.relationIds))) {
     try {
@@ -443,7 +582,9 @@ async function queryResponse(ctx, p, message, selector) {
     nonBinding: true,
     statements: matches,
     responseText:
-      lines.join('\n\n') || 'Dazu haben wir noch keine sichtbaren Aussagen festgehalten.',
+      selection.ambiguous ||
+      lines.join('\n\n') ||
+      'Dazu haben wir noch keine sichtbaren Aussagen festgehalten.',
   };
 }
 async function preturn(ctx, p, envelope, pending) {
@@ -455,7 +596,9 @@ async function preturn(ctx, p, envelope, pending) {
   )
     return null;
   const message = envelope.userRequest.trim();
-  const anchor = message.match(/^was wissen wir (?:zu|über)\s+(.+?)[?!.]*$/i);
+  const anchor = message.match(
+    /^was wissen wir (?:insgesamt\s+)?(?:zu|zur|zum|über)\s+(.+?)[?!.]*$/i
+  );
   const fn = message.match(/^was hat (?:die |der |das )?(.+?) festgehalten[?!.]*$/i);
   if (anchor || fn)
     return queryResponse(ctx, p, message, { anchor: anchor?.[1], functionLabel: fn?.[1] });
@@ -523,6 +666,9 @@ async function correctFacts(ctx, p, envelope, pending, correction) {
 }
 module.exports = {
   acceptedAssertion,
+  beforeTurn,
+  afterTurn,
+  pureQuestion,
   recover,
   startRecovery,
   stopRecovery,

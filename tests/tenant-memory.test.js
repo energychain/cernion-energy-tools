@@ -122,6 +122,160 @@ describe('tenant memory acceptance and lifecycle', () => {
     await app.cleanup();
   });
 
+  test('normalized basis keeps inflections and shortened excerpts, but requires anchors and unchanged numbers', () => {
+    const text =
+      'Das Vorhaben Projekt-Q startet spätestens 2034. Alle Beteiligten werden informiert.';
+    const item = assertion(text, [{ value: 'Projekt-Q', qualifier: '', aliases: [] }]);
+    expect(
+      memory.acceptedAssertion(
+        { ...item, basis: 'das vorhaben projekt q startet spätestens 2034' },
+        text
+      )
+    ).toBe(true);
+    expect(
+      memory.acceptedAssertion(
+        { ...item, basis: 'Das Vorhaben Projekt-Q startet spätestens 2030' },
+        text
+      )
+    ).toBe(false);
+    expect(
+      memory.acceptedAssertion(
+        { ...item, anchors: [{ value: 'Erfunden', qualifier: '', aliases: [] }] },
+        text
+      )
+    ).toBe(false);
+    expect(
+      memory.acceptedAssertion(
+        { ...item, basis: 'Projekt-Q bleibt aus anderen Gründen dauerhaft gesperrt.' },
+        text
+      )
+    ).toBe(false);
+  });
+
+  test('a sole qualified tenant anchor works bare; multiple variants require clarification in queries and work', async () => {
+    const ctx = context(app),
+      p = principal();
+    const add = async (qualifier) => {
+      const text = `Planung Hauptstraße (${qualifier}).`;
+      return memory.capture(ctx, p, {
+        situation: situation(text, [
+          assertion(text, [{ value: 'Hauptstraße', qualifier, aliases: [] }]),
+        ]),
+        envelope: { userRequest: text, conversationId: qualifier, channel: 'api' },
+      });
+    };
+    await add('A');
+    expect((await memory.related(ctx, p, {}, 'Plane Hauptstraße.')).evidence).toHaveLength(1);
+    expect(
+      (await memory.queryResponse(ctx, p, 'Was wissen wir zur Hauptstraße?', {})).statements
+    ).toHaveLength(1);
+    const unqualified = await memory.capture(ctx, p, {
+      situation: situation('Plan Hauptstraße', [assertion('Plan Hauptstraße')]),
+      envelope: { userRequest: 'Plan Hauptstraße', conversationId: 'bare', channel: 'api' },
+    });
+    const facts = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
+    expect(store.candidates(unqualified.facts[0], facts)).toHaveLength(1);
+    await add('B');
+    const query = await memory.queryResponse(ctx, p, 'Was wissen wir zur Hauptstraße?', {});
+    expect(query.statements).toHaveLength(0);
+    expect(query.responseText).toContain('Welchen Bezug');
+    expect((await memory.related(ctx, p, {}, 'Plane Hauptstraße.')).text).toContain(
+      'Welchen Bezug'
+    );
+    expect(
+      (await memory.queryResponse(ctx, p, '', { anchor: 'Hauptstraße (A)' })).statements.some(
+        (fact) => fact.anchors.some((anchor) => anchor.qualifier === 'B')
+      )
+    ).toBe(false);
+  });
+
+  test('knowledge-classified statements are recorded with a sourced plausibility warning', async () => {
+    const text = 'Wir sperren den Zugang an Projekt-Q.';
+    const ctx = context(app),
+      p = principal();
+    const captured = await memory.capture(ctx, p, {
+      situation: situation(
+        text,
+        [assertion(text, [{ value: 'Projekt-Q', qualifier: '', aliases: [] }])],
+        { turnKind: 'knowledge' }
+      ),
+      envelope: { userRequest: text, channel: 'api', conversationId: 'plausibility' },
+    });
+    expect(captured.confirmation).toContain('Hab ich festgehalten:');
+    llm.generateStructured.mockResolvedValue({
+      relations: [],
+      plausibility: [{ reason: 'Das widerspricht der synthetischen Regel.', evidenceIds: ['K1'] }],
+    });
+    expect(
+      (
+        await memory.assess(ctx, p, captured.facts[0], {
+          evidence: [{ source: 'Synthetische Regel', value: 'Der Zugang bleibt offen.' }],
+        })
+      ).join()
+    ).toContain('Quelle: Synthetische Regel');
+    expect((await store.get(ctx, p, captured.ids[0])).payload.status).toBe('valid');
+  });
+
+  test('one observation per turn reports decisions and assessment without contents or PII', async () => {
+    const ctx = context(app),
+      p = principal();
+    const info = jest.spyOn(app.broker.logger, 'info');
+    memory.beforeTurn(ctx);
+    const text = 'Synthetische Planung Hauptstraße';
+    const valid = assertion(text);
+    const state = memory.start(app.workbench, ctx, p, {
+      situation: situation(text, [
+        valid,
+        { ...valid, basis: 'Erfundener Beleg' },
+        { ...valid, anchors: [] },
+      ]),
+      envelope: { userRequest: text, conversationId: 'logs', channel: 'api' },
+      retrieval: Promise.resolve({ evidence: [] }),
+    });
+    await state.job;
+    memory.afterTurn(ctx, {});
+    await new Promise((resolve) => setImmediate(resolve));
+    const logs = info.mock.calls.filter(([label]) => label === 'Tenant memory');
+    expect(logs).toHaveLength(1);
+    expect(logs[0][1]).toMatchObject({
+      candidates: 3,
+      accepted: 1,
+      rejected: { basis_mismatch: 1, no_anchor: 1 },
+      assessmentResult: 'no_candidates',
+    });
+    expect(JSON.stringify(logs)).not.toMatch(/Charly|Hauptstraße|Synthetische Planung/);
+    memory.beforeTurn(ctx);
+    await memory.capture(ctx, p, {
+      situation: situation('Was gilt für Hauptstraße?', [valid], { turnKind: 'knowledge' }),
+      envelope: { userRequest: 'Was gilt für Hauptstraße?' },
+    });
+    memory.afterTurn(ctx, {});
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(
+      info.mock.calls.filter(([label]) => label === 'Tenant memory').at(-1)[1].rejected
+    ).toEqual({ not_eligible: 1 });
+    info.mockRestore();
+  });
+
+  test('delegated queries share the chat observation and cannot emit a second line', async () => {
+    const ctx = context(app),
+      info = jest.spyOn(app.broker.logger, 'info');
+    memory.beforeTurn(ctx);
+    const child = {
+      ...ctx,
+      meta: { ...ctx.meta },
+      options: { parentCtx: { action: { name: 'workbench.chat' } } },
+    };
+    const original = ctx.meta.tenantMemoryObservation;
+    memory.beforeTurn(child);
+    expect(child.meta.tenantMemoryObservation).toBe(original);
+    memory.afterTurn(child, {});
+    memory.afterTurn(ctx, {});
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(info.mock.calls.filter(([label]) => label === 'Tenant memory')).toHaveLength(1);
+    info.mockRestore();
+  });
+
   test('public store writes and deletes cannot bypass source correction or erase audit', async () => {
     const text = fixture.first.text;
     const captured = await memory.capture(context(app), principal(), {
@@ -192,6 +346,37 @@ describe('tenant memory acceptance and lifecycle', () => {
       conversationId: 'invalid-flow',
     });
     expect(reply.cetCaseId || reply.caseSelection || reply.state === 'case_selection').toBeTruthy();
+  });
+
+  test('stopping recovery bounds an unavailable local action and retains the pending fact', async () => {
+    await memory.stopRecovery(app.workbench);
+    const ctx = context(app),
+      p = principal();
+    const captured = await memory.capture(ctx, p, {
+      situation: situation(fixture.first.text, [assertion(fixture.first.text)]),
+      envelope: { userRequest: fixture.first.text, conversationId: 'stopping', channel: 'api' },
+    });
+    const find = jest
+      .fn()
+      .mockResolvedValue({ docs: [{ ns: store.namespace(p), payload: captured.facts[0] }] });
+    const call = jest.fn(() => new Promise(() => {}));
+    const service = {
+      broker: { getLocalService: () => ({ db: { find } }), call },
+      logger: { warn: jest.fn() },
+      tenantMemoryJobs: new Set(),
+    };
+    service.tenantMemoryRecoveryJob = memory.recover(service);
+    await new Promise((resolve) => setImmediate(resolve));
+    const started = performance.now();
+    await memory.stopRecovery(service);
+    expect(performance.now() - started).toBeLessThan(3000);
+    expect(service.tenantMemoryRecovering).toBe(false);
+    expect(call).toHaveBeenCalledWith(
+      'object-store.query',
+      expect.any(Object),
+      expect.objectContaining({ timeout: 1000 })
+    );
+    expect((await store.get(ctx, p, captured.ids[0])).payload.checking).toBe('pending');
   });
 
   test('startup resumes persisted checks without another source turn and deduplicates notices', async () => {
@@ -311,7 +496,10 @@ describe('tenant memory acceptance and lifecycle', () => {
     const facts = Array.from({ length: 20 }, (_, i) => ({
       id: `${i}`,
       status: 'valid',
-      anchorKeys: ['common', ...(i < 2 ? ['rare'] : [])],
+      anchorKeys: [
+        JSON.stringify(['common', '']),
+        ...(i < 2 ? [JSON.stringify(['rare', ''])] : []),
+      ],
     }));
     expect(store.candidates(facts[19], facts)).toEqual([]);
     expect(store.candidates(facts[1], facts).map((item) => item.id)).toEqual(['0']);
@@ -340,7 +528,7 @@ describe('tenant memory acceptance and lifecycle', () => {
   test('AC-06/07: audited revocation, expiry, tenant and clearance isolation', async () => {
     const ctx = context(app),
       p = principal();
-    const text = 'Planung für Bereich Q.';
+    const text = 'Planung für Bereich Q an der Hauptstraße.';
     const captured = await memory.capture(ctx, p, {
       situation: situation(text, [assertion(text)]),
       envelope: { userRequest: text, channel: 'api', conversationId: 'life' },
@@ -666,7 +854,7 @@ describe('tenant memory acceptance and lifecycle', () => {
   test('independent and malformed model evaluations are never published', async () => {
     const captured = [];
     for (const actor of ['Charly', 'Doris']) {
-      const text = `Planung ${actor}`;
+      const text = `Planung ${actor} Hauptstraße`;
       captured.push(
         ...(
           await memory.capture(context(app, actor), principal(actor), {
@@ -707,7 +895,7 @@ describe('tenant memory acceptance and lifecycle', () => {
   test('direct object-store namespace operations enforce tenant and clearance, including Mango queries', async () => {
     const ctx = context(app),
       p = principal();
-    const text = 'Synthetische Planung';
+    const text = 'Synthetische Planung Hauptstraße';
     const captured = await memory.capture(ctx, p, {
       situation: situation(text, [assertion(text)]),
       envelope: { userRequest: text, channel: 'api', conversationId: 'access' },
@@ -745,7 +933,7 @@ describe('tenant memory acceptance and lifecycle', () => {
   });
 
   test('correction remains audited and old facts cannot link; parenthesised qualifiers stay tenant-local', async () => {
-    const text = 'Synthetische Planung Projekt-Q';
+    const text = 'Synthetische Planung Projekt-Q Hauptstraße';
     const ctx = context(app),
       p = principal();
     const captured = await memory.capture(ctx, p, {
@@ -784,7 +972,7 @@ describe('tenant memory acceptance and lifecycle', () => {
   test('failed background judgment resumes from persisted facts and evidence on the next content turn', async () => {
     const captured = [];
     for (const actor of ['Charly', 'Doris']) {
-      const text = `Synthetische Planung ${actor}`;
+      const text = `Synthetische Planung ${actor} Hauptstraße`;
       captured.push(
         ...(
           await memory.capture(context(app, actor), principal(actor), {
@@ -820,7 +1008,7 @@ describe('tenant memory acceptance and lifecycle', () => {
   test('AC-09: plausibility only with cited retrieved rule', async () => {
     const ctx = context(app),
       p = principal();
-    const text = 'Wir sperren den gesamten Zugang.';
+    const text = 'Wir sperren den gesamten Zugang in der Hauptstraße.';
     const captured = await memory.capture(ctx, p, {
       situation: situation(text, [assertion(text)]),
       envelope: { userRequest: text, channel: 'api', conversationId: 'rules' },
