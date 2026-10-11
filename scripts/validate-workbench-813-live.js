@@ -13,6 +13,14 @@ function singlePoint(responseText) {
     .filter((paragraph) => paragraph.includes('?'))
     .some(compoundQuestion);
 }
+function temporalGrounded(responseText, facts, situation) {
+  // An explicit question offers alternatives; it does not assert either one.
+  const statements = (situation?.missingInformation || []).reduce(
+    (text, item) => (item.question ? text.replaceAll(item.question, '') : text),
+    String(responseText)
+  );
+  return !require('../src/workbench-answer-filter').unsupportedEarlierDate(statements, facts);
+}
 const reportPath = path.join(__dirname, '../docs/validation/813-live.json');
 let quotaDirectory;
 function summaryPresent(responseText) {
@@ -49,12 +57,18 @@ function recheckReport() {
     throw new Error('Rechecking requires three complete unchanged corpus runs');
   for (const run of existing.runs)
     for (const turn of run.turns) {
+      const scenario = corpus.find((item) => item.id === turn.scenario);
+      turn.checks.temporalGrounded = temporalGrounded(
+        turn.responseText,
+        scenario.turns.slice(0, turn.turn).map((item) => item.message),
+        turn.situation
+      );
       if (turn.scenario === 'counter') turn.checks.singlePoint = singlePoint(turn.responseText);
       if (corpus.find((scenario) => scenario.id === turn.scenario).turns[turn.turn - 1].summary)
         turn.checks.requestedSummary = summaryPresent(turn.responseText);
     }
-  existing.summaryValidation =
-    'Summary guard rechecked on all complete unchanged responses; question grammar rechecked; remaining checks retained; no model calls.';
+  existing.guardValidation =
+    'Summary, question grammar and temporal assertions rechecked on all complete unchanged responses; explicit question alternatives are not assertions; remaining checks retained; no model calls.';
   fs.writeFileSync(reportPath, JSON.stringify(existing, null, 2) + '\n');
   if (
     existing.runs.some((run) =>
@@ -161,9 +175,10 @@ async function validateConversation() {
                 result.responseText
               ),
             answered: result.metadata?.degraded === false,
-            temporalGrounded: !require('../src/workbench-answer-filter').unsupportedEarlierDate(
+            temporalGrounded: temporalGrounded(
               result.responseText,
-              messages.filter((item) => item.role === 'user').map((item) => item.content)
+              messages.filter((item) => item.role === 'user').map((item) => item.content),
+              result.situation
             ),
             ...(turn.draft ? { requestedDraft: /Entwurf:\s*\S/u.test(result.responseText) } : {}),
             ...(turn.draft
@@ -252,4 +267,4 @@ if (require.main === module)
     .finally(() => {
       if (quotaDirectory) fs.rmSync(quotaDirectory, { recursive: true, force: true });
     });
-module.exports = { summaryPresent };
+module.exports = { summaryPresent, temporalGrounded };
