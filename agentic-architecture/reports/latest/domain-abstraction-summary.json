@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-10T19:29:08.782Z",
+  "generatedAt": "2026-10-11T01:32:48.510Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261010T192759Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261011T013115Z",
   "counts": {
-    "files": 1826,
-    "candidateFiles": 1088,
+    "files": 1834,
+    "candidateFiles": 1095,
     "services": 157,
-    "srcFiles": 407,
-    "docs": 481,
+    "srcFiles": 408,
+    "docs": 487,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -205,7 +205,7 @@
     {
       "id": "kunden_service_klaerfall",
       "title": "Kunden-/Service-Klärfall",
-      "maturity": "draft",
+      "maturity": "routable",
       "priority": 3,
       "clusterIds": [
         "casework-and-assistance",
@@ -216,7 +216,7 @@
       "topSignalFiles": [
         {
           "path": "src/capability-catalog.js",
-          "hits": 476
+          "hits": 479
         },
         {
           "path": "agentic-architecture/domain/ENERGY_DOMAIN_CANON.md",
@@ -232,7 +232,7 @@
         },
         {
           "path": "services/capability-broker.service.js",
-          "hits": 259
+          "hits": 261
         },
         {
           "path": "src/report-builder.js",
@@ -253,6 +253,218 @@
         {
           "path": "docs/v0.58-architecture/lagebild/tranche_c.md",
           "hits": 136
+        }
+      ]
+    },
+    {
+      "id": "netzanschluss_kapazitaets_klaerfall",
+      "title": "Netzanschluss-/Kapazitäts-Klärfall",
+      "maturity": "observed",
+      "priority": 4,
+      "clusterIds": [
+        "casework-and-assistance",
+        "openwebui-agentic-routing"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "docs/agent-responses/rd-audit.json",
+          "hits": 236
+        },
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 91
+        },
+        {
+          "path": "services/capability-broker.service.js",
+          "hits": 67
+        },
+        {
+          "path": "src/report-builder.js",
+          "hits": 44
+        },
+        {
+          "path": "src/answer-dossier-hydration-rules.json",
+          "hits": 35
+        },
+        {
+          "path": "services/personal-agent/shared.js",
+          "hits": 30
+        },
+        {
+          "path": "src/consultation-execution-bridge.js",
+          "hits": 26
+        },
+        {
+          "path": "src/personal-agent-routing.js",
+          "hits": 21
+        },
+        {
+          "path": "src/validation-findings.js",
+          "hits": 21
+        },
+        {
+          "path": "services/assets.service.js",
+          "hits": 20
+        }
+      ]
+    },
+    {
+      "id": "prognose_abweichungsfall",
+      "title": "Prognose-/Abweichungsfall",
+      "maturity": "observed",
+      "priority": 5,
+      "clusterIds": [
+        "casework-and-assistance",
+        "openwebui-agentic-routing"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 210
+        },
+        {
+          "path": "services/mastr-monitor.service.js",
+          "hits": 158
+        },
+        {
+          "path": "docs/validation/739-routing.json",
+          "hits": 150
+        },
+        {
+          "path": "docs/sonarcloud-security-review.json",
+          "hits": 144
+        },
+        {
+          "path": "services/energy-market.service.js",
+          "hits": 141
+        },
+        {
+          "path": "services/forecast-sandbox.service.js",
+          "hits": 133
+        },
+        {
+          "path": "src/report-builder.js",
+          "hits": 124
+        },
+        {
+          "path": "services/in-memory-join.service.js",
+          "hits": 120
+        },
+        {
+          "path": "src/answer-dossier-hydration-rules.json",
+          "hits": 111
+        },
+        {
+          "path": "services/forecast.service.js",
+          "hits": 109
+        }
+      ]
+    },
+    {
+      "id": "redispatch_steuerbarkeits_readiness",
+      "title": "Redispatch-/Steuerbarkeits-Readiness",
+      "maturity": "observed",
+      "priority": 6,
+      "clusterIds": [
+        "casework-and-assistance",
+        "openwebui-agentic-routing"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "docs/agent-responses/rd-audit.json",
+          "hits": 667
+        },
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 586
+        },
+        {
+          "path": "src/answer-dossier-hydration-rules.json",
+          "hits": 416
+        },
+        {
+          "path": "docs/validation/739-routing.json",
+          "hits": 372
+        },
+        {
+          "path": "services/capability-broker.service.js",
+          "hits": 345
+        },
+        {
+          "path": "src/validation-findings.js",
+          "hits": 314
+        },
+        {
+          "path": "services/dashboard-api/methods-part-04-of-14.js",
+          "hits": 201
+        },
+        {
+          "path": "services/dashboard-api/methods-part-05-of-14.js",
+          "hits": 183
+        },
+        {
+          "path": "services/redispatch-expost.service.js",
+          "hits": 180
+        },
+        {
+          "path": "services/api.service.js",
+          "hits": 179
+        }
+      ]
+    },
+    {
+      "id": "waerme_gas_eog_szenariofall",
+      "title": "Wärme-/Gas-/EOG-Szenariofall",
+      "maturity": "observed",
+      "priority": 7,
+      "clusterIds": [
+        "casework-and-assistance",
+        "openwebui-agentic-routing"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 338
+        },
+        {
+          "path": "docs/validation/739-routing.json",
+          "hits": 183
+        },
+        {
+          "path": "services/capability-broker.service.js",
+          "hits": 180
+        },
+        {
+          "path": "src/evidence-registry.js",
+          "hits": 132
+        },
+        {
+          "path": "src/answer-dossier-hydration-rules.json",
+          "hits": 108
+        },
+        {
+          "path": "services/eog-calculator.service.js",
+          "hits": 85
+        },
+        {
+          "path": "docs/eog-calculator-quality-element.md",
+          "hits": 77
+        },
+        {
+          "path": "docs/reviews/730-capability-routing-evaluation.json",
+          "hits": 67
+        },
+        {
+          "path": "services/dashboard-api/methods-part-12-of-14.js",
+          "hits": 64
+        },
+        {
+          "path": "services/dashboard-api/methods-part-06-of-14.js",
+          "hits": 53
         }
       ]
     }
@@ -340,5 +552,5 @@
       "hits": 263
     }
   ],
-  "fingerprint": "c00ac7daeefe8489e8468f6f6d7d4d6ff80219377d23c80c37e0d21f76cf0fda"
+  "fingerprint": "40e5d70e9edb47e576fb0dcab3ddd00dd35b6a0c60de6bc131e730ada91d4b05"
 }

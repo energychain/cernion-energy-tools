@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-10T19:29:05.469Z
+Generated: 2026-10-11T01:32:43.513Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 1826
+- Files scanned: 1834
 - Services: 157
-- src/*.js files: 347
-- Tests: 458
+- src/*.js files: 348
+- Tests: 459
 - Integrations files: 27
-- Markdown/docs files: 481
+- Markdown/docs files: 487
 
 ## Existing validation summary
 
@@ -26,13 +26,13 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 520 files
-- `src`: 409 files
+- `tests`: 521 files
+- `src`: 410 files
 - `docs`: 371 files
 - `services`: 193 files
 - `tools`: 85 files
 - `scripts`: 61 files
-- `agentic-architecture`: 47 files
+- `agentic-architecture`: 53 files
 - `integrations`: 27 files
 - `.claude`: 26 files
 - `.github`: 11 files
@@ -49,10 +49,10 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Agentic surface
 
-- Agent/capability/sidecar related files: 252
-- Routing/capability/broker/manifest files: 84
+- Agent/capability/sidecar related files: 258
+- Routing/capability/broker/manifest files: 88
 - Evidence/HITL/receipt/dossier files: 74
-- OpenWebUI/ChatGPT adapter files: 28
+- OpenWebUI/ChatGPT adapter files: 29
 
 Primary agentic files:
 
@@ -78,6 +78,10 @@ Primary agentic files:
 - `agentic-architecture/OPENWEBUI_AGENTIC_ROUTING.md`
 - `agentic-architecture/README.md`
 - `agentic-architecture/REFACTORING_BACKLOG.md`
+- `agentic-architecture/reports/capability-openapi-alignment.md`
+- `agentic-architecture/reports/case-types-next-four-handler.md`
+- `agentic-architecture/reports/customer-service-case-type-promotion.md`
+- `agentic-architecture/reports/daily-full-validation-cron.md`
 - `agentic-architecture/reports/latest/agentic-core-findings.md`
 - `agentic-architecture/reports/latest/architecture-scan.md`
 - `agentic-architecture/reports/latest/canon-update-proposal.md`
@@ -92,22 +96,18 @@ Primary agentic files:
 - `agentic-architecture/reports/latest/domain-abstraction/falltypen/KUNDEN_SERVICE_KLAERFALL.md`
 - `agentic-architecture/reports/latest/domain-abstraction/falltypen/MESSWERT_EDM_PLAUSIBILITAETSFALL.md`
 - `agentic-architecture/reports/latest/domain-abstraction/falltypen/README.md`
-- `agentic-architecture/reports/latest/domain-abstraction/falltypen/STAMMDATEN_MARKTROLLEN_KLAERFALL.md`
-- `agentic-architecture/reports/latest/domain-abstraction/HUMAN_DECISION_POINTS.md`
-- `agentic-architecture/reports/latest/domain-abstraction/NATURAL_WORKFLOWS.md`
-- `agentic-architecture/reports/latest/domain-abstraction/PROCESS_PATTERNS.md`
 
 ## Service inventory
 
 - `agent-manifest` — services/agent-manifest.service.js (3 detected actions)
-- `X-Tenant-Id` — services/agent-persona.service.js (9 detected actions)
+- `agent-persona` — services/agent-persona.service.js (9 detected actions)
 - `agent-receipts` — services/agent-receipts.service.js (19 detected actions)
 - `agent-sidecar` — services/agent-sidecar.service.js (2 detected actions)
-- `direktvermarkterName` — services/agent.service.js (4 detected actions)
+- `agent` — services/agent.service.js (4 detected actions)
 - `agnes-bottleneck` — services/agnes-bottleneck.service.js (7 detected actions)
 - `altdaten-assessment` — services/altdaten-assessment.service.js (7 detected actions)
 - `api` — services/api.service.js (1 detected actions)
-- `vnbName` — services/assets.service.js (8 detected actions)
+- `assets` — services/assets.service.js (8 detected actions)
 - `auth` — services/auth.service.js (5 detected actions)
 - `automatisierungsradar` — services/automatisierungsradar.service.js (6 detected actions)
 - `backup-orchestrator` — services/backup-orchestrator.service.js (4 detected actions)
@@ -116,12 +116,12 @@ Primary agentic files:
 - `bilanzkreis` — services/bilanzkreis.service.js (5 detected actions)
 - `blindflug-radar` — services/blindflug-radar.service.js (6 detected actions)
 - `blueprint-management` — services/blueprint-management.service.js (6 detected actions)
-- `churn-prediction-${Date.now()}.csv` — services/business-intelligence.service.js (7 detected actions)
-- `startDate` — services/capability-broker.service.js (4 detected actions)
+- `business-intelligence` — services/business-intelligence.service.js (7 detected actions)
+- `capability-broker` — services/capability-broker.service.js (4 detected actions)
 - `capex-prioritization` — services/capex-prioritization.service.js (7 detected actions)
-- `ticket` — services/chatgpt-sidecar.service.js (8 detected actions)
+- `chatgpt-sidecar` — services/chatgpt-sidecar.service.js (8 detected actions)
 - `clarification-policy` — services/clarification-policy.service.js (6 detected actions)
-- `Erneuerbare-Energien-Gesetz (EEG)` — services/community.service.js (6 detected actions)
+- `community` — services/community.service.js (6 detected actions)
 - `company` — services/company.service.js (11 detected actions)
 - `connection-rejection-evidence` — services/connection-rejection-evidence.service.js (9 detected actions)
 - `cookbook` — services/cookbook.service.js (5 detected actions)

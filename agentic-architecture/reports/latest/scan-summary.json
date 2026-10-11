@@ -1,23 +1,23 @@
 {
-  "generatedAt": "2026-10-10T19:29:05.469Z",
+  "generatedAt": "2026-10-11T01:32:43.513Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261010T192759Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261011T013115Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
     "version": "0.99.22"
   },
   "counts": {
-    "files": 1826,
+    "files": 1834,
     "services": 157,
-    "srcJs": 347,
-    "tests": 458,
+    "srcJs": 348,
+    "tests": 459,
     "integrations": 27,
-    "docs": 481,
-    "agentFiles": 252,
-    "openWebUiFiles": 28,
+    "docs": 487,
+    "agentFiles": 258,
+    "openWebUiFiles": 29,
     "evidenceFiles": 74,
-    "routingFiles": 84,
+    "routingFiles": 88,
     "servicesWithoutTests": 27
   },
   "artifacts": {
@@ -30,11 +30,11 @@
   "topDirectories": [
     {
       "dir": "tests",
-      "files": 520
+      "files": 521
     },
     {
       "dir": "src",
-      "files": 409
+      "files": 410
     },
     {
       "dir": "docs",
@@ -54,7 +54,7 @@
     },
     {
       "dir": "agentic-architecture",
-      "files": 47
+      "files": 53
     },
     {
       "dir": "integrations",
@@ -110,17 +110,17 @@
     }
   ],
   "serviceNames": [
-    "Erneuerbare-Energien-Gesetz (EEG)",
-    "Stadtwerk Mauer",
-    "X-Tenant-Id",
     "activation",
+    "agent",
     "agent-manifest",
+    "agent-persona",
     "agent-receipts",
     "agent-sidecar",
     "agents",
     "agnes-bottleneck",
     "altdaten-assessment",
     "api",
+    "assets",
     "auth",
     "automatisierungsradar",
     "backup-orchestrator",
@@ -129,9 +129,12 @@
     "bilanzkreis",
     "blindflug-radar",
     "blueprint-management",
+    "business-intelligence",
+    "capability-broker",
     "capex-prioritization",
-    "churn-prediction-${Date.now()}.csv",
+    "chatgpt-sidecar",
     "clarification-policy",
+    "community",
     "company",
     "connection-rejection-evidence",
     "cookbook",
@@ -148,7 +151,6 @@
     "datasource-registry",
     "datasource-watcher",
     "decision-frame",
-    "direktvermarkterName",
     "domain-router",
     "domain-routes",
     "dossier-hydration",
@@ -241,24 +243,22 @@
     "slp",
     "stadtwerk-mauer-e2e-process-demo",
     "stadtwerk-mauer-external-interface-stubs",
+    "stadtwerk-mauer-mastr-data-overlay",
     "stadtwerk-mauer-sandbox-runtime",
-    "startDate",
     "system",
     "tabular",
     "tenant-quota",
-    "tenantId",
-    "tenantId",
-    "tenantId",
-    "tenantId",
-    "ticket",
     "token-manager",
     "utility-report",
     "vdmi",
+    "vdmi-evidence",
+    "vdmi-findings",
     "vdmi-governance-templates",
+    "vdmi-human-override",
     "vdmi-portfolio-gatekeeping",
+    "vdmi-spectator",
     "vnb-100-tage-assessment",
     "vnb-monitor",
-    "vnbName",
     "wake",
     "web-search",
     "webhooks",
@@ -361,112 +361,112 @@
   ],
   "domainTermCounts": {
     "agent": {
-      "files": 726,
-      "hits": 8282
+      "files": 728,
+      "hits": 8298
     },
     "personal-agent": {
-      "files": 299,
-      "hits": 2010
+      "files": 300,
+      "hits": 2013
     },
     "sidecar": {
-      "files": 109,
-      "hits": 997
+      "files": 111,
+      "hits": 999
     },
     "capability": {
-      "files": 446,
-      "hits": 5664
+      "files": 450,
+      "hits": 5696
     },
     "broker": {
-      "files": 569,
-      "hits": 10695
+      "files": 573,
+      "hits": 10714
     },
     "openwebui": {
-      "files": 65,
-      "hits": 513
+      "files": 67,
+      "hits": 517
     },
     "open-webui": {
       "files": 47,
       "hits": 268
     },
     "chatgpt": {
-      "files": 37,
-      "hits": 398
+      "files": 39,
+      "hits": 400
     },
     "evidence": {
-      "files": 722,
-      "hits": 24316
+      "files": 726,
+      "hits": 24338
     },
     "receipt": {
-      "files": 152,
-      "hits": 2402
+      "files": 153,
+      "hits": 2403
     },
     "hitl": {
-      "files": 436,
-      "hits": 3662
+      "files": 438,
+      "hits": 3668
     },
     "routing": {
-      "files": 315,
-      "hits": 2050
+      "files": 322,
+      "hits": 2103
     },
     "workflow": {
-      "files": 232,
-      "hits": 1582
+      "files": 234,
+      "hits": 1584
     },
     "tenant": {
-      "files": 665,
-      "hits": 14777
+      "files": 667,
+      "hits": 14790
     },
     "market": {
-      "files": 384,
-      "hits": 3850
+      "files": 385,
+      "hits": 3851
     },
     "grid": {
-      "files": 626,
-      "hits": 9772
+      "files": 627,
+      "hits": 9776
     },
     "redispatch": {
-      "files": 298,
-      "hits": 4077
+      "files": 301,
+      "hits": 4092
     },
     "forecast": {
-      "files": 320,
-      "hits": 4543
+      "files": 321,
+      "hits": 4547
     },
     "edm": {
-      "files": 330,
-      "hits": 2370
+      "files": 332,
+      "hits": 2383
     },
     "mako": {
-      "files": 279,
-      "hits": 2231
+      "files": 280,
+      "hits": 2232
     },
     "willi": {
-      "files": 100,
-      "hits": 1446
+      "files": 101,
+      "hits": 1449
     },
     "vdmi": {
-      "files": 292,
-      "hits": 4525
+      "files": 293,
+      "hits": 4528
     },
     "eog": {
-      "files": 90,
-      "hits": 749
+      "files": 93,
+      "hits": 758
     },
     "stadtwerk": {
-      "files": 242,
-      "hits": 5620
+      "files": 244,
+      "hits": 5625
     },
     "utility": {
-      "files": 93,
-      "hits": 612
+      "files": 94,
+      "hits": 613
     },
     "regulator": {
-      "files": 315,
-      "hits": 2485
+      "files": 316,
+      "hits": 2487
     },
     "decision": {
-      "files": 430,
-      "hits": 6900
+      "files": 431,
+      "hits": 6901
     }
   },
   "validationSummary": "build: ok\nlint: ok\ntest-unit-ci: skipped (set SHEPHERD_FULL=1)\naudit-openapi: skipped (set SHEPHERD_FULL=1)\ncheck-llm: skipped (set SHEPHERD_FULL=1)\ngitnexus-analyze: skipped (set SHEPHERD_FULL=1)"

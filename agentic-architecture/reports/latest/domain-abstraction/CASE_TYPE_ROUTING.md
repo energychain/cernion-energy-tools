@@ -1,6 +1,6 @@
 # Case Type Routing
 
-Generated: 2026-10-10T19:29:08.782Z
+Generated: 2026-10-11T01:32:48.510Z
 
 OpenWebUI und Agentic Core sollen bei fachlichen Anfragen zuerst Falltypen erkennen, nicht direkt Tools auswählen.
 
@@ -105,3 +105,103 @@ HITL/Evidence-Grenze:
 - Abrechnungskorrektur
 - externe Kommunikation im Namen eines Unternehmens
 - Zusage zu Netzanschluss, Preis, Frist oder technischer Machbarkeit
+
+### Netzanschluss-/Kapazitäts-Klärfall
+
+Routing:
+
+Usertext → Netzanschluss-/Kapazitäts-Klärfall → Klärpunkte → Evidence Boundary → Next Best Action
+
+Typische Signale:
+
+- Welches Anschlussobjekt, welche Leistung und welcher Netzverknüpfungspunkt sind betroffen?
+- Geht es um erste Einschätzung, Prüfauftrag oder externe Zusage?
+- Welche Netzebene und welcher Zeitraum sind relevant?
+
+Erlaubte Assistenz ohne harte Evidenz:
+
+- interne Einschätzung
+- Klärpunktliste
+- Rückfrageentwurf
+- Readiness-Strukturierung
+
+HITL/Evidence-Grenze:
+
+- Anschlussobjekt, Leistung, Netzgebiet und Netzebene
+- Netzbetreiber-/Planungsrückmeldung für verbindliche Zusagen
+- HITL vor externer Machbarkeits- oder Anschlusszusage
+
+### Prognose-/Abweichungsfall
+
+Routing:
+
+Usertext → Prognose-/Abweichungsfall → Klärpunkte → Evidence Boundary → Next Best Action
+
+Typische Signale:
+
+- Welche Prognose, welcher Ist-Wert und welches Zeitfenster sind betroffen?
+- Welche Abweichung ist fachlich oder wirtschaftlich handlungsrelevant?
+- Geht es um Beobachtung, Korrektur oder Eskalation?
+
+Erlaubte Assistenz ohne harte Evidenz:
+
+- Abweichung einordnen
+- Hypothesen bilden
+- Sensitivitäten benennen
+- Klärpfad vorbereiten
+
+HITL/Evidence-Grenze:
+
+- Prognoseobjekt, Ist-Wert, Zeitfenster und Referenz
+- Kontextfaktoren für Ursachenhypothesen
+- HITL vor markt- oder abrechnungsrelevanter Korrektur
+
+### Redispatch-/Steuerbarkeits-Readiness
+
+Routing:
+
+Usertext → Redispatch-/Steuerbarkeits-Readiness → Klärpunkte → Evidence Boundary → Next Best Action
+
+Typische Signale:
+
+- Welche Anlage, Marktrolle und technische Steuerkette sind betroffen?
+- Welche Nachweise zur Steuerbarkeit oder Kommunikation liegen vor?
+- Geht es um Readiness, Befassung oder verbindliche Freigabe?
+
+Erlaubte Assistenz ohne harte Evidenz:
+
+- Readiness-Strukturierung
+- Klärpunktliste
+- Nachweisbedarf benennen
+- Befassung vorbereiten
+
+HITL/Evidence-Grenze:
+
+- Anlagenidentität, Betreiber, technische Steuerbarkeit und Kommunikationsweg
+- Nachweise für prozessuale/vertragliche Voraussetzungen
+- HITL vor Freigabe, externer Meldung oder produktiver Steuerhandlung
+
+### Wärme-/Gas-/EOG-Szenariofall
+
+Routing:
+
+Usertext → Wärme-/Gas-/EOG-Szenariofall → Klärpunkte → Evidence Boundary → Next Best Action
+
+Typische Signale:
+
+- Welches Gebiet, welche Infrastruktur und welcher Betrachtungszeitraum sind betroffen?
+- Welche Annahmen sind gesetzt und welche Klärpunkte offen?
+- Geht es um Befassung, Szenariovergleich oder Beschlussvorbereitung?
+
+Erlaubte Assistenz ohne harte Evidenz:
+
+- Szenarien strukturieren
+- Annahmen offenlegen
+- Befassung vorbereiten
+- Klärpunkte priorisieren
+
+HITL/Evidence-Grenze:
+
+- Gebiet, Annahmen, Infrastrukturstand und Szenariogrenzen
+- Quellen für Kosten-/Risiko-/Zeitdimensionen
+- HITL vor Beschluss-, Freigabe- oder Stilllegungswirkung

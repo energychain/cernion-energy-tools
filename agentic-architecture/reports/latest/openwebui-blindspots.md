@@ -1,10 +1,10 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-10T19:29:05.469Z
+Generated: 2026-10-11T01:32:43.513Z
 
 ## Observed adapter surface
 
-- OpenWebUI/ChatGPT adapter files detected: 28
+- OpenWebUI/ChatGPT adapter files detected: 29
 - verify:open-webui npm script: present
 - verify:agent-shapes npm script: present
 
@@ -12,6 +12,7 @@ Detected files:
 
 - `agentic-architecture/OPENWEBUI_AGENTIC_ROUTING.md`
 - `agentic-architecture/reports/latest/openwebui-blindspots.md`
+- `agentic-architecture/reports/openwebui-case-type-routing-propagation.md`
 - `docs/architecture/chatgpt-sidecar-oeo-trust-boundary.md`
 - `docs/architecture/chatgpt-sidecar-session-api-contract.md`
 - `docs/architecture/chatgpt-sidecar-session-ticket-gate.md`
@@ -52,7 +53,9 @@ Routing/capability/broker/manifest files:
 
 - `agentic-architecture/domain/CASE_TYPE_ROUTING.md`
 - `agentic-architecture/OPENWEBUI_AGENTIC_ROUTING.md`
+- `agentic-architecture/reports/capability-openapi-alignment.md`
 - `agentic-architecture/reports/latest/domain-abstraction/CASE_TYPE_ROUTING.md`
+- `agentic-architecture/reports/openwebui-case-type-routing-propagation.md`
 - `capability-routing.parameters.json`
 - `docs/domain-router.md`
 - `docs/OPERATION_CAPABILITY_INDEX.md`
@@ -85,6 +88,7 @@ Routing/capability/broker/manifest files:
 - `src/capability-catalog.js`
 - `src/capability-clarification.js`
 - `src/capability-routing.js`
+- `src/case-type-routing-context.js`
 - `src/case-type-routing.js`
 - `src/consultation-routing-guardrails.js`
 - `src/domain-router-contract.js`
@@ -111,6 +115,7 @@ Routing/capability/broker/manifest files:
 - `tests/capability-routing-regression.test.js`
 - `tests/capability-routing.test.js`
 - `tests/capability-uncertain-consumers.test.js`
+- `tests/case-type-routing-context.test.js`
 - `tests/case-view-manifest.test.js`
 - `tests/consultation-to-execution-hybrid-router.regression.test.js`
 - `tests/domain-router-confirmation.test.js`
@@ -137,17 +142,17 @@ Routing/capability/broker/manifest files:
 
 Service names that should be capability-mapped:
 
-- `Erneuerbare-Energien-Gesetz (EEG)`
-- `Stadtwerk Mauer`
-- `X-Tenant-Id`
 - `activation`
+- `agent`
 - `agent-manifest`
+- `agent-persona`
 - `agent-receipts`
 - `agent-sidecar`
 - `agents`
 - `agnes-bottleneck`
 - `altdaten-assessment`
 - `api`
+- `assets`
 - `auth`
 - `automatisierungsradar`
 - `backup-orchestrator`
@@ -156,9 +161,12 @@ Service names that should be capability-mapped:
 - `bilanzkreis`
 - `blindflug-radar`
 - `blueprint-management`
+- `business-intelligence`
+- `capability-broker`
 - `capex-prioritization`
-- `churn-prediction-${Date.now()}.csv`
+- `chatgpt-sidecar`
 - `clarification-policy`
+- `community`
 - `company`
 - `connection-rejection-evidence`
 - `cookbook`
@@ -175,7 +183,6 @@ Service names that should be capability-mapped:
 - `datasource-registry`
 - `datasource-watcher`
 - `decision-frame`
-- `direktvermarkterName`
 - `domain-router`
 - `domain-routes`
 - `dossier-hydration`
@@ -255,5 +262,3 @@ Service names that should be capability-mapped:
 - `redispatch-data-governance`
 - `redispatch-expost`
 - `redispatch-readiness-gate`
-- `redispatch-settlement-sandbox`
-- `redispatch-special-case-gate`
