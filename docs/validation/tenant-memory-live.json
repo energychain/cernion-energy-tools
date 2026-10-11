@@ -1,0 +1,944 @@
+{
+  "synthetic": true,
+  "mode": "Real configured LLM via llm-client, real local Object-Store and notices; empty knowledge sources and adversarial dataset routing stub.",
+  "recovery": {
+    "intervalMs": 30000,
+    "batchSize": 5,
+    "maxAttempts": 3,
+    "backoffMs": 30000,
+    "maxBackoffMs": 3600000,
+    "toolTimeoutMs": 10000,
+    "realModelReplay": {
+      "elapsedMs": 1370,
+      "checking": "complete",
+      "attempts": 1,
+      "passed": true
+    },
+    "idleObservations": 0
+  },
+  "budgets": {
+    "workbench": "15000,45000",
+    "assessmentMs": 45000
+  },
+  "runs": [
+    {
+      "order": [
+        "ben",
+        "anna"
+      ],
+      "run": 1,
+      "anchor": "Testsocooefqbosrallee",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "queryListsBoth": true,
+        "readableDate": true
+      },
+      "turns": [
+        {
+          "actor": "ben",
+          "responseText": "Die betroffenen Kunden an der Testsocooefqbosrallee sollen über die bevorstehende Außerbetriebnahme bis spätestens 2030 zeitnah informiert werden.\n\nErmittlung der betroffenen Kundennummern und Zählpunkte an der Testsocooefqbosrallee zur Vorbereitung der Kundeninformation.\n\nEntwurf:\nVariante A – wenn die Kundennummern vorliegen:\nGuten Tag, bezüglich der geplanten Außerbetriebnahme der Leitung in der Testsocooefqbosrallee bis spätestens 2030 bereiten wir die zeitnahe Information der betroffenen Kunden vor.\n\nVariante B – wenn die Kundennummern noch ermittelt werden müssen:\nGuten Tag, da die genauen Kundennummern für die Testsocooefqbosrallee noch ermittelt werden müssen, erfolgt die Kundeninformation zur Außerbetriebnahme bis spätestens 2030 nach Abschluss dieser Prüfung.\n\nHab ich festgehalten: Die Leitung in der Testsocooefqbosrallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "anna",
+          "responseText": "anna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testsocooefqbosrallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.“ (gültig). Prüfung ausstehend. ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testsocooefqbosrallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Die Stilllegung der Gasleitung bis 2030 erfordert zeitnah alternative Heiztechnologien wie Wärmepumpen, während das Stromnetz solche Anträge wegen Überlastung erst ab 2034 zulässt, wodurch eine ungedeckte zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %. Wie soll die Wärmeversorgung in der Testsocooefqbosrallee zwischen 2030 und 2034 sichergestellt werden, wenn weder Gasleitungen zur Verfügung stehen noch neue Wärmepumpen am Stromnetz genehmigt werden können?\n\nDie Situation beschreibt eine Kapazitätsüberlastung im Stromnetz der Testsocooefqbosrallee.\n\nDas Stromnetz in der Testsocooefqbosrallee verzeichnet eine hohe Auslastung, wodurch neue Anträge für Wallboxen und Wärmepumpen erst ab dem Jahr 2034 akzeptiert werden können.\n\nEs wird angenommen, dass die Frist bis 2034 für alle Neuanlagen vom Typ Wallbox und Wärmepumpe in diesem Straßenzug gilt.\n\nPrüfen Sie die Netzkapazitäten in der Testsocooefqbosrallee im Hinblick auf den genannten Aufnahmestopp bis 2034.\n\nErfassen und dokumentieren Sie eingehende Anträge für Netzanschlüsse entsprechend der aktuellen Kapazitätsgrenze.\n\nHab ich festgehalten: Das Stromnetz in der Testsocooefqbosrallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nanna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testsocooefqbosrallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.“ (gültig). ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testsocooefqbosrallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Die Stilllegung der Gasleitung bis 2030 erfordert zeitnah alternative Heiztechnologien wie Wärmepumpen, während das Stromnetz solche Anträge wegen Überlastung erst ab 2034 zulässt, wodurch eine ungedeckte zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %. Wie soll die Wärmeversorgung in der Testsocooefqbosrallee zwischen 2030 und 2034 sichergestellt werden, wenn weder Gasleitungen zur Verfügung stehen noch neue Wärmepumpen am Stromnetz genehmigt werden können?\n\nanna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testsocooefqbosrallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.“ (gültig). ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testsocooefqbosrallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Die Stilllegung der Gasleitung bis 2030 erfordert zeitnah alternative Heiztechnologien wie Wärmepumpen, während das Stromnetz solche Anträge wegen Überlastung erst ab 2034 zulässt, wodurch eine ungedeckte zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %. Wie soll die Wärmeversorgung in der Testsocooefqbosrallee zwischen 2030 und 2034 sichergestellt werden, wenn weder Gasleitungen zur Verfügung stehen noch neue Wärmepumpen am Stromnetz genehmigt werden können?\n\nDie betroffenen Kunden an der Testsocooefqbosrallee sollen über die bevorstehende Außerbetriebnahme bis spätestens 2030 zeitnah informiert werden.\n\nErmittlung der betroffenen Kundennummern und Zählpunkte an der Testsocooefqbosrallee zur Vorbereitung der Kundeninformation.\n\n\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "query": "anna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testsocooefqbosrallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.“ (gültig).\n\nben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testsocooefqbosrallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig).\n\nanna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testsocooefqbosrallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.“ (gültig). ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testsocooefqbosrallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Die Stilllegung der Gasleitung bis 2030 erfordert zeitnah alternative Heiztechnologien wie Wärmepumpen, während das Stromnetz solche Anträge wegen Überlastung erst ab 2034 zulässt, wodurch eine ungedeckte zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %. Wie soll die Wärmeversorgung in der Testsocooefqbosrallee zwischen 2030 und 2034 sichergestellt werden, wenn weder Gasleitungen zur Verfügung stehen noch neue Wärmepumpen am Stromnetz genehmigt werden können?",
+      "facts": [
+        {
+          "person": {
+            "actorId": "anna",
+            "name": "anna",
+            "roles": [
+              "ROLE_GRID_OPERATOR"
+            ],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Testsocooefqbosrallee",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": [
+            "08ec2b64533e0f0ae8c580bb7e9bdcb527344fb0e9ab774a0d3d410e82f82e17"
+          ]
+        },
+        {
+          "person": {
+            "actorId": "ben",
+            "name": "ben",
+            "roles": [
+              "ROLE_GRID_OPERATOR"
+            ],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Testsocooefqbosrallee",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": [
+            "08ec2b64533e0f0ae8c580bb7e9bdcb527344fb0e9ab774a0d3d410e82f82e17"
+          ]
+        }
+      ]
+    },
+    {
+      "order": [
+        "ben",
+        "anna"
+      ],
+      "run": 2,
+      "anchor": "Testtdmctapqosleallee",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "queryListsBoth": true,
+        "readableDate": true
+      },
+      "turns": [
+        {
+          "actor": "ben",
+          "responseText": "Es liegt eine Mitteilung der Gasnetzplanung zur notwendigen Außerbetriebnahme der Leitung in der Testtdmctapqosleallee bis 2030 und zur zeitnahen Kundeninformation vor.\n\nDie Gasnetzplanung erwartet die Außerbetriebnahme der Leitung in der Testtdmctapqosleallee bis spätestens 2030 sowie die zeitnahe Information der Kunden.\n\nPrüfe den genauen Verlauf und die betroffenen Anschlüsse der Leitung in der Testtdmctapqosleallee.\n\nGleiche die Kundendaten entlang der betroffenen Leitung mit dem Vertrieb und Service ab.\n\nErstelle einen Zeitplan für die Kundeninformation im Vorfeld der Stilllegung bis 2030.\n\nHab ich festgehalten: Die Leitung in der Testtdmctapqosleallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "anna",
+          "responseText": "anna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testtdmctapqosleallee ist am Limit, sodass neue Anträge für Wallboxen oder Wärmepumpen frühestens 2034 akzeptiert werden können.“ (gültig). Prüfung ausstehend. ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testtdmctapqosleallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Die Außerbetriebnahme der Gasleitung bis 2030 erzeugt einen Zwang zur Elektrifizierung oder alternativen Wärmeversorgung, während das Stromnetz in derselben Straße erst ab 2034 neue Anträge für Wärmepumpen akzeptieren kann, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %. Wie soll die Wärmeversorgung in der Testtdmctapqosleallee zwischen 2030 und 2034 sichergestellt werden, wenn weder Gas noch neue Wärmepumpen verfügbar sind?\n\nDie Netzkapazität in der Testtdmctapqosleallee ist erschöpft, wodurch Netzanschlussbegehren für Ladeeinrichtungen und Wärmepumpen bis zum Jahr 2034 zurückgestellt werden müssen.\n\nDas Stromnetz in der Testtdmctapqosleallee ist so weit ausgelastet, dass neue Anträge für Wallboxen oder Wärmepumpen erst ab 2034 angenommen werden können.\n\nEs wird davon ausgegangen, dass keine kurzfristigen netzverstärkenden Maßnahmen vor 2034 realisierbar sind.\n\nPrüfe netzseitige Ausbaupläne und Kapazitätsreserven für die betroffene Testtdmctapqosleallee.\n\nGleiche die Rückstellungsfrist bis 2034 mit vorliegenden netzplanerischen Daten ab. (bitte gegenprüfen)\n\nHab ich festgehalten: Das Stromnetz in der Testtdmctapqosleallee ist am Limit, sodass neue Anträge für Wallboxen oder Wärmepumpen frühestens 2034 akzeptiert werden können.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nanna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testtdmctapqosleallee ist am Limit, sodass neue Anträge für Wallboxen oder Wärmepumpen frühestens 2034 akzeptiert werden können.“ (gültig). ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testtdmctapqosleallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Die Außerbetriebnahme der Gasleitung bis 2030 erzeugt einen Zwang zur Elektrifizierung oder alternativen Wärmeversorgung, während das Stromnetz in derselben Straße erst ab 2034 neue Anträge für Wärmepumpen akzeptieren kann, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %. Wie soll die Wärmeversorgung in der Testtdmctapqosleallee zwischen 2030 und 2034 sichergestellt werden, wenn weder Gas noch neue Wärmepumpen verfügbar sind?\n\nanna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testtdmctapqosleallee ist am Limit, sodass neue Anträge für Wallboxen oder Wärmepumpen frühestens 2034 akzeptiert werden können.“ (gültig). ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testtdmctapqosleallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Die Außerbetriebnahme der Gasleitung bis 2030 erzeugt einen Zwang zur Elektrifizierung oder alternativen Wärmeversorgung, während das Stromnetz in derselben Straße erst ab 2034 neue Anträge für Wärmepumpen akzeptieren kann, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %. Wie soll die Wärmeversorgung in der Testtdmctapqosleallee zwischen 2030 und 2034 sichergestellt werden, wenn weder Gas noch neue Wärmepumpen verfügbar sind?\n\nFür das Vorhaben zur Außerbetriebnahme der Leitung in der Testtdmctapqosleallee bis spätestens 2030 stehen als nächste Schritte die Netzprüfung und die Kundeninformation an.\n\nPrüfe den genauen Verlauf und die betroffenen Anschlüsse der Leitung in der Testtdmctapqosleallee.\n\nKläre die zeitnahe Information der betroffenen Kunden für die Außerbetriebnahme bis zum Jahr 2030.\n\n\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "query": "anna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testtdmctapqosleallee ist am Limit, sodass neue Anträge für Wallboxen oder Wärmepumpen frühestens 2034 akzeptiert werden können.“ (gültig).\n\nben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testtdmctapqosleallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig).\n\nanna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testtdmctapqosleallee ist am Limit, sodass neue Anträge für Wallboxen oder Wärmepumpen frühestens 2034 akzeptiert werden können.“ (gültig). ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testtdmctapqosleallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Die Außerbetriebnahme der Gasleitung bis 2030 erzeugt einen Zwang zur Elektrifizierung oder alternativen Wärmeversorgung, während das Stromnetz in derselben Straße erst ab 2034 neue Anträge für Wärmepumpen akzeptieren kann, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %. Wie soll die Wärmeversorgung in der Testtdmctapqosleallee zwischen 2030 und 2034 sichergestellt werden, wenn weder Gas noch neue Wärmepumpen verfügbar sind?",
+      "facts": [
+        {
+          "person": {
+            "actorId": "anna",
+            "name": "anna",
+            "roles": [
+              "ROLE_GRID_OPERATOR"
+            ],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Testtdmctapqosleallee",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": [
+            "40524ab30e75d9e8140f898dcb7ff34c01faf48248da465f0a956c76879b4c3f"
+          ]
+        },
+        {
+          "person": {
+            "actorId": "ben",
+            "name": "ben",
+            "roles": [
+              "ROLE_GRID_OPERATOR"
+            ],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Testtdmctapqosleallee",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": [
+            "40524ab30e75d9e8140f898dcb7ff34c01faf48248da465f0a956c76879b4c3f"
+          ]
+        }
+      ]
+    },
+    {
+      "order": [
+        "anna",
+        "ben"
+      ],
+      "run": 1,
+      "anchor": "Testolpqncpsrfaoallee",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "queryListsBoth": true,
+        "readableDate": true
+      },
+      "turns": [
+        {
+          "actor": "anna",
+          "responseText": "Kenntnisnahme der Mitteilung des Netzbetreibers über die Erschöpfung der Netzkapazität in der Testolpqncpsrfaoallee.\n\nPrüfe interne Kapazitätsplanungen für die Testolpqncpsrfaoallee im Hinblick auf den genannten Zeitpunkt im Jahr 2034. (bitte gegenprüfen)\n\nHab ich festgehalten: Netzkapazitätsgrenze in Testolpqncpsrfaoallee erlaubt Neuanträge für Wallboxen oder Wärmepumpen erst ab 2034",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "ben",
+          "responseText": "anna (Stromnetz, 11.10.2026): „Netzkapazitätsgrenze in Testolpqncpsrfaoallee erlaubt Neuanträge für Wallboxen oder Wärmepumpen erst ab 2034“ (gültig). ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testolpqncpsrfaoallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Prüfung ausstehend. Die Schließung der Gasleitung bis 2030 erzeugt einen dringenden Bedarf an elektrischen Heizsystemen (Wärmepumpen), aber das Stromnetz hat Kapazitätsgrenzen bis 2034, wodurch eine zeitliche Lücke von mindestens 4 Jahren ohne tragfähige Versorgungsalternative entsteht. Unsicherheit: 20 %. Wie soll der Übergang von Gas auf andere Energieträger in der Testolpqncpsrfaoallee zwischen 2030 und 2034 gelöst werden, wenn das Stromnetz keine neuen Wärmepumpen erlaubt?\n\nDer Absender aus der Gasnetzplanung erwartet die Information der betroffenen Kunden über die Außerbetriebnahme der Leitung in der Testolpqncpsrfaoallee bis spätestens 2030.\n\nEs sind derzeit noch keine spezifischen Kundenanschlüsse für die Benachrichtigung selektiert.\n\nPrüfe die Kundendaten und die betroffenen Anschlüsse entlang der Testolpqncpsrfaoallee.\n\nErstelle einen Entwurf für die Kundeninformation zur geplanten Außerbetriebnahme bis spätestens 2030. (bitte gegenprüfen)\n\nEntwurf:\nGuten Tag,\n\nwir informieren Sie heute über die geplante Außerbetriebnahme der Leitung in der Testolpqncpsrfaoallee spätestens bis zum Jahr 2030.\n\nMit freundlichen Grüßen\n\nIhre Gasnetzplanung\n\nHab ich festgehalten: Die Leitung in der Testolpqncpsrfaoallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nanna (Stromnetz, 11.10.2026): „Netzkapazitätsgrenze in Testolpqncpsrfaoallee erlaubt Neuanträge für Wallboxen oder Wärmepumpen erst ab 2034“ (gültig). ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testolpqncpsrfaoallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Die Schließung der Gasleitung bis 2030 erzeugt einen dringenden Bedarf an elektrischen Heizsystemen (Wärmepumpen), aber das Stromnetz hat Kapazitätsgrenzen bis 2034, wodurch eine zeitliche Lücke von mindestens 4 Jahren ohne tragfähige Versorgungsalternative entsteht. Unsicherheit: 20 %. Wie soll der Übergang von Gas auf andere Energieträger in der Testolpqncpsrfaoallee zwischen 2030 und 2034 gelöst werden, wenn das Stromnetz keine neuen Wärmepumpen erlaubt?\n\nPrüfe interne Kapazitätsplanungen für die Testolpqncpsrfaoallee im Hinblick auf den genannten Zeitpunkt im Jahr 2034.\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "query": "anna (Stromnetz, 11.10.2026): „Netzkapazitätsgrenze in Testolpqncpsrfaoallee erlaubt Neuanträge für Wallboxen oder Wärmepumpen erst ab 2034“ (gültig).\n\nben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testolpqncpsrfaoallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig).\n\nanna (Stromnetz, 11.10.2026): „Netzkapazitätsgrenze in Testolpqncpsrfaoallee erlaubt Neuanträge für Wallboxen oder Wärmepumpen erst ab 2034“ (gültig). ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testolpqncpsrfaoallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Die Schließung der Gasleitung bis 2030 erzeugt einen dringenden Bedarf an elektrischen Heizsystemen (Wärmepumpen), aber das Stromnetz hat Kapazitätsgrenzen bis 2034, wodurch eine zeitliche Lücke von mindestens 4 Jahren ohne tragfähige Versorgungsalternative entsteht. Unsicherheit: 20 %. Wie soll der Übergang von Gas auf andere Energieträger in der Testolpqncpsrfaoallee zwischen 2030 und 2034 gelöst werden, wenn das Stromnetz keine neuen Wärmepumpen erlaubt?",
+      "facts": [
+        {
+          "person": {
+            "actorId": "anna",
+            "name": "anna",
+            "roles": [
+              "ROLE_GRID_OPERATOR"
+            ],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Testolpqncpsrfaoallee",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": [
+            "e9a62a5b0d7968de2a8e7bce767a9ebd0109a69b82ade08421f8ebf23bc72e46"
+          ]
+        },
+        {
+          "person": {
+            "actorId": "ben",
+            "name": "ben",
+            "roles": [
+              "ROLE_GRID_OPERATOR"
+            ],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Testolpqncpsrfaoallee",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": [
+            "e9a62a5b0d7968de2a8e7bce767a9ebd0109a69b82ade08421f8ebf23bc72e46"
+          ]
+        }
+      ]
+    },
+    {
+      "order": [
+        "anna",
+        "ben"
+      ],
+      "run": 2,
+      "anchor": "Testqterbctkmdsnallee",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "queryListsBoth": true,
+        "readableDate": true
+      },
+      "turns": [
+        {
+          "actor": "anna",
+          "responseText": "Es liegt eine Überlastung des lokalen Stromnetzes vor, die eine zeitweilige Einschränkung weiterer Einspeise- oder Bezugsanlagen erfordert.\n\nDas Stromnetz in der Testqterbctkmdsnallee ist aktuell an seiner Kapazitätsgrenze.\n\nNeue Anträge für Wallboxen oder Wärmepumpen können frühestens ab dem Jahr 2034 akzeptiert werden.\n\nDer genannte Zeitraum bis 2034 basiert auf der aktuellen Planung des Netzausbaus.\n\nPrüfe die Netzdaten und den Ausbauplan für die Testqterbctkmdsnallee.\n\nInformiere anfragende Kunden über die aktuelle Kapaschenbeschränkung und den Annahmestopp bis 2034.\n\nHab ich festgehalten: Das Stromnetz in der Testqterbctkmdsnallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "ben",
+          "responseText": "anna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testqterbctkmdsnallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.“ (gültig). ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testqterbctkmdsnallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Prüfung ausstehend. Die Abschaffung der Gasversorgung bis 2030 erfordert zeitnah alternative Heizstrukturen, jedoch verhindert die Kapazitätsgrenze des Stromnetzes bis 2034 den Umstieg auf strombasierte Wärmepumpen. Unsicherheit: 20 %. Wie kann der Wärmebedarf in der Testqterbctkmdsnallee zwischen 2030 und 2034 gedeckt werden, wenn die Gasleitung außer Betrieb ist und das Stromnetz keine zusätzlichen Lasten aufnehmen kann?\n\nDer Absender teilt aus der Gasnetzplanung mit, dass eine Leitung in der Testqterbctkmdsnallee bis 2030 außer Betrieb gehen muss.\n\nDie Leitung in der Testqterbctkmdsnallee soll bis spätestens 2030 außer Betrieb genommen werden.\n\nDie betroffenen Kunden sollen zeitnah über die geplante Außerbetriebnahme informiert werden.\n\nFür die Kundeninformation wird ein standardisiertes Anschreiben vorbereitet.\n\nErmittle die genaue Anzahl sowie die Kontaktdaten der betroffenen Kunden an der Testqterbctkmdsnallee.\n\nBereite die Kundeninformation für die anstehende Außerbetriebnahme bis zum Jahr 2030 vor. (bitte gegenprüfen)\n\nEntwurf:\nGuten Tag,\n\ndie Leitung in der Testqterbctkmdsnallee müssen wir spätestens im Jahr 2030 außer Betrieb nehmen.\n\nDie betroffenen Kunden sollen zeitnah über diesen Sachverhalt informiert werden.\n\nMit freundlichen Grüßen\n\nHab ich festgehalten: Die Leitung in der Testqterbctkmdsnallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nanna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testqterbctkmdsnallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.“ (gültig). ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testqterbctkmdsnallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Die Abschaffung der Gasversorgung bis 2030 erfordert zeitnah alternative Heizstrukturen, jedoch verhindert die Kapazitätsgrenze des Stromnetzes bis 2034 den Umstieg auf strombasierte Wärmepumpen. Unsicherheit: 20 %. Wie kann der Wärmebedarf in der Testqterbctkmdsnallee zwischen 2030 und 2034 gedeckt werden, wenn die Gasleitung außer Betrieb ist und das Stromnetz keine zusätzlichen Lasten aufnehmen kann?\n\nDas Stromnetz in der Testqterbctkmdsnallee ist aktuell an seiner Kapazitätsgrenze, weshalb neue Anträge für Wallboxen oder Wärmepumpen frühestens im Jahr 2034 akzeptiert werden können.\n\nPrüfe die Netzdaten und den Netzausbauplan für die Testqterbctkmdsnallee.\n\nInformiere anfragende Kunden über die aktuelle Kapazitätsbeschränkung und den Annahmestopp bis zum Jahr 2034.\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "query": "anna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testqterbctkmdsnallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.“ (gültig).\n\nben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testqterbctkmdsnallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig).\n\nanna (Stromnetz, 11.10.2026): „Das Stromnetz in der Testqterbctkmdsnallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.“ (gültig). ben (Gasnetzplanung, 11.10.2026): „Die Leitung in der Testqterbctkmdsnallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig). Die Abschaffung der Gasversorgung bis 2030 erfordert zeitnah alternative Heizstrukturen, jedoch verhindert die Kapazitätsgrenze des Stromnetzes bis 2034 den Umstieg auf strombasierte Wärmepumpen. Unsicherheit: 20 %. Wie kann der Wärmebedarf in der Testqterbctkmdsnallee zwischen 2030 und 2034 gedeckt werden, wenn die Gasleitung außer Betrieb ist und das Stromnetz keine zusätzlichen Lasten aufnehmen kann?",
+      "facts": [
+        {
+          "person": {
+            "actorId": "anna",
+            "name": "anna",
+            "roles": [
+              "ROLE_GRID_OPERATOR"
+            ],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Testqterbctkmdsnallee",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": [
+            "4a37ac04e36c0a490f9e37cd2fdfadbfa837a995609168f4905c7089fd2ef2b3"
+          ]
+        },
+        {
+          "person": {
+            "actorId": "ben",
+            "name": "ben",
+            "roles": [
+              "ROLE_GRID_OPERATOR"
+            ],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Testqterbctkmdsnallee",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": [
+            "4a37ac04e36c0a490f9e37cd2fdfadbfa837a995609168f4905c7089fd2ef2b3"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory recovery completed",
+      "tenantId": "synthetic-memory-4",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 0,
+      "notices": 1
+    }
+  ],
+  "assessments": [
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Die Leitung in der Testsocooefqbosrallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+          "basis": "Die Leitung in der Testsocooefqbosrallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Testsocooefqbosrallee",
+              "qualifier": "Leitung",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "2030",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": ""
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Das Stromnetz in der Testsocooefqbosrallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.",
+          "basis": "Das Stromnetz in der Testsocooefqbosrallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Testsocooefqbosrallee",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": ""
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-b4d2c0df]",
+            "possibleConsequence": "Die Außerbetriebnahme der Gasleitung bis 2030 in Kombination mit dem Aufnahmestopp für Wärmepumpen und Wallboxen bis 2034 führt zu einer Versorgungslücke und erschwert die Sektorenkopplung sowie den Umstieg auf alternative Heiz- und Ladelösungen.",
+            "affectedWork": "Wärme- und Ladeinfrastruktur sowie Netzausbau in der Testsocooefqbosrallee",
+            "availabilityLimit": "Gasleitung bis 2030 außer Betrieb, Stromnetz neue Anträge erst ab 2034"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-b4d2c0df]",
+            "kind": "gap",
+            "reason": "Die Stilllegung der Gasleitung bis 2030 erfordert zeitnah alternative Heiztechnologien wie Wärmepumpen, während das Stromnetz solche Anträge wegen Überlastung erst ab 2034 zulässt, wodurch eine ungedeckte zeitliche Lücke von mindestens vier Jahren entsteht.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie soll die Wärmeversorgung in der Testsocooefqbosrallee zwischen 2030 und 2034 sichergestellt werden, wenn weder Gasleitungen zur Verfügung stehen noch neue Wärmepumpen am Stromnetz genehmigt werden können?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "work",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Die Leitung in der Testtdmctapqosleallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+          "basis": "Die Leitung in der Testtdmctapqosleallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Testtdmctapqosleallee",
+              "qualifier": "Leitung",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "2030",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": ""
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Das Stromnetz in der Testtdmctapqosleallee ist am Limit, sodass neue Anträge für Wallboxen oder Wärmepumpen frühestens 2034 akzeptiert werden können.",
+          "basis": "Das Stromnetz in der Testtdmctapqosleallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Testtdmctapqosleallee",
+              "qualifier": "Straße",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "2034",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": ""
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-8bcbd564]",
+            "possibleConsequence": "Vorzeitige Stilllegung der Gasleitung bei gleichzeitiger Stromnetzüberlastung durch Wärmepumpen und Wallboxen bis 2034.",
+            "affectedWork": "Wärmeversorgung und Sektorenkopplung in der Testtdmctapqosleallee",
+            "availabilityLimit": "Gasnetzende 2030, Stromnetz für neue Anträge erst ab 2034"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-8bcbd564]",
+            "kind": "gap",
+            "reason": "Die Außerbetriebnahme der Gasleitung bis 2030 erzeugt einen Zwang zur Elektrifizierung oder alternativen Wärmeversorgung, während das Stromnetz in derselben Straße erst ab 2034 neue Anträge für Wärmepumpen akzeptieren kann, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie soll die Wärmeversorgung in der Testtdmctapqosleallee zwischen 2030 und 2034 sichergestellt werden, wenn weder Gas noch neue Wärmepumpen verfügbar sind?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "work",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Netzkapazitätsgrenze in Testolpqncpsrfaoallee erlaubt Neuanträge für Wallboxen oder Wärmepumpen erst ab 2034",
+          "basis": "Das Stromnetz in der Testolpqncpsrfaoallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Testolpqncpsrfaoallee",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "2034",
+            "earliest": "2034",
+            "date": ""
+          },
+          "expiresAt": ""
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Die Leitung in der Testolpqncpsrfaoallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+          "basis": "Die Leitung in der Testolpqncpsrfaoallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Testolpqncpsrfaoallee",
+              "qualifier": "Leitung",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "2030",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": ""
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-e52cf993]",
+            "possibleConsequence": "Die Außerbetriebnahme der Gasleitung bis 2030 in der Testolpqncpsrfaoallee könnte den Bedarf an elektrischen Alternativen wie Wärmepumpen erhöhen, während das Stromnetz dort laut anna erst ab 2034 neue Anträge zulässt.",
+            "affectedWork": "Wärmeversorgung und Netzausbau in der Testolpqncpsrfaoallee",
+            "availabilityLimit": "Gasleitung bis 2030 außer Betrieb, Stromnetz-Kapazitätsgrenze für Neuanmeldungen bis 2034"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-e52cf993]",
+            "kind": "gap",
+            "reason": "Die Schließung der Gasleitung bis 2030 erzeugt einen dringenden Bedarf an elektrischen Heizsystemen (Wärmepumpen), aber das Stromnetz hat Kapazitätsgrenzen bis 2034, wodurch eine zeitliche Lücke von mindestens 4 Jahren ohne tragfähige Versorgungsalternative entsteht.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie soll der Übergang von Gas auf andere Energieträger in der Testolpqncpsrfaoallee zwischen 2030 und 2034 gelöst werden, wenn das Stromnetz keine neuen Wärmepumpen erlaubt?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "work",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Das Stromnetz in der Testqterbctkmdsnallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.",
+          "basis": "Das Stromnetz in der Testqterbctkmdsnallee ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.",
+          "commitment": "assessment",
+          "anchors": [
+            {
+              "value": "Testqterbctkmdsnallee",
+              "qualifier": "Straße",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "2034",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": ""
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Die Leitung in der Testqterbctkmdsnallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+          "basis": "Die Leitung in der Testqterbctkmdsnallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Testqterbctkmdsnallee",
+              "qualifier": "Leitung",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "2030",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": ""
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-6fc86191]",
+            "possibleConsequence": "Die Außerbetriebnahme der Gasleitung bis 2030 könnte den Bedarf an elektrischen Alternativen wie Wärmepumpen erhöhen, während das Stromnetz erst ab 2034 Kapazitäten bietet.",
+            "affectedWork": "Integrierte Quartiersplanung und Sektorenkopplung",
+            "availabilityLimit": "Kapazitätsengpass im Stromnetz bis 2034"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-6fc86191]",
+            "kind": "conflict",
+            "reason": "Die Abschaffung der Gasversorgung bis 2030 erfordert zeitnah alternative Heizstrukturen, jedoch verhindert die Kapazitätsgrenze des Stromnetzes bis 2034 den Umstieg auf strombasierte Wärmepumpen.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie kann der Wärmebedarf in der Testqterbctkmdsnallee zwischen 2030 und 2034 gedeckt werden, wenn die Gasleitung außer Betrieb ist und das Stromnetz keine zusätzlichen Lasten aufnehmen kann?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "work",
+      "assertions": []
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-673328cb]",
+            "possibleConsequence": "Frühere Außerbetriebnahme der Gasleitung bei gleichzeitiger Überlastung des Stromnetzes",
+            "affectedWork": "Energieversorgung und Sektorenkopplung in der Testqterbctkmdsnallee",
+            "availabilityLimit": "Gasleitung bis 2030, Stromnetz erst ab 2034 für neue Anträge bereit"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-673328cb]",
+            "kind": "conflict",
+            "reason": "Die Außerbetriebnahme der Gasleitung bis 2030 erfordert einen Wechsel zu alternativen Energieträgern wie Wärmepumpen, während das Stromnetz solche neuen Anträge nach der Aussage von Anna erst ab 2034 akzeptieren kann, wodurch eine kritische Versorgungslücke entsteht.",
+            "uncertainty": 0.1,
+            "evidenceIds": [],
+            "question": "Wie soll der Wegfall der Gasversorgung in der Testqterbctkmdsnallee bis 2030 kompensiert werden, wenn das Stromnetz für Wärmepumpen erst ab 2034 verfügbar ist?"
+          }
+        ],
+        "plausibility": []
+      }
+    }
+  ],
+  "passed": true
+}

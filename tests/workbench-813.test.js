@@ -177,3 +177,39 @@ test.each([false, true])(
     if (!failed) expect(result.responseText).not.toContain('Das Modell ist gerade nicht verfügbar');
   }
 );
+
+test('one repair fixes a natural question and literal tenant-memory basis together', async () => {
+  const message = require('./fixtures/tenant-memory.json').first.text;
+  const current = {
+    ...situation('task'),
+    turnKind: 'work',
+    missingInformation: [
+      { key: 'role', question: 'Nenne mir deine Rolle?', reason: 'decisive', blocking: false },
+    ],
+    tenantMemory: {
+      assertions: [
+        {
+          text: message,
+          basis: 'Synthetische Zusammenfassung ohne wörtliche Grundlage',
+          commitment: 'planned',
+          anchors: [{ value: 'Hauptstraße', qualifier: '', aliases: [] }],
+          time: { from: '', until: '', latest: '2030', earliest: '', date: '' },
+          expiresAt: '',
+        },
+      ],
+      correction: { kind: 'none', basis: '', factId: '' },
+      query: { requested: false, anchor: '', functionLabel: '' },
+    },
+  };
+  const repaired = structuredClone(current);
+  repaired.missingInformation[0].question = 'Welche Rolle hast du – Planung oder Betrieb?';
+  repaired.tenantMemory.assertions[0].basis = message;
+  llm.generateStructured.mockResolvedValueOnce(current).mockResolvedValueOnce(repaired);
+  const result = await understand({ message, tenantId: 'synthetic' });
+  expect(llm.generateStructured).toHaveBeenCalledTimes(2);
+  const prompt = JSON.parse(llm.generateStructured.mock.calls[1][1]);
+  expect(prompt.repairInstruction).toContain('natürliche Frage');
+  expect(prompt.repairInstruction).toContain('wörtliches Belegstück');
+  expect(result.tenantMemory.assertions[0].basis).toBe(message);
+  expect(questionsFor(result)[0].question).toBe(repaired.missingInformation[0].question);
+});
