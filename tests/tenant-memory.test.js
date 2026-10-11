@@ -1039,9 +1039,13 @@ describe('tenant memory acceptance and lifecycle', () => {
     });
   });
 
-  test('AC-11: slow assessment cannot extend retrieval budget; both recipients receive one deferred notice', async () => {
+  test('AC-11: slow assessment stays within the turn budget; both recipients receive one deferred notice', async () => {
     const previousBudget = process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS;
+    const previousTurnBudget = process.env.WORKBENCH_TURN_TIMEOUT_MS;
     process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS = '35';
+    process.env.WORKBENCH_TURN_TIMEOUT_MS = String(
+      require('../src/workbench-understanding').llmOptions('tenant-a', 'answer').timeoutMs + 600
+    );
     let release;
     const held = new Promise((resolve) => {
       release = resolve;
@@ -1075,6 +1079,8 @@ describe('tenant memory acceptance and lifecycle', () => {
       release();
       if (previousBudget === undefined) delete process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS;
       else process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS = previousBudget;
+      if (previousTurnBudget === undefined) delete process.env.WORKBENCH_TURN_TIMEOUT_MS;
+      else process.env.WORKBENCH_TURN_TIMEOUT_MS = previousTurnBudget;
       await Promise.allSettled([...(app.workbench.tenantMemoryJobs || [])]);
     }
     for (const actor of ['Charly', 'Doris']) {
@@ -1635,11 +1641,19 @@ describe('tenant memory acceptance and lifecycle', () => {
       }
       return result;
     });
-    const response = await app.call(
-      'workbench.chat',
-      { userRequest: fixture.second.text, channel: 'api', conversationId: 'immediate-second' },
-      auth('Doris')
-    );
+    const previousTimeout = process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS;
+    let response;
+    try {
+      process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS = '80';
+      response = await app.call(
+        'workbench.chat',
+        { userRequest: fixture.second.text, channel: 'api', conversationId: 'immediate-second' },
+        auth('Doris')
+      );
+    } finally {
+      if (previousTimeout === undefined) delete process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS;
+      else process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS = previousTimeout;
+    }
     expect(response.responseText).toContain('Charly');
     expect(response.responseText).toContain('2030 bis 2034');
     expect(

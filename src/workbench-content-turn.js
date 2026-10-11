@@ -820,11 +820,9 @@ async function runContentTurn(
   );
   resolveMemoryRetrieval(retrieval);
   if (!memory.settled) {
-    // Persist all accepted statements before returning; strong anchor checks share the turn budget.
+    // Local checks and notice delivery use the turn budget, independently of source timeouts.
     const remaining = started + turnBudget - answerReserve - performance.now();
-    await toolLoop
-      .withinToolBudget(() => memory.job, Math.max(1, Math.min(remaining, retrievalTimeoutMs())))
-      .catch(() => {});
+    await toolLoop.withinToolBudget(() => memory.job, Math.max(1, remaining)).catch(() => {});
   }
   const memoryContext = await memoryContextJob;
   // Re-read local relations after a new assertion's assessment, using a separate local budget.

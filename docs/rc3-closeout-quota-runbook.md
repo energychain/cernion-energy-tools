@@ -38,11 +38,11 @@ berichten: wenn die Fassade keine Provider-Tokenzahlen erhält, schätzt sie anh
 von Zeichen/4; solche Werte sind keine exakten Anbieterabrechnungen.
 
 Messung vom 11.10.2026: Die bestandene RC3-Abnahme enthält elf Turns,
-19 Modellaufrufe und 115.443 geschätzte Tokens. Acht Turns nutzten das Modell,
+17 Modellaufrufe und 109.414 geschätzte Tokens. Acht Turns nutzten das Modell,
 drei Gedächtnisabfragen/Widerrufe verbrauchten null Tokens. Gemessener Richtwert
-für diesen Korpus: rund 14.430 Tokens je Modellturn; p95 (bei nur acht
-Modellturns zugleich das Maximum) 22.627 Tokens. Über alle elf Turns beträgt
-der Mittelwert 10.495 Tokens. Der Bericht `docs/validation/rc3-closeout-live.json`
+für diesen Korpus: rund 13.677 Tokens je Modellturn; p95 (bei nur acht
+Modellturns zugleich das Maximum) 21.012 Tokens. Über alle elf Turns beträgt
+der Mittelwert 9.947 Tokens. Der Bericht `docs/validation/rc3-closeout-live.json`
 enthält `tokenDelta` je Turn und trennt geschätzte von tatsächlichen Tokens.
 Die kleine synthetische Stichprobe muss vor einer verbindlichen Dimensionierung
 mit repräsentativen eigenen Abläufen erweitert werden.
@@ -50,8 +50,8 @@ mit repräsentativen eigenen Abläufen erweitert werden.
 Dimensionierung: Tagesgrenze = erwartete Modellturns/Tag × gemessene p95-Tokens/Turn
 × Reserve (z. B. 1,3); Monatsgrenze analog mit erwarteten Arbeitstagen und
 Hintergrundprüfungen. Für 100 Modellturns ergibt der gemessene Korpus als
-Planungsansatz 100 × 22.627 × 1,3 = rund 2.942.000 Tokens/Tag. Der Standard
-250.000 reicht beim gemessenen Mittelwert für etwa 17 Modellturns; Reparaturen,
+Planungsansatz 100 × 21.012 × 1,3 = rund 2.732.000 Tokens/Tag. Der Standard
+250.000 reicht beim gemessenen Mittelwert für etwa 18 Modellturns; Reparaturen,
 weitere Beziehungsprüfungen und Hintergrundarbeit verringern diesen Spielraum.
 Ein vorheriger erfolgreicher Lauf desselben Korpus benötigte 20 Aufrufe und
 128.530 geschätzte Tokens (p95 30.006 je Modellturn). Diese Streuung zeigt,
