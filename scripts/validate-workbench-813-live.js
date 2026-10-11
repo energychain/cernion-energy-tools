@@ -12,6 +12,10 @@ const corpus = require('../tests/fixtures/workbench-813.generated.json');
 const report = {
   sources:
     'Real central LLM facade; synthetic/empty source services (knowledge, object-store, datapoint); local real case and document stores.',
+  phaseBudgetsMs: process.env.WORKBENCH_LLM_TIMEOUT_MS.split(',').map(Number),
+  requestTimeoutMs: 300000,
+  isolation:
+    'Independent synthetic tenant and actor per scenario, shared across its turns; separate stores per run.',
   runs: [],
   turnsWithQuestion: 0,
   totalTurns: 0,
@@ -75,7 +79,7 @@ async function validateConversation() {
                   roles: ['ROLE_GRID_OPERATOR'],
                 },
               },
-              timeout: 120000,
+              timeout: report.requestTimeoutMs,
             }
           );
           messages.push({ role: 'assistant', content: result.responseText });
