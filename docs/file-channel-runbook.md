@@ -86,7 +86,7 @@ nicht wirksam; dann kann Open WebUI weiterhin den Textweg verwenden.
 | 503 / „Dateikanal-Schlüssel fehlt“ | Signierschlüssel fehlt oder CET nicht neu gestartet |
 | „Quelle abgerufen“ | Filter inaktiv, nicht global oder tatsächliche Modell-ID fehlt in `MODEL_IDS` |
 | „Server nicht erreichbar oder Zeitüberschreitung“ | Serverseitige CET-Adresse und Verbindung prüfen |
-| 404 auf `/api/v1/cet-files/…` | Worker seit Neustart noch nicht durch einen passenden Chat initialisiert |
+| Frontendseite statt Datei auf `/api/v1/cet-files/…` (bei API-only auch 404) | Worker seit Neustart noch nicht durch einen passenden Chat initialisiert |
 
 `outlet` läuft bei UI-Chats; bei direkten API-Aufrufen zusätzlich `/api/chat/completed`
 ausführen. Signaturen, interne APIs und Fehleranzeige sind mit Datei und Zeile des
