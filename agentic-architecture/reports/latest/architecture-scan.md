@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-11T01:32:43.513Z
+Generated: 2026-10-11T07:36:09.260Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 1834
+- Files scanned: 1842
 - Services: 157
 - src/*.js files: 348
 - Tests: 459
 - Integrations files: 27
-- Markdown/docs files: 487
+- Markdown/docs files: 495
 
 ## Existing validation summary
 
@@ -31,8 +31,8 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 - `docs`: 371 files
 - `services`: 193 files
 - `tools`: 85 files
+- `agentic-architecture`: 61 files
 - `scripts`: 61 files
-- `agentic-architecture`: 53 files
 - `integrations`: 27 files
 - `.claude`: 26 files
 - `.github`: 11 files
@@ -49,7 +49,7 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Agentic surface
 
-- Agent/capability/sidecar related files: 258
+- Agent/capability/sidecar related files: 266
 - Routing/capability/broker/manifest files: 88
 - Evidence/HITL/receipt/dossier files: 74
 - OpenWebUI/ChatGPT adapter files: 29
@@ -68,8 +68,12 @@ Primary agentic files:
 - `agentic-architecture/domain/EVIDENCE_VS_PRACTICE.md`
 - `agentic-architecture/domain/falltypen/KUNDEN_SERVICE_KLAERFALL.md`
 - `agentic-architecture/domain/falltypen/MESSWERT_EDM_PLAUSIBILITAETSFALL.md`
+- `agentic-architecture/domain/falltypen/NETZANSCHLUSS_KAPAZITAETS_KLAERFALL.md`
+- `agentic-architecture/domain/falltypen/PROGNOSE_ABWEICHUNGSFALL.md`
 - `agentic-architecture/domain/falltypen/README.md`
+- `agentic-architecture/domain/falltypen/REDISPATCH_STEUERBARKEITS_READINESS.md`
 - `agentic-architecture/domain/falltypen/STAMMDATEN_MARKTROLLEN_KLAERFALL.md`
+- `agentic-architecture/domain/falltypen/WAERME_GAS_EOG_SZENARIOFALL.md`
 - `agentic-architecture/domain/HUMAN_DECISION_POINTS.md`
 - `agentic-architecture/domain/NATURAL_WORKFLOWS.md`
 - `agentic-architecture/domain/PROCESS_PATTERNS.md`
@@ -92,10 +96,6 @@ Primary agentic files:
 - `agentic-architecture/reports/latest/domain-abstraction/DOMAIN_OBJECTS.md`
 - `agentic-architecture/reports/latest/domain-abstraction/domain-abstraction-report.md`
 - `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md`
-- `agentic-architecture/reports/latest/domain-abstraction/EVIDENCE_VS_PRACTICE.md`
-- `agentic-architecture/reports/latest/domain-abstraction/falltypen/KUNDEN_SERVICE_KLAERFALL.md`
-- `agentic-architecture/reports/latest/domain-abstraction/falltypen/MESSWERT_EDM_PLAUSIBILITAETSFALL.md`
-- `agentic-architecture/reports/latest/domain-abstraction/falltypen/README.md`
 
 ## Service inventory
 
