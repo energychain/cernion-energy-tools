@@ -50,6 +50,7 @@ describe('document conversation integration', () => {
     apiToken: { tenantId: 'anonymous', id: 'synthetic-reviewer', roles: ['ROLE_GRID_OPERATOR'] },
   };
   beforeEach(async () => {
+    llm.generateText.mockReset();
     directory = fs.mkdtempSync(path.join(os.tmpdir(), 'document-flow-'));
     broker = new ServiceBroker({ logger: false, transporter: null });
     const settings = Object.assign(
@@ -139,6 +140,132 @@ describe('document conversation integration', () => {
       { channel: 'open-webui', conversationId, message },
       { meta: structuredClone(meta) }
     );
+
+  test('an attached file without a task asks once, stores the file and avoids an unrequested review', async () => {
+    const question = {
+      key: 'purpose',
+      reason: 'purpose',
+      question: 'Überblick, Prüfung oder Entwurf?',
+      blocking: false,
+    };
+    llm.generateStructured.mockResolvedValue({
+      ...structuredClone(situation),
+      conversationShape: 'orientation',
+      missingInformation: [question],
+      requestedAction: { description: '', draftRequested: false, externalEffect: false },
+    });
+    llm.generateText.mockResolvedValue(
+      JSON.stringify({
+        interpretation: [
+          {
+            text: 'Der Zeitplan braucht noch eine Freigabe.',
+            origin: 'input',
+            supported: 'model',
+            completedAction: false,
+            specific: false,
+            evidenceIds: [],
+          },
+        ],
+        expectation: [],
+        nextSteps: [],
+        draft: [],
+      })
+    );
+    const message = packed(
+      'Was kannst Du mir dazu sagen?',
+      'Der synthetische Zeitplan ist noch nicht freigegeben.'
+    );
+    const first = await turn(message);
+    expect(first.responseText).toContain(question.question);
+    expect(first.requiredClarifications).toEqual([question.question]);
+    const docs = await loadDocuments(service.store, {
+      tenantId: 'anonymous',
+      actorId: 'synthetic-reviewer',
+      caseId: first.cetCaseId,
+    });
+    expect(docs[0].text).toBe('Der synthetische Zeitplan ist noch nicht freigegeben.');
+    expect(service.workbenchDocumentReviews?.size || 0).toBe(0);
+    const repeated = await turn(message);
+    expect(repeated.responseText).not.toContain(question.question);
+    expect(repeated.requiredClarifications).toEqual([]);
+    llm.generateStructured.mockResolvedValue({
+      ...structuredClone(situation),
+      turnKind: 'knowledge',
+      conversationShape: 'knowledge',
+      missingInformation: [{ ...question, answered: true }],
+      requestedAction: { description: '', draftRequested: false, externalEffect: false },
+    });
+    const overview = await turn('Mir geht es um einen kurzen Überblick.');
+    expect(overview.situation.conversationShape).toBe('knowledge');
+    expect(overview.responseText).toContain('Der Zeitplan braucht noch eine Freigabe.');
+    expect(overview.requiredClarifications).toEqual([]);
+    expect(overview.metadata.degraded).toBe(false);
+    expect(service.workbenchDocumentReviews?.size || 0).toBe(0);
+    llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+      const data = JSON.parse(prompt);
+      if (data.untrustedDocument) return { ...structuredClone(map), citations: [data.lines[0]] };
+      if (data.maps)
+        return {
+          verdict: 'Prüfung abgeschlossen.',
+          rationale: 'Synthetische Prüfung.',
+          strengths: [],
+          risks: [],
+          checkpoints: [],
+          contradictions: [],
+          openQuestions: [],
+          draft: '',
+        };
+      return { ...structuredClone(situation), turnKind: 'review', conversationShape: 'task' };
+    });
+    const review = await turn('Prüfe das Dokument fachlich.');
+    expect(review.documentReview.status).toBe('pending');
+    await Promise.all(service.workbenchDocumentReviews.values());
+  });
+
+  test('an explicit draft after orientation gets a fresh task situation', async () => {
+    llm.generateStructured
+      .mockResolvedValueOnce({
+        ...structuredClone(situation),
+        turnKind: 'knowledge',
+        conversationShape: 'orientation',
+      })
+      .mockResolvedValueOnce({ ...structuredClone(situation), conversationShape: 'task' });
+    const claim = (text) => ({
+      text,
+      supported: 'model',
+      completedAction: false,
+      specific: false,
+      evidenceIds: [],
+    });
+    llm.generateText.mockImplementation(async (prompt) => {
+      const { situation: current } = JSON.parse(prompt);
+      return JSON.stringify({
+        interpretation:
+          current.conversationShape === 'orientation'
+            ? [claim('Ich kann dir fachlich helfen.')]
+            : [],
+        expectation: [],
+        nextSteps: [],
+        draft:
+          current.conversationShape === 'task'
+            ? [
+                claim(
+                  'Guten Tag, bitte teilen Sie uns den dokumentierten Bearbeitungsstand Ihrer Anfrage mit. Mit freundlichen Grüßen.'
+                ),
+              ]
+            : [],
+      });
+    });
+    await turn('Kennst du System X?', 'orientation-task');
+    const message = 'Mach mir die Antwort fertig';
+    const result = await turn(message, 'orientation-task');
+    expect(
+      llm.generateStructured.mock.calls.some((call) => JSON.parse(call[1]).message === message)
+    ).toBe(true);
+    expect(result.situation.conversationShape).toBe('task');
+    expect(result.responseText).toContain('Bearbeitungsstand');
+    expect(result.draftId).toBeTruthy();
+  });
 
   test('long full transport persists, fast intermediate response, later cited review and no unsolicited draft', async () => {
     const first = await turn(packed('Bewerte bitte den Plan.'));

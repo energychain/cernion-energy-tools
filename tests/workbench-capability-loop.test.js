@@ -825,6 +825,24 @@ test.each([
   expect(llm.generateChat).not.toHaveBeenCalled();
 });
 
+test.each([
+  { turnKind: 'review', outputKind: 'correspondence', conversationShape: 'task' },
+  { turnKind: 'work', outputKind: 'analysis', conversationShape: 'filing' },
+])('a supplied text cannot open an inferred query: %j', (mode) => {
+  const embedded = `Mein Entwurf: Bitte beantworten Sie: ${registryQuestion}`;
+  const empty = { ...situation, ...mode, concern: registryQuestion, dataNeeds: '' };
+  const need = resolveCapabilityNeed(empty, embedded, { model, index, api });
+  expect(need).toMatchObject({ candidates: [], reason: 'no_data_need' });
+  expect(need.situation.dataNeeds).toBe('');
+  expect(
+    resolveCapabilityNeed({ ...empty, dataNeeds: registryQuestion }, embedded, {
+      model,
+      index,
+      api,
+    }).reason
+  ).toBe('data_need');
+});
+
 test('fallback respects configurable threshold, read policy and domain restrictions', () => {
   const empty = { ...situation, concern: registryQuestion, dataNeeds: '' };
   process.env.WORKBENCH_TOOL_TRIGGER_MIN_SCORE = '10000';

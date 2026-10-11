@@ -103,7 +103,8 @@ function assessments() {
   });
   llm.generateText.mockResolvedValue(
     JSON.stringify({
-      expectation: [
+      expectation: [],
+      interpretation: [
         {
           text: 'Wir berücksichtigen die vorliegenden Angaben.',
           supported: 'model',
@@ -996,7 +997,10 @@ describe('tenant memory acceptance and lifecycle', () => {
     }
     await memory.assess(context(app, 'Doris'), principal('Doris'), facts[1], {});
     llm.generateStructured.mockImplementation(async () =>
-      situation('Kundeninformation Hauptstraße', [], { turnKind: 'knowledge' })
+      situation('Kundeninformation Hauptstraße', [], {
+        turnKind: 'knowledge',
+        conversationShape: 'task',
+      })
     );
     llm.generateText.mockResolvedValue(
       JSON.stringify({

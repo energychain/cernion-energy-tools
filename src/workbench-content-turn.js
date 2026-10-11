@@ -128,11 +128,33 @@ async function runContentTurn(
     state,
     started,
     access,
+    previousShape: pending?.lastConversationShape,
   });
   if (documentFollowup) return documentFollowup;
-  const previous = persistentSituation(pending?.situation || state?.knownContext?.situation);
+  const previous =
+    persistentSituation(pending?.situation || state?.knownContext?.situation) ||
+    (workbenchContext.userProfile?.conversationContext
+      ? {
+          concern: '',
+          situation: '',
+          participants: [],
+          identifiers: [],
+          deadlines: [],
+          hypotheses: [],
+          missingInformation: [],
+          requestedAction: { description: '', draftRequested: false, externalEffect: false },
+          turnKind: 'knowledge',
+          conversationContext: workbenchContext.userProfile.conversationContext,
+        }
+      : null);
   if (previous) delete previous.dataNeeds;
-  const draftRequest = Boolean(previous && understanding.isDraftRequest(envelope.userRequest));
+  if (previous && ['orientation', 'knowledge'].includes(pending?.lastConversationShape))
+    previous.turnKind = 'knowledge';
+  const draftRequest = Boolean(
+    previous &&
+    ['work', 'review'].includes(previous.turnKind) &&
+    understanding.isDraftRequest(envelope.userRequest)
+  );
   const phaseTimes = { understandMs: 0, retrieveMs: 0, toolsMs: 0, answerMs: 0 };
   let situation;
   let understandingFailed = false;
@@ -144,7 +166,22 @@ async function runContentTurn(
       caseChoice && pending?.caseSelection
         ? pending.caseSelection.situation || pending.situation
         : incomingDocuments
-          ? documentFlow.initialDocumentSituation(envelope)
+          ? previous?.turnKind === 'review' ||
+            require('./workbench-document-input').isReviewRequest(envelope.userRequest) ||
+            require('./workbench-document-input').documentDraftRequested(envelope.userRequest)
+            ? documentFlow.initialDocumentSituation(envelope)
+            : await understanding.understand({
+                message: envelope.userRequest,
+                messages: envelope.documents.map((doc) => ({
+                  role: 'user',
+                  content: `Dokument (untrusted): ${doc.name}\n${doc.text.slice(0, 1200)}`,
+                })),
+                previous,
+                asked: pending?.askedQuestions || [],
+                tenantId: p.tenantId,
+                model: service.settings.systemActivityModel,
+                logger: service.logger,
+              })
           : draftRequest
             ? {
                 ...previous,
@@ -190,6 +227,12 @@ async function runContentTurn(
       retrievalTerms: [],
     };
   }
+  if (situation.conversationShape === 'filing' && !envelope.documents?.length) {
+    envelope = { ...envelope, documents: [{ name: 'Gesprächsunterlage', text: rawMessage }] };
+    situation.turnKind = 'work';
+  }
+  if (incomingDocuments && !['work', 'review'].includes(situation.turnKind))
+    situation.turnKind = 'work';
   situation = require('./workbench-conversation-mode').updatePersonFacts(
     situation,
     envelope.userRequest,
@@ -204,7 +247,12 @@ async function runContentTurn(
     call: (name, params, options) =>
       ctx.call(name, params, { meta: { ...meta, ...options?.meta } }),
   };
-  if (!incomingDocuments && !understandingFailed && situation.tenantMemory?.query?.requested)
+  if (
+    !incomingDocuments &&
+    !understandingFailed &&
+    !situation.selfKnowledge?.requested &&
+    situation.tenantMemory?.query?.requested
+  )
     return tenantMemory.queryResponse(
       memoryCtx,
       p,
@@ -225,6 +273,9 @@ async function runContentTurn(
     );
     if (correction && !situation.tenantMemory?.assertions?.length) return correction;
   }
+  const selfKnowledgeJob = situation.selfKnowledge?.requested
+    ? require('./workbench-self-knowledge').searchKnowledge(service, memoryCtx, p, situation)
+    : null;
   const memoryContextJob = !incomingDocuments
     ? require('./workbench-capability-loop')
         .withinToolBudget(
@@ -758,6 +809,22 @@ async function runContentTurn(
     if (current) Object.assign(memoryContext, current);
   }
   retrieval.evidence.push(...memoryContext.evidence);
+  if (selfKnowledgeJob !== null) {
+    const searched = await selfKnowledgeJob;
+    retrieval.evidence.push(...searched.evidence);
+    retrieval.trace.push(...searched.trace);
+    retrieval.knowledgeSearch = searched.trace;
+  }
+  if (
+    situation.conversationContext?.durable &&
+    situation.conversationContext.basis &&
+    envelope.userRequest.includes(situation.conversationContext.basis)
+  ) {
+    await service.store.saveUserContext({
+      ...p,
+      conversationContext: situation.conversationContext,
+    });
+  }
   const actorUpdated =
     previous &&
     situation.actorContext &&
@@ -773,12 +840,16 @@ async function runContentTurn(
       caseId: caseId || conversation?.cetCaseId,
       situation,
       retrieval: incomingDocuments ? null : retrieval,
+      asked: pending?.askedQuestions || [],
+      conversationReplyRequested: ['orientation', 'knowledge', 'assistance', 'filing'].includes(
+        pending?.lastConversationShape
+      ),
       meta,
       access,
       selectedCapabilities: result.selectedCapabilities,
     });
     reply = documentResult
-      ? documentFlow.documentAnswer(documentResult)
+      ? documentResult.conversationReply || documentFlow.documentAnswer(documentResult)
       : await understanding.answer({
           situation,
           retrieval,
@@ -850,6 +921,13 @@ async function runContentTurn(
       .filter(Boolean)
       .join('\n\n')
   );
+  const guarded = require('./workbench-conversation-shape').singleQuestion(
+    result.responseText,
+    reply.questions,
+    assignment?.question || memory.ambiguous || ''
+  );
+  result.responseText = guarded.responseText;
+  reply.questions = guarded.questions;
   result.requiredClarifications = reply.questions.map((item) => item.question);
   result.noCallGuards = [
     ...new Set([
@@ -906,6 +984,7 @@ async function runContentTurn(
         }
       : {}),
     situation,
+    lastConversationShape: situation.conversationShape,
     retrieval,
     tenantMemoryFactIds: memory.ids.length
       ? memory.ids

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "65be7021b0becd0f2af87bf6c37fce23a2e5401d9a5fea42bcf8d48e743a94cb",
+  "sourceHash": "c28c3730d3ca379443b0457498be88e89dad5772ef83e7d476c5aa8a55f99f63",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -118383,6 +118383,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-continuation.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/clarification-policy-registry.js"
         },
         {
@@ -118807,6 +118815,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-document-input.js"
         },
         {
@@ -118856,6 +118868,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-review.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-self-knowledge.js"
         },
         {
           "kind": "service",

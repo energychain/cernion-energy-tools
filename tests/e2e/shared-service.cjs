@@ -196,6 +196,10 @@ async function validateConversationMode(chat) {
       throw Object.assign(new Error('Synthetic quota failure'), { status: 429 });
     }
     const value = await savedUnderstanding(schema, prompt);
+    value.conversationShape = conversationFixture.liveTurns.includes(input.message)
+      ? 'assistance'
+      : 'task';
+    if (value.conversationShape === 'task') value.outputKind = 'correspondence';
     if (input.message === conversationFixture.liveTurns[2]) {
       assert(input.previous.personFacts.includes(conversationFixture.liveTurns[1]));
       value.quantities = [

@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `65be7021b0becd0f2af87bf6c37fce23a2e5401d9a5fea42bcf8d48e743a94cb`
+Source SHA-256: `c28c3730d3ca379443b0457498be88e89dad5772ef83e7d476c5aa8a55f99f63`
 
 Capabilities: 172; functions: 110.
 Function vectors: 95/110; missing or incompatible capability vectors: 25.
