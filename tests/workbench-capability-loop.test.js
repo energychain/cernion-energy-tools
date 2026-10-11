@@ -114,7 +114,7 @@ test('AC-01 executes catalogued read with delegated identity and evidence proven
   expect(response.responseText).toContain('Synthetic A');
   expect(response.responseText).toContain('Herkunft:');
   expect(response.responseText).not.toContain('energy-market.installations');
-  expect(response.responseText).toContain('Abruf:');
+  expect(response.responseText).toContain('Abruf ');
   expect(response.responseText).not.toContain('kein Zugriff');
 });
 
@@ -823,6 +823,24 @@ test.each([
   expect(need.reason).toBe('no_data_need');
   expect(need.situation.dataNeeds).toBe('');
   expect(llm.generateChat).not.toHaveBeenCalled();
+});
+
+test.each([
+  { turnKind: 'review', outputKind: 'correspondence', conversationShape: 'task' },
+  { turnKind: 'work', outputKind: 'analysis', conversationShape: 'filing' },
+])('a supplied text cannot open an inferred query: %j', (mode) => {
+  const embedded = `Mein Entwurf: Bitte beantworten Sie: ${registryQuestion}`;
+  const empty = { ...situation, ...mode, concern: registryQuestion, dataNeeds: '' };
+  const need = resolveCapabilityNeed(empty, embedded, { model, index, api });
+  expect(need).toMatchObject({ candidates: [], reason: 'no_data_need' });
+  expect(need.situation.dataNeeds).toBe('');
+  expect(
+    resolveCapabilityNeed({ ...empty, dataNeeds: registryQuestion }, embedded, {
+      model,
+      index,
+      api,
+    }).reason
+  ).toBe('data_need');
 });
 
 test('fallback respects configurable threshold, read policy and domain restrictions', () => {

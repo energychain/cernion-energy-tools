@@ -470,6 +470,7 @@ module.exports = {
           ctx.params.metadata && typeof ctx.params.metadata === 'object'
             ? { ...ctx.params.metadata }
             : {};
+        if (ctx.params.cet_file_refs != null) metadata.fileRefs = ctx.params.cet_file_refs;
         if (gateway) {
           if (metadata.client && metadata.client !== ctx.meta.apiToken.client) gatewayForbidden();
           metadata.client = ctx.meta.apiToken.client;
@@ -518,6 +519,7 @@ module.exports = {
           const requestedEffect = classifyRequestedEffect(question);
           const contentOnly =
             parsed.documents.length > 0 ||
+            metadata.fileRefs?.length > 0 ||
             documentInput.documentReference(question) ||
             require('../src/workbench-background-task').backgroundTask(question) ||
             require('../src/workbench-thread').isDocumentInput(question);
@@ -544,6 +546,7 @@ module.exports = {
             {
               client: metadata.client || 'open-webui',
               channel: 'open-webui',
+              ...(metadata.fileRefs != null ? { fileRefs: metadata.fileRefs } : {}),
               openWebuiConversationId: metadata.openWebuiConversationId || metadata.conversationId,
               openWebuiUserId: metadata.openWebuiUserId,
               ...(metadata.openWebuiUserEmail

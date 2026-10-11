@@ -2,7 +2,7 @@
 
 const { timestampMillis } = require('./dataset-input');
 
-function normalizeDatasetTimes(rows, field, timezone) {
+function normalizeDatasetTimes(rows, field, timezone, expectedIntervalMinutes) {
   if (!field)
     return { utc: [], local: [], intervalMinutes: null, gaps: 0, duplicates: 0, transitions: [] };
   const formatter = new Intl.DateTimeFormat('sv-SE', {
@@ -73,7 +73,10 @@ function normalizeDatasetTimes(rows, field, timezone) {
     const diff = instants[i] - instants[i - 1];
     if (diff > 0) diffs.set(diff, (diffs.get(diff) || 0) + 1);
   }
-  const interval = [...diffs].sort((a, b) => b[1] - a[1])[0]?.[0];
+  const interval =
+    expectedIntervalMinutes > 0
+      ? expectedIntervalMinutes * 60000
+      : [...diffs].sort((a, b) => b[1] - a[1])[0]?.[0];
   const unique = [...new Set(instants)].sort((a, b) => a - b);
   let gaps = 0;
   if (interval)

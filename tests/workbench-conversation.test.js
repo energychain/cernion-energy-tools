@@ -161,14 +161,14 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  test('AC-01: anonymous production mail gets help immediately, sources, <=3 questions and a background case', async () => {
+  test('AC-01: anonymous production mail gets help immediately, sources, <=1 question and a background case', async () => {
     const result = await call(productionMail);
     expect(result.cetCaseId).toBeTruthy();
     expect(result.caseDisplayRef).toMatch(/^F-\d+$/);
     expect(result.responseText).toContain('Fall F-');
     expect(result.responseText).not.toContain('Starte einen Fall');
     expect(result.responseText).toContain('Quellen:');
-    expect(result.requiredClarifications).toHaveLength(3);
+    expect(result.requiredClarifications).toHaveLength(1);
     expect(result.responseText).not.toContain('Rotorblattwartung');
     expect(
       result.retrievalTrace.some((trace) =>
@@ -220,7 +220,9 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
   test('a valid model answer without a draft does not create a substitute draft', async () => {
     llm.generateText.mockResolvedValue(
       JSON.stringify({
-        expectation: [
+        expectation: [],
+        interpretation: [],
+        interpretation: [
           {
             text: 'Referenz und Eingangsbestätigung prüfen.',
             completedAction: false,
@@ -254,7 +256,7 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     const third = await call('Warum ist das unklar?');
     const all = [first, second, third].flatMap((reply) => reply.requiredClarifications);
     expect(all.length).toBe(new Set(all).size);
-    expect(third.requiredClarifications).toEqual([]);
+    expect(third.requiredClarifications).toHaveLength(1);
     const wb = broker.getLocalService('workbench');
     const p = require('../src/domain-router-policy').principal({ meta: auth() });
     const envelope = { channel: 'open-webui', conversationId: 'conversation-a' };
@@ -264,7 +266,8 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     wb.conversationsDb = new (require('pouchdb'))(wb.settings.dbPath);
     wb.store.conversationsDb = wb.conversationsDb;
     const retained = await conversation.readTurn(wb.conversationsDb, p, envelope);
-    expect(retained.askedQuestions).toHaveLength(4);
+    expect(retained.askedQuestions).toHaveLength(3);
+    expect((await call('Weitere Angaben zur Referenz.')).requiredClarifications).toHaveLength(1);
     expect((await call('Weitere Angaben zur Referenz.')).requiredClarifications).toEqual([]);
   });
 
@@ -372,7 +375,9 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     };
     llm.generateText.mockResolvedValueOnce(
       JSON.stringify({
-        expectation: [
+        expectation: [],
+        interpretation: [],
+        interpretation: [
           { ...precise, text: 'Prüfe den Eingang und die ursprüngliche Anfrage.', specific: false },
         ],
         nextSteps: [precise],
@@ -428,10 +433,10 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
 
   test('tenant, actor and conversation isolate remembered questions and case state', async () => {
     const first = await call(productionMail);
-    expect((await call(productionMail, 'other')).requiredClarifications).toHaveLength(3);
+    expect((await call(productionMail, 'other')).requiredClarifications).toHaveLength(1);
     expect(
       (await call(productionMail, 'conversation-a', {}, auth('tenant-b'))).requiredClarifications
-    ).toHaveLength(3);
+    ).toHaveLength(1);
     await expect(
       broker.call('workbench.cases.get', { caseId: first.cetCaseId }, { meta: auth('tenant-b') })
     ).rejects.toThrow();
@@ -497,7 +502,9 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     expect(retrieval.mock.calls[0][0].meta.workbenchEvidenceSources).toEqual(['knowledge-rag']);
     llm.generateText.mockResolvedValueOnce(
       JSON.stringify({
-        expectation: [
+        expectation: [],
+        interpretation: [],
+        interpretation: [
           {
             text: 'Unsupported deadline: 14 Tage',
             completedAction: false,

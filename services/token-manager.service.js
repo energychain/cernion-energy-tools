@@ -422,7 +422,8 @@ module.exports = {
           record.type === 'gateway' &&
           !(
             (method === 'POST' && requestPath === '/v1/chat/completions') ||
-            (method === 'GET' && requestPath === '/v1/models')
+            (method === 'GET' && requestPath === '/v1/models') ||
+            require('../src/file-channel-http').isFileChannelRequest(method, requestPath)
           )
         ) {
           return { success: true, valid: false, reason: 'GATEWAY_TOKEN_FORBIDDEN' };

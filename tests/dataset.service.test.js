@@ -50,9 +50,11 @@ describe('tenant dataset catalog', () => {
       )
     ).toBe(false);
     expect(
-      candidatesFor(situation, { ...options, datasetAvailable: true }).some(
-        (entry) => entry.operation.action === 'dataset.query'
-      )
+      candidatesFor(situation, {
+        ...options,
+        datasetAvailable: true,
+        datasetCandidates: [{ id: 'synthetic' }],
+      }).some((entry) => entry.operation.action === 'dataset.query')
     ).toBe(true);
   });
   it('does not parse an assistant draft with labelled lines as a table', () => {
@@ -80,21 +82,35 @@ describe('tenant dataset catalog', () => {
     },
   });
   const call = (action, input, identity = meta()) => broker.call(action, input, { meta: identity });
-  const upload = (format = 'csv', corrected = false) =>
-    call('dataset.turn', {
+  const upload = async (format = 'csv', corrected = false) => {
+    const response = await call('dataset.turn', {
       question: 'Gibt es Auffälligkeiten?',
       documents: [
         { name: 'synthetischer-lastgang.csv', text: generateDatasetFixture(format, corrected) },
       ],
       conversationId: 'synthetic-chat',
     });
+    if (!response.confirmations?.length) return response;
+    const query = await call('dataset.query', {
+      id: response.datasetIds[0],
+      question: 'Gibt es Auffälligkeiten?',
+    });
+    return {
+      ...response,
+      responseText: [query.responseText, ...response.confirmations].join('\n\n'),
+      sources: [{ name: 'dataset.query', called: true }],
+    };
+  };
   beforeAll(async () => {
     env = { ...process.env };
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dataset-test-'));
     process.env.DATAPOINT_DB_PATH = path.join(dir, 'catalog');
     process.env.WORKBENCH_DATASET_DB_PATH = path.join(dir, 'rows');
     process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
-    llm.generateStructured.mockResolvedValue(null);
+    llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+      const input = JSON.parse(prompt);
+      return input.datasets ? { datasetIds: input.datasets.map((record) => record.id) } : null;
+    });
     broker = new ServiceBroker({ logger: false });
     broker.createService({
       ...Datapoint,
@@ -139,18 +155,220 @@ describe('tenant dataset catalog', () => {
     );
     expect(query.summaries[0].integral / 1000).toBeCloseTo(3478.874, 9);
     expect(query.responseText).toContain('Nutzerangabe von synthetic-person-a');
+    expect(query.summaries[0]).not.toHaveProperty('sum');
+  });
+  test('standard questions bypass adversarial model plans and retain the complete metric scope', async () => {
+    const [record] = await call('datapoint.datasetCatalog', { operation: 'list' });
+    const field = 'Wirkleistung Bezug [kW]';
+    const badPlan = {
+      sources: [{ alias: 'table', sourceId: record.id }],
+      operations: [
+        { op: 'filter', field, operator: 'notNull' },
+        {
+          op: 'aggregate',
+          metrics: [
+            { fn: 'count', field, as: 'rows' },
+            { fn: 'max', field, as: 'peak' },
+          ],
+        },
+      ],
+    };
+    for (const question of ['Gibt es Auffälligkeiten?', 'Wie hoch war die Spitzenlast und wann?']) {
+      const result = await call('dataset.query', { id: record.id, question, plan: badPlan });
+      expect(result.rowCount).toBe(35040);
+      expect(result.summaries[0].missing).toBe(4);
+      expect(result.responseText).toContain('14.01.2025 18:15');
+      expect(result.responseText).not.toContain('35036 Zeilen');
+      expect(result.summaries[0].integral / 1000).toBeCloseTo(3478.874, 9);
+    }
+    const { datasetQueryPlan } = require('../src/dataset-semantics');
+    const before = llm.generateStructured.mock.calls.length;
+    for (const question of [
+      'Gibt es Auffälligkeiten?',
+      'Wie hoch war die Spitzenlast und wann?',
+      'Jahresenergie 2025?',
+    ])
+      await datasetQueryPlan(record, question);
+    expect(llm.generateStructured.mock.calls).toHaveLength(before);
+    const scope = await call('dataset.query', {
+      id: record.id,
+      question: 'Gibt es Auffälligkeiten?',
+      from: '2025-03-01',
+      to: '2025-04-01',
+      plan: badPlan,
+    });
+    expect(scope.rowCount).toBe(2972);
+    expect(scope.summaries[0].missing).toBe(2);
+    expect(scope.quality.transitions).toHaveLength(1);
+    expect(scope.quality.gaps).toBe(0);
+    const minimum = await call('dataset.query', {
+      id: record.id,
+      question: 'Wann war das Minimum?',
+    });
+    expect(minimum.responseText).toMatch(/ am .*2025.*:/);
+  });
+  test('calendar filters use dataset time around year boundaries and DST', async () => {
+    for (const [from, to, rows] of [
+      ['2025-01-01', '2026-01-01', 35040],
+      ['2025-01-01', '2025-02-01', 2976],
+      ['2025-12-01', '2026-01-01', 2976],
+      ['2025-03-01', '2025-04-01', 2972],
+      ['2025-10-01', '2025-11-01', 2980],
+      ['2025-01-01', '2025-01-02', 96],
+      ['2025-12-31', '2026-01-01', 96],
+      ['2025-03-30', '2025-03-31', 92],
+      ['2025-10-26', '2025-10-27', 100],
+    ]) {
+      const query = await call('dataset.query', { question: 'Energie?', from, to });
+      expect(query.rowCount).toBe(rows);
+      if (rows === 35040) expect(query.summaries[0].integral / 1000).toBeCloseTo(3478.874, 9);
+    }
+    const year = await call('dataset.query', { question: 'Spitzenlast 2025?' });
+    expect(year.rowCount).toBe(35040);
+    expect(year.summaries[0].integral / 1000).toBeCloseTo(3478.874, 9);
+  });
+  test('planner calendar boundaries with UTC suffix retain the entire local year', async () => {
+    const [record] = await call('datapoint.datasetCatalog', { operation: 'list' });
+    const query = await call('dataset.query', {
+      question: 'Spitzenlast 2025?',
+      id: record.id,
+      plan: {
+        sources: [{ alias: 'table', sourceId: record.id }],
+        operations: [
+          {
+            op: 'filter',
+            field: 'Zeitstempel (Beginn)',
+            operator: 'gte',
+            value: '2025-01-01T00:00:00Z',
+          },
+          {
+            op: 'filter',
+            field: 'Zeitstempel (Beginn)',
+            operator: 'lt',
+            value: '2026-01-01T00:00:00Z',
+          },
+          {
+            op: 'aggregate',
+            metrics: [{ fn: 'max', field: 'Wirkleistung Bezug [kW]', as: 'spitzenlast' }],
+          },
+        ],
+      },
+    });
+    expect(query.rowCount).toBe(35040);
+    expect(query.summaries[0].integral / 1000).toBeCloseTo(3478.874, 9);
+    expect(query.responseText).not.toContain('spitzenlast:');
+  });
+  test.each([
+    ['2025', 35040],
+    ['2025-03', 2972],
+    ['2025-10', 2980],
+    ['2025-03-30', 92],
+    ['2025-10-26', 100],
+  ])('calendar equality filter %s covers the full local period', async (value, rows) => {
+    const [record] = await call('datapoint.datasetCatalog', { operation: 'list' });
+    const query = await call('dataset.query', {
+      question: 'Anzahl?',
+      id: record.id,
+      plan: {
+        sources: [{ alias: 'table', sourceId: record.id }],
+        operations: [
+          { op: 'filter', field: 'Zeitstempel (Beginn)', operator: 'eq', value },
+          { op: 'aggregate', metrics: [{ fn: 'count', as: 'anzahl' }] },
+        ],
+      },
+    });
+    expect(query.rowCount).toBe(rows);
+  });
+  test('power sums are forbidden even when a plan labels them as energy', async () => {
+    const [record] = await call('datapoint.datasetCatalog', { operation: 'list' });
+    await expect(
+      call('dataset.query', {
+        id: record.id,
+        plan: {
+          sources: [{ alias: 'table', sourceId: record.id }],
+          operations: [
+            {
+              op: 'aggregate',
+              metrics: [{ fn: 'sum', field: 'Wirkleistung Bezug [kW]', as: 'energie_summe' }],
+            },
+          ],
+        },
+      })
+    ).rejects.toThrow('Leistungswerte');
+  });
+  test('short answers contain only requested figures with German rounding and one origin line', async () => {
+    const peak = await call('dataset.query', { question: 'Spitzenlast 2025?' });
+    expect(peak.responseText).toContain('1.243,7 kW');
+    expect(peak.responseText).not.toMatch(/Mittelwert|MWh|statistische|energie_summe|spitzenlast:/);
+    const energy = await call('dataset.query', { question: 'Jahresenergie 2025?' });
+    expect(energy.responseText).toContain('3.478,874 MWh');
+    expect(energy.responseText).not.toMatch(/Maximum|Mittelwert|13.915/);
+    const mean = await call('dataset.query', { question: 'Mittelwert?' });
+    expect(mean.responseText).toContain('397,2 kW');
+    expect(mean.responseText.match(/Herkunft:/g)).toHaveLength(1);
+  });
+  test.each(['from', 'to'])(
+    'invalid %s boundaries fail instead of returning an empty result',
+    async (key) => {
+      await expect(
+        call('dataset.query', { question: 'Energie?', [key]: 'invalid-date' })
+      ).rejects.toThrow('Ungültiger Zeitfilter');
+    }
+  );
+  test('selected measures, multiple metrics and native MWh retain their own result values', async () => {
+    const { executeDatasetQuery } = require('../src/dataset-query');
+    const { normalizeDatasetTimes } = require('../src/dataset-time');
+    const [base] = await call('datapoint.datasetCatalog', { operation: 'list' });
+    const table = parseDatasetText(
+      'Zeitstempel (Beginn);Erste [MW];Zweite [MW]\n01.01.2025 00:00;1;3\n01.01.2025 00:15;2;4'
+    )[0];
+    const times = normalizeDatasetTimes(table.rows, base.semantic.timeField, 'Europe/Berlin');
+    const record = {
+      ...base,
+      id: `ds_${require('node:crypto').randomBytes(16).toString('hex')}`,
+      columns: table.profile.columns,
+      profile: table.profile,
+      quality: times,
+      semantic: { ...base.semantic, units: { 'Erste [MW]': 'MW', 'Zweite [MW]': 'MW' } },
+    };
+    const pool = broker.getLocalService('dataset').datasetPool;
+    pool.putRows(record.tenantId, record.id, table.rows, record.columns, times.utc, times.local);
+    const query = (question, metrics) =>
+      executeDatasetQuery(pool, record, {
+        question,
+        plan: {
+          sources: [{ alias: 'table', sourceId: record.id }],
+          operations: [{ op: 'aggregate', metrics }],
+        },
+      });
+    try {
+      const metric = { fn: 'max', field: 'Zweite [MW]', as: 'second_max' };
+      expect(query('Spitzenlast?', [metric]).responseText).toContain('4 MW');
+      const multiple = query('Maximum und Mittelwert?', [
+        metric,
+        { fn: 'avg', field: 'Erste [MW]', as: 'first_mean' },
+      ]);
+      expect(multiple.responseText).toContain('4 MW');
+      expect(multiple.responseText).toContain('1,5 MW');
+      expect(multiple.responseText).not.toMatch(/second_max|first_mean/);
+      expect(query('Energie?', [metric]).responseText.match(/1,75 MWh/g)).toHaveLength(1);
+    } finally {
+      pool.removeRows(record.tenantId, record.id);
+    }
   });
   test('repeated attachments in all renderings produce neither versions nor confirmations', async () => {
     for (const format of ['csv', 'markdown', 'pairs']) {
       const response = await upload(format);
-      expect(response.responseText).not.toContain('Hab ich abgelegt:');
-      expect(response.responseText).toContain('1.243,7');
+      expect(response.handled).toBe(false);
+      expect(response.documents).toEqual([]);
     }
     expect(await call('datapoint.datasetCatalog', { operation: 'list' })).toHaveLength(1);
   });
   test('no source rows or cell samples reach the model', () => {
     expect(llm.generateStructured).toHaveBeenCalled();
-    for (const [, prompt] of llm.generateStructured.mock.calls) {
+    for (const [, prompt] of llm.generateStructured.mock.calls.filter(
+      ([, prompt]) => !prompt.includes('toolAnswerInstruction')
+    )) {
       expect(prompt).not.toContain('14.01.2025 18:15');
       expect(prompt).not.toContain('Zeitstempel (Beginn);');
       expect(prompt).not.toContain('examples');
@@ -201,14 +419,15 @@ describe('tenant dataset catalog', () => {
         sources: [{ alias: 'table', sourceId: record.id }],
         operations: [
           { op: 'filter', field, operator: 'gt', value: 1000 },
-          { op: 'aggregate', metrics: [{ fn: 'sum', field, as: 'Summe' }] },
+          { op: 'aggregate', metrics: [{ fn: 'max', field, as: 'spitzenlast_rohwert' }] },
         ],
       },
     });
-    expect(query.summaries[0].rows).toBe(1);
-    expect(query.summaries[0].integral).toBeCloseTo(310.925, 9);
-    expect(query.result).toEqual([{ Summe: 1243.7 }]);
-    expect(query.responseText).toContain('Summe: 1.243,7 kW');
+    expect(query.summaries[0].rows).toBe(35040);
+    expect(query.summaries[0].missing).toBe(4);
+    expect(query.summaries[0].integral / 1000).toBeCloseTo(3478.874, 9);
+    expect(query.result).toEqual([{ spitzenlast_rohwert: 1243.7 }]);
+    expect(query.responseText).not.toContain('spitzenlast_rohwert:');
     const month = await call('dataset.query', {
       id: record.id,
       plan: {
@@ -299,7 +518,10 @@ describe('tenant dataset catalog', () => {
       question: 'Die Werte sind kWh je Viertelstunde.',
       conversationId: 'synthetic-chat',
     });
-    const query = await call('dataset.query', {});
+    const [current] = (await call('datapoint.datasetCatalog', { operation: 'list' })).filter(
+      (record) => record.current
+    );
+    const query = await call('dataset.query', { id: current.id });
     expect(query.summaries[0].integralUnit).toBe('kWh');
     expect(query.summaries[0].integral / 1000).toBeCloseTo((3478.874 + 0.00025) * 4, 8);
   });
@@ -320,6 +542,7 @@ describe('tenant dataset catalog', () => {
     const records = await call('datapoint.datasetCatalog', { operation: 'list' });
     await expect(
       call('dataset.query', {
+        id: records[0].id,
         plan: {
           sources: [{ alias: 'table', sourceId: records[0].id }],
           operations: [{ op: 'delete' }],
@@ -356,9 +579,8 @@ describe('tenant dataset catalog', () => {
   });
   test('deleted attachment replay neither recreates it nor deletes a different dataset', async () => {
     const replayed = await upload('pairs');
-    expect(replayed.handled).toBe(true);
-    expect(replayed.responseText).toContain('kein zugänglicher Datensatz');
-    expect(replayed.responseText).not.toContain('Hab ich abgelegt:');
+    expect(replayed.handled).toBe(false);
+    expect(replayed.documents).toEqual([]);
     await call('dataset.turn', {
       question: 'Bitte speichern.',
       documents: [{ name: 'andere-synthetische-tabelle.csv', text: 'Tag;Wert\nA;2\nB;4' }],
@@ -384,7 +606,12 @@ describe('tenant dataset catalog', () => {
       ],
       conversationId: 'synthetic-chat',
     });
-    expect(newContent.responseText).toContain('4 kW');
+    expect(newContent.confirmations).toHaveLength(1);
+    const answer = await call('dataset.query', {
+      id: newContent.datasetIds[0],
+      question: 'Maximum?',
+    });
+    expect(answer.responseText).toContain('4 kW');
     const current = await call('datapoint.datasetCatalog', { operation: 'list' });
     expect(current).toHaveLength(2);
     expect(

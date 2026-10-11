@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "dd2c2f198ed15d93e46bd4305cd11d1b80aa48d8e747f6f7ecf26a037a9ba898",
+  "sourceHash": "9de18b5fbcb9ad7fb07c6522fcdbdd60b29bd51feef7db2aa698e514335f55a3",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -1105,7 +1105,7 @@
       "new": 6,
       "previousSourceHash": "1f0866ec0eb79538c3201e4fbbdfa19ac60fd987e4db6ec7cf73d380090bf44e"
     },
-    "indexOperationCount": 990,
+    "indexOperationCount": 998,
     "indexOperationsWithoutAction": 19,
     "capabilityCount": 172,
     "functionCount": 110,
@@ -118383,6 +118383,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-continuation.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/clarification-policy-registry.js"
         },
         {
@@ -118476,6 +118484,10 @@
         {
           "kind": "service",
           "ref": "src/dataset-input.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-semantics.js"
         },
         {
           "kind": "service",
@@ -118727,6 +118739,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/tenant-memory-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/tenant-memory-schema.js"
         },
         {
@@ -118748,6 +118764,10 @@
         {
           "kind": "service",
           "ref": "src/tool-coverage-planner.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tool-display.js"
         },
         {
           "kind": "service",
@@ -118795,7 +118815,23 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-document-input.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-document-passages.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-document-question.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-document.js"
         },
         {
           "kind": "service",
@@ -118828,6 +118864,14 @@
         {
           "kind": "service",
           "ref": "src/workbench-retrieval.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-review.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-self-knowledge.js"
         },
         {
           "kind": "service",
@@ -189811,7 +189855,7 @@
       },
       {
         "service": "notices",
-        "ref": "services/shared-service-notices.service.js:263: spread event handlers"
+        "ref": "services/shared-service-notices.service.js:266: spread event handlers"
       },
       {
         "service": "system",
@@ -189827,6 +189871,14 @@
       },
       {
         "service": "tabular",
+        "ref": "src/llm-client.js:216: dynamic emission"
+      },
+      {
+        "service": "tenant-memory-policy",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "tenant-memory-policy",
         "ref": "src/llm-client.js:216: dynamic emission"
       },
       {

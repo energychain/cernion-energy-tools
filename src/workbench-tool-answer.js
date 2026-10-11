@@ -20,6 +20,7 @@ function availableToolAnswer(evidence, message = '') {
   const hits = evidence.filter((hit) => hit.retrievalSource === 'capability-read');
   return hits
     .map((hit) => {
+      if (hit.source === 'dataset.query') return hit.value.split('\n\nHerkunft:')[0];
       let data;
       try {
         data = JSON.parse(hit.value);

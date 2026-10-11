@@ -34,13 +34,7 @@ const DIMENSION_LABELS = Object.freeze({
   volume: 'Volumen in l',
 });
 
-function responseMode(message, previous, inferred) {
-  const thread = require('./workbench-thread');
-  if (thread.isThreadInput(message)) return 'correspondence';
-  if (
-    /\b(?:gespräch|telefon|schalter)\b|\b(?:steht|sitzt)\s+(?:gerade\s+)?vor mir\b/iu.test(message)
-  )
-    return 'conversation';
+function responseMode(_message, previous, inferred) {
   if (['conversation', 'correspondence'].includes(inferred)) return inferred;
   return previous?.responseMode || inferred || 'standard';
 }
@@ -50,7 +44,13 @@ function updatePersonFacts(situation, message, previous) {
   situation.personFacts = [...new Set([...(previous?.personFacts || []), message.slice(0, 1200)])]
     .filter(Boolean)
     .slice(-20);
-  situation.responseMode = responseMode(message, previous, situation.responseMode);
+  situation.responseMode = situation.conversationShape
+    ? situation.conversationShape === 'assistance'
+      ? 'conversation'
+      : situation.outputKind === 'correspondence'
+        ? 'correspondence'
+        : 'standard'
+    : responseMode(message, previous, situation.responseMode);
   if (situation.responseMode === 'conversation') situation.requestedAction.draftRequested = false;
   const facts = situation.personFacts.join('\n');
   const quantities = [

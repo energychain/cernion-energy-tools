@@ -614,6 +614,7 @@ class WorkbenchStore {
       roleFamilies: input.roleFamilies || existing?.roleFamilies || [],
       domainsAllowed: input.domainsAllowed || existing?.domainsAllowed || [],
       sensitivityClearance: input.sensitivityClearance || existing?.sensitivityClearance || [],
+      conversationContext: input.conversationContext || existing?.conversationContext || null,
       language: input.language || existing?.language || null,
       tone: input.tone || existing?.tone || null,
       defaultNoCallGuards: input.defaultNoCallGuards || existing?.defaultNoCallGuards || [],

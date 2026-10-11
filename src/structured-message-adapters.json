@@ -1,0 +1,3 @@
+{
+  "adapters": [{ "id": "edifact", "module": "./edifact-message-adapter" }]
+}

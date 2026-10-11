@@ -70,7 +70,7 @@ async function mutate(ctx, p, id, change) {
   for (let attempt = 0; attempt < 4; attempt++) {
     const doc = await get(ctx, p, id);
     const payload = change(structuredClone(doc.payload));
-    if (!payload) return doc.payload;
+    if (!payload || JSON.stringify(payload) === JSON.stringify(doc.payload)) return doc.payload;
     try {
       return (await put(ctx, p, payload, doc._rev)).payload;
     } catch (error) {
@@ -80,18 +80,38 @@ async function mutate(ctx, p, id, change) {
 }
 function candidates(fact, facts) {
   const valid = facts.filter((item) => active(item));
+  // Resolve a bare base to its sole tenant qualifier, retaining separation when variants exist.
+  const variants = new Map();
+  for (const item of valid)
+    for (const key of item.anchorKeys) {
+      const [base, qualifier] = JSON.parse(key);
+      if (qualifier) {
+        if (!variants.has(base)) variants.set(base, new Set());
+        variants.get(base).add(qualifier);
+      }
+    }
+  const keys = (item) => [
+    ...new Set(
+      item.anchorKeys.map((key) => {
+        const [base, qualifier] = JSON.parse(key);
+        const choices = variants.get(base);
+        return JSON.stringify([base, qualifier || (choices?.size === 1 ? [...choices][0] : '')]);
+      })
+    ),
+  ];
   const frequency = new Map();
   for (const item of valid)
-    for (const anchor of new Set(item.anchorKeys))
-      frequency.set(anchor, (frequency.get(anchor) || 0) + 1);
-  // Four virtual documents give cold tenants a usable prior. No anchor types or vocabulary.
-  const strong = fact.anchorKeys.filter(
-    (anchor) => Math.log((valid.length + 4) / ((frequency.get(anchor) || 0) + 1)) >= Math.log(2)
+    for (const anchor of keys(item)) frequency.set(anchor, (frequency.get(anchor) || 0) + 1);
+  const strong = new Set(
+    keys(fact).filter(
+      (anchor) => Math.log((valid.length + 4) / ((frequency.get(anchor) || 0) + 1)) >= Math.log(2)
+    )
   );
   return valid.filter(
-    (item) => item.id !== fact.id && item.anchorKeys.some((anchor) => strong.includes(anchor))
+    (item) => item.id !== fact.id && keys(item).some((anchor) => strong.has(anchor))
   );
 }
+
 function ambiguous(anchors, facts) {
   for (const anchor of anchors.map(qualifiedAnchor).filter((item) => !item.qualifier)) {
     const base = normalizeAnchor(anchor.value);
@@ -107,7 +127,20 @@ function ambiguous(anchors, facts) {
   return null;
 }
 function source(fact) {
-  return `${fact.person.name} (${fact.person.functionLabel || fact.person.roles.join(', ')}, ${fact.at})`;
+  const date = new Date(fact.at).toLocaleDateString('de-DE', {
+    timeZone: 'Europe/Berlin',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+  const label = fact.person.functionLabel;
+  const technical = require('./function-model')
+    .getFunctionModel()
+    .functions.some((fn) => [fn.functionId, fn.label, fn.displayLabel].includes(label));
+  const functionLabel = technical
+    ? 'Funktion noch nicht in Klartext hinterlegt'
+    : label || 'Funktion nicht angegeben';
+  return `${fact.person.name} (${functionLabel}, ${date})`;
 }
 function factText(fact) {
   const labels = {
@@ -115,8 +148,15 @@ function factText(fact) {
     corrected: 'korrigiert',
     revoked: 'widerrufen',
     expired: 'abgelaufen',
+    deleted: 'gelöscht',
   };
-  return `${source(fact)}: „${fact.text}“ (${labels[active(fact) ? 'valid' : fact.status === 'valid' ? 'expired' : fact.status]}).`;
+  const checking =
+    fact.checking === 'failed'
+      ? ` Prüfung fehlgeschlagen: ${fact.checkingFailure?.message || 'Versuchsgrenze erreicht'}.`
+      : fact.checking === 'pending'
+        ? ' Prüfung ausstehend.'
+        : '';
+  return `${source(fact)}: „${fact.text}“ (${labels[active(fact) ? 'valid' : fact.status === 'valid' ? 'expired' : fact.status]}).${checking}`;
 }
 async function relationText(ctx, p, id) {
   const relation = (await get(ctx, p, id)).payload;
@@ -136,6 +176,7 @@ module.exports = {
   namespace,
   key,
   normalizeAnchor,
+  qualifiedAnchor,
   anchorKeys,
   active,
   query,

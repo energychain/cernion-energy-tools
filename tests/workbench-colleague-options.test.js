@@ -33,7 +33,7 @@ test.each(['gemini', 'openai-compat', 'ollama'])(
   }
 );
 
-test('only blocking questions are asked, at most three, semantic keys never repeat', () => {
+test('only blocking questions are asked, at most one, semantic keys never repeat', () => {
   const situation = {
     missingInformation: [
       { key: 'optional', question: 'Welche Farbe?', blocking: false },
@@ -45,8 +45,8 @@ test('only blocking questions are asked, at most three, semantic keys never repe
     ],
   };
   const first = questionsFor(situation);
-  expect(first).toHaveLength(3);
-  expect(questionsFor(situation, first)).toHaveLength(2);
+  expect(first).toHaveLength(1);
+  expect(questionsFor(situation, first)).toHaveLength(1);
 });
 
 test.each(['openai-compat', 'ollama'])(

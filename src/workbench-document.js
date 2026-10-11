@@ -67,17 +67,23 @@ async function attachDocuments(store, identity, documents, options = {}) {
   const prepared = documents.map((document) => {
     if (typeof document.text !== 'string' || !document.text.trim())
       throw new Error('Document text required');
-    const hash = hashContent(document.text);
+    const hash = document.original
+      ? `sha256:${document.original.hash}`
+      : hashContent(document.text);
     const evidence = normalizeEvidenceInput(
       {
         evidenceType: 'generic_document',
         sourceType: 'openwebui_file_ref',
         label: document.name,
+        sensitivityLevel: document.sensitivityLevel,
         fileHash: hash,
         sourceRef: {
           fileName: document.name,
+          ...(document.original
+            ? { fileId: document.original.fileId, mimeType: document.original.mimeType }
+            : {}),
           fileHash: hash,
-          size: Buffer.byteLength(document.text),
+          size: document.original?.size || Buffer.byteLength(document.text),
         },
       },
       identity
@@ -87,7 +93,8 @@ async function attachDocuments(store, identity, documents, options = {}) {
       name: document.name,
       sourceId: document.id || null,
       text: document.text,
-      completeness: options.completeness || 'unknown',
+      completeness: document.original ? 'full' : options.completeness || 'unknown',
+      ...(document.original ? { original: document.original } : {}),
       sections: documentSections(document.text, options.chunkChars),
     };
     return evidence;
@@ -123,7 +130,13 @@ async function loadDocuments(store, identity) {
   return (await store.listEvidence(identity))
     .filter(
       (entry) =>
-        canViewEvidence(entry, identity.clearance, identity.tenantId) && entry.extracts?.document
+        canViewEvidence(entry, identity.clearance, identity.tenantId) &&
+        entry.extracts?.document &&
+        (!entry.extracts.document.original?.expiresAt ||
+          entry.extracts.document.original.expiresAt > Date.now()) &&
+        (entry.extracts.document.original?.requiredClearance || []).every((level) =>
+          (identity.clearance || []).includes(level)
+        )
     )
     .map((entry) => ({
       ...entry.extracts.document,

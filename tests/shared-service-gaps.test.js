@@ -184,7 +184,9 @@ test('AC-05: preferences, visibility, tenant isolation and exactly-once L notice
   const first = await deliver();
   const [notice] = first.items.filter((i) => i.kind === 'gap');
   expect(notice.ref).toMatch(/^L-\d+$/);
-  expect(first.block).toContain('Field A; Field B');
+  expect(notice.labels).toEqual(['Field A', 'Field B']);
+  expect(first.block).toContain('Für deine aktuelle Arbeit fehlen noch Angaben.');
+  expect(first.block).not.toMatch(/Field [AB]|L-\d+|R-\d+/);
   expect((await deliver('turn-b')).items).toEqual([]);
   adapter.broker.getLocalService('neutral').schema.actions.read.requiredRoles = ['ROLE_ADMIN'];
   expect(
