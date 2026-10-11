@@ -9,6 +9,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const llm = require('../src/llm-client');
+const structuredMock = llm.generateStructured;
+const textMock = llm.generateText;
 const { createLiveHarness } = require('../scripts/workbench-live-harness');
 const {
   generateDatasetFixture,
@@ -61,12 +63,12 @@ beforeEach(() => {
       scope: 'full-access',
     },
   };
-  llm.generateStructured.mockImplementation(async (_schema, raw) => {
+  structuredMock.mockImplementation(async (_schema, raw) => {
     const input = JSON.parse(raw);
     if (input.datasets) return { datasetIds: input.datasets.map((entry) => entry.id) };
     return null;
   });
-  llm.generateText.mockRejectedValue(new Error('Unexpected answer call'));
+  textMock.mockRejectedValue(new Error('Unexpected answer call'));
 });
 afterAll(async () => {
   await broker.stop();
