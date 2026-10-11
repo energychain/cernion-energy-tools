@@ -1,0 +1,473 @@
+{
+  "generatedAt": "2026-10-11T01:32:43.513Z",
+  "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261011T013115Z",
+  "gitHead": "ref: refs/heads/release/v0.99.19",
+  "package": {
+    "name": "cernion-energy-tools",
+    "version": "0.99.22"
+  },
+  "counts": {
+    "files": 1834,
+    "services": 157,
+    "srcJs": 348,
+    "tests": 459,
+    "integrations": 27,
+    "docs": 487,
+    "agentFiles": 258,
+    "openWebUiFiles": 29,
+    "evidenceFiles": 74,
+    "routingFiles": 88,
+    "servicesWithoutTests": 27
+  },
+  "artifacts": {
+    "hasOperationCapabilityIndex": true,
+    "hasOpenApi": true,
+    "hasLlmTxt": true,
+    "hasAgentShapes": true,
+    "hasOpenWebUiSmoke": true
+  },
+  "topDirectories": [
+    {
+      "dir": "tests",
+      "files": 521
+    },
+    {
+      "dir": "src",
+      "files": 410
+    },
+    {
+      "dir": "docs",
+      "files": 371
+    },
+    {
+      "dir": "services",
+      "files": 193
+    },
+    {
+      "dir": "tools",
+      "files": 85
+    },
+    {
+      "dir": "scripts",
+      "files": 61
+    },
+    {
+      "dir": "agentic-architecture",
+      "files": 53
+    },
+    {
+      "dir": "integrations",
+      "files": 27
+    },
+    {
+      "dir": ".claude",
+      "files": 26
+    },
+    {
+      "dir": ".github",
+      "files": 11
+    },
+    {
+      "dir": "feedback",
+      "files": 8
+    },
+    {
+      "dir": ".vscode",
+      "files": 5
+    },
+    {
+      "dir": "examples",
+      "files": 3
+    },
+    {
+      "dir": "fixtures_parallel",
+      "files": 2
+    },
+    {
+      "dir": "fixtures_real",
+      "files": 2
+    },
+    {
+      "dir": "reports",
+      "files": 2
+    },
+    {
+      "dir": ".copilotignore",
+      "files": 1
+    },
+    {
+      "dir": ".editorconfig",
+      "files": 1
+    },
+    {
+      "dir": ".env.example",
+      "files": 1
+    },
+    {
+      "dir": ".eslintrc.hygiene.json",
+      "files": 1
+    }
+  ],
+  "serviceNames": [
+    "activation",
+    "agent",
+    "agent-manifest",
+    "agent-persona",
+    "agent-receipts",
+    "agent-sidecar",
+    "agents",
+    "agnes-bottleneck",
+    "altdaten-assessment",
+    "api",
+    "assets",
+    "auth",
+    "automatisierungsradar",
+    "backup-orchestrator",
+    "battery-redispatch-special-gate",
+    "bess-screening",
+    "bilanzkreis",
+    "blindflug-radar",
+    "blueprint-management",
+    "business-intelligence",
+    "capability-broker",
+    "capex-prioritization",
+    "chatgpt-sidecar",
+    "clarification-policy",
+    "community",
+    "company",
+    "connection-rejection-evidence",
+    "cookbook",
+    "copilot-process",
+    "customer-service",
+    "cya",
+    "dashboard-api",
+    "datapoint",
+    "dataset",
+    "datasource-cache",
+    "datasource-classifier",
+    "datasource-connector",
+    "datasource-discovery",
+    "datasource-registry",
+    "datasource-watcher",
+    "decision-frame",
+    "domain-router",
+    "domain-routes",
+    "dossier-hydration",
+    "e2e-connection-check",
+    "edm",
+    "edm-messkonzept",
+    "edm-validation",
+    "edm-virtual",
+    "eeg-clawback-calculator",
+    "eic-codes",
+    "energy-market",
+    "energy-sharing",
+    "energy-sharing-allocation",
+    "energy-sharing-community",
+    "entsoe",
+    "eog-calculator",
+    "evidence-requirement",
+    "evidence-revalidation",
+    "evidence-router",
+    "ewk-monitoring",
+    "file-ingest-monitor",
+    "finance-agent",
+    "flex",
+    "flexibilitaetskosten-raster",
+    "flexibility-conductor-role-model",
+    "fnav-commercial-hedging",
+    "forecast",
+    "forecast-engine",
+    "forecast-sandbox",
+    "function-coverage",
+    "gas-capacity-order-revision-gate",
+    "gas-storage",
+    "gasnetz-waermeplanung",
+    "german-grid",
+    "ghost-asset-alert",
+    "governance",
+    "governance-cards",
+    "grid-connection",
+    "grid-operations",
+    "hitl",
+    "in-memory-join",
+    "interface-placeholder",
+    "investment-maturity-off-balance-gate",
+    "investment-planning",
+    "job-status",
+    "journal",
+    "knowledge-continuity-governance-gate",
+    "knowledge-rag",
+    "mastr-monitor",
+    "mastr-quality",
+    "mcp-server",
+    "mqtt-broker",
+    "mqtt-edm-ingest",
+    "mscons-import",
+    "municipality",
+    "nbp-monitor",
+    "netzkoppelvertrag-workflow",
+    "nkp-reporting",
+    "notices",
+    "notification",
+    "nova",
+    "object-store",
+    "observability",
+    "oep",
+    "openai-compatible",
+    "operations-runbook",
+    "osm-geo",
+    "persona-inbox",
+    "personal-agent",
+    "personal-agent-work-out-loud-listener",
+    "presentation",
+    "query",
+    "rcs-rule-catalog",
+    "rcs-simulation-run",
+    "re4de-variable-grid-fee",
+    "redispatch-asset-register",
+    "redispatch-data-governance",
+    "redispatch-expost",
+    "redispatch-readiness-gate",
+    "redispatch-settlement-sandbox",
+    "redispatch-special-case-gate",
+    "regulatorische-entgeltlogik",
+    "reinvest-signal",
+    "reporting-governance",
+    "residual-load",
+    "settlement",
+    "shared-service-agent",
+    "shared-service-learning",
+    "signals",
+    "slp",
+    "stadtwerk-mauer-e2e-process-demo",
+    "stadtwerk-mauer-external-interface-stubs",
+    "stadtwerk-mauer-mastr-data-overlay",
+    "stadtwerk-mauer-sandbox-runtime",
+    "system",
+    "tabular",
+    "tenant-quota",
+    "token-manager",
+    "utility-report",
+    "vdmi",
+    "vdmi-evidence",
+    "vdmi-findings",
+    "vdmi-governance-templates",
+    "vdmi-human-override",
+    "vdmi-portfolio-gatekeeping",
+    "vdmi-spectator",
+    "vnb-100-tage-assessment",
+    "vnb-monitor",
+    "wake",
+    "web-search",
+    "webhooks",
+    "willi-federated",
+    "willi-mako",
+    "willi-regulatorik",
+    "workbench",
+    "znp"
+  ],
+  "servicesWithoutTests": [
+    "services/agnes-bottleneck.service.js",
+    "services/altdaten-assessment.service.js",
+    "services/automatisierungsradar.service.js",
+    "services/backup-orchestrator.service.js",
+    "services/bess-screening.service.js",
+    "services/capex-prioritization.service.js",
+    "services/connection-rejection-evidence.service.js",
+    "services/e2e-connection-check.service.js",
+    "services/flexibilitaetskosten-raster.service.js",
+    "services/fnav-commercial-hedging.service.js",
+    "services/gasnetz-waermeplanung.service.js",
+    "services/ghost-asset-alert.service.js",
+    "services/netzkoppelvertrag-workflow.service.js",
+    "services/nkp-reporting.service.js",
+    "services/rcs-rule-catalog.service.js",
+    "services/regulatorische-entgeltlogik.service.js",
+    "services/reinvest-signal.service.js",
+    "services/reporting-governance.service.js",
+    "services/shared-service-agents.service.js",
+    "services/tenant-quota.service.js",
+    "services/vdmi-evidence.service.js",
+    "services/vdmi-findings.service.js",
+    "services/vdmi-governance-templates.service.js",
+    "services/vdmi-human-override.service.js",
+    "services/vdmi-portfolio-gatekeeping.service.js",
+    "services/vdmi-spectator.service.js",
+    "services/vnb-100-tage-assessment.service.js"
+  ],
+  "duplicatedSlugs": [
+    [
+      "services/agent.service.js",
+      "services/personal-agent.service.js"
+    ],
+    [
+      "services/domain-router.service.js",
+      "src/domain-router.js"
+    ],
+    [
+      "services/eeg-clawback-calculator.service.js",
+      "src/eeg-clawback-calculator.js"
+    ],
+    [
+      "services/evidence-router.service.js",
+      "src/evidence-router.js"
+    ],
+    [
+      "services/function-coverage.service.js",
+      "src/function-coverage.js"
+    ],
+    [
+      "services/governance-cards.service.js",
+      "src/governance-cards.js"
+    ],
+    [
+      "services/shared-service-journal.service.js",
+      "src/shared-service-journal.js"
+    ],
+    [
+      "services/shared-service-learning.service.js",
+      "src/shared-service-learning.js"
+    ],
+    [
+      "services/shared-service-notices.service.js",
+      "src/shared-service-notices.js"
+    ],
+    [
+      "services/shared-service-wake.service.js",
+      "src/shared-service-wake.js"
+    ],
+    [
+      "services/tabular-intelligence.service.js",
+      "src/tabular-intelligence.js"
+    ],
+    [
+      "src/job-store/driver.js",
+      "src/rate-quota/driver.js"
+    ],
+    [
+      "src/job-store/factory.js",
+      "src/rate-quota/factory.js"
+    ],
+    [
+      "src/job-store/file-driver.js",
+      "src/rate-quota/file-driver.js"
+    ],
+    [
+      "src/job-store/redis-compat-driver.js",
+      "src/rate-quota/redis-compat-driver.js"
+    ]
+  ],
+  "domainTermCounts": {
+    "agent": {
+      "files": 728,
+      "hits": 8298
+    },
+    "personal-agent": {
+      "files": 300,
+      "hits": 2013
+    },
+    "sidecar": {
+      "files": 111,
+      "hits": 999
+    },
+    "capability": {
+      "files": 450,
+      "hits": 5696
+    },
+    "broker": {
+      "files": 573,
+      "hits": 10714
+    },
+    "openwebui": {
+      "files": 67,
+      "hits": 517
+    },
+    "open-webui": {
+      "files": 47,
+      "hits": 268
+    },
+    "chatgpt": {
+      "files": 39,
+      "hits": 400
+    },
+    "evidence": {
+      "files": 726,
+      "hits": 24338
+    },
+    "receipt": {
+      "files": 153,
+      "hits": 2403
+    },
+    "hitl": {
+      "files": 438,
+      "hits": 3668
+    },
+    "routing": {
+      "files": 322,
+      "hits": 2103
+    },
+    "workflow": {
+      "files": 234,
+      "hits": 1584
+    },
+    "tenant": {
+      "files": 667,
+      "hits": 14790
+    },
+    "market": {
+      "files": 385,
+      "hits": 3851
+    },
+    "grid": {
+      "files": 627,
+      "hits": 9776
+    },
+    "redispatch": {
+      "files": 301,
+      "hits": 4092
+    },
+    "forecast": {
+      "files": 321,
+      "hits": 4547
+    },
+    "edm": {
+      "files": 332,
+      "hits": 2383
+    },
+    "mako": {
+      "files": 280,
+      "hits": 2232
+    },
+    "willi": {
+      "files": 101,
+      "hits": 1449
+    },
+    "vdmi": {
+      "files": 293,
+      "hits": 4528
+    },
+    "eog": {
+      "files": 93,
+      "hits": 758
+    },
+    "stadtwerk": {
+      "files": 244,
+      "hits": 5625
+    },
+    "utility": {
+      "files": 94,
+      "hits": 613
+    },
+    "regulator": {
+      "files": 316,
+      "hits": 2487
+    },
+    "decision": {
+      "files": 431,
+      "hits": 6901
+    }
+  },
+  "validationSummary": "build: ok\nlint: ok\ntest-unit-ci: skipped (set SHEPHERD_FULL=1)\naudit-openapi: skipped (set SHEPHERD_FULL=1)\ncheck-llm: skipped (set SHEPHERD_FULL=1)\ngitnexus-analyze: skipped (set SHEPHERD_FULL=1)"
+}

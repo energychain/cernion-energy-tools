@@ -17,6 +17,7 @@ const {
   findRuntimeCapability,
 } = require('../src/domain-routes-registry');
 const { rankOperations } = require('../src/operation-capability-index');
+const { classifyCaseTypes } = require('../src/case-type-routing');
 const { getFunctionModel } = require('../src/function-model');
 
 const MODES = new Set(['initial', 'next_step', 'repair', 'compare']);
@@ -3417,6 +3418,25 @@ module.exports = {
         const capability = selected.capability;
         const confidence = selected.usedFallback ? 0 : ranked.confidence;
         const uncertain = selected.usedFallback || ranked.uncertain;
+        const knownContext =
+          ctx.params.knownContext && typeof ctx.params.knownContext === 'object'
+            ? ctx.params.knownContext
+            : {};
+        const caseTypeRouting = classifyCaseTypes(taskText, knownContext);
+        const actionableCaseTypeRouting =
+          caseTypeRouting.primary && caseTypeRouting.primary.rawScore >= 3;
+        const caseTypeRecommendedCapabilities = actionableCaseTypeRouting
+          ? [
+              {
+                capability: 'case_type_clarification',
+                abstractionLevel: 'case_type',
+                reason: 'Matched domain case type before deterministic tool selection.',
+                actions: [],
+                hitlPolicy: null,
+                caseTypeCandidates: caseTypeRouting.candidates.map((candidate) => candidate.id),
+              },
+            ]
+          : undefined;
 
         // A ranking is not a selection. Return before constructing any action
         // paths or operation candidates so every consumer receives only choices.
@@ -3439,6 +3459,8 @@ module.exports = {
                     score: match.score,
                   };
                 }),
+            caseTypeRouting: actionableCaseTypeRouting ? caseTypeRouting : undefined,
+            recommendedCapabilities: caseTypeRecommendedCapabilities,
             scoringBreakdown: {
               rawScore: selected.score,
               margin: ranked.margin,
@@ -3506,10 +3528,6 @@ module.exports = {
           blockedActions
         ).filter((action) => !preferredActionPath.includes(action));
 
-        const knownContext =
-          ctx.params.knownContext && typeof ctx.params.knownContext === 'object'
-            ? ctx.params.knownContext
-            : {};
         const operationCandidates = rankOperations(taskText, {
           capability: capability.capability,
           domain: capability.domain,
@@ -3623,8 +3641,10 @@ module.exports = {
               reason: `Matched curated domain capability in ${capability.domain}.`,
               actions: preferredActionPath,
               hitlPolicy: capability.hitlPolicy || null,
+              caseTypeCandidates: caseTypeRouting.candidates.map((candidate) => candidate.id),
             },
           ],
+          caseTypeRouting,
           recommendedPlan,
           operationCandidates,
           requiredInputs,

@@ -35,7 +35,7 @@ const {
   normalizeMarketPartner,
   extractCandidates,
 } = require('../src/market-role-classifier');
-const { buildHtmlReport, summarizeForReport } = require('../src/report-builder');
+const { buildHtmlReport } = require('../src/report-builder');
 const { runAsync } = require('../src/async-job-runner');
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
