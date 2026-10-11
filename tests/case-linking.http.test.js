@@ -89,7 +89,8 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
       const input = JSON.parse(prompt);
       const related = input.evidence.find((entry) => entry.source === 'related_case');
       return JSON.stringify({
-        expectation: [
+        expectation: [],
+        interpretation: [
           {
             text: related
               ? 'Der verwandte Vorgang wartet auf geprüfte Evidenz.'
@@ -321,6 +322,7 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
       const input = JSON.parse(prompt);
       return JSON.stringify({
         expectation: [],
+        interpretation: [],
         nextSteps: input.nextStepInstruction ? [claim('Prüfe den dokumentierten Stand.')] : [],
         draft: input.turnInstruction.includes('vollständigen Entwurf')
           ? [

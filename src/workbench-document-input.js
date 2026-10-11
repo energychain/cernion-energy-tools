@@ -17,7 +17,7 @@ function documentInput(input) {
       'WORKBENCH_DOCUMENT_LIMIT'
     );
   const parsed = parseOpenWebUIContext(input);
-  if (!parsed.documents.length) {
+  if (!parsed.documents.length && !require('./workbench-thread').isThreadInput(parsed.question)) {
     const lines = parsed.question.split(/\r?\n/);
     const trailingQuestion =
       /\?\s*$/.test(lines.at(-1)) && !/[;\t|]/.test(lines.at(-1)) ? lines.pop() : '';

@@ -1,0 +1,48 @@
+{
+  "energy-market.installations": {
+    "source": "MaStR",
+    "fields": {
+      "installationType": {
+        "values": {
+          "solar": "Solar",
+          "wind": "Wind",
+          "storage": "Speicher"
+        }
+      },
+      "operationalStatus": {
+        "values": {
+          "all": "alle Betriebszustände"
+        },
+        "lookup": {
+          "module": "mastr-monitor-diff",
+          "field": "einheitBetriebsstatus"
+        }
+      },
+      "minCapacityKW": {
+        "prefix": "> ",
+        "suffix": " kW"
+      },
+      "maxCapacityKW": {
+        "prefix": "< ",
+        "suffix": " kW"
+      },
+      "location": {},
+      "city": {},
+      "postalCode": {},
+      "gridOperatorName": {},
+      "postleitzahl": {
+        "prefix": "PLZ "
+      },
+      "commissioningYear": {
+        "prefix": "Inbetriebnahme "
+      }
+    },
+    "resultFields": {
+      "einheitBetriebsstatus": "operationalStatus",
+      "EinheitBetriebsstatus": "operationalStatus"
+    },
+    "defaults": {
+      "operationalStatus": "35"
+    }
+  }
+}

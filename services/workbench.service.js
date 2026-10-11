@@ -128,10 +128,13 @@ module.exports = {
         )
           gatewayForbidden();
       },
-      chat: coverageTurn.before,
-      query: coverageTurn.before,
+      chat: [coverageTurn.before, require('../src/tenant-memory').beforeTurn],
+      query: [coverageTurn.before, require('../src/tenant-memory').beforeTurn],
     },
-    after: { chat: coverageTurn.after, query: coverageTurn.after },
+    after: {
+      chat: [coverageTurn.after, require('../src/tenant-memory').afterTurn],
+      query: [coverageTurn.after, require('../src/tenant-memory').afterTurn],
+    },
     error: { chat: coverageTurn.error, query: coverageTurn.error },
   },
   mixins: [...WORKBENCH_DATABASES.map(workbenchDbMixin), conversationAssistance.lifecycle],
@@ -1503,6 +1506,14 @@ module.exports = {
         coverageTurn.mapped(ctx, this.metaForMapping(ctx, p, mapping));
         const correctionMeta = this.metaForMapping(ctx, p, mapping);
         p = principal({ meta: correctionMeta }, ctx.params);
+        const fileReply = await require('../src/file-channel-turn').prepareFileTurn(
+          this,
+          ctx,
+          p,
+          envelope,
+          correctionMeta
+        );
+        if (fileReply) return fileReply;
         const background = require('../src/workbench-background-task');
         if (background.backgroundTask(envelope.userRequest))
           return background.answerBackgroundTask(envelope.userRequest, p.tenantId, this.logger);
@@ -1512,26 +1523,39 @@ module.exports = {
           call: (name, params, options) =>
             ctx.call(name, params, { meta: { ...correctionMeta, ...options?.meta } }),
         };
-        if (pending?.tenantMemoryFactIds?.length) {
+        if (pending?.tenantMemoryFactIds?.length || !envelope.documents?.length) {
           const priorityReply = await require('../src/tenant-memory').preturn(
             memoryContext,
             p,
             envelope,
-            pending
+            { ...pending, queryOnly: !pending?.tenantMemoryFactIds?.length }
           );
           if (priorityReply) return priorityReply;
         }
         if (this.broker.getLocalService('dataset')) {
+          const lastDataset =
+            !pending?.tenantMemoryFactIds?.length &&
+            /^(?:korrigier(?:e)? das|das stimmt so nicht)[.!\s]*$/i.test(envelope.userRequest) &&
+            pending?.retrieval?.evidence?.find(
+              (hit) => hit.source === 'dataset.query' && hit.metadata?.tenantId === p.tenantId
+            );
+          const datasetQuestion = lastDataset?.metadata?.datasetId
+            ? `Datensatz ${lastDataset.metadata.datasetId}: ${envelope.userRequest}`
+            : envelope.userRequest;
           const datasetTurn = await ctx.call(
             'dataset.turn',
             {
-              question: envelope.userRequest,
+              question: datasetQuestion,
               documents: envelope.documents || [],
               conversationId: envelope.conversationId,
             },
             { meta: correctionMeta }
           );
           if (datasetTurn.handled) {
+            this.logger.info('Workbench turn phases and sources', {
+              phaseTimes: { answerMs: datasetTurn.answerMs || 0 },
+              sources: datasetTurn.sources || [],
+            });
             await conversationAssistance.saveTurn(this.conversationsDb, p, envelope, {
               tenantMemoryFactIds: [],
             });
@@ -1540,9 +1564,12 @@ module.exports = {
               nonBinding: true,
               responseText: datasetTurn.responseText,
               sources: datasetTurn.sources || [],
+              phaseTimes: { answerMs: datasetTurn.answerMs || 0 },
             };
           }
           if (datasetTurn.documents) envelope.documents = datasetTurn.documents;
+          envelope.datasetConfirmations = datasetTurn.confirmations || [];
+          envelope.datasetIds = datasetTurn.datasetIds || [];
         }
         const memoryReply = await require('../src/tenant-memory').preturn(
           memoryContext,
@@ -1550,7 +1577,13 @@ module.exports = {
           envelope,
           pending
         );
-        if (memoryReply) return memoryReply;
+        if (memoryReply) {
+          memoryReply.responseText = [
+            memoryReply.responseText,
+            ...(envelope.datasetConfirmations || []),
+          ].join('\n\n');
+          return memoryReply;
+        }
         const conversation = await this.store.resolveConversation(
           {
             tenantId: p.tenantId,
@@ -1781,6 +1814,7 @@ module.exports = {
         roleFamilies: profile.roleFamilies || [],
         domainsAllowed: profile.domainsAllowed || [],
         sensitivityClearance: profile.sensitivityClearance || [],
+        conversationContext: profile.conversationContext || null,
         language: profile.language || null,
         tone: profile.tone || null,
         defaultNoCallGuards: profile.defaultNoCallGuards || [],

@@ -86,7 +86,8 @@ test('three turns keep bounded incremental prompts, skip understanding for draft
   llm.generateText.mockImplementation(async (prompt) => {
     const turn = JSON.parse(prompt);
     return JSON.stringify({
-      expectation: [
+      expectation: [],
+      interpretation: [
         claim(
           turn.message.includes('Was jetzt')
             ? 'Prüfe jetzt den dokumentierten Eingang.'
@@ -163,7 +164,8 @@ test('three turns keep bounded incremental prompts, skip understanding for draft
 test('input DAR, MaLo and address stay unmarked; only specific model knowledge is marked', async () => {
   llm.generateText.mockResolvedValue(
     JSON.stringify({
-      expectation: [
+      expectation: [],
+      interpretation: [
         claim('DAR: DE000000000001', 'input', true),
         claim('MaLo: 99000000001', 'input', true),
       ],

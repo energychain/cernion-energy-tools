@@ -82,7 +82,8 @@ async function generateText(prompt) {
     specific: false,
   });
   return JSON.stringify({
-    expectation: [
+    expectation: [],
+    interpretation: [
       evidence.length
         ? claim(
             'Das Gegenüber erwartet eine fachliche Rückmeldung zum dokumentierten Bearbeitungsstand.',

@@ -58,15 +58,9 @@ test('decisive questions precede blocking questions; answered questions and prio
     },
     { key: 'answered', question: 'Wurde etwas geändert?', decisive: true, answered: true },
   ];
-  expect(questionsFor({ missingInformation: items }).map((item) => item.key)).toEqual([
-    'start',
-    'agreement',
-    'power',
-  ]);
+  expect(questionsFor({ missingInformation: items }).map((item) => item.key)).toEqual(['start']);
   expect(questionsFor({ missingInformation: items }, [items[1]]).map((item) => item.key)).toEqual([
     'agreement',
-    'power',
-    'ordinary',
   ]);
 });
 
@@ -75,7 +69,7 @@ test('three synthetic turns keep live mode and facts; energy cannot answer a pow
   for (let index = 0; index < fixture.liveTurns.length; index++) {
     llm.generateStructured.mockResolvedValue({
       ...structuredClone(situation),
-      responseMode: 'standard',
+      responseMode: 'conversation',
       missingInformation:
         index === 0
           ? [
@@ -163,16 +157,20 @@ test('three synthetic turns keep live mode and facts; energy cannot answer a pow
       expect(current.personFacts).toEqual(fixture.liveTurns);
     }
     const prompt = JSON.parse(llm.generateText.mock.calls.at(-1)[0]);
-    expect(prompt.conversationInstruction).toContain('kein Brief');
+    expect(prompt.instruction).toContain('ohne Brief');
     expect(prompt.instruction).toContain('niemals annehmen');
     previous = current;
   }
 });
 
 test('mail thread switches to correspondence and explicit draft still wins over next-step state', async () => {
-  const current = updatePersonFacts(structuredClone(situation), fixture.mail, {
-    responseMode: 'conversation',
-  });
+  const current = updatePersonFacts(
+    { ...structuredClone(situation), responseMode: 'correspondence' },
+    fixture.mail,
+    {
+      responseMode: 'conversation',
+    }
+  );
   expect(current.responseMode).toBe('correspondence');
   llm.generateText.mockResolvedValue(
     JSON.stringify({

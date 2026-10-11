@@ -2,6 +2,7 @@
   "minimumLength": 5,
   "corePaths": [
     "src/dataset-*.js",
+    "src/structured-message.js",
     "services/shared-service-notices.service.js",
     "src/shared-service-notices.js",
     "src/function-model.js",
@@ -62,7 +63,11 @@
     "src/tenant-memory-store.js",
     "src/tenant-memory-schema.js",
     "src/tenant-memory-write-policy.js",
+    "src/tenant-memory-policy.js",
+    "services/tenant-memory-policy.service.js",
     "src/workbench-understanding.js",
+    "src/workbench-conversation-shape.js",
+    "src/workbench-self-knowledge.js",
     "src/workbench-llm-repair.js",
     "src/workbench-answer-filter.js",
     "src/workbench-identifiers.js",
@@ -90,7 +95,8 @@
     "src/workbench-document-flow.js",
     "src/workbench-document-passages.js",
     "src/workbench-document-question.js",
-    "src/workbench-tool-answer.js"
+    "src/workbench-tool-answer.js",
+    "src/tool-display.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

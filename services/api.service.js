@@ -1563,6 +1563,7 @@ module.exports = {
         autoAliases: true,
 
         aliases: {
+          ...require('../src/file-channel-http').fileAliases(runOpenAiFacadeAction),
           'POST /chat/completions': handleOpenAiChatCompletions,
           'POST /images/generations': handleOpenAiImageGenerations,
           'POST /embeddings': handleOpenAiEmbeddings,
@@ -3531,6 +3532,20 @@ module.exports = {
           upsertOperation(fullPath, method, aliasTarget, action, serviceName);
         }
 
+        for (const [alias, target] of Object.entries(
+          require('../src/file-channel-http').FILE_ALIAS_ACTIONS
+        )) {
+          const [method, route] = alias.split(' ');
+          const action = actionRegistry.get(target);
+          if (action)
+            upsertOperation(
+              '/v1' + route.replace(/:([a-zA-Z]+)/g, '{$1}'),
+              method.toLowerCase(),
+              target,
+              action,
+              'files'
+            );
+        }
         const openAiChatAction = actionRegistry.get('openai-compatible.chatCompletions');
         if (openAiChatAction) {
           upsertOperation(

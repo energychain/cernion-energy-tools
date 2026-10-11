@@ -21,21 +21,24 @@ function resolvedNotice(item, model) {
   return matches.length === 1 ? { ...item, functionId: matches[0].functionId } : null;
 }
 
-function noticeText(item, model) {
+function noticeText(item, _model) {
   if (item.kind === 'memory') return item.text || '';
-  const fn = model.functions.find((fn) => fn.functionId === item.functionId);
-  const label = fn?.displayLabel || fn?.label || '';
-  const clean = String(label)
-    .replace(/[\u0000-\u001f]/g, ' ')
-    .slice(0, 180);
   const text = {
-    proposal: 'Neuer Vorschlag',
-    gap: `Lücken: ${(item.labels || []).join('; ')} (${item.context?.ref || ''})`,
-    signal: `Signal: ${item.state}`,
-    responsibility: item.cet ? 'CET übernimmt Verantwortung' : 'CET gibt Verantwortung ab',
-    tier: item.tier === 'inventory' ? 'Jetzt im Inventar' : 'Jetzt eingesessen',
+    proposal: 'Für deine aktuelle Arbeit liegt ein neuer Vorschlag vor.',
+    gap: 'Für deine aktuelle Arbeit fehlen noch Angaben.',
+    signal:
+      item.state === 'ok'
+        ? 'Ein für deine aktuelle Arbeit relevanter Hinweis ist wieder unauffällig.'
+        : 'Für deine aktuelle Arbeit gibt es einen Hinweis, den du prüfen solltest.',
+    responsibility: item.cet
+      ? 'CET unterstützt dich jetzt bei dieser Aufgabe.'
+      : 'Für diese Aufgabe ist jetzt wieder deine Bearbeitung erforderlich.',
+    tier:
+      item.tier === 'inventory'
+        ? 'Diese Aufgabe wurde in die Übersicht aufgenommen.'
+        : 'CET unterstützt diese Aufgabe jetzt regelmäßig.',
   }[item.kind];
-  return `${item.ref}: ${text} – ${clean}.`;
+  return text || '';
 }
 
 function renderNoticeBlock(items, remaining = 0, model) {
