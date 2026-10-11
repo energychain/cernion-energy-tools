@@ -280,3 +280,41 @@ test('next-step followup does not repeat an inherited semantic draft request', a
   expect(result.draft).toBe('');
   expect(result.metadata.degraded).toBe(false);
 });
+
+test('semantic draft request with an unresolved code keeps the safe colleague question', async () => {
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      interpretation: [claim('Der genannte Code ist noch nicht geklärt.')],
+      expectation: [],
+      nextSteps: [],
+      draft: [],
+    })
+  );
+  const result = await answer({
+    situation: {
+      ...situation('task'),
+      turnKind: 'work',
+      requestedAction: {
+        description: 'Antwortentwurf',
+        draftRequested: true,
+        externalEffect: false,
+      },
+      codeResolutions: [{ kind: 'reference', value: 'Q77', status: 'unavailable' }],
+      missingInformation: [
+        {
+          key: 'code-q77',
+          question: 'Steht Q77 hier für einen internen Status oder einen Ablehnungsgrund?',
+          reason: 'decisive',
+          decisive: true,
+          answered: false,
+        },
+      ],
+    },
+    message: 'Hilf mir mit der Reklamation zum unbekannten Code Q77.',
+    retrieval: { evidence: [] },
+    tenantId: 'synthetic',
+  });
+  expect(result.responseText).toContain('Steht Q77');
+  expect(result.draft).toBe('');
+  expect(result.metadata.degraded).toBe(false);
+});

@@ -975,8 +975,10 @@ async function answer({
   const draftRequested =
     isDraftRequest(message) ||
     (!suppressDraft &&
+      !unresolved.length &&
       !nextStepOnly &&
-      shape.kind(situation) === 'task' &&
+      !followup &&
+      situation.conversationShape === 'task' &&
       situation.turnKind !== 'review' &&
       situation.requestedAction?.draftRequested === true);
   const analysisOnly = (situation.outputKind === 'analysis' || suppressDraft) && !draftRequested;
