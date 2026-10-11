@@ -18,13 +18,92 @@ function datasetLimit(message) {
   );
 }
 
+function damagedDataset(reason) {
+  throw new Errors.MoleculerClientError(
+    'Die Datei kam beschädigt an; bitte lade sie erneut hoch oder schalte den Dateikanal ein.',
+    422,
+    'WORKBENCH_DATASET_DAMAGED',
+    { reason }
+  );
+}
+
+// Shared by table input and cleanup of previously accepted catalog records.
+function datasetPlausibility(record, rows) {
+  const columns = record.columns || record.profile?.columns || [];
+  const count = record.rowCount ?? rows?.length ?? 0;
+  const threshold = Number(process.env.WORKBENCH_DATASET_MAX_EMPTY_RATIO ?? 0.5);
+  if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1)
+    throw new Error('Invalid dataset MAX_EMPTY_RATIO');
+  if (!columns.length || !count) return 'Datensatz enthält keine verwendbare Tabelle.';
+  if (columns.some((column) => !String(column.name ?? '').trim() || /^none$/i.test(column.name)))
+    return 'Spaltennamen fehlen oder enthalten Restfelder.';
+  if (rows && record.rowCount != null && rows.length !== record.rowCount)
+    return 'Die gespeicherten Zeilen stimmen nicht mit dem Katalog überein.';
+  const missing = rows
+    ? rows.reduce(
+        (sum, row) =>
+          sum +
+          columns.filter(
+            (column) => row[column.name] == null || String(row[column.name]).trim() === ''
+          ).length,
+        0
+      )
+    : columns.reduce((sum, column) => sum + (column.nullCount || 0), 0);
+  if (missing / (count * columns.length) > threshold) return 'Der Anteil leerer Werte ist zu hoch.';
+  if (rows?.some((row) => Object.values(row).some(truncatedDatasetValue)))
+    return 'Zahlen oder Restfelder sind abgeschnitten.';
+  return null;
+}
+
+function truncatedDatasetValue(value) {
+  const text = String(value ?? '').trim();
+  return (
+    /^None\s*:/i.test(text) ||
+    /^[+-]?\d+[.,]$/.test(text) ||
+    /^[+-]?\d+(?:[.,]\d+)?e[+-]?$/i.test(text)
+  );
+}
+
+function restoreDelimitedPairs(raw) {
+  const lines = raw.split(/\r?\n/).filter((line) => line.trim());
+  const boundary = lines[0]?.indexOf(':') ?? -1;
+  const header = boundary >= 0 ? lines[0].slice(0, boundary) : '';
+  if (!header.includes(';')) {
+    if (lines.some((line) => /^\s*None\s*:/i.test(line)))
+      damagedDataset('Restfeld ohne eindeutige Kopfzeile');
+    return raw;
+  }
+  const names = header.split(';');
+  if (names.some((name) => !name.trim() || /[",]/.test(name)))
+    damagedDataset('Mehrdeutige Kopfzeile');
+  const values = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i].startsWith(header + ':')) damagedDataset('Uneinheitliche zerlegte Zeile');
+    let value = lines[i].slice(header.length + 1).replace(/^ /, '');
+    if (value.split(';').length !== names.length || /[",]/.test(value))
+      damagedDataset('Mehrdeutige zerlegte Felder');
+    if (/^\s*None\s*:/i.test(lines[i + 1] || '')) {
+      const rest = lines[++i].replace(/^\s*None\s*:\s*/i, '').trim();
+      const fraction = /^\[(['"])\d+\1\]$/.test(rest) ? rest.slice(2, -2) : rest;
+      if (!/^\d+$/.test(fraction) || !/^[+-]?\d+$/.test(value.split(';').at(-1)))
+        damagedDataset('Restfeld kann nicht verlustfrei zugeordnet werden');
+      value += ',' + fraction;
+    }
+    values.push(value);
+  }
+  return [header, ...values].join('\n');
+}
+
 function matrixRows(matrix) {
   const nonempty = matrix.filter((row) => row.some((cell) => String(cell ?? '').trim()));
-  const headerIndex = nonempty.findIndex(
-    (row) => row.filter((cell) => String(cell ?? '').trim()).length >= 2
-  );
+  const headerIndex =
+    nonempty[0]?.length >= 2
+      ? 0
+      : nonempty.findIndex((row) => row.filter((cell) => String(cell ?? '').trim()).length >= 2);
   if (headerIndex < 0 || nonempty.length < headerIndex + 2) return null;
   let header = nonempty[headerIndex].map((cell) => String(cell ?? '').trim());
+  if (header.some((name) => !name || /^none$/i.test(name)))
+    damagedDataset('Ungültige Spaltennamen');
   let start = headerIndex + 1;
   // A second header carrying units is joined to the column label.
   if (nonempty[start]?.some((cell) => /^\s*[[(][^\])]+[\])]\s*$/.test(String(cell)))) {
@@ -32,7 +111,7 @@ function matrixRows(matrix) {
     start++;
   }
   if (header.length > datasetSetting('MAX_COLUMNS', 128)) datasetLimit('Zu viele Spalten.');
-  const names = header.map((name, i) => name || `Spalte ${i + 1}`);
+  const names = header;
   if (new Set(names).size !== names.length) throw new Error('Mehrdeutige doppelte Spaltennamen.');
   const body = nonempty.slice(start);
   if (body.length > datasetSetting('MAX_ROWS', 50000)) datasetLimit('Zu viele Zeilen.');
@@ -46,14 +125,9 @@ function matrixRows(matrix) {
     Object.fromEntries(names.map((name, i) => [name, row[i] ?? null]))
   );
   const profile = profileRows(rows);
-  if (
-    !rows.length ||
-    body.filter((row) => row.filter((cell) => cell != null && String(cell).trim()).length > 1)
-      .length /
-      body.length <
-      0.5
-  )
-    return null;
+  const damage = datasetPlausibility({ profile }, rows);
+  if (damage) damagedDataset(damage);
+  if (!rows.length) return null;
   // Canonical typed cells make CSV, Markdown and key/value representations identical.
   for (const row of rows)
     for (const column of profile.columns) {
@@ -69,9 +143,10 @@ function matrixRows(matrix) {
 }
 
 function parseDatasetText(text, name = 'Tabelle') {
-  const raw = String(text || '')
+  const source = String(text || '')
     .trim()
     .replace(/^\uFEFF/, '');
+  const raw = restoreDelimitedPairs(source);
   const sheetMarkers = [
     ...raw.matchAll(/^(?:#{1,3}\s*)?(?:Sheet|Blatt|Worksheet)\s*[:：]\s*(.+)$/gim),
   ];
@@ -197,4 +272,6 @@ module.exports = {
   datasetSetting,
   datasetLimit,
   timestampMillis,
+  datasetPlausibility,
+  damagedDataset,
 };

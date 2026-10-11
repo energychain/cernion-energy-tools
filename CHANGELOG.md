@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Datensatzfragen im Upload-Turn (#838)
+
+- Datei und zugehörige Frage werden gemeinsam beantwortet: deterministische Abfrage der aufgenommenen Tabellen, Antwort vor Ablagebestätigung und gezielte Blattauswahl.
+- Eindeutige Open-WebUI-Restfelder werden verlustfrei rekonstruiert; Plausibilitätsprüfung verhindert beschädigte Tabellen und die Wiederverwendung unbrauchbarer Altbestände.
+- Konkrete Ursachen bei fehlenden Spalten, leeren Werten und nicht abgedeckten Zeiträumen; kurze Folgeantworten ohne sachfremde Empfehlungen.
+- Generierte synthetische CSV-/XLSX-/Open-WebUI-Fixtures, Tests für alle sieben Abnahmeszenarien und dokumentierte Nichtproduktions-Live-Validierung.
+
 ## Unreleased — Strukturierte Nachrichten im Chat (#814)
 
 - Generischer Eingang für strukturierte Nachrichten vor Dokument- und Tabellenverarbeitung; EDIFACT-Adapter und Typkonfiguration bleiben außerhalb des Kerns.

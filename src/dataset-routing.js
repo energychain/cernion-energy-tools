@@ -12,7 +12,30 @@ async function selectDatasetCandidates(
   { conversationId, previousReads = [], previousSubject = '', newDatasetIds = [] } = {}
 ) {
   if (!records.length || !String(question || '').trim()) return [];
-  const current = records.filter((record) => record.current !== false);
+  question = String(question).replace(/^und\s+/i, '');
+  const current = records.filter(
+    (record) =>
+      (record.current !== false || newDatasetIds.includes(record.id)) && !record.quality?.unusable
+  );
+  if (newDatasetIds.length) {
+    const uploaded = current.filter((record) => newDatasetIds.includes(record.id));
+    const sheets = uploaded.filter(
+      (record) =>
+        record.sheet &&
+        String(question).toLocaleLowerCase().includes(record.sheet.toLocaleLowerCase())
+    );
+    if (sheets.length) return sheets;
+    if (
+      uploaded.length === 1 &&
+      !/\b(?:laut|gemäß|gemaess|wissen|beschlossen)\b/i.test(question) &&
+      (/^(?:wann\b|wie (?:hoch|viel\b|groß|gross|ist)\b|wie viele zeilen\b)/i.test(question) ||
+        /\b(?:spalte|column|maximum|minimum|summe|mittelwert|auswert\w*|berechn\w*)\b/i.test(
+          question
+        ))
+    )
+      return uploaded;
+    records = uploaded;
+  }
   const elliptical =
     /^(?:gibt es (?:auffälligkeiten|auffaelligkeiten|unregelmäßigkeiten|lücken|leere werte)|wie hoch (?:war|ist) (?:die|der|das) (?:maximum|minimum|mittelwert|summe)(?: (?:und wann|20\d{2}))?|(?:maximum|minimum|mittelwert)(?: 20\d{2})?|wie viele zeilen(?: und (?:wie viele )?leere werte)?)[?!.\s]*$/i.test(
       String(question).trim()
@@ -47,7 +70,7 @@ async function selectDatasetCandidates(
   const context = opaqueContext({
     question,
     previousSubject,
-    datasets: current.map((record) => ({
+    datasets: (newDatasetIds.length ? records : current).map((record) => ({
       id: record.id,
       title: record.title,
       filename: record.sourceName,
@@ -83,7 +106,9 @@ async function selectDatasetCandidates(
     );
     const selected = restoreContext(result, context.reidentMap);
     if (!Array.isArray(selected?.datasetIds)) return [];
-    return current.filter((record) => selected.datasetIds.includes(record.id));
+    return (newDatasetIds.length ? records : current).filter((record) =>
+      selected.datasetIds.includes(record.id)
+    );
   } catch (_error) {
     // No arbitrary fallback to the only/most recent table when classification fails.
     return [];

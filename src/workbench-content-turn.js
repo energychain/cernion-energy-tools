@@ -103,6 +103,125 @@ async function evidenceAccess(service, p) {
   };
 }
 
+// Table input has already completed. Read the actual rows before routing the rest of the turn.
+function datasetQuestion(question) {
+  return (
+    /\?|\b(?:wie\w*|wann|welch\w*|berechn\w*|auswert\w*|analys\w*|zeig\w*)\b/i.test(question) ||
+    /\b(?:maximum|minimum|summe|mittelwert|spitzenlast)\b/i.test(question)
+  );
+}
+
+function turnDatasetIds(p, envelope, pending) {
+  if (envelope.datasetIds?.length) return envelope.datasetIds;
+  if (
+    envelope.documents?.length ||
+    !/^(?:und\b|wie (?:hoch|viel)|wann\b)/i.test(envelope.userRequest)
+  )
+    return [];
+  return (pending?.retrieval?.evidence || [])
+    .filter((hit) => hit.source === 'dataset.query' && hit.metadata?.tenantId === p.tenantId)
+    .map((hit) => hit.metadata.datasetId);
+}
+
+async function readTurnDataset(ctx, p, envelope, candidates, meta) {
+  if (candidates.length !== 1)
+    return {
+      answer: `Mehrere Tabellenblätter passen: ${candidates.map((record) => record.sheet || record.title).join(', ')}. Welches meinst du?`,
+      evidence: [],
+    };
+  const record = candidates[0];
+  try {
+    const result = await ctx.call(
+      'dataset.query',
+      { id: record.id, question: envelope.userRequest, conversationId: envelope.conversationId },
+      { meta }
+    );
+    return {
+      answer: result.responseText,
+      evidence: [
+        {
+          source: 'dataset.query',
+          retrievalSource: 'capability-read',
+          value: result.responseText,
+          metadata: {
+            tenantId: p.tenantId,
+            datasetId: record.id,
+            version: record.version,
+            parameters: { id: record.id },
+          },
+        },
+      ],
+    };
+  } catch (error) {
+    if (/Spalte|Abfragefeld/i.test(error.message))
+      return {
+        answer:
+          'Die angefragte Spalte wurde im Datensatz nicht gefunden oder ist nicht zum Lesen freigegeben.',
+        evidence: [],
+      };
+    if (/Zeit/i.test(error.message))
+      return {
+        answer:
+          'Die Abfrage ist nicht möglich, weil der Zeitfilter oder die benötigten Zeitabstände nicht verwendbar sind.',
+        evidence: [],
+      };
+    throw error;
+  }
+}
+
+async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }) {
+  const started = performance.now();
+  if (!ctx.broker.getLocalService('dataset')) return null;
+  const fresh = envelope.datasetIds || [];
+  // Replayed attachments retain the established answer phase and its grounded checks.
+  if (fresh.length && !envelope.datasetConfirmations?.length) return null;
+  const grounded = turnDatasetIds(p, envelope, pending);
+  if (!grounded.length) return null;
+  if (!datasetQuestion(envelope.userRequest)) {
+    if (!fresh.length || !envelope.datasetConfirmations?.length) return null;
+    return {
+      state: 'assistance',
+      nonBinding: true,
+      responseText: envelope.datasetConfirmations.join('\n\n'),
+      sources: [],
+    };
+  }
+  const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' }, { meta });
+  const candidates = await require('./dataset-routing').selectDatasetCandidates(
+    records.filter((record) => grounded.includes(record.id)),
+    envelope.userRequest,
+    {
+      conversationId: envelope.conversationId,
+      newDatasetIds: fresh,
+      previousReads: pending?.retrieval?.evidence || [],
+    }
+  );
+  if (!candidates.length || (!fresh.length && candidates.length !== 1)) return null;
+  const { answer, evidence } = await readTurnDataset(ctx, p, envelope, candidates, meta);
+  const receipts = envelope.datasetConfirmations?.length
+    ? records
+        .filter((record) => fresh.includes(record.id))
+        .map((record) => `Hab ich abgelegt: ${record.title}, Version ${record.version}.`)
+    : [];
+  const responseText = [answer, ...receipts].filter(Boolean).join('\n\n');
+  await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
+    tenantMemoryFactIds: [],
+    retrieval: { evidence, trace: [], toolTrace: [] },
+    evidenceRetrievedAt: Date.now(),
+    lastAnswer: answer.slice(0, 600),
+    lastConversationShape: 'knowledge',
+  });
+  return {
+    state: 'assistance',
+    nonBinding: true,
+    responseText,
+    evidence,
+    phaseTimes: { answerMs: Math.round(performance.now() - started) },
+    latencyMs: Math.round(performance.now() - started),
+    sources: evidence.map(() => ({ source: 'dataset.query', status: 'available', called: true })),
+  };
+}
+
 async function runContentTurn(
   service,
   ctx,
@@ -111,6 +230,8 @@ async function runContentTurn(
   const quotaReply = await require('./workbench-quota').quotaQuery(ctx, p, envelope.userRequest);
   if (quotaReply) return quotaReply;
   const started = performance.now();
+  const datasetReply = await incomingDatasetReply(service, ctx, { p, envelope, pending, meta });
+  if (datasetReply) return datasetReply;
   const caseChoice = continuation.selection(pending, envelope.userRequest);
   let rawMessage = envelope.userRequest;
   const documentFlow = require('./workbench-document-flow');

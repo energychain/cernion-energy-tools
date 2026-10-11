@@ -2,7 +2,11 @@
 
 const { randomUUID } = require('node:crypto');
 const { principal, deny } = require('../src/domain-router-policy');
-const { parseDatasetText, disposableDataset } = require('../src/dataset-input');
+const {
+  parseDatasetText,
+  disposableDataset,
+  datasetPlausibility,
+} = require('../src/dataset-input');
 const { datasetSemantics, datasetQueryPlan } = require('../src/dataset-semantics');
 const { normalizeDatasetTimes } = require('../src/dataset-time');
 const { executeDatasetQuery } = require('../src/dataset-query');
@@ -101,6 +105,13 @@ module.exports = {
           };
         const record = matches[0];
         if (record.tenantId !== p.tenantId) deny('Tenant mismatch');
+        const unusable = await this.datasetHealth(ctx, p, record);
+        if (unusable)
+          return {
+            responseText: `Der Datensatz ist unbrauchbar: ${unusable}`,
+            datasetId: record.id,
+            status: 'unusable',
+          };
         if (/welche.*daten|katalog|catalog/i.test(ctx.params.question))
           return {
             responseText: `${record.title}, Version ${record.version}: ${record.rowCount} Zeilen, ${record.period.from || 'Zeitraum ungeklärt'} bis ${record.period.to || 'ungeklärt'}; Nutzerangabe von ${record.provenance.person} am ${record.provenance.at.slice(0, 10)}.`,
@@ -115,6 +126,15 @@ module.exports = {
             record,
             ctx.params
           );
+        if (
+          require('../src/dataset-query').requestedDatasetField(record, ctx.params.question) ===
+          false
+        )
+          return {
+            responseText: 'Die angefragte Spalte wurde im Datensatz nicht gefunden.',
+            datasetId: record.id,
+            status: 'unavailable',
+          };
         const plan = ctx.params.plan || (await datasetQueryPlan(record, ctx.params.question));
         return executeDatasetQuery(this.datasetPool, record, { ...ctx.params, plan });
       },
@@ -142,23 +162,56 @@ module.exports = {
     },
   },
   methods: {
+    async datasetHealth(ctx, p, record) {
+      if (record.structuredFormat) return null;
+      if (record.quality?.unusable) return record.quality.reason;
+      let reason = datasetPlausibility(record);
+      if (!reason) {
+        try {
+          const rows = this.datasetPool.rows(p.tenantId, record.id, record.columns);
+          reason = datasetPlausibility(record, rows);
+          if (!rows.length) reason = 'Die gespeicherten Tabellenwerte fehlen.';
+        } catch (_error) {
+          reason = 'Die gespeicherten Tabellenwerte sind nicht zugänglich.';
+        }
+      }
+      if (!reason) return null;
+      const updated = {
+        ...record,
+        current: false,
+        quality: { ...record.quality, unusable: true, reason },
+        audit: [
+          ...(record.audit || []),
+          { kind: 'quarantined', actorId: p.actorId, at: new Date().toISOString(), reason },
+        ],
+      };
+      await ctx.call('datapoint.datasetCatalog', { operation: 'put', record: updated });
+      Object.assign(record, updated);
+      return reason;
+    },
     async datasetTurn(ctx, p) {
       const structured = await require('../src/structured-message').structuredTurn(this, ctx, p);
       if (structured) return structured;
       const { question, documents, conversationId } = ctx.params;
       const ordinary = [],
         tables = [];
-      for (const document of documents) {
-        const parsed = parseDatasetText(document.text, document.name);
-        if (parsed.length)
-          tables.push(
-            ...parsed.map((table) => ({ ...table, sensitivityLevel: document.sensitivityLevel }))
-          );
-        else ordinary.push(document);
+      try {
+        for (const document of documents) {
+          const parsed = parseDatasetText(document.text, document.name);
+          if (parsed.length)
+            tables.push(
+              ...parsed.map((table) => ({ ...table, sensitivityLevel: document.sensitivityLevel }))
+            );
+          else ordinary.push(document);
+        }
+        if (!documents.length) tables.push(...parseDatasetText(question, 'Eingefügte Tabelle'));
+      } catch (error) {
+        if (error.type !== 'WORKBENCH_DATASET_DAMAGED') throw error;
+        return { handled: true, responseText: error.message, documents: [], datasetIds: [] };
       }
-      const pasted = !documents.length ? parseDatasetText(question, 'Eingefügte Tabelle') : [];
-      tables.push(...pasted);
+      const pasted = !documents.length ? tables : [];
       const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
+      if (tables.length) for (const record of records) await this.datasetHealth(ctx, p, record);
       const deleted = tables.length
         ? await ctx.call('datapoint.datasetCatalog', { operation: 'deleted' })
         : [];
@@ -171,11 +224,20 @@ module.exports = {
           replayed.push({ ...deletion, name: table.name });
           continue;
         }
-        const duplicate = records.find((record) => record.hash === table.hash);
+        const duplicate = records.find(
+          (record) => record.hash === table.hash && !record.quality?.unusable
+        );
         if (duplicate) {
           ids.push(duplicate.id);
           continue;
         }
+        const damage = datasetPlausibility(table, table.rows);
+        if (damage)
+          return {
+            handled: true,
+            responseText:
+              'Die Datei kam beschädigt an; bitte lade sie erneut hoch oder schalte den Dateikanal ein.',
+          };
         const ephemeral = disposableDataset(table, question);
         const semantic = await datasetSemantics(
           table,
