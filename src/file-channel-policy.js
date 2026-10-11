@@ -12,6 +12,8 @@ const TYPES = Object.freeze({
   csv: 'text/csv',
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   txt: 'text/plain',
+  edi: 'application/edifact',
+  edifact: 'application/edifact',
   eml: 'message/rfc822',
 });
 function fileError(message, status = 422, type = 'FILE_CHANNEL_INVALID') {
@@ -78,7 +80,7 @@ function validateFile(input) {
     fileError('Ungültige PDF-Datei.');
   if (['docx', 'xlsx', 'pptx'].includes(extension))
     require('./file-channel-extract').validateOffice(bytes, extension);
-  else if (['csv', 'txt', 'eml'].includes(extension)) {
+  else if (['csv', 'txt', 'eml', 'edi', 'edifact'].includes(extension)) {
     try {
       new TextDecoder('utf-8', { fatal: true }).decode(bytes);
     } catch (_error) {

@@ -469,7 +469,7 @@ Organisationsrelevante Aussagen hält CET tenantweit fest und bestätigt sie ein
 Vollständige CSV-/XLSX-Texttabellen aus Open WebUI werden tenantweit als Nutzerangaben
 abgelegt und über `dataset.query` deterministisch ausgewertet. Gleicher Inhalt erzeugt
 auch bei erneut gesendeten Anhängen keine weitere Version oder Bestätigung.
-Einrichtung, Grenzen und Beispiele: [Tenant-Datenkatalog](docs/tenant-dataset-catalog.md).
+Einrichtung, Grenzen und Beispiele: [Tenant-Datenkatalog](docs/tenant-dataset-catalog.md). Strukturierte Nachrichten und EDIFACT: [Formate, Prüfungen und Abfragen](docs/structured-message-formats.md).
 
 ## Originaldateien im Chat (#790)
 
