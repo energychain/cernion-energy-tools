@@ -195,6 +195,11 @@ function resolveCapabilityNeed(situation, message, options = {}) {
     );
   const explicit = Boolean(situation.dataNeeds?.trim());
   const datasetMatch = Boolean(options.datasetCandidates?.length);
+  const materialOnly =
+    situation.conversationShape === 'filing' ||
+    (situation.turnKind === 'review' && situation.outputKind === 'correspondence');
+  if (!explicit && !datasetMatch && materialOnly)
+    return { situation, candidates: [], reason: 'no_data_need', refinement: false };
   if (!explicit && !datasetMatch && (!concrete || conceptual || knowledgeList))
     return { situation, candidates: [], reason: 'no_data_need', refinement: false };
   const querySituation = {
