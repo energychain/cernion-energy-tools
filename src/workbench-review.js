@@ -239,9 +239,11 @@ async function reviewDocuments(
             ...mapped,
           };
         } catch (error) {
+          const errors = require('./workbench-llm-errors');
+          errors.logLlmError(ctx?.broker?.logger, 'review', error);
           gaps[index] = {
             location: section.location,
-            reason: error.type || 'WORKBENCH_REVIEW_MAP_FAILED',
+            reason: errors.quotaMessage(error) || error.type || 'WORKBENCH_REVIEW_MAP_FAILED',
           };
         }
       }
@@ -341,6 +343,8 @@ async function reviewDocuments(
       stats: { ...stats, elapsedMs: Math.round(performance.now() - started) },
     };
   } catch (error) {
+    const errors = require('./workbench-llm-errors');
+    errors.logLlmError(ctx?.broker?.logger, 'review', error);
     return {
       status:
         missing > sections.length / 2
@@ -348,7 +352,7 @@ async function reviewDocuments(
           : error.type === 'WORKBENCH_REVIEW_TIMEOUT'
             ? 'timeout'
             : 'failed',
-      reason: error.type || 'WORKBENCH_REVIEW_FAILED',
+      reason: errors.quotaMessage(error) || error.type || 'WORKBENCH_REVIEW_FAILED',
       maps,
       locations,
       criteria,

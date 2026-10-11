@@ -197,8 +197,10 @@ function resolveCapabilityNeed(situation, message, options = {}) {
   const datasetMatch = Boolean(options.datasetCandidates?.length);
   const materialOnly =
     situation.conversationShape === 'filing' ||
-    (situation.turnKind === 'review' && situation.outputKind === 'correspondence');
-  if (!explicit && !datasetMatch && materialOnly)
+    situation.outputKind === 'correspondence' ||
+    situation.responseMode === 'correspondence' ||
+    require('./workbench-thread').isThreadInput(request);
+  if (!explicit && materialOnly)
     return { situation, candidates: [], reason: 'no_data_need', refinement: false };
   if (!explicit && !datasetMatch && (!concrete || conceptual || knowledgeList))
     return { situation, candidates: [], reason: 'no_data_need', refinement: false };
@@ -359,6 +361,14 @@ function summarizeResult(result, projection, tenantId, observations) {
     ].filter(Boolean);
     if (input.length && fields.some((field) => !available.has(field)))
       throw new Error('Ein angefordertes Auswertungsfeld ist nicht in den Daten enthalten');
+    if (
+      op.op === 'aggregate' &&
+      op.metrics.some(
+        (metric) =>
+          metric.fn !== 'count' && require('./workbench-tool-answer').identifierField(metric.field)
+      )
+    )
+      throw new Error('Kennungen sind keine Messgrößen und können nicht aggregiert werden.');
     if (op.op === 'aggregate')
       available = new Set([...(op.groupBy || []), ...op.metrics.map((metric) => metric.as)]);
     if (op.op === 'select') available = new Set(op.columns);
@@ -412,6 +422,7 @@ function summarizeResult(result, projection, tenantId, observations) {
 function numericStatistics(rows) {
   const fields = [...new Set(rows.flatMap((row) => Object.keys(row)))];
   return fields.flatMap((field) => {
+    if (require('./workbench-tool-answer').identifierField(field)) return [];
     const values = rows
       .map((row) => ({ row, value: parseNumber(row[field]) }))
       .filter((entry) => entry.value !== null);
@@ -940,7 +951,7 @@ function toolReport(trace = [], evidence = [], _message = '') {
       if (!hit) return '';
       if (entry.name === 'dataset.query')
         return hit.value.split('\n\n').find((line) => line.startsWith('Herkunft:')) || '';
-      const label = hit.metadata?.sourceLabel || 'Datenquelle';
+      const label = require('./workbench-tool-answer').sourceLabel(hit.metadata?.sourceLabel);
       const filter =
         hit.metadata?.filterText ||
         require('./tool-display').readableToolFilters(entry.name, hit.metadata?.parameters);
@@ -957,6 +968,7 @@ function toolReport(trace = [], evidence = [], _message = '') {
       });
       return `Herkunft: ${label}${safeFilter ? `, ${safeFilter}` : ''}; Abruf ${at}.`;
     })
+    .filter((line, index, lines) => line && lines.indexOf(line) === index)
     .join('\n\n');
 }
 

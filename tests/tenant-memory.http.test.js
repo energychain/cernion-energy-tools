@@ -338,7 +338,11 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
     );
     const next = await request(people[firstActor], 'Danke.');
     if (firstActor === 'anna') expect(next.text).toContain('Hinweise für dich:');
-    else expect(draft.text).toContain('Hinweise für dich:');
+    else {
+      expect(draft.text).not.toContain('Hinweise für dich:');
+      expect(draft.text.split('2030 bis 2034')).toHaveLength(2);
+      expect(next.text).not.toContain('Hinweise für dich:');
+    }
     const later = await request(people[firstActor], 'Danke nochmals.');
     expect(later.text).not.toContain('Hinweise für dich:');
     const docs = await app.call(
