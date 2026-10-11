@@ -3,7 +3,16 @@
 // All identifiers, parties, values and dates are invented. Never import customer data.
 function syntheticMessage(
   index,
-  { mismatch = false, negative = false, type = 'INVOIC', badCount = false, padding = 0 } = {}
+  {
+    mismatch = false,
+    negative = false,
+    type = 'INVOIC',
+    badCount = false,
+    padding = 0,
+    taxCents = 0,
+    lineTax = false,
+    taxBreakdown = false,
+  } = {}
 ) {
   const ref = `SYN${index}`;
   const cents = negative ? -2500 : 120000 + index * 1000;
@@ -20,15 +29,17 @@ function syntheticMessage(
     'LOC+172+SYNTHETIC-LOCATION',
     'CUX+2:EUR:4',
   ];
-  if (type === 'INVOIC')
+  if (type === 'INVOIC') {
+    body.push('LIN+1', `MOA+203:${amount(cents)}`);
+    if (lineTax) body.push('TAX+7+VAT', `MOA+124:${amount(taxCents)}`);
     body.push(
-      'LIN+1',
-      `MOA+203:${amount(cents)}`,
       'UNS+S',
       `MOA+79:${amount(net)}`,
-      'MOA+124:0.00',
-      `MOA+77:${amount(net)}`
+      `MOA+124:${amount(taxCents)}`,
+      `MOA+77:${amount(net + taxCents)}`
     );
+    if (taxBreakdown) body.push('TAX+7+VAT', `MOA+124:${amount(taxCents)}`);
+  }
   if (type === 'MSCONS')
     body.push(
       'CCI+11++Z06',

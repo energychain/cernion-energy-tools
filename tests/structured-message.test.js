@@ -252,3 +252,15 @@ describe('structured messages preserve ordinary dataset routing', () => {
     expect(call).not.toHaveBeenCalled();
   });
 });
+
+test('invoice totals do not double-count line and tax-group subtotals', () => {
+  const parsed = adapter.parse(
+    generateEdifactFixture({ count: 1, taxCents: 237, lineTax: true, taxBreakdown: true }),
+    'Synthetic-tax.edi'
+  );
+  expect(parsed.findings.filter((entry) => entry.code === 'sum_mismatch')).toEqual([]);
+  const detail = JSON.parse(parsed.rows[0].Inhalt);
+  expect(detail.amounts.filter((entry) => entry.kind === 'tax')).toHaveLength(3);
+  expect(detail.totals).toEqual({ line: 121000, net: 121000, tax: 237, total: 121237 });
+  expect(detail.groups.some((group) => group.tag === 'TAX')).toBe(true);
+});

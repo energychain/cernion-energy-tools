@@ -2,11 +2,17 @@
   "INVOIC": {
     "label": "Rechnungen",
     "required": ["BGM", "DTM", "MOA"],
-    "amounts": { "line": ["203"], "net": ["79"], "tax": ["124"], "total": ["77"] },
+    "amounts": {
+      "line": ["203"],
+      "net": ["79"],
+      "tax": ["124"],
+      "total": ["77"]
+    },
     "groupStarts": ["LIN"],
     "date": "137",
     "from": "163",
-    "to": "164"
+    "to": "164",
+    "summaryGroupStarts": ["TAX"]
   },
   "MSCONS": {
     "label": "Messwerte",

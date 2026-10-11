@@ -64,7 +64,10 @@ function parseMessage(message, separators, findings) {
       summary = true;
       group = null;
     }
-    if (config.groupStarts.includes(segment.tag)) {
+    if (
+      config.groupStarts.includes(segment.tag) ||
+      (summary && (config.summaryGroupStarts || []).includes(segment.tag))
+    ) {
       group = { tag: segment.tag, reference: value(segment), start: segment.index, segments: [] };
       groups.push(group);
     }
@@ -75,7 +78,14 @@ function parseMessage(message, separators, findings) {
     let kind = 'unresolved';
     for (const [label, codes] of Object.entries(config.amounts || {}))
       if (codes.includes(qualifier) && (label !== 'line' || !summary)) kind = label;
-    amounts.push({ qualifier, cents: amount, kind, segment: segment.index });
+    amounts.push({
+      qualifier,
+      cents: amount,
+      kind,
+      segment: segment.index,
+      summary,
+      grouped: Boolean(group),
+    });
     if (amount == null)
       findings.push(
         finding(
@@ -106,7 +116,13 @@ function parseMessage(message, separators, findings) {
         )
       );
   const sum = (kind) => {
-    const selected = amounts.filter((a) => a.kind === kind && a.cents != null);
+    let selected = amounts.filter((a) => a.kind === kind && a.cents != null);
+    if (kind !== 'line') {
+      const summaries = selected.filter((a) => a.summary);
+      selected = summaries.length ? summaries : selected.filter((a) => !a.grouped);
+      const totals = selected.filter((a) => !a.grouped);
+      if (totals.length) selected = totals;
+    }
     return selected.length ? selected.reduce((total, a) => total + a.cents, 0) : null;
   };
   const totals = Object.fromEntries(
