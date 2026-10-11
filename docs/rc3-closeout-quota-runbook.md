@@ -24,6 +24,8 @@ die bestehenden Gateway-Rechte und die passende Tenant-Identität:
 In der Workbench können Tenant-Admins „Wie viel Kontingent ist heute noch übrig?“
 fragen. Die Abfrage liest dieselbe API ohne Modell. Ab 80 % Tagesnutzung entsteht
 pro Tenant und Tagesfenster ein dedupliziertes Ereignis und eine Betriebswarnung.
+Die Logzeile verwendet denselben pseudonymisierten Tenant-Hash wie die Metriken;
+Tenant-Identität und Authentifizierungsdaten werden dabei nicht protokolliert.
 Tenant-Admins erhalten beim nächsten Kontakt einmalig einen Hinweis über
 shared-service-notices; normale Nutzer erhalten keine Verbrauchsauskunft.
 Eine Kontingentgrenze verhindert keine deterministischen Fall-/Gedächtnisabfragen

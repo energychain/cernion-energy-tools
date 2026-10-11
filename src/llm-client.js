@@ -214,7 +214,7 @@ async function emitQuotaEvents(events, options = {}, extra = {}) {
   for (const event of events) {
     if (event.type === 'quota.threshold.reached' && event.resource === 'llm_tokens_per_day')
       (options.logger || broker?.logger || console).warn('Tenant daily LLM quota warning', {
-        tenantId,
+        tenantHash: metrics.tenantHashLabel(tenantId),
         used: event.used,
         limit: event.limit,
         threshold: event.threshold,

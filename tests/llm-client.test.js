@@ -249,6 +249,29 @@ describe('llm-client provider abstraction', () => {
     );
   });
 
+  it('warns at 80 percent without logging tenant identity or authentication data', async () => {
+    process.env.QUOTA_LLM_TOKENS_PER_DAY = '100';
+    loadFreshModules();
+    const tenantId = 'synthetic-quota-warning';
+    const logger = { warn: jest.fn() };
+    rateQuotaStore.recordLlmUsage({
+      tenantId,
+      usage: { promptTokens: 79, completionTokens: 0 },
+    });
+    await llmClient.generateText('ping', {
+      ctx: { meta: { tenantId, apiToken: { tenantId, token: 'synthetic-secret' } } },
+      logger,
+    });
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    const details = logger.warn.mock.calls[0][1];
+    expect(details).toMatchObject({ limit: 100, threshold: '80', audience: 'tenant_admin' });
+    expect(details.used).toBeGreaterThanOrEqual(80);
+    expect(details.tenantHash).toMatch(/^[a-f0-9]{12}$/);
+    const output = JSON.stringify(logger.warn.mock.calls);
+    expect(output).not.toContain(tenantId);
+    expect(output).not.toContain('synthetic-secret');
+  });
+
   it('throws structured error when llm quota is exhausted before call', async () => {
     process.env.QUOTA_LLM_TOKENS_PER_DAY = '1';
     loadFreshModules();
