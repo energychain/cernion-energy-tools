@@ -2,9 +2,9 @@
 
 CET erkennt neue organisationsrelevante Aussagen beim Verstehen der aktuellen Nachricht.
 Ein kurzer Satz „Hab ich festgehalten: …“ bestätigt jede Aussage einmal. Reine Wissensfragen,
-Smalltalk, Einzelfälle, Hintergrundaufgaben und Dokument-/Tabellenablage erzeugen keine
+Smalltalk, einzelne Vorgänge ohne Wirkung auf weitere Arbeiten, Hintergrundaufgaben und Dokument-/Tabellenablage erzeugen keine
 Aussagen. Das aktuelle Extraktionsfeld ist turngebunden; frühere Aussagen werden nicht
-nochmals aus dem Lagebild übernommen. Eine Aussage erzeugt keinen automatischen Fall.
+nochmals aus dem Lagebild übernommen. Örtliche Einschränkungen und Planungen mit Wirkung auf weitere Arbeiten gehören dazu, auch ohne organisationsweite Geltung und auch bei fachlichem Widerspruch. Eine Aussage erzeugt keinen automatischen Fall.
 Eine spätere ausdrückliche Fallanforderung nutzt die bestehenden Workbench-Regeln.
 
 ## Speicherung und Zugriff
@@ -42,7 +42,7 @@ per Mango gesucht; widerrufene, korrigierte oder abgelaufene Aussagen werden aus
 Die zentrale LLM-Fassade beurteilt Konflikt, Abhängigkeit, zeitliche Lücke, Bestätigung
 oder Unabhängigkeit anhand beider Aussagen und der abgerufenen Wissensbasis. Fachliche
 Ketten und Zeitbeziehungen werden nicht im Code vorgegeben. Ergebnisse werden gegen ein
-geschlossenes Schema geprüft; Kandidaten und Quellen müssen aus den übergebenen Belegen
+geschlossenes Schema geprüft; die strukturierte Prüfung benennt zuerst mögliche Folgen, betroffene Nachfolgelösungen und deren Verfügbarkeit. Für jeden Kandidaten ist ein Urteil erforderlich; Kandidaten und Quellen müssen aus den übergebenen Belegen
 stammen. Lokale Referenzen durchlaufen den bestehenden reversiblen Identifier-Kontext.
 Unabhängige Ergebnisse bleiben unsichtbar. Plausibilitätshinweise erfordern konkrete
 Wissensquellen; Modellwissen allein erzeugt keinen behaupteten Regelverstoß.
@@ -64,7 +64,7 @@ bilden eine dauerhafte Arbeitswarteschlange im Object-Store. Ein Hintergrundlauf
 ausstehende Prüfungen auch nach Neustarts wieder auf, ohne einen weiteren Turn der Quelle
 zu benötigen. Zustellschlüssel verhindern doppelte Hinweise. Ausstehende
 Jobs werden beim geordneten Stoppen abgewartet. Recovery startet beim Stoppen keine
-weiteren Prüfungen; lokale Recovery-Aufrufe sind auf eine Sekunde begrenzt. Ein aktiver
+weiteren Prüfungen; lokale Recovery-Aufrufe sind standardmäßig auf zehn Sekunden begrenzt. Ein aktiver
 Recovery-Job bleibt bis zum Abschluss im Shutdown-Handle erhalten. Eine verspätete Speicherung bestätigt die
 Aussage beim nächsten Kontakt per Notice.
 
@@ -96,8 +96,8 @@ Plausibilitätshinweise ändern weder Speicherung noch Bestätigung einer Aussag
 Jeder Workbench-Turn erzeugt genau eine Info-Zeile `Tenant memory`: Kandidaten, angenommene
 Aussagen, Ablehnungszähler (`basis_mismatch`, `not_eligible`, `no_anchor`, `ambiguous`),
 Ankertreffer, gestartete Prüfungen, Prüfstatus, Beziehungen und erzeugte Notices.
-Die Zeile enthält weder Nachrichten noch Anker, Personen oder Tenant-Kennungen.
-Delegierte Abfragen zählen zum aufrufenden Chat-Turn. Bei verzögerten Prüfungen wird sie nach Abschluss des Hintergrundjobs geschrieben.
+Die Zeile enthält die Tenant-Kennung, aber weder Nachrichten noch Anker oder Personen.
+Delegierte Abfragen zählen zum aufrufenden Chat-Turn. Die Zeile wird sofort beim Turn-Abschluss geschrieben, auch wenn ein Hintergrundjob noch läuft. Dessen Ergebnis erscheint separat als `Tenant memory background`.
 
 ## Abnahme
 
@@ -106,6 +106,38 @@ Delegierte Abfragen zählen zum aufrufenden Chat-Turn. Bei verzögerten Prüfung
 Personen und getrennten Tenants. Die neuen Core-Module sind im Domänenfreiheits-Gate.
 Bestehende Conversation-, Notice-, Fallfortsetzungs- und Dokumenttests bleiben Bestandteil
 der vollständigen Test- und Coverage-Suite.
+
+## Recovery-Konfiguration
+
+`TENANT_MEMORY_RECOVERY=on|off` schaltet den Hintergrundlauf. Standardmäßig prüft er
+alle 30 Sekunden höchstens fünf fällige Aussagen. `attempts` und `nextAttemptAt` liegen
+persistiert an der Aussage. Exponentieller Backoff beginnt bei 30 Sekunden und ist auf
+eine Stunde begrenzt; ein längeres `Retry-After` hat Vorrang. Nach drei erfolglosen
+Versuchen steht `checking: failed` mit `checkingFailure` an der Aussage. Dieser Grund
+ist in der Gedächtnisabfrage und im Betriebslog sichtbar. Ein weiterer Turn startet
+keine alte fehlgeschlagene Prüfung neu. Unveränderte Mutationen erzeugen keinen Put.
+
+Die Umgebungsvariablen `TENANT_MEMORY_RECOVERY_INTERVAL_MS`,
+`TENANT_MEMORY_RECOVERY_BATCH_SIZE`, `TENANT_MEMORY_RECOVERY_MAX_ATTEMPTS`,
+`TENANT_MEMORY_RECOVERY_BACKOFF_MS` und `TENANT_MEMORY_RECOVERY_MAX_BACKOFF_MS`
+überschreiben diese Werte. `TENANT_MEMORY_TOOL_TIMEOUT_MS` begrenzt lokale Recovery-
+Aufrufe. Die Modellprüfung nutzt in Turn und Recovery die Antwortphase aus
+`WORKBENCH_LLM_*`, mit mindestens 15 Sekunden Budget; explizit überschreibbar mit
+`TENANT_MEMORY_ASSESSMENT_TIMEOUT_MS`. Die persistierte Warteschlange verantwortet
+Retries, deshalb führt die LLM-Fassade für diese Prüfung keinen sofortigen Retry aus.
+
+Organisationsrelevante Mitteilungen werden unabhängig von fachlicher Zustimmung
+extrahiert und bestätigt. Das Festhalten dokumentiert die Quelle; eine spätere
+Plausibilitätsprüfung kann die Aussage mit konkreten Wissensbelegen anzweifeln.
+Gedächtnisabfragen mit vorhandenen Ankern haben vor dem Datensatzpfad Vorrang.
+Quellen zeigen Person, konfigurierte oder in Klartext extrahierte Funktion und das
+Datum als TT.MM.JJJJ. Eine unbekannte Funktion wird als solche kenntlich gemacht.
+
+Live-Abnahme mit synthetischen Akteuren und frischen Ankern:
+`WORKBENCH_ENV_FILE=/path/to/.env node scripts/validate-tenant-memory-live.js`.
+Das Skript nutzt das konfigurierte echte Modell ausschließlich über `llm-client`,
+den realen lokalen Object-Store und Notice-Dienst sowie dokumentierte Quell-Stubs.
+Es prüft beide Reihenfolgen je zweimal und schreibt `docs/validation/tenant-memory-live.json`.
 
 ## Widerruf über Chat- und Sitzungsgrenzen
 
@@ -126,12 +158,12 @@ den Tenant ausschließlich aus der Authentifizierung und respektieren die Cleara
 Die reguläre API-Autorisierung bleibt zusätzlich wirksam. Jeder erfolgreiche Aufruf sowie ein abgewiesener Admin-Aufruf mit authentifiziertem Tenant
 schreibt einen `tenant_memory_audit`-Eintrag im Tenant-Namespace.
 
-| Action | Route | Zweck |
-|---|---|---|
-| `tenant-memory-policy.list` | `GET /api/tenant-memory-policy/statements` | Sichtbare Aussagen samt Status und Historie auflisten |
-| `tenant-memory-policy.revoke` | `POST /api/tenant-memory-policy/statements/:id/revoke` | Mit Pflichtfeld `reason` widerrufen |
-| `tenant-memory-policy.delete` | `DELETE /api/tenant-memory-policy/statements/:id` | Mit Pflichtfeld `reason` Inhalt entfernen und Audit-Tombstone behalten |
-| `tenant-memory-policy.cleanup` | `POST /api/tenant-memory-policy/cleanup` | Ausgeschöpfte ausstehende Prüfungen auf `failed` setzen |
+| Action                         | Route                                                  | Zweck                                                                  |
+| ------------------------------ | ------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `tenant-memory-policy.list`    | `GET /api/tenant-memory-policy/statements`             | Sichtbare Aussagen samt Status und Historie auflisten                  |
+| `tenant-memory-policy.revoke`  | `POST /api/tenant-memory-policy/statements/:id/revoke` | Mit Pflichtfeld `reason` widerrufen                                    |
+| `tenant-memory-policy.delete`  | `DELETE /api/tenant-memory-policy/statements/:id`      | Mit Pflichtfeld `reason` Inhalt entfernen und Audit-Tombstone behalten |
+| `tenant-memory-policy.cleanup` | `POST /api/tenant-memory-policy/cleanup`               | Ausgeschöpfte ausstehende Prüfungen auf `failed` setzen                |
 
 Direkte `object-store.put`/`object-store.delete`-Aufrufe für `workbench_facts` bleiben
 auch mit Admin-Rolle verboten. Löschen entfernt Text, Anker, Prüfbelege und vorherige
@@ -152,3 +184,10 @@ Deploy-Runbook (nach dem Update einmal je betroffenem Tenant, kein automatisches
 
 Neue Prüfungen zählen Versuche vor dem Modellaufruf dauerhaft. Altdaten ohne Zähler
 beginnen bei null; für sie darf das Runbook keinen vergangenen Versuchszähler erfinden.
+
+Auch die Zustellung von Prüfergebnissen ist dauerhaft: `noticesPending`,
+`noticeAttempts` und `nextNoticeAttemptAt` bleiben nach abgeschlossener Modellprüfung
+erhalten, bis die idempotenten Notice-Aufträge eingereiht sind. Zustellfehler nutzen
+Backoff und `Retry-After`; ein Neustart löst dafür keinen neuen Modellaufruf aus.
+Recovery fragt nur fällige Modell- oder Notice-Aufträge ab und beendet die Seitensuche
+sobald ein Batch gesammelt ist.

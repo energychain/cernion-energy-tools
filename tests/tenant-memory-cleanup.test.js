@@ -74,6 +74,72 @@ describe('cross-session correction and audited tenant administration', () => {
   });
   afterEach(async () => app.cleanup());
 
+  test('the last permitted recovery attempt reaches the model once and completes', async () => {
+    const fact = await seed();
+    const limit = memory.recoveryOptions().maxAttempts;
+    await store.mutate(context(), p(), fact.id, (value) => ({ ...value, attempts: limit - 1 }));
+    llm.generateStructured.mockResolvedValueOnce({ effects: [], relations: [], plausibility: [] });
+    await memory.attemptAssessment(context(), p(), fact, {
+      evidence: [{ source: 'Synthetic rule', value: 'Synthetic source for assessment.' }],
+    });
+    expect(llm.generateStructured).toHaveBeenCalledTimes(1);
+    expect((await store.get(context(), p(), fact.id)).payload).toMatchObject({
+      checking: 'complete',
+      attempts: limit,
+    });
+  });
+  test.each(['success', 'failure'])(
+    'redaction during an in-flight assessment survives %s',
+    async (outcome) => {
+      const fact = await seed();
+      let started, settle;
+      const began = new Promise((resolve) => {
+        started = resolve;
+      });
+      llm.generateStructured.mockImplementationOnce(() => {
+        started();
+        return new Promise((resolve, reject) => {
+          settle = () =>
+            outcome === 'failure'
+              ? reject(new Error('Synthetic timeout'))
+              : resolve({
+                  effects: [],
+                  relations: [],
+                  plausibility: [{ reason: 'Synthetic sourced warning.', evidenceIds: ['K1'] }],
+                });
+        });
+      });
+      const job = memory
+        .attemptAssessment(context(), p(), fact, {
+          evidence: [{ source: 'Synthetic rule', value: 'Synthetic source for assessment.' }],
+        })
+        .then(
+          (value) => ({ value }),
+          (error) => ({ error })
+        );
+      await began;
+      const admin = p('synthetic-admin', true);
+      await policy.change(context(admin), admin, fact.id, 'deleted', 'Synthetic redaction', {
+        admin: true,
+      });
+      settle();
+      const result = await job;
+      if (outcome === 'success') expect(result.value).toEqual([]);
+      else expect(result.error.message).toBe('Synthetic timeout');
+      expect((await store.get(context(admin), admin, fact.id)).payload).toMatchObject({
+        status: 'deleted',
+        text: '',
+        basis: '',
+        checking: 'complete',
+        checkingEvidence: [],
+        plausibility: [],
+      });
+      llm.generateStructured.mockClear();
+      await memory.recover({ broker: app.broker, logger: app.broker.logger });
+      expect(llm.generateStructured).not.toHaveBeenCalled();
+    }
+  );
+
   test('named own statement is revoked from a new chat and recovery skips it', async () => {
     const fact = await seed();
     const reply = await memory.preturn(context(), p(), envelope(fixture.revoke), null);
@@ -93,7 +159,7 @@ describe('cross-session correction and audited tenant administration', () => {
     expect((await store.get(ctx, person, fact.id)).payload.status).toBe('valid');
     await memory.preturn(ctx, person, envelope('Ja, bestätigen', 'other-chat'), null);
     expect((await store.get(ctx, person, fact.id)).payload.status).toBe('valid');
-    await memory.preturn(ctx, person, envelope('Ja, bestätigen'), null);
+    await memory.preturn(ctx, person, envelope('Ja, bestätigen'), { queryOnly: true });
     const saved = (await store.get(ctx, person, fact.id)).payload;
     expect(saved.status).toBe('revoked');
     expect(saved.audit.at(-1).confirmed).toBe(true);

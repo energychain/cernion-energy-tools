@@ -73,12 +73,18 @@ async function adminList(ctx, p) {
   return { statements: facts };
 }
 async function exhaust(ctx, p, fact) {
-  if (fact.checking !== 'pending' || Number(fact.attempts || 0) < MAX_ATTEMPTS) return false;
+  const limit = require('./tenant-memory').recoveryOptions().maxAttempts;
+  if (fact.checking !== 'pending' || Number(fact.attempts || 0) < limit) return false;
   await store.mutate(ctx, p, fact.id, (value) =>
-    value.checking === 'pending' && Number(value.attempts || 0) >= MAX_ATTEMPTS
+    value.checking === 'pending' && Number(value.attempts || 0) >= limit
       ? {
           ...value,
           checking: 'failed',
+          checkingFailure: value.checkingFailure || {
+            errorClass: 'AttemptLimit',
+            message: 'Versuchsgrenze erreicht',
+            tenantId: p.tenantId,
+          },
           audit: [
             ...value.audit,
             {

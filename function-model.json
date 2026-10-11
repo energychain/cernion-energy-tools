@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "1336dfdee503fd8cb9cfd2e2c620a69b032a9af4de4e040f8971578a7c183683",
+  "sourceHash": "87bd90893a8afa9403c5f9b730c49668940dd4043a889e2b4ccac6c289736f85",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -189855,6 +189855,14 @@
       },
       {
         "service": "tabular",
+        "ref": "src/llm-client.js:216: dynamic emission"
+      },
+      {
+        "service": "tenant-memory-policy",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "tenant-memory-policy",
         "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
