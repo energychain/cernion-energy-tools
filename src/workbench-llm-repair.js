@@ -101,6 +101,9 @@ async function repairOutput({ options, logger, phase, generate }) {
 }
 
 function fallbackReason(error) {
+  if (error?.type === 'LLM_QUOTA_EXCEEDED') return 'tenant_quota_exceeded';
+  if (Number(error?.status || error?.response?.status || error?.code) === 429)
+    return 'provider_quota';
   if (error?.fallbackReason) return error.fallbackReason;
   if (/timeout|budget/iu.test(String(error?.message))) return 'time_budget_exceeded';
   if (error instanceof SyntaxError || /schema validation/iu.test(String(error?.message)))

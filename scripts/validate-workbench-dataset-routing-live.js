@@ -1,4 +1,5 @@
 'use strict';
+require('./live-validation-budget').installLiveBudget();
 
 // Opt-in live model validation. No model overrides, customer records or remote writes.
 const fs = require('node:fs');

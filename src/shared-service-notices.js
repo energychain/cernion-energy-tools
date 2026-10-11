@@ -11,7 +11,7 @@ function noticeKey(source, event) {
 }
 
 function resolvedNotice(item, model) {
-  if (item.kind === 'memory') return item;
+  if (['memory', 'quota'].includes(item.kind)) return item;
   const candidates = resolveFunctionId(item.functionId, { model });
   const matches =
     item.modelSourceHash === model.sourceHash
@@ -22,7 +22,7 @@ function resolvedNotice(item, model) {
 }
 
 function noticeText(item, _model) {
-  if (item.kind === 'memory') return item.text || '';
+  if (['memory', 'quota'].includes(item.kind)) return item.text || '';
   const text = {
     proposal: 'Für deine aktuelle Arbeit liegt ein neuer Vorschlag vor.',
     gap: 'Für deine aktuelle Arbeit fehlen noch Angaben.',
