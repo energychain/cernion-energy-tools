@@ -70,7 +70,7 @@ async function validateConversation() {
               meta: {
                 cernionToken: process.env.CERNION_TOKEN,
                 apiToken: {
-                  tenantId: `anonymous-validation-${run}`,
+                  tenantId: `anonymous-validation-${run}-${scenario.id}`,
                   id: `synthetic-${scenario.id}`,
                   roles: ['ROLE_GRID_OPERATOR'],
                 },
