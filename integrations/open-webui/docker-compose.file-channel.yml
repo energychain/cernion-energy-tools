@@ -1,0 +1,25 @@
+# Disposable v0.11.3 contract test; start via file-channel-smoke.py.
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:v0.11.3
+    network_mode: host
+    environment:
+      HOST: 127.0.0.1
+      PORT: '30839'
+      WEBUI_AUTH: 'False'
+      ENABLE_VERSION_UPDATE_CHECK: 'False'
+      ENABLE_OLLAMA_API: 'False'
+      ENABLE_OPENAI_API: 'True'
+      OPENAI_API_BASE_URLS: http://127.0.0.1:38390/v1
+      OPENAI_API_KEYS: unused-local-placeholder
+      OFFLINE_MODE: 'True'
+      HF_HUB_OFFLINE: '1'
+      RAG_EMBEDDING_ENGINE: openai
+      RAG_EMBEDDING_MODEL: synthetic-embedding
+      RAG_OPENAI_API_BASE_URL: http://127.0.0.1:38390/v1
+      RAG_OPENAI_API_KEY: unused-local-placeholder
+      UVICORN_WORKERS: '1'
+    volumes:
+      - file-channel-test-data:/app/backend/data
+volumes:
+  file-channel-test-data:
