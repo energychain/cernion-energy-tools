@@ -17,6 +17,9 @@ import httpx
 from pydantic import BaseModel, Field
 
 
+TRANSFER_DENIED = "Dateiübertragung abgewiesen."
+
+
 async def resolved(value):
     return await value if inspect.isawaitable(value) else value
 
@@ -58,11 +61,11 @@ class Filter:
         if response.status_code >= 400:
             # Only CET's stable safe error message is shown; never request bodies/tokens.
             try:
-                message = response.json().get("error", {}).get("message", "Dateiübertragung abgewiesen.")
+                message = response.json().get("error", {}).get("message", TRANSFER_DENIED)
                 if not isinstance(message, str):
-                    message = "Dateiübertragung abgewiesen."
+                    message = TRANSFER_DENIED
             except (ValueError, AttributeError):
-                message = "Dateiübertragung abgewiesen."
+                message = TRANSFER_DENIED
             raise ValueError("CET-Dateikanal: " + message)
         return response
 

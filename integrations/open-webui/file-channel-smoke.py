@@ -22,6 +22,9 @@ COMPOSE = ["docker", "compose", "-p", "cet-file-channel-839", "-f",
            str(ROOT / "integrations/open-webui/docker-compose.file-channel.yml")]
 MODEL = "cernion-governance-assistant"
 ORG = "synthetic-file-channel-org"
+OTHER_MODEL = "synthetic-other-assistant"
+JSON_MIME = "application/json"
+CHAT_PATH = "/api/chat/completions"
 GATEWAY = secrets.token_urlsafe(32)
 STATE = {"uploads": [], "chats": [], "fail": False}
 CSV = subprocess.check_output(["node", "-e",
@@ -35,11 +38,12 @@ class Stub(BaseHTTPRequestHandler):
     def log_message(self, *_args):
         pass  # No credentials, cookies or ticket-bearing URLs in logs.
 
-    def reply(self, status, payload, mime="application/json"):
-        data = json.dumps(payload).encode() if mime == "application/json" else payload
+    def reply(self, status, payload, mime=JSON_MIME):
+        data = json.dumps(payload).encode() if mime == JSON_MIME else payload
         self.send_response(status)
         self.send_header("Content-Type", mime)
         self.send_header("Content-Length", str(len(data)))
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Disposition", 'attachment; filename="synthetic.csv"')
         self.end_headers()
@@ -55,7 +59,7 @@ class Stub(BaseHTTPRequestHandler):
         if parsed.path == "/v1/models":
             return self.reply(200, {"object": "list", "data": [
                 {"id": value, "object": "model", "owned_by": "synthetic"}
-                for value in (MODEL, "synthetic-other-assistant")]})
+                for value in (MODEL, OTHER_MODEL)]})
         if parsed.path == f"/v1/files/{FILE_ID}/content":
             self.identity()
             query = parse_qs(parsed.query)
@@ -78,10 +82,21 @@ class Stub(BaseHTTPRequestHandler):
         if self.path == "/v1/chat/completions":
             STATE["chats"].append(payload)
             return self.reply(200, {"id": "synthetic-completion", "object": "chat.completion",
-                "created": 0, "model": payload["model"], "choices": [{"index": 0,
+                "created": 0, "model": MODEL if payload.get("model") == MODEL else OTHER_MODEL, "choices": [{"index": 0,
                 "message": {"role": "assistant", "content": f"[synthetic.csv](/v1/files/{FILE_ID}/content?ticket=synthetic.valid)"},
                 "finish_reason": "stop"}], "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}})
         self.reply(404, {})
+
+
+def wait_until_ready(call):
+    for _ in range(180):
+        try:
+            if call("/health")[0] == 200:
+                return
+        except (URLError, ConnectionError, TimeoutError):
+            pass
+        time.sleep(1)
+    raise RuntimeError("Open WebUI startup timed out")
 
 
 def main():
@@ -92,13 +107,15 @@ def main():
     base = "http://127.0.0.1:30839"
 
     def call(path, payload=None, raw=None, content_type=None):
-        data = raw if raw is not None else json.dumps(payload).encode() if payload is not None else None
-        headers = {"Content-Type": content_type or "application/json"} if data is not None else {}
+        data = raw
+        if data is None and payload is not None:
+            data = json.dumps(payload).encode()
+        headers = {"Content-Type": content_type or JSON_MIME} if data is not None else {}
         request = Request(base + path, data=data, headers=headers)
         try:
             with client.open(request, timeout=90) as response:
                 content = response.read()
-                return response.status, json.loads(content) if "application/json" in response.headers.get("Content-Type", "") else content
+                return response.status, json.loads(content) if JSON_MIME in response.headers.get("Content-Type", "") else content
         except HTTPError as error:
             return error.code, json.loads(error.read())
 
@@ -109,15 +126,7 @@ def main():
 
     try:
         subprocess.run(COMPOSE + ["up", "-d"], check=True)
-        for _ in range(180):
-            try:
-                if call("/health")[0] == 200:
-                    break
-            except (URLError, ConnectionError, TimeoutError):
-                pass
-            time.sleep(1)
-        else:
-            raise RuntimeError("Open WebUI startup timed out")
+        wait_until_ready(call)
         # WEBUI_AUTH=False automatically provisions a disposable admin at signin.
         user = ok("/api/v1/auths/signin", {"email": "synthetic@example.invalid", "password": secrets.token_urlsafe(24)})
         STATE.update(email=user["email"], user_id=user["id"])
@@ -148,7 +157,7 @@ def main():
             return {"model": model, "stream": False, "tools": [],
                 "messages": [{"role": "user", "content": "Prüfe die synthetische CSV."}],
                 "files": [{"id": uploaded["id"], "type": "file"}] if files else []}
-        ok("/api/chat/completions", turn())
+        ok(CHAT_PATH, turn())
         assert len(STATE["uploads"]) == 1
         assert STATE["chats"][-1]["cet_file_refs"] == [REF]
         assert not STATE["chats"][-1].get("metadata", {}).get("files")
@@ -156,14 +165,14 @@ def main():
         print("PASS: real Files/Users/Storage APIs, email identity, exact original CSV, no RAG")
         STATE["fail"] = True
         count = len(STATE["chats"])
-        status, error = call("/api/chat/completions", turn())
+        status, error = call(CHAT_PATH, turn())
         assert status == 400 and error["detail"] == "CET-Dateikanal: Dateikanal-Schlüssel fehlt."
         assert len(STATE["chats"]) == count
         print("PASS: 503 propagated as visible API error; provider never called")
         STATE["fail"] = False
         uploads = len(STATE["uploads"])
         # Unit tests prove unchanged attachments. Here avoid foreign-model RAG/embeddings.
-        ok("/api/chat/completions", turn("synthetic-other-assistant", files=False))
+        ok(CHAT_PATH, turn(OTHER_MODEL, files=False))
         assert len(STATE["uploads"]) == uploads
         print("PASS: global filter ignores other model")
         # Exercise real outlet dispatcher via the explicit API completion endpoint.
@@ -186,7 +195,7 @@ def main():
         ok("/api/v1/functions/id/cet_file_channel/valves/update", {
             "CET_URL": "http://127.0.0.1:38390", "GATEWAY_TOKEN": GATEWAY,
             "OPENWEBUI_ORG_ID": "synthetic-foreign-org", "MODEL_IDS": MODEL})
-        ok("/api/chat/completions", turn(files=False))  # refresh hot-loaded route instance
+        ok(CHAT_PATH, turn(files=False))  # refresh hot-loaded route instance
         assert call(f"/api/v1/cet-files/{FILE_ID}?ticket=synthetic.valid")[0] == 403
         print("PASS: real outlet, registered proxy, verified session cookie, rejected anonymous/expired/foreign-org")
         print("LIMIT: CET/provider doubled; browser UI, real CET mappings/export/signatures are separate acceptance checks.")
