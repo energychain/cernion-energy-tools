@@ -1,9 +1,9 @@
 # Shepherd Summary
 
-Generated: 2026-10-11T13:38:53.318Z
-Run: 20261011T133746Z
-Branch: shepherd/runtime-refactor-20261011T133746Z
-Fingerprint: 37db90bfadc3ec1bbed74eb13dc576388fc2f7250a2b438a64415810a3f827e0
+Generated: 2026-10-11T19:43:34.299Z
+Run: 20261011T194216Z
+Branch: shepherd/runtime-refactor-20261011T194215Z
+Fingerprint: a64e2f5d069da3c880cf7aacaab1a6ced95490ff886d2f42c83ddd40dc07daa3
 
 ## Current measurable surface
 
@@ -51,7 +51,7 @@ Fingerprint: 37db90bfadc3ec1bbed74eb13dc576388fc2f7250a2b438a64415810a3f827e0
 ## Domain abstraction
 
 - Domain abstraction: present
-- Domain fingerprint: 6df2fd2ada8447c48f90421e5ae1adafa70678748a9f624dd08ba1202f3e43b9
+- Domain fingerprint: fc1c7d445cfa7e93e2cc66378394c8f586159859e8f0bcf998b4f33e41cc9530
 - Candidate files: 1130
 - Unclassified services: 0
 

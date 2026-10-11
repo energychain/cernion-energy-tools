@@ -1,6 +1,6 @@
 # Evidence vs Practice
 
-Generated: 2026-10-11T13:38:53.255Z
+Generated: 2026-10-11T19:43:34.207Z
 
 ## Rule
 
