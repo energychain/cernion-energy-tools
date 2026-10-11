@@ -213,3 +213,70 @@ test('one repair fixes a natural question and literal tenant-memory basis togeth
   expect(result.tenantMemory.assertions[0].basis).toBe(message);
   expect(questionsFor(result)[0].question).toBe(repaired.missingInformation[0].question);
 });
+
+test('combined semantic task repairs a filtered requested draft instead of accepting only steps', async () => {
+  const empty = {
+    interpretation: [claim('Eine fachliche Rückmeldung steht aus.')],
+    nextSteps: [claim('Prüfe den dokumentierten Bearbeitungsstand.')],
+    draft: [],
+    expectation: [],
+  };
+  llm.generateText.mockResolvedValueOnce(JSON.stringify(empty)).mockResolvedValueOnce(
+    JSON.stringify({
+      ...empty,
+      draft: [
+        claim(
+          'Guten Tag, bitte teilen Sie den aktuellen Bearbeitungsstand zur Anfrage mit. Freundliche Grüße'
+        ),
+      ],
+    })
+  );
+  const result = await answer({
+    situation: {
+      ...situation('task'),
+      turnKind: 'work',
+      requestedAction: {
+        description: 'Zusammenfassung und Antwortentwurf',
+        draftRequested: true,
+        externalEffect: false,
+      },
+    },
+    message:
+      'Fasse den Verlauf zusammen und erstelle einen Antwortentwurf.\nSynthetischer Schriftwechsel.',
+    retrieval: { evidence: [] },
+    tenantId: 'synthetic',
+  });
+  expect(llm.generateText).toHaveBeenCalledTimes(2);
+  expect(result.draft).toContain('Bearbeitungsstand');
+  expect(result.responseText).toContain('Entwurf:');
+  expect(result.metadata.degraded).toBe(false);
+});
+
+test('next-step followup does not repeat an inherited semantic draft request', async () => {
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      interpretation: [claim('Der Bearbeitungsstand ist noch offen.')],
+      expectation: [],
+      nextSteps: [claim('Prüfe den dokumentierten Bearbeitungsstand.')],
+      draft: [],
+    })
+  );
+  const result = await answer({
+    situation: {
+      ...situation('task'),
+      turnKind: 'work',
+      requestedAction: {
+        description: 'Antwortentwurf',
+        draftRequested: true,
+        externalEffect: false,
+      },
+    },
+    message: 'Was ist der nächste Schritt?',
+    nextStepOnly: true,
+    retrieval: { evidence: [] },
+    tenantId: 'synthetic',
+  });
+  expect(llm.generateText).toHaveBeenCalledTimes(1);
+  expect(result.draft).toBe('');
+  expect(result.metadata.degraded).toBe(false);
+});

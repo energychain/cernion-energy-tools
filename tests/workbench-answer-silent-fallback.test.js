@@ -126,7 +126,10 @@ test.each(['empty', 'skipped'])('fallback is observable without an exception: %s
   const log = logger();
   llm.generateText.mockResolvedValue(response([]));
   const result = await answer({
-    situation,
+    situation: {
+      ...situation,
+      requestedAction: { ...situation.requestedAction, draftRequested: false },
+    },
     retrieval: { evidence: [] },
     skipModel: mode === 'skipped',
     logger: log,

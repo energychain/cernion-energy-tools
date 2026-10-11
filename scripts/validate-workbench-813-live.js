@@ -104,6 +104,15 @@ async function validateConversation() {
                 result.responseText
               ),
             answered: result.metadata?.degraded === false,
+            ...(turn.draft ? { requestedDraft: /Entwurf:\s*\S/u.test(result.responseText) } : {}),
+            ...(turn.summary
+              ? {
+                  requestedSummary:
+                    /Eingangsbestätigung|(?:fachlich|inhaltlich).{0,60}(?:nicht|kein|aus|fehl)|(?:nicht|kein|aussteh|fehl).{0,60}(?:fachlich|inhaltlich)/iu.test(
+                      result.responseText.split('Entwurf:')[0]
+                    ),
+                }
+              : {}),
             ...(turn.search
               ? { searchedSources: result.responseText.includes('Nachgesehen:') }
               : {}),

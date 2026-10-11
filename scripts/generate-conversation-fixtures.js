@@ -54,6 +54,7 @@ const corpus = [
           'Prüfe die Anfrage und erstelle einen Antwortentwurf mit nächsten Schritten.\n' +
           legacy.R1,
         question: false,
+        draft: true,
       },
     ],
   },
@@ -63,6 +64,8 @@ const corpus = [
       {
         message: 'Fasse den Verlauf zusammen und erstelle einen Antwortentwurf.\n' + legacy.R3,
         question: false,
+        draft: true,
+        summary: true,
       },
     ],
   },

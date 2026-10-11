@@ -972,7 +972,13 @@ async function answer({
   const run = { attempts: 0 };
   let fallback = null;
   const filterCounts = new Map();
-  const draftRequested = isDraftRequest(message);
+  const draftRequested =
+    isDraftRequest(message) ||
+    (!suppressDraft &&
+      !nextStepOnly &&
+      shape.kind(situation) === 'task' &&
+      situation.turnKind !== 'review' &&
+      situation.requestedAction?.draftRequested === true);
   const analysisOnly = (situation.outputKind === 'analysis' || suppressDraft) && !draftRequested;
   const conversationMode =
     (situation.conversationShape
