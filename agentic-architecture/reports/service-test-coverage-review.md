@@ -1,21 +1,21 @@
 # Service Test Coverage Review
 
-Generated: 2026-10-10T13:26:46.807Z
-Source run: 20261010T132416Z
+Generated: 2026-10-11T13:39:56.721Z
+Source run: 20261011T133746Z
 
 This Shepherd review classifies services that have no obvious direct unit test by filename heuristic. It is not a claim that the service is untested; it is a routing list for autonomous follow-up work.
 
 ## Summary
 
-- Services scanned: 157
-- Tests scanned: 458
-- Services without obvious direct test: 27
+- Services scanned: 159
+- Tests scanned: 470
+- Services without obvious direct test: 29
 
 ## Classification counts
 
-- `coverage_review_needed`: 19
+- `coverage_review_needed`: 20
 - `domain_smoke_test_recommended`: 6
-- `smoke_test_recommended`: 1
+- `smoke_test_recommended`: 2
 - `experimental_or_demo`: 1
 
 ## Services
@@ -59,6 +59,11 @@ This Shepherd review classifies services that have no obvious direct unit test b
 
 - Classification: `domain_smoke_test_recommended`
 - Recommendation: Prioritize a domain smoke test for e2e-connection-check; it is relevant to agentic routing or energy-domain workflows.
+
+### services/files.service.js
+
+- Classification: `coverage_review_needed`
+- Recommendation: Review whether files is indirectly covered; otherwise add a minimal action-level smoke test.
 
 ### services/flexibilitaetskosten-raster.service.js
 
@@ -114,6 +119,11 @@ This Shepherd review classifies services that have no obvious direct unit test b
 
 - Classification: `coverage_review_needed`
 - Recommendation: Review whether shared-service-agents is indirectly covered; otherwise add a minimal action-level smoke test.
+
+### services/tenant-memory-policy.service.js
+
+- Classification: `smoke_test_recommended`
+- Recommendation: Add a direct smoke test for tenant-memory-policy lifecycle/actions or document existing integration coverage.
 
 ### services/tenant-quota.service.js
 
