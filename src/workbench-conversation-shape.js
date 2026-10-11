@@ -22,7 +22,18 @@ function imperativeQuestion(text) {
   );
 }
 function naturalQuestion(text) {
-  return (String(text).match(/\?/g) || []).length === 1 && !imperativeQuestion(text);
+  return (
+    (String(text).match(/\?/g) || []).length === 1 &&
+    !imperativeQuestion(text) &&
+    !compoundQuestion(text)
+  );
+}
+function compoundQuestion(text) {
+  // A coordinated second predicate asks another independent question. Lists of
+  // choices ("Überblick und Prüfung oder Entwurf") have no second predicate.
+  return /\b(?:und|sowie)\s+(?:[\p{L}\p{N}-]+\s+){0,3}(?:verfüg\p{L}*|beträg\p{L}*|betragen|lieg\p{L}*|sind|w[eu]rd\p{L}*|ist|hat|haben|besteh\p{L}*|wann|welche\p{L}*|wie|wer|wo)\b/iu.test(
+    text
+  );
 }
 
 // Other contributors may add a case-selection or memory question. Give it priority,
@@ -42,4 +53,11 @@ function singleQuestion(text, questions = [], priority = '') {
     .join('\n\n');
   return { responseText, questions: kept && !priority ? questions.slice(0, 1) : [] };
 }
-module.exports = { kind, forbiddenMeta, imperativeQuestion, naturalQuestion, singleQuestion };
+module.exports = {
+  kind,
+  forbiddenMeta,
+  imperativeQuestion,
+  naturalQuestion,
+  compoundQuestion,
+  singleQuestion,
+};

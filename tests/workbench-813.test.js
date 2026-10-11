@@ -405,3 +405,63 @@ test.each(['closing', 'summary'])(
     expect(result.metadata.degraded).toBe(false);
   }
 );
+
+test.each([
+  [
+    'Wurden die Geräte vor dem Stichtag gestartet und verfügen sie über die nötige Leistung?',
+    false,
+  ],
+  ['Wann begann das Projekt und wie hoch ist das Budget?', false],
+  ['Geht es dir um Überblick und Prüfung oder einen Entwurf?', true],
+  ['Liegt die Leistung über dem Schwellenwert?', true],
+])('question asks one independent point: %s', (question, natural) => {
+  expect(shape.naturalQuestion(question)).toBe(natural);
+});
+
+test('understanding repairs coordinated questions into separately keyed unknowns', async () => {
+  const current = {
+    ...situation('assistance'),
+    missingInformation: [
+      {
+        key: 'start-and-power',
+        question:
+          'Wurden die Geräte vor dem Stichtag gestartet und verfügen sie über die nötige Leistung?',
+        decisive: true,
+        answered: false,
+        blocking: false,
+        reason: 'decisive',
+      },
+    ],
+  };
+  const repaired = {
+    ...current,
+    missingInformation: [
+      {
+        key: 'start',
+        question: 'Wann wurden die Geräte gestartet?',
+        decisive: true,
+        answered: false,
+        blocking: false,
+        reason: 'decisive',
+      },
+      {
+        key: 'power',
+        question: 'Wie hoch ist die Leistung?',
+        decisive: true,
+        answered: false,
+        blocking: false,
+        reason: 'decisive',
+      },
+    ],
+  };
+  llm.generateStructured.mockResolvedValueOnce(current).mockResolvedValueOnce(repaired);
+  const result = await understand({
+    message: 'Hilf mir beim Gespräch über diese Geräte.',
+    tenantId: 'synthetic',
+  });
+  expect(llm.generateStructured).toHaveBeenCalledTimes(2);
+  expect(JSON.parse(llm.generateStructured.mock.calls[1][1]).repairInstruction).toContain(
+    'getrennten stabilen keys'
+  );
+  expect(questionsFor(result).map((item) => item.key)).toEqual(['start']);
+});

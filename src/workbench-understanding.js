@@ -388,7 +388,7 @@ async function understand({
           );
           error.repairInstruction = [
             invalidQuestion
-              ? 'Formuliere jede offene Rückfrage als eine einzige natürliche Frage mit genau einem Fragezeichen, gern zwei bis drei Optionen. Kein vorangestellter zweiter Fragesatz und kein Imperativ. Alle übrigen Angaben unverändert nach Schema liefern.'
+              ? 'Formuliere jede offene Rückfrage als eine einzige natürliche Frage zu genau einem unabhängigen Punkt mit genau einem Fragezeichen, gern zwei bis drei Optionen. Keine zweite Teilfrage mit und oder sowie anhängen. Andere unabhängige Angaben mit getrennten stabilen keys als separate missingInformation-Punkte erfassen. Kein vorangestellter zweiter Fragesatz und kein Imperativ. Alle übrigen Angaben unverändert nach Schema liefern.'
               : '',
             invalidMemoryBasis
               ? 'Die Gedächtnisaussage hat keinen belegten Originaltext in basis. Kopiere für jede Aussage in tenantMemory.assertions ein zusammenhängendes wörtliches Belegstück aus message unverändert in basis; keine Zusammenfassung oder Synonyme. Behalte die organisationsrelevanten Aussagen unabhängig von fachlichen Zweifeln. Feld anchors ebenfalls aus message übernehmen. Alle übrigen Pflichtfelder vollständig liefern.'
