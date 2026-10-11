@@ -2,6 +2,7 @@
   "minimumLength": 5,
   "corePaths": [
     "src/dataset-*.js",
+    "src/structured-message.js",
     "services/shared-service-notices.service.js",
     "src/shared-service-notices.js",
     "src/function-model.js",

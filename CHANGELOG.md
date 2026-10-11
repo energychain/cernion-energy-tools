@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Strukturierte Nachrichten im Chat (#814)
+
+- Generischer Eingang für strukturierte Nachrichten vor Dokument- und Tabellenverarbeitung; EDIFACT-Adapter und Typkonfiguration bleiben außerhalb des Kerns.
+- Gemeinsamer Segment-/Escape-Parser für MSCONS und Chat; Interchanges, Nachrichten und Gruppen werden deterministisch zerlegt und als Tenant-Datensätze abgelegt.
+- INVOIC-Übersicht, Syntax- und Summenbefunde, negative Beträge sowie deterministische Einzelrechnungs- und Betragsabfragen über dataset.query. Codebedeutungen werden mit Willi-Mako-Quelle belegt oder bleiben ungeklärt.
+- Originaldatei-/Text-Fallback, einmalige natürliche Zweckfrage, synthetischer Generator, HTTP-/MSCONS-Regressionen und Live-Validierung über die zentrale LLM-Fassade.
+
 ## Unreleased — Datensatz-Routing und Kennzahlen (#774/#794)
 
 - Datensätze sind passende Kandidaten der bestehenden Werkzeugschleife; fremde Register- und Gedächtnisfragen werden auch bei genau einer Tabelle nicht umgeleitet. Upload-Bestätigungen begleiten die normale Antwort.

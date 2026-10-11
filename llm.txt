@@ -246,12 +246,12 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/vdmi-blueprint-pack-seeds.test.js` — 15 new tests for #591 covering the MaKo/M2C Resolution Value Review seed: catalog lookup/list registration, the six `source_hint_only` read-model references and `metadata_only` command hints, full validator coverage (required roles/evidence/data classes/forbidden actions), qualitative-only Resolution Value framing with positive missing-evidence follow-ups, the explicit HITL boundary/no-call guard, non-executing workbench-clarification-item mapping for `ROLE_MAKO_OWNER`, the exact four-row canonical matrix (roles, gate outcomes, pending downstream sync) via `buildDemoProcessMatrixSync`/`buildLandingRegistryDraftFromBlueprintSeed`, and five negative cases (missing required evidence key, non-role matrix cell, wrong `roleLegend.M`, an executable command hint, and a missing forbidden/consequential-action guard). Full suite: `tests/vdmi-blueprint-pack-seeds.test.js` — 1 suite / 87 tests pass.
 
 ## Source File Hashes
-- CHANGELOG.md: 0f4f543004c74f8cbc592645ddc0d0fcf0e5edf1e54cf82643b54da4baf01324
-- README.md: 67a992384663f1affcc36c4429e4d8173112d2bd9bf6b5e227daa205f285d547
+- CHANGELOG.md: b1073facf7022ad0c3cd591d7a64ed4e4999fe1d016b602335715aeb2c1fc2c2
+- README.md: e7f6870fad752c1585c5a4911ed3cb0181950065b8469b53714b6a6d1f0bc3cb
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: b0a662fd9aa255721bd0e0c90f9bd41627c18b61f10200661e4e45c92d4e091c
-- openapi-export.json: 9fd484415dd4cf97487fb2ba2c4a42023ef67b078474d9d5f49bb0bca90f3f5c
+- openapi-export.json: 398c755819400ad73795dd01754d01795924ebaabe1b285acdcf60a97335b2e5
 
 ## OpenAPI Surface (full contract, not embedded)
 - path_count: 1135
@@ -259,4 +259,4 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: e3279e2a28da5dc24517e5b134fa47b574006679ec43583ed63a0bde31269f17
+- llm_txt_sha256: 14ba75b22753d9db5d5c6809cdf88ffa421218a1eba947176ee921a79abcc3ea
