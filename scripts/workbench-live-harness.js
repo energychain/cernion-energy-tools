@@ -23,7 +23,15 @@ function isolatedSettings(schema, directory, overrides = {}) {
 
 // Keep live validation persistence isolated while sharing the real evidence facade.
 function createLiveHarness(directory, sourceServices) {
+  const budget = require('./live-validation-budget').installLiveBudget();
   const broker = new ServiceBroker({ logger: false, transporter: null });
+  const call = broker.call.bind(broker);
+  broker.call = async (...args) => {
+    budget.assertReady();
+    const result = await call(...args);
+    budget.assertReady();
+    return result;
+  };
   const workbench = broker.createService({
     ...Workbench,
     settings: isolatedSettings(Workbench, directory),

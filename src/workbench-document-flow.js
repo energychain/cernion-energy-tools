@@ -141,7 +141,9 @@ function renderReview(result) {
   const lines = [];
   if (result.status !== 'completed')
     lines.push(
-      `Teilprüfung (${result.status}): ${result.reason || 'Nicht alle Abschnitte wurden geprüft.'}`
+      result.reason && !/\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b/u.test(result.reason)
+        ? result.reason
+        : 'Nicht alle Abschnitte konnten geprüft werden. Die fehlenden Abschnitte sind unten genannt.'
     );
   const review = result.review;
   if (review) {
@@ -181,7 +183,13 @@ function renderReview(result) {
     if (result.maps.length > 8)
       lines.push(`${result.maps.length - 8} weitere Abschnittsanalysen gespeichert.`);
   }
-  lines.push(...(result.limitations || []));
+  lines.push(
+    ...(result.limitations || []).map((line) =>
+      line.replace(/\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b/gu, (code) =>
+        code.includes('QUOTA') ? 'Modellengpass' : 'Prüfung derzeit nicht möglich'
+      )
+    )
+  );
   if (
     !result.criteria?.length &&
     !result.limitations?.some((line) => line.includes('Keine externen Prüfmaßstäbe'))

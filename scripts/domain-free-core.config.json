@@ -22,6 +22,7 @@
     "tests/shared-service-wake.test.js",
     "tests/shared-service-wake-persistence.test.js",
     "src/workbench-system-activity.js",
+    "src/workbench-quota.js",
     "src/shared-service-learning.js",
     "services/shared-service-learning.service.js",
     "tests/helpers/shared-service/*.js",

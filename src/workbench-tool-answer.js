@@ -1,6 +1,38 @@
 'use strict';
 
+// Structural field names; independent of user text and domain identifiers.
+function identifierField(field) {
+  const tokens = require('./function-resolver').normalizePhrase(field).split(' ');
+  return tokens.some((token) =>
+    [
+      'id',
+      'identity',
+      'identifier',
+      'identifiers',
+      'reference',
+      'references',
+      'ref',
+      'code',
+      'nummer',
+      'number',
+      'kennung',
+      'key',
+    ].includes(token)
+  );
+}
+
+function sourceLabel(label) {
+  // Unknown catalog summaries are internal metadata, not display translations.
+  return typeof label === 'string' &&
+    (Object.values(require('./tool-display').catalog).some((entry) => entry.source === label) ||
+      (/[äöüÄÖÜß]|\b(?:Daten|Register|Quelle|Abfrage|Kommunikation)\b/u.test(label) &&
+        !/[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+/u.test(label)))
+    ? label
+    : 'Abgefragte Datenquelle';
+}
+
 function internalToolText(text, evidence = []) {
+  if (/\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b/u.test(text)) return true;
   if (
     /```|\{\s*"|\btruncated\b|Werkzeug außerhalb|Aufrufbudget|Datenabfrage:\s*(?:skipped|blocked|missing|unavailable)|Werkzeug-Zeitbudget/iu.test(
       text
@@ -34,7 +66,7 @@ function availableToolAnswer(evidence, message = '') {
         ? hit.metadata?.sourceStatistics || hit.metadata?.statistics || data.statistics || []
         : hit.metadata?.statistics || data.statistics || [];
       const candidates = stats.filter(
-        (stat) => !/status|code|id|nummer|year|jahr/iu.test(stat.field)
+        (stat) => !identifierField(stat.field) && !/status|year|jahr/iu.test(stat.field)
       );
       const statistic =
         candidates.find((stat) => /(?:kW|kWh|MW|MWh|EUR|Hz)$/iu.test(stat.field)) || candidates[0];
@@ -50,8 +82,8 @@ function availableToolAnswer(evidence, message = '') {
       const value = (minimum ? statistic.min : statistic.max).toLocaleString('de-DE');
       return `Die vorhandene Abfrage enthält ${count.toLocaleString('de-DE')} Datensätze. Der ${minimum ? 'kleinste' : 'größte'} erfasste Wert${name ? ` bei ${name}` : ''} beträgt ${value}${unit ? ` ${unit}` : ''}.`;
     })
-    .filter(Boolean)
+    .filter((value, index, values) => value && values.indexOf(value) === index)
     .join('\n\n');
 }
 
-module.exports = { internalToolText, availableToolAnswer };
+module.exports = { internalToolText, availableToolAnswer, identifierField, sourceLabel };

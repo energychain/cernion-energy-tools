@@ -5,6 +5,8 @@ const { exactToken } = require('./workbench-codes');
 const { normalizePhrase } = require('./function-resolver');
 const { bindingDraftPatterns } = require('./workbench-code-catalog.json');
 const REASONS = {
+  chat_address: 'Im Chat durchgängig du verwenden; Sie nur in Entwürfen an Externe.',
+  raw_tool_output: 'Interne Codes durch natürliche Sprache ersetzen.',
   meta_text: 'Direkt antworten, keine Sätze über den Nutzer oder den Anfragenden.',
   imperative_question: 'Keine getarnten Rückfragen als Imperativ.',
   unresolved_code: 'Keine Aussagen von ungeklärten Codes abhängig machen.',
@@ -98,6 +100,8 @@ function filterAnswer(
         require('./workbench-conversation-shape').imperativeQuestion(claim.text)
       )
         rules.push('imperative_question');
+      if (field !== 'draft' && /\b(?:Sie|Ihnen|Ihr(?:e|en|em|er|es)?)\b/u.test(claim.text))
+        rules.push('chat_address');
       if (require('./workbench-tool-answer').internalToolText(claim.text, evidence))
         rules.push('raw_tool_output');
       if (

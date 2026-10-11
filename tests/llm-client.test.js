@@ -266,6 +266,18 @@ describe('llm-client provider abstraction', () => {
     expect(events.events.some((item) => item.type === 'quota.exhausted')).toBe(true);
   });
 
+  it('does not start a structured fallback after a tenant quota refusal', async () => {
+    process.env.QUOTA_LLM_TOKENS_PER_DAY = '1';
+    loadFreshModules();
+    await expect(
+      llmClient.generateStructured({}, 'A synthetic prompt longer than one token', {
+        tenantId: 'synthetic-quota',
+      })
+    ).rejects.toMatchObject({ type: 'LLM_QUOTA_EXCEEDED', data: { resetAt: expect.any(String) } });
+    expect(geminiAdapter.generateStructured).not.toHaveBeenCalled();
+    expect(geminiAdapter.generateText).not.toHaveBeenCalled();
+  });
+
   it('uses gemini adapter by default for generateImage', async () => {
     const result = await llmClient.generateImage('an infographic');
 

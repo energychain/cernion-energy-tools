@@ -416,7 +416,7 @@ describe('tenant memory acceptance and lifecycle', () => {
       person: { ...fact.person, functionLabel: modelFunction.displayLabel },
     });
     expect(historical).not.toContain(modelFunction.displayLabel);
-    expect(historical).toContain('Funktion noch nicht in Klartext hinterlegt');
+    expect(historical).toBe('Synthetic person (10.10.2026)');
   });
 
   test('an unchanged mutation does not write or advance the object revision', async () => {
@@ -1511,6 +1511,166 @@ describe('tenant memory acceptance and lifecycle', () => {
         ).facts
       ).toEqual([]);
     }
+  });
+  test('closeout: single-case customer details are rejected while organizational planning is captured', async () => {
+    const message = 'Der Speicher hat 6 kWh, die Wallbox 11 kW';
+    const item = {
+      ...assertion(message, [{ value: 'Speicher', qualifier: '', aliases: [] }]),
+      scope: 'case',
+    };
+    expect(
+      (
+        await memory.capture(context(app), principal(), {
+          situation: situation(message, [item], { responseMode: 'conversation' }),
+          envelope: { userRequest: message, channel: 'api', conversationId: 'customer-case' },
+        })
+      ).facts
+    ).toEqual([]);
+    const planning =
+      'Die Anlage im Birkenhain muss für alle künftigen Anschlüsse erweitert werden.';
+    expect(
+      (
+        await memory.capture(context(app), principal(), {
+          situation: situation(planning, [
+            {
+              ...assertion(planning, [{ value: 'Birkenhain', qualifier: '', aliases: [] }]),
+              scope: 'organization',
+            },
+          ]),
+          envelope: { userRequest: planning, channel: 'api', conversationId: 'organization-plan' },
+        })
+      ).facts
+    ).toHaveLength(1);
+  });
+
+  test('closeout: pre-820 payload with date only in original basis and time is revoked from a new chat', async () => {
+    const ctx = context(app),
+      p = principal();
+    const original = 'Die Gasleitung in der Ulmenstraße nehmen wir spätestens 2030 außer Betrieb.';
+    const captured = await memory.capture(ctx, p, {
+      situation: situation(original, [
+        assertion(original, [{ value: 'Ulmenstraße', qualifier: '', aliases: [] }], {
+          latest: '2030',
+        }),
+      ]),
+      envelope: { userRequest: original, channel: 'api', conversationId: 'legacy-chat' },
+    });
+    // Historical persisted shape: no attempt counters, summary omits the date; basis/time retain it.
+    await store.mutate(ctx, p, captured.ids[0], (value) => ({
+      ...value,
+      text: 'Die Gasleitung in der Ulmenstraße soll außer Betrieb gehen.',
+      attempts: undefined,
+    }));
+    const result = await memory.preturn(
+      ctx,
+      p,
+      {
+        userRequest:
+          'Die Aussage zur Gasleitung in der Ulmenstraße (Außerbetriebnahme bis 2030) gilt nicht mehr – bitte streichen',
+        channel: 'api',
+        conversationId: 'fresh-chat',
+      },
+      null
+    );
+    expect(result.state).toBe('tenant_memory_corrected');
+    expect((await store.get(ctx, p, captured.ids[0])).payload.status).toBe('revoked');
+    expect(llm.generateStructured).not.toHaveBeenCalled();
+  });
+
+  test('closeout: organizational assertion takes priority over inferred filing', async () => {
+    const text = fixture.first.text;
+    llm.generateStructured.mockResolvedValueOnce({
+      ...situation(text, [{ ...assertion(text), scope: 'organization' }]),
+      conversationShape: 'filing',
+    });
+    const extracted = await require('../src/workbench-understanding').understand({
+      message: text,
+      tenantId: 'synthetic',
+    });
+    expect(extracted.conversationShape).toBe('task');
+    const response = await memory.capture(context(app), principal(), {
+      situation: extracted,
+      envelope: { userRequest: text, channel: 'api', conversationId: 'filing-priority' },
+    });
+    expect(response.facts).toHaveLength(1);
+  });
+  test('closeout: query lists each fact once even when a relation includes both facts', async () => {
+    const ctx = context(app),
+      p = principal();
+    const first = await memory.capture(ctx, p, {
+      situation: situation(fixture.first.text, [assertion(fixture.first.text)]),
+      envelope: { userRequest: fixture.first.text, channel: 'api', conversationId: 'once-first' },
+    });
+    const second = await memory.capture(context(app, 'Doris'), principal('Doris'), {
+      situation: situation(fixture.second.text, [assertion(fixture.second.text)]),
+      envelope: { userRequest: fixture.second.text, channel: 'api', conversationId: 'once-second' },
+    });
+    await memory.assess(context(app, 'Doris'), principal('Doris'), second.facts[0], {
+      evidence: [],
+    });
+    const response = await memory.queryResponse(ctx, p, 'Hauptstraße', { anchor: 'Hauptstraße' });
+    expect(response.statements).toHaveLength(2);
+    for (const fact of first.facts.concat(second.facts))
+      expect(response.responseText.split(fact.text)).toHaveLength(2);
+  });
+  test('closeout: delayed strong-anchor assessment is displayed to the second actor in the same turn', async () => {
+    const first = await memory.capture(context(app), principal(), {
+      situation: situation(fixture.first.text, [assertion(fixture.first.text)]),
+      envelope: {
+        userRequest: fixture.first.text,
+        channel: 'api',
+        conversationId: 'immediate-first',
+      },
+    });
+    const base = llm.generateStructured.getMockImplementation();
+    llm.generateStructured.mockImplementation(async (schema, prompt) => {
+      const result = await base(schema, prompt);
+      if (JSON.parse(prompt).fact) {
+        await new Promise((resolve) => setTimeout(resolve, 350));
+        for (const relation of result.relations) {
+          relation.reason +=
+            ' Die Umstellung betrifft mehrere Betroffene und neue Anträge sind begrenzt.';
+          relation.question = 'Wie überbrücken wir die Versorgungslücke?';
+        }
+      }
+      return result;
+    });
+    const response = await app.call(
+      'workbench.chat',
+      { userRequest: fixture.second.text, channel: 'api', conversationId: 'immediate-second' },
+      auth('Doris')
+    );
+    expect(response.responseText).toContain('Charly');
+    expect(response.responseText).toContain('2030 bis 2034');
+    expect(
+      (await store.get(context(app), principal(), first.ids[0])).payload.relationIds
+    ).toHaveLength(1);
+    // First actor's natural news question reads and delivers the already queued notice.
+    llm.generateStructured.mockImplementation(async (schema, prompt) => {
+      const value = await base(schema, prompt);
+      return { ...value, noticesRequested: true };
+    });
+    const news = await app.call(
+      'workbench.chat',
+      {
+        userRequest: 'Gibt es Neuigkeiten für mich?',
+        channel: 'api',
+        conversationId: 'fresh-news',
+      },
+      auth('Charly')
+    );
+    expect(news.responseText).toContain('Doris');
+    expect(news.responseText).toContain('2030 bis 2034');
+    const again = await app.call(
+      'workbench.chat',
+      {
+        userRequest: 'Gibt es Neuigkeiten für mich?',
+        channel: 'api',
+        conversationId: 'fresh-news-again',
+      },
+      auth('Charly')
+    );
+    expect(again.responseText).not.toContain('2030 bis 2034');
   });
 });
 module.exports = { setup, context, principal, assertion, situation, assessments };

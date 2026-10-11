@@ -210,7 +210,18 @@ function resolveQuotaBroker(options = {}) {
 async function emitQuotaEvents(events, options = {}, extra = {}) {
   const broker = resolveQuotaBroker(options);
   const tenantId = resolveQuotaTenantId(options);
-  if (!broker || !Array.isArray(events) || events.length === 0) return 0;
+  if (!Array.isArray(events) || events.length === 0) return 0;
+  for (const event of events) {
+    if (event.type === 'quota.threshold.reached' && event.resource === 'llm_tokens_per_day')
+      (options.logger || broker?.logger || console).warn('Tenant daily LLM quota warning', {
+        tenantId,
+        used: event.used,
+        limit: event.limit,
+        threshold: event.threshold,
+        audience: 'tenant_admin',
+      });
+  }
+  if (!broker) return 0;
 
   for (const event of events) {
     await broker.emit(event.type, {
@@ -442,7 +453,12 @@ async function generateStructured(responseSchema, prompt, options = {}) {
     );
     return parseJsonResponse(raw);
   } catch (_error) {
-    if (options.structuredFallback === false) throw _error;
+    if (
+      options.structuredFallback === false ||
+      _error.type === 'LLM_QUOTA_EXCEEDED' ||
+      Number(_error.status || _error.response?.status || _error.code) === 429
+    )
+      throw _error;
     process.stderr.write(
       `[llm-client] silent-catch-fallback (line 387): ${_error && _error.message}\n`
     );

@@ -1,0 +1,549 @@
+{
+  "synthetic": true,
+  "passed": true,
+  "turns": [
+    {
+      "actor": "Charly",
+      "tokenDelta": 16424,
+      "responseText": "Der Lieferant moniert in dem mehrtägigen E-Mail-Thread zur Referenz SYN-900, dass trotz einer vorliegenden APERAK die fachliche Antwort auf die Abmeldung weiterhin aussteht.\n\nDas Hauptrisiko liegt in einer Eskalation aufgrund der lang anhaltenden Verzögerung und ungeklärten Prozessstatus in der Marktkommunikation.\n\nPrüfung des aktuellen Bearbeitungsstandes der Abmeldung unter der Referenz SYN-900 im System.\n\nErstellung und Versand der ausstehenden fachlichen Antwort an den Lieferanten.\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen."
+    },
+    {
+      "actor": "Charly",
+      "tokenDelta": 20462,
+      "responseText": "Für die Anmeldung nach §14a EnWG bei einer 11-kW-Wallbox und einem 6-kWh-Speicher solltest du beim Kunden vor allem klären, ob es sich um eine steuerbare Verbrauchseinrichtung handelt und ob bereits ein intelligentes Messsystem vorhanden ist. Zudem ist wichtig zu prüfen, ob ein gemeinsamer oder getrennter Zähler für den Haushaltsstrom und die Wärmepumpe beziehungsweise die Wallbox genutzt wird. Kläre auch, welcher Netzbetreiber zuständig ist, da die technischen Anschlussbedingungen bezüglich der Steuerbarkeit variieren können."
+    },
+    {
+      "actor": "Charly",
+      "tokenDelta": 14428,
+      "responseText": "Die Gasleitung in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee soll bis spätestens 2030 außer Betrieb genommen werden, und die betroffenen Kunden müssen zeitnah informiert werden.\n\nErstellung eines Maßnahmenplans zur Außerbetriebnahme der Gasleitung Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee bis spätestens 2030 vorbereiten.\n\nEntwurf für die zeitnahe Kundeninformation aufsetzen.\n\nEntwurf:\nGuten Tag,\n\nwir informieren Sie heute über wichtige Entwicklungen bezüglich der Gasversorgung an Ihrer Adresse in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee.\n\nAufgrund netzplanerischer Anpassungen wird die Gasleitung in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee spätestens bis zum Jahr 2030 außer Betrieb genommen.\n\nWir stehen Ihnen bei Fragen zu den kommenden Schritten und alternativen Versorgungsmöglichkeiten gerne zur Verfügung.\n\nMit freundlichen Grüßen\n\nIhr Kundenservice\n\nHab ich festgehalten: Die Gasleitung in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee müssen wir spätestens 2030 außer Betrieb nehmen."
+    },
+    {
+      "actor": "Doris",
+      "tokenDelta": 15384,
+      "responseText": "Charly (Gasnetzplanung, 11.10.2026): „Die Gasleitung in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig).\n\nDoris (Stromnetz, 11.10.2026): „Das Stromnetz in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren.“ (gültig).\n\nDie vorzeitige Stilllegung der Gasleitung bis 2030 erhöht den Bedarf an Wärmepumpen, deren Netzanschluss jedoch wegen Überlastung erst ab 2034 möglich ist, wodurch eine temporäre Versorgungslücke entsteht. Unsicherheit: 20 %.\n\nDie Information zur Netzkapazität im Netzgebiet Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee sowie zur Rückstellung von Anträgen für Wallboxen und Wärmepumpen wird zur Kenntnis genommen.\n\nHab ich festgehalten: Das Stromnetz in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren."
+    },
+    {
+      "actor": "Charly",
+      "tokenDelta": 8618,
+      "responseText": "Hinweise für dich:\nCharly (Gasnetzplanung, 11.10.2026): „Die Gasleitung in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig).\n\nDoris (Stromnetz, 11.10.2026): „Das Stromnetz in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren.“ (gültig).\n\nDie vorzeitige Stilllegung der Gasleitung bis 2030 erhöht den Bedarf an Wärmepumpen, deren Netzanschluss jedoch wegen Überlastung erst ab 2034 möglich ist, wodurch eine temporäre Versorgungslücke entsteht. Unsicherheit: 20 %.\n\nWie soll die Wärmeversorgung in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee zwischen 2030 und 2034 sichergestellt werden, wenn Gas wegfällt und Stromnetze limitiert sind?"
+    },
+    {
+      "actor": "Charly",
+      "tokenDelta": 0,
+      "responseText": "Charly (Gasnetzplanung, 11.10.2026): „Die Gasleitung in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee müssen wir spätestens 2030 außer Betrieb nehmen.“ (gültig).\n\nDoris (Stromnetz, 11.10.2026): „Das Stromnetz in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren.“ (gültig).\n\nDie vorzeitige Stilllegung der Gasleitung bis 2030 erhöht den Bedarf an Wärmepumpen, deren Netzanschluss jedoch wegen Überlastung erst ab 2034 möglich ist, wodurch eine temporäre Versorgungslücke entsteht. Unsicherheit: 20 %.\n\nWie soll die Wärmeversorgung in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee zwischen 2030 und 2034 sichergestellt werden, wenn Gas wegfällt und Stromnetze limitiert sind?",
+      "statementIds": [
+        "337e1a9996b1c9e7c995c48e6e3c3ce3cad28542d469d5b3e9f80b00408f7389",
+        "f6bf424dee41b1322bd9cdbdaaf6bdac736f2ede88e0ec4d80b148ad2bbcadba"
+      ]
+    },
+    {
+      "actor": "Doris",
+      "tokenDelta": 14675,
+      "responseText": "Das Modell ist gerade nicht verfügbar; eine verlässliche neue Bewertung kann ich deshalb noch nicht formulieren.\n\nDeine Angaben im Lagebild: Das Stromnetz in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren.\n\nHab ich festgehalten: Das Stromnetz in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren."
+    },
+    {
+      "actor": "Charly",
+      "tokenDelta": 30006,
+      "responseText": "Doris (Stromnetz, 11.10.2026): „Das Stromnetz in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren.“ (gültig).\n\nCharly (Gasnetzplanung, 11.10.2026): „Die Gasleitung in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee muss spätestens 2030 außer Betrieb genommen werden.“ (gültig).\n\nDie Schließung der Gasleitung bis 2030 erzeugt einen Bedarf an alternativen Heizstrukturen, die jedoch aufgrund der Stromnetzüberlastung erst ab 2034 über Wärmepumpen bedient werden können, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %.\n\nWie wird die Wärmeversorgung in der Testallee in der Übergangszeit zwischen 2030 und 2034 sichergestellt?\n\nEs wird mitgeteilt, dass die Gasleitung in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee spätestens bis 2030 außer Betrieb genommen werden muss und die Kunden zeitnah zu informieren sind.\n\nDie Information der Kunden zur geplanten Außerbetriebnahme der Gasleitung in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee bis zum Jahr 2030 vorbereiten.\n\nEntwurf:\nGuten Tag,\n\nwir informieren Sie heute über die geplante Außerbetriebnahme der Gasleitung in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee.\n\nDiese Maßnahme wird im Zuge der Netzplanung bis spätestens 2030 umgesetzt.\n\nÜber die weiteren Schritte und den genauen Zeitplan werden wir Sie rechtzeitig informieren.\n\nMit freundlichen Grüßen\n\nHab ich festgehalten: Die Gasleitung in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee muss spätestens 2030 außer Betrieb genommen werden."
+    },
+    {
+      "actor": "Doris",
+      "tokenDelta": 8533,
+      "responseText": "Hinweise für dich:\nDoris (Stromnetz, 11.10.2026): „Das Stromnetz in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren.“ (gültig).\n\nCharly (Gasnetzplanung, 11.10.2026): „Die Gasleitung in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee muss spätestens 2030 außer Betrieb genommen werden.“ (gültig).\n\nDie Schließung der Gasleitung bis 2030 erzeugt einen Bedarf an alternativen Heizstrukturen, die jedoch aufgrund der Stromnetzüberlastung erst ab 2034 über Wärmepumpen bedient werden können, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %.\n\nWie wird die Wärmeversorgung in der Testallee in der Übergangszeit zwischen 2030 und 2034 sichergestellt?"
+    },
+    {
+      "actor": "Doris",
+      "tokenDelta": 0,
+      "responseText": "Doris (Stromnetz, 11.10.2026): „Das Stromnetz in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren.“ (gültig).\n\nCharly (Gasnetzplanung, 11.10.2026): „Die Gasleitung in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee muss spätestens 2030 außer Betrieb genommen werden.“ (gültig).\n\nDie Schließung der Gasleitung bis 2030 erzeugt einen Bedarf an alternativen Heizstrukturen, die jedoch aufgrund der Stromnetzüberlastung erst ab 2034 über Wärmepumpen bedient werden können, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %.\n\nWie wird die Wärmeversorgung in der Testallee in der Übergangszeit zwischen 2030 und 2034 sichergestellt?",
+      "statementIds": [
+        "7f779a2d405abfc43c040a7c9102ab8140f518351ae07e24fa1372406d5a7f94",
+        "f1ac46ed2321be88e5c5d462aadde32616eff9dfad64271f74245b75e34582e3"
+      ]
+    },
+    {
+      "actor": "Charly",
+      "tokenDelta": 0,
+      "responseText": "Die Aussage ist widerrufen. Die Korrektur bleibt in der Historie nachvollziehbar."
+    }
+  ],
+  "checks": {
+    "threadAnalysis": true,
+    "customerNotCaptured": true,
+    "Charly_capture": true,
+    "Charly_immediateConnection": true,
+    "Charly_news": true,
+    "Charly_queryBoth": true,
+    "Doris_capture": true,
+    "Doris_immediateConnection": true,
+    "Doris_news": true,
+    "Doris_queryBoth": true,
+    "legacyRevoked": true,
+    "noInternalCodes": true
+  },
+  "extractions": [
+    {
+      "message": "Analysiere diesen eskalierten Lieferanten-Thread: Stand, Risiken und nächster Schritt.\n\nVon: Lieferant\nGesendet: 1. Oktober 2026\nBetreff: Abmeldung Referenz [MASKED-cca41817]\nWir warten auf die fachliche Antwort zur Abmeldung; der Empfang allein bestätigt diese nicht.\n\nVon: Netzbetreiber\nGesendet: 2. Oktober 2026\nBetreff: Abmeldung Referenz [MASKED-cca41817]\nWir warten auf die fachliche Antwort zur Abmeldung; der Empfang allein bestätigt diese nicht.\n\nVon: Lieferant\nGesendet: 3. Oktober 2026\nBetreff: Abmeldung Referenz [MASKED-cca41817]\nWir warten auf die fachliche Antwort zur Abmeldung; der Empfang allein bestätigt diese nicht.\n\nVon: Netzbetreiber\nGesendet: 4. Oktober 2026\nBetreff: Abmeldung Referenz [MASKED-cca41817]\nWir warten auf die fachliche Antwort zur Abmeldung; der Empfang allein bestätigt diese nicht.\n\nVon: Lieferant\nGesendet: 5. Oktober 2026\nBetreff: Abmeldung Referenz [MASKED-cca41817]\nWir warten auf die fachliche Antwort zur Abmeldung; der Empfang allein bestätigt diese nicht.\n\nVon: Netzbetreiber\nGesendet: 6. Oktober 2026\nBetreff: Abmeldung Referenz [MASKED-cca41817]\nWir warten auf die fachliche Antwort zur Abmeldung; der Empfang allein bestätigt diese nicht.\n\nVon: Lieferant\nGesendet: 7. Oktober 2026\nBetreff: Abmeldung Referenz [MASKED-cca41817]\nWir warten auf die fachliche Antwort zur Abmeldung; der Empfang allein bestätigt diese nicht.\n\nVon: Netzbetreiber\nGesendet: 8. Oktober 2026\nBetreff: Abmeldung Referenz [MASKED-cca41817]\nWir warten auf die fachliche Antwort zur Abmeldung; der Empfang allein bestätigt diese nicht.\n\nVon: Lieferant\nGesendet: 9. Oktober 2026\nBetreff: Abmeldung Referenz [MASKED-cca41817]\nDie APERAK liegt vor, aber die fachliche Abmeldung wurde weiterhin nicht beantwortet. Bitte klärt den Prozessstatus.",
+      "previous": null,
+      "tenantMemory": {
+        "assertions": [],
+        "correction": {
+          "kind": "none",
+          "basis": "",
+          "factId": ""
+        },
+        "query": {
+          "requested": false,
+          "anchor": "",
+          "functionLabel": ""
+        },
+        "functionLabel": ""
+      },
+      "turnKind": "work"
+    },
+    {
+      "message": "Ich führe gerade ein §14a-Kundengespräch. Der Speicher hat 6 kWh, die Wallbox 11 kW. Was muss ich klären?",
+      "previous": null,
+      "tenantMemory": {
+        "assertions": [],
+        "correction": {
+          "kind": "none",
+          "basis": "",
+          "factId": ""
+        },
+        "query": {
+          "requested": false,
+          "anchor": "",
+          "functionLabel": ""
+        },
+        "functionLabel": ""
+      },
+      "turnKind": "work"
+    },
+    {
+      "message": "Ich führe gerade ein §14a-Kundengespräch. Der Speicher hat 6 kWh, die Wallbox 11 kW. Was muss ich klären?",
+      "previous": null,
+      "tenantMemory": {
+        "assertions": [],
+        "correction": {
+          "kind": "none",
+          "basis": "",
+          "factId": ""
+        },
+        "query": {
+          "requested": false,
+          "anchor": "",
+          "functionLabel": ""
+        },
+        "functionLabel": ""
+      },
+      "turnKind": "knowledge"
+    },
+    {
+      "message": "Die Gasleitung in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee müssen wir spätestens 2030 außer Betrieb nehmen. Die Kunden sollen zeitnah informiert werden.",
+      "previous": null,
+      "tenantMemory": {
+        "assertions": [
+          {
+            "text": "Die Gasleitung in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+            "basis": "Die Gasleitung in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+            "commitment": "decided",
+            "anchors": [
+              {
+                "value": "Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee",
+                "qualifier": "Gasleitung",
+                "aliases": []
+              }
+            ],
+            "time": {
+              "from": "",
+              "until": "2030",
+              "latest": "2030",
+              "earliest": "",
+              "date": ""
+            },
+            "expiresAt": "",
+            "scope": "organization"
+          }
+        ],
+        "correction": {
+          "kind": "none",
+          "basis": "",
+          "factId": ""
+        },
+        "query": {
+          "requested": false,
+          "anchor": "",
+          "functionLabel": ""
+        },
+        "functionLabel": ""
+      },
+      "turnKind": "work"
+    },
+    {
+      "message": "Das Stromnetz in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren.",
+      "previous": null,
+      "tenantMemory": {
+        "assertions": [
+          {
+            "text": "Das Stromnetz in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren.",
+            "basis": "Das Stromnetz in der Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren.",
+            "commitment": "decided",
+            "anchors": [
+              {
+                "value": "Testfexaxxexaxxaxbxxxxxxdxxxxxecbbfaallee",
+                "qualifier": "Netzgebiet",
+                "aliases": []
+              }
+            ],
+            "time": {
+              "from": "",
+              "until": "",
+              "latest": "",
+              "earliest": "2034",
+              "date": ""
+            },
+            "expiresAt": "",
+            "scope": "organization"
+          }
+        ],
+        "correction": {
+          "kind": "none",
+          "basis": "",
+          "factId": ""
+        },
+        "query": {
+          "requested": false,
+          "anchor": "",
+          "functionLabel": ""
+        },
+        "functionLabel": ""
+      },
+      "turnKind": "work"
+    },
+    {
+      "message": "Gibt es Neuigkeiten für mich?",
+      "previous": null,
+      "tenantMemory": {
+        "assertions": [],
+        "correction": {
+          "kind": "none",
+          "basis": "",
+          "factId": ""
+        },
+        "query": {
+          "requested": false,
+          "anchor": "",
+          "functionLabel": ""
+        },
+        "functionLabel": ""
+      },
+      "turnKind": "knowledge"
+    },
+    {
+      "message": "Das Stromnetz in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren.",
+      "previous": null,
+      "tenantMemory": {
+        "assertions": [
+          {
+            "text": "Das Stromnetz in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren.",
+            "basis": "Das Stromnetz in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee ist am Limit. Frühestens 2034 können wir neue Anträge für Wallboxen oder Wärmepumpen akzeptieren.",
+            "commitment": "decided",
+            "anchors": [
+              {
+                "value": "Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee",
+                "qualifier": "",
+                "aliases": []
+              }
+            ],
+            "time": {
+              "from": "",
+              "until": "",
+              "latest": "",
+              "earliest": "2034",
+              "date": ""
+            },
+            "expiresAt": "",
+            "scope": "organization"
+          }
+        ],
+        "correction": {
+          "kind": "none",
+          "basis": "",
+          "factId": ""
+        },
+        "query": {
+          "requested": false,
+          "anchor": "",
+          "functionLabel": ""
+        },
+        "functionLabel": ""
+      },
+      "turnKind": "work"
+    },
+    {
+      "message": "Die Gasleitung in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee müssen wir spätestens 2030 außer Betrieb nehmen. Die Kunden sollen zeitnah informiert werden.",
+      "previous": null,
+      "tenantMemory": {
+        "assertions": [
+          {
+            "text": "Die Gasleitung in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+            "basis": "Die Gasleitung in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+            "commitment": "decided",
+            "anchors": [
+              {
+                "value": "Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee",
+                "qualifier": "",
+                "aliases": []
+              }
+            ],
+            "time": {
+              "from": "",
+              "until": "",
+              "latest": "2030",
+              "earliest": "",
+              "date": ""
+            },
+            "expiresAt": "",
+            "scope": "organization"
+          }
+        ],
+        "correction": {
+          "kind": "none",
+          "basis": "",
+          "factId": ""
+        },
+        "query": {
+          "requested": false,
+          "anchor": "",
+          "functionLabel": ""
+        },
+        "functionLabel": ""
+      },
+      "turnKind": "work"
+    },
+    {
+      "message": "Die Gasleitung in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee müssen wir spätestens 2030 außer Betrieb nehmen. Die Kunden sollen zeitnah informiert werden.",
+      "previous": null,
+      "tenantMemory": {
+        "assertions": [
+          {
+            "text": "Die Gasleitung in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee muss spätestens 2030 außer Betrieb genommen werden.",
+            "basis": "Die Gasleitung in der Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee müssen wir spätestens 2030 außer Betrieb nehmen.",
+            "commitment": "planned",
+            "anchors": [
+              {
+                "value": "Testxxxbxbxxxafxxbbxbcbbbbcxxxcxcxxxallee",
+                "qualifier": "",
+                "aliases": []
+              }
+            ],
+            "time": {
+              "from": "",
+              "until": "2030",
+              "latest": "2030",
+              "earliest": "",
+              "date": ""
+            },
+            "expiresAt": "",
+            "scope": "organization"
+          }
+        ],
+        "correction": {
+          "kind": "none",
+          "basis": "",
+          "factId": ""
+        },
+        "query": {
+          "requested": false,
+          "anchor": "",
+          "functionLabel": ""
+        },
+        "functionLabel": ""
+      },
+      "turnKind": "work"
+    },
+    {
+      "message": "Gibt es Neuigkeiten für mich?",
+      "previous": null,
+      "tenantMemory": {
+        "assertions": [],
+        "correction": {
+          "kind": "none",
+          "basis": "",
+          "factId": ""
+        },
+        "query": {
+          "requested": false,
+          "anchor": "",
+          "functionLabel": ""
+        },
+        "functionLabel": ""
+      },
+      "turnKind": "knowledge"
+    }
+  ],
+  "observations": [
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-validation-0c94c687-34f6-4336-9d7f-0184580788d5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-validation-0c94c687-34f6-4336-9d7f-0184580788d5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-validation-0c94c687-34f6-4336-9d7f-0184580788d5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 4,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-validation-0c94c687-34f6-4336-9d7f-0184580788d5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-validation-0c94c687-34f6-4336-9d7f-0184580788d5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-validation-0c94c687-34f6-4336-9d7f-0184580788d5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-validation-0c94c687-34f6-4336-9d7f-0184580788d5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 4,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-validation-0c94c687-34f6-4336-9d7f-0184580788d5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-validation-0c94c687-34f6-4336-9d7f-0184580788d5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-validation-0c94c687-34f6-4336-9d7f-0184580788d5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-validation-0c94c687-34f6-4336-9d7f-0184580788d5"
+    }
+  ],
+  "budget": {
+    "tenantId": "synthetic-validation-0c94c687-34f6-4336-9d7f-0184580788d5",
+    "limit": 40,
+    "calls": 20,
+    "completed": 20,
+    "stopped": null,
+    "tokens": {
+      "resource": "llm_tokens_per_day",
+      "period": "day",
+      "window": "2026-10-11",
+      "used": 128530,
+      "estimatedUsed": 128530,
+      "actualUsed": 0,
+      "limit": 1000000,
+      "remaining": 871470,
+      "updatedAt": "2026-10-11T11:59:39.565Z",
+      "resetAt": "2026-10-12T00:00:00.000Z"
+    }
+  }
+}

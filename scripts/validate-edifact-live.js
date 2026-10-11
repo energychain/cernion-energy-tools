@@ -1,4 +1,5 @@
 'use strict';
+require('./live-validation-budget').installLiveBudget();
 
 // Explicit live validation. Only synthetic input; persistence is isolated.
 const fs = require('node:fs');
