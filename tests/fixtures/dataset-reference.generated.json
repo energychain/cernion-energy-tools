@@ -10,6 +10,8 @@
   "formats": [
     "csv",
     "markdown",
-    "pairs"
+    "pairs",
+    "openwebui",
+    "xlsx"
   ]
 }

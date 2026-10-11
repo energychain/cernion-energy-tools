@@ -2,8 +2,30 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 function generateDatasetFixture(format = 'csv', corrected = false) {
+  if (format === 'openwebui') {
+    const csv = generateDatasetFixture('csv', corrected);
+    // Reproduce the actual wrong delimiter used by the Python CSV loader.
+    const result = spawnSync(
+      'python3',
+      [
+        '-c',
+        `import csv, sys
+for row in csv.DictReader(sys.stdin, delimiter=','):
+    for key, value in row.items():
+        if key is None:
+            value = ', '.join(value)
+        print(f'{key}: {value}')
+    print()
+`,
+      ],
+      { input: csv, encoding: 'utf8', maxBuffer: 8000000 }
+    );
+    if (result.status !== 0) throw new Error('Synthetic Open-WebUI generator failed');
+    return result.stdout;
+  }
   const headers = ['Zeitstempel (Beginn)', 'Wirkleistung Bezug [kW]'];
   const formatter = new Intl.DateTimeFormat('sv-SE', {
     timeZone: 'Europe/Berlin',
@@ -58,6 +80,75 @@ function generateDatasetFixture(format = 'csv', corrected = false) {
   return `${headers.join(';')}\n${rows.map((row) => `${row[0]};${value(row[1])}`).join('\n')}`;
 }
 
+function generateDatasetWorkbookFixture() {
+  const XLSX = require('xlsx');
+  const book = XLSX.utils.book_new();
+  for (const [name, values] of [
+    ['Lager', [7, 11]],
+    ['Vertrieb', [23, 41]],
+  ])
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ['Produkt', 'Menge [Stück]'],
+        ...values.map((value, i) => [`Synthetisches Produkt ${i + 1}`, value]),
+      ]),
+      name
+    );
+  return XLSX.write(book, { type: 'buffer', bookType: 'xlsx' });
+}
+
+function generateDatasetSafetyFixture(kind) {
+  const matrix = {
+    empty: [
+      ['Produkt', 'Menge', 'Preis'],
+      ['A', '', ''],
+      ['B', '', ''],
+    ],
+    none: [
+      ['Produkt', 'None'],
+      ['A', 1],
+      ['B', 2],
+    ],
+    unnamed: [
+      ['Produkt', ''],
+      ['A', 1],
+      ['B', 2],
+    ],
+    truncated: [
+      ['Produkt', 'Menge'],
+      ['A', '123,'],
+      ['B', '456,'],
+    ],
+    sparse: [
+      ['Produkt', 'Menge', 'Preis'],
+      ['A', '', ''],
+      ['B', '', 3],
+    ],
+    blankMeasure: [
+      ['Produkt', 'Menge'],
+      ['A', ''],
+      ['B', ''],
+    ],
+    healthy: [
+      ['Produkt', 'Menge'],
+      ...Array.from({ length: 20 }, (_, i) => [`Produkt ${i}`, i + 1]),
+    ],
+  }[kind];
+  if (kind === 'irreversible')
+    return generateDatasetFixture('openwebui').replace('None: 2', 'None: 2, 9');
+  if (!matrix) throw new Error('Unknown synthetic safety fixture');
+  return matrix.map((row) => row.join(';')).join('\n');
+}
+
+function generateDatasetLegacyFixture(record) {
+  return {
+    ...record,
+    columns: record.columns.map((column) => ({ ...column, nullCount: record.rowCount })),
+    quality: { ...record.quality, missingValues: record.rowCount * record.columns.length },
+  };
+}
+
 function generateDatasetRoutingFixture() {
   return {
     synthetic: true,
@@ -107,7 +198,7 @@ function fixtureManifest() {
     energyMWh: 3478.874,
     missingValues: 4,
     timezone: 'Europe/Berlin',
-    formats: ['csv', 'markdown', 'pairs'],
+    formats: ['csv', 'markdown', 'pairs', 'openwebui', 'xlsx'],
   };
 }
 
@@ -120,4 +211,11 @@ if (require.main === module) {
   } else fs.writeFileSync(destination, output);
 }
 
-module.exports = { generateDatasetFixture, generateDatasetRoutingFixture, fixtureManifest };
+module.exports = {
+  generateDatasetFixture,
+  generateDatasetRoutingFixture,
+  generateDatasetWorkbookFixture,
+  generateDatasetSafetyFixture,
+  fixtureManifest,
+  generateDatasetLegacyFixture,
+};

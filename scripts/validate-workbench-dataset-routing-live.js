@@ -4,7 +4,11 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-require('dotenv').config({ path: process.env.WORKBENCH_ENV_FILE || '.env', quiet: true });
+if (process.env.WORKBENCH_VALIDATION_NON_PRODUCTION !== 'true' || !process.env.WORKBENCH_ENV_FILE)
+  throw new Error(
+    'Set WORKBENCH_VALIDATION_NON_PRODUCTION=true and a dedicated WORKBENCH_ENV_FILE for this validation.'
+  );
+require('dotenv').config({ path: process.env.WORKBENCH_ENV_FILE, quiet: true });
 const { createLiveHarness } = require('./workbench-live-harness');
 const {
   generateDatasetFixture,
@@ -92,6 +96,56 @@ async function validateDatasetRoutingLive() {
   );
   try {
     await broker.start();
+    for (const scenario of [
+      { number: 1, format: 'csv', question: 'Wann war die Spitzenlast?' },
+      { number: 2, format: 'csv', question: 'Wie viel Energie im Jahr 2025?' },
+      { number: 4, format: 'openwebui', question: 'Wann war die Spitzenlast?' },
+    ]) {
+      const identity = {
+        authUser: { ...meta.authUser, tenantId: `synthetic-838-${scenario.number}` },
+      };
+      const started = performance.now();
+      const result = await broker.call(
+        'workbench.chat',
+        {
+          channel: 'open-webui',
+          conversationId: `synthetic-838-${scenario.number}`,
+          message: `<context><source name="synthetic-838.csv">${generateDatasetFixture(scenario.format)}</source></context><user_query>${scenario.question}</user_query>`,
+        },
+        { meta: identity }
+      );
+      const records = await broker.call(
+        'datapoint.datasetCatalog',
+        { operation: 'list' },
+        { meta: identity }
+      );
+      const text = result.responseText || '';
+      const rejected = /beschädigt/.test(text) && records.length === 0;
+      const checks =
+        scenario.number === 2
+          ? {
+              energy: text.includes('3.478,874 MWh'),
+              missing: /4 leere|4 ausgelassene/.test(text),
+              storage: /abgelegt/.test(text),
+              rows: records[0]?.rowCount === 35040,
+            }
+          : {
+              peak:
+                text.includes('1.243,7') && text.includes('14.01.2025') && text.includes('18:15'),
+              storage: /abgelegt/.test(text),
+              rows: records[0]?.rowCount === 35040,
+            };
+      const passed = (scenario.number === 4 && rejected) || Object.values(checks).every(Boolean);
+      report.turns.push({
+        scenario: scenario.number,
+        checks,
+        passed,
+        responseText: text,
+        elapsedMs: Math.round(performance.now() - started),
+      });
+      if (!passed) throw new Error(`Acceptance scenario ${scenario.number} failed`);
+    }
+
     await broker.call(
       'dataset.turn',
       {
@@ -243,7 +297,7 @@ async function validateDatasetRoutingLive() {
       }
     }
     report.passed =
-      report.turns.length === 15 &&
+      report.turns.length === 18 &&
       report.turns.every((turn) => turn.passed) &&
       modelCalls.length > 0;
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n');

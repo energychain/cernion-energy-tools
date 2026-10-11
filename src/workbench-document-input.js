@@ -22,7 +22,14 @@ function documentInput(input) {
     const trailingQuestion =
       /\?\s*$/.test(lines.at(-1)) && !/[;\t|]/.test(lines.at(-1)) ? lines.pop() : '';
     const tableText = lines.join('\n');
-    if (require('./dataset-input').parseDatasetText(tableText).length) {
+    let table;
+    try {
+      table = require('./dataset-input').parseDatasetText(tableText).length;
+    } catch (error) {
+      if (error.type !== 'WORKBENCH_DATASET_DAMAGED') throw error;
+      table = true;
+    }
+    if (table) {
       parsed.documents.push({ name: 'Eingefügte Tabelle', text: tableText, id: null });
       parsed.question = trailingQuestion || 'Tabelle auswerten.';
     }
