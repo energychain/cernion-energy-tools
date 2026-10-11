@@ -1,6 +1,6 @@
 'use strict';
 
-const { parseRecords, parseCsvLine } = require('./connectors/csv.connector');
+const { parseRecords, parseCsvLine } = require('./csv-text');
 const { Errors } = require('moleculer');
 const { profileRows, hashValue, parseNumber, parseDate } = require('./tabular-intelligence');
 
@@ -258,7 +258,7 @@ function parseTableText(text, name) {
   }
   const parsed = matrixRows(matrix);
   // Uniform labelled prose alone does not prove a table. The established pair
-  // representation must carry a measurable column, rather than only metadata.
+  // representation requires a measurable column, rather than only metadata.
   if (
     labelledRecords &&
     parsed &&

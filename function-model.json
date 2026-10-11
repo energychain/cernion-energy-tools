@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "a6822d72550e2a0899769714f5203341d1a12b8dfaa303d40ba5ef4c9f844f24",
+  "sourceHash": "f57d450ac6b39b58d2b3407a7ca8bd623fcb75413e203615f82ec12b4a15c79c",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -118395,10 +118395,6 @@
         },
         {
           "kind": "service",
-          "ref": "src/connectors/csv.connector.js"
-        },
-        {
-          "kind": "service",
           "ref": "src/consultation-execution-bridge.js"
         },
         {
@@ -118412,6 +118408,10 @@
         {
           "kind": "service",
           "ref": "src/consultation-tool-resolver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/csv-text.js"
         },
         {
           "kind": "service",
