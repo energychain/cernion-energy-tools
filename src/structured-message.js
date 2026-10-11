@@ -30,34 +30,55 @@ async function structuredTurn(service, ctx, p) {
     }))
     .filter((entry) => entry.adapter);
   if (!incoming.length) {
-    if (documents.length || parseDatasetText(question, 'Eingefügte Tabelle').length) return null;
+    if (documents.length || require('./workbench-thread').isThreadInput(question)) return null;
+    try {
+      if (parseDatasetText(question, 'Eingefügte Tabelle').length) return null;
+    } catch (error) {
+      if (error.type === 'WORKBENCH_DATASET_DAMAGED') throw error;
+      return null;
+    }
     const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
-    let associated = records.filter(
+    const explicitlyNamed = (record) => {
+      const references = [record.sourceName, ...(record.structured.references || [])];
+      if (!record.structured.references && service.datasetPool)
+        references.push(
+          ...service.datasetPool
+            .rows(record.tenantId, record.id, record.columns)
+            .map((row) => row.Nummer)
+            .filter(Boolean)
+        );
+      return references
+        .filter(Boolean)
+        .some((reference) => require('./workbench-codes').exactToken(question, reference));
+    };
+    const associated = records.filter(
       (r) =>
         r.current !== false &&
         r.structuredFormat &&
-        (question.includes(r.sourceName) ||
-          r.provenance.conversationId === conversationId ||
-          r.structured.conversations?.includes(conversationId))
+        (explicitlyNamed(r) ||
+          (conversationId &&
+            (r.provenance?.conversationId === conversationId ||
+              r.structured.conversations?.includes(conversationId))))
     );
-    const hasContext = associated.length > 0;
-    if (!associated.length)
-      associated = records.filter((r) => r.current !== false && r.structuredFormat);
-    if (associated.length !== 1 || !adapterFor(associated[0].structuredFormat).accepts(question))
+    if (
+      associated.length !== 1 ||
+      (!explicitlyNamed(associated[0]) &&
+        !adapterFor(associated[0].structuredFormat).accepts(question))
+    )
       return null;
     const competing = records.some(
       (record) =>
         record.current !== false &&
         !record.structuredFormat &&
-        (!hasContext ||
-          record.provenance.conversationId === conversationId ||
+        (record.provenance?.conversationId === conversationId ||
           question.includes(record.sourceName) ||
           ctx.params.previousReads?.some(
             (read) => read.source === 'dataset.query' && read.metadata?.datasetId === record.id
           ))
     );
     if (
-      (competing || !hasContext) &&
+      competing &&
+      !explicitlyNamed(associated[0]) &&
       !adapterFor(associated[0].structuredFormat).accepts(question, { explicitOnly: true })
     )
       return null;
@@ -129,7 +150,13 @@ async function structuredTurn(service, ctx, p) {
         sensitivityLevel: document.sensitivityLevel || ctx.params.sensitivityLevel,
         requiredClearance: document.original?.requiredClearance || [],
         structuredFormat: adapter.id,
-        structured: { ...parsed, rows: undefined, resolutions, original: document.original },
+        structured: {
+          ...parsed,
+          references: [...new Set(parsed.rows.map((row) => row.Nummer).filter(Boolean))],
+          rows: undefined,
+          resolutions,
+          original: document.original,
+        },
         columns: profile.columns,
         profile,
         rowCount: parsed.rows.length,

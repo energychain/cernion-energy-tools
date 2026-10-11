@@ -1,6 +1,5 @@
 'use strict';
 
-const xlsx = require('xlsx');
 const llm = require('./llm-client');
 const { llmOptions } = require('./workbench-understanding');
 const { documentSections } = require('./workbench-document');
@@ -8,52 +7,14 @@ const { normalizePhrase } = require('./function-resolver');
 const { opaqueContext, restoreContext } = require('./workbench-identifier-context');
 
 function documentTable(text) {
-  const lines = String(text).split(/\r?\n/u);
-  if (lines.length < 2) return null;
-  let start = 0;
-  const separator = ['\t', ';', ',', '|'].find((delimiter) => {
-    const first = lines.slice(0, 6).findIndex((line) => line.split(delimiter).length > 1);
-    if (first < 0) return false;
-    const sample = lines.slice(first, first + 12).filter((line) => line.trim());
-    const width = sample[0].split(delimiter).length;
-    start = first;
-    return (
-      width > 1 &&
-      sample.filter((line) => line.split(delimiter).length === width).length >= sample.length * 0.5
-    );
-  });
-  if (!separator) return null;
-  const book = xlsx.read(lines.slice(start).join('\n'), {
-    type: 'string',
-    FS: separator,
-    raw: true,
-  });
-  const matrix = xlsx.utils.sheet_to_json(book.Sheets[book.SheetNames[0]], {
-    header: 1,
-    blankrows: false,
-    raw: true,
-  });
-  const width = matrix[0]?.length;
-  if (
-    !width ||
-    matrix.length < 2 ||
-    matrix.filter((row) => row.length === width).length < matrix.length * 0.8
-  )
+  try {
+    const table = require('./dataset-input').parseDatasetText(text)[0];
+    if (!table) return null;
+    const header = table.profile.columns.map((column) => column.name);
+    return { header, rows: table.rows.map((row) => header.map((name) => row[name])) };
+  } catch {
     return null;
-  if (separator === '|') {
-    for (const row of matrix) {
-      if (row[0] == null || row[0] === '') row.shift();
-      if (row.at(-1) == null || row.at(-1) === '') row.pop();
-      for (let index = 0; index < row.length; index++) row[index] = String(row[index] ?? '').trim();
-    }
   }
-  const [header, ...rest] = matrix;
-  const rows = rest.filter(
-    (row) =>
-      row.some((cell) => String(cell).trim()) &&
-      !row.every((cell) => /^\s*:?-+:?\s*$/u.test(String(cell)))
-  );
-  return { header, rows };
 }
 
 async function documentQuestion(documents, question, { tenantId, logger } = {}) {

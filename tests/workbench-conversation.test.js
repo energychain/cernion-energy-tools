@@ -407,7 +407,16 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     try {
       const result = await call(productionMail);
       expect(result.answerStatus).toBe('fallback');
-      expect(result.responseText).toContain('99000000001');
+      const wb = broker.getLocalService('workbench');
+      const p = require('../src/domain-router-policy').principal({ meta: auth() });
+      const saved = await conversation.readTurn(wb.conversationsDb, p, {
+        channel: 'open-webui',
+        conversationId: 'conversation-a',
+      });
+      expect(JSON.stringify(saved.situation)).toContain('99000000001');
+      expect(result.responseText).toContain('Das Modell ist gerade nicht verfügbar');
+      expect(result.responseText).toContain('Synthetischer Ablaufleitfaden');
+      expect(result.responseText).not.toContain('Deine Angaben im Lagebild');
       expect(result.responseText).not.toContain('Quellen:');
       expect(result.responseText).not.toContain('Die Antwort ist gerade nicht verfügbar');
       expect(result.latencyMs).toBeLessThan(1000);

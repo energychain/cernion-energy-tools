@@ -12,7 +12,6 @@ const {
 const {
   prepareAnswerEvidence,
   safeSituationText,
-  situationReference,
   sourceLine,
 } = require('./workbench-answer-evidence');
 const { opaqueContext, restoreContext } = require('./workbench-identifier-context');
@@ -665,22 +664,23 @@ function draftFromSituation() {
   return '';
 }
 
-function fallbackAnswer(situation, evidence = [], questions = [], draftRequested = false) {
-  const reference = situationReference(situation);
-  const facts = (situation.personFacts || [situation.concern, situation.situation])
-    .map((value) => safeSituationText(value, 1200).replace(/\?/g, '.'))
-    .filter(Boolean);
+function fallbackAnswer(
+  situation,
+  evidence = [],
+  questions = [],
+  draftRequested = false,
+  modelFailed = false
+) {
   const findings = prepareAnswerEvidence(evidence, situation, 240).map((hit) =>
     [sourceLine([hit]).replace(/^Quellen: /u, ''), safeSituationText(hit.value, 240)]
       .filter(Boolean)
       .join(': ')
   );
   return [
-    'Das Modell ist gerade nicht verfügbar; eine verlässliche neue Bewertung kann ich deshalb noch nicht formulieren.',
+    modelFailed
+      ? 'Das Modell ist gerade nicht verfügbar; eine verlässliche neue Bewertung kann ich deshalb noch nicht formulieren.'
+      : 'Eine verlässliche neue Bewertung ist gerade nicht zustande gekommen.',
     draftRequested ? 'Der Entwurf ist gerade nicht sauber zustande gekommen.' : '',
-    facts.length
-      ? `Deine Angaben im Lagebild: ${facts.join(' ')}${reference ? ` (${reference})` : ''}`
-      : '',
     findings.length ? `Gefundene Fundstellen:\n${findings.join('\n')}` : '',
     ...questions.map((item) => safeSituationText(item.question, 1200)).filter(Boolean),
   ]
@@ -812,18 +812,26 @@ async function generateAnswerResult({
       let raw;
       try {
         run.attempts++;
-        raw = await llm.generateText(
-          answerPrompt(safe.value, {
-            conversationMode,
-            analysisOnly,
-            attempt,
-            repairInstruction,
-            nextStepOnly,
-            followup,
-            draftRequested,
-          }),
-          attemptOptions
-        );
+        run.modelPending = true;
+        try {
+          raw = await llm.generateText(
+            answerPrompt(safe.value, {
+              conversationMode,
+              analysisOnly,
+              attempt,
+              repairInstruction,
+              nextStepOnly,
+              followup,
+              draftRequested,
+            }),
+            attemptOptions
+          );
+        } catch (error) {
+          run.modelFailed = true;
+          throw error;
+        } finally {
+          run.modelPending = false;
+        }
         const parsed = restoreContext(
           JSON.parse(raw.replace(/^```(?:json)?\s*|\s*```$/g, '')),
           safe.reidentMap
@@ -936,13 +944,16 @@ function answerBody({
   questions,
   decisive,
   result,
+  modelFailed,
 }) {
   if (draft && (isDraftRequest(message) || (!claims.length && answerStatus !== 'fallback')))
     return [];
-  if (draftRequested && !draft) return [fallbackAnswer(situation, evidence, questions, true)];
+  if (draftRequested && !draft)
+    return [fallbackAnswer(situation, evidence, questions, true, modelFailed)];
   if (!claims.length && answerStatus !== 'fallback' && questions.length)
     return questions.map((item) => item.question);
-  if (!claims.length) return [fallbackAnswer(situation, evidence, questions, draftRequested)];
+  if (!claims.length)
+    return [fallbackAnswer(situation, evidence, questions, draftRequested, modelFailed)];
   const questionLines = questions.map((item) => item.question);
   const steps = new Set(result.nextSteps || []);
   const body = [
@@ -1015,6 +1026,7 @@ async function answer({
   const phaseStarted = performance.now();
   const run = { attempts: 0 };
   let fallback = null;
+  let modelFailed = false;
   const filterCounts = new Map();
   const draftRequested =
     isDraftRequest(message) ||
@@ -1070,6 +1082,7 @@ async function answer({
   } catch (error) {
     if (!skipModel && !error.workbenchLogged)
       require('./workbench-llm-errors').logLlmError(logger, 'answer', error);
+    modelFailed = !skipModel && Boolean(run.modelFailed || run.modelPending);
     fallback = fallbackReason(error);
     const quotaText = require('./workbench-llm-errors').quotaMessage(error);
     if (quotaText)
@@ -1093,6 +1106,24 @@ async function answer({
     (retrieval.toolTrace || []).some(
       (entry) => entry.name && entry.name !== 'Werkzeugplanung' && entry.name !== 'Werkzeugbudget'
     ) || Boolean(retrieval.toolCandidateCount);
+  // A successful model call cannot truthfully claim that the model is unavailable.
+  // Keep available measurements even when a second source or trace entry failed.
+  const hasToolValues = evidence.some(
+    (hit) => hit.retrievalSource === 'capability-read' && /\d/.test(hit.value)
+  );
+  for (const field of ['interpretation', 'expectation', 'nextSteps', 'assumptions', 'draft']) {
+    result[field] = (result[field] || []).filter(
+      (claim) =>
+        !(
+          !modelFailed &&
+          /Das Modell ist gerade nicht verfügbar|Deine Angaben im Lagebild:/i.test(claim.text)
+        ) &&
+        !(
+          hasToolValues &&
+          /^Die angefragten Daten konnten gerade nicht abgerufen werden/i.test(claim.text)
+        )
+    );
+  }
   const manualQuery =
     /(?:manuell|selbst|direkt|portal|webseite|website|register).{0,100}(?:abfrag|filter|export|aufruf|öffn|oeffn)|(?:filter|export|öffn|oeffn|besuch|rufen).{0,100}(?:portal|webseite|website|register)|kein(?:en)? (?:direkten )?(?:zugriff|zugang)/i;
   if (hasReadTool) {
@@ -1172,6 +1203,7 @@ async function answer({
     questions,
     decisive,
     result,
+    modelFailed,
   });
   decorateAnswer(lines, {
     draft,
@@ -1226,11 +1258,21 @@ async function answer({
     evidence,
     message
   );
-  if (hasReadTool && !(retrieval.toolTrace || []).some((entry) => entry.status === 'available')) {
-    const timeout = (retrieval.toolTrace || []).some((entry) => entry.status === 'timeout');
+  if (
+    hasReadTool &&
+    !available &&
+    !toolEvidence.length &&
+    !claims.some((claim) => /\d/.test(claim.text)) &&
+    !(retrieval.toolTrace || []).some((entry) => entry.status === 'available')
+  ) {
+    const failed = (retrieval.toolTrace || []).find((entry) => entry.status === 'timeout');
+    const source = failed && require('./tool-display').catalog[failed.name]?.source;
+    const label = source === 'MaStR' ? 'Marktstammdatenregister' : source;
+    // Source failures explain missing data; they do not imply a failed language model.
+    if (!modelFailed && answerStatus === 'fallback') lines.length = 0;
     lines.unshift(
-      timeout
-        ? 'Die Datenquelle hat nicht rechtzeitig geantwortet; die angefragten Werte liegen noch nicht vor.'
+      failed
+        ? `${label ? 'Das ' + label : 'Die Datenquelle'} hat gerade nicht rechtzeitig geantwortet; die angefragten Werte liegen noch nicht vor.`
         : 'Die angefragten Daten konnten gerade nicht abgerufen werden; konkrete Werte liegen noch nicht vor.'
     );
   }

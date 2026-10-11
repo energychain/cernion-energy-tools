@@ -460,7 +460,7 @@ test('758 provider failure still retrieves and answers; raw new facts persist to
   const second = await call(fixture.liveTurns[1]);
   expect(second.cetCaseId).toBe(first.cetCaseId);
   expect(second.metadata).toMatchObject({ degraded: true, degradedPhase: 'understanding' });
-  expect(second.responseText).toContain('Seit dem 01.01.2024');
+  expect(second.responseText).not.toContain('Deine Angaben im Lagebild');
   expect(second.responseText).toContain('Modell ist gerade nicht verfügbar');
   expect(second.responseText).toContain('Teilnahmevoraussetzungen');
   expect(second.responseText).not.toMatch(/Als Nächstes:|\[Ergebnis/);

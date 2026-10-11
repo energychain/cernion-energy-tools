@@ -206,7 +206,8 @@ module.exports = {
         }
         if (!documents.length) tables.push(...parseDatasetText(question, 'Eingefügte Tabelle'));
       } catch (error) {
-        if (error.type !== 'WORKBENCH_DATASET_DAMAGED') throw error;
+        if (!['WORKBENCH_DATASET_DAMAGED', 'WORKBENCH_DATASET_UNUSABLE'].includes(error.type))
+          throw error;
         return { handled: true, responseText: error.message, documents: [], datasetIds: [] };
       }
       const pasted = !documents.length ? tables : [];

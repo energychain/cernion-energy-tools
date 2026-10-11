@@ -125,7 +125,8 @@ test('second schema error produces a neutral, LLM-free fallback without stale pr
   expect(reply.draft).toBe('');
   expect(reply.responseText).toContain('Gefundene Fundstellen:');
   expect(reply.draft).not.toMatch(/E-Mail|MaLo:|Variante/);
-  expect(reply.responseText).toContain('99000000001');
+  expect(reply.responseText).not.toContain('Deine Angaben im Lagebild');
+  expect(reply.responseText).not.toContain('Modell ist gerade nicht verfügbar');
   expect(reply.evidenceTrace.rawEvidence[0].value).toBe(raw);
 });
 
