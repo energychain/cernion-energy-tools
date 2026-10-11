@@ -1,10 +1,10 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-11T07:36:09.260Z
+Generated: 2026-10-11T13:38:48.921Z
 
 ## Observed adapter surface
 
-- OpenWebUI/ChatGPT adapter files detected: 29
+- OpenWebUI/ChatGPT adapter files detected: 30
 - verify:open-webui npm script: present
 - verify:agent-shapes npm script: present
 
@@ -24,6 +24,7 @@ Detected files:
 - `integrations/open-webui/cernion-sidecar-bridge.js`
 - `integrations/open-webui/cernion-sidecar-bridge.test.js`
 - `integrations/open-webui/cernion-workbench-tools.md`
+- `integrations/open-webui/cet_file_channel.py`
 - `integrations/open-webui/docker-compose.yml`
 - `integrations/open-webui/http-json.js`
 - `integrations/open-webui/http-json.test.js`
@@ -67,6 +68,7 @@ Routing/capability/broker/manifest files:
 - `docs/v0.52-implementation-plans/v0.52.1-capability-broker.md`
 - `docs/v0.58-architecture/DECLARATIVE_BLUEPRINT_AND_CASCADING_BROKER_SPEC.md`
 - `docs/validation/739-routing.json`
+- `docs/validation/dataset-routing-live.json`
 - `docs/VNB_LOOKUP_ROUTING.md`
 - `integrations/budibase/manifests/case-view-manifest-stadtwerk-mauer-pv-missing-nap.json`
 - `integrations/budibase/manifests/case-view-manifest.js`
@@ -76,6 +78,7 @@ Routing/capability/broker/manifest files:
 - `scripts/check-capability-keywords.js`
 - `scripts/eval-capability-routing.js`
 - `scripts/generate-operation-capability-index.js`
+- `scripts/validate-workbench-dataset-routing-live.js`
 - `scripts/verify-capability-routing-baseline.js`
 - `services/agent-manifest.service.js`
 - `services/capability-broker.service.js`
@@ -91,6 +94,7 @@ Routing/capability/broker/manifest files:
 - `src/case-type-routing-context.js`
 - `src/case-type-routing.js`
 - `src/consultation-routing-guardrails.js`
+- `src/dataset-routing.js`
 - `src/domain-router-contract.js`
 - `src/domain-router-events.js`
 - `src/domain-router-policy.js`
@@ -118,6 +122,7 @@ Routing/capability/broker/manifest files:
 - `tests/case-type-routing-context.test.js`
 - `tests/case-view-manifest.test.js`
 - `tests/consultation-to-execution-hybrid-router.regression.test.js`
+- `tests/dataset-routing.test.js`
 - `tests/domain-router-confirmation.test.js`
 - `tests/domain-router-regression.test.js`
 - `tests/domain-router-shadow.test.js`
@@ -204,6 +209,7 @@ Service names that should be capability-mapped:
 - `evidence-router`
 - `ewk-monitoring`
 - `file-ingest-monitor`
+- `files`
 - `finance-agent`
 - `flex`
 - `flexibilitaetskosten-raster`
@@ -261,4 +267,3 @@ Service names that should be capability-mapped:
 - `redispatch-asset-register`
 - `redispatch-data-governance`
 - `redispatch-expost`
-- `redispatch-readiness-gate`

@@ -1,6 +1,6 @@
 # Stammdaten-/Marktrollen-Klärfall
 
-Generated: 2026-10-11T07:36:13.754Z
+Generated: 2026-10-11T13:38:53.255Z
 
 Status: observed
 Priority: 1
@@ -117,6 +117,7 @@ Die Datenlage reicht nicht für eine abschließende Stammdatenaussage. Fachlich 
 - `docs/agent-responses/rd-audit.json` (301 hits)
 - `src/report-builder.js` (237 hits)
 - `src/capability-catalog.js` (231 hits)
+- `docs/validation/813-live.json` (207 hits)
 - `services/grid-operations.service.js` (191 hits)
 - `services/edm.service.js` (164 hits)
 - `services/capability-broker.service.js` (129 hits)
@@ -137,4 +138,3 @@ Die Datenlage reicht nicht für eine abschließende Stammdatenaussage. Fachlich 
 - `services/dashboard-api/methods-part-07-of-14.js` (71 hits)
 - `docs/validation/752-before-cache.json` (70 hits)
 - `services/ewk-monitoring.service.js` (70 hits)
-- `src/answer-dossier-hydration-rules.json` (70 hits)

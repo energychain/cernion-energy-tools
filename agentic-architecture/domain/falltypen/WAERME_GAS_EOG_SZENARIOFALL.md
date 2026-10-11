@@ -1,6 +1,6 @@
 # Wärme-/Gas-/EOG-Szenariofall
 
-Generated: 2026-10-11T07:36:13.754Z
+Generated: 2026-10-11T13:38:53.255Z
 
 Status: observed
 Priority: 7
@@ -92,6 +92,7 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `src/capability-catalog.js` (338 hits)
 - `docs/validation/739-routing.json` (183 hits)
 - `services/capability-broker.service.js` (180 hits)
+- `docs/validation/tenant-memory-live.json` (175 hits)
 - `src/evidence-registry.js` (132 hits)
 - `src/answer-dossier-hydration-rules.json` (108 hits)
 - `services/eog-calculator.service.js` (85 hits)
@@ -108,9 +109,8 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `function-model.report.md` (40 hits)
 - `services/gas-capacity-order-revision-gate.service.js` (37 hits)
 - `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-gas-transformation-dataroom-review-v1.json` (37 hits)
+- `docs/validation/813-live.json` (34 hits)
 - `services/chatgpt-sidecar.service.js` (33 hits)
 - `src/cookbook-recipes.js` (32 hits)
 - `src/validation-findings.js` (32 hits)
 - `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md` (30 hits)
-- `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md` (30 hits)
-- `services/dashboard-api/methods-part-13-of-14.js` (30 hits)

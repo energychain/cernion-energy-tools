@@ -1,6 +1,6 @@
 # Kunden-/Service-Klärfall
 
-Generated: 2026-10-11T07:36:13.754Z
+Generated: 2026-10-11T13:38:53.255Z
 
 Status: routable
 Priority: 3
@@ -131,14 +131,15 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 ## Code-/Doku-Signale
 
 - `src/capability-catalog.js` (479 hits)
+- `docs/validation/813-live.json` (343 hits)
 - `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md` (313 hits)
 - `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md` (313 hits)
-- `agentic-architecture/reports/latest/architecture-scan.md` (263 hits)
+- `agentic-architecture/reports/latest/architecture-scan.md` (262 hits)
 - `services/capability-broker.service.js` (261 hits)
 - `src/report-builder.js` (174 hits)
 - `services/chatgpt-sidecar.service.js` (156 hits)
 - `feedback/HYGIENE_SPRINT.md` (145 hits)
-- `function-model.report.md` (138 hits)
+- `function-model.report.md` (140 hits)
 - `docs/v0.58-architecture/lagebild/tranche_c.md` (136 hits)
 - `src/cookbook-recipes.js` (129 hits)
 - `src/answer-dossier-hydration-rules.json` (127 hits)
@@ -154,4 +155,3 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 - `docs/v0.58-architecture/lagebild/tranche_b.md` (88 hits)
 - `docs/validation/739-routing.json` (88 hits)
 - `services/business-intelligence.service.js` (88 hits)
-- `docs/v0.58-architecture/LAGEBILD_EXPLORATION_PROTOCOL.md` (87 hits)

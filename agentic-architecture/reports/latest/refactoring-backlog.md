@@ -1,6 +1,6 @@
 # Shepherd Refactoring Backlog
 
-Generated: 2026-10-11T07:36:09.260Z
+Generated: 2026-10-11T13:38:48.921Z
 
 ## Safe first work packages
 
@@ -17,7 +17,7 @@ Generated: 2026-10-11T07:36:09.260Z
    - Output: ADR naming rule and small rename/refactor proposals only after GitNexus impact analysis.
 
 4. Service-test map hardening
-   - Services without obvious direct tests: 27.
+   - Services without obvious direct tests: 29.
    - Output: decide whether each is covered indirectly, needs a smoke test, or should be marked experimental.
 
 ## Duplicate/overlap candidates
@@ -33,6 +33,7 @@ Generated: 2026-10-11T07:36:09.260Z
 - `services/shared-service-notices.service.js`, `src/shared-service-notices.js`
 - `services/shared-service-wake.service.js`, `src/shared-service-wake.js`
 - `services/tabular-intelligence.service.js`, `src/tabular-intelligence.js`
+- `services/tenant-memory-policy.service.js`, `src/tenant-memory-policy.js`
 - `src/job-store/driver.js`, `src/rate-quota/driver.js`
 - `src/job-store/factory.js`, `src/rate-quota/factory.js`
 - `src/job-store/file-driver.js`, `src/rate-quota/file-driver.js`
@@ -48,6 +49,7 @@ Generated: 2026-10-11T07:36:09.260Z
 - `services/capex-prioritization.service.js`
 - `services/connection-rejection-evidence.service.js`
 - `services/e2e-connection-check.service.js`
+- `services/files.service.js`
 - `services/flexibilitaetskosten-raster.service.js`
 - `services/fnav-commercial-hedging.service.js`
 - `services/gasnetz-waermeplanung.service.js`
@@ -59,6 +61,7 @@ Generated: 2026-10-11T07:36:09.260Z
 - `services/reinvest-signal.service.js`
 - `services/reporting-governance.service.js`
 - `services/shared-service-agents.service.js`
+- `services/tenant-memory-policy.service.js`
 - `services/tenant-quota.service.js`
 - `services/vdmi-evidence.service.js`
 - `services/vdmi-findings.service.js`

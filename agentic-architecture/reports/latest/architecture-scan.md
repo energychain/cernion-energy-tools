@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-11T07:36:09.260Z
+Generated: 2026-10-11T13:38:48.921Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 1842
-- Services: 157
-- src/*.js files: 348
-- Tests: 459
-- Integrations files: 27
-- Markdown/docs files: 495
+- Files scanned: 1890
+- Services: 159
+- src/*.js files: 361
+- Tests: 470
+- Integrations files: 28
+- Markdown/docs files: 503
 
 ## Existing validation summary
 
@@ -26,14 +26,14 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 521 files
-- `src`: 410 files
-- `docs`: 371 files
-- `services`: 193 files
+- `tests`: 534 files
+- `src`: 427 files
+- `docs`: 379 files
+- `services`: 195 files
 - `tools`: 85 files
+- `scripts`: 68 files
 - `agentic-architecture`: 61 files
-- `scripts`: 61 files
-- `integrations`: 27 files
+- `integrations`: 28 files
 - `.claude`: 26 files
 - `.github`: 11 files
 - `feedback`: 8 files
@@ -49,10 +49,10 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Agentic surface
 
-- Agent/capability/sidecar related files: 266
-- Routing/capability/broker/manifest files: 88
+- Agent/capability/sidecar related files: 267
+- Routing/capability/broker/manifest files: 92
 - Evidence/HITL/receipt/dossier files: 74
-- OpenWebUI/ChatGPT adapter files: 29
+- OpenWebUI/ChatGPT adapter files: 30
 
 Primary agentic files:
 
@@ -159,6 +159,7 @@ Primary agentic files:
 - `evidence-router` — services/evidence-router.service.js (4 detected actions)
 - `ewk-monitoring` — services/ewk-monitoring.service.js (5 detected actions)
 - `file-ingest-monitor` — services/file-ingest-monitor.service.js (11 detected actions)
+- `files` — services/files.service.js (0 detected actions)
 - `finance-agent` — services/finance-agent.service.js (14 detected actions)
 - `flex` — services/flex.service.js (4 detected actions)
 - `flexibilitaetskosten-raster` — services/flexibilitaetskosten-raster.service.js (7 detected actions)
@@ -178,7 +179,6 @@ Primary agentic files:
 - `governance` — services/governance.service.js (6 detected actions)
 - `grid-connection` — services/grid-connection.service.js (18 detected actions)
 - `grid-operations` — services/grid-operations.service.js (6 detected actions)
-- `hitl` — services/hitl.service.js (13 detected actions)
 
 ## Naming/shape drift signals
 
@@ -195,12 +195,13 @@ Potential duplicate or overlapping slugs:
 - `services/shared-service-notices.service.js`, `src/shared-service-notices.js`
 - `services/shared-service-wake.service.js`, `src/shared-service-wake.js`
 - `services/tabular-intelligence.service.js`, `src/tabular-intelligence.js`
+- `services/tenant-memory-policy.service.js`, `src/tenant-memory-policy.js`
 - `src/job-store/driver.js`, `src/rate-quota/driver.js`
 - `src/job-store/factory.js`, `src/rate-quota/factory.js`
 - `src/job-store/file-driver.js`, `src/rate-quota/file-driver.js`
 - `src/job-store/redis-compat-driver.js`, `src/rate-quota/redis-compat-driver.js`
 
-Services without obvious direct unit test by filename heuristic: 27
+Services without obvious direct unit test by filename heuristic: 29
 
 - `services/agnes-bottleneck.service.js`
 - `services/altdaten-assessment.service.js`
@@ -210,6 +211,7 @@ Services without obvious direct unit test by filename heuristic: 27
 - `services/capex-prioritization.service.js`
 - `services/connection-rejection-evidence.service.js`
 - `services/e2e-connection-check.service.js`
+- `services/files.service.js`
 - `services/flexibilitaetskosten-raster.service.js`
 - `services/fnav-commercial-hedging.service.js`
 - `services/gasnetz-waermeplanung.service.js`
@@ -221,6 +223,7 @@ Services without obvious direct unit test by filename heuristic: 27
 - `services/reinvest-signal.service.js`
 - `services/reporting-governance.service.js`
 - `services/shared-service-agents.service.js`
+- `services/tenant-memory-policy.service.js`
 - `services/tenant-quota.service.js`
 - `services/vdmi-evidence.service.js`
 - `services/vdmi-findings.service.js`

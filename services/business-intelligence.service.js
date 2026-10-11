@@ -7,7 +7,7 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
-const { applyFormat, convertToCSV } = require('../src/format-response');
+const { applyFormat } = require('../src/format-response');
 const jobStore = require('../src/job-store');
 
 const SERVICE_NAME = 'business-intelligence';
