@@ -1,6 +1,6 @@
 # Kunden-/Service-Klärfall
 
-Generated: 2026-10-11T13:38:53.255Z
+Generated: 2026-10-11T19:43:34.207Z
 
 Status: routable
 Priority: 3
@@ -134,7 +134,7 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 - `docs/validation/813-live.json` (343 hits)
 - `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md` (313 hits)
 - `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md` (313 hits)
-- `agentic-architecture/reports/latest/architecture-scan.md` (262 hits)
+- `agentic-architecture/reports/latest/architecture-scan.md` (268 hits)
 - `services/capability-broker.service.js` (261 hits)
 - `src/report-builder.js` (174 hits)
 - `services/chatgpt-sidecar.service.js` (156 hits)
@@ -146,12 +146,12 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 - `docs/v0.58-architecture/lagebild/roles_audit.md` (119 hits)
 - `docs/agent-responses/rd-audit.json` (118 hits)
 - `services/api.service.js` (114 hits)
+- `agentic-architecture/reports/latest/scan-summary.json` (104 hits)
+- `agentic-architecture/reports/latest/refactoring-backlog.md` (99 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (99 hits)
-- `agentic-architecture/reports/latest/scan-summary.json` (98 hits)
-- `agentic-architecture/reports/latest/refactoring-backlog.md` (93 hits)
 - `docs/ARCHITECTURE.md` (93 hits)
-- `agentic-architecture/reports/latest/domain-abstraction-summary.json` (89 hits)
 - `docs/v0.52-implementation-plans/v0.52.8-conversational-onboarding.md` (89 hits)
 - `docs/v0.58-architecture/lagebild/tranche_b.md` (88 hits)
 - `docs/validation/739-routing.json` (88 hits)
 - `services/business-intelligence.service.js` (88 hits)
+- `docs/v0.58-architecture/LAGEBILD_EXPLORATION_PROTOCOL.md` (87 hits)

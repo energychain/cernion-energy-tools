@@ -1,6 +1,6 @@
 # Wärme-/Gas-/EOG-Szenariofall
 
-Generated: 2026-10-11T13:38:53.255Z
+Generated: 2026-10-11T19:43:34.207Z
 
 Status: observed
 Priority: 7
@@ -113,4 +113,4 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `services/chatgpt-sidecar.service.js` (33 hits)
 - `src/cookbook-recipes.js` (32 hits)
 - `src/validation-findings.js` (32 hits)
-- `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md` (30 hits)
+- `services/dashboard-api/methods-part-13-of-14.js` (30 hits)
