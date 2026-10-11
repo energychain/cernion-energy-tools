@@ -148,6 +148,8 @@ async function runContentTurn(
         }
       : null);
   if (previous) delete previous.dataNeeds;
+  if (previous && ['orientation', 'knowledge'].includes(pending?.lastConversationShape))
+    previous.turnKind = 'knowledge';
   const draftRequest = Boolean(
     previous &&
     ['work', 'review'].includes(previous.turnKind) &&
