@@ -412,6 +412,9 @@ test.each([
     false,
   ],
   ['Wann begann das Projekt und wie hoch ist das Budget?', false],
+  ['Wurden die Geräte ab dem Stichtag gestartet oder haben sie die nötige Leistung?', false],
+  ['Wurden die Geräte vor oder ab dem Stichtag gestartet?', true],
+  ['Welche Prozess- oder Dokumentversion liegt zugrunde?', true],
   ['Geht es dir um Überblick und Prüfung oder einen Entwurf?', true],
   ['Liegt die Leistung über dem Schwellenwert?', true],
 ])('question asks one independent point: %s', (question, natural) => {

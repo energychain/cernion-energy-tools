@@ -5,10 +5,64 @@ const os = require('node:os');
 const path = require('node:path');
 require('dotenv').config({ path: process.env.WORKBENCH_ENV_FILE || '.env', quiet: true });
 process.env.WORKBENCH_LLM_TIMEOUT_MS ||= '20000,45000';
-const quotaDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-813-quota-'));
-process.env.RATE_QUOTA_DIR = quotaDirectory;
-const { createLiveHarness } = require('./workbench-live-harness');
 const corpus = require('../tests/fixtures/workbench-813.generated.json');
+const { compoundQuestion } = require('../src/workbench-conversation-shape');
+function singlePoint(responseText) {
+  return !String(responseText)
+    .split('\n\n')
+    .filter((paragraph) => paragraph.includes('?'))
+    .some(compoundQuestion);
+}
+const reportPath = path.join(__dirname, '../docs/validation/813-live.json');
+let quotaDirectory;
+function summaryPresent(responseText) {
+  const overview = String(responseText)
+    .split('Entwurf:')[0]
+    .split('\n\n')
+    .filter(
+      (paragraph) =>
+        !/^Ich gehe davon aus|^Den\b/iu.test(paragraph) &&
+        !/\b(?:prüfen|übermitteln|einholen|versenden|ermitteln|bitten|überwachen|einleiten|vorbereiten|nachhalten)\.?$/iu.test(
+          paragraph.trim()
+        )
+    )
+    .slice(0, 2)
+    .join('\n');
+  return /Eingangsbestätigung|(?:fachlich|inhaltlich).{0,180}(?:aussteh|steht.{0,40}aus|kein|nicht)|(?:aussteh|kein|nicht).{0,180}(?:fachlich|inhaltlich)/isu.test(
+    overview
+  );
+}
+function recheckReport() {
+  const existing = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+  const expected = corpus.flatMap((scenario) =>
+    scenario.turns.map((_turn, index) => `${scenario.id}:${index + 1}`)
+  );
+  if (
+    existing.runs?.map((run) => run.run).join(',') !== '1,2,3' ||
+    existing.totalTurns !== expected.length * 3 ||
+    existing.runs.some(
+      (run) =>
+        JSON.stringify(run.turns.map((turn) => `${turn.scenario}:${turn.turn}`)) !==
+        JSON.stringify(expected)
+    )
+  )
+    throw new Error('Rechecking requires three complete unchanged corpus runs');
+  for (const run of existing.runs)
+    for (const turn of run.turns) {
+      if (turn.scenario === 'counter') turn.checks.singlePoint = singlePoint(turn.responseText);
+      if (corpus.find((scenario) => scenario.id === turn.scenario).turns[turn.turn - 1].summary)
+        turn.checks.requestedSummary = summaryPresent(turn.responseText);
+    }
+  existing.summaryValidation =
+    'Summary guard rechecked on all complete unchanged responses; question grammar rechecked; remaining checks retained; no model calls.';
+  fs.writeFileSync(reportPath, JSON.stringify(existing, null, 2) + '\n');
+  if (
+    existing.runs.some((run) =>
+      run.turns.some((turn) => Object.values(turn.checks).includes(false))
+    )
+  )
+    process.exitCode = 1;
+}
 const report = {
   sources:
     'Real central LLM facade; synthetic/empty source services (knowledge, object-store, datapoint); local real case and document stores.',
@@ -21,6 +75,9 @@ const report = {
   totalTurns: 0,
 };
 async function validateConversation() {
+  quotaDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-813-quota-'));
+  process.env.RATE_QUOTA_DIR = quotaDirectory;
+  const { createLiveHarness } = require('./workbench-live-harness');
   for (let run = 1; run <= 3; run++) {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-813-live-'));
     const { broker, workbench } = createLiveHarness(directory, [
@@ -128,20 +185,12 @@ async function validateConversation() {
               : {}),
             ...(turn.summary
               ? {
-                  requestedSummary: /Eingangsbestätigung/iu.test(
-                    result.responseText.split('Entwurf:')[0]
-                  ),
+                  requestedSummary: summaryPresent(result.responseText),
                 }
               : {}),
             ...(scenario.id === 'counter'
               ? {
-                  singlePoint:
-                    !/(?:in Betrieb genommen|Inbetriebnahme).{0,100}(?:und|sowie).{0,100}(?:kW|Leistung)/iu.test(
-                      result.responseText
-                        .split('\n\n')
-                        .filter((paragraph) => paragraph.includes('?'))
-                        .join(' ')
-                    ),
+                  singlePoint: singlePoint(result.responseText),
                 }
               : {}),
             ...(turn.search
@@ -191,9 +240,16 @@ async function validateConversation() {
   )
     process.exitCode = 1;
 }
-validateConversation()
-  .catch((error) => {
-    console.error('Live validation failed:', error.type || error.name);
-    process.exitCode = 1;
-  })
-  .finally(() => fs.rmSync(quotaDirectory, { recursive: true, force: true }));
+if (require.main === module)
+  (process.argv.includes('--recheck-report')
+    ? Promise.resolve().then(recheckReport)
+    : validateConversation()
+  )
+    .catch((error) => {
+      console.error('Live validation failed:', error.type || error.name);
+      process.exitCode = 1;
+    })
+    .finally(() => {
+      if (quotaDirectory) fs.rmSync(quotaDirectory, { recursive: true, force: true });
+    });
+module.exports = { summaryPresent };

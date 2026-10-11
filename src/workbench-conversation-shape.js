@@ -31,8 +31,15 @@ function naturalQuestion(text) {
 function compoundQuestion(text) {
   // A coordinated second predicate asks another independent question. Lists of
   // choices ("Überblick und Prüfung oder Entwurf") have no second predicate.
-  return /\b(?:und|sowie)\s+(?:[\p{L}\p{N}-]+\s+){0,3}(?:verfüg\p{L}*|beträg\p{L}*|betragen|lieg\p{L}*|sind|w[eu]rd\p{L}*|ist|hat|haben|besteh\p{L}*|wann|welche\p{L}*|wie|wer|wo)\b/iu.test(
-    text
+  const coordinated =
+    /\b(und|sowie|oder)\s+(?:[\p{L}\p{N}-]+\s+){0,3}(?:verfüg\p{L}*|beträg\p{L}*|betragen|lieg\p{L}*|sind|w[eu]rd\p{L}*|ist|hat|haben|besteh\p{L}*|wann|welche\p{L}*|wie|wer|wo)\b/iu.exec(
+      text
+    );
+  if (!coordinated) return false;
+  if (coordinated[1].toLowerCase() !== 'oder') return true;
+  // A noun alternative before the only predicate is still one question.
+  return /\b(?:verfüg\p{L}*|beträg\p{L}*|betragen|lieg\p{L}*|sind|w[eu]rd\p{L}*|ist|hat|haben|besteh\p{L}*|begann|beginnt|geht|ging)\b/iu.test(
+    String(text).slice(0, coordinated.index)
   );
 }
 

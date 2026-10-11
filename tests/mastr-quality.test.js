@@ -22,7 +22,7 @@ process.env.MASTR_QUALITY_DB_PATH = TEST_DB_PATH;
 process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
 process.env.JOB_STORE_DIR = TEST_JOB_STORE_DIR;
 
-const jobStore = require('../src/job-store');
+const { waitForJobCompletion } = require('./helpers/job-polling');
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -337,8 +337,10 @@ describe('mastr-quality service', () => {
 
     expect(response.status).toBe('queued');
     expect(response.jobId).toBeDefined();
-    await new Promise((resolve) => setTimeout(resolve, 80));
-    const finalJob = jobStore.getJob(response.jobId);
+    const finalJob = await waitForJobCompletion(response.jobId, {
+      maxWaitMs: 5000,
+      pollIntervalMs: 20,
+    });
     expect(['completed', 'error']).toContain(finalJob?.status);
   });
 
