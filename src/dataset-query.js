@@ -153,7 +153,8 @@ function compileDatasetPlan(record, input, sql, params, utcAlias, localAlias) {
 }
 
 function executeDatasetQuery(pool, record, input) {
-  if (requestedDatasetField(record, input.question) === false)
+  const requestedField = requestedDatasetField(record, input.question);
+  if (requestedField === false)
     return datasetQueryFailure(record, 'Die angefragte Spalte wurde im Datensatz nicht gefunden.');
   if (record.quality?.unusable)
     return datasetQueryFailure(record, 'Der Datensatz ist unbrauchbar.');
@@ -224,6 +225,16 @@ function executeDatasetQuery(pool, record, input) {
           ))
         ? 'Der angefragte Zeitraum liegt außerhalb der vorhandenen Daten.'
         : 'Für die angegebenen Filter gibt es keine passenden Daten.'
+    );
+  if (
+    requestedField &&
+    !db
+      .prepare(`SELECT COUNT(${quoteDatasetField(requestedField)}) AS n FROM (${sql})`)
+      .get(...params).n
+  )
+    return datasetQueryFailure(
+      record,
+      'Die angefragte Spalte enthält im gewählten Bereich keine ausgefüllten Werte.'
     );
   const scopedTimes =
     timeIndex >= 0

@@ -216,6 +216,12 @@ test('838 C.1: all-empty requested measure gives its cause instead of a null agg
   const natural = await call('dataset.query', { id: record.id, question: 'Wann war das Maximum?' });
   expect(natural.responseText).toMatch(/keine verwendbaren Werte/);
   expect(natural.responseText).not.toMatch(/Zeilen|null|Maximum:/);
+  const explicit = await call('dataset.query', {
+    id: record.id,
+    question: 'Wie hoch ist der Wert der Spalte "Menge"?',
+  });
+  expect(explicit.responseText).toMatch(/Spalte.*keine ausgefüllten Werte/);
+  expect(explicit.responseText).not.toMatch(/0 Zeilen|null|Anzahl/);
 });
 
 test('838 scenario 7 / D: grounded follow-up has no appended filler recommendation', async () => {
