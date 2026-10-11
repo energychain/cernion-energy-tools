@@ -4,7 +4,8 @@
 // Only synthetic fixtures; no provisioning, deletion or external-effect tools.
 // node scripts/validate-rc3-expectations-live.js --catalog
 // Live: CET_TEST_GATEWAY_TOKEN, CET_TEST_USER_1, CET_TEST_USER_2,
-// CET_TEST_USER_HEADER=id|email; optional CET_TEST_RUN_ID and CET_TEST_OUTPUT_DIR.
+// CET_TEST_USER_HEADER=id|email; optional CET_TEST_RUN_ID, CET_TEST_OUTPUT_DIR,
+// CET_TEST_USED_CHAT_REQUESTS (already consumed in this validation assignment).
 // Header values never enter artifacts. Output contains redacted answer text only.
 const fs = require('node:fs');
 const path = require('node:path');
@@ -304,7 +305,11 @@ if (process.argv.includes('--catalog')) {
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
     const output = path.join(directory, 'results.json');
     if (fs.existsSync(output)) throw new Error('Lauf-ID bereits verwendet; keine Wiederholung');
-    const secrets = [token, ...users];
+    const priorRequests = Number(process.env.CET_TEST_USED_CHAT_REQUESTS || '0');
+    if (!Number.isInteger(priorRequests) || priorRequests < 0 || priorRequests >= 120) {
+      throw new Error('Ungültiges oder ausgeschöpftes Gesamtbudget');
+    }
+    const secrets = [token, ...users, ...entries.map((entry) => `${run}-${entry.chat}`)];
     const redact = (value) => {
       let text = String(value || '');
       for (const secret of secrets) text = text.split(secret).join('[entfernt]');
@@ -322,6 +327,7 @@ if (process.argv.includes('--catalog')) {
       anchors: catalog.anchors,
       startedAt: new Date().toISOString(),
       requests: 0,
+      priorRequests,
       uploads: [],
       results: [],
       stopped: null,
@@ -348,22 +354,34 @@ if (process.argv.includes('--catalog')) {
       });
       const raw = await response.text();
       finished = Date.now();
-      if (response.status === 429 || quota.test(raw)) {
-        state.stopped = 'Kontingent/429: sofortiger Abbruch ohne Wiederholung';
-        save();
-        throw new Error('STOP_QUOTA');
-      }
       let data;
       try {
         data = JSON.parse(raw);
       } catch {
         data = {};
       }
+      if (response.status === 429 || quota.test(raw)) {
+        state.stopped = 'Kontingent/429: sofortiger Abbruch ohne Wiederholung';
+        state.results.push({
+          id: state.pendingTest || 'access',
+          status: response.status,
+          phase: endpoint.endsWith('/files') ? 'upload' : 'chat',
+          answer: redact(
+            data.error?.message ||
+              data.message ||
+              data.choices?.[0]?.message?.content ||
+              'Kontingentmeldung ohne zitierfähigen Antworttext'
+          ),
+        });
+        save();
+        throw new Error('STOP_QUOTA');
+      }
       if (!response.ok) {
         state.stopped = `HTTP ${response.status}; keine Umgehung oder Wiederholung`;
         state.results.push({
-          id: 'access',
+          id: state.pendingTest || 'access',
           status: response.status,
+          phase: endpoint.endsWith('/files') ? 'upload' : 'chat',
           answer: redact(data.error?.message || data.message || 'Antwort nicht als JSON lesbar'),
         });
         save();
@@ -374,10 +392,12 @@ if (process.argv.includes('--catalog')) {
     save();
     try {
       for (const entry of entries) {
-        if (state.requests >= 120) {
+        if (state.requests + priorRequests >= 120) {
           state.stopped = 'Chatbudget 120 erreicht';
           break;
         }
+        state.pendingTest = entry.id;
+        save();
         let refs;
         if (entry.file) {
           const bytes = Buffer.from(entry.file.content);

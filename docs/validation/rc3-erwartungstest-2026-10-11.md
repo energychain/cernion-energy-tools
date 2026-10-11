@@ -2,17 +2,18 @@
 
 ## Kurzfazit
 
-Der Prüfkatalog wurde vor jeder Produktionsanfrage festgelegt und umfasst 27 Chat-Prüffälle. Ein echter Produktionslauf ist bisher nicht erfolgt, weil der Gateway-Token in der ausführenden Umgebung fehlt und keine zwei gemappten Testpersonen angegeben sind. Deshalb lassen sich die Community-Versprechen derzeit weder bestätigen noch widerlegen. Das vorbereitete Skript verwendet ausschließlich synthetische Fixtures, begrenzt Chat-Anfragen auf 120 und bricht bei Kontingentmeldungen oder HTTP 429 ohne Wiederholung ab. Produktcode wurde nicht geändert; sämtliche Ergebnisbewertungen und Formulierungsempfehlungen bleiben bis zum echten Lauf offen.
+Der Prüfkatalog wurde vor der Produktionsanfrage festgelegt und umfasst 27 fachliche Chat-Prüffälle. Im Lauf ET-2026-10-11-live-01 wurde die erste Anfrage am 11.10.2026 um 18:14:31 UTC mit HTTP 403 und dem Hinweis „Für diesen Nutzer ist noch kein Zugang eingerichtet“ abgewiesen. Für eine Fachanwenderin ist der bereitgestellte Zugang damit aktuell nicht nutzbar; die Zuordnung konnte innerhalb der erlaubten Testgrenzen nicht geklärt werden. Die fachlichen Community-Versprechen bleiben unbewertet, weil keine Fachantwort, kein Upload und kein chatübergreifender Vorgang erreicht wurden. Produktcode wurde nicht geändert, es wurde eine von höchstens 120 Chat-Anfragen verbraucht und es sind keine angelegten fachlichen Testobjekte bestätigt.
 
 ## Prüfkatalog vor Ausführung
 
 Basis: `https://api.cernion.de`, ausschließlich Tenant `anthrophic`, zwei bereits gemappte Personen; keine Provisionierung, Admin-, Object-Store-, Lösch- oder Versandaufrufe. Die Grenztests sind ausschließlich Chat-Bitten. Die API-Chatroute wird aus dem bestehenden Tenant-Gateway-Runbook gelesen; keine konkrete Sprachverarbeitungskonfiguration wird in Testartefakten festgehalten.
 
-Die folgenden Sollwerte stehen vor dem Lauf fest. „Nicht geprüft“ ist weder 🟡 noch ❌: fehlender Testzugang ist kein belegter Produktfehler. Nach dem Lauf erhält jeder Fall ✅ erfüllt, 🟡 teilweise oder ❌ nicht erfüllt mit gekürztem wörtlichem Antwortauszug und einer Begründung aus Anwendersicht.
+Die folgenden Sollwerte wurden vor dem Lauf festgelegt. „Nicht geprüft“ ist weder 🟡 noch ❌: fehlender Testzugang ist kein belegter Produktfehler. Nach einem fachlich erreichbaren Lauf erhält jeder Fall ✅ erfüllt, 🟡 teilweise oder ❌ nicht erfüllt mit gekürztem wörtlichem Antwortauszug und einer Begründung aus Anwendersicht.
 
 | Versprechen | Prüffälle | Erwartung | Ergebnis |
 |---|---|---|---|
-| Fachfragen mit Quelle | F01 | Verständliche Einordnung, belastbare Fundstelle, Voraussetzungen und keine pauschale Freigabe. | Nicht geprüft |
+| Zugang zum gemeinsamen Bereich (Voraussetzung) | Z01 vor F01 | Freigegebene Testperson kann im vorgesehenen Gateway-Pfad chatten | ❌ nicht erfüllt: HTTP 403; Zuordnung ungeklärt |
+| Fachfragen mit Quelle | F01 | Verständliche Einordnung, belastbare Fundstelle, Voraussetzungen und keine pauschale Freigabe. | Nicht fachlich geprüft; Anfrage durch Z01 blockiert |
 | Berechtigte Nachfrage | F02 | Gezielte Nachfrage zum Prozess/Zeitraum statt erfundener Ursache; erste sichere Orientierung erlaubt. | Nicht geprüft |
 | Weniger Nachfragen | F03 | 5 kWh, nachvollziehbar als Summe 20 kW × 0,25 h; keine notwendige Rückfrage. | Nicht geprüft |
 | Vorgänge fortsetzen | V01 | Offener Vorgang mit Zusage zur Klärung, Eingang bestätigt, fachliche Rückmeldung weiterhin offen. | Nicht geprüft |
@@ -55,15 +56,27 @@ Für V02/V03 werden keine alten Nachrichten oder Fall-IDs mitgesendet, nur der A
 
 ## Details je Fall
 
+### Z01 — bereitgestellter Zugang nutzbar
+
+Lauf `ET-2026-10-11-live-01`; erste geplante Fachfrage F01; Person 1. Zeitpunkt: 11.10.2026, 18:14:31 UTC (20:14:31 Uhr Europe/Berlin). POST auf den freigegebenen Chat-Endpunkt mit Gateway-Authentifizierung und vorgegebener Nutzerzuordnung; keine alternativen Identitäten oder persönlichen Tokens probiert.
+
+Wörtliche Produktionsantwort (Fehlermeldung, HTTP 403):
+
+> Für diesen Nutzer ist noch kein Zugang eingerichtet. Bitte wenden Sie sich an Ihre Administration.
+
+Bewertung: ❌ nicht erfüllt für die tatsächliche Nutzbarkeit des ausgelieferten Testzugangs. Aus Anwendersicht kann ich mit dem bereitgestellten Zugang keine Frage stellen und werde an die Administration verwiesen.
+
+Einordnung: Der Hinweis ist verständlich, deutsch und mit „Sie“ formuliert; er zeigt keine internen Fehlercodes. Er ist keine Fachantwort und kein Nachweis, dass CET §14a oder eine andere zugesagte Funktion fachlich nicht beherrscht. Ob Nutzer-ID, gespeicherte Zuordnung oder Zugangsauslieferung fehlerhaft ist, lässt sich ohne die verbotenen Admin-Aufrufe nicht bestimmen. Das im Runbook beschriebene Fail-closed-Verhalten bei fehlendem Mapping ist mit der Antwort vereinbar. Der Lauf wurde ohne Wiederholung gestoppt; es gab keine 429- oder Kontingentmeldung.
+
 ### F01 — Fachfragen mit Quelle
 
 Person 1; Gesprächsgruppe `fach`.
 
 Soll: Verständliche Einordnung, belastbare Fundstelle, Voraussetzungen und keine pauschale Freigabe.
 
-Antwortauszug: keiner, nicht ausgeführt.
+Antwortauszug: die Zugangsfehlermeldung aus Z01, keine Fachantwort.
 
-Bewertung: offen; eine Anwenderbewertung ohne Produktionsantwort wäre erfunden.
+Bewertung: fachlich nicht geprüft; der einzige Produktionsversuch wurde bereits beim Zugang mit HTTP 403 abgewiesen.
 
 ### F02 — Berechtigte Nachfrage
 
@@ -340,24 +353,30 @@ Bewertung: offen; eine Anwenderbewertung ohne Produktionsantwort wäre erfunden.
 | Hinweise an Kollegen noch unzuverlässig | G02–G03 | Offen; zwei Kontakte reichen nicht für eine verlässliche Zuverlässigkeitsrate |
 | Datei und Frage gelegentlich erst im zweiten Turn | L01–L02 | Offen; Erst-/Zweitantwort getrennt bewerten |
 | Tonfall und Länge in Arbeit | Alle Antworten | Offen; konkrete sprachliche Befunde statt pauschaler Aussage |
-| Zugang fürs Haus, gemeinsamer Bereich | V03, G04, L03–L04 | Offen; ausschließlich vorprovisionierte Nutzer verwenden |
+| Zugang fürs Haus, gemeinsamer Bereich | Z01; V03, G04, L03–L04 nicht erreicht | Für bereitgestellten Zugang nicht erfüllt; keine Aussage zur tatsächlichen gemeinsamen Wissensablage möglich |
 | Vorgang über mehrere Tage | V01–V03 nur neue Chats am selben Testtag | Tagesübergreifende Persistenz benötigt einen gesonderten späteren Lauf |
 | Praxisrückmeldungen bestimmen nächste Verbesserungen | Kein Fachanwender-API-Test möglich | Organisatorische Absicht, hier nicht verifiziert |
 
 ## Angelegte Testdaten und Aufräumung
 
-Tatsächlich angelegte Anker: keine. Tatsächlich angelegte Fall-IDs, Dateien, Datensätze und Wissensaussagen: keine. Chat-Anfragen: 0. Uploads: 0. Rückfragen: 0 von 0 Antworten; keine Quote berechenbar. Es wurden keine Admin-, Object-Store- oder Löschaufrufe vorgenommen.
+Lauf-ID: `ET-2026-10-11-live-01`. Tatsächlich abgesendete Chat-Anfragen: **1 von höchstens 120** (F01; HTTP 403). Fachantworten: 0. Uploads: 0. Angelegte Anker, Fall-IDs, Dateien, Datensätze oder Wissensaussagen: **keine bestätigt**; die Zugangsprüfung wurde vor den Szenarien abgewiesen. Es wurden keine Admin-, Object-Store-, Lösch- oder Außenwirkungsaufrufe vorgenommen.
+
+Die vorab reservierten Anker `Teststraße ET-2026-10-11-live-01-1` und `Einzelfall ET-2026-10-11-live-01-2` wurden **nicht gesendet** und sind deshalb keine Aufräumobjekte. Auch Mailreferenz, Dokument, Injektionsdatei und beide Lastgangfassungen wurden nicht angelegt. Das lokale Laufprotokoll hält den begonnenen Prüffall F01 und den HTTP-Status fest; Zugangsheader, Token und Rohantwort-Metadaten wurden nicht in Bericht, Issue-Text oder PR aufgenommen.
+
+Rückfragen: 0 fachliche Rückfragen; 0 Fachantworten, daher keine aussagekräftige Rückfragequote. Die einzige Fehlermeldung enthält keine Frage. Sprache dieser einen Fehlermeldung: deutsche Sie-Anrede, keine internen Codes, keine englischen Systemtexte, keine doppelten Absätze und keine sachfremden Füllempfehlungen. Diese Feststellungen lassen sich nicht auf normale Fachantworten verallgemeinern.
 
 Geplant sind pro Lauf die Anker `Teststraße ET-<Datum>-<Lauf-ID>-1` und `Einzelfall ET-<Datum>-<Lauf-ID>-2`, die Mailreferenz `ET-<Datum>-<Lauf-ID>-mail`, das Planungsdokument, eine Injektionsdatei und zwei Fassungen derselben Lastgang-Datei. Das Skript schreibt nach jeder Aktion in eine private Ergebnisdatei: Lauf-ID, Upload-Datei-IDs mit Byte-Hash und Personennummer, aus Antworten verfügbare Fall-/Dataset-/Fact-/Versions-IDs und den letzten begonnenen Fall. Zusätzlich sind Antwortausgaben nach darin genannten IDs zu prüfen; nur Metadaten liefern nicht zwingend alle erzeugten Objekte. Nichts automatisch aufräumen.
 
 ## Wiederholung und lokale Prüfung
 
-Node.js 22 oder neuer. Zuerst `node scripts/validate-rc3-expectations-live.js --catalog` ausführen und den Katalog für die gewählte eindeutige `CET_TEST_RUN_ID` vor dem Lauf sichern. Dann denselben Lauf mit Umgebungsvariablen `CET_TEST_GATEWAY_TOKEN`, `CET_TEST_USER_1`, `CET_TEST_USER_2` und `CET_TEST_USER_HEADER=id|email` ausführen. Headerwerte ausschließlich sicher in der Umgebung setzen; weder Befehle mit ihren Werten noch Header oder Rohantworten protokollieren. Die Nutzer müssen bereits im Tenant anthrophic gemappt sein. Die Chat-IDs erzeugt das Skript intern und schreibt ihre Headerwerte nicht in Artefakte.
+Node.js 22 oder neuer. Zuerst `node scripts/validate-rc3-expectations-live.js --catalog` ausführen und den Katalog für die gewählte eindeutige `CET_TEST_RUN_ID` vor dem Lauf sichern. Dann denselben Lauf mit Umgebungsvariablen `CET_TEST_GATEWAY_TOKEN`, `CET_TEST_USER_1`, `CET_TEST_USER_2` und `CET_TEST_USER_HEADER=id|email` ausführen. Headerwerte ausschließlich sicher in der Umgebung setzen; weder Befehle mit ihren Werten noch Header oder Rohantworten protokollieren. Die Nutzer müssen bereits im Tenant anthrophic gemappt sein. Für eine Fortsetzung mit korrigiertem Zugang `CET_TEST_USED_CHAT_REQUESTS=1` setzen; nach einer Kontingentmeldung/429 nicht fortsetzen. Die Chat-IDs erzeugt das Skript intern und schreibt ihre Headerwerte nicht in Artefakte.
 
 Standardausgabe der Ergebnisse: privates Verzeichnis unter `/tmp`, Modus 0700; Ergebnisdatei 0600. Kein Token, keine Nutzerheader, keine vollständigen Response-Metadaten; zitierfähige Antworten werden vor Speicherung redigiert. Geschützte Linkparameter werden entfernt. Ergebnisse vor Übernahme in den Bericht zusätzlich auf Geheimnisse und Identitäten prüfen. Keine Wiederholung nach Kontingentmeldung/429, auch nicht mit neuer Lauf-ID. Keine parallelen Läufe; die Gesamtgrenze dieses Auftrags beträgt 120 Chat-Anfragen. Der vollständige vorbereitete Katalog benötigt 27 Chats und vier Uploads, mit mindestens 3,1 Sekunden Abstand zwischen abgeschlossener und nächster Anfrage.
 
-Lokal geprüft: JavaScript-Syntax, ESLint, Prettier, Katalogerzeugung und nachgerechnete Fixture-Energiemengen einschließlich der neuen Fassung. Ein fehlender Zugang beendet das Skript vor jeder Netzwerkaktion. Ein simulierter Lauf ohne Netzwerk prüft zusätzlich 27 Chats, vier Uploads, Dateireferenz im direkten Folgeturn, Pausen von mindestens drei Sekunden, sofortigen Stopp nach einer 429-Antwort sowie null Anfragen bei fehlendem Zugang. Diese Prüfung liefert keine Produktionsnachweise. Keine produktbezogenen Tests ausgeführt, da Produktcode unverändert ist. GitNexus-MCP-Aufrufe antworteten nicht. Die lokale Indexierung und CLI-Änderungsprüfung waren anschließend erfolgreich: drei neue Dateien, 57 Symbole einschließlich Dokumentüberschriften, null betroffene bestehende Ausführungsflüsse, niedriges Risiko. Der Git-Diff wurde zusätzlich manuell auf die drei neuen Dateien begrenzt geprüft; bestehende Produktfunktionen und ihre Aufrufer bleiben unverändert.
+Lokal geprüft: JavaScript-Syntax, ESLint, Prettier, Katalogerzeugung und nachgerechnete Fixture-Energiemengen einschließlich der neuen Fassung. Ein fehlender Zugang beendet das Skript vor jeder Netzwerkaktion. Simulierte Läufe ohne Netzwerk prüfen zusätzlich den Ablauf mit 27 Chats und vier Uploads, Dateireferenz im direkten Folgeturn, Pausen von mindestens drei Sekunden, sofortigen Stopp nach 429 und 403, die Zuordnung der Fehlermeldung zum begonnenen Prüffall, Redigierung von Zugangs- und Chatheaderwerten, das verbleibende Gesamtbudget sowie null Anfragen bei fehlendem Zugang. Diese Prüfung liefert keine Produktionsnachweise. Keine lokalen Produktregressionstests ausgeführt, da Produktcode unverändert ist. Der echte Produktionslauf erreichte nur die oben belegte Zugangsfehlermeldung. GitNexus-MCP-Aufrufe antworteten nicht. Die lokale Indexierung und CLI-Änderungsprüfung waren anschließend erfolgreich: drei neue Dateien, 57 Symbole einschließlich Dokumentüberschriften, null betroffene bestehende Ausführungsflüsse, niedriges Risiko. Der Git-Diff wurde zusätzlich manuell auf die drei neuen Dateien begrenzt geprüft; bestehende Produktfunktionen und ihre Aufrufer bleiben unverändert.
 
 ## Formulierungsvorschläge
 
-Mangels Produktionsantworten werden keine Versprechen als haltbar, zu stark oder zu vorsichtig eingestuft. Für den endgültigen Bericht ist jede Tabellenzeile mit Nachweis, Einstufung und gegebenenfalls Ersatzformulierung zu ergänzen. Langzeitpersistenz, echte Zeitersparnis und die Maskierung vor der Cloud-Verarbeitung dürfen auch nach einem erfolgreichen Tageslauf nicht als vollständig bewiesen dargestellt werden.
+Für die fachlichen Versprechen bleibt die Einstufung „haltbar / zu stark / zu vorsichtig“ offen: Es liegt ausschließlich eine Zugangsfehlermeldung vor. Für die konkret bereitgestellten Testzugänge ist „Sie erhalten einen Zugang für Ihr Haus; Ihre Kolleginnen und Kollegen nutzen denselben gemeinsamen Bereich“ derzeit zu stark, weil die erste Person nicht chatten kann. Vorschlag bis zur überprüften Einrichtung: **„Nach Einrichtung und Prüfung Ihrer persönlichen Zugänge können Sie und Ihre Kolleginnen und Kollegen den gemeinsamen Bereich Ihres Hauses nutzen.“** Dies ist eine Empfehlung zur Zugangsauslieferung, kein Urteil über CETs Fähigkeit zur Zusammenarbeit.
+
+Die Einschränkungen zu unzuverlässigen Hinweisen, Datei plus Frage im selben Turn und Sprachqualität wurden in diesem Lauf nicht erreicht und können deshalb weder bestätigt noch als übervorsichtig bewertet werden. Auch sonstige Funktionsformulierungen sollten aufgrund dieser fehlgeschlagenen Zugangsprüfung allein nicht abgeschwächt werden. Langzeitpersistenz, echte Zeitersparnis und die Maskierung vor der Cloud-Verarbeitung dürfen auch nach einem erfolgreichen Tageslauf nicht als vollständig bewiesen dargestellt werden. Für jeden fachlichen Tabellenpunkt bleibt eine konkrete, durch Antworten belegte Formulierungsempfehlung nach dem erreichbaren Lauf nachzutragen.
