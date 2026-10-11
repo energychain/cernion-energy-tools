@@ -104,12 +104,43 @@ async function validateConversation() {
                 result.responseText
               ),
             answered: result.metadata?.degraded === false,
+            temporalGrounded: !require('../src/workbench-answer-filter').unsupportedEarlierDate(
+              result.responseText,
+              messages.filter((item) => item.role === 'user').map((item) => item.content)
+            ),
             ...(turn.draft ? { requestedDraft: /Entwurf:\s*\S/u.test(result.responseText) } : {}),
+            ...(turn.draft
+              ? {
+                  completeDraft:
+                    (
+                      result.responseText
+                        .split('Entwurf:')[1]
+                        ?.match(
+                          /(?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße|Beste Grüße)/giu
+                        ) || []
+                    ).length >=
+                    Math.max(
+                      1,
+                      (result.responseText.split('Entwurf:')[1]?.match(/Variante\s+[A-Z]/giu) || [])
+                        .length
+                    ),
+                }
+              : {}),
             ...(turn.summary
               ? {
-                  requestedSummary:
-                    /Eingangsbestätigung|(?:fachlich|inhaltlich).{0,60}(?:nicht|kein|aus|fehl)|(?:nicht|kein|aussteh|fehl).{0,60}(?:fachlich|inhaltlich)/iu.test(
-                      result.responseText.split('Entwurf:')[0]
+                  requestedSummary: /Eingangsbestätigung/iu.test(
+                    result.responseText.split('Entwurf:')[0]
+                  ),
+                }
+              : {}),
+            ...(scenario.id === 'counter'
+              ? {
+                  singlePoint:
+                    !/(?:in Betrieb genommen|Inbetriebnahme).{0,100}(?:und|sowie).{0,100}(?:kW|Leistung)/iu.test(
+                      result.responseText
+                        .split('\n\n')
+                        .filter((paragraph) => paragraph.includes('?'))
+                        .join(' ')
                     ),
                 }
               : {}),

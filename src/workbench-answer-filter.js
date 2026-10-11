@@ -20,7 +20,38 @@ const REASONS = {
   evidence_rules: 'Evidenzregeln einhalten: nur mitgelieferte Evidenz-IDs verwenden.',
   incomplete_variant: 'Jede Variante vollständig und mit einheitlicher Voraussetzung liefern.',
   greeting_only: 'Einen vollständigen fachlichen Entwurf liefern, nicht nur Anrede und Gruß.',
+  incomplete_letter:
+    'Jeden verlangten Entwurf einschließlich Anrede, fachlichem Text und Gruß vollständig liefern.',
+  temporal_inference:
+    'Ein unveränderter Zustand seit einem Datum belegt keinen früheren Start. Nur ausdrücklich belegte Zeitverhältnisse als Tatsache nennen; sonst bedingt formulieren.',
 };
+function unsupportedEarlierDate(value, facts = []) {
+  const source = facts.join('\n');
+  const date = '(?:\\d{1,2}\\.\\d{1,2}\\.\\d{4}|\\d{4}-\\d{2}-\\d{2})';
+  const canonical = (raw) => {
+    const parts = raw.includes('.') ? raw.split('.').reverse() : raw.split('-');
+    return parts.map(Number).join('-');
+  };
+  const since = new Set(
+    [...source.matchAll(new RegExp('\\bseit\\s+(?:dem\\s+)?(' + date + ')', 'giu'))].map((match) =>
+      canonical(match[1])
+    )
+  );
+  const stated = new Set(
+    [...source.matchAll(new RegExp('\\bvor\\s+(?:dem\\s+)?(' + date + ')', 'giu'))].map((match) =>
+      canonical(match[1])
+    )
+  );
+  return String(value)
+    .split(/\n\s*\n/u)
+    .some(
+      (paragraph) =>
+        !/\b(?:wenn|falls|sofern|unter der Voraussetzung)\b/iu.test(paragraph) &&
+        [...paragraph.matchAll(new RegExp('\\bvor\\s+(?:dem\\s+)?(' + date + ')', 'giu'))].some(
+          (match) => since.has(canonical(match[1])) && !stated.has(canonical(match[1]))
+        )
+    );
+}
 function conditionOf(claim, normalizeCondition) {
   const first = claim.text.split('\n')[0];
   return normalizeCondition(
@@ -38,7 +69,16 @@ function substantive(claims) {
 }
 function filterAnswer(
   parsed,
-  { evidence, answerEvidence, unresolved, message, normalizeCondition, counts }
+  {
+    evidence,
+    answerEvidence,
+    unresolved,
+    message,
+    normalizeCondition,
+    counts,
+    userFacts = [],
+    requireCompleteDraft = false,
+  }
 ) {
   const ids = new Set(answerEvidence.map((entry) => entry.evidenceId));
   const seenClaims = new Set();
@@ -87,6 +127,8 @@ function filterAnswer(
       if (copiesEvidence(claim.text, evidence)) rules.push('copies_evidence');
       if (seenClaims.has(identity)) rules.push('duplicate');
       if (!claim.text.trim()) rules.push('empty_text');
+      if (field !== 'draft' && unsupportedEarlierDate(claim.text, [message, ...userFacts]))
+        rules.push('temporal_inference');
       if (
         claim.completedAction &&
         !(field === 'draft' && claim.condition?.trim()) &&
@@ -150,8 +192,35 @@ function filterAnswer(
             )
         )
       );
+      const incomplete = new Set(
+        requireCompleteDraft
+          ? (conditions.length ? conditions : ['']).filter((condition) => {
+              const letter = parsed.draft
+                .filter(
+                  (claim) =>
+                    !conditionOf(claim, normalizeCondition) ||
+                    conditionOf(claim, normalizeCondition) === condition
+                )
+                .map((claim) => claim.text)
+                .join('\n');
+              return (
+                !/(?:Guten Tag|Sehr geehrte|Hallo)/iu.test(letter) ||
+                !/(?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße|Beste Grüße)/iu.test(
+                  letter
+                )
+              );
+            })
+          : []
+      );
       parsed.draft = parsed.draft.filter((claim) => {
         const condition = conditionOf(claim, normalizeCondition);
+        if (
+          incomplete.has(condition) ||
+          (!condition && conditions.length && incomplete.size === conditions.length)
+        ) {
+          reject(field, 'incomplete_letter');
+          return false;
+        }
         if (
           empty.has(condition) ||
           (!condition && conditions.length && empty.size === conditions.length)
@@ -166,6 +235,7 @@ function filterAnswer(
         !parsed.draft.some((claim) => conditionOf(claim, normalizeCondition))
       )
         parsed.draft = [];
+      if (requireCompleteDraft && incomplete.size) parsed.draft = [];
     }
   }
   return parsed;
@@ -173,9 +243,9 @@ function filterAnswer(
 function repairForFilters(counts) {
   const rules = [...new Set([...counts.keys()].map((key) => key.split(':')[1]))];
   return [
-    'Erzeuge den vollständigen Entwurf erneut und beachte diese Korrekturen:',
+    'Erzeuge die Antwort erneut und beachte diese Korrekturen:',
     ...rules.map((rule) => REASONS[rule]),
-    'Jede bedingte Variante muss vollständig sein; die übrigen Antwortfelder bleiben leer.',
+    'Jede bedingte Entwurfsvariante muss vollständig sein. Weitere ausdrücklich verlangte Ergebnisse wie Zusammenfassung und Prüfung in interpretation sowie nächste Schritte erhalten; expectation bleibt leer. Nur bei einer alleinstehenden Entwurfsbitte bleiben die übrigen Antwortfelder leer.',
   ].join('\n');
 }
-module.exports = { filterAnswer, repairForFilters };
+module.exports = { filterAnswer, repairForFilters, unsupportedEarlierDate };

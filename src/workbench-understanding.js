@@ -4,7 +4,11 @@ const Ajv = require('ajv');
 const { updatePersonFacts, markParagraphs } = require('./workbench-conversation-mode');
 const llm = require('./llm-client');
 const { repairOutput, schemaError, logInfo, fallbackReason } = require('./workbench-llm-repair');
-const { filterAnswer, repairForFilters } = require('./workbench-answer-filter');
+const {
+  filterAnswer,
+  repairForFilters,
+  unsupportedEarlierDate,
+} = require('./workbench-answer-filter');
 const {
   prepareAnswerEvidence,
   safeSituationText,
@@ -336,6 +340,8 @@ async function understand({
               'dataNeeds bleibt leer bei Erklärung, Entwurfsprüfung und Arithmetik mit vollständig in der Eingabe vorliegenden Werten. dataNeeds MUSS befüllt sein, wenn die Antwort konkrete Daten (Zahlen, Listen, Einzelwerte, Maximum/Minimum oder aktuellen Stand) benötigt, die über eine Abfrage statt über Wissensrecherche zu beschaffen sind. Folgefragen, die das vorige Datenergebnis verfeinern (zum Beispiel „welche davon ist die größte“), erzeugen einen neuen Datenbedarf; Bezug und bisherige Filter beibehalten. Nur ohne neue Datenanforderung bleibt dataNeeds leer. outputKind=analysis bei reiner Analyse: draftRequested=false. Eine aktualisierte Selbstbeschreibung der Person in actorContext ersetzt die alte Rolle/Organisation, ändert aber niemals Berechtigungen. basis muss ein wörtliches Zitat aus der aktuellen Nachricht sein. Keine Schreiben an die eigene Organisation vorschlagen.',
             threadInstruction:
               'Bei threadTimeline liefere timeline mit einer Zeile pro Nachricht: belegte Absenderrolle, unverändertes Datum, Kernaussage und berichtete berichtete Aussagen in assertions. Chronologisch ordnen. observations benennt belegte Widersprüche oder unbeantwortete Fragen im Verlauf. Codes nur typisiert erfassen, keine Deutung aus Modellwissen ergänzen.',
+            factBasisInstruction:
+              'WICHTIG: Ein unveränderter Zustand seit einem Datum belegt keinen früheren Start oder Inbetriebnahmetermin. Diese Angabe beantwortet nur die Frage nach Änderungen. Unbekannte Startzeitpunkte bleiben offen; niemals daraus einen früheren Beginn ableiten. Jede Rückfrage betrifft genau einen unabhängigen Punkt. Startdatum und Leistung sind zwei verschiedene Punkte mit getrennten stabilen keys und getrennten Fragen, niemals mit und zu einer Frage bündeln. Bereits gestellte Fragen nicht unter neuen keys wiederholen. Wenn der unbekannte Punkt schon gefragt wurde, nur bedingt weiterführen; andere unabhängige neue entscheidende Angaben dürfen gefragt werden.',
             catalog: previous
               ? {
                   domains: catalog.domains,
@@ -364,10 +370,21 @@ async function understand({
               !memory.acceptedAssertion(item, message) &&
               memory.acceptedAssertion({ ...item, basis: message }, message)
           );
-        if (invalidQuestion || invalidMemoryBasis) {
+        const invalidTemporal = [
+          restored.concern,
+          restored.situation,
+          restored.requestedAction.description,
+        ].some((value) =>
+          unsupportedEarlierDate(value, [message, ...(previous?.personFacts || [])])
+        );
+        if (invalidQuestion || invalidMemoryBasis || invalidTemporal) {
           const error = schemaError(
             [],
-            invalidMemoryBasis ? 'tenant_memory_basis' : 'question_shape'
+            invalidMemoryBasis
+              ? 'tenant_memory_basis'
+              : invalidTemporal
+                ? 'temporal_inference'
+                : 'question_shape'
           );
           error.repairInstruction = [
             invalidQuestion
@@ -375,6 +392,9 @@ async function understand({
               : '',
             invalidMemoryBasis
               ? 'Die Gedächtnisaussage hat keinen belegten Originaltext in basis. Kopiere für jede Aussage in tenantMemory.assertions ein zusammenhängendes wörtliches Belegstück aus message unverändert in basis; keine Zusammenfassung oder Synonyme. Behalte die organisationsrelevanten Aussagen unabhängig von fachlichen Zweifeln. Feld anchors ebenfalls aus message übernehmen. Alle übrigen Pflichtfelder vollständig liefern.'
+              : '',
+            invalidTemporal
+              ? 'Ein unveränderter Zustand seit einem Datum belegt keinen Beginn oder einen früheren Start. Entferne diese unbelegte Schlussfolgerung aus concern, situation und requestedAction. Halte den tatsächlichen Start offen oder ausdrücklich bedingt. Änderungen, Startdatum und physikalische Größen als getrennte missingInformation-Punkte mit jeweils genau einer natürlichen Frage behandeln. answered=true nur für tatsächlich beantwortete Punkte; die Originalangaben in personFacts sind maßgeblich. Alle übrigen Pflichtfelder vollständig liefern.'
               : '',
           ]
             .filter(Boolean)
@@ -817,10 +837,25 @@ async function generateAnswerResult({
           message,
           normalizeCondition,
           counts: filterCounts,
+          userFacts: situation.personFacts || [],
+          requireCompleteDraft:
+            draftRequested && situation.conversationShape === 'task' && !isDraftRequest(message),
         });
         if (draftRequested && !parsed.draft.length) {
           const error = schemaError([], filterCounts.size ? 'draft_filtered' : 'draft_missing');
           error.repairInstruction = repairForFilters(filterCounts);
+          throw error;
+        }
+        if (
+          draftRequested &&
+          situation.conversationShape === 'task' &&
+          !isDraftRequest(message) &&
+          !(parsed.interpretation || []).length
+        ) {
+          const error = schemaError([], 'requested_analysis_missing');
+          error.repairInstruction =
+            repairForFilters(filterCounts) +
+            ' Die kombinierte Arbeitsaufgabe verlangt neben dem Entwurf eine konkrete Einordnung bzw. Zusammenfassung des bereitgestellten Materials in interpretation. Liefere beide Ergebnisse, ohne erledigte Handlungen zu erfinden; nextSteps beschreibt nur das weitere Handeln.';
           throw error;
         }
         if (
@@ -831,7 +866,8 @@ async function generateAnswerResult({
         ) {
           const error = schemaError([], 'no_accepted_content');
           error.repairInstruction =
-            'Die Antwort hatte keinen verwendbaren fachlichen Inhalt. Beantworte die konkrete aktuelle Frage direkt in interpretation, nicht mit Meta-Sätzen über die Person. expectation bleibt leer. Bei einem Arbeitsauftrag liefere das konkrete Ergebnis und die nächsten Schritte. Keine Fragen in claims.';
+            repairForFilters(filterCounts) +
+            ' Die Antwort hatte keinen verwendbaren fachlichen Inhalt. Beantworte die konkrete aktuelle Frage direkt in interpretation, nicht mit Meta-Sätzen über die Person. expectation bleibt leer. Bei einem Arbeitsauftrag liefere das konkrete Ergebnis und die nächsten Schritte. Keine Fragen in claims.';
           throw error;
         }
         return parsed;

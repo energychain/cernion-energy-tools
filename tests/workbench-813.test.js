@@ -318,3 +318,90 @@ test('semantic draft request with an unresolved code keeps the safe colleague qu
   expect(result.draft).toBe('');
   expect(result.metadata.degraded).toBe(false);
 });
+
+test.each([
+  ['Die Anlage wurde vor dem 15.02.2025 gestartet.', ['Seit dem 15.02.2025 unverändert.'], true],
+  ['Die Anlage wurde vor dem 2025-02-15 gestartet.', ['Seit dem 15.02.2025 unverändert.'], true],
+  [
+    'Wenn die Anlage vor dem 15.02.2025 gestartet wurde, gilt diese Variante.',
+    ['Seit dem 15.02.2025 unverändert.'],
+    false,
+  ],
+  [
+    'Die Anlage wurde vor dem 15.02.2025 gestartet.',
+    ['Seit dem 15.02.2025 unverändert.', 'Sie wurde vor dem 15.02.2025 gestartet.'],
+    false,
+  ],
+])('temporal grounding: %s', (value, facts, rejected) => {
+  expect(require('../src/workbench-answer-filter').unsupportedEarlierDate(value, facts)).toBe(
+    rejected
+  );
+});
+
+test('understanding repairs an ungrounded earlier start while keeping the supplied date fact', async () => {
+  const current = {
+    ...situation('assistance'),
+    concern: 'Betrieb vor dem 15.02.2025',
+    situation: 'Die Anlage wurde vor dem 15.02.2025 gestartet.',
+  };
+  const repaired = {
+    ...current,
+    concern: 'Aktueller Betrieb',
+    situation: 'Seit dem 15.02.2025 unverändert; der Start ist nicht genannt.',
+  };
+  llm.generateStructured.mockResolvedValueOnce(current).mockResolvedValueOnce(repaired);
+  const result = await understand({
+    message: 'Seit dem 15.02.2025 wurde nichts geändert.',
+    tenantId: 'synthetic',
+  });
+  expect(llm.generateStructured).toHaveBeenCalledTimes(2);
+  expect(JSON.parse(llm.generateStructured.mock.calls[1][1]).repairInstruction).toContain(
+    'früheren Start'
+  );
+  expect(result.situation).toContain('Start ist nicht genannt');
+});
+
+test.each(['closing', 'summary'])(
+  'combined work repairs missing %s and preserves both requested results',
+  async (missing) => {
+    const full = {
+      expectation: [],
+      interpretation: [claim('Die Eingangsbestätigung beantwortet die Sachfrage noch nicht.')],
+      nextSteps: [claim('Prüfe den dokumentierten Stand.')],
+      draft: [
+        claim(
+          'Guten Tag, bitte teilen Sie den aktuellen Bearbeitungsstand zur Anfrage mit. Freundliche Grüße'
+        ),
+      ],
+    };
+    const incomplete = structuredClone(full);
+    if (missing === 'closing')
+      incomplete.draft[0].text =
+        'Guten Tag, bitte teilen Sie den aktuellen Bearbeitungsstand zur Anfrage mit.';
+    else incomplete.interpretation = [];
+    llm.generateText
+      .mockResolvedValueOnce(JSON.stringify(incomplete))
+      .mockResolvedValueOnce(JSON.stringify(full));
+    const result = await answer({
+      situation: {
+        ...situation('task'),
+        turnKind: 'work',
+        requestedAction: {
+          description: 'Zusammenfassung und Entwurf',
+          draftRequested: true,
+          externalEffect: false,
+        },
+      },
+      message: 'Fasse diesen synthetischen Verlauf zusammen und erstelle einen Antwortentwurf.',
+      retrieval: { evidence: [] },
+      tenantId: 'synthetic',
+    });
+    expect(llm.generateText).toHaveBeenCalledTimes(2);
+    expect(result.responseText).toContain('Eingangsbestätigung');
+    expect(result.draft).toContain('Freundliche Grüße');
+    expect(JSON.parse(llm.generateText.mock.calls[1][0]).repairInstruction).toContain(
+      'Zusammenfassung'
+    );
+    expect(result.metadata.degraded).toBe(false);
+  }
+);
