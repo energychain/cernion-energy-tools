@@ -2,6 +2,8 @@
 
 // Structural field names; independent of user text and domain identifiers.
 function identifierField(field) {
+  if (require('./tabular-intelligence').profileRows([{ [field]: null }]).columns[0]?.sensitive)
+    return true;
   const tokens = require('./function-resolver').normalizePhrase(field).split(' ');
   return tokens.some((token) =>
     [

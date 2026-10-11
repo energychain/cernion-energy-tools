@@ -38,11 +38,11 @@ berichten: wenn die Fassade keine Provider-Tokenzahlen erhält, schätzt sie anh
 von Zeichen/4; solche Werte sind keine exakten Anbieterabrechnungen.
 
 Messung vom 11.10.2026: Die bestandene RC3-Abnahme enthält elf Turns,
-20 Modellaufrufe und 128.530 geschätzte Tokens. Acht Turns nutzten das Modell,
+16 Modellaufrufe und 101.794 geschätzte Tokens. Acht Turns nutzten das Modell,
 drei Gedächtnisabfragen/Widerrufe verbrauchten null Tokens. Gemessener Richtwert
-für diesen Korpus: rund 16.066 Tokens je Modellturn; p95 (bei nur acht
-Modellturns zugleich das Maximum) 30.006 Tokens. Über alle elf Turns beträgt
-der Mittelwert 11.685 Tokens. Der Bericht `docs/validation/rc3-closeout-live.json`
+für diesen Korpus: rund 12.724 Tokens je Modellturn; p95 (bei nur acht
+Modellturns zugleich das Maximum) 16.548 Tokens. Über alle elf Turns beträgt
+der Mittelwert 9.254 Tokens. Der Bericht `docs/validation/rc3-closeout-live.json`
 enthält `tokenDelta` je Turn und trennt geschätzte von tatsächlichen Tokens.
 Die kleine synthetische Stichprobe muss vor einer verbindlichen Dimensionierung
 mit repräsentativen eigenen Abläufen erweitert werden.
@@ -50,9 +50,12 @@ mit repräsentativen eigenen Abläufen erweitert werden.
 Dimensionierung: Tagesgrenze = erwartete Modellturns/Tag × gemessene p95-Tokens/Turn
 × Reserve (z. B. 1,3); Monatsgrenze analog mit erwarteten Arbeitstagen und
 Hintergrundprüfungen. Für 100 Modellturns ergibt der gemessene Korpus als
-Planungsansatz 100 × 30.006 × 1,3 = rund 3.901.000 Tokens/Tag. Der Standard
-250.000 reicht beim gemessenen Mittelwert für etwa 15 Modellturns; Reparaturen,
+Planungsansatz 100 × 16.548 × 1,3 = rund 2.151.000 Tokens/Tag. Der Standard
+250.000 reicht beim gemessenen Mittelwert für etwa 19 Modellturns; Reparaturen,
 weitere Beziehungsprüfungen und Hintergrundarbeit verringern diesen Spielraum.
+Ein vorheriger erfolgreicher Lauf desselben Korpus benötigte 20 Aufrufe und
+128.530 geschätzte Tokens (p95 30.006 je Modellturn). Diese Streuung zeigt,
+warum mehrere Messungen und zusätzliche Reserve erforderlich sind.
 
 Ein Neustart ist kein Kontingent-Resetverfahren. Der vorhandene Schalter
 `RESET_LLM_TOKENS_PER_DAY_ON_RESTART` sollte bei verbindlicher Tagesbudgetierung

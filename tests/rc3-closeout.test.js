@@ -42,25 +42,24 @@ beforeEach(() => jest.clearAllMocks());
 
 test('identifier extrema and sums are forbidden while measurement extrema remain available', () => {
   const rows = [
-    { identity: 50800000001, referenceNumber: 200, capacityKW: 6 },
-    { identity: 50800000002, referenceNumber: 300, capacityKW: 11 },
+    { identity: 50800000001, MaLo: 50800000001, referenceNumber: 200, capacityKW: 6 },
+    { identity: 50800000002, MaLo: 50800000002, referenceNumber: 300, capacityKW: 11 },
   ];
   expect(summarizeResult(rows, null, 'synthetic', []).statistics.map((item) => item.field)).toEqual(
     ['capacityKW']
   );
-  for (const fn of ['sum', 'min', 'max', 'avg'])
-    expect(() =>
-      summarizeResult(
-        rows,
-        {
-          operations: [
-            { op: 'aggregate', groupBy: [], metrics: [{ fn, field: 'identity', as: 'result' }] },
-          ],
-        },
-        'synthetic',
-        []
-      )
-    ).toThrow('Kennungen');
+  for (const field of ['identity', 'MaLo', 'referenceNumber'])
+    for (const fn of ['sum', 'min', 'max', 'avg'])
+      expect(() =>
+        summarizeResult(
+          rows,
+          {
+            operations: [{ op: 'aggregate', groupBy: [], metrics: [{ fn, field, as: 'result' }] }],
+          },
+          'synthetic',
+          []
+        )
+      ).toThrow('Kennungen');
 });
 
 test('correspondence never triggers tools from candidate datasets without an explicit data need', () => {
