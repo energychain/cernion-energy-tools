@@ -1,5 +1,49 @@
 # Cernion Open WebUI Integration
 
+## Originaldateikanal: Open WebUI v0.11.3
+
+Getestete Version: **v0.11.3** (lokaler HTTP-Container-Test; Browser-Abnahme siehe Testdoku).
+
+Installation: **Administrationsbereich → Funktionen → Erstellen** → gesamten Code aus
+[`cet_file_channel.py`](cet_file_channel.py) einfügen → speichern → **Schalter aktivieren** →
+**⋯ → Global**. Neue Valves zunächst von **Standard** auf **Benutzerdefiniert** umstellen.
+`MODEL_IDS` begrenzt Upload und Outlet auf die exakten CET-Modell-IDs (kommagetrennt,
+Standard `cernion-governance-assistant`); andere Modelle bleiben unverändert.
+`CET_URL`, `GATEWAY_TOKEN` und `OPENWEBUI_ORG_ID` speichern.
+
+Einen eigenen Gateway-Token für den Dateikanal erzeugen:
+
+```bash
+npm run workbench:map -- --list
+npm run token:create -- --tenant=<t> --user=svc:open-webui-files --name=OpenWebUI-Dateikanal --gateway --client=open-webui --org=<org>
+```
+
+`<org>` muss der `externalOrgId` der Zuordnungen entsprechen. `CET_FILE_SIGNING_KEY`
+setzen und **CET neu starten**, sonst bleibt 503 möglich. Die E-Mail wird beim Upload
+und beim angemeldeten Download weitergegeben, sodass E-Mail-Zuordnungen funktionieren.
+
+Am CET-Modell **Erinnerungen sowohl unter Fähigkeiten als auch unter Eingebaute Werkzeuge
+abschalten**; Eingebaute Werkzeuge, Websuche, Code-Interpreter, Terminal und Bildgenerierung aus.
+**Dateiupload, Zitate und Statusaktualisierungen an**. CET führt Gedächtnis, Wissen und Werkzeuge
+selbst. Ein erster passender Chat registriert die Downloadroute je Worker nach jedem Neustart.
+
+Erfolgskontrolle mit angehängter synthetischer Datei: **kein „Quelle abgerufen“** unter der
+Antwort; erscheint es, läuft der Textweg. Bei aktivem passendem Filter brechen Uploadfehler
+sichtbar ab; ein inaktiver Filter kann diesen Schutz nicht leisten.
+
+| Meldung | Ursache |
+| --- | --- |
+| „Gateway-Schlüssel und Organisation fehlen“ | Valves nicht gesetzt |
+| 401/403 | Token, Org oder Zuordnung passt nicht |
+| 503 | Signierschlüssel fehlt oder CET nicht neu gestartet |
+| „Quelle abgerufen“ | Filter inaktiv, nicht global oder Modell-ID nicht erfasst |
+
+Vollständige Installation, Grenzen und Fehlerbehebung:
+[`Dateikanal-Runbook`](../../docs/file-channel-runbook.md).
+Reproduzierbarer Container-Test und Belege aus dem Tag v0.11.3:
+[`FILE_CHANNEL_TESTING.md`](FILE_CHANNEL_TESTING.md).
+
+
 This directory contains two independent, dependency-light OpenAPI tool servers and a local smoke
 harness for the first one. Each server exposes exactly one Open WebUI-importable operation and
 uses its own env-only credential:

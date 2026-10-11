@@ -1,9 +1,10 @@
 """
 title: CET Original File Channel
-version: 1.0.0
+version: 1.1.0
 requirements: httpx
 Original files enter CET; chat carries references. Download proxy uses the logged-in
-Open WebUI user and the same gateway token as chat. Enable only on the CET assistant.
+Open WebUI user and a dedicated file-channel gateway token. Globally enable on v0.11.3;
+MODEL_IDS limits both hooks to the configured CET assistants.
 """
 import asyncio
 import base64
@@ -16,6 +17,9 @@ import httpx
 from pydantic import BaseModel, Field
 
 
+TRANSFER_DENIED = "Dateiübertragung abgewiesen."
+
+
 async def resolved(value):
     return await value if inspect.isawaitable(value) else value
 
@@ -23,7 +27,8 @@ async def resolved(value):
 class Filter:
     class Valves(BaseModel):
         CET_URL: str = Field(default="http://cet:3000")
-        GATEWAY_TOKEN: str = Field(default="", json_schema_extra={"input": "password"})
+        GATEWAY_TOKEN: str = Field(default="")
+        MODEL_IDS: str = Field(default="cernion-governance-assistant", description="Comma-separated exact model IDs")
         OPENWEBUI_ORG_ID: str = Field(default="")
         MAX_BYTES: int = Field(default=10 * 1024 * 1024, gt=0)
         TIMEOUT_SECONDS: int = Field(default=60, gt=0)
@@ -35,30 +40,39 @@ class Filter:
     def headers(self, user):
         if not self.valves.GATEWAY_TOKEN or not self.valves.OPENWEBUI_ORG_ID:
             raise ValueError("CET-Dateikanal: Gateway-Schlüssel und Organisation fehlen.")
-        return {
+        headers = {
             "Authorization": "Bearer " + self.valves.GATEWAY_TOKEN,
             "X-OpenWebUI-User-Id": str(user["id"]),
         }
+        if user.get("email"):
+            headers["X-OpenWebUI-User-Email"] = str(user["email"])
+        return headers
 
     async def cet(self, method, path, user, payload=None):
         # Both targets and credentials are operator valves, never chat/file metadata.
         target = self.valves.CET_URL.rstrip("/")
         if urlsplit(target).scheme not in ("http", "https"):
             raise ValueError("CET-Dateikanal: ungültige Serveradresse.")
-        async with httpx.AsyncClient(timeout=self.valves.TIMEOUT_SECONDS, follow_redirects=False) as client:
-            response = await client.request(method, target + path, headers=self.headers(user), json=payload)
+        try:
+            async with httpx.AsyncClient(timeout=self.valves.TIMEOUT_SECONDS, follow_redirects=False) as client:
+                response = await client.request(method, target + path, headers=self.headers(user), json=payload)
+        except httpx.RequestError:
+            raise ValueError("CET-Dateikanal: Server nicht erreichbar oder Zeitüberschreitung.") from None
         if response.status_code >= 400:
             # Only CET's stable safe error message is shown; never request bodies/tokens.
             try:
-                message = response.json().get("error", {}).get("message", "Dateiübertragung abgewiesen.")
-            except ValueError:
-                message = "Dateiübertragung abgewiesen."
+                message = response.json().get("error", {}).get("message", TRANSFER_DENIED)
+                if not isinstance(message, str):
+                    message = TRANSFER_DENIED
+            except (ValueError, AttributeError):
+                message = TRANSFER_DENIED
             raise ValueError("CET-Dateikanal: " + message)
         return response
 
     def mount_downloads(self, request):
         from fastapi import Depends, HTTPException, Request
         from starlette.responses import Response
+        from starlette.routing import Mount
         from open_webui.utils.auth import get_verified_user
 
         app = request.app
@@ -74,16 +88,33 @@ class Filter:
             active = getattr(request.app.state, marker)
             from urllib.parse import urlencode
             try:
-                response = await active.cet("GET", f"/v1/files/{file_id}/content?" + urlencode({"ticket": ticket, "openWebuiOrgId": active.valves.OPENWEBUI_ORG_ID}), {"id": user.id})
+                response = await active.cet("GET", f"/v1/files/{file_id}/content?" + urlencode({"ticket": ticket, "openWebuiOrgId": active.valves.OPENWEBUI_ORG_ID}), {"id": user.id, "email": getattr(user, "email", None)})
             except ValueError as error:
                 raise HTTPException(status_code=403, detail=str(error)) from None
             headers = {key: response.headers[key] for key in ("content-disposition", "cache-control", "x-content-type-options") if key in response.headers}
             return Response(response.content, media_type=response.headers.get("content-type", "application/octet-stream"), headers=headers)
 
+        # OWUI's plugin loader exec() inherits postponed annotations. Request is
+        # locally imported, so resolve it explicitly before FastAPI inspects it.
+        download.__annotations__["request"] = Request
         app.add_api_route("/api/v1/cet-files/{file_id}", download, methods=["GET"], include_in_schema=False)
+        # v0.11.3 mounts the frontend at "/" before functions are loaded. A route
+        # appended after that catch-all is unreachable. Put the proxy before it.
+        routes = app.router.routes
+        proxy = routes.pop()
+        frontend_index = next((index for index, route in enumerate(routes)
+                               if isinstance(route, Mount) and route.path in ("", "/")), len(routes))
+        routes.insert(frontend_index, proxy)
         app.state.cet_file_channel_route_mounted = True
 
+    def matches_model(self, body):
+        return body.get("model") in {value.strip() for value in self.valves.MODEL_IDS.split(",") if value.strip()}
+
     async def inlet(self, body: dict, __user__: dict, __request__):
+        if not self.matches_model(body):
+            return body
+        # v0.11.3 re-raises inlet errors and displays chat:message:error. Never
+        # catch upload failures and return the original body: that would run RAG.
         self.mount_downloads(__request__)
         attached = body.get("files", [])
         if not attached:
@@ -126,6 +157,8 @@ class Filter:
         return body
 
     async def outlet(self, body: dict):
+        if not self.matches_model(body):
+            return body
         # Browser downloads keep its OWUI session; the gateway key stays on the server.
         pattern = r"(?:https?://[^\s/)]+)?/v1/files/([a-f0-9]{64})/content\?ticket=([A-Za-z0-9_.-]+)"
         for message in body.get("messages", []):
