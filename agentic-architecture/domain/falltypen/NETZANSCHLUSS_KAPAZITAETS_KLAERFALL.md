@@ -1,6 +1,6 @@
 # Netzanschluss-/Kapazitäts-Klärfall
 
-Generated: 2026-10-11T01:32:48.510Z
+Generated: 2026-10-11T07:36:13.754Z
 
 Status: observed
 Priority: 4
@@ -111,6 +111,6 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `src/blueprints/grid-connection-validation-v1.json` (13 hits)
 - `services/community.service.js` (12 hits)
 - `services/personal-agent/methods-part-03-of-11.js` (12 hits)
+- `agentic-architecture/domain/falltypen/NETZANSCHLUSS_KAPAZITAETS_KLAERFALL.md` (11 hits)
+- `agentic-architecture/reports/latest/domain-abstraction/falltypen/NETZANSCHLUSS_KAPAZITAETS_KLAERFALL.md` (11 hits)
 - `services/znp.service.js` (11 hits)
-- `docs/ONBOARDING_NETZPLANUNG.md` (10 hits)
-- `docs/ui-contracts/14-finding-code-recommendations.md` (10 hits)

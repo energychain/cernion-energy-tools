@@ -868,7 +868,7 @@ module.exports = {
 
       if (gridOperatorId) {
         let name = 'Unknown';
-        let bdew = gridOperatorBdew || null;
+        const bdew = gridOperatorBdew || null;
         let bnr = null;
         if (bdew) {
           try {

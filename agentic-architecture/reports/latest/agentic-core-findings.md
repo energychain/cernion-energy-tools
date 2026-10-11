@@ -1,10 +1,10 @@
 # Agentic Core Findings
 
-Generated: 2026-10-11T01:32:43.513Z
+Generated: 2026-10-11T07:36:09.260Z
 
 ## Current measurable surface
 
-- Agentic files: 258
+- Agentic files: 266
 - Routing/capability files: 88
 - Evidence/HITL files: 74
 - Operation capability index: present
@@ -13,32 +13,32 @@ Generated: 2026-10-11T01:32:43.513Z
 
 ## Domain term distribution
 
-- `evidence`: 24338 hits in 726 files
-- `tenant`: 14790 hits in 667 files
-- `broker`: 10714 hits in 573 files
-- `grid`: 9776 hits in 627 files
-- `agent`: 8298 hits in 728 files
-- `decision`: 6901 hits in 431 files
-- `capability`: 5696 hits in 450 files
-- `stadtwerk`: 5625 hits in 244 files
-- `forecast`: 4547 hits in 321 files
-- `vdmi`: 4528 hits in 293 files
-- `redispatch`: 4092 hits in 301 files
-- `market`: 3851 hits in 385 files
-- `hitl`: 3668 hits in 438 files
+- `evidence`: 24388 hits in 734 files
+- `tenant`: 14783 hits in 667 files
+- `broker`: 10728 hits in 581 files
+- `grid`: 9780 hits in 631 files
+- `agent`: 8337 hits in 734 files
+- `decision`: 6908 hits in 439 files
+- `capability`: 5731 hits in 458 files
+- `stadtwerk`: 5626 hits in 246 files
+- `forecast`: 4563 hits in 323 files
+- `vdmi`: 4536 hits in 297 files
+- `redispatch`: 4131 hits in 311 files
+- `market`: 3854 hits in 387 files
+- `hitl`: 3708 hits in 446 files
 - `regulator`: 2487 hits in 316 files
 - `receipt`: 2403 hits in 153 files
 - `edm`: 2383 hits in 332 files
 - `mako`: 2232 hits in 280 files
-- `routing`: 2103 hits in 322 files
-- `personal-agent`: 2013 hits in 300 files
-- `workflow`: 1584 hits in 234 files
+- `routing`: 2156 hits in 330 files
+- `personal-agent`: 2021 hits in 302 files
+- `workflow`: 1583 hits in 234 files
 - `willi`: 1449 hits in 101 files
-- `sidecar`: 999 hits in 111 files
-- `eog`: 758 hits in 93 files
+- `sidecar`: 1004 hits in 113 files
+- `eog`: 798 hits in 101 files
 - `utility`: 613 hits in 94 files
-- `openwebui`: 517 hits in 67 files
-- `chatgpt`: 400 hits in 39 files
+- `openwebui`: 539 hits in 75 files
+- `chatgpt`: 405 hits in 41 files
 - `open-webui`: 268 hits in 47 files
 
 ## Evidence and HITL files
