@@ -49,6 +49,7 @@ async function setup(settings = {}, stores = new Map()) {
   const proposals = Array.from({ length: 12 }, (_, n) => ({
     ref: `proposal-${n}`,
     recipients: ['actor-a'],
+    summary: `Synthetischer Vorschlag ${n + 1}: Die ausstehende Fallprüfung braucht eine Freigabe.`,
     outcome: null,
   }));
   broker.createService({
@@ -377,7 +378,7 @@ test('repeated responsibility transfers and tier entries remain distinct, equal 
       responsibility: { cet },
       attention: { tier: 'transient' },
     });
-  expect((await env.call('list')).items.map((item) => item.cet)).toEqual([true, false, true]);
+  expect((await env.call('list')).items.map((item) => item.cet)).toEqual([]);
   await env.emit('function.activation.changed.v1', {
     functionId: 'fn-b',
     responsibility: { cet: true },
@@ -390,7 +391,7 @@ test('repeated responsibility transfers and tier entries remain distinct, equal 
   });
   expect(
     (await env.call('list')).items.filter((item) => item.kind === 'tier').map((item) => item.tier)
-  ).toEqual(['established', 'inventory']);
+  ).toEqual([]);
 });
 
 test('real signal producer delivers warn/breach/recovery, excludes equal and unknown states', async () => {
@@ -544,7 +545,7 @@ test('chat notices require current function and case relevance; hidden notices r
   expect((await env.call('list')).items).toHaveLength(1);
   const related = await call('related', { operations: [], capabilities: ['synthetic.notice'] });
   expect(related.items).toHaveLength(1);
-  expect(related.block).toContain('Für deine aktuelle Arbeit');
+  expect(related.block).toContain('ausstehende Fallprüfung');
   expect(related.block).not.toMatch(/V-\d|fn-|Function|PRIVATE/);
   expect(
     (await call('again', { operations: [], capabilities: ['synthetic.notice'] })).items

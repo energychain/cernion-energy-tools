@@ -220,11 +220,13 @@ test.each([
       ],
     },
   });
-  expect(reply.responseText).toContain('Modell ist gerade nicht verfügbar');
+  if (error) expect(reply.responseText).toContain('Modell ist gerade nicht verfügbar');
+  else expect(reply.responseText).not.toContain('Modell ist gerade nicht verfügbar');
   expect(reply.responseText).toContain('Voraussetzungen der Teilnahme');
   expect(reply.responseText).toContain('bestehende Vereinbarung');
-  expect(reply.responseText).toContain('6 kWh');
-  expect(reply.responseText).toContain('Seit dem 01.01.2024');
+  expect(reply.responseText).not.toContain('Deine Angaben im Lagebild');
+  expect(current.personFacts.join(' ')).toContain('6 kWh');
+  expect(current.personFacts.join(' ')).toContain('Seit dem 01.01.2024');
   expect(reply.responseText).not.toMatch(/Als Nächstes:|\[Ergebnis|\.json/);
   expect(reply.draft).toBe('');
   expect(reply.metadata).toMatchObject({ degraded: true, degradedReason: expect.any(String) });

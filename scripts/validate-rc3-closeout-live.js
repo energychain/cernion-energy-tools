@@ -34,6 +34,8 @@ async function validate() {
   process.env.TENANT_MEMORY_RECOVERY = 'off';
   process.env.WORKBENCH_LLM_TIMEOUT_MS ||= '15000,45000';
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-rc3-live-'));
+  process.env.WORKBENCH_DATASET_DB_PATH = path.join(directory, 'dataset-rows');
+  process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
   const { broker, workbench } = createLiveHarness(directory, [
     {
       ...require('../services/object-store.service'),
@@ -50,7 +52,14 @@ async function validate() {
       name: 'knowledge-rag',
       actions: { query: () => ({ results: [] }), federatedSearch: () => ({ results: [] }) },
     },
-    { name: 'datapoint', actions: { list: () => ({ datapoints: [] }), datasetCatalog: () => [] } },
+    {
+      ...require('../services/datapoint.service'),
+      settings: {
+        ...require('../services/datapoint.service').settings,
+        dbPath: path.join(directory, 'catalog'),
+      },
+    },
+    require('../services/dataset.service'),
     {
       name: 'capability-broker',
       actions: { recommend: () => ({ recommendedCapabilities: [], uncertain: true }) },
@@ -80,8 +89,8 @@ async function validate() {
     apiToken: {
       id: actor,
       tenantId: budget.state.tenantId,
-      roles: ['ROLE_GRID_OPERATOR'],
-      scope: 'agentos-session',
+      roles: ['ROLE_GRID_OPERATOR', 'ROLE_EDM'],
+      scope: 'full-access',
       sensitivityFlags: [],
     },
   });
@@ -126,6 +135,45 @@ async function validate() {
         actorId,
         roleFamilies: [functionLabel],
       });
+    // #846 scenarios 1, 3, 5 and 6; local broker and generated synthetic evidence only.
+    const hotfix = require('../tests/fixtures/workbench-846.generated.json');
+    const mail = await send('Charly', hotfix.mail, randomUUID());
+    report.checks.hotfix846_1 =
+      Boolean(mail.cetCaseId) && !/beschädigt|Zeitintervalle|INVOIC/.test(mail.responseText);
+    const minutes = fs.readFileSync(
+      path.join(__dirname, '../tests/fixtures/document-review/neutral-minutes.txt'),
+      'utf8'
+    );
+    const summary = await send(
+      'Charly',
+      `<context><source name="synthetic-minutes.txt">${minutes}</source></context><user_query>Fass mir das Protokoll kurz zusammen.</user_query>`
+    );
+    report.checks.hotfix846_3 =
+      /Netzanmeldung|Bearbeitungsstand|Freigabe/.test(summary.responseText) &&
+      !/Zeitintervalle|Zeitumstellungen|Datensatz.*Zeilen/.test(summary.responseText);
+    await broker.call(
+      'dataset.turn',
+      {
+        question: 'Bitte speichern.',
+        documents: [
+          {
+            name: 'synthetic-invoices.edi',
+            text: require('./generate-edifact-fixtures').generateEdifactFixture(),
+          },
+        ],
+        conversationId: randomUUID(),
+      },
+      { meta: meta('Charly') }
+    );
+    const mailThread = await send('Charly', hotfix.thread, randomUUID());
+    report.checks.hotfix846_5 =
+      /Netzanmeldung|fachlich|APERAK/.test(mailThread.responseText) &&
+      !/INVOIC|SYN-INV-00/.test(mailThread.responseText);
+    const explicit = await send('Charly', hotfix.explicitQuestion, randomUUID());
+    report.checks.hotfix846_6 =
+      explicit.responseText.includes('SYN-INV-002') &&
+      /MOA|1.227/.test(explicit.responseText) &&
+      !explicit.responseText.includes('SYN-INV-001');
     const thread =
       'Analysiere diesen eskalierten Lieferanten-Thread: Stand, Risiken und nächster Schritt.\n' +
       Array.from(

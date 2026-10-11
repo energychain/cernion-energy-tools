@@ -100,6 +100,25 @@ function generateDatasetWorkbookFixture() {
 
 function generateDatasetSafetyFixture(kind) {
   const matrix = {
+    prefixedQuestion: [
+      ['Produkt', 'Menge'],
+      ['A', 1],
+      ['B', 2],
+    ],
+    singleRow: [
+      ['Produkt', 'Menge'],
+      ['A', 1],
+    ],
+    ragged: [
+      ['Produkt', 'Menge'],
+      ['A', 1, 2],
+      ['B', 2, 3],
+    ],
+    duplicateHeaders: [
+      ['Produkt', 'Produkt'],
+      ['A', 1],
+      ['B', 2],
+    ],
     empty: [
       ['Produkt', 'Menge', 'Preis'],
       ['A', '', ''],
@@ -144,7 +163,10 @@ function generateDatasetSafetyFixture(kind) {
   if (kind === 'irreversible')
     return generateDatasetFixture('openwebui').replace('None: 2', 'None: 2, 9');
   if (!matrix) throw new Error('Unknown synthetic safety fixture');
-  return matrix.map((row) => row.join(';')).join('\n');
+  return (
+    (kind === 'prefixedQuestion' ? 'Berechne bitte, ohne Speichern.\n' : '') +
+    matrix.map((row) => row.join(';')).join('\n')
+  );
 }
 
 function generateDatasetLegacyFixture(record) {

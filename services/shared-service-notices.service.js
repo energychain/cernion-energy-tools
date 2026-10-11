@@ -12,6 +12,7 @@ const {
   eligibleNotices,
   renderNoticeBlock,
   resolvedNotice,
+  noticeText,
 } = require('../src/shared-service-notices');
 
 const personParams = {
@@ -565,7 +566,10 @@ module.exports = {
             .resolvedAgents(doc.agents)
             .find((row) => row.agentId === item.agentId && row.functionId === item.functionId);
           const proposal = agent?.proposals.find((row) => row.ref === item.objectRef);
-          return !!proposal && !proposal.outcome && proposal.recipients.includes(p.actorId);
+          if (!proposal || proposal.outcome || !proposal.recipients.includes(p.actorId))
+            return false;
+          item.text = proposal.summary || '';
+          return Boolean(item.text);
         }
         if (item.kind === 'gap') return await this.canSeeGap(ctx, p, item);
         if (item.kind === 'signal') return await this.canSeeSignal(ctx, p, item);
@@ -667,9 +671,11 @@ module.exports = {
               .flatMap((row) => row.gapLists || [])
               .find((row) => row.ref === item.objectRef);
             publicItem.labels = gap.labels;
+            publicItem.text = (gap.labels || []).join('; ');
             publicItem.context = gap.context;
           }
-          items.push(publicItem);
+          if (noticeText(publicItem, this.model) || publicItem.kind === 'signal')
+            items.push(publicItem);
         }
       return { items, preference: doc.preference, block: renderNoticeBlock(items, 0, this.model) };
     },
