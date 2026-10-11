@@ -399,7 +399,8 @@ describe('document conversation integration', () => {
       const first = await turn(packed('Bewerte den Plan.'));
       await Promise.all(service.workbenchDocumentReviews.values());
       const result = await turn('Ergebnis bitte.');
-      expect(result.responseText).toContain('budget_exceeded');
+      expect(result.responseText).toContain('Review-Budget');
+      expect(result.responseText).not.toContain('budget_exceeded');
       expect(result.responseText).toContain('nicht gekürzt');
       expect(result.responseText).not.toContain('**Urteil:**');
       const docs = await loadDocuments(service.store, {

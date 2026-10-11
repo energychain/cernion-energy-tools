@@ -8,6 +8,7 @@ const TURN_SCOPED_FIELDS = Object.freeze([
   'selfKnowledge',
   'requestedAction.externalEffect',
   'tenantMemory',
+  'noticesRequested',
 ]);
 
 function persistentSituation(situation) {

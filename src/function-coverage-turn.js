@@ -155,6 +155,12 @@ async function attachNotices(ctx, result, facts) {
     const meta = facts.noticeMeta || facts.meta || ctx.meta;
     const p = principal({ meta });
     const fullQueue = result.state === 'notices';
+    if (p.roles.some((role) => ['ROLE_TENANT_ADMIN', 'ROLE_ADMIN'].includes(role)))
+      await ctx.call(
+        'notices.enqueueQuota',
+        { tenantId: p.tenantId, actorId: p.actorId },
+        { meta }
+      );
     const notice = await ctx.call(
       'notices.completeTurn',
       {
@@ -180,6 +186,20 @@ async function attachNotices(ctx, result, facts) {
         },
         timeout: 1500,
       }
+    );
+    const renderedFacts = new Set((result.statements || []).map((fact) => fact.id));
+    const visibleItems = (notice.items || []).filter(
+      (item) =>
+        !(item.text && result.responseText?.includes(item.text)) &&
+        !(
+          item.kind === 'memory' &&
+          item.factIds?.length &&
+          item.factIds.every((id) => renderedFacts.has(id))
+        )
+    );
+    notice.block = require('./shared-service-notices').renderNoticeBlock(
+      visibleItems,
+      notice.remaining || 0
     );
     if (notice.items?.length)
       result = {

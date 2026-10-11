@@ -1,4 +1,5 @@
 'use strict';
+require('./live-validation-budget').installLiveBudget();
 
 // Real configured LLM facade; synthetic actors/anchors and isolated local persistence.
 const fs = require('node:fs');

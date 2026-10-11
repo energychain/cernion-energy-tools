@@ -108,6 +108,8 @@ async function runContentTurn(
   ctx,
   { p, mapping, envelope, pending, conversation, meta, capabilityDiagnostics }
 ) {
+  const quotaReply = await require('./workbench-quota').quotaQuery(ctx, p, envelope.userRequest);
+  if (quotaReply) return quotaReply;
   const started = performance.now();
   const caseChoice = continuation.selection(pending, envelope.userRequest);
   let rawMessage = envelope.userRequest;
@@ -206,6 +208,16 @@ async function runContentTurn(
               });
   } catch (error) {
     understandingFailed = true;
+    const quotaText = require('./workbench-llm-errors').quotaMessage(error);
+    if (quotaText) {
+      require('./workbench-llm-errors').logLlmError(service.logger, 'understanding', error);
+      return {
+        state: 'tenant_quota_exceeded',
+        nonBinding: true,
+        responseText: quotaText,
+        metadata: { resetAt: error.data?.resetAt },
+      };
+    }
     understandingFailureReason = require('./workbench-llm-repair').fallbackReason(error);
     service.logger.warn('Workbench understanding unavailable', {
       ...require('./workbench-llm-errors').llmErrorDetails(error),
@@ -239,6 +251,17 @@ async function runContentTurn(
     previous
   );
   phaseTimes.understandMs = Math.round(performance.now() - understandStarted);
+  if (!understandingFailed && situation.noticesRequested) {
+    const activity = require('./workbench-system-activity');
+    const notices = await activity.answerSystemActivity(
+      { broker: ctx.broker, meta, params: ctx.params, call: (...args) => ctx.call(...args) },
+      envelope.userRequest,
+      {
+        scope: { noticesOnly: true },
+      }
+    );
+    return { ...notices, responseText: activity.renderSystemActivity(notices) };
+  }
   const tenantMemory = require('./tenant-memory');
   const memoryCtx = {
     broker: ctx.broker,
@@ -796,7 +819,11 @@ async function runContentTurn(
     }))
   );
   resolveMemoryRetrieval(retrieval);
-  if (!memory.settled) await toolLoop.withinToolBudget(() => memory.job, 200).catch(() => {});
+  if (!memory.settled) {
+    // Local checks and notice delivery use the turn budget, independently of source timeouts.
+    const remaining = started + turnBudget - answerReserve - performance.now();
+    await toolLoop.withinToolBudget(() => memory.job, Math.max(1, remaining)).catch(() => {});
+  }
   const memoryContext = await memoryContextJob;
   // Re-read local relations after a new assertion's assessment, using a separate local budget.
   if (memory.paragraphs.length && !incomingDocuments) {
@@ -806,7 +833,11 @@ async function runContentTurn(
         100
       )
       .catch(() => null);
-    if (current) Object.assign(memoryContext, current);
+    if (current) {
+      Object.assign(memoryContext, current);
+      // Fresh local facts include completed checks; discard the earlier pending rendering.
+      memory.paragraphs = [];
+    }
   }
   retrieval.evidence.push(...memoryContext.evidence);
   if (selfKnowledgeJob !== null) {
