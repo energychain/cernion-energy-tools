@@ -215,6 +215,26 @@ describe('structured messages preserve ordinary dataset routing', () => {
       expect(call.mock.calls.every(([action]) => action === 'datapoint.datasetCatalog')).toBe(true);
     }
   );
+  test('a general question in another chat does not select the only message', async () => {
+    const records = require('../scripts/generate-edifact-fixtures')
+      .generateRoutingCatalogFixture('table-chat')
+      .filter((record) => record.structuredFormat);
+    const call = jest.fn().mockResolvedValue(records);
+    const result = await require('../src/structured-message').structuredTurn(
+      {},
+      {
+        params: {
+          question: 'Wie hoch ist die Summe?',
+          documents: [],
+          conversationId: 'unrelated-chat',
+        },
+        call,
+      },
+      {}
+    );
+    expect(result).toBeNull();
+    expect(call).toHaveBeenCalledTimes(1);
+  });
   test('a newly pasted generated table takes precedence over prior messages', async () => {
     const question =
       'Überblick:\n' +

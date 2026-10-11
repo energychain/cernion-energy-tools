@@ -57,7 +57,7 @@ async function structuredTurn(service, ctx, p) {
           ))
     );
     if (
-      competing &&
+      (competing || !hasContext) &&
       !adapterFor(associated[0].structuredFormat).accepts(question, { explicitOnly: true })
     )
       return null;
@@ -203,16 +203,49 @@ async function structuredTurn(service, ctx, p) {
 }
 
 async function presentStructured(ctx, record, request, result) {
-  const loop = await require('./workbench-capability-loop').runCapabilityLoop(ctx, {
-    meta: ctx.meta,
-    datasetRequest: request,
+  const auth = ctx.meta.authUser || ctx.meta.apiToken || {};
+  const scopes = new Set([auth.scope, ...(auth.scopes || [])]);
+  if (!scopes.has('full-access') && !scopes.has('read-only'))
+    throw new Error('Leseberechtigung für dataset.query erforderlich.');
+  const loop = await require('./workbench-understanding').answer({
+    situation: {
+      concern: request.question,
+      situation: request.question,
+      hypotheses: [],
+      identifiers: [],
+      deadlines: [],
+      missingInformation: [],
+      requestedAction: { externalEffect: false },
+      outputKind: 'analysis',
+    },
+    retrieval: {
+      evidence: [
+        {
+          source: 'dataset.query',
+          retrievalSource: 'capability-read',
+          title: record.title,
+          value: result.responseText,
+          metadata: { tenantId: record.tenantId, datasetId: record.id, version: record.version },
+        },
+      ],
+      toolTrace: [],
+    },
+    tenantId: record.tenantId,
+    message: request.question,
+    followup: true,
   });
   const required = adapterFor(record.structuredFormat).markers(record, result);
   const acceptable =
+    loop.answerStatus === 'grounded' &&
     required.every((text) => loop.responseText.includes(text)) &&
     !/\?|\b(?:Prüfe|Kläre|Nenne|Der Nutzer|Der Anfragende)\b/u.test(loop.responseText);
+  const origin = result.responseText.split('\n\n').at(-1);
   return {
-    responseText: acceptable ? loop.responseText : result.responseText,
+    responseText: acceptable
+      ? [loop.responseText, loop.responseText.includes(origin) ? '' : origin]
+          .filter(Boolean)
+          .join('\n\n')
+      : result.responseText,
     answerMs: loop.answerMs,
   };
 }

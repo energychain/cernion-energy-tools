@@ -12,30 +12,23 @@ function datasetId() {
   return `ds_${randomUUID().replaceAll('-', '')}`;
 }
 
-function matchingDatasets(records, question, conversationId) {
-  const normalized = String(question || '').toLocaleLowerCase('de-DE');
-  const ranked = records
-    .map((record) => {
-      const labels = [
-        record.id,
-        record.title,
-        record.sourceName,
-        ...(record.semantic.anchors || []),
-      ].filter(Boolean);
-      const score = labels.reduce(
-        (sum, label) => sum + (normalized.includes(label.toLocaleLowerCase('de-DE')) ? 10 : 0),
-        0
-      );
-      return { record, score };
-    })
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score);
-  if (ranked.length)
-    return ranked.filter((item) => item.score === ranked[0].score).map((item) => item.record);
-  const associated = records.filter(
-    (record) => record.provenance.conversationId === conversationId
-  );
-  return associated.length ? associated : records;
+async function matchingDatasets(records, question, conversationId) {
+  if (
+    /(?:datensatz|tabelle|dataset|werte|einheit)/i.test(question) &&
+    /lösch|loesch|delete|korrigier|werte sind|einheit.*(?:ist|sind)/i.test(question)
+  ) {
+    const text = String(question || '').toLocaleLowerCase('de-DE');
+    const explicit = records.filter((record) =>
+      [record.id, record.title, record.sourceName]
+        .filter(Boolean)
+        .some((label) => text.includes(label.toLocaleLowerCase('de-DE')))
+    );
+    if (explicit.length) return explicit;
+    return records.filter((record) => record.provenance.conversationId === conversationId);
+  }
+  return require('../src/dataset-routing').selectDatasetCandidates(records, question, {
+    conversationId,
+  });
 }
 
 module.exports = {
@@ -88,10 +81,10 @@ module.exports = {
             : ctx.params.id === record.id || record.current !== false
         );
         const matches = ctx.params.id
-          ? active.filter(
-              (record) => record.id === ctx.params.id || record.familyId === ctx.params.id
-            )
-          : matchingDatasets(active, ctx.params.question, ctx.params.conversationId);
+          ? active.some((record) => record.id === ctx.params.id)
+            ? active.filter((record) => record.id === ctx.params.id)
+            : active.filter((record) => record.familyId === ctx.params.id)
+          : await matchingDatasets(active, ctx.params.question, ctx.params.conversationId);
         if (!matches.length)
           return {
             responseText: 'Dazu ist kein zugänglicher Datensatz im Tenant-Katalog vorhanden.',
@@ -112,6 +105,9 @@ module.exports = {
           return {
             responseText: `${record.title}, Version ${record.version}: ${record.rowCount} Zeilen, ${record.period.from || 'Zeitraum ungeklärt'} bis ${record.period.to || 'ungeklärt'}; Nutzerangabe von ${record.provenance.person} am ${record.provenance.at.slice(0, 10)}.`,
             datasets: [{ id: record.id, title: record.title }],
+            datasetId: record.id,
+            version: record.version,
+            rowCount: record.rowCount,
           };
         if (record.structuredFormat)
           return require('../src/structured-message').queryStructured(
@@ -270,25 +266,22 @@ module.exports = {
               active.sourceName.toLocaleLowerCase() === record.name.toLocaleLowerCase()
           )
       );
-      if (replayed.length && (replayed.length === tables.length || deletedReference)) {
-        const loop = await require('../src/workbench-capability-loop').runCapabilityLoop(ctx, {
-          meta: ctx.meta,
-          datasetRequest: {
-            question,
-            conversationId,
-            id: (deletedReference || replayed[0]).id,
-          },
-        });
+      if (deletedReference) {
         return {
           handled: true,
-          responseText: [loop.responseText, ...confirmations].filter(Boolean).join('\n\n'),
-          sources: loop.trace,
-          answerMs: loop.answerMs,
+          responseText: [
+            'Dazu ist kein zugänglicher Datensatz im Tenant-Katalog vorhanden.',
+            ...confirmations,
+          ].join('\n\n'),
           documents: ordinary,
         };
       }
-      if (!confirmations.length) {
-        const candidates = matchingDatasets(
+      if (
+        !confirmations.length &&
+        /(?:datensatz|tabelle|dataset|werte|einheit)/i.test(question) &&
+        /lösch|loesch|delete|korrigier|werte sind|einheit.*(?:ist|sind)/i.test(question)
+      ) {
+        const candidates = await matchingDatasets(
           records.filter((record) => record.current !== false),
           question,
           conversationId
@@ -370,25 +363,13 @@ module.exports = {
         )
           return { handled: false, documents: ordinary };
       }
-      if (tables.length || records.length) {
-        const loop = await require('../src/workbench-capability-loop').runCapabilityLoop(ctx, {
-          meta: ctx.meta,
-          datasetRequest: {
-            question: pasted.length ? 'Zusammenfassung' : question,
-            conversationId,
-            ...(ids.length === 1 ? { id: ids[0] } : {}),
-          },
-        });
-        const text = [loop.responseText, ...confirmations].filter(Boolean).join('\n\n');
+      if (confirmations.length && !ids.length)
         return {
-          handled: Boolean(text),
-          responseText: text,
-          sources: loop.trace,
-          answerMs: loop.answerMs,
+          handled: true,
+          responseText: confirmations.join('\n\n'),
           documents: ordinary,
         };
-      }
-      return { handled: false, documents: ordinary };
+      return { handled: false, documents: ordinary, confirmations, datasetIds: ids };
     },
   },
 };

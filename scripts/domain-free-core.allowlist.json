@@ -821,6 +821,18 @@
     {
       "term": "treffer",
       "reason": "Generic table/text processing and retrieval output wording; no domain-specific behavior."
+    },
+    {
+      "term": "anker",
+      "reason": "Generic subject reference in tenant dataset metadata, independent of business domains."
+    },
+    {
+      "term": "luecken",
+      "reason": "Generic spelling for missing intervals in a dataset quality question."
+    },
+    {
+      "term": "vergleich",
+      "reason": "Generic comparison question that requires an extended schema-bound query plan."
     }
   ]
 }

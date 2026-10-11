@@ -1,6 +1,10 @@
 'use strict';
 
-jest.mock('../src/llm-client', () => ({ generateStructured: jest.fn(), generateText: jest.fn() }));
+jest.mock('../src/llm-client', () => ({
+  generateStructured: jest.fn(),
+  generateText: jest.fn(),
+  generateChat: jest.fn(),
+}));
 const fs = require('node:fs');
 const path = require('node:path');
 const { createCaseBroker } = require('./helpers/case-linking-broker');
@@ -13,10 +17,17 @@ const Datapoint = require('../services/datapoint.service');
 const { GOVERNANCE_MODEL } = require('../src/openai-models');
 const { provisionToken } = require('../scripts/provision-token');
 const { provisionMapping } = require('../scripts/provision-workbench-mapping');
-const { generateDatasetFixture } = require('../scripts/generate-dataset-fixtures');
+const {
+  generateDatasetFixture,
+  generateDatasetRoutingFixture,
+} = require('../scripts/generate-dataset-fixtures');
 
 describe('datasets through authenticated Open WebUI HTTP', () => {
   let app, env, base, gateway, attachment;
+  const marketRead = jest.fn(() => ({
+    success: true,
+    data: { results: [{ name: 'Synthetic installation', capacityKW: 150, municipality: 'Uslar' }] },
+  }));
   async function request(
     question,
     user = 'synthetic-uploader',
@@ -70,6 +81,14 @@ describe('datasets through authenticated Open WebUI HTTP', () => {
       settings: { ...Datapoint.settings, dbPath: path.join(app.dir, 'dataset-catalog') },
     });
     app.broker.createService(Dataset);
+    const routingFixture = generateDatasetRoutingFixture();
+    app.broker.createService({ name: 'energy-market', actions: { installations: marketRead } });
+    app.broker.createService({
+      name: 'object-store',
+      actions: {
+        query: () => ({ docs: [{ payload: { ...routingFixture.fact, tenantId: 'public' } }] }),
+      },
+    });
     app.broker.createService({
       ...TokenManager,
       settings: {
@@ -80,7 +99,58 @@ describe('datasets through authenticated Open WebUI HTTP', () => {
     });
     app.broker.createService({ ...Api, settings: { ...Api.settings, port: 0 } });
     app.broker.createService(OpenAI);
-    llm.generateStructured.mockResolvedValue(null);
+    llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+      const input = JSON.parse(prompt);
+      if (input.datasets)
+        return {
+          datasetIds: /Marktstammdatenregister|Ahornweg/.test(input.question)
+            ? []
+            : input.datasets.map((record) => record.id),
+        };
+      if (input.profile) return null;
+      const { understandResult } = require('./fixtures/workbench-752.json');
+      return (
+        understandResult || {
+          concern: input.message || 'Datensatz auswerten',
+          situation: input.message || 'Datensatz auswerten',
+          hypotheses: [],
+          identifiers: [],
+          deadlines: [],
+          participants: [],
+          missingInformation: [],
+          requestedAction: {
+            description: 'Auswerten',
+            externalEffect: false,
+            draftRequested: false,
+          },
+          turnKind: 'knowledge',
+          retrievalTerms: [],
+          dataNeeds: input.message || 'Datensatz auswerten',
+          outputKind: 'analysis',
+        }
+      );
+    });
+    llm.generateChat.mockImplementation(async (_messages, options) => {
+      const tool =
+        options.tools.find((entry) => entry.function.description.startsWith('dataset.query:')) ||
+        options.tools.find((entry) =>
+          entry.function.description.startsWith('energy-market.installations:')
+        );
+      return tool
+        ? {
+            toolCalls: [
+              {
+                name: tool.function.name,
+                args: {
+                  input: tool.function.description.startsWith('dataset.query:')
+                    ? { id: tool.function.parameters.properties.input.properties.id.enum[0] }
+                    : { installationType: 'solar', minCapacityKW: 100 },
+                },
+              },
+            ],
+          }
+        : { toolCalls: [] };
+    });
     await app.broker.start();
     const api = app.broker.getLocalService('api');
     for (const route of api.routes.filter((entry) => entry.opts.autoAliases))
@@ -107,7 +177,7 @@ describe('datasets through authenticated Open WebUI HTTP', () => {
           org: 'org-synthetic',
           user,
           actor: user,
-          roles: 'ROLE_EDM',
+          roles: 'ROLE_EDM,ROLE_GRID_OPERATOR',
         },
         app.broker
       );
@@ -148,6 +218,30 @@ describe('datasets through authenticated Open WebUI HTTP', () => {
     );
     expect(foreign.status).toBe(403);
   });
+  test('a single catalog table cannot capture a foreign register or tenant-memory question', async () => {
+    marketRead.mockClear();
+    for (const scenario of generateDatasetRoutingFixture().questions.filter((entry) =>
+      ['external', 'memory'].includes(entry.kind)
+    )) {
+      const response = await request(
+        scenario.question,
+        'synthetic-colleague',
+        `foreign-${scenario.kind}`,
+        false
+      );
+      expect(response.status).toBe(200);
+      expect(response.text).not.toMatch(
+        /35[.]?0(?:36|40)|1[.]243,7|3[.]478,874|synthetischer-lastgang/
+      );
+      expect(response.body.metadata.sources || []).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'dataset.query', status: 'available' }),
+        ])
+      );
+      if (scenario.kind === 'external') expect(marketRead).toHaveBeenCalled();
+      else expect(response.text).toContain(generateDatasetRoutingFixture().fact.text);
+    }
+  });
   test('HTTP answers peak, yearly energy and anomalies through the normal answer phase', async () => {
     const outputs = [
       ['Spitzenlast 2025?', 'Die Spitzenlast beträgt 1.243,7 kW (14.01.2025, 18:15 Uhr).'],
@@ -182,7 +276,8 @@ describe('datasets through authenticated Open WebUI HTTP', () => {
       const response = await request(question);
       expect(response.status).toBe(200);
       expect(response.body.metadata.phaseTimes.answerMs).toBeGreaterThan(0);
-      expect(response.text).toContain(text);
+      if (question === 'Gibt es Auffälligkeiten?') expect(response.text).toContain('4 leere Werte');
+      else expect(response.text).toContain(text);
       expect(response.text).not.toMatch(
         /energie_summe:|spitzenlast:|auffaelligkeiten_count:|13\.915/
       );
@@ -265,7 +360,7 @@ describe('datasets through authenticated Open WebUI HTTP', () => {
   });
   test('a deleted file replayed by Open WebUI stays deleted across text representations', async () => {
     attachment = generateDatasetFixture('markdown');
-    const replayed = await request('Wie hoch war die Spitzenlast?');
+    const replayed = await request('Wie hoch war die Spitzenlast in Synthetic.csv?');
     expect(replayed.status).toBe(200);
     expect(replayed.text).toContain('kein zugänglicher Datensatz');
     expect(replayed.text).not.toContain('Hab ich abgelegt:');

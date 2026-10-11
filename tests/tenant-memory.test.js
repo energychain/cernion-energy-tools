@@ -406,7 +406,7 @@ describe('tenant memory acceptance and lifecycle', () => {
     expect(performance.now() - started).toBeLessThan(3000);
     expect(service.tenantMemoryRecovering).toBe(false);
     expect(call).toHaveBeenCalledWith(
-      'object-store.query',
+      'object-store.get',
       expect.any(Object),
       expect.objectContaining({ timeout: 1000 })
     );
