@@ -115,7 +115,7 @@ async def check():
         # Exact match, including empty MODEL_IDS; both hooks must be true no-ops.
         filter.mount_downloads = lambda _: (_ for _ in ()).throw(AssertionError("foreign model mounted route"))
         for model in ("foreign-model", "cernion-governance-assistant-extra", None):
-            foreign = {"model": model, "files": [{"id": "synthetic-source"}], "messages": copy.deepcopy(out["messages"])}
+            foreign = {"model": model, "files": [{"id": "synthetic-source"}], "messages": [{"role": "assistant", "content": "[file](/v1/files/" + "a" * 64 + "/content?ticket=abc.def)"}]}
             before = copy.deepcopy(foreign)
             assert await filter.inlet(foreign, {}, request) is foreign
             assert await filter.outlet(foreign) is foreign
