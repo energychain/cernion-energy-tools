@@ -453,4 +453,5 @@ HTTP-e2e cover conversation continuity, dimensions, provider errors, saved facts
 
 ## Originaldateien im Chat (#790)
 
-Installation des versionierten Open-WebUI-Filters, signierte Downloads, Dateilimits und Aufbewahrung: [Runbook](file-channel-runbook.md). Ohne installierten Filter bleibt der bisherige Dokument-Textweg erhalten.
+Installation für Open WebUI v0.11.3 mit eigenem Dateikanal-Gateway-Token, Global-Aktivierung
+und `MODEL_IDS`, signierte Downloads, Dateilimits und Aufbewahrung: [Runbook](file-channel-runbook.md). Ohne installierten Filter bleibt der bisherige Dokument-Textweg erhalten.

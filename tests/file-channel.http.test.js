@@ -14,13 +14,21 @@ const { loadDocuments } = require('../src/workbench-document');
 
 describe('authenticated original-file channel HTTP', () => {
   let app, env, base, gateway, foreign, reference;
-  async function request(url, method = 'GET', body, token = gateway.token, user = 'person-a') {
+  async function request(
+    url,
+    method = 'GET',
+    body,
+    token = gateway.token,
+    user = 'person-a',
+    email
+  ) {
     const response = await fetch(base + url, {
       method,
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
         'X-OpenWebUI-User-Id': user,
+        ...(email ? { 'X-OpenWebUI-User-Email': email } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
@@ -126,6 +134,41 @@ describe('authenticated original-file channel HTTP', () => {
     await app.cleanup();
     for (const key of Object.keys(process.env)) if (!(key in env)) delete process.env[key];
     Object.assign(process.env, env);
+  });
+  test('email-only mapping authorizes upload and signed download with an unmapped user id', async () => {
+    const email = 'synthetic-files@example.invalid';
+    const userId = 'synthetic-unmapped-file-user';
+    await app.broker.call(
+      'workbench.admin.userMappings.create',
+      {
+        client: 'open-webui',
+        externalOrgId: 'org-test',
+        externalUserEmail: email,
+        cetTenantId: 'public',
+        cetActorId: 'person-email',
+        roles: ['ROLE_GRID_OPERATOR'],
+        sensitivityClearance: ['tenant_internal'],
+      },
+      { meta: auth('person-a', ['ROLE_ADMIN'], 'public') }
+    );
+    const bytes = Buffer.from('synthetic email-only file');
+    const payload = { name: 'synthetic-email.txt', contentBase64: bytes.toString('base64') };
+    const upload = await request('/v1/files', 'POST', payload, gateway.token, userId, email);
+    expect(upload.status).toBe(200);
+    const link = await request(
+      `/v1/files/${upload.body.fileId}/link`,
+      'GET',
+      null,
+      gateway.token,
+      userId,
+      email
+    );
+    expect(link.status).toBe(200);
+    const download = await request(link.body.url, 'GET', null, gateway.token, userId, email);
+    expect(download.status).toBe(200);
+    expect(download.bytes.equals(bytes)).toBe(true);
+    expect((await request('/v1/files', 'POST', payload, gateway.token, userId)).status).toBe(403);
+    expect((await request(link.body.url, 'GET', null, gateway.token, userId)).status).toBe(403);
   });
   test('original XLSX bytes/hash, all sheets/formulas, repeated/concurrent uploads deduplicate', async () => {
     const bytes = syntheticWorkbook();
