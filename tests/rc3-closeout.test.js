@@ -42,13 +42,27 @@ beforeEach(() => jest.clearAllMocks());
 
 test('identifier extrema and sums are forbidden while measurement extrema remain available', () => {
   const rows = [
-    { identity: 50800000001, MaLo: 50800000001, referenceNumber: 200, capacityKW: 6 },
-    { identity: 50800000002, MaLo: 50800000002, referenceNumber: 300, capacityKW: 11 },
+    {
+      identity: 50800000001,
+      MaLo: 50800000001,
+      referenceNumber: 200,
+      Referenz: 200,
+      Referenznummer: 200,
+      capacityKW: 6,
+    },
+    {
+      identity: 50800000002,
+      MaLo: 50800000002,
+      referenceNumber: 300,
+      Referenz: 300,
+      Referenznummer: 300,
+      capacityKW: 11,
+    },
   ];
   expect(summarizeResult(rows, null, 'synthetic', []).statistics.map((item) => item.field)).toEqual(
     ['capacityKW']
   );
-  for (const field of ['identity', 'MaLo', 'referenceNumber'])
+  for (const field of ['identity', 'MaLo', 'referenceNumber', 'Referenz', 'Referenznummer'])
     for (const fn of ['sum', 'min', 'max', 'avg'])
       expect(() =>
         summarizeResult(

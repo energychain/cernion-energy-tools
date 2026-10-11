@@ -5,21 +5,28 @@ function identifierField(field) {
   if (require('./tabular-intelligence').profileRows([{ [field]: null }]).columns[0]?.sensitive)
     return true;
   const tokens = require('./function-resolver').normalizePhrase(field).split(' ');
-  return tokens.some((token) =>
-    [
-      'id',
-      'identity',
-      'identifier',
-      'identifiers',
-      'reference',
-      'references',
-      'ref',
-      'code',
-      'nummer',
-      'number',
-      'kennung',
-      'key',
-    ].includes(token)
+  return tokens.some(
+    (token) =>
+      token.endsWith('nummer') ||
+      token.endsWith('kennung') ||
+      [
+        'id',
+        'identity',
+        'identifier',
+        'identifiers',
+        'reference',
+        'references',
+        'referenz',
+        'referenzen',
+        'ref',
+        'code',
+        'nummer',
+        'nummern',
+        'number',
+        'kennung',
+        'kennungen',
+        'key',
+      ].includes(token)
   );
 }
 

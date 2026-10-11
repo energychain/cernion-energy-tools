@@ -1,6 +1,10 @@
 {
   "entries": [
     {
+      "term": "referenz",
+      "reason": "Generic structural table reference field, independent of business domains; prevents identifier arithmetic and does not route user phrases."
+    },
+    {
       "term": "deterministische",
       "reason": "Generic deterministic execution requirement, independent of business domains."
     },
