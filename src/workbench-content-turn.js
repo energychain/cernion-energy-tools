@@ -809,7 +809,7 @@ async function runContentTurn(
     if (current) Object.assign(memoryContext, current);
   }
   retrieval.evidence.push(...memoryContext.evidence);
-  if (selfKnowledgeJob) {
+  if (selfKnowledgeJob !== null) {
     const searched = await selfKnowledgeJob;
     retrieval.evidence.push(...searched.evidence);
     retrieval.trace.push(...searched.trace);
