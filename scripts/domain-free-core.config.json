@@ -62,6 +62,8 @@
     "src/tenant-memory-store.js",
     "src/tenant-memory-schema.js",
     "src/tenant-memory-write-policy.js",
+    "src/tenant-memory-policy.js",
+    "services/tenant-memory-policy.service.js",
     "src/workbench-understanding.js",
     "src/workbench-conversation-shape.js",
     "src/workbench-self-knowledge.js",

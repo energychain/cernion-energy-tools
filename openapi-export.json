@@ -65655,6 +65655,90 @@
         }
       }
     },
+    "/api/tenant-memory-policy/statements": {
+      "get": {
+        "operationId": "tenant-memory-policy_list",
+        "summary": "List visible tenant statements with an audit entry",
+        "tags": [
+          "Tenant Memory Policy"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tenant-memory-policy/statements/:id/revoke": {
+      "post": {
+        "operationId": "tenant-memory-policy_revoke",
+        "summary": "Audit and revoke a tenant statement",
+        "tags": [
+          "Tenant Memory Policy"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tenant-memory-policy/statements/:id": {
+      "delete": {
+        "operationId": "tenant-memory-policy_delete",
+        "summary": "Audit and redact a tenant statement, retaining its tombstone",
+        "tags": [
+          "Tenant Memory Policy"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tenant-memory-policy/cleanup": {
+      "post": {
+        "operationId": "tenant-memory-policy_cleanup",
+        "summary": "Mark exhausted pending assessments failed with an audit entry",
+        "tags": [
+          "Tenant Memory Policy"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/tenant-quota/tenants/:id/quotas": {
       "get": {
         "operationId": "tenant-quota_getQuotas",

@@ -77,6 +77,7 @@ module.exports = {
         relationId: { type: 'string' },
         factIds: { type: 'array', items: 'string' },
         confirmation: { type: 'boolean', optional: true },
+        change: { type: 'boolean', optional: true },
       },
       async handler(ctx) {
         const p = principal(ctx, { tenantId: ctx.params.tenantId });
@@ -85,7 +86,7 @@ module.exports = {
           p,
           ctx.params.relationId
         );
-        if (!text && !ctx.params.confirmation) return { queued: false };
+        if (!text && !ctx.params.confirmation && !ctx.params.change) return { queued: false };
         if (ctx.params.confirmation) {
           const doc = await require('../src/tenant-memory-store').get(
             ctx,
@@ -99,6 +100,7 @@ module.exports = {
           const key = noticeKey('tenant-memory', [
             ctx.params.relationId,
             Boolean(ctx.params.confirmation),
+            Boolean(ctx.params.change),
           ]);
           if (doc.seen.includes(key)) return { queued: false };
           doc.seen = [...doc.seen, key].slice(-this.settings.dedupLimit);
@@ -110,6 +112,7 @@ module.exports = {
             turn: doc.turn,
             relationId: ctx.params.relationId,
             confirmation: Boolean(ctx.params.confirmation),
+            change: Boolean(ctx.params.change),
             factIds: ctx.params.factIds,
             eventKey: key,
           });
@@ -510,7 +513,12 @@ module.exports = {
       try {
         if (item.kind === 'memory') {
           const memoryStore = require('../src/tenant-memory-store');
-          if (item.confirmation) {
+          if (item.change) {
+            const fact = (await memoryStore.get(ctx, p, item.relationId)).payload;
+            item.text = ['revoked', 'corrected', 'deleted'].includes(fact.status)
+              ? `Deine Aussage wurde geändert: ${memoryStore.factText(fact)}`
+              : '';
+          } else if (item.confirmation) {
             const fact = (await memoryStore.get(ctx, p, item.relationId)).payload;
             item.text = memoryStore.active(fact) ? `Hab ich festgehalten: ${fact.text}` : '';
           } else item.text = await memoryStore.relationText(ctx, p, item.relationId);

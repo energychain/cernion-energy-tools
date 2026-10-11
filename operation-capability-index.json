@@ -2,16 +2,16 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "c898ed01bda9c78460d06d53388290051610cb0d17d85bfb38af9bdd929d75e8",
+  "sourceOpenApiHash": "9fd484415dd4cf97487fb2ba2c4a42023ef67b078474d9d5f49bb0bca90f3f5c",
   "coverage": {
-    "rawOperationCount": 1250,
-    "operationCount": 994,
-    "agentableCount": 992,
+    "rawOperationCount": 1254,
+    "operationCount": 998,
+    "agentableCount": 996,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 430,
-      "admin": 21,
-      "object_store_write": 266,
+      "data_read": 431,
+      "admin": 22,
+      "object_store_write": 268,
       "process_step": 26,
       "process_start": 50,
       "advisory_plan": 48,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 975,
+    "resolvedActionCount": 979,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -80622,6 +80622,270 @@
           "Messstelle",
           "metering",
           "EDM"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "tenant-memory-policy_cleanup",
+      "method": "POST",
+      "path": "/api/tenant-memory-policy/cleanup",
+      "service": "tenant-memory-policy",
+      "action": "tenant-memory-policy.cleanup",
+      "summary": "Mark exhausted pending assessments failed with an audit entry",
+      "tags": [
+        "Tenant Memory Policy"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tenant-memory-policy.cleanup"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tenant-memory-policy:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "tenant-memory-policy"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tenant",
+          "memory",
+          "policy",
+          "cleanup",
+          "mark",
+          "exhausted",
+          "pending",
+          "assessments",
+          "failed",
+          "with",
+          "an",
+          "audit",
+          "entry"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please mark exhausted pending assessments failed with an audit entry"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "tenant-memory-policy_list",
+      "method": "GET",
+      "path": "/api/tenant-memory-policy/statements",
+      "service": "tenant-memory-policy",
+      "action": "tenant-memory-policy.list",
+      "summary": "List visible tenant statements with an audit entry",
+      "tags": [
+        "Tenant Memory Policy"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tenant-memory-policy.list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tenant-memory-policy:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tenant",
+          "memory",
+          "policy",
+          "list",
+          "visible",
+          "statements",
+          "with",
+          "an",
+          "audit",
+          "entry"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list visible tenant statements with an audit entry"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "tenant-memory-policy_delete",
+      "method": "DELETE",
+      "path": "/api/tenant-memory-policy/statements/:id",
+      "service": "tenant-memory-policy",
+      "action": "tenant-memory-policy.delete",
+      "summary": "Audit and redact a tenant statement, retaining its tombstone",
+      "tags": [
+        "Tenant Memory Policy"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tenant-memory-policy.delete"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tenant-memory-policy:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "tenant-memory-policy"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tenant",
+          "memory",
+          "policy",
+          "delete",
+          "audit",
+          "redact",
+          "statement,",
+          "retaining",
+          "its",
+          "tombstone"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please audit and redact a tenant statement, retaining its tombstone"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "tenant-memory-policy_revoke",
+      "method": "POST",
+      "path": "/api/tenant-memory-policy/statements/:id/revoke",
+      "service": "tenant-memory-policy",
+      "action": "tenant-memory-policy.revoke",
+      "summary": "Audit and revoke a tenant statement",
+      "tags": [
+        "Tenant Memory Policy"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tenant-memory-policy.revoke"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tenant-memory-policy:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "tenant-memory-policy"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tenant",
+          "memory",
+          "policy",
+          "revoke",
+          "audit",
+          "statement"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please audit and revoke a tenant statement"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
         ],
         "curated": false
       },

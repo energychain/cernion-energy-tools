@@ -58,6 +58,45 @@ function generateDatasetFixture(format = 'csv', corrected = false) {
   return `${headers.join(';')}\n${rows.map((row) => `${row[0]};${value(row[1])}`).join('\n')}`;
 }
 
+function generateDatasetRoutingFixture() {
+  return {
+    synthetic: true,
+    title: 'Lastgang Hauptstraße 2025',
+    filename: 'synthetic-hauptstrasse-2025.csv',
+    anchors: ['Hauptstraße'],
+    questions: [
+      { kind: 'overview', question: 'Gibt es Auffälligkeiten?' },
+      { kind: 'peak', question: 'Wie hoch war die Spitzenlast und wann?' },
+      { kind: 'energy', question: 'Wie hoch war die Jahresenergie 2025?' },
+      {
+        kind: 'external',
+        question:
+          'Wie viele Solaranlagen über 100 kW sind laut Marktstammdatenregister in Uslar in Betrieb?',
+      },
+      { kind: 'memory', question: 'Was wissen wir insgesamt zum Ahornweg?' },
+    ],
+    fact: {
+      id: 'synthetic-ahornweg-fact',
+      type: 'tenant_memory_fact',
+      tenantId: 'synthetic-dataset-validation',
+      status: 'valid',
+      sensitivityLevel: 'tenant_internal',
+      text: 'Für den Ahornweg ist eine gemeinsame Bestandsprüfung beschlossen.',
+      commitment: 'decided',
+      anchors: [{ value: 'Ahornweg', qualifier: '', aliases: [] }],
+      anchorKeys: [JSON.stringify(['ahornweg', ''])],
+      relationIds: [],
+      person: {
+        actorId: 'synthetic-planner',
+        name: 'Synthetische Planung',
+        functionLabel: 'Planung',
+      },
+      at: '2025-01-02T10:00:00.000Z',
+      time: {},
+    },
+  };
+}
+
 function fixtureManifest() {
   return {
     synthetic: true,
@@ -81,4 +120,4 @@ if (require.main === module) {
   } else fs.writeFileSync(destination, output);
 }
 
-module.exports = { generateDatasetFixture, fixtureManifest };
+module.exports = { generateDatasetFixture, generateDatasetRoutingFixture, fixtureManifest };

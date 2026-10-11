@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "74a7f64d5ebc3d68207ad4ca427b41b74a2c1aa93333b6f0dc7d110baec18d1d",
+  "sourceHash": "c7881641a73ee66284801483a66395c4a0dc1179085f8c0e80b0a2801f3a0180",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -1105,7 +1105,7 @@
       "new": 6,
       "previousSourceHash": "1f0866ec0eb79538c3201e4fbbdfa19ac60fd987e4db6ec7cf73d380090bf44e"
     },
-    "indexOperationCount": 994,
+    "indexOperationCount": 998,
     "indexOperationsWithoutAction": 19,
     "capabilityCount": 172,
     "functionCount": 110,
@@ -118487,6 +118487,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-semantics.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-router-policy.js"
         },
         {
@@ -118735,6 +118739,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/tenant-memory-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/tenant-memory-schema.js"
         },
         {
@@ -118815,6 +118823,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-document-passages.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-document-question.js"
         },
         {
@@ -118852,6 +118864,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-retrieval.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-review.js"
         },
         {
           "kind": "service",
@@ -189839,7 +189855,7 @@
       },
       {
         "service": "notices",
-        "ref": "services/shared-service-notices.service.js:263: spread event handlers"
+        "ref": "services/shared-service-notices.service.js:266: spread event handlers"
       },
       {
         "service": "system",
