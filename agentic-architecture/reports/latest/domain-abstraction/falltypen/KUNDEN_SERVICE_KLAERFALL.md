@@ -1,8 +1,8 @@
 # Kunden-/Service-Klärfall
 
-Generated: 2026-10-10T19:29:08.782Z
+Generated: 2026-10-11T01:32:48.510Z
 
-Status: draft
+Status: routable
 Priority: 3
 
 ## Zweck
@@ -130,11 +130,11 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 
 ## Code-/Doku-Signale
 
-- `src/capability-catalog.js` (476 hits)
+- `src/capability-catalog.js` (479 hits)
 - `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md` (311 hits)
 - `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md` (311 hits)
 - `agentic-architecture/reports/latest/architecture-scan.md` (262 hits)
-- `services/capability-broker.service.js` (259 hits)
+- `services/capability-broker.service.js` (261 hits)
 - `src/report-builder.js` (174 hits)
 - `services/chatgpt-sidecar.service.js` (156 hits)
 - `feedback/HYGIENE_SPRINT.md` (145 hits)
@@ -146,9 +146,9 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 - `docs/agent-responses/rd-audit.json` (118 hits)
 - `services/api.service.js` (114 hits)
 - `agentic-architecture/reports/latest/scan-summary.json` (99 hits)
+- `services/dashboard-api/methods-part-07-of-14.js` (99 hits)
 - `agentic-architecture/reports/latest/refactoring-backlog.md` (93 hits)
 - `docs/ARCHITECTURE.md` (93 hits)
-- `services/dashboard-api/methods-part-07-of-14.js` (93 hits)
 - `docs/v0.52-implementation-plans/v0.52.8-conversational-onboarding.md` (89 hits)
 - `docs/v0.58-architecture/lagebild/tranche_b.md` (88 hits)
 - `docs/validation/739-routing.json` (88 hits)

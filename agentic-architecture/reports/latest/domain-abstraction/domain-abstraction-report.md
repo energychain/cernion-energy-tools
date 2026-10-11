@@ -1,11 +1,11 @@
 # Domain Abstraction Report
 
-Generated: 2026-10-10T19:29:08.782Z
+Generated: 2026-10-11T01:32:48.510Z
 
-- Candidate files scanned: 1088
+- Candidate files scanned: 1095
 - Services classified: 157
 - Unclassified services: 0
-- Fingerprint: c00ac7daeefe8489e8468f6f6d7d4d6ff80219377d23c80c37e0d21f76cf0fda
+- Fingerprint: 40e5d70e9edb47e576fb0dcab3ddd00dd35b6a0c60de6bc131e730ada91d4b05
 
 ## Cluster counts
 
@@ -23,7 +23,11 @@ Generated: 2026-10-10T19:29:08.782Z
 
 - `stammdaten_marktrollen_klaerfall` — Stammdaten-/Marktrollen-Klärfall: 25 signal files, maturity observed
 - `messwert_edm_plausibilitaetsfall` — Messwert-/EDM-Plausibilitätsfall: 25 signal files, maturity observed
-- `kunden_service_klaerfall` — Kunden-/Service-Klärfall: 25 signal files, maturity draft
+- `kunden_service_klaerfall` — Kunden-/Service-Klärfall: 25 signal files, maturity routable
+- `netzanschluss_kapazitaets_klaerfall` — Netzanschluss-/Kapazitäts-Klärfall: 25 signal files, maturity observed
+- `prognose_abweichungsfall` — Prognose-/Abweichungsfall: 25 signal files, maturity observed
+- `redispatch_steuerbarkeits_readiness` — Redispatch-/Steuerbarkeits-Readiness: 25 signal files, maturity observed
+- `waerme_gas_eog_szenariofall` — Wärme-/Gas-/EOG-Szenariofall: 25 signal files, maturity observed
 
 ## Shepherd interpretation
 

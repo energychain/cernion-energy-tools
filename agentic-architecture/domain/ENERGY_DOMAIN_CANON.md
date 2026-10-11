@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-10T19:29:08.782Z
+Generated: 2026-10-11T01:32:48.510Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -19,7 +19,11 @@ CET soll nicht nur Evidenz liefern, sondern energiewirtschaftliche Fälle bearbe
 
 - `stammdaten_marktrollen_klaerfall` — Stammdaten-/Marktrollen-Klärfall (observed)
 - `messwert_edm_plausibilitaetsfall` — Messwert-/EDM-Plausibilitätsfall (observed)
-- `kunden_service_klaerfall` — Kunden-/Service-Klärfall (draft)
+- `kunden_service_klaerfall` — Kunden-/Service-Klärfall (routable)
+- `netzanschluss_kapazitaets_klaerfall` — Netzanschluss-/Kapazitäts-Klärfall (observed)
+- `prognose_abweichungsfall` — Prognose-/Abweichungsfall (observed)
+- `redispatch_steuerbarkeits_readiness` — Redispatch-/Steuerbarkeits-Readiness (observed)
+- `waerme_gas_eog_szenariofall` — Wärme-/Gas-/EOG-Szenariofall (observed)
 
 ## Domain clusters
 

@@ -1,6 +1,6 @@
 # Energiewirtschaftliche Falltypen
 
-Generated: 2026-10-10T19:29:08.782Z
+Generated: 2026-10-11T01:32:48.510Z
 
 Dieses Verzeichnis beschreibt natürliche fachliche Falltypen für CET.
 
@@ -30,4 +30,8 @@ Fehlende Evidenz blockiert nicht:
 
 - [Stammdaten-/Marktrollen-Klärfall](./STAMMDATEN_MARKTROLLEN_KLAERFALL.md) — observed
 - [Messwert-/EDM-Plausibilitätsfall](./MESSWERT_EDM_PLAUSIBILITAETSFALL.md) — observed
-- [Kunden-/Service-Klärfall](./KUNDEN_SERVICE_KLAERFALL.md) — draft
+- [Kunden-/Service-Klärfall](./KUNDEN_SERVICE_KLAERFALL.md) — routable
+- [Netzanschluss-/Kapazitäts-Klärfall](./NETZANSCHLUSS_KAPAZITAETS_KLAERFALL.md) — observed
+- [Prognose-/Abweichungsfall](./PROGNOSE_ABWEICHUNGSFALL.md) — observed
+- [Redispatch-/Steuerbarkeits-Readiness](./REDISPATCH_STEUERBARKEITS_READINESS.md) — observed
+- [Wärme-/Gas-/EOG-Szenariofall](./WAERME_GAS_EOG_SZENARIOFALL.md) — observed
