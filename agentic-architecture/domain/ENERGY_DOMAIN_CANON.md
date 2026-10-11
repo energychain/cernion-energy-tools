@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-11T07:36:13.754Z
+Generated: 2026-10-11T13:38:53.255Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -34,7 +34,7 @@ Arbeitsmodell: CET soll unvollständige Vorgänge bearbeitbar machen: einordnen,
 Starke Code-/Doku-Signale:
 
 - `src/capability-catalog.js` (613 hits)
-- `services/workbench.service.js` (524 hits)
+- `services/workbench.service.js` (525 hits)
 - `docs/reviews/730-capability-routing-evaluation.json` (462 hits)
 - `src/answer-dossier-hydration-rules.json` (361 hits)
 - `services/personal-agent/actions-part-01-of-1.js` (360 hits)
@@ -43,7 +43,7 @@ Starke Code-/Doku-Signale:
 - `services/dashboard-api/methods-part-08-of-14.js` (264 hits)
 - `services/dashboard-api/actions-part-06-of-8.js` (256 hits)
 - `services/dashboard-api/methods-part-10-of-14.js` (228 hits)
-- `src/workbench-content-turn.js` (213 hits)
+- `src/workbench-content-turn.js` (221 hits)
 - `integrations/budibase/README.md` (196 hits)
 
 Zugeordnete Services nach Heuristik:
@@ -101,6 +101,7 @@ Starke Code-/Doku-Signale:
 
 - `src/capability-catalog.js` (363 hits)
 - `docs/validation/739-routing.json` (271 hits)
+- `docs/validation/813-live.json` (253 hits)
 - `src/evidence-registry.js` (144 hits)
 - `services/api.service.js` (131 hits)
 - `services/capability-broker.service.js` (131 hits)
@@ -110,7 +111,6 @@ Starke Code-/Doku-Signale:
 - `services/dashboard-api/actions-part-01-of-8.js` (98 hits)
 - `services/dashboard-api/methods-part-03-of-14.js` (96 hits)
 - `docs/validation/746-answer-recovery-timeout-repeat-live.json` (93 hits)
-- `src/workbench-activity-taxonomy.js` (89 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -189,6 +189,7 @@ Zugeordnete Services nach Heuristik:
 - `churn-prediction-${Date.now()}.csv` — services/business-intelligence.service.js (7 actions)
 - `energy-market` — services/energy-market.service.js (8 actions)
 - `entsoe` — services/entsoe.service.js (7 actions)
+- `files` — services/files.service.js
 - `flex` — services/flex.service.js (4 actions)
 - `forecast-engine` — services/forecast-engine.service.js (7 actions)
 - `forecast-sandbox` — services/forecast-sandbox.service.js (3 actions)
@@ -238,13 +239,13 @@ Starke Code-/Doku-Signale:
 - `src/evidence-registry.js` (249 hits)
 - `services/capability-broker.service.js` (243 hits)
 - `src/answer-dossier-hydration-rules.json` (181 hits)
+- `docs/validation/tenant-memory-live.json` (175 hits)
 - `services/dashboard-api/methods-part-06-of-14.js` (165 hits)
 - `services/dashboard-api/methods-part-12-of-14.js` (100 hits)
 - `services/znp.service.js` (89 hits)
 - `services/eog-calculator.service.js` (85 hits)
 - `docs/eog-calculator-quality-element.md` (77 hits)
 - `docs/reviews/730-capability-routing-evaluation.json` (74 hits)
-- `services/gasnetz-waermeplanung.service.js` (73 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -258,7 +259,7 @@ Arbeitsmodell: Ein selbstlaufender EVU-Assistent muss bei erster Nutzung Kontext
 
 Starke Code-/Doku-Signale:
 
-- `services/workbench.service.js` (582 hits)
+- `services/workbench.service.js` (592 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (492 hits)
 - `services/api.service.js` (453 hits)
 - `docs/v0.58-architecture/lagebild/roles_audit.md` (449 hits)
@@ -309,7 +310,7 @@ Starke Code-/Doku-Signale:
 - `src/answer-dossier-hydration-rules.json` (235 hits)
 - `services/personal-agent/methods-part-03-of-11.js` (234 hits)
 - `services/workbench.service.js` (232 hits)
-- `services/api.service.js` (187 hits)
+- `services/api.service.js` (189 hits)
 - `src/personal-agent-routing.js` (168 hits)
 - `docs/sonarcloud-security-review.json` (155 hits)
 

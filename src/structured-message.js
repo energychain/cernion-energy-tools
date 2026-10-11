@@ -1,6 +1,6 @@
 'use strict';
 
-const { randomUUID, createHash } = require('node:crypto');
+const { createHash } = require('node:crypto');
 const { profileRows } = require('./tabular-intelligence');
 const { datasetSetting, datasetLimit, parseDatasetText } = require('./dataset-input');
 const config = require('./structured-message-adapters.json');
@@ -84,7 +84,7 @@ async function structuredTurn(service, ctx, p) {
   const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
   const deleted = await ctx.call('datapoint.datasetCatalog', { operation: 'deleted' });
   const answers = [];
-  let askPurpose = false;
+  const askPurpose = false;
   const purposeUnclear = /was.*(?:sagen|dazu|kannst)|^\s*$/iu.test(question) || !documents.length;
   let answerMs = 0;
   for (const { document, adapter } of incoming) {

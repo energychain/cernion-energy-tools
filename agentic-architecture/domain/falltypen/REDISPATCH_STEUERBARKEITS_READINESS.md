@@ -1,6 +1,6 @@
 # Redispatch-/Steuerbarkeits-Readiness
 
-Generated: 2026-10-11T07:36:13.754Z
+Generated: 2026-10-11T13:38:53.255Z
 
 Status: observed
 Priority: 6
@@ -111,6 +111,6 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `services/dashboard-api/methods-part-13-of-14.js` (98 hits)
 - `services/znp.service.js` (96 hits)
 - `integrations/budibase/README.md` (95 hits)
+- `docs/validation/813-live.json` (86 hits)
 - `services/dashboard-api/actions-part-01-of-8.js` (78 hits)
 - `services/grid-operations.service.js` (77 hits)
-- `services/dashboard-api/methods-part-11-of-14.js` (74 hits)

@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-11T07:36:13.754Z",
+  "generatedAt": "2026-10-11T13:38:53.255Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261011T073503Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261011T133746Z",
   "counts": {
-    "files": 1842,
-    "candidateFiles": 1103,
-    "services": 157,
-    "srcFiles": 408,
-    "docs": 495,
+    "files": 1890,
+    "candidateFiles": 1130,
+    "services": 159,
+    "srcFiles": 425,
+    "docs": 503,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -15,7 +15,7 @@
       "label": "Fallarbeit und Assistenz",
       "files": 25,
       "services": 2,
-      "hits": 6106
+      "hits": 6162
     },
     "evidence-and-trust": {
       "label": "Evidence, Nachweis und Vertrauen",
@@ -27,7 +27,7 @@
       "label": "MaKo / EDM / Stammdaten",
       "files": 25,
       "services": 8,
-      "hits": 2692
+      "hits": 2889
     },
     "grid-and-connection": {
       "label": "Netz, Anschluss und Kapazität",
@@ -38,32 +38,32 @@
     "forecast-and-market": {
       "label": "Prognose, Markt und Portfolio",
       "files": 25,
-      "services": 15,
-      "hits": 4269
+      "services": 16,
+      "hits": 4271
     },
     "redispatch-and-controllability": {
       "label": "Redispatch, Steuerbarkeit und Flexibilität",
       "files": 25,
       "services": 3,
-      "hits": 4715
+      "hits": 4732
     },
     "gas-heat-and-eog": {
       "label": "Gas, Wärme und EOG",
       "files": 25,
       "services": 3,
-      "hits": 2687
+      "hits": 2826
     },
     "tenant-and-operation": {
       "label": "Tenant, Rollen und Betrieb",
       "files": 25,
-      "services": 50,
-      "hits": 8028
+      "services": 51,
+      "hits": 8144
     },
     "openwebui-agentic-routing": {
       "label": "OpenWebUI und agentisches Routing",
       "files": 25,
       "services": 7,
-      "hits": 5001
+      "hits": 5021
     }
   },
   "ambiguousTerms": [
@@ -123,6 +123,10 @@
           "hits": 231
         },
         {
+          "path": "docs/validation/813-live.json",
+          "hits": 207
+        },
+        {
           "path": "services/grid-operations.service.js",
           "hits": 191
         },
@@ -141,10 +145,6 @@
         {
           "path": "docs/validation/739-routing.json",
           "hits": 115
-        },
-        {
-          "path": "services/agent.service.js",
-          "hits": 113
         }
       ]
     },
@@ -219,6 +219,10 @@
           "hits": 479
         },
         {
+          "path": "docs/validation/813-live.json",
+          "hits": 343
+        },
+        {
           "path": "agentic-architecture/domain/ENERGY_DOMAIN_CANON.md",
           "hits": 313
         },
@@ -228,7 +232,7 @@
         },
         {
           "path": "agentic-architecture/reports/latest/architecture-scan.md",
-          "hits": 263
+          "hits": 262
         },
         {
           "path": "services/capability-broker.service.js",
@@ -248,11 +252,7 @@
         },
         {
           "path": "function-model.report.md",
-          "hits": 138
-        },
-        {
-          "path": "docs/v0.58-architecture/lagebild/tranche_c.md",
-          "hits": 136
+          "hits": 140
         }
       ]
     },
@@ -284,6 +284,10 @@
           "hits": 44
         },
         {
+          "path": "docs/validation/813-live.json",
+          "hits": 36
+        },
+        {
           "path": "src/answer-dossier-hydration-rules.json",
           "hits": 35
         },
@@ -292,20 +296,16 @@
           "hits": 30
         },
         {
+          "path": "docs/validation/tenant-memory-live.json",
+          "hits": 29
+        },
+        {
           "path": "src/consultation-execution-bridge.js",
           "hits": 26
         },
         {
           "path": "src/personal-agent-routing.js",
           "hits": 21
-        },
-        {
-          "path": "src/validation-findings.js",
-          "hits": 21
-        },
-        {
-          "path": "services/assets.service.js",
-          "hits": 20
         }
       ]
     },
@@ -439,6 +439,10 @@
           "hits": 180
         },
         {
+          "path": "docs/validation/tenant-memory-live.json",
+          "hits": 175
+        },
+        {
           "path": "src/evidence-registry.js",
           "hits": 132
         },
@@ -461,10 +465,6 @@
         {
           "path": "services/dashboard-api/methods-part-12-of-14.js",
           "hits": 64
-        },
-        {
-          "path": "services/dashboard-api/methods-part-06-of-14.js",
-          "hits": 53
         }
       ]
     }
@@ -552,5 +552,5 @@
       "hits": 263
     }
   ],
-  "fingerprint": "5dbe90356c7afc061cfba8a30d120f05fb16f964ccc2c416266a41bdc7ef597c"
+  "fingerprint": "6df2fd2ada8447c48f90421e5ae1adafa70678748a9f624dd08ba1202f3e43b9"
 }

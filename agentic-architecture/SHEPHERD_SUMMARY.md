@@ -1,21 +1,21 @@
 # Shepherd Summary
 
-Generated: 2026-10-11T07:36:13.825Z
-Run: 20261011T073503Z
-Branch: shepherd/runtime-refactor-20261011T073502Z
-Fingerprint: 71da288f3fe887055f72ea56969579994b8dad16da08ecb20543d8d40ff30169
+Generated: 2026-10-11T13:38:53.318Z
+Run: 20261011T133746Z
+Branch: shepherd/runtime-refactor-20261011T133746Z
+Fingerprint: 37db90bfadc3ec1bbed74eb13dc576388fc2f7250a2b438a64415810a3f827e0
 
 ## Current measurable surface
 
-- Files: 1842
-- Services: 157
-- src JS files: 348
-- Tests: 459
-- Agentic files: 266
-- OpenWebUI/ChatGPT files: 29
+- Files: 1890
+- Services: 159
+- src JS files: 361
+- Tests: 470
+- Agentic files: 267
+- OpenWebUI/ChatGPT files: 30
 - Evidence/HITL files: 74
-- Routing/capability files: 88
-- Services without obvious direct filename-mapped test: 27
+- Routing/capability files: 92
+- Services without obvious direct filename-mapped test: 29
 
 ## Artifact state
 
@@ -27,14 +27,14 @@ Fingerprint: 71da288f3fe887055f72ea56969579994b8dad16da08ecb20543d8d40ff30169
 
 ## Top directories
 
-- `tests`: 521 files
-- `src`: 410 files
-- `docs`: 371 files
-- `services`: 193 files
+- `tests`: 534 files
+- `src`: 427 files
+- `docs`: 379 files
+- `services`: 195 files
 - `tools`: 85 files
+- `scripts`: 68 files
 - `agentic-architecture`: 61 files
-- `scripts`: 61 files
-- `integrations`: 27 files
+- `integrations`: 28 files
 - `.claude`: 26 files
 - `.github`: 11 files
 - `feedback`: 8 files
@@ -51,8 +51,8 @@ Fingerprint: 71da288f3fe887055f72ea56969579994b8dad16da08ecb20543d8d40ff30169
 ## Domain abstraction
 
 - Domain abstraction: present
-- Domain fingerprint: 5dbe90356c7afc061cfba8a30d120f05fb16f964ccc2c416266a41bdc7ef597c
-- Candidate files: 1103
+- Domain fingerprint: 6df2fd2ada8447c48f90421e5ae1adafa70678748a9f624dd08ba1202f3e43b9
+- Candidate files: 1130
 - Unclassified services: 0
 
 Cluster counts:
@@ -61,10 +61,10 @@ Cluster counts:
 - `evidence-and-trust` — Evidence, Nachweis und Vertrauen: 23 services, 25 top files
 - `mako-and-edm` — MaKo / EDM / Stammdaten: 8 services, 25 top files
 - `grid-and-connection` — Netz, Anschluss und Kapazität: 46 services, 25 top files
-- `forecast-and-market` — Prognose, Markt und Portfolio: 15 services, 25 top files
+- `forecast-and-market` — Prognose, Markt und Portfolio: 16 services, 25 top files
 - `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files
 - `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files
-- `tenant-and-operation` — Tenant, Rollen und Betrieb: 50 services, 25 top files
+- `tenant-and-operation` — Tenant, Rollen und Betrieb: 51 services, 25 top files
 - `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files
 
 Case types:
@@ -87,6 +87,7 @@ Case types:
 - `services/capex-prioritization.service.js`
 - `services/connection-rejection-evidence.service.js`
 - `services/e2e-connection-check.service.js`
+- `services/files.service.js`
 - `services/flexibilitaetskosten-raster.service.js`
 - `services/fnav-commercial-hedging.service.js`
 - `services/gasnetz-waermeplanung.service.js`
@@ -98,6 +99,7 @@ Case types:
 - `services/reinvest-signal.service.js`
 - `services/reporting-governance.service.js`
 - `services/shared-service-agents.service.js`
+- `services/tenant-memory-policy.service.js`
 - `services/tenant-quota.service.js`
 - `services/vdmi-evidence.service.js`
 - `services/vdmi-findings.service.js`

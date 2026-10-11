@@ -1,24 +1,24 @@
 {
-  "generatedAt": "2026-10-11T07:36:09.260Z",
+  "generatedAt": "2026-10-11T13:38:48.921Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261011T073503Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261011T133746Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
     "version": "0.99.22"
   },
   "counts": {
-    "files": 1842,
-    "services": 157,
-    "srcJs": 348,
-    "tests": 459,
-    "integrations": 27,
-    "docs": 495,
-    "agentFiles": 266,
-    "openWebUiFiles": 29,
+    "files": 1890,
+    "services": 159,
+    "srcJs": 361,
+    "tests": 470,
+    "integrations": 28,
+    "docs": 503,
+    "agentFiles": 267,
+    "openWebUiFiles": 30,
     "evidenceFiles": 74,
-    "routingFiles": 88,
-    "servicesWithoutTests": 27
+    "routingFiles": 92,
+    "servicesWithoutTests": 29
   },
   "artifacts": {
     "hasOperationCapabilityIndex": true,
@@ -30,35 +30,35 @@
   "topDirectories": [
     {
       "dir": "tests",
-      "files": 521
+      "files": 534
     },
     {
       "dir": "src",
-      "files": 410
+      "files": 427
     },
     {
       "dir": "docs",
-      "files": 371
+      "files": 379
     },
     {
       "dir": "services",
-      "files": 193
+      "files": 195
     },
     {
       "dir": "tools",
       "files": 85
     },
     {
+      "dir": "scripts",
+      "files": 68
+    },
+    {
       "dir": "agentic-architecture",
       "files": 61
     },
     {
-      "dir": "scripts",
-      "files": 61
-    },
-    {
       "dir": "integrations",
-      "files": 27
+      "files": 28
     },
     {
       "dir": ".claude",
@@ -172,6 +172,7 @@
     "evidence-router",
     "ewk-monitoring",
     "file-ingest-monitor",
+    "files",
     "finance-agent",
     "flex",
     "flexibilitaetskosten-raster",
@@ -247,6 +248,7 @@
     "stadtwerk-mauer-sandbox-runtime",
     "system",
     "tabular",
+    "tenant-memory-policy",
     "tenant-quota",
     "token-manager",
     "utility-report",
@@ -277,6 +279,7 @@
     "services/capex-prioritization.service.js",
     "services/connection-rejection-evidence.service.js",
     "services/e2e-connection-check.service.js",
+    "services/files.service.js",
     "services/flexibilitaetskosten-raster.service.js",
     "services/fnav-commercial-hedging.service.js",
     "services/gasnetz-waermeplanung.service.js",
@@ -288,6 +291,7 @@
     "services/reinvest-signal.service.js",
     "services/reporting-governance.service.js",
     "services/shared-service-agents.service.js",
+    "services/tenant-memory-policy.service.js",
     "services/tenant-quota.service.js",
     "services/vdmi-evidence.service.js",
     "services/vdmi-findings.service.js",
@@ -343,6 +347,10 @@
       "src/tabular-intelligence.js"
     ],
     [
+      "services/tenant-memory-policy.service.js",
+      "src/tenant-memory-policy.js"
+    ],
+    [
       "src/job-store/driver.js",
       "src/rate-quota/driver.js"
     ],
@@ -361,88 +369,88 @@
   ],
   "domainTermCounts": {
     "agent": {
-      "files": 734,
-      "hits": 8337
+      "files": 740,
+      "hits": 8355
     },
     "personal-agent": {
-      "files": 302,
-      "hits": 2021
+      "files": 303,
+      "hits": 2023
     },
     "sidecar": {
       "files": 113,
       "hits": 1004
     },
     "capability": {
-      "files": 458,
-      "hits": 5731
+      "files": 472,
+      "hits": 5822
     },
     "broker": {
-      "files": 581,
-      "hits": 10728
+      "files": 599,
+      "hits": 10896
     },
     "openwebui": {
-      "files": 75,
-      "hits": 539
+      "files": 80,
+      "hits": 558
     },
     "open-webui": {
-      "files": 47,
-      "hits": 268
+      "files": 56,
+      "hits": 293
     },
     "chatgpt": {
       "files": 41,
       "hits": 405
     },
     "evidence": {
-      "files": 734,
-      "hits": 24388
+      "files": 752,
+      "hits": 24506
     },
     "receipt": {
-      "files": 153,
-      "hits": 2403
+      "files": 156,
+      "hits": 2406
     },
     "hitl": {
       "files": 446,
       "hits": 3708
     },
     "routing": {
-      "files": 330,
-      "hits": 2156
+      "files": 340,
+      "hits": 2185
     },
     "workflow": {
-      "files": 234,
-      "hits": 1583
+      "files": 235,
+      "hits": 1584
     },
     "tenant": {
-      "files": 667,
-      "hits": 14783
+      "files": 699,
+      "hits": 15331
     },
     "market": {
-      "files": 387,
-      "hits": 3854
+      "files": 394,
+      "hits": 3938
     },
     "grid": {
-      "files": 631,
-      "hits": 9780
+      "files": 640,
+      "hits": 9805
     },
     "redispatch": {
       "files": 311,
-      "hits": 4131
+      "hits": 4132
     },
     "forecast": {
       "files": 323,
       "hits": 4563
     },
     "edm": {
-      "files": 332,
-      "hits": 2383
+      "files": 344,
+      "hits": 2434
     },
     "mako": {
-      "files": 280,
-      "hits": 2232
+      "files": 288,
+      "hits": 2309
     },
     "willi": {
-      "files": 101,
-      "hits": 1449
+      "files": 109,
+      "hits": 1532
     },
     "vdmi": {
       "files": 297,
@@ -450,23 +458,23 @@
     },
     "eog": {
       "files": 101,
-      "hits": 798
+      "hits": 799
     },
     "stadtwerk": {
-      "files": 246,
-      "hits": 5626
+      "files": 245,
+      "hits": 5625
     },
     "utility": {
       "files": 94,
       "hits": 613
     },
     "regulator": {
-      "files": 316,
-      "hits": 2487
+      "files": 317,
+      "hits": 2496
     },
     "decision": {
-      "files": 439,
-      "hits": 6908
+      "files": 441,
+      "hits": 6915
     }
   },
   "validationSummary": "build: ok\nlint: ok\ntest-unit-ci: skipped (set SHEPHERD_FULL=1)\naudit-openapi: skipped (set SHEPHERD_FULL=1)\ncheck-llm: skipped (set SHEPHERD_FULL=1)\ngitnexus-analyze: skipped (set SHEPHERD_FULL=1)"
