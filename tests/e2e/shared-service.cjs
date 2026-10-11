@@ -554,23 +554,12 @@ async function main() {
     { tenantId, actorId: actor('alice') },
     auth('alice')
   );
-  const notice = noticeQueue.items.find((item) => item.kind === 'gap')?.ref;
+  assert(!noticeQueue.items.some((item) => item.kind === 'gap'));
   const next = await turn('alice', 'Was gibt es Neues?');
   const text = next.choices[0].message.content;
-  if (!notice)
-    console.log(
-      'notice diagnostic',
-      JSON.stringify({
-        text,
-        gap: stored.gapLists,
-        queue: await call('notices.list', { tenantId, actorId: actor('alice') }, auth('alice')),
-        matrix: matrix.items,
-      })
-    );
-  assert(notice, 'next mapped turn displays the gap notice');
-  assert.match(text, /Für deine aktuelle Arbeit fehlen noch Angaben\./);
+  assert(!/Für deine aktuelle Arbeit fehlen noch Angaben\./.test(text));
   assert(!/\b[LR]-\d+|missingEvidence/.test(text));
-  assert(next.metadata.notices.some((item) => item.ref === notice));
+  assert(!(next.metadata.notices || []).some((item) => item.kind === 'gap'));
   assert(!/attention_|Push source unavailable/.test(text));
   await snapshot('5 next-turn notice');
   let proposal;
@@ -594,7 +583,8 @@ async function main() {
   );
   assert(proposalModelCalls > 0);
 
-  const correction = await turn('alice', `${notice} erledigt`);
+  const fn = model.functions.find((item) => item.functionId === row.functionId);
+  const correction = await turn('alice', `Lückenliste für ${fn.displayLabel} erledigt`);
   assert.equal(correction.metadata.intentMode, 'correction');
   const acceptedGap = await turn('alice', 'Ja');
   assert.match(acceptedGap.choices[0].message.content, /Bestätigt und übernommen/);
@@ -603,7 +593,6 @@ async function main() {
       .flatMap((item) => item.gapLists || [])
       .some((item) => item.completionRequested)
   );
-  const fn = model.functions.find((item) => item.functionId === row.functionId);
   const responsibility = await turn(
     'alice',
     `Darum musst du dich nicht kümmern: ${fn.displayLabel}`

@@ -671,7 +671,11 @@ module.exports = {
               .flatMap((row) => row.gapLists || [])
               .find((row) => row.ref === item.objectRef);
             publicItem.labels = gap.labels;
-            publicItem.text = (gap.labels || []).join('; ');
+            publicItem.text = (gap.labels || [])
+              .filter(
+                (label) => !/^[a-z][A-Za-z0-9_.-]*[A-Z_.-][A-Za-z0-9_.-]*$/.test(String(label))
+              )
+              .join('; ');
             publicItem.context = gap.context;
           }
           if (noticeText(publicItem, this.model) || publicItem.kind === 'signal')
