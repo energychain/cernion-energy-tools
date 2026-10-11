@@ -214,7 +214,7 @@ test('838 C.1: all-empty requested measure gives its cause instead of a null agg
   expect(result.responseText).toMatch(/keine ausgefüllten/);
   expect(result.responseText).not.toMatch(/0 Zeilen|null|Spalte \d+/);
   const natural = await call('dataset.query', { id: record.id, question: 'Wann war das Maximum?' });
-  expect(natural.responseText).toMatch(/keine verwendbaren Messwerte/);
+  expect(natural.responseText).toMatch(/keine verwendbaren Werte/);
   expect(natural.responseText).not.toMatch(/Zeilen|null|Maximum:/);
 });
 

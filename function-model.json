@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "c28c3730d3ca379443b0457498be88e89dad5772ef83e7d476c5aa8a55f99f63",
+  "sourceHash": "f3d6976477144420ba6e29ce0d6f3b622ce91f58479e2004e4aa34e2c8cbb89e",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -118487,7 +118487,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-query.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/dataset-semantics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-time.js"
         },
         {
           "kind": "service",

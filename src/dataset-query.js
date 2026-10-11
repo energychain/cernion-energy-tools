@@ -374,7 +374,7 @@ function executeDatasetQuery(pool, record, input) {
   )
     return datasetQueryFailure(
       record,
-      'Der Datensatz enthält im gewählten Bereich keine verwendbaren Messwerte.'
+      'Der Datensatz enthält im gewählten Bereich keine verwendbaren Werte.'
     );
   if (
     !summaries.some((summary) => summary.present) &&
@@ -384,7 +384,7 @@ function executeDatasetQuery(pool, record, input) {
   )
     return datasetQueryFailure(
       record,
-      'Für die angefragte Größe sind keine verwendbaren Messwerte vorhanden.'
+      'Für die angefragte Größe sind keine verwendbaren Werte vorhanden.'
     );
   const provenance = `Nutzerangabe von ${record.provenance.person} am ${record.provenance.at.slice(0, 10)}`;
   const period =

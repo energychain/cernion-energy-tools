@@ -27,7 +27,7 @@ function damagedDataset(reason) {
   );
 }
 
-// Shared by ingestion and the cleanup of previously accepted catalog records.
+// Shared by table input and cleanup of previously accepted catalog records.
 function datasetPlausibility(record, rows) {
   const columns = record.columns || record.profile?.columns || [];
   const count = record.rowCount ?? rows?.length ?? 0;
@@ -50,28 +50,29 @@ function datasetPlausibility(record, rows) {
       )
     : columns.reduce((sum, column) => sum + (column.nullCount || 0), 0);
   if (missing / (count * columns.length) > threshold) return 'Der Anteil leerer Werte ist zu hoch.';
-  if (
-    rows?.some((row) =>
-      Object.values(row).some((value) =>
-        /^(?:None\s*:|[+-]?\d+[.,]$|[+-]?\d+(?:[.,]\d+)?[eE][+-]?$)/i.test(
-          String(value ?? '').trim()
-        )
-      )
-    )
-  )
+  if (rows?.some((row) => Object.values(row).some(truncatedDatasetValue)))
     return 'Zahlen oder Restfelder sind abgeschnitten.';
   return null;
 }
 
+function truncatedDatasetValue(value) {
+  const text = String(value ?? '').trim();
+  return (
+    /^None\s*:/i.test(text) ||
+    /^[+-]?\d+[.,]$/.test(text) ||
+    /^[+-]?\d+(?:[.,]\d+)?e[+-]?$/i.test(text)
+  );
+}
+
 function restoreDelimitedPairs(raw) {
   const lines = raw.split(/\r?\n/).filter((line) => line.trim());
-  const first = lines[0]?.match(/^([^:]+;[^:]+):\s?(.*)$/);
-  if (!first) {
+  const boundary = lines[0]?.indexOf(':') ?? -1;
+  const header = boundary >= 0 ? lines[0].slice(0, boundary) : '';
+  if (!header.includes(';')) {
     if (lines.some((line) => /^\s*None\s*:/i.test(line)))
       damagedDataset('Restfeld ohne eindeutige Kopfzeile');
     return raw;
   }
-  const header = first[1];
   const names = header.split(';');
   if (names.some((name) => !name.trim() || /[",]/.test(name)))
     damagedDataset('Mehrdeutige Kopfzeile');
@@ -83,10 +84,10 @@ function restoreDelimitedPairs(raw) {
       damagedDataset('Mehrdeutige zerlegte Felder');
     if (/^\s*None\s*:/i.test(lines[i + 1] || '')) {
       const rest = lines[++i].replace(/^\s*None\s*:\s*/i, '').trim();
-      const fraction = rest.match(/^(?:([0-9]+)|\['([0-9]+)'\]|\["([0-9]+)"\])$/);
-      if (!fraction || !/^[+-]?\d+$/.test(value.split(';').at(-1)))
+      const fraction = /^\[(['"])\d+\1\]$/.test(rest) ? rest.slice(2, -2) : rest;
+      if (!/^\d+$/.test(fraction) || !/^[+-]?\d+$/.test(value.split(';').at(-1)))
         damagedDataset('Restfeld kann nicht verlustfrei zugeordnet werden');
-      value += ',' + (fraction[1] || fraction[2] || fraction[3]);
+      value += ',' + fraction;
     }
     values.push(value);
   }

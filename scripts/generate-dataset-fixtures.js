@@ -9,7 +9,7 @@ function generateDatasetFixture(format = 'csv', corrected = false) {
     const csv = generateDatasetFixture('csv', corrected);
     // Reproduce the actual wrong delimiter used by the Python CSV loader.
     const result = spawnSync(
-      'python3',
+      '/usr/bin/python3',
       [
         '-c',
         `import csv, sys

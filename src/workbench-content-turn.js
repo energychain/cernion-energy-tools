@@ -103,24 +103,81 @@ async function evidenceAccess(service, p) {
   };
 }
 
-// Ingestion has already completed. Read the actual rows before routing the rest of the turn.
+// Table input has already completed. Read the actual rows before routing the rest of the turn.
+function datasetQuestion(question) {
+  return (
+    /\?|\b(?:wie\w*|wann|welch\w*|berechn\w*|auswert\w*|analys\w*|zeig\w*)\b/i.test(question) ||
+    /\b(?:maximum|minimum|summe|mittelwert|spitzenlast)\b/i.test(question)
+  );
+}
+
+function turnDatasetIds(p, envelope, pending) {
+  if (envelope.datasetIds?.length) return envelope.datasetIds;
+  if (
+    envelope.documents?.length ||
+    !/^(?:und\b|wie (?:hoch|viel)|wann\b)/i.test(envelope.userRequest)
+  )
+    return [];
+  return (pending?.retrieval?.evidence || [])
+    .filter((hit) => hit.source === 'dataset.query' && hit.metadata?.tenantId === p.tenantId)
+    .map((hit) => hit.metadata.datasetId);
+}
+
+async function readTurnDataset(ctx, p, envelope, candidates, meta) {
+  if (candidates.length !== 1)
+    return {
+      answer: `Mehrere Tabellenblätter passen: ${candidates.map((record) => record.sheet || record.title).join(', ')}. Welches meinst du?`,
+      evidence: [],
+    };
+  const record = candidates[0];
+  try {
+    const result = await ctx.call(
+      'dataset.query',
+      { id: record.id, question: envelope.userRequest, conversationId: envelope.conversationId },
+      { meta }
+    );
+    return {
+      answer: result.responseText,
+      evidence: [
+        {
+          source: 'dataset.query',
+          retrievalSource: 'capability-read',
+          value: result.responseText,
+          metadata: {
+            tenantId: p.tenantId,
+            datasetId: record.id,
+            version: record.version,
+            parameters: { id: record.id },
+          },
+        },
+      ],
+    };
+  } catch (error) {
+    if (/Spalte|Abfragefeld/i.test(error.message))
+      return {
+        answer:
+          'Die angefragte Spalte wurde im Datensatz nicht gefunden oder ist nicht zum Lesen freigegeben.',
+        evidence: [],
+      };
+    if (/Zeit/i.test(error.message))
+      return {
+        answer:
+          'Die Abfrage ist nicht möglich, weil der Zeitfilter oder die benötigten Zeitabstände nicht verwendbar sind.',
+        evidence: [],
+      };
+    throw error;
+  }
+}
+
 async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }) {
+  const started = performance.now();
   if (!ctx.broker.getLocalService('dataset')) return null;
   const fresh = envelope.datasetIds || [];
-  const followup =
-    !envelope.documents?.length &&
-    /^(?:und\b|wie (?:hoch|viel)|wann\b)/i.test(envelope.userRequest) &&
-    (pending?.retrieval?.evidence || []).filter(
-      (hit) => hit.source === 'dataset.query' && hit.metadata?.tenantId === p.tenantId
-    );
-  const grounded = fresh.length ? fresh : (followup || []).map((hit) => hit.metadata.datasetId);
+  // Replayed attachments retain the established answer phase and its grounded checks.
+  if (fresh.length && !envelope.datasetConfirmations?.length) return null;
+  const grounded = turnDatasetIds(p, envelope, pending);
   if (!grounded.length) return null;
-  const question = envelope.userRequest;
-  const substantive =
-    /\?|\b(?:wie|wann|welch\w*|wieviel|berechn\w*|auswert\w*|analys\w*|zeig\w*|maximum|minimum|summe|mittelwert|spitzenlast)\b/i.test(
-      question
-    );
-  if (!substantive) {
+  if (!datasetQuestion(envelope.userRequest)) {
     if (!fresh.length || !envelope.datasetConfirmations?.length) return null;
     return {
       state: 'assistance',
@@ -132,7 +189,7 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
   const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' }, { meta });
   const candidates = await require('./dataset-routing').selectDatasetCandidates(
     records.filter((record) => grounded.includes(record.id)),
-    question,
+    envelope.userRequest,
     {
       conversationId: envelope.conversationId,
       newDatasetIds: fresh,
@@ -140,42 +197,7 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
     }
   );
   if (!candidates.length || (!fresh.length && candidates.length !== 1)) return null;
-  const evidence = [];
-  let answer;
-  if (candidates.length !== 1) {
-    answer = candidates.length
-      ? `Mehrere Tabellenblätter passen: ${candidates.map((record) => record.sheet || record.title).join(', ')}. Welches meinst du?`
-      : 'Die übermittelten Tabellenwerte sind nicht zugänglich; im Datensatzkatalog fehlt eine verwendbare Fassung.';
-  } else {
-    const record = candidates[0];
-    try {
-      const result = await ctx.call(
-        'dataset.query',
-        { id: record.id, question, conversationId: envelope.conversationId },
-        { meta }
-      );
-      answer = result.responseText;
-      evidence.push({
-        source: 'dataset.query',
-        retrievalSource: 'capability-read',
-        value: answer,
-        metadata: {
-          tenantId: p.tenantId,
-          datasetId: record.id,
-          version: record.version,
-          parameters: { id: record.id },
-        },
-      });
-    } catch (error) {
-      if (/Spalte|Abfragefeld/i.test(error.message))
-        answer =
-          'Die angefragte Spalte wurde im Datensatz nicht gefunden oder ist nicht zum Lesen freigegeben.';
-      else if (/Zeit|Raster/i.test(error.message))
-        answer =
-          'Die Abfrage ist nicht möglich, weil der Zeitfilter oder das benötigte Zeitraster nicht verwendbar ist.';
-      else throw error;
-    }
-  }
+  const { answer, evidence } = await readTurnDataset(ctx, p, envelope, candidates, meta);
   const receipts = envelope.datasetConfirmations?.length
     ? records
         .filter((record) => fresh.includes(record.id))
@@ -194,6 +216,8 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
     nonBinding: true,
     responseText,
     evidence,
+    phaseTimes: { answerMs: Math.round(performance.now() - started) },
+    latencyMs: Math.round(performance.now() - started),
     sources: evidence.map(() => ({ source: 'dataset.query', status: 'available', called: true })),
   };
 }
