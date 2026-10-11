@@ -110,6 +110,12 @@ function generateDatasetSafetyFixture(kind) {
       ['A', 1],
       ['B', 2],
     ],
+    unnamedUnits: [
+      ['Produkt', ''],
+      ['[Text]', '[Stück]'],
+      ['A', 1],
+      ['B', 2],
+    ],
     unnamed: [
       ['Produkt', ''],
       ['A', 1],

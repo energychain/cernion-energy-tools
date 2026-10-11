@@ -134,7 +134,7 @@ test('838 B.2: ambiguous remnants reject the entire upload without success or pe
   expect(await catalog()).toEqual([]);
 });
 
-test.each(['empty', 'none', 'unnamed', 'truncated'])(
+test.each(['empty', 'none', 'unnamed', 'unnamedUnits', 'truncated'])(
   '838 B.3: generated %s table is blocked',
   async (kind) => {
     const result = await chat('Bitte speichern und prüfen?', generateDatasetSafetyFixture(kind));

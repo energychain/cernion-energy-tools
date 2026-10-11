@@ -102,6 +102,8 @@ function matrixRows(matrix) {
       : nonempty.findIndex((row) => row.filter((cell) => String(cell ?? '').trim()).length >= 2);
   if (headerIndex < 0 || nonempty.length < headerIndex + 2) return null;
   let header = nonempty[headerIndex].map((cell) => String(cell ?? '').trim());
+  if (header.some((name) => !name || /^none$/i.test(name)))
+    damagedDataset('Ungültige Spaltennamen');
   let start = headerIndex + 1;
   // A second header carrying units is joined to the column label.
   if (nonempty[start]?.some((cell) => /^\s*[[(][^\])]+[\])]\s*$/.test(String(cell)))) {
@@ -109,8 +111,6 @@ function matrixRows(matrix) {
     start++;
   }
   if (header.length > datasetSetting('MAX_COLUMNS', 128)) datasetLimit('Zu viele Spalten.');
-  if (header.some((name) => !name || /^none$/i.test(name)))
-    damagedDataset('Ungültige Spaltennamen');
   const names = header;
   if (new Set(names).size !== names.length) throw new Error('Mehrdeutige doppelte Spaltennamen.');
   const body = nonempty.slice(start);
