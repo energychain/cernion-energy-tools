@@ -13,6 +13,17 @@ async function admin(ctx) {
 module.exports = {
   name: 'tenant-memory-policy',
   actions: {
+    migrateAnchors: {
+      rest: 'POST /migrate-anchors',
+      openapi: {
+        summary: 'Audit legacy anchor normalization and queue newly connected statements',
+        tags: ['Tenant Memory Policy'],
+      },
+      params: { reason: { type: 'string', min: 1, max: 1200 } },
+      async handler(ctx) {
+        return policy.migrateAnchors(ctx, await admin(ctx), ctx.params.reason);
+      },
+    },
     list: {
       rest: 'GET /statements',
       openapi: {

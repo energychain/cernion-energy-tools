@@ -10,6 +10,7 @@ const { createLiveHarness } = require('./workbench-live-harness');
 const llm = require('../src/llm-client');
 const memory = require('../src/tenant-memory');
 const store = require('../src/tenant-memory-store');
+const { generateMemoryAnchorFixture } = require('./generate-memory-cleanup-fixture');
 
 async function validateTenantMemoryLive() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-memory-live-'));
@@ -88,11 +89,8 @@ async function validateTenantMemoryLive() {
       ['anna', 'ben'],
     ]) {
       for (let run = 1; run <= 2; run++) {
-        const suffix = require('node:crypto')
-          .randomBytes(6)
-          .toString('hex')
-          .replace(/[0-9]/g, (digit) => String.fromCharCode(107 + Number(digit)));
-        const anchor = `Test${suffix}allee`;
+        const fixture = generateMemoryAnchorFixture();
+        const anchor = fixture.base;
         const tenantId = `synthetic-memory-${report.runs.length + 1}`;
         for (const [actorId, functionLabel] of [
           ['ben', 'Gasnetzplanung'],
@@ -103,10 +101,7 @@ async function validateTenantMemoryLive() {
             actorId,
             roleFamilies: [functionLabel],
           });
-        const texts = {
-          ben: `Gerade komme ich aus der Gasnetzplanung. Die Leitung in der ${anchor} müssen wir spätestens 2030 außer Betrieb nehmen. Die Kunden sollen zeitnah informiert werden.`,
-          anna: `Das Stromnetz in der ${anchor} ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.`,
-        };
+        const texts = { ben: fixture.textB, anna: fixture.textA };
         const send = async (actor, message, freshConversation = false) => {
           const result = await broker.call(
             'workbench.chat',
@@ -135,7 +130,8 @@ async function validateTenantMemoryLive() {
         const turns = [];
         for (const actor of order) turns.push({ actor, ...(await send(actor, texts[actor])) });
         const notice = await send(order[0], 'Was ist der nächste Schritt?');
-        const query = await send(order[0], `Was wissen wir insgesamt zur ${anchor}?`, true);
+        const queries = await Promise.all(order.map((actor) => send(actor, fixture.query, true)));
+        const query = queries[0];
         const p = { tenantId, actorId: order[0], roles: ['ROLE_GRID_OPERATOR'], clearance: [] };
         const facts = await store.query(
           {
@@ -171,11 +167,16 @@ async function validateTenantMemoryLive() {
           noticeDelivered:
             /2030/.test(notice.noticeBlock || notice.responseText) &&
             /2034/.test(notice.noticeBlock || notice.responseText),
-          queryListsBoth:
-            query.state === 'tenant_memory_query' &&
-            ['ben', 'anna'].every((actor) =>
-              query.statements?.some((fact) => fact.person.actorId === actor)
-            ),
+          scenario1CanonicalBases: facts.every((fact) =>
+            fact.anchors.some((item) => item.value === anchor)
+          ),
+          scenario2EachActorListsBoth: queries.every(
+            (reply) =>
+              reply.state === 'tenant_memory_query' &&
+              ['ben', 'anna'].every((actor) =>
+                reply.statements?.some((fact) => fact.person.actorId === actor)
+              )
+          ),
           readableDate: /\d{2}\.\d{2}\.\d{4}/.test(query.responseText),
         };
         recoveryReplay = { p, factId: facts.find((fact) => fact.relationIds.length)?.id };
@@ -197,7 +198,7 @@ async function validateTenantMemoryLive() {
               ? 'turn'
               : 'notice',
           notice: notice.noticeBlock || notice.responseText,
-          query: query.responseText,
+          queries: queries.map((reply) => reply.responseText),
           facts: facts.map(
             ({ person, checking, attempts, relationIds, anchors, checkingFailure }) => ({
               person,
@@ -216,6 +217,57 @@ async function validateTenantMemoryLive() {
         );
         console.log(JSON.stringify({ order, run, checks }));
       }
+    }
+    // Scenario 7 uses the same local persistence, with deterministic boundary failures.
+    // Never connects to a remote object store; the real facade remains configured above.
+    report.scenario7 = [];
+    for (const failure of ['write', 'read']) {
+      const fixture = generateMemoryAnchorFixture();
+      const p = {
+        tenantId: 'synthetic-memory-failure',
+        actorId: fixture.actorA,
+        roles: ['ROLE_GRID_OPERATOR'],
+        clearance: [],
+      };
+      const meta = {
+        apiToken: {
+          id: p.actorId,
+          tenantId: p.tenantId,
+          roles: p.roles,
+          sensitivityFlags: [],
+          scope: 'agentos-session',
+        },
+      };
+      const ctx = {
+        broker,
+        meta,
+        params: {},
+        call: (name, params, options) => {
+          if (failure === 'write' && name === 'object-store.put')
+            return Promise.reject(new Error('Synthetic local write failure'));
+          if (
+            failure === 'read' &&
+            name === 'object-store.query' &&
+            params.selector['payload.anchorKeys']
+          )
+            return Promise.resolve({ docs: [] });
+          return broker.call(name, params, { ...options, meta: { ...meta, ...options?.meta } });
+        },
+      };
+      const state = memory.start(workbench, ctx, p, {
+        situation: {
+          turnKind: 'work',
+          requestedAction: {},
+          tenantMemory: { assertions: [fixture.second] },
+        },
+        envelope: { userRequest: fixture.textB, channel: 'api', conversationId: fixture.base },
+      });
+      await state.job;
+      report.scenario7.push({
+        failure,
+        confirmation: state.confirmation,
+        passed: Boolean(state.confirmation) && !/Hab ich festgehalten/u.test(state.confirmation),
+      });
     }
     // Replay one completed synthetic fact through the durable queue with the real facade.
     // No provider failure is injected: this verifies the actual recovery timeout and logs.
@@ -259,6 +311,7 @@ async function validateTenantMemoryLive() {
     report.recovery.idleObservations = report.observations.length - before;
     report.passed =
       report.runs.length === 4 &&
+      report.scenario7.every((item) => item.passed) &&
       report.recovery.realModelReplay?.passed &&
       report.observations.some(
         (item) => item.label === 'Tenant memory recovery completed' && item.tenantId

@@ -865,6 +865,14 @@
     {
       "term": "workflow",
       "reason": "Generic document processing and capability boundary, independent of business domains."
+    },
+    {
+      "term": "migration",
+      "reason": "Generische versionierte Datenmigration für gespeicherte Anker im auditierten Tenant-Admin-Pfad; keine fachlichen Prozesse oder Routingregeln."
+    },
+    {
+      "term": "administrative",
+      "reason": "Generische Berechtigungsgrenze für auditiertes Umschreiben persistierter Daten; unabhängig von Fachdomänen."
     }
   ]
 }
