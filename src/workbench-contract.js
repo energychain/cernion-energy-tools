@@ -465,6 +465,7 @@ const schemas = {
   ),
   UserMappingRequest: objectSchema(
     {
+      displayName: stringSchema('Anzeigename der Person für Entwurfssignaturen'),
       client: stringSchema('Workbench client'),
       externalOrgId: stringSchema('Open WebUI organization id'),
       externalUserId: stringSchema('Open WebUI user id; alternative to externalUserEmail'),

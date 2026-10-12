@@ -22,9 +22,9 @@ function resolvedNotice(item, model) {
 }
 
 function noticeText(item, _model) {
-  if (['memory', 'quota'].includes(item.kind)) return item.text || '';
-  // Status transitions without case content are not useful notifications.
-  return typeof item.text === 'string' ? item.text.trim() : '';
+  if (item.internalReview) return '';
+  const text = typeof item.text === 'string' ? item.text.trim() : '';
+  return require('./workbench-chat-presentation').humanNoticeText(text) ? text : '';
 }
 
 function renderNoticeBlock(items, remaining = 0, model) {
@@ -41,7 +41,8 @@ function eligibleNotices(doc, model) {
     .filter(Boolean)
     .filter(
       (item) =>
-        ['memory', 'proposal', 'gap', 'signal'].includes(item.kind) || noticeText(item, model)
+        ['memory', 'proposal', 'gap', 'signal'].includes(item.kind) ||
+        (typeof item.text === 'string' && Boolean(item.text.trim()))
     )
     .filter(
       (item) =>

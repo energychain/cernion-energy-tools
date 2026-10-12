@@ -1,5 +1,6 @@
 'use strict';
 const { createAdapter } = require('./real-adapter');
+const { gapLabels } = require('../../fixtures/workbench-850.generated.json');
 const operation = {
   operationId: 'neutral_read',
   action: 'neutral.read',
@@ -41,8 +42,8 @@ async function createGapAdapter(jest) {
   let response = {
     status: 'needs_input',
     missingInputs: [
-      { id: 'a', label: 'Field A' },
-      { id: 'b', label: 'Field B' },
+      { id: 'a', label: gapLabels[0] },
+      { id: 'b', label: gapLabels[1] },
     ],
   };
   adapter = await createAdapter({

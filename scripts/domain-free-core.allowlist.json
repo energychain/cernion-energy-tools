@@ -1,6 +1,22 @@
 {
   "entries": [
     {
+      "term": "presentation",
+      "reason": "Generische Darstellungsschicht für Chatantworten, ohne Fachrouting oder branchenspezifische Regeln."
+    },
+    {
+      "term": "german",
+      "reason": "Generischer Auditgrund für die deutsche Ausgabesprache, ohne fachliche Zuordnung."
+    },
+    {
+      "term": "auftrag",
+      "reason": "Generischer ausdrücklicher Nutzerauftrag im Antwortformat, unabhängig von Fachgebiet oder Funktion."
+    },
+    {
+      "term": "handover",
+      "reason": "Englisches Wort im allgemeinen Sprachfilter für technische Hinweise; keine Übergabeabläufe oder fachlichen Entscheidungen im Kern."
+    },
+    {
       "term": "referenz",
       "reason": "Generic structural table reference field, independent of business domains; prevents identifier arithmetic and does not route user phrases."
     },

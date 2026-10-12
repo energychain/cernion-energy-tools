@@ -15,7 +15,7 @@
     "lint:fix": "eslint . --fix",
     "lint:hygiene": "ESLINT_USE_FLAT_CONFIG=false eslint services/ src/ --config .eslintrc.hygiene.json --format unix --no-eslintrc 2>/dev/null > feedback/eslint-findings.txt && wc -l feedback/eslint-findings.txt",
     "format": "prettier --write \"**/*.js\"",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "test": "node scripts/run-unit-ci.js --all-tests",
     "test:unit": "NODE_OPTIONS=--experimental-vm-modules jest --coverage --testPathIgnorePatterns=\"tests/.*\\.integration\\.test\\.js|custom-tests\"",
     "test:unit:ci": "node scripts/run-unit-ci.js",
     "test:e2e": "jest --no-coverage tests/assets.integration.test.js",
