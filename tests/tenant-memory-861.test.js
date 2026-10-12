@@ -198,6 +198,34 @@ describe('861 deterministic tenant memory acceptance', () => {
     ).toHaveLength(1);
   });
 
+  test('K: original question keeps its qualifier with a bare extraction; unknown and invented qualifiers are safe', async () => {
+    await capture(f.first);
+    await capture(f.second, f.actorB);
+    await capture(f.assertion(`Weitere Arbeiten betreffen ${f.base}.`, f.base));
+    const p = principal(f.actorA),
+      context = ctx(p);
+    const filtered = await memory.queryResponse(
+      context,
+      p,
+      `Was wissen wir zur Gasleitung im ${f.base}?`,
+      { anchor: f.base }
+    );
+    expect(filtered.statements).toHaveLength(2);
+    expect(filtered.statements.some((fact) => fact.text === f.textA)).toBe(false);
+    const unknown = await memory.preturn(
+      context,
+      p,
+      { userRequest: `Was wissen wir zum Prüfgegenstand im ${f.base}?` },
+      null
+    );
+    expect(unknown.statements).toHaveLength(1);
+    expect(unknown.statements[0].anchors[0].qualifier).toBe('');
+    const invented = await memory.queryResponse(context, p, f.query, {
+      anchor: `${f.base} (Gasleitung)`,
+    });
+    expect(invented.statements).toHaveLength(3);
+  });
+
   test('scenario 5 / A.3: authorized migration is audited, tenant scoped, idempotent and rechecks new collisions', async () => {
     const actors = [f.actorA, f.actorB],
       items = [f.first, f.second];
@@ -308,7 +336,7 @@ describe('861 deterministic tenant memory acceptance', () => {
       situation: situation(f.textA, [f.first], { actorContext: { role: f.internalFunction } }),
     });
     expect(result.facts[0].person.functionLabel).toBe('');
-    expect(store.humanFunctionLabel('Synthetic processing chain')).toBe('');
+    expect(store.humanFunctionLabel(f.internalFunction.split(' (')[0])).toBe('');
     expect(store.source(result.facts[0])).not.toContain('Funktion nicht angegeben');
     expect(store.source(result.facts[0])).not.toContain(f.internalFunction);
     const mapped = await capture(f.second, f.actorB, {

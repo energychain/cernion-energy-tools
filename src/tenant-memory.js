@@ -223,11 +223,14 @@ function matchesAnchor(anchor, message, identifiers = []) {
     return true;
   });
 }
-function selectedAnchors(facts, message, identifiers = []) {
+function selectedAnchors(facts, message, identifiers = [], request = {}) {
   let matched = facts.filter((fact) =>
     fact.anchors.some((anchor) => matchesAnchor(anchor, message, identifiers))
   );
-  const words = ` ${store.normalizeAnchor(message)} `;
+  const words = ` ${store.normalizeAnchor(`${message} ${request.message || ''}`)} `;
+  const requested = store.qualifiedAnchor({ value: request.anchor || '', aliases: [] });
+  const requestedBases = store.anchorKeys(requested).map((key) => JSON.parse(key)[0]);
+  const requestedQualifier = store.normalizeAnchor(requested.qualifier);
   const anchors = matched.flatMap((fact) => fact.anchors);
   for (const key of new Set(anchors.flatMap(store.anchorKeys).map((key) => JSON.parse(key)[0]))) {
     const variants = [
@@ -239,7 +242,13 @@ function selectedAnchors(facts, message, identifiers = []) {
           .map(([, qualifier]) => qualifier)
       ),
     ];
-    const chosen = variants.filter((qualifier) => words.includes(` ${qualifier} `));
+    let chosen = variants.filter((qualifier) => words.includes(` ${qualifier} `));
+    if (
+      requestedQualifier &&
+      requestedBases.includes(key) &&
+      (!chosen.length || variants.includes(requestedQualifier))
+    )
+      chosen = [requestedQualifier];
     if (chosen.length)
       matched = matched.filter(
         (fact) =>
@@ -797,7 +806,13 @@ async function queryResponse(ctx, p, message, selector = {}) {
   } else if (!term && !message) {
     selection = { facts, ambiguous: '' };
   } else {
-    selection = selectedAnchors(facts, selector.anchor || message);
+    const requested = store.qualifiedAnchor({ value: selector.anchor || '', aliases: [] });
+    const grounded =
+      selector.anchor && store.qualifiedMention(requested, message || selector.anchor);
+    selection = selectedAnchors(facts, selector.anchor ? requested.value : message, [], {
+      message,
+      anchor: grounded ? selector.anchor : '',
+    });
   }
   const matches = selection.facts;
   observation(ctx).anchorHits += matches.length;

@@ -43,6 +43,9 @@ Migrationslauf für vorhandene Aussagen.
 Ein Basisanker findet alle sichtbaren Varianten, auch bei mehreren Qualifiern.
 Eine neue unqualifizierte Aussage bleibt erfassbar. Ein ausdrücklich genannter
 Qualifier filtert weiterhin auf diese Variante und unqualifizierte Aussagen (K-Regel).
+Die ursprüngliche Frage ist dafür maßgeblich, auch wenn die Extraktion nur den
+Basisanker liefert. Ein unbekannter ausdrücklich genannter Qualifier liefert nur
+unqualifizierte Basisaussagen; ein vom Modell erfundener Qualifier wird verworfen.
 Für Wechselwirkungen werden gemeinsame Basisanker verglichen: Aussagen zu verschiedenen
 Gegenständen am selben Bezug können zusammenhängen. Die Qualifier bleiben gespeichert
 und bestimmen weiterhin ausdrücklich qualifizierte Abfragen.
