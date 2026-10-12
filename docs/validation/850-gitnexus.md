@@ -37,6 +37,8 @@ Der ältere Index des ursprünglichen Checkouts wurde nicht für Änderungen ver
 | checkCore (Konfigurationswirkung) | scripts/check-domain-free-core.js           |                2 |                         0 | LOW          |
 | validate                          | scripts/validate-rc3-closeout-live.js       |                5 |                         3 | **HIGH**     |
 | validateConversation              | scripts/validate-workbench-813-live.js      |                1 |                         0 | LOW          |
+| listTests                         | scripts/run-unit-ci.js                      |                1 |                         0 | LOW          |
+| main                              | scripts/run-unit-ci.js                      |                1 |                         0 | LOW          |
 
 `choiceCandidates` hat insgesamt 16 betroffene Symbole. Direkte Aufrufer sind
 `confirmedCapability`, `choiceText` und `runContentTurn`. Die betroffenen Abläufe
@@ -52,12 +54,12 @@ Impact-Aufruf auf den neu angelegten Entwurfshelfer meldete vor Neuindizierung U
 
 Vor jedem Commit wurde `detect_changes` für den gestagten Stand sowie als Vergleich gegen
 `main` und `origin/main` ausgeführt. Der abschließende Gesamtvergleich gegen `origin/main`
-meldet 43 Dateien, 89 Symbole, sechs betroffene Abläufe, Risiko **HIGH**.
+meldet 46 Dateien, 94 Symbole, sechs betroffene Abläufe, Risiko **HIGH**.
 Betroffen sind ausschließlich
 die erwarteten Inhaltsantwort-, Fallklassifikations-, Funktionsauswahl- und
 Workbench-/Datensatzabläufe einschließlich ihrer Generatoren und Abnahmeskripte.
 
-Der vorgeschriebene Vergleich gegen den lokalen `main` meldet 222 Dateien, 1255 Symbole,
+Der vorgeschriebene Vergleich gegen den lokalen `main` meldet 225 Dateien, 1260 Symbole,
 47 Abläufe und **CRITICAL**. Dieser lokale Branch steht noch auf `e1e039` und ist in
 einem anderen Worktree ausgecheckt; er wurde nicht verändert. Der zusätzlich ausgeführte
 Vergleich gegen den aktuellen Remote-Stand `origin/main` grenzt die Änderungen von #850
@@ -71,3 +73,12 @@ Annahme-, Ablehnungs- und Einmalzustellungsprüfungen. Auch die `response`-Testv
 des PouchDB-Neustarttests wurde vor dem Austausch der englischen Labels geprüft:
 **UNKNOWN**, keine indizierten Aufrufer. Die generierten deutschen Labels erhalten
 die Prüfung, dass nur tatsächlich zugestellte Hinweise als verwendet gelten.
+
+Der bestehende Coverage-Runner unterstützt zusätzlich den vollständigen bisherigen
+Jest-Testumfang. `listTests` hat insgesamt zwei betroffene Symbole, `main` eines;
+beide melden LOW ohne betroffene Anwendungsabläufe. Der neue Discovery-Test prüft
+vollständige Testauswahl sowie unveränderte Unit-Ausschlüsse. Sein neuer Helfer
+`discover` meldete vor Anlage UNKNOWN ohne indizierte Aufrufer. Der Runner behebt
+Ressourcen-Timeouts des monolithischen Gesamtlaufs, ohne Zeitlimits oder Gates zu ändern.
+Der gestagte Runner-/Discovery-/Dokumentationscommit meldet fünf Dateien, neun Symbole,
+keine zusätzlichen Anwendungsabläufe und LOW.

@@ -70,6 +70,13 @@ npm run check:function-model
 Es gibt keinen Typecheck-Befehl in diesem CommonJS-Projekt. Die Python-Abhängigkeiten
 für die vorhandenen Prognosetests werden gemäß CI in `.venv-forecast` installiert.
 
+`npm test` verwendet den vorhandenen Coverage-Runner in seriellen Gruppen auch für
+den vollständigen bisherigen Jest-Testumfang. Der Unit-Modus bleibt unverändert.
+`test-runner-discovery.test.js` vergleicht beide Modi mit der ursprünglichen
+Jest-Discovery. Assertions, Testzeitlimits, Coverage-Zieldateien und die globalen
+Schwellen bleiben unverändert. Dadurch hält ein langer Lauf nicht sämtliche
+instrumentierten Testumgebungen gleichzeitig im Speicher.
+
 ## Live-Abnahme starten (hier nicht ausgeführt)
 
 Die bestehenden Skripte wurden erweitert: `validate-rc3-closeout-live.js` prüft #850
