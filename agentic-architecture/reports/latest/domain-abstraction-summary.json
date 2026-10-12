@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-12T01:47:19.264Z",
+  "generatedAt": "2026-10-12T13:55:46.168Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261012T014557Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261012T135402Z",
   "counts": {
-    "files": 1890,
-    "candidateFiles": 1130,
+    "files": 1906,
+    "candidateFiles": 1136,
     "services": 159,
-    "srcFiles": 425,
-    "docs": 503,
+    "srcFiles": 427,
+    "docs": 506,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -15,7 +15,7 @@
       "label": "Fallarbeit und Assistenz",
       "files": 25,
       "services": 2,
-      "hits": 6162
+      "hits": 6169
     },
     "evidence-and-trust": {
       "label": "Evidence, Nachweis und Vertrauen",
@@ -51,7 +51,7 @@
       "label": "Gas, Wärme und EOG",
       "files": 25,
       "services": 3,
-      "hits": 2826
+      "hits": 2858
     },
     "tenant-and-operation": {
       "label": "Tenant, Rollen und Betrieb",
@@ -63,7 +63,7 @@
       "label": "OpenWebUI und agentisches Routing",
       "files": 25,
       "services": 7,
-      "hits": 5022
+      "hits": 5038
     }
   },
   "ambiguousTerms": [
@@ -463,8 +463,8 @@
           "hits": 67
         },
         {
-          "path": "services/dashboard-api/methods-part-12-of-14.js",
-          "hits": 64
+          "path": "docs/validation/rc3-closeout-live.json",
+          "hits": 67
         }
       ]
     }
@@ -552,5 +552,5 @@
       "hits": 263
     }
   ],
-  "fingerprint": "fc1c7d445cfa7e93e2cc66378394c8f586159859e8f0bcf998b4f33e41cc9530"
+  "fingerprint": "81b3f1c9ac993fc731f80d17faa6ec7fde30be0772bc3085a3c0e3119e6b0e2f"
 }
