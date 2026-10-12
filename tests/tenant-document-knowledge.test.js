@@ -10,6 +10,7 @@ const path = require('node:path');
 const { createCaseBroker, auth } = require('./helpers/case-linking-broker');
 const Objects = require('../services/object-store.service');
 const Knowledge = require('../services/knowledge-rag.service');
+const Notices = require('../services/shared-service-notices.service');
 const llm = require('../src/llm-client');
 const { generateDocument } = require('../scripts/generate-tenant-document-fixtures');
 const { documentNamespace, writeCapability } = require('../src/tenant-document-policy');
@@ -25,6 +26,10 @@ describe('tenant document knowledge (#789)', () => {
     require('../src/rate-quota-store').resetForTests();
     app.broker.createService({ ...Objects, settings: { dbPath: path.join(app.dir, 'objects') } });
     app.broker.createService(Knowledge);
+    app.broker.createService({
+      ...Notices,
+      settings: { ...Notices.settings, dbPath: path.join(app.dir, 'notices') },
+    });
     app.broker.createService({
       name: 'personal-agent',
       actions: { collectWorkbenchEvidence: () => ({ evidence: [], trace: [] }) },
@@ -320,7 +325,14 @@ describe('tenant document knowledge (#789)', () => {
       situation: { turnKind: 'work', conversationShape: 'filing' },
     };
     const existingText = 'Die Arbeit an Werkstatt Delta ist für 2028 beschlossen.';
-    await require('../src/tenant-memory').capture(ctx, input.p, {
+    const colleague = { ...input.p, actorId: 'actor-b' };
+    const colleagueCtx = {
+      ...ctx,
+      meta: meta('actor-b'),
+      call: (name, params, options) =>
+        app.broker.call(name, params, { meta: { ...meta('actor-b'), ...options?.meta } }),
+    };
+    await require('../src/tenant-memory').capture(colleagueCtx, colleague, {
       envelope: { channel: 'chat', conversationId: 'existing', userRequest: existingText },
       situation: {
         turnKind: 'work',
@@ -353,6 +365,16 @@ describe('tenant document knowledge (#789)', () => {
     const sourced = facts.filter((fact) => fact.documentSource);
     expect(sourced[0].checking).toBe('complete');
     expect(sourced[0].relationIds).toHaveLength(1);
+    for (const actorId of ['actor-a', 'actor-b']) {
+      const notices = await app.call(
+        'notices.list',
+        { tenantId: 'tenant-a', actorId },
+        meta(actorId)
+      );
+      expect(notices.items.filter((notice) => notice.kind === 'memory')).toHaveLength(1);
+      expect(notices.items[0].text).toContain('Synthetische zeitliche Lücke');
+    }
+
     expect(sourced[0].documentSource.id).toBe(saved[0].id);
     expect(require('../src/tenant-memory-store').factText(sourced[0])).toContain(
       'Quelle: Beschluss Delta.txt'

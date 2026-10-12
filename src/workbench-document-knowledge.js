@@ -56,6 +56,8 @@ async function rememberDocument(service, ctx, p, row, mapping) {
           retrieval: { evidence: [] },
         }
       );
+      state.deferred = true;
+      state.renderedConfirmation = true;
       await state.job;
     });
   }
