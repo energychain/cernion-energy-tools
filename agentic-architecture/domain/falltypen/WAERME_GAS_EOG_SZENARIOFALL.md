@@ -1,6 +1,6 @@
 # Wärme-/Gas-/EOG-Szenariofall
 
-Generated: 2026-10-11T19:43:34.207Z
+Generated: 2026-10-12T01:47:19.264Z
 
 Status: observed
 Priority: 7
