@@ -207,8 +207,8 @@ async function ingestDocument(service, ctx, input) {
       (row) =>
         visible(p, row) &&
         row.hash === sha &&
-        JSON.stringify([...(row.sensitivityFlags || [])].sort()) ===
-          JSON.stringify([...sensitivityFlags].sort()) &&
+        (row.sensitivityFlags || []).length === sensitivityFlags.length &&
+        (row.sensitivityFlags || []).every((flag) => sensitivityFlags.includes(flag)) &&
         !['deleted', 'deleting', 'obsolete'].includes(row.status)
     );
     if (duplicate) {
