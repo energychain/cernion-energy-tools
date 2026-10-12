@@ -62,11 +62,11 @@ async function prepareFileTurn(service, ctx, p, envelope, meta) {
     const caseId = conversation?.cetCaseId;
     if (!caseId) fileError('Für den Export fehlt ein zugeordneter Fall.');
     await service.broker.getLocalService('domain-router').loadCase(p, caseId);
-    const docs = await loadDocuments(service.store, {
-      tenantId: p.tenantId,
-      caseId,
-      clearance: p.clearance,
-    });
+    const docs = await loadDocuments(
+      service.store,
+      { tenantId: p.tenantId, actorId: p.actorId, caseId, clearance: p.clearance },
+      { broker: service.broker, roles: p.roles }
+    );
     if (!docs.length) fileError('Keine zugänglichen Fallunterlagen zum Export vorhanden.');
     const content = docs.map((doc) => `${doc.name}\n\n${doc.text}`).join('\n\n');
     // Preserve all source clearance requirements in the generated file.

@@ -395,7 +395,11 @@ async function documentReply(
     });
   const added = attached.filter((entry) => !entry.duplicate).length;
   const storageNote = added ? `${added} Dokument(e) als Fallgrundlage gespeichert.` : '';
-  const documents = await loadDocuments(service.store, identity);
+  if (envelope.documentKnowledgeReceipt) return { responseText: envelope.documentKnowledgeReceipt };
+  const documents = await loadDocuments(service.store, identity, {
+    broker: service.broker,
+    roles: p.roles,
+  });
   if (!documents.length) return null;
   const question = envelope.userRequest;
   if (
@@ -515,7 +519,10 @@ async function documentReply(
 async function documentFollowup(service, { p, envelope, caseId, access }) {
   if (!caseId || envelope.documents?.length || documentDraftRequested(envelope.userRequest))
     return null;
-  const documents = await loadDocuments(service.store, documentIdentity(p, caseId));
+  const documents = await loadDocuments(service.store, documentIdentity(p, caseId), {
+    broker: service.broker,
+    roles: p.roles,
+  });
   if (!documents.length) return null;
   if (
     !isReviewRequest(envelope.userRequest) &&

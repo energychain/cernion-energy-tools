@@ -853,6 +853,18 @@
     {
       "term": "vergleich",
       "reason": "Generic comparison question that requires an extended schema-bound query plan."
+    },
+    {
+      "term": "ingest",
+      "reason": "Generischer Vorgang zum Einlesen und Indexieren von Dokumenten über die bestehende knowledge-rag-Schnittstelle, unabhängig von Fachdomänen."
+    },
+    {
+      "term": "receipt",
+      "reason": "Generische Ablagebestätigung im Dokumentpfad, keine fachlichen Receipts oder Abläufe."
+    },
+    {
+      "term": "workflow",
+      "reason": "Generic document processing and capability boundary, independent of business domains."
     }
   ]
 }

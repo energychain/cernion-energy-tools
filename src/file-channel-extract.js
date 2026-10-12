@@ -173,7 +173,10 @@ async function extractOriginal(file) {
       await parser.destroy();
     }
   } else text = bytes.toString('utf8');
-  if (!text?.trim()) fileError('Die Originaldatei enthält keinen lesbaren Text.');
+  if (!text?.trim())
+    fileError(
+      'Die Originaldatei enthält keinen lesbaren Text. Bitte aktiviere OCR in Open WebUI und lade sie erneut hoch.'
+    );
   const max = Number(process.env.WORKBENCH_DOCUMENT_MAX_CHARS || 4000000);
   if (text.length > max) fileError('Extrahiertes Dokument überschreitet das Textbudget.', 413);
   return {

@@ -98,7 +98,10 @@
     "src/workbench-document-passages.js",
     "src/workbench-document-question.js",
     "src/workbench-tool-answer.js",
-    "src/tool-display.js"
+    "src/tool-display.js",
+    "src/tenant-document-knowledge.js",
+    "src/tenant-document-policy.js",
+    "src/workbench-document-knowledge.js"
   ],
   "optionalPaths": [
     "src/function-model.js",
@@ -111,7 +114,11 @@
   "genericPackageShare": 0.05,
   "referenceCorpus": {
     "maxFilesPerPackage": 40,
-    "extensions": [".js", ".cjs", ".mjs"],
+    "extensions": [
+      ".js",
+      ".cjs",
+      ".mjs"
+    ],
     "generatedAt": "2026-10-03T00:00:00.000Z"
   }
 }
