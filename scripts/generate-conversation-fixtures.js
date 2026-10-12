@@ -133,6 +133,11 @@ module.exports = { generateHotfixConversationFixtures };
 function generateChatPolishFixtures() {
   return {
     humanProposal: 'Die ausstehende Fallprüfung braucht eine Freigabe.',
+    gapLabels: [
+      'Die erste Angabe fehlt',
+      'Die weitere Angabe fehlt',
+      'Die zusätzliche Angabe fehlt',
+    ],
     internalNotice:
       'Internal Review Proposal: Case 00000000-0000-4000-8000-000000000850 requires operational review due to blocking breaches in the handover process.',
     unsafeNotices: [
@@ -146,6 +151,7 @@ function generateChatPolishFixtures() {
     summaryQuestion: 'Fasse das Protokoll kurz zusammen.',
     functionQuestion: 'Welche Funktionen passen zu diesem Fall?',
     peakQuestion: 'Wann war die Spitzenlast?',
+    peakAnswer: 'Die Spitzenlast beträgt 1.243,7 kW am 14.01.2025 18:15.',
     detailsQuestion: 'Zeig mir den Rechenweg',
     draftQuestion: 'Mach mir die Antwort fertig',
     displayName: 'ben',

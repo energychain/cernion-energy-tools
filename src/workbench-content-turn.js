@@ -175,6 +175,7 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
   if (!ctx.broker.getLocalService('dataset')) return null;
   const fresh = envelope.datasetIds || [];
   // Replayed attachments retain the established answer phase and its grounded checks.
+  if (fresh.length && !envelope.datasetConfirmations?.length) return null;
   const grounded = turnDatasetIds(p, envelope, pending);
   if (!grounded.length) return null;
   if (!datasetQuestion(envelope.userRequest)) {

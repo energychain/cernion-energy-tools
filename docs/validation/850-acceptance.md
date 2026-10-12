@@ -44,6 +44,11 @@ keine zusätzlichen Rechte. Transportidentitäten ersetzen den Anzeigenamen nich
 Alle neuen inhaltlichen Fixtures werden durch `scripts/generate-conversation-fixtures.js`
 erzeugt. Lastgang und Dateikanal verwenden `scripts/generate-dataset-fixtures.js`.
 Die Abnahmetests benötigen keine echten Namen, E-Mail-Adressen oder Unternehmen.
+Die vorhandenen Lücken- und Vorschlagsprüfungen nutzen ebenfalls generierte deutsche
+Hinweistexte; ihre Zustell-, Bestätigungs- und Sichtbarkeitsregeln bleiben bestehen.
+Der Domain-Free-Check prüft die gemeinsame Darstellungshilfe ausdrücklich mit.
+Seine vorhandene Allowlist erklärt die generischen Sprach- und Darstellungsbegriffe;
+sie ergänzt keine fachlichen Ausnahmen oder Routingregeln.
 
 ## Lokale Prüfungen
 
@@ -56,6 +61,7 @@ NODE_ENV=test npm run release:check
 npm run lint
 npx prettier --check '**/*.js'
 npm run build
+npm run check:domain-free-core
 node scripts/generate-conversation-fixtures.js --check
 node scripts/generate-dataset-fixtures.js --check
 npm run check:function-model

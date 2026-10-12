@@ -11,6 +11,7 @@ const { ServiceBroker } = require('moleculer');
 const llm = require('../src/llm-client');
 const structuredMock = llm.generateStructured;
 const textMock = llm.generateText;
+const chatMock = llm.generateChat;
 const fixtures = require('./fixtures/workbench-850.generated.json');
 const presentation = require('../src/workbench-chat-presentation');
 const { choiceCandidates } = require('../src/capability-clarification');
@@ -200,7 +201,33 @@ describe('850 scenarios 4–5: real dataset paths', () => {
     };
     structuredMock.mockImplementation(async (_schema, raw) => {
       const value = JSON.parse(raw);
-      return value.datasets ? { datasetIds: value.datasets.map((item) => item.id) } : null;
+      if (value.datasets) return { datasetIds: value.datasets.map((item) => item.id) };
+      if (value.profile) return null;
+      return {
+        ...situation,
+        concern: value.message || fixtures.peakQuestion,
+        situation: value.message || fixtures.peakQuestion,
+        turnKind: 'knowledge',
+        dataNeeds: value.message || fixtures.peakQuestion,
+      };
+    });
+    textMock.mockResolvedValue(JSON.stringify(resultWith(fixtures.peakAnswer)));
+    chatMock.mockImplementation(async (_messages, options) => {
+      const tool = options.tools.find((entry) =>
+        entry.function.description.startsWith('dataset.query:')
+      );
+      return {
+        toolCalls: tool
+          ? [
+              {
+                name: tool.function.name,
+                args: {
+                  input: { id: tool.function.parameters.properties.input.properties.id.enum[0] },
+                },
+              },
+            ]
+          : [],
+      };
     });
   });
   afterAll(async () => {
@@ -327,8 +354,9 @@ describe('850 scenarios 4–5: real dataset paths', () => {
             ).text
           : csv;
       const first = await chat(fixtures.peakQuestion, content, `synthetic-${channel}`);
+      const repeated = await chat(fixtures.peakQuestion, content, `synthetic-${channel}`);
       const followup = await chat(fixtures.peakQuestion, null, `synthetic-${channel}`);
-      for (const response of [first, followup]) {
+      for (const response of [first, repeated, followup]) {
         expect(response.responseText.match(/1\.243,7\s*kW/g)).toHaveLength(1);
         expect(response.responseText).toContain('14.01.2025 18:15');
         expect(response.responseText).toContain('Herkunft:');
