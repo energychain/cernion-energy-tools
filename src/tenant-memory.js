@@ -139,18 +139,22 @@ function eligible(message, situation, envelope) {
     !pureQuestion(message)
   );
 }
-function person(p, mapping, situation, ctx) {
+function person(p, mapping, situation, ctx, message = '') {
   const auth = ctx.meta?.authUser || ctx.meta?.apiToken || {};
   return {
     actorId: p.actorId,
     name: mapping?.displayName || (!mapping && (auth.name || auth.displayName)) || p.actorId,
     roles: p.roles,
-    functionLabel:
+    functionLabel: store.humanFunctionLabel(
       mapping?.functionLabel ||
-      mapping?.roleFamilies?.join(', ') ||
-      situation.tenantMemory?.functionLabel ||
-      situation.actorContext?.role ||
-      '',
+        mapping?.roleFamilies?.join(', ') ||
+        [situation.tenantMemory?.functionLabel, situation.actorContext?.role].find(
+          (label) =>
+            label &&
+            ` ${store.normalizeAnchor(message)} `.includes(` ${store.normalizeAnchor(label)} `)
+        ) ||
+        ''
+    ),
   };
 }
 // A question-only turn cannot turn a model extraction into an assertion.
@@ -219,11 +223,14 @@ function matchesAnchor(anchor, message, identifiers = []) {
     return true;
   });
 }
-function selectedAnchors(facts, message, identifiers = []) {
+function selectedAnchors(facts, message, identifiers = [], request = {}) {
   let matched = facts.filter((fact) =>
     fact.anchors.some((anchor) => matchesAnchor(anchor, message, identifiers))
   );
-  const words = ` ${store.normalizeAnchor(message)} `;
+  const words = ` ${store.normalizeAnchor(`${message} ${request.message || ''}`)} `;
+  const requested = store.qualifiedAnchor({ value: request.anchor || '', aliases: [] });
+  const requestedBases = store.anchorKeys(requested).map((key) => JSON.parse(key)[0]);
+  const requestedQualifier = store.normalizeAnchor(requested.qualifier);
   const anchors = matched.flatMap((fact) => fact.anchors);
   for (const key of new Set(anchors.flatMap(store.anchorKeys).map((key) => JSON.parse(key)[0]))) {
     const variants = [
@@ -235,9 +242,13 @@ function selectedAnchors(facts, message, identifiers = []) {
           .map(([, qualifier]) => qualifier)
       ),
     ];
-    const chosen = variants.filter((qualifier) => words.includes(` ${qualifier} `));
-    if (variants.length > 1 && !chosen.length)
-      return { facts: [], ambiguous: `Welchen Bezug meinst du: ${variants.join(' oder ')}?` };
+    let chosen = variants.filter((qualifier) => words.includes(` ${qualifier} `));
+    if (
+      requestedQualifier &&
+      requestedBases.includes(key) &&
+      (!chosen.length || variants.includes(requestedQualifier))
+    )
+      chosen = [requestedQualifier];
     if (chosen.length)
       matched = matched.filter(
         (fact) =>
@@ -301,27 +312,12 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
     const facts = [];
     const confirmations = [];
     for (const assertion of assertions) {
-      const messageWords = ` ${store.normalizeAnchor(message)} `;
       const groundedAnchors = assertion.anchors.map((anchor) => {
         const qualified = store.qualifiedAnchor(anchor);
-        const names = [qualified.value, ...(qualified.aliases || [])];
-        const qualifiedName = names.some((name) =>
-          [`${name} ${qualified.qualifier}`, `${qualified.qualifier} ${name}`].some((value) =>
-            messageWords.includes(` ${store.normalizeAnchor(value)} `)
-          )
-        );
-        return qualified.qualifier && !qualifiedName ? { ...qualified, qualifier: '' } : qualified;
+        return qualified.qualifier && !store.qualifiedMention(qualified, message)
+          ? { ...qualified, qualifier: '' }
+          : qualified;
       });
-      const ambiguity = store.ambiguous(groundedAnchors, existing);
-      if (ambiguity) {
-        stats.rejected.ambiguous = (stats.rejected.ambiguous || 0) + 1;
-        return {
-          facts,
-          ids: facts.map((item) => item.id),
-          confirmation: confirmations.join('\n'),
-          ambiguous: `Welchen Bezug meinst du mit „${ambiguity.value}“: ${ambiguity.variants.join(' oder ')}?`,
-        };
-      }
       const id = store.key([
         'statement',
         p.actorId,
@@ -339,7 +335,7 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
         tenantId: p.tenantId,
         sensitivityFlags: sensitivityFlags || ctx.params.sensitivityFlags || [],
         recoveryPrincipal: { ...p },
-        person: person(p, mapping, situation, ctx),
+        person: person(p, mapping, situation, ctx, message),
         at,
         text: assertion.text,
         basis: assertion.basis,
@@ -356,6 +352,24 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
         checking: 'pending',
       };
       await store.put(ctx, p, fact);
+      const bases = [...new Set(fact.anchorKeys.map((key) => JSON.parse(key)[0]))];
+      let readable = false;
+      for (const base of bases) {
+        if (
+          (await store.byBase(ctx, p, base)).some(
+            (saved) => saved.id === fact.id && store.active(saved)
+          )
+        ) {
+          readable = true;
+          break;
+        }
+      }
+      if (!readable) {
+        confirmations.push(
+          'Die Aussage wurde geschrieben, ist über ihren Bezug aber noch nicht lesbar. Ich kann das Festhalten daher noch nicht bestätigen.'
+        );
+        continue;
+      }
       existing.push(fact);
       facts.push(fact);
       stats.accepted++;
@@ -455,8 +469,10 @@ async function assess(ctx, p, fact, retrieval) {
       })
     : [];
   const selected = shared.filter((item) => weighted.has(item.id)).slice(0, 10);
-  const knowledge = (retrieval.evidence || []).filter(
-    (hit) => hit.retrievalSource !== 'tenant-memory' && hit.source !== 'tenant-memory'
+  const knowledge = store.compactEvidence(
+    (retrieval.evidence || []).filter(
+      (hit) => hit.retrievalSource !== 'tenant-memory' && hit.source !== 'tenant-memory'
+    )
   );
   if (!selected.length && !knowledge.length) {
     if (retrieval.unavailable) throw new Error('Tenant memory evidence unavailable');
@@ -555,9 +571,17 @@ async function assess(ctx, p, fact, retrieval) {
       texts.push(await store.relationText(ctx, p, id));
     }
   }
-  const plausibility = (result.plausibility || [])
-    .map((item) => plausibilityText(item, evidence))
-    .filter(Boolean);
+  const warnings = (result.plausibility || []).filter(
+    (item) => item.reason?.trim() && evidence.some((hit) => item.evidenceIds?.includes(hit.id))
+  );
+  const combined = plausibilityText(
+    {
+      reason: [...new Set(warnings.map((item) => item.reason.trim()))].join(' '),
+      evidenceIds: [...new Set(warnings.flatMap((item) => item.evidenceIds || []))],
+    },
+    evidence
+  );
+  const plausibility = combined ? [combined] : [];
   texts.push(...plausibility);
   const completed = await store.mutate(ctx, p, fact.id, (value) =>
     store.active(value)
@@ -615,6 +639,9 @@ function start(service, ctx, p, input) {
     }
   })()
     .catch((error) => {
+      if (!state.captured && input.situation?.tenantMemory?.assertions?.length)
+        state.confirmation =
+          'Ich konnte das Festhalten der Aussage nicht bestätigen. Bitte versuche es erneut.';
       if (!['pending', 'failed', 'complete'].includes(observation(ctx).assessmentResult))
         observation(ctx).assessmentResult = 'unavailable';
       service.logger.warn('Tenant memory unavailable', errorDetails(error, p));
@@ -779,7 +806,13 @@ async function queryResponse(ctx, p, message, selector = {}) {
   } else if (!term && !message) {
     selection = { facts, ambiguous: '' };
   } else {
-    selection = selectedAnchors(facts, selector.anchor || message);
+    const requested = store.qualifiedAnchor({ value: selector.anchor || '', aliases: [] });
+    const grounded =
+      selector.anchor && store.qualifiedMention(requested, message || selector.anchor);
+    selection = selectedAnchors(facts, selector.anchor ? requested.value : message, [], {
+      message,
+      anchor: grounded ? selector.anchor : '',
+    });
   }
   const matches = selection.facts;
   observation(ctx).anchorHits += matches.length;
@@ -1026,6 +1059,7 @@ async function correctFacts(ctx, p, envelope, pending, correction) {
   };
 }
 module.exports = {
+  serialized,
   acceptedAssertion,
   beforeTurn,
   afterTurn,

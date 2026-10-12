@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Teamgedächtnis mit kanonischen Basisankern (#861)
+
+- Der Store zerlegt zusammengesetzte Anker deterministisch über konfigurierbare Präpositionen und Artikel. Basisfragen und Wechselwirkungen berücksichtigen alle Qualifier; ausdrücklich qualifizierte Fragen behalten ihre Filterung.
+- Festhaltebestätigungen erfordern das erneute Lesen der gespeicherten Aussage über einen Basisanker im selben Turn. Schreib- und Lesefehler führen zu einer ehrlichen Meldung.
+- Auditierte, idempotente Tenant-Admin-Migration normalisiert Altdaten, bereinigt interne Funktionslabels und doppelte Prüfbelege und plant neu verbundene Aussagen zur erneuten Prüfung ein; Betreiberaufruf im Tenant-Gedächtnis-Runbook.
+- Entwürfe verwenden den gemappten Anzeigenamen für die Signatur. Vollständig beantwortete Fragen zu einem eindeutigen Datensatz erhalten keine zusätzliche Bereichs- oder Zeitraumfrage.
+- Synthetische Generator-Daten und Tests für alle elf Abnahmeszenarien. Die vorhandene Nichtproduktions-Live-Validierung ist um Szenarien 1, 2 und 7 ergänzt; sie wurde nicht ausgeführt.
+
+
 ## Unreleased — RC3: Tenant-Wissen aus Dokumenten (#789)
 
 - Dokumente und Mail-Verläufe werden tenantweit mit Titel, Fundstelle, Person und Funktion auffindbar; Eingänge zur Kenntnis erhalten eine kurze Ablagebestätigung.

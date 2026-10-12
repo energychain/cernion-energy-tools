@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "5877cfabfbbd1f079cec83f6ce6ed8721c0d0e6e16983f36efdad5fe493c0216",
+  "sourceHash": "3f3a66ac45c3b9b1bcbea26d919af72e2232965097f6ad1d2fa94379cc36eb62",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -1105,7 +1105,7 @@
       "new": 6,
       "previousSourceHash": "1f0866ec0eb79538c3201e4fbbdfa19ac60fd987e4db6ec7cf73d380090bf44e"
     },
-    "indexOperationCount": 998,
+    "indexOperationCount": 999,
     "indexOperationsWithoutAction": 19,
     "capabilityCount": 172,
     "functionCount": 110,

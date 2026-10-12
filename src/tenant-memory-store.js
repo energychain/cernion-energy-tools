@@ -19,11 +19,54 @@ function normalizeAnchor(value) {
     .replace(/\s+/g, ' ')
     .trim();
 }
+function anchorSyntax() {
+  const words = (name, fallback) =>
+    [...new Set((process.env[name] || fallback).split(',').map(normalizeAnchor))].filter(Boolean);
+  return {
+    prepositions: words(
+      'TENANT_MEMORY_ANCHOR_PREPOSITIONS',
+      'in,im,an,am,auf,bei,mit,zu,zum,zur,von,vom,für,über,unter,vor,nach,aus'
+    ),
+    articles: words(
+      'TENANT_MEMORY_ANCHOR_ARTICLES',
+      'der,die,das,den,dem,des,ein,eine,einer,einem,einen,eines'
+    ),
+  };
+}
+function anchorParts(value) {
+  const original = String(value || '').trim();
+  const parenthesized = original.match(/^(.+?)\s*\(([^()]+)\)$/);
+  if (parenthesized)
+    return { value: anchorParts(parenthesized[1]).value, qualifier: parenthesized[2].trim() };
+  const { prepositions, articles } = anchorSyntax();
+  const tokens = original.split(/\s+/u);
+  const boundary = tokens.findLastIndex(
+    (token, index) =>
+      index > 0 && index < tokens.length - 1 && prepositions.includes(normalizeAnchor(token))
+  );
+  if (boundary < 0) return { value: original, qualifier: '' };
+  const trimArticles = (parts) => {
+    while (parts.length && articles.includes(normalizeAnchor(parts[0]))) parts.shift();
+    return parts.join(' ');
+  };
+  const qualifier = trimArticles(tokens.slice(0, boundary));
+  const base = trimArticles(tokens.slice(boundary + 1));
+  return qualifier && base ? { value: base, qualifier } : { value: original, qualifier: '' };
+}
 function qualifiedAnchor(anchor) {
-  const match = String(anchor.value).match(/^(.+?)\s*\(([^()]+)\)$/);
-  return match && !anchor.qualifier
-    ? { ...anchor, value: match[1].trim(), qualifier: match[2].trim() }
-    : anchor;
+  const parts = anchorParts(anchor.value);
+  const qualifier = parts.qualifier || anchor.qualifier || '';
+  const aliases = (anchor.aliases || [])
+    .map((alias) => {
+      const parsed = anchorParts(alias);
+      if (parsed.qualifier && normalizeAnchor(parsed.qualifier) !== normalizeAnchor(qualifier))
+        return '';
+      return normalizeAnchor(parsed.value) === normalizeAnchor(`${qualifier} ${parts.value}`)
+        ? parts.value
+        : parsed.value;
+    })
+    .filter(Boolean);
+  return { ...anchor, ...parts, qualifier, aliases: [...new Set(aliases)] };
 }
 function anchorKeys(anchor) {
   anchor = qualifiedAnchor(anchor);
@@ -31,6 +74,70 @@ function anchorKeys(anchor) {
   return [...new Set([anchor.value, ...(anchor.aliases || [])].map(normalizeAnchor))]
     .filter(Boolean)
     .map((base) => JSON.stringify([base, qualifier]));
+}
+function qualifiedMention(anchor, message) {
+  const normalized = qualifiedAnchor(anchor);
+  const qualifier = normalizeAnchor(normalized.qualifier);
+  if (!qualifier) return true;
+  const words = ` ${normalizeAnchor(message)} `;
+  const { prepositions, articles } = anchorSyntax();
+  return [normalized.value, ...normalized.aliases].some((name) => {
+    const base = normalizeAnchor(name);
+    if (words.includes(` ${base} ${qualifier} `) || words.includes(` ${qualifier} ${base} `))
+      return true;
+    return prepositions.some((prep) =>
+      ['', ...articles].some((article) =>
+        words.includes(` ${qualifier} ${prep} ${article ? `${article} ` : ''}${base} `)
+      )
+    );
+  });
+}
+function humanFunctionLabel(value) {
+  const label = typeof value === 'string' ? value.trim() : '';
+  if (
+    !label ||
+    label.length > 80 ||
+    /[()[\]{}\n]/u.test(label) ||
+    label === 'Funktion nicht angegeben'
+  )
+    return '';
+  if (
+    require('./workbench-tool-answer').internalToolText(label) ||
+    /\b(?:chain|processing|workflow|decision|blocked|follow[ -]?up|handover)\b/iu.test(label)
+  )
+    return '';
+  const normalized = normalizeAnchor(label);
+  return require('./function-model')
+    .getFunctionModel()
+    .functions.some((fn) =>
+      [fn.functionId, fn.label, fn.displayLabel].some(
+        (name) => name && normalizeAnchor(name) === normalized
+      )
+    )
+    ? ''
+    : label;
+}
+function compactEvidence(hits = []) {
+  const seen = new Set();
+  const excerpt = (value) => {
+    const text = String(value || '')
+      .replace(/\s+/gu, ' ')
+      .trim();
+    return text.length > 600 ? `${text.slice(0, 600)}…` : text;
+  };
+  return hits
+    .map((hit) => ({ ...hit, value: excerpt(hit.value) }))
+    .filter((hit) => {
+      const identity = JSON.stringify([
+        hit.source,
+        hit.url || hit.metadata?.url || '',
+        hit.metadata?.workbenchDocument || hit.metadata?.key || '',
+        hit.value,
+      ]);
+      if (seen.has(identity)) return false;
+      seen.add(identity);
+      return true;
+    });
 }
 function active(fact, now = Date.now()) {
   return fact.status === 'valid' && (!fact.expiresAt || Date.parse(fact.expiresAt) > now);
@@ -47,6 +154,13 @@ async function query(ctx, p, selector = {}) {
     docs.push(...page.docs.map((doc) => doc.payload).filter((item) => visible(p, item)));
     if (page.docs.length < 1000) return docs;
   }
+}
+async function byBase(ctx, p, base) {
+  const prefix = JSON.stringify([normalizeAnchor(base)]).slice(0, -1) + ',';
+  return query(ctx, p, {
+    'payload.type': 'tenant_memory_fact',
+    'payload.anchorKeys': { $elemMatch: { $gte: prefix, $lt: prefix + '\uffff' } },
+  });
 }
 async function get(ctx, p, id) {
   const doc = await ctx.call('object-store.get', { namespace: namespace(p), key: id });
@@ -80,25 +194,9 @@ async function mutate(ctx, p, id, change) {
 }
 function candidates(fact, facts) {
   const valid = facts.filter((item) => active(item));
-  // Resolve a bare base to its sole tenant qualifier, retaining separation when variants exist.
-  const variants = new Map();
-  for (const item of valid)
-    for (const key of item.anchorKeys) {
-      const [base, qualifier] = JSON.parse(key);
-      if (qualifier) {
-        if (!variants.has(base)) variants.set(base, new Set());
-        variants.get(base).add(qualifier);
-      }
-    }
-  const keys = (item) => [
-    ...new Set(
-      item.anchorKeys.map((key) => {
-        const [base, qualifier] = JSON.parse(key);
-        const choices = variants.get(base);
-        return JSON.stringify([base, qualifier || (choices?.size === 1 ? [...choices][0] : '')]);
-      })
-    ),
-  ];
+  // Shared objects can connect statements about different subjects. Qualifiers
+  // constrain explicit questions, not the relationship candidate search.
+  const keys = (item) => [...new Set(item.anchorKeys.map((key) => JSON.parse(key)[0]))];
   const frequency = new Map();
   for (const item of valid)
     for (const anchor of keys(item)) frequency.set(anchor, (frequency.get(anchor) || 0) + 1);
@@ -133,11 +231,7 @@ function source(fact) {
     month: '2-digit',
     year: 'numeric',
   });
-  const label = fact.person.functionLabel;
-  const fn = require('./function-model')
-    .getFunctionModel()
-    .functions.find((fn) => [fn.functionId, fn.label, fn.displayLabel].includes(label));
-  const functionLabel = !fn && label !== 'Funktion nicht angegeben' ? label : '';
+  const functionLabel = humanFunctionLabel(fact.person.functionLabel);
   return `${fact.person.name} (${[functionLabel, date].filter(Boolean).join(', ')})`;
 }
 function factText(fact) {
@@ -184,8 +278,13 @@ module.exports = {
   normalizeAnchor,
   qualifiedAnchor,
   anchorKeys,
+  anchorSyntax,
+  qualifiedMention,
+  humanFunctionLabel,
+  compactEvidence,
   active,
   query,
+  byBase,
   get,
   put,
   mutate,

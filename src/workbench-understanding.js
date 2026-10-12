@@ -1007,6 +1007,26 @@ function decorateAnswer(
   if (sources.length) lines.push(sourceLine(sources));
 }
 
+// The executor's measured answer resolves scope questions for one selected dataset.
+// Ambiguous selections and incomplete/failed reads still go through questionsFor.
+function datasetQuestionAnswered(evidence, message) {
+  const datasets = evidence.filter(
+    (hit) =>
+      hit.source === 'dataset.query' &&
+      hit.retrievalSource === 'capability-read' &&
+      hit.metadata?.datasetId &&
+      !['unavailable', 'error', 'ambiguous'].includes(hit.metadata?.status)
+  );
+  if (!datasets.length || new Set(datasets.map((hit) => hit.metadata.datasetId)).size !== 1)
+    return false;
+  const canonical = require('./workbench-tool-answer').availableToolAnswer(datasets, message);
+  return (
+    !/[?]|nicht möglich|nicht gefunden|keine verwendbaren|Bitte wähle/iu.test(canonical) &&
+    /[-−+]?\d+(?:[.,]\d+)*\s*(?:[kM]?Wh?|Hz|EUR|Zeilen|Datensätze)\b/u.test(canonical) &&
+    (!/wann|Zeitpunkt|Uhrzeit|Datum/iu.test(message) ||
+      /\d{2}[:.]\d{2}|\d{4}-\d{2}-\d{2}/u.test(canonical))
+  );
+}
 async function answer({
   situation,
   retrieval,
@@ -1030,7 +1050,10 @@ async function answer({
   const unresolved = (situation.codeResolutions || []).filter(
     (entry) => entry.status !== 'resolved'
   );
-  const questions = questionsFor(situation, asked);
+  const questions =
+    datasetQuestionAnswered(evidence, message) && !unresolved.length
+      ? []
+      : questionsFor(situation, asked);
   let result = { expectation: [], nextSteps: [], draft: [] };
   let answerStatus = 'fallback';
   const phaseStarted = performance.now();
@@ -1052,9 +1075,11 @@ async function answer({
     (situation.conversationShape
       ? situation.conversationShape === 'assistance'
       : situation.responseMode === 'conversation') && !draftRequested;
-  const decisive = (situation.missingInformation || []).some(
-    (item) => item.decisive && item.reason !== 'purpose' && !item.answered
-  );
+  const decisive =
+    questions.length > 0 &&
+    (situation.missingInformation || []).some(
+      (item) => item.decisive && item.reason !== 'purpose' && !item.answered
+    );
   // Explicit current-turn intent wins even for callers passing stale next-step metadata.
   nextStepOnly = nextStepOnly && !draftRequested;
   try {

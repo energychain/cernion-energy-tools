@@ -65655,6 +65655,27 @@
         }
       }
     },
+    "/api/tenant-memory-policy/migrate-anchors": {
+      "post": {
+        "operationId": "tenant-memory-policy_migrateAnchors",
+        "summary": "Audit legacy anchor normalization and queue newly connected statements",
+        "tags": [
+          "Tenant Memory Policy"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/tenant-memory-policy/statements": {
       "get": {
         "operationId": "tenant-memory-policy_list",

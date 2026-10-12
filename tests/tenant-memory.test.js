@@ -558,7 +558,7 @@ describe('tenant memory acceptance and lifecycle', () => {
     expect(performance.now() - started).toBeLessThan(2000);
   });
 
-  test('a sole qualified tenant anchor works bare; multiple variants require clarification in queries and work', async () => {
+  test('bare tenant anchors retrieve every variant; explicit qualifiers still separate variants', async () => {
     const ctx = context(app),
       p = principal();
     const add = async (qualifier) => {
@@ -583,11 +583,9 @@ describe('tenant memory acceptance and lifecycle', () => {
     expect(store.candidates(unqualified.facts[0], facts)).toHaveLength(1);
     await add('B');
     const query = await memory.queryResponse(ctx, p, 'Was wissen wir zur Hauptstraße?', {});
-    expect(query.statements).toHaveLength(0);
-    expect(query.responseText).toContain('Welchen Bezug');
-    expect((await memory.related(ctx, p, {}, 'Plane Hauptstraße.')).text).toContain(
-      'Welchen Bezug'
-    );
+    expect(query.statements).toHaveLength(3);
+    expect(query.responseText).not.toContain('Welchen Bezug');
+    expect((await memory.related(ctx, p, {}, 'Plane Hauptstraße.')).evidence).toHaveLength(3);
     expect(
       (await memory.queryResponse(ctx, p, '', { anchor: 'Hauptstraße (A)' })).statements.some(
         (fact) => fact.anchors.some((anchor) => anchor.qualifier === 'B')
@@ -919,7 +917,7 @@ describe('tenant memory acceptance and lifecycle', () => {
     ).toHaveLength(1);
   });
 
-  test('AC-05: only tenant-local ambiguity asks a question', async () => {
+  test('AC-05 / 861 A.2: bare assertions remain recordable with multiple tenant-local variants', async () => {
     const ctx = context(app),
       p = principal();
     const text = 'Synthetische Aussage Hauptstraße';
@@ -936,8 +934,11 @@ describe('tenant memory acceptance and lifecycle', () => {
     expect((await add('', 'plain')).confirmation).toContain('Hab ich festgehalten');
     await add('A', 'a');
     await add('B', 'b');
-    expect((await add('', 'ambiguous')).ambiguous).toMatch(/A oder B|B oder A/);
-    expect((await add('A', 'inferred-qualifier')).ambiguous).toMatch(/A oder B|B oder A/);
+    expect((await add('', 'ambiguous')).ambiguous).toBe('');
+    const inferred = await add('A', 'inferred-qualifier');
+    expect(inferred.ambiguous).toBe('');
+    const recorded = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
+    expect(recorded.filter((fact) => !fact.anchors[0].qualifier)).toHaveLength(3);
   });
 
   test('AC-06/07: audited revocation, expiry, tenant and clearance isolation', async () => {
