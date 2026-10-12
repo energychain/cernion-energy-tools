@@ -154,7 +154,7 @@ function factText(fact) {
       : fact.checking === 'pending'
         ? ' Prüfung ausstehend.'
         : '';
-  return `${source(fact)}: „${fact.text}“ (${labels[active(fact) ? 'valid' : fact.status === 'valid' ? 'expired' : fact.status]}).${checking}`;
+  return `${source(fact)}${fact.documentSource ? `; Quelle: ${fact.documentSource.title}, Version ${fact.documentSource.version}, ${fact.documentSource.location}` : ''}: „${fact.text}“ (${labels[active(fact) ? 'valid' : fact.status === 'valid' ? 'expired' : fact.status]}).${checking}`;
 }
 async function relationText(ctx, p, id, { includeFacts = true } = {}) {
   const relation = (await get(ctx, p, id)).payload;

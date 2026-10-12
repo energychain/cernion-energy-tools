@@ -283,12 +283,12 @@ function logObservation(ctx) {
     tenantId: ctx.meta?.tenantId || ctx.meta?.apiToken?.tenantId || ctx.meta?.authUser?.tenantId,
   });
 }
-async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags }) {
+async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags, documentSource }) {
   const message = envelope.userRequest;
   const stats = observation(ctx);
   const candidates = situation.tenantMemory?.assertions || [];
   stats.candidates += candidates.length;
-  const allowed = eligible(message, situation, envelope);
+  const allowed = Boolean(documentSource) || eligible(message, situation, envelope);
   for (const item of candidates) {
     const reason = allowed ? rejectionReason(item, message) : 'not_eligible';
     if (reason) stats.rejected[reason] = (stats.rejected[reason] || 0) + 1;
@@ -335,6 +335,7 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags 
       const fact = {
         id,
         type: 'tenant_memory_fact',
+        ...(documentSource ? { documentSource } : {}),
         tenantId: p.tenantId,
         sensitivityFlags: sensitivityFlags || ctx.params.sensitivityFlags || [],
         recoveryPrincipal: { ...p },

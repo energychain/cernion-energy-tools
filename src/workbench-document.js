@@ -91,6 +91,9 @@ async function attachDocuments(store, identity, documents, options = {}) {
     // The existing evidence store owns persistence and tenant/case scoping.
     evidence.extracts.document = {
       name: document.name,
+      ...(document.knowledgeDocumentId
+        ? { knowledgeDocumentId: document.knowledgeDocumentId }
+        : {}),
       sourceId: document.id || null,
       text: document.text,
       completeness: document.original ? 'full' : options.completeness || 'unknown',
@@ -125,9 +128,9 @@ async function attachDocuments(store, identity, documents, options = {}) {
   return saved;
 }
 
-async function loadDocuments(store, identity) {
+async function loadDocuments(store, identity, options = {}) {
   if (!identity.tenantId || !identity.caseId) throw new Error('Document scope required');
-  return (await store.listEvidence(identity))
+  const documents = (await store.listEvidence(identity))
     .filter(
       (entry) =>
         canViewEvidence(entry, identity.clearance, identity.tenantId) &&
@@ -143,6 +146,33 @@ async function loadDocuments(store, identity) {
       evidenceId: entry.evidenceId,
       hash: entry.fileHash,
     }));
+  if (!options.broker) return documents;
+  const allowed = await Promise.all(
+    documents.map(async (doc) => {
+      if (!doc.knowledgeDocumentId) return true;
+      try {
+        const row = await options.broker.call(
+          'knowledge-rag.documentGet',
+          { id: doc.knowledgeDocumentId },
+          {
+            meta: {
+              tenantId: identity.tenantId,
+              authUser: {
+                userId: identity.actorId,
+                tenantId: identity.tenantId,
+                roles: options.roles,
+                sensitivityFlags: identity.clearance || [],
+              },
+            },
+          }
+        );
+        return row.status === 'active';
+      } catch (_error) {
+        return false;
+      }
+    })
+  );
+  return documents.filter((_doc, index) => allowed[index]);
 }
 
 module.exports = { documentSections, attachDocuments, loadDocuments };

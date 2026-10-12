@@ -118,8 +118,16 @@ function memoryNamespaceAfter(ctx, result) {
 module.exports = {
   name: 'object-store',
   hooks: {
-    before: { '*': [require('../src/file-channel-policy').guardFileStore, memoryNamespaceBefore] },
-    after: { '*': memoryNamespaceAfter },
+    before: {
+      '*': [
+        require('../src/file-channel-policy').guardFileStore,
+        memoryNamespaceBefore,
+        require('../src/tenant-document-policy').guardDocuments,
+      ],
+    },
+    after: {
+      '*': [memoryNamespaceAfter, require('../src/tenant-document-policy').filterDocuments],
+    },
   },
 
   mixins: [

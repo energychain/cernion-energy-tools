@@ -206,3 +206,51 @@ OpenAI-kompatiblen `error.message` auf Deutsch: aktuelle Grenze und Hinweise zum
 Aufteilen, kleineren Ausschnitten oder weniger Chat-Verlauf. CET protokolliert
 nur die Größen-/Limit-Metadaten, keine Dateiinhalte. Lehnt bereits der Proxy ab,
 kommt die Anfrage nicht bei CET an: dessen Grenze bzw. Fehlerseite separat prüfen.
+
+## Tenant-Wissen und Ablage ohne Frage (RC3, #789)
+
+Arbeitsdokumente aus dem Volltext- und Originaldateikanal werden zusätzlich über
+`knowledge-rag` im tenantgebundenen Object Store geführt. Der bestehende Chunker und
+Embedding-Pfad erzeugen Suchabschnitte. Herkunft umfasst Person, Funktion, Aufnahmezeit,
+Titel, Version und Fundstelle. Tabellen bleiben im Datenkatalog.
+
+„Zur Kenntnis“ und Mail-Verläufe ohne Arbeitsauftrag werden im Lagebild als `filing`
+erkannt. CET bestätigt die Ablage kurz und führt die normale Fallzuordnung fort.
+Erneut mitgesendete identische Anhänge erzeugen keine zusätzliche Ablage. Bei einer
+neuen Fassung desselben Namens wird die ältere Version als ersetzt geführt; normale
+Suche verwendet ausschließlich aktive Versionen. Explizit angefragte alte Versionen
+bleiben lesbar. Vertraulichkeit wird bei neuen Fassungen nicht automatisch herabgesetzt.
+
+Beispiele für die Chat-Bedienung:
+
+- „Welche Unterlagen haben wir zu Beschluss Delta?“
+- „Lies Version 1 von Beschluss Delta.“
+- „Beschluss Delta ist veraltet.“
+- „Entferne bitte Beschluss Delta.“
+
+Mehrdeutige Auswahl erfordert eine konkrete Dokumentreferenz. Entfernung ohne
+Versionsangabe betrifft alle Fassungen. Löschung leert den Quelltext, entfernt
+Indexabschnitte und Fallkopien, entwertet abgeleitete Gedächtnisaussagen und behält
+Metadaten sowie Audit. Veraltete Quellen werden nicht mehr für Antworten verwendet.
+Auch gespeicherte Evidenz wird vor erneuter Verwendung auf ihren aktuellen Status geprüft.
+Der generische Object Store erlaubt keinen direkten Zugriff auf verwaltete Dokumente
+oder deren Index; Tenant und Clearance werden im Dokumentpfad geprüft.
+
+Organisationsrelevante Aussagen werden abschnittsweise durch die zentrale LLM-Fassade
+extrahiert und über das Tenant-Gedächtnis geprüft. Dokument und Fundstelle bleiben an
+der Aussage erhalten. Untrusted Dokumenttext wird nie als Systemanweisung übernommen.
+Fehlende Vektorfähigkeit oder fehlgeschlagene Extraktion werden als ausstehend geführt;
+der vollständige Quelltext bleibt lokal auffindbar. Erneuter Upload derselben aktiven
+Fassung versucht ausstehende Schritte erneut, ohne neue Version oder doppelte Aussagen.
+Für große Dokumente ist zusätzliches LLM-Kontingent für diese Abschnittsprüfung nötig.
+
+Ein gescanntes PDF ohne Text wird mit OCR-Hinweis abgelehnt. In Open WebUI in den Einstellungen zur Dokumentextraktion
+OCR für Scans konfigurieren,
+das Dokument neu verarbeiten und erneut senden. CET ergänzt keinen geratenen Text.
+
+Die synthetischen Generatoren und Abnahmen liegen in
+`scripts/generate-tenant-document-fixtures.js`,
+`tests/tenant-document-knowledge.test.js` und
+`tests/tenant-document-knowledge.http.test.js`. HTTP-Tests verwenden den echten Gateway,
+die Identitätszuordnung und PouchDB; die LLM-Fassade ist gestubbt. Diese Abnahme belegt
+Integration und Schutzgrenzen, nicht die Qualität eines konkreten Produktionsmodells.

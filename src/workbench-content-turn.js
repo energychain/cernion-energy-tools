@@ -362,8 +362,41 @@ async function runContentTurn(
     };
   }
   if (situation.conversationShape === 'filing' && !envelope.documents?.length) {
-    envelope = { ...envelope, documents: [{ name: 'Gesprächsunterlage', text: rawMessage }] };
+    const firstMessage = thread.prepareThread(rawMessage).timeline[0];
+    const sourceName = [firstMessage?.subject, firstMessage?.date].filter(Boolean).join(' — ');
+    envelope = {
+      ...envelope,
+      documents: [
+        { name: sourceName || situation.concern || 'Gesprächsunterlage', text: rawMessage },
+      ],
+    };
     situation.turnKind = 'work';
+  }
+  const documentKnowledge = require('./workbench-document-knowledge');
+  const documentCommand = await documentKnowledge.command(
+    service,
+    memoryDocumentContext(ctx, meta),
+    { p, envelope, situation }
+  );
+  if (documentCommand) return documentCommand;
+  if (envelope.documents?.length) {
+    const stored = await documentKnowledge.ingestDocuments(
+      service,
+      memoryDocumentContext(ctx, meta),
+      {
+        p,
+        mapping,
+        envelope,
+        situation,
+        sensitivityFlags: [
+          ...new Set([...(state?.sensitivityFlags || []), ...(ctx.params.sensitivityFlags || [])]),
+        ],
+      }
+    );
+    if (stored && situation.conversationShape === 'filing') {
+      // Case creation remains in the normal assignment path; documentReply renders only the receipt.
+      envelope.documentKnowledgeReceipt = documentKnowledge.filingReply(stored);
+    }
   }
   if (incomingDocuments && !['work', 'review'].includes(situation.turnKind))
     situation.turnKind = 'work';
@@ -962,12 +995,16 @@ async function runContentTurn(
     }
   }
   retrieval.evidence.push(...memoryContext.evidence);
+  if (!incomingDocuments && !draftRequest)
+    retrieval.evidence.push(...(await documentKnowledge.evidence(memoryCtx, envelope.userRequest)));
   if (selfKnowledgeJob !== null) {
     const searched = await selfKnowledgeJob;
     retrieval.evidence.push(...searched.evidence);
     retrieval.trace.push(...searched.trace);
     retrieval.knowledgeSearch = searched.trace;
   }
+  // Revalidate managed evidence, including cached reads and draft follow-ups.
+  retrieval.evidence = await documentKnowledge.currentEvidence(memoryCtx, retrieval.evidence);
   if (
     situation.conversationContext?.durable &&
     situation.conversationContext.basis &&
@@ -1325,3 +1362,10 @@ async function queuedContentTurn(service, ctx, input) {
 }
 
 module.exports = { runContentTurn: queuedContentTurn, discard, selectChoice };
+
+function memoryDocumentContext(ctx, meta) {
+  return Object.assign(Object.create(ctx), {
+    meta,
+    call: (name, params) => ctx.call(name, params, { meta }),
+  });
+}
