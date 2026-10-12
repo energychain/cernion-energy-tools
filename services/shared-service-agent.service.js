@@ -1,6 +1,6 @@
 'use strict';
 
-const { createHash, randomUUID } = require('node:crypto');
+const { randomUUID } = require('node:crypto');
 const { Errors } = require('moleculer');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { getFunctionModel, getFunction, resolveFunctionId } = require('../src/function-model');
