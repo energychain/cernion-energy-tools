@@ -71634,6 +71634,10 @@
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
+                  "displayName": {
+                    "type": "string",
+                    "description": "Anzeigename der Person für Entwurfssignaturen"
+                  },
                   "client": {
                     "type": "string",
                     "description": "Workbench client"

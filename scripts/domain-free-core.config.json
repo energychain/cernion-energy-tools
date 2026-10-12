@@ -71,6 +71,7 @@
     "src/workbench-self-knowledge.js",
     "src/workbench-llm-repair.js",
     "src/workbench-answer-filter.js",
+    "src/workbench-chat-presentation.js",
     "src/workbench-identifiers.js",
     "src/workbench-content-turn.js",
     "src/workbench-capability-loop.js",

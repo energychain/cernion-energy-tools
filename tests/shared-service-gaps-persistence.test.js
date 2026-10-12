@@ -5,6 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { ServiceBroker } = require('moleculer');
 const { model, operation, meta } = require('./helpers/shared-service/gap-adapter');
+const { gapLabels } = require('./fixtures/workbench-850.generated.json');
 const schemas = [
   ['agents', require('../services/shared-service-agent.service')],
   ['activation', require('../services/function-activation.service')],
@@ -15,7 +16,7 @@ const schemas = [
 
 test('AC-03/04/08: real PouchDB restart retains lists, ignore and once-only used feedback', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gap-persistence-'));
-  let response = { status: 'needs_input', missingInputs: [{ id: 'a', label: 'Field A' }] };
+  let response = { status: 'needs_input', missingInputs: [{ id: 'a', label: gapLabels[0] }] };
   const feedback = [];
   async function make() {
     const broker = new ServiceBroker({ logger: false, transporter: null });
@@ -126,7 +127,7 @@ test('AC-03/04/08: real PouchDB restart retains lists, ignore and once-only used
     expect((await deliver('after-restart')).items.filter((item) => item.kind === 'gap')).toEqual(
       []
     );
-    response = { status: 'needs_input', missingInputs: [{ id: 'b', label: 'Field B' }] };
+    response = { status: 'needs_input', missingInputs: [{ id: 'b', label: gapLabels[1] }] };
     await run();
     await deliver('changed');
     response = { status: 'ready', missingInputs: [] };

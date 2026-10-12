@@ -124,6 +124,33 @@ async function validateConversation() {
     const turns = [];
     try {
       await broker.start();
+      const polishReport = { checks: {} };
+      await require('./workbench-850-live-scenarios').validatePolishContent({
+        report: polishReport,
+        minutes: fs.readFileSync(
+          path.join(__dirname, '../tests/fixtures/document-review/neutral-minutes.txt'),
+          'utf8'
+        ),
+        mail: require('../tests/fixtures/workbench-846.generated.json').mail,
+        send: (actor, message, conversationId = `synthetic-850-${run}-summary`) =>
+          broker.call(
+            'workbench.chat',
+            { channel: 'api', conversationId, message },
+            {
+              meta: {
+                apiToken: {
+                  tenantId: `anonymous-polish-${run}`,
+                  id: actor,
+                  displayName: actor,
+                  roles: ['ROLE_GRID_OPERATOR'],
+                  scope: 'full-access',
+                },
+              },
+              timeout: report.requestTimeoutMs,
+            }
+          ),
+      });
+      turns.push({ scenario: 'polish850', checks: polishReport.checks });
       for (const scenario of corpus) {
         if (
           process.env.WORKBENCH_VALIDATION_SCENARIOS &&

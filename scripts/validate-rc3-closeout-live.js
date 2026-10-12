@@ -88,6 +88,7 @@ async function validate() {
   const meta = (actor) => ({
     apiToken: {
       id: actor,
+      displayName: actor,
       tenantId: budget.state.tenantId,
       roles: ['ROLE_GRID_OPERATOR', 'ROLE_EDM'],
       scope: 'full-access',
@@ -135,6 +136,7 @@ async function validate() {
         actorId,
         roleFamilies: [functionLabel],
       });
+    const polish = require('./workbench-850-live-scenarios');
     // #846 scenarios 1, 3, 5 and 6; local broker and generated synthetic evidence only.
     const hotfix = require('../tests/fixtures/workbench-846.generated.json');
     const mail = await send('Charly', hotfix.mail, randomUUID());
@@ -174,6 +176,8 @@ async function validate() {
       explicit.responseText.includes('SYN-INV-002') &&
       /MOA|1.227/.test(explicit.responseText) &&
       !explicit.responseText.includes('SYN-INV-001');
+    await polish.validatePolishContent({ send, minutes, mail: hotfix.mail, report });
+    await polish.validatePolishDataset({ send, report });
     const thread =
       'Analysiere diesen eskalierten Lieferanten-Thread: Stand, Risiken und nächster Schritt.\n' +
       Array.from(
@@ -209,7 +213,11 @@ async function validate() {
         second.responseText.includes(order[0]) &&
         second.responseText.includes('2030') &&
         second.responseText.includes('2034');
+      const reviewKey = await polish.seedInternalReview(broker, budget.state.tenantId, order[0]);
       const news = await send(order[0], 'Gibt es Neuigkeiten für mich?');
+      report.checks[`${order[0]}_polish850_1`] =
+        !/Internal|00000000/u.test(news.responseText) &&
+        (await polish.withheldReviewCheck(broker, budget.state.tenantId, order[0], reviewKey));
       report.checks[`${order[0]}_news`] =
         news.responseText.includes(order[1]) &&
         news.responseText.includes('2030') &&

@@ -261,6 +261,10 @@ async function presentStructured(ctx, record, request, result) {
     message: request.question,
     followup: true,
   });
+  loop.responseText = require('./workbench-chat-presentation').withoutUnsolicitedAdvice(
+    loop.responseText,
+    request.question
+  );
   const required = adapterFor(record.structuredFormat).markers(record, result);
   const acceptable =
     loop.answerStatus === 'grounded' &&

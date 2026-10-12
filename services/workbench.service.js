@@ -758,6 +758,7 @@ module.exports = {
           externalOrgId,
           externalUserId,
           externalUserEmail,
+          displayName: cleanString(ctx.params.displayName, 'displayName', { max: 120 }),
           cetTenantId,
           cetActorId: cleanString(
             ctx.params.cetActorId || ctx.params.actorId || p.actorId,
@@ -2001,6 +2002,7 @@ module.exports = {
           sharedServiceNoticesDefer: ctx.meta.sharedServiceNoticesDefer,
           authUser: {
             authType: 'workbench-mapping',
+            displayName: mapping.displayName || null,
             // Mapped people can perform contextual reads; never inherit transport full-access.
             scope: 'read-only',
             tenantId: p.tenantId,
@@ -2011,6 +2013,7 @@ module.exports = {
           },
           apiToken: {
             type: 'delegated-person',
+            displayName: mapping.displayName || null,
             tenantId: p.tenantId,
             id: mapping.cetActorId,
             userId: mapping.cetActorId,
@@ -2029,6 +2032,11 @@ module.exports = {
                 ? {
                     authUser: {
                       ...ctx.meta.authUser,
+                      displayName:
+                        mapping.displayName ||
+                        ctx.meta.authUser.displayName ||
+                        ctx.meta.authUser.name ||
+                        null,
                       userId: mapping.cetActorId,
                       id: mapping.cetActorId,
                       roles: mapping.roles?.length ? mapping.roles : p.roles,
@@ -2040,6 +2048,11 @@ module.exports = {
           : {}),
         apiToken: {
           ...(ctx.meta?.apiToken || {}),
+          displayName:
+            mapping?.displayName ||
+            ctx.meta.apiToken?.displayName ||
+            ctx.meta.apiToken?.name ||
+            null,
           tenantId: p.tenantId,
           id: mapping?.cetActorId || p.actorId,
           ...(mapping ? { userId: mapping.cetActorId, tokenId: mapping.cetActorId } : {}),
