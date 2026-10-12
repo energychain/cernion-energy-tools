@@ -93,10 +93,11 @@ async function ingestDocuments(
     });
     doc.knowledgeDocumentId = row.id;
     stored.push(row);
+    const extractionKey = `${p.tenantId}:${row.id}`;
     if (
       row.status === 'active' &&
       row.extractionState !== 'complete' &&
-      !service.documentExtractionJobs?.has(row.id)
+      !service.documentExtractionJobs?.has(extractionKey)
     ) {
       const full = await ctx.call('knowledge-rag.documentGet', { id: row.id });
       const extract = async () => {
@@ -117,10 +118,10 @@ async function ingestDocuments(
       service.documentExtractionJobs ||= new Map();
       const job = extract().finally(() => {
         service.tenantMemoryJobs.delete(job);
-        service.documentExtractionJobs.delete(row.id);
+        service.documentExtractionJobs.delete(extractionKey);
       });
       service.tenantMemoryJobs.add(job);
-      service.documentExtractionJobs.set(row.id, job);
+      service.documentExtractionJobs.set(extractionKey, job);
       if (situation.turnKind !== 'review') await job;
     }
   }
@@ -128,13 +129,8 @@ async function ingestDocuments(
 }
 function filingReply(rows) {
   const fresh = rows.filter((row) => !row.duplicate);
-  if (!fresh.length) return 'Die Unterlage ist bereits abgelegt.';
-  return fresh
-    .map(
-      (row) =>
-        `Abgelegt: ${sourceText(row)}.${row.indexState === 'pending' ? ' Die Suchindexierung steht noch aus; der Text ist bereits auffindbar.' : ''}${row.extractionState === 'pending' ? ' Die Prüfung der Aussagen im gemeinsamen Gedächtnis steht noch aus.' : ''}`
-    )
-    .join('\n');
+  if (!fresh.length) return 'Verstanden.';
+  return `Abgelegt: ${fresh.map((row) => sourceText(row)).join('; ')}.${fresh.some((row) => row.indexState === 'pending') ? ' Die Suchindexierung steht noch aus; der Text ist bereits auffindbar.' : ''}${fresh.some((row) => row.extractionState === 'pending') ? ' Die Prüfung der Aussagen im gemeinsamen Gedächtnis steht noch aus.' : ''}`;
 }
 async function evidence(ctx, query) {
   if (!ctx.broker.getLocalService('knowledge-rag')?.schema.actions.documentSearch) return [];

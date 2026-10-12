@@ -1,6 +1,6 @@
 'use strict';
 
-const { createHash } = require('node:crypto');
+const { createHash, randomUUID } = require('node:crypto');
 const { Errors } = require('moleculer');
 const { principal, visible, deny } = require('./domain-router-policy');
 const { writeCapability, documentNamespace } = require('./tenant-document-policy');
@@ -195,8 +195,8 @@ async function ingestDocument(service, ctx, input) {
   return serial(p.tenantId, async () => {
     const rows = await records(service, safe, p);
     const sha = hash(input.text);
-    const documentId = `doc-${hash(JSON.stringify([p.tenantId, normalizePhrase(input.name)])).slice(0, 24)}`;
-    const family = rows.filter((row) => row.documentId === documentId);
+    const family = rows.filter((row) => normalizePhrase(row.name) === normalizePhrase(input.name));
+    const documentId = family[0]?.documentId || `doc-${randomUUID()}`;
     // A same-name inaccessible source must not reveal itself or be superseded.
     if (family.some((row) => !visible(p, row))) deny('Document not accessible');
     const duplicate = rows.find(
