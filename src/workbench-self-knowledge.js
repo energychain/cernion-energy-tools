@@ -77,7 +77,11 @@ async function searchKnowledge(service, ctx, p, situation) {
         throw new Error('Documents unavailable');
       const hits = [];
       for (const state of states.filter((state) => rawContentAllowed(p, state))) {
-        const docs = await loadDocuments(service.store, { ...p, caseId: state.cetCaseId });
+        const docs = await loadDocuments(
+          service.store,
+          { ...p, caseId: state.cetCaseId },
+          { broker: service.broker, roles: p.roles }
+        );
         for (const doc of docs)
           if (matches(doc.name + '\n' + doc.text, terms)) {
             const term = terms.find((value) => matches(doc.text, [value]));

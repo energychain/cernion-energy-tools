@@ -650,6 +650,7 @@ module.exports = (() => {
     name: 'knowledge-rag',
     timeout: 15 * 60 * 1000,
 
+    mixins: [require('../src/tenant-document-knowledge').mixin],
     actions: {
       query: {
         rest: 'POST /query',
@@ -1529,6 +1530,12 @@ module.exports = (() => {
       },
 
       async listCollectionChunks(ctx, collectionName, modelVersion) {
+        // The generic-store guard hides managed chunks from untrusted direct callers.
+        try {
+          ctx = require('../src/tenant-document-knowledge').scoped(ctx).ctx;
+        } catch (_error) {
+          /* Legacy collections remain readable. */
+        }
         const response = await this.objectQuery(
           ctx,
           this.getChunkNamespace(ctx),
@@ -1539,7 +1546,11 @@ module.exports = (() => {
           1000,
           0
         );
-        return (Array.isArray(response?.docs) ? response.docs : []).map((doc) => doc.payload);
+        return require('../src/tenant-document-knowledge').visibleChunks(
+          this,
+          ctx,
+          (Array.isArray(response?.docs) ? response.docs : []).map((doc) => doc.payload)
+        );
       },
 
       getByPath(value, path) {

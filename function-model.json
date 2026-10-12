@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "0eb754942c6b6989089b4a41f02f22f998cbbfa461ca62be310914dfbb21c52b",
+  "sourceHash": "61c08c1827ce685423a5c40bc6a1a04188b348ee0ad503ccebad4ebdd331e0c8",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -71023,11 +71023,39 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-continuation.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/clarification-policy-registry.js"
         },
         {
           "kind": "service",
+          "ref": "src/csv-text.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-input.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-query.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-semantics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-time.js"
         },
         {
           "kind": "service",
@@ -71036,6 +71064,18 @@
         {
           "kind": "service",
           "ref": "src/dossier-hydration-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/function-model.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/function-resolver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/gateway-request-classifiers.js"
         },
         {
           "kind": "service",
@@ -71083,6 +71123,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/mcp-execute-read-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/metrics.js"
         },
         {
@@ -71096,6 +71140,14 @@
         {
           "kind": "service",
           "ref": "src/oeo-mappings.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/openwebui-context.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/operation-capability-index.js"
         },
         {
           "kind": "service",
@@ -71131,11 +71183,51 @@
         },
         {
           "kind": "service",
+          "ref": "src/shared-service-agent-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/source-license-map.js"
         },
         {
           "kind": "service",
+          "ref": "src/tabular-intelligence.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/tenant-context.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-document-knowledge.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-document-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-memory-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-memory-schema.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-memory-store.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-memory-write-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tenant-memory.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/tool-display.js"
         },
         {
           "kind": "service",
@@ -71155,7 +71247,67 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-answer-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-answer-filter.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-background-task.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-capability-loop.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-chat-presentation.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-codes.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-mode.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-document-input.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-document-passages.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-document-question.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-document.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-identifier-context.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-identifiers.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-json.js"
         },
         {
           "kind": "service",
@@ -71164,6 +71316,34 @@
         {
           "kind": "service",
           "ref": "src/workbench-llm-errors.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-repair.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-retrieval.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-review.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-self-knowledge.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-thread.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-tool-answer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-understanding.js"
         }
       ],
       "capabilities": [
