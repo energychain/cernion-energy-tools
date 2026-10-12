@@ -109,6 +109,14 @@ module.exports = {
       policy.authorizeFile(p, { ...file, expiresAt: Number.MAX_SAFE_INTEGER });
       await this.audit(ctx, p, file.fileId, operation, 'allowed');
       await this.object(ctx, 'delete', p.tenantId, file.fileId);
+      if (this.broker.getLocalService('knowledge-rag')?.schema.actions.documentList) {
+        const sources = await ctx.call('knowledge-rag.documentList', {});
+        for (const source of sources.filter((row) =>
+          row.refs?.some((ref) => ref.fileId === file.fileId)
+        ))
+          await ctx.call('knowledge-rag.documentCorrect', { id: source.id, kind: 'delete' });
+      }
+
       const wb = this.broker.getLocalService('workbench');
       const rows = await wb.evidenceDb.allDocs({ include_docs: true });
       for (const { doc } of rows.rows)

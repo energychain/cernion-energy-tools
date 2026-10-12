@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — RC3: Tenant-Wissen aus Dokumenten (#789)
+
+- Dokumente und Mail-Verläufe werden tenantweit mit Titel, Fundstelle, Person und Funktion auffindbar; Eingänge zur Kenntnis erhalten eine kurze Ablagebestätigung.
+- Inhalts-Hash verhindert wiederholte Aufnahme, neue Fassungen ersetzen die aktive Version; ältere Fassungen bleiben ausdrücklich lesbar.
+- Organisationsrelevante Aussagen nutzen das bestehende Tenant-Gedächtnis mit Dokumentquelle und Prüfung von Wechselwirkungen.
+- Chat-Korrekturen entfernen oder entwerten Quellen, Suchindex, abgeleitete Aussagen und Fallkopien; Vertraulichkeit gilt auch für gespeicherte Folgeantworten.
+- Synthetische Generatoren, echte PouchDB-/Broker-Tests und authentifizierte HTTP-Abnahme; textlose Dokumente erhalten einen OCR-Hinweis.
+- RC3 umfasst #789; PowerPoint-Unterstützung #791 ist dem RC4-EPIC #821 zugeordnet.
+
 ## Unreleased — Mail und Dokumenteingang im Chat (#846)
 
 - Tabellenerkennung verlangt mindestens zwei gleich breite Datenzeilen und einen überwiegenden, konfigurierbaren Tabellenanteil; CSV-Felder nutzen die vorhandenen zitatsicheren Parserhilfen.
