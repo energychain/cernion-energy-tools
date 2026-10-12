@@ -1,18 +1,18 @@
 # Shepherd Summary
 
-Generated: 2026-10-12T01:47:19.353Z
-Run: 20261012T014557Z
-Branch: shepherd/runtime-refactor-20261012T014557Z
-Fingerprint: 176cdd5d5417eaea40f01b2b17ddc4989b5dc92a6f1f4918e54bfc387fee1a69
+Generated: 2026-10-12T13:55:46.275Z
+Run: 20261012T135402Z
+Branch: shepherd/runtime-refactor-20261012T135401Z
+Fingerprint: 0512530d9a7132483b1c7b8385a28283c9c2a2222c9876f251b496960a22d9ba
 
 ## Current measurable surface
 
-- Files: 1890
+- Files: 1906
 - Services: 159
-- src JS files: 361
-- Tests: 470
-- Agentic files: 267
-- OpenWebUI/ChatGPT files: 30
+- src JS files: 363
+- Tests: 475
+- Agentic files: 270
+- OpenWebUI/ChatGPT files: 33
 - Evidence/HITL files: 74
 - Routing/capability files: 92
 - Services without obvious direct filename-mapped test: 29
@@ -27,14 +27,14 @@ Fingerprint: 176cdd5d5417eaea40f01b2b17ddc4989b5dc92a6f1f4918e54bfc387fee1a69
 
 ## Top directories
 
-- `tests`: 534 files
-- `src`: 427 files
-- `docs`: 379 files
+- `tests`: 541 files
+- `src`: 429 files
+- `docs`: 381 files
 - `services`: 195 files
 - `tools`: 85 files
-- `scripts`: 68 files
+- `scripts`: 70 files
 - `agentic-architecture`: 61 files
-- `integrations`: 28 files
+- `integrations`: 31 files
 - `.claude`: 26 files
 - `.github`: 11 files
 - `feedback`: 8 files
@@ -51,8 +51,8 @@ Fingerprint: 176cdd5d5417eaea40f01b2b17ddc4989b5dc92a6f1f4918e54bfc387fee1a69
 ## Domain abstraction
 
 - Domain abstraction: present
-- Domain fingerprint: fc1c7d445cfa7e93e2cc66378394c8f586159859e8f0bcf998b4f33e41cc9530
-- Candidate files: 1130
+- Domain fingerprint: 81b3f1c9ac993fc731f80d17faa6ec7fde30be0772bc3085a3c0e3119e6b0e2f
+- Candidate files: 1136
 - Unclassified services: 0
 
 Cluster counts:

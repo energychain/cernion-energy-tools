@@ -1,10 +1,10 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-12T01:47:14.194Z
+Generated: 2026-10-12T13:55:40.428Z
 
 ## Observed adapter surface
 
-- OpenWebUI/ChatGPT adapter files detected: 30
+- OpenWebUI/ChatGPT adapter files detected: 33
 - verify:open-webui npm script: present
 - verify:agent-shapes npm script: present
 
@@ -25,7 +25,10 @@ Detected files:
 - `integrations/open-webui/cernion-sidecar-bridge.test.js`
 - `integrations/open-webui/cernion-workbench-tools.md`
 - `integrations/open-webui/cet_file_channel.py`
+- `integrations/open-webui/docker-compose.file-channel.yml`
 - `integrations/open-webui/docker-compose.yml`
+- `integrations/open-webui/FILE_CHANNEL_TESTING.md`
+- `integrations/open-webui/file-channel-smoke.py`
 - `integrations/open-webui/http-json.js`
 - `integrations/open-webui/http-json.test.js`
 - `integrations/open-webui/README.md`
