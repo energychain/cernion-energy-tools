@@ -474,3 +474,27 @@ Einrichtung, Grenzen und Beispiele: [Tenant-Datenkatalog](docs/tenant-dataset-ca
 ## Originaldateien im Chat (#790)
 
 Installation des versionierten Open-WebUI-Filters, signierte Downloads, Dateilimits und Aufbewahrung: [Runbook](docs/file-channel-runbook.md). Ohne installierten Filter bleibt der bisherige Dokument-Textweg erhalten.
+
+### RC3 Hotfix für Mail und Dokumenteingang (#846)
+
+Die Tabellenerkennung benötigt einen Kopf mit mindestens zwei Spalten und mindestens zwei gleich breiten Datenzeilen. `WORKBENCH_DATASET_MIN_TABLE_RATIO` bestimmt den erforderlichen Anteil im Tabellenblock (Standard `0.75`, gültig: größer als `0.5` bis `1`). Gewöhnliche Parserfehler fallen auf Text zurück; die Plausibilitätssperre für tatsächlich erkannte Tabellen bleibt aktiv. Datei-, Zeilen- und Spaltenbudgets gelten weiterhin. Nur das eindeutige, nicht verlustfrei herstellbare Open-WebUI-Zerlegungsmuster verwendet `WORKBENCH_DATASET_DAMAGED`.
+
+Synthetische Fixtures regenerieren und die Regressionen lokal prüfen:
+
+```bash
+node scripts/generate-conversation-fixtures.js
+node scripts/generate-review-fixture.js
+node scripts/generate-dataset-fixtures.js
+npm test -- --runInBand tests/workbench-846.test.js tests/workbench-838.test.js
+```
+
+Das bestehende Live-Skript prüft zusätzlich Mailaufnahme (1), Protokollzusammenfassung (3), Mail-Verlauf neben einem fremden INVOIC-Datensatz (5) und ausdrücklich genannte Nachricht (6). Es startet einen lokalen Broker mit isolierten temporären Datenbanken und einem synthetischen Validierungs-Tenant. Alle Sprachmodellaufrufe laufen über die zentrale Fassade und das bestehende Aufruf-/Tokenbudget. Ausschließlich mit einer Nichtproduktions-Konfiguration starten:
+
+```bash
+WORKBENCH_ENV_FILE=/path/to/nonproduction.env \
+  WORKBENCH_VALIDATION_REPORT=/tmp/rc3-hotfix-846-live.json \
+  LIVE_MAX_MODEL_CALLS=80 LIVE_MAX_TOKENS=1000000 \
+  node scripts/validate-rc3-closeout-live.js
+```
+
+Die Erweiterung wurde nicht live ausgeführt. Ein Live-Bericht darf erst nach einem gesonderten Nichtproduktions-Lauf als Abnahmebeleg verwendet werden.

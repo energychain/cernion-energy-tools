@@ -391,7 +391,11 @@ function query(pool, record, input) {
   const rows = pool.rows(record.tenantId, record.id, record.columns).filter((row) => row.Inhalt);
   const invoice =
     /schlüss|schluess|details|einzelheiten|rechnung\s/iu.test(question) &&
-    question.match(/(?:rechnung|nachricht)\s+(?:nr\.?\s*|nummer\s*)?([\p{L}\d_./-]+)/iu);
+    (question.match(/(?:rechnung|nachricht)\s+(?:nr\.?\s*|nummer\s*)?([\p{L}\d_./-]+)/iu) ||
+      (() => {
+        const row = rows.find((entry) => exactToken(question, entry.Nummer));
+        return row ? [row.Nummer, row.Nummer] : null;
+      })());
   const threshold = question.match(
     /(?:über|ueber|größer als|groesser als|mehr als)\s*(-?[\d.,]+)\s*(?:€|eur)?/iu
   );
@@ -512,6 +516,7 @@ function query(pool, record, input) {
 }
 
 function accepts(question, { explicitOnly = false } = {}) {
+  if (require('./workbench-thread').isThreadInput(question) && !recognizes(question)) return false;
   if (explicitOnly)
     return /nachricht|rechnung|qualifier|edifact|invoic|mscons|utilmd|aperak/iu.test(question);
   return /nachricht|rechnung|betrag|qualifier|code|aufschlüss|aufschluess|überblick|ueberblick|auffäll|auffaell|summe|zeitreihe|vorgang/iu.test(

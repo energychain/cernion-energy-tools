@@ -4,6 +4,16 @@ const { Errors } = require('moleculer');
 const { parseOpenWebUIContext } = require('./openwebui-context');
 const { maxInputChars } = require('./workbench-thread');
 
+function isDatasetInput(text) {
+  try {
+    return require('./dataset-input').parseDatasetText(text).length > 0;
+  } catch (error) {
+    // Only proven loader damage remains on the dataset path. Ambiguous input is text.
+    if (error.type === 'WORKBENCH_DATASET_DAMAGED' && error.data?.openWebUI) return true;
+    return false;
+  }
+}
+
 function documentInput(input) {
   if (typeof input !== 'string') return { question: input, documents: [] };
   const maxDocuments = Number(process.env.WORKBENCH_DOCUMENT_MAX_CHARS || 4000000);
@@ -22,7 +32,8 @@ function documentInput(input) {
     const trailingQuestion =
       /\?\s*$/.test(lines.at(-1)) && !/[;\t|]/.test(lines.at(-1)) ? lines.pop() : '';
     const tableText = lines.join('\n');
-    if (require('./dataset-input').parseDatasetText(tableText).length) {
+    const table = isDatasetInput(tableText);
+    if (table) {
       parsed.documents.push({ name: 'Eingefügte Tabelle', text: tableText, id: null });
       parsed.question = trailingQuestion || 'Tabelle auswerten.';
     }

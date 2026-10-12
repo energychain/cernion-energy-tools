@@ -153,4 +153,89 @@ describe('structured messages through authenticated chat and original-file HTTP'
       expect(prompt).not.toMatch(/UNB\+|UNH\+|MOA\+|FTX\+/);
     }
   });
+  test('846 HTTP scenarios 1–6: mail/protocol stay textual; only an explicit reference selects the foreign invoice', async () => {
+    const fixture = require('./fixtures/workbench-846.generated.json');
+    const stub = require('./helpers/workbench-llm-stub');
+    const minutes = fs.readFileSync(
+      path.join(__dirname, 'fixtures/document-review/neutral-minutes.txt'),
+      'utf8'
+    );
+    const claim = (text) => ({
+      text,
+      origin: 'model',
+      supported: 'model',
+      specific: false,
+      completedAction: false,
+      evidenceIds: [],
+    });
+    llm.generateStructured.mockImplementation(async (schema, raw) => {
+      const input = JSON.parse(raw);
+      if (input.datasets) return { datasetIds: [] };
+      if (input.sections)
+        return {
+          answer: 'Die Netzanmeldung ist offen; die Freigabe steht aus. Klärung bis 09.10.2026.',
+        };
+      if (!input.catalog) return null;
+      const understood = await stub.generateStructured(schema, raw);
+      understood.missingInformation = [];
+      understood.requestedAction.draftRequested = false;
+      return understood;
+    });
+    llm.generateText.mockImplementation(async (raw) => {
+      const input = JSON.parse(raw);
+      const draft = input.message === fixture.draftQuestion;
+      return JSON.stringify({
+        interpretation: draft
+          ? []
+          : [
+              claim(
+                'Die fachliche Antwort auf die Netzanmeldung steht aus; der Empfang der APERAK reicht nicht.'
+              ),
+            ],
+        expectation: [],
+        nextSteps: [],
+        assumptions: [],
+        draft: draft
+          ? [
+              claim(
+                'Betreff: Netzanmeldung vom 21.09.2026\nGuten Tag,\nbitte klären Sie die ausstehende fachliche Antwort zur Netzanmeldung.\nMit freundlichen Grüßen'
+              ),
+            ]
+          : [],
+      });
+    });
+    const send = (message, conversationId) =>
+      request('/v1/chat/completions', {
+        model: GOVERNANCE_MODEL,
+        messages: [{ role: 'user', content: message }],
+        metadata: {
+          conversationId,
+          openWebuiOrgId: 'synthetic-org',
+          openWebuiUserId: 'synthetic-person',
+        },
+      });
+    const first = await send(fixture.mail, 'synthetic-846-mail-http');
+    expect(first.status).toBe(200);
+    expect(first.body.choices[0].message.content).toContain('Netzanmeldung');
+    const draft = await send(fixture.draftQuestion, 'synthetic-846-mail-http');
+    expect(draft.status).toBe(200);
+    expect(draft.body.choices[0].message.content).toContain('Netzanmeldung vom 21.09.2026');
+    const protocol = await send(
+      `<context><source name="synthetic-minutes.txt">${minutes}</source></context><user_query>Fass mir das Protokoll kurz zusammen.</user_query>`,
+      'synthetic-846-minutes-http'
+    );
+    expect(protocol.status).toBe(200);
+    expect(protocol.body.choices[0].message.content).toContain('Freigabe steht aus');
+    expect(protocol.body.choices[0].message.content).not.toMatch(
+      /Zeitintervalle|Zeitumstellungen|Freigabe bestätigt/
+    );
+    const thread = await send(fixture.thread, 'synthetic-846-thread-http');
+    expect(thread.status).toBe(200);
+    expect(thread.body.choices[0].message.content).not.toMatch(/INVOIC|SYN-INV-00/);
+    const detail = await send(fixture.explicitQuestion, 'synthetic-846-explicit-http');
+    expect(detail.status).toBe(200);
+    expect(detail.body.choices[0].message.content).toContain('SYN-INV-002');
+    expect(detail.body.choices[0].message.content).toContain('MOA 203');
+    expect(detail.body.choices[0].message.content).not.toContain('SYN-INV-001');
+  });
 });

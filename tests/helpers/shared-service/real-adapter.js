@@ -349,6 +349,26 @@ async function createAdapter({
     );
     if (!transition) return;
     await broker.emit('function.activation.changed.v1', transition, { groups: ['notices'] });
+    // A status without content is silent. Exercise a persisted, visible proposal.
+    await agents.settle();
+    const doc = await agents.readDocument('tenant-a');
+    doc.agents = agents.resolvedAgents(doc.agents);
+    const agent = doc.agents.find((row) => row.functionId === transition.functionId);
+    if (!agent) throw new Error('Notice exercise requires the activated agent');
+    const proposalRef = 'notice-proposal';
+    agent.proposals.push({
+      ref: proposalRef,
+      recipients: [actorId],
+      summary: require('../../fixtures/workbench-846.generated.json').newsText,
+      outcome: null,
+    });
+    await agents.save(doc);
+    await broker.emit('shared-agent.proposal.created.v1', {
+      tenantId: 'tenant-a',
+      agentId: agent.agentId,
+      functionId: agent.functionId,
+      proposalRef,
+    });
     await noticesService.settle();
     for (let n = 0; n < 2; n++) {
       const result = await broker.call(

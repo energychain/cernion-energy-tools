@@ -149,7 +149,8 @@ function person(p, mapping, situation, ctx) {
       mapping?.functionLabel ||
       mapping?.roleFamilies?.join(', ') ||
       situation.tenantMemory?.functionLabel ||
-      'Funktion nicht angegeben',
+      situation.actorContext?.role ||
+      '',
   };
 }
 // A question-only turn cannot turn a model extraction into an assertion.
@@ -183,6 +184,7 @@ function basisMatches(basis, message) {
   return tokens.length >= 3 && covered.length / tokens.length >= 0.8;
 }
 function rejectionReason(item, message) {
+  if (item.scope === 'case') return 'case_scope';
   if (!item.anchors?.length || !item.anchors.every((anchor) => matchesAnchor(anchor, message)))
     return 'no_anchor';
   if (!item.text?.trim() || !basisMatches(item.basis, message)) return 'basis_mismatch';
@@ -742,7 +744,7 @@ async function related(ctx, p, situation, message) {
   const stats = observation(ctx);
   stats.anchorHits += matched.length;
   if (selection.ambiguous) stats.rejected.ambiguous = (stats.rejected.ambiguous || 0) + 1;
-  const paragraphs = [];
+  const paragraphs = matched.flatMap((fact) => fact.plausibility || []);
   for (const id of new Set(matched.flatMap((fact) => fact.relationIds))) {
     try {
       const text = await store.relationText(ctx, p, id);
@@ -784,7 +786,7 @@ async function queryResponse(ctx, p, message, selector = {}) {
   const lines = matches.map(store.factText);
   for (const id of new Set(matches.flatMap((fact) => fact.relationIds))) {
     try {
-      const text = await store.relationText(ctx, p, id);
+      const text = await store.relationText(ctx, p, id, { includeFacts: false });
       if (text) lines.push(text);
     } catch (error) {
       if (![403, 404].includes(error.code)) throw error;
@@ -802,7 +804,20 @@ async function queryResponse(ctx, p, message, selector = {}) {
 }
 function correctionMatches(fact, message) {
   const words = store.normalizeAnchor(message).split(' ');
-  const factWords = new Set(store.normalizeAnchor(fact.text).split(' '));
+  const factWords = new Set(
+    store
+      .normalizeAnchor(
+        [
+          fact.text,
+          fact.basis,
+          ...Object.values(fact.time || {}),
+          ...(fact.anchors || []).flatMap((anchor) => [anchor.value, ...(anchor.aliases || [])]),
+        ]
+          .filter(Boolean)
+          .join(' ')
+      )
+      .split(' ')
+  );
   const numbers = words.filter((word) => /^\d+$/.test(word));
   if (numbers.some((number) => !factWords.has(number))) return false;
   const anchors = (fact.anchors || []).some((anchor) => matchesAnchor(anchor, message));

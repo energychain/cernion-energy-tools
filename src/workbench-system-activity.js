@@ -221,10 +221,15 @@ function projectFunction(fn, p, row, agentRows, digest, agents, coverage) {
 async function answerSystemActivity(
   ctx,
   message,
-  { model = getFunctionModel(), overviewLimit = 5, resolverOptions = {} } = {}
+  {
+    model = getFunctionModel(),
+    overviewLimit = 5,
+    resolverOptions = {},
+    scope: requestedScope,
+  } = {}
 ) {
   const p = principal(ctx);
-  const scope = activityScope(message);
+  const scope = requestedScope || activityScope(message);
   if (!scope) return { mode: 'system_activity_query', state: 'function_unknown', items: [] };
   if (scope.noticesOnly) {
     const source = await readSource(

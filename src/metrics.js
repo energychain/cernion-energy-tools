@@ -389,6 +389,7 @@ function resetForTests() {
 }
 
 module.exports = {
+  tenantHashLabel,
   initMetrics,
   registerBroker,
   recordActionMetric,

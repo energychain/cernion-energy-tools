@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — Mail und Dokumenteingang im Chat (#846)
+
+- Tabellenerkennung verlangt mindestens zwei gleich breite Datenzeilen und einen überwiegenden, konfigurierbaren Tabellenanteil; CSV-Felder nutzen die vorhandenen zitatsicheren Parserhilfen.
+- Nur eindeutig erkannte, nicht verlustfrei rekonstruierbare Open-WebUI-Zerlegung erhält `WORKBENCH_DATASET_DAMAGED`; unplausible echte Tabellen bleiben gesperrt und erhalten eine normale Chat-Antwort.
+- Strukturdatensätze gelten nur im selben Chat oder bei ausdrücklicher Datei-/Nachrichtenreferenz; eingefügte Mail-Verläufe kapern keine fremden Nachrichten.
+- Quellen-Timeouts benennen die Datenquelle, Werteantworten erhalten keine widersprüchliche Abrufmeldung, und generische Hinweise sowie Dubletten entfallen.
+- Synthetische Generator-Fixtures und Regressionen für alle neun Abnahmeszenarien; vorhandene RC3-Live-Validierung um Szenarien 1, 3, 5 und 6 ergänzt.
+
+## Unreleased — Datensatzfragen im Upload-Turn (#838)
+
+- Datei und zugehörige Frage werden gemeinsam beantwortet: deterministische Abfrage der aufgenommenen Tabellen, Antwort vor Ablagebestätigung und gezielte Blattauswahl.
+- Eindeutige Open-WebUI-Restfelder werden verlustfrei rekonstruiert; Plausibilitätsprüfung verhindert beschädigte Tabellen und die Wiederverwendung unbrauchbarer Altbestände.
+- Konkrete Ursachen bei fehlenden Spalten, leeren Werten und nicht abgedeckten Zeiträumen; kurze Folgeantworten ohne sachfremde Empfehlungen.
+- Generierte synthetische CSV-/XLSX-/Open-WebUI-Fixtures, Tests für alle sieben Abnahmeszenarien und dokumentierte Nichtproduktions-Live-Validierung.
+
 ## Unreleased — Strukturierte Nachrichten im Chat (#814)
 
 - Generischer Eingang für strukturierte Nachrichten vor Dokument- und Tabellenverarbeitung; EDIFACT-Adapter und Typkonfiguration bleiben außerhalb des Kerns.

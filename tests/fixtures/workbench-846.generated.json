@@ -1,0 +1,13 @@
+{
+  "mail": "Kannst Du mir hier weiterhelfen?\nVon: Lieferant Beispiel Mako <mako@lieferant-beispiel.example>\nGesendet: Montag, 5. Oktober 2026 09:12\nAn: Netz Beispiel <netz@stadtwerk-beispiel.example>\nBetreff: Überfällige Antwort Netzanmeldung, MaLo 50800000001, Referenz SYN-REF-001\n\nSehr geehrte Damen und Herren,\n\nzu unserer Netzanmeldung vom 21.09.2026 liegt uns bis heute keine Antwort vor.\nLieferstelle: Beispielweg 1, 12345 Musterstadt\nMarktlokation: 50800000001\n\nMit freundlichen Grüßen\nErika Beispiel\nTeam Wechselmanagement, Lieferant Beispiel GmbH\nTel.: 0000 000000, Fax: 0000 000001",
+  "draftQuestion": "Mach mir die Antwort fertig",
+  "thread": "Kannst Du mir hier weiterhelfen?\nVon: Lieferant Beispiel Mako <mako@lieferant-beispiel.example>\nGesendet: Montag, 5. Oktober 2026 09:12\nAn: Netz Beispiel <netz@stadtwerk-beispiel.example>\nBetreff: Überfällige Antwort Netzanmeldung, MaLo 50800000001, Referenz SYN-REF-001\n\nSehr geehrte Damen und Herren,\n\nzu unserer Netzanmeldung vom 21.09.2026 liegt uns bis heute keine Antwort vor.\nLieferstelle: Beispielweg 1, 12345 Musterstadt\nMarktlokation: 50800000001\n\nMit freundlichen Grüßen\nErika Beispiel\nTeam Wechselmanagement, Lieferant Beispiel GmbH\nTel.: 0000 000000, Fax: 0000 000001\n\nVon: Netz Beispiel <netz@stadtwerk-beispiel.example>\nGesendet: 04.10.2026 08:00\nBetreff: SYN-REF-001\nDie APERAK bestätigt den Empfang der Nachricht. Die fachliche Antwort zur Netzanmeldung bleibt offen.",
+  "explicitQuestion": "Schlüssele SYN-INV-002 auf",
+  "keywordQuestion": "Die APERAK Nachricht bitte prüfen.",
+  "labelledProse": "Thema: Synthetische Abstimmung\nStand: Offen\nThema: Synthetische Rückmeldung\nStand: Ausstehend",
+  "ambiguousTexts": [
+    "None: 2\nFreitext: bleibt Text",
+    "Titel;Datum: Dokument\nErgebnis: Offen"
+  ],
+  "newsText": "Die synthetische Gasleitung endet 2030; das Stromnetz wird erst 2034 erweitert."
+}

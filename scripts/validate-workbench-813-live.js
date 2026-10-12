@@ -1,4 +1,5 @@
 'use strict';
+require('./live-validation-budget').installLiveBudget();
 // Explicit live validation: central facade, synthetic corpus and documented empty sources.
 const fs = require('node:fs');
 const os = require('node:os');
