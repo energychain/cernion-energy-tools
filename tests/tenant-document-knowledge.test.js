@@ -88,6 +88,19 @@ describe('tenant document knowledge (#789)', () => {
     expect((await docCall('documentGet', { id: first.id })).text).toBe(generateDocument().text);
   });
 
+  test('a later original-file upload links to the existing source without another version', async () => {
+    const first = await ingest();
+    const fileId = 'a'.repeat(64);
+    const repeated = await ingest(generateDocument(), {
+      refs: [{ fileId, conversationId: 'new-chat' }],
+    });
+    expect(repeated.duplicate).toBe(true);
+    expect(repeated.id).toBe(first.id);
+    const stored = await docCall('documentGet', { id: first.id });
+    expect(stored.refs.some((ref) => ref.fileId === fileId)).toBe(true);
+    expect(await docCall('documentList', {})).toHaveLength(1);
+  });
+
   test('AC-05: version 2 is used by default and version 1 remains explicitly readable', async () => {
     const old = await ingest();
     const latest = await ingest(generateDocument(2));

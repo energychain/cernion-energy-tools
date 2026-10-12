@@ -206,6 +206,15 @@ async function ingestDocument(service, ctx, input) {
         !['deleted', 'deleting', 'obsolete'].includes(row.status)
     );
     if (duplicate) {
+      const refs = [
+        ...new Set(
+          [...(duplicate.refs || []), ...(input.refs || [])].map((ref) => JSON.stringify(ref))
+        ),
+      ].map((ref) => JSON.parse(ref));
+      if (JSON.stringify(refs) !== JSON.stringify(duplicate.refs || [])) {
+        duplicate.refs = refs;
+        await service.objectPut(safe, documentNamespace(p.tenantId), duplicate.id, duplicate);
+      }
       if (duplicate.status === 'active' && duplicate.indexState !== 'indexed') {
         if (input.deferIndex) scheduleIndex(service, safe, duplicate);
         else await indexDocument(service, safe, duplicate);
