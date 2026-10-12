@@ -115,7 +115,8 @@ function turnDatasetIds(p, envelope, pending) {
   if (envelope.datasetIds?.length) return envelope.datasetIds;
   if (
     envelope.documents?.length ||
-    !/^(?:und\b|wie (?:hoch|viel)|wann\b)/i.test(envelope.userRequest)
+    (!/^(?:und\b|wie (?:hoch|viel)|wann\b)/i.test(envelope.userRequest) &&
+      !require('./workbench-chat-presentation').queryDetailsOnly(envelope.userRequest))
   )
     return [];
   return (pending?.retrieval?.evidence || [])
@@ -174,7 +175,6 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
   if (!ctx.broker.getLocalService('dataset')) return null;
   const fresh = envelope.datasetIds || [];
   // Replayed attachments retain the established answer phase and its grounded checks.
-  if (fresh.length && !envelope.datasetConfirmations?.length) return null;
   const grounded = turnDatasetIds(p, envelope, pending);
   if (!grounded.length) return null;
   if (!datasetQuestion(envelope.userRequest)) {
@@ -1006,6 +1006,10 @@ async function runContentTurn(
           situation,
           retrieval,
           tenantId: p.tenantId,
+          displayName: require('./workbench-chat-presentation').mappedDisplayName(
+            mapping,
+            ctx.meta
+          ),
           asked: pending?.askedQuestions || [],
           previousDraft: actorUpdated ? '' : pending?.draft || '',
           suppressDraft: Boolean(actorUpdated),
@@ -1040,16 +1044,12 @@ async function runContentTurn(
   if (displayRef && operation === 'classify') {
     firstAutoCase = await service.store.claimAutoCaseHint(p);
   }
-  const allowedDomains = situation.hypotheses
-    .filter((h) => h.kind === 'domain' && h.confidence >= 0.5)
-    .map((h) => h.id);
-  const choices =
-    result.uncertain &&
-    allowedDomains.some(
-      (domain) => normalizePhrase(domain) === normalizePhrase(result.primaryDomain)
-    )
-      ? choiceCandidates(result, service.settings.systemActivityModel).slice(0, 3)
-      : [];
+  const choices = require('./workbench-chat-presentation').needsFunctionChoices(
+    envelope.userRequest,
+    reply
+  )
+    ? choiceCandidates(result, service.settings.systemActivityModel).slice(0, 3)
+    : [];
   memory.deferred = !memory.settled;
   memory.renderedConfirmation = Boolean(memory.confirmation);
   result.responseText = readableCaseText(
@@ -1060,7 +1060,10 @@ async function runContentTurn(
       reply.responseText,
       memory.ambiguous,
       memory.confirmation,
-      ...(envelope.datasetConfirmations || []),
+      ...(envelope.datasetIds?.length &&
+      retrieval.evidence.some((hit) => hit.source === 'dataset.query')
+        ? []
+        : envelope.datasetConfirmations || []),
       mergeProposal?.text,
       choices.length
         ? `Optional passende Funktion (Nummer oder Name):\n${choices.map((choice, index) => `${index + 1}. ${choice.label}`).join('\n')}`
@@ -1294,12 +1297,22 @@ async function queuedContentTurn(service, ctx, input) {
       },
       { optional: true }
     );
-    return await runContentTurn(service, ctx, {
+    const response = await runContentTurn(service, ctx, {
       ...input,
       pending,
       conversation,
       capabilityDiagnostics,
     });
+    const displayName = require('./workbench-chat-presentation').mappedDisplayName(
+      input.mapping,
+      ctx.meta
+    );
+    if (/Entwurf/iu.test(response.responseText))
+      response.responseText = require('./workbench-chat-presentation').completeDraft(
+        response.responseText,
+        displayName
+      );
+    return response;
   } catch (error) {
     capabilityDiagnostics.reason = 'error';
     throw error;

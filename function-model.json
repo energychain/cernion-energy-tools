@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "0f8a739f1d54e2c4db28de84045ff41810d06c4c2e428b328c424da39e0c7e3e",
+  "sourceHash": "7ab7ce5b946a751aaf55a3478c4ae80a884c80d7919e583289870c53ef5b040c",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -3336,7 +3336,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "A2mdm decision object meaning preservation (regulierungsbezug kaufmaennische auswirkung netzrestriktion, business intent technical constraint regulatory reference)"
+      "displayLabel": "Entscheidung · Gegenstand · Bedeutung · Erhalt"
     },
     {
       "functionId": "fn-agnes-bottleneck",
@@ -3619,7 +3619,7 @@
           "agnes_bottleneck"
         ]
       },
-      "displayLabel": "Agnes bottleneck (dynamisches netzentgelt, fnav portfolio)"
+      "displayLabel": "Engpass"
     },
     {
       "functionId": "fn-altdaten-assessment",
@@ -4572,7 +4572,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Altdaten assessment (fit to template, migration)"
+      "displayLabel": "Altdaten · Bewertung"
     },
     {
       "functionId": "fn-anschlusskapazitaet-evidence-queue",
@@ -8579,7 +8579,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Anschlusskapazitaet evidence queue (anschlusskapazitaet zielnetz investitionsbedarf, areal network integration offer gate)"
+      "displayLabel": "Anschlusskapazität · Nachweise · Aufgabenliste"
     },
     {
       "functionId": "fn-automation-requirements-decision-value",
@@ -12016,7 +12016,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Automation requirements decision value (redispatch project controlling kpi cockpit, imsys schedule value chain readiness)"
+      "displayLabel": "Automatisierung · Anforderungen · Entscheidung · Nutzen"
     },
     {
       "functionId": "fn-automation-risk-gate",
@@ -13704,7 +13704,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Automation risk gate (prozessautomatisierung risiko, automatisierungsfreigabe)"
+      "displayLabel": "Automatisierung · Risiken · Freigabeprüfung"
     },
     {
       "functionId": "fn-automatisierungsradar",
@@ -14684,7 +14684,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Automatisierungsradar (prozesskettenanalyse, automation radar)"
+      "displayLabel": "Automatisierungsübersicht"
     },
     {
       "functionId": "fn-battery-redispatch-special-gate",
@@ -16213,7 +16213,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Battery redispatch special gate (nichtverfuegbarkeit redispatch, redispatch speicher sondergate)"
+      "displayLabel": "Batteriespeicher · Redispatch · Sonderfälle · Freigabeprüfung"
     },
     {
       "functionId": "fn-bess-screening",
@@ -17549,7 +17549,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Bess screening (netzanschluss evidence, grossspeicher)"
+      "displayLabel": "Batteriespeicher · Vorprüfung"
     },
     {
       "functionId": "fn-bilanzkreis-slp-edm-operations",
@@ -18532,7 +18532,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Bilanzkreis slp edm operations (bilanzkreisausgleich, standardlastprofil)"
+      "displayLabel": "Bilanzkreis · Standardlastprofile · Energiedatenmanagement · Betrieb"
     },
     {
       "functionId": "fn-blindflug-radar-anomaly-detection",
@@ -18900,7 +18900,7 @@
           "blindflug_radar_anomaly_detection"
         ]
       },
-      "displayLabel": "Blindflug radar anomaly detection (disturbance, bottleneck)"
+      "displayLabel": "Fehlende Datengrundlage · Übersicht · Auffälligkeiten · Erkennung"
     },
     {
       "functionId": "fn-budget-waterfall-governance",
@@ -23073,7 +23073,7 @@
           "off_balancing_metering_pruefmatrix"
         ]
       },
-      "displayLabel": "Financier due diligence assessment (transformationsfinanzierung szenario sicht, smart meter off balancing purpose lock)"
+      "displayLabel": "Finanzierung · Sorgfalt · Prüfung · Bewertung"
     },
     {
       "functionId": "fn-capex-prioritization",
@@ -24085,7 +24085,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Capex prioritization (investitionspriorisierung, c level report)"
+      "displayLabel": "Investitionen · Priorisierung"
     },
     {
       "functionId": "fn-communication-break-process-risk",
@@ -27144,7 +27144,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Communication break process risk (regulatory signal process translator, messstellenbetrieb regulatorik)"
+      "displayLabel": "Kommunikation · Unterbrechung · Ablauf · Risiken"
     },
     {
       "functionId": "fn-connection-rejection-evidence",
@@ -28217,7 +28217,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Connection rejection evidence (netzanschluss ablehnungsbegruendung, revisionspaket)"
+      "displayLabel": "Netzanschluss · Ablehnung · Nachweise"
     },
     {
       "functionId": "fn-connection-rejection-fnav-14a-evidence",
@@ -29521,7 +29521,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Connection rejection fnav 14a evidence (gemeinschaftliche gebaeudeversorgung, steuerbare verbrauchseinrichtung)"
+      "displayLabel": "Netzanschluss · Ablehnung · Steuerbare Verbrauchseinrichtungen · Nachweise"
     },
     {
       "functionId": "fn-controllability-asset-handover",
@@ -33170,7 +33170,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Controllability asset handover (redispatch steuerbarkeit datenabgleich, steuerbare anlagen linienuebergabe)"
+      "displayLabel": "Steuerbarkeit · Anlagen · Übergabe"
     },
     {
       "functionId": "fn-controllability-submission-cockpit",
@@ -35919,7 +35919,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Controllability submission cockpit (legacy control technology transition, steuerbarkeitsnachweis abgabe)"
+      "displayLabel": "Steuerbarkeit · Einreichung · Übersicht"
     },
     {
       "functionId": "fn-cost-review-committee-status",
@@ -37673,7 +37673,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Cost review committee status (review evidence board, eskalationsschwelle)"
+      "displayLabel": "Kosten · Prüfung · Gremien · Stand"
     },
     {
       "functionId": "fn-crisis-decision-routine",
@@ -40083,7 +40083,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Crisis decision routine (strategische bedarfsanmeldung flexibilisierung, kaufmaennische bewertungsfrage flex)"
+      "displayLabel": "Krise · Entscheidung · Routine"
     },
     {
       "functionId": "fn-cross-commodity-supply-security-lagebild",
@@ -41736,7 +41736,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Cross commodity supply security lagebild (german grid market data, lage beschaffungsrunde)"
+      "displayLabel": "Übergreifend · Energiesparten · Versorgung · Sicherheit · Lagebild"
     },
     {
       "functionId": "fn-cross-domain-special-topics-queue",
@@ -44119,7 +44119,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Cross domain special topics queue (fuehrender arbeitsstand fuer vnb sonderthemen, fuehrender arbeitsstand vnb sonderthemen)"
+      "displayLabel": "Übergreifend · Fachbereiche · Sonderfälle · Themen · Aufgabenliste"
     },
     {
       "functionId": "fn-cross-system-variance-matrix",
@@ -45962,7 +45962,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Cross system variance matrix (source system target system variance, klaerfall owner deadline threshold)"
+      "displayLabel": "Übergreifend · Systeme · Abweichungen · Übersicht"
     },
     {
       "functionId": "fn-cya-assessment-briefing",
@@ -47335,7 +47335,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Cya assessment briefing (rollenbasierte evidence, journalistisches fazit)"
+      "displayLabel": "Bewertung · Einordnung"
     },
     {
       "functionId": "fn-decision-readiness-matrix",
@@ -49933,7 +49933,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Decision readiness matrix (opl massnahmen budgetstatus finanzierungsrisiko, budget massnahmen governance)"
+      "displayLabel": "Entscheidung · Bereitschaft · Übersicht"
     },
     {
       "functionId": "fn-decommissioned-asset-reconciliation",
@@ -51158,7 +51158,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Decommissioned asset reconciliation (book value mismatch, gis reconciliation)"
+      "displayLabel": "Stillgelegte · Anlagen · Abgleich"
     },
     {
       "functionId": "fn-direct-marketer-risk-gate",
@@ -52758,7 +52758,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Direct marketer risk gate (gemeinschaftsstrom direktvermarkter, angebotsfreigabe direktvermarkter)"
+      "displayLabel": "Direkt · Vermarktung · Risiken · Freigabeprüfung"
     },
     {
       "functionId": "fn-dr-readiness-evidence-gate",
@@ -54528,7 +54528,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Dr readiness evidence gate (multi tenant backup, disaster recovery)"
+      "displayLabel": "Bereitschaft · Nachweise · Freigabeprüfung"
     },
     {
       "functionId": "fn-e2e-connection-check",
@@ -55550,7 +55550,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "E2e connection check (anschluss koordination, multi thread)"
+      "displayLabel": "Netzanschluss · Prüfung"
     },
     {
       "functionId": "fn-e2e-controllability-check-governance-2",
@@ -57070,7 +57070,7 @@
           "e2e_controllability_check_governance"
         ]
       },
-      "displayLabel": "E2e controllability check governance (flexible lasten steuerbarkeit, messkonzept steuerbarkeit)"
+      "displayLabel": "Steuerbarkeit · Prüfung · Verantwortung"
     },
     {
       "functionId": "fn-edm-metering-concept-evidence",
@@ -58224,7 +58224,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Edm metering concept evidence (mk40, edm plausibilisierung)"
+      "displayLabel": "Energiedatenmanagement · Messwesen · Konzept · Nachweise"
     },
     {
       "functionId": "fn-eeg-clawback-ewk-monitoring",
@@ -59743,7 +59743,7 @@
           "vnb_kpi_benchmark_comparison"
         ]
       },
-      "displayLabel": "Eeg clawback ewk monitoring (digitalisierungsindex, eeg rueckforderung)"
+      "displayLabel": "Erneuerbare Energien · Rückforderung · Überwachung"
     },
     {
       "functionId": "fn-eic-code-lookup",
@@ -61028,7 +61028,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Eic code lookup (energy identification code, gasnetzbetreiber code)"
+      "displayLabel": "Nachschlagen"
     },
     {
       "functionId": "fn-energy-sharing-42c-cutover-readiness",
@@ -62872,7 +62872,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Energy sharing 42c cutover readiness (settlement readiness haertetest, energy sharing simulation gate)"
+      "displayLabel": "Energie · Gemeinschaftliche Nutzung · Umstellung · Bereitschaft"
     },
     {
       "functionId": "fn-energy-sharing-collective-approval",
@@ -64191,7 +64191,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Energy sharing collective approval (collective approval status)"
+      "displayLabel": "Energie · Gemeinschaftliche Nutzung · Gemeinschaftlich · Freigabe"
     },
     {
       "functionId": "fn-energy-sidecar-route-registry",
@@ -65645,7 +65645,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Energy sidecar route registry (deterministisches energie routing, deterministische energie routing)"
+      "displayLabel": "Energie · Ergänzende Dienste · Zugangswege · Verzeichnis"
     },
     {
       "functionId": "fn-energy-tax-information-package",
@@ -68705,7 +68705,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Energy tax information package (abrechnungsmechanik readiness, marktkommunikation sonderfall)"
+      "displayLabel": "Energie · Steuern · Informationen · Unterlagen"
     },
     {
       "functionId": "fn-evidence-freshness-guard",
@@ -70935,7 +70935,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Evidence freshness guard (owner frist materialitaet, netzsignal delta gating)"
+      "displayLabel": "Nachweise · Aktualität · Prüfung"
     },
     {
       "functionId": "fn-evidence-grounding-confidence-audit",
@@ -72783,7 +72783,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Evidence grounding confidence audit (netzbetreiber bestaetigung, confidence begruendung)"
+      "displayLabel": "Nachweise · Belege · Verlässlichkeit · Nachvollziehbarkeit"
     },
     {
       "functionId": "fn-evu-api-migration-diagnostics",
@@ -73819,7 +73819,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Evu api migration diagnostics (endpunkt request body scope validierungsfehler, response code diagnostics)"
+      "displayLabel": "Energieversorgung · Schnittstellen · Umstellung · Fehleranalyse"
     },
     {
       "functionId": "fn-file-ingest-monitor",
@@ -75044,7 +75044,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "File ingest monitor (stammdaten import, datei governance)"
+      "displayLabel": "Dateien · Übernahme · Überwachung"
     },
     {
       "functionId": "fn-finance-nkp-capex-reinvest-governance",
@@ -76044,7 +76044,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Finance nkp capex reinvest governance (regulatorische kapitalkosten, reinvestitionsplanung)"
+      "displayLabel": "Finanzierung · Netzkoppelvertrag · Investitionen · Ersatzinvestitionen · Verantwortung"
     },
     {
       "functionId": "fn-flex-forecast-bess-grid-operations-advisory-2",
@@ -77215,7 +77215,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Flex forecast bess grid operations advisory (battery energy storage, flexibilitatsprognose)"
+      "displayLabel": "Flexibilität · Prognose · Batteriespeicher · Netz · Betrieb · Beratung"
     },
     {
       "functionId": "fn-flexibilitaetskosten-raster",
@@ -77520,7 +77520,7 @@
           "flexibilitaetskosten_raster"
         ]
       },
-      "displayLabel": "Flexibilitaetskosten raster (signaleprioritaeten, redispatch kosten)"
+      "displayLabel": "Flexibilitätskosten · Übersicht"
     },
     {
       "functionId": "fn-flexibility-conductor-role-model",
@@ -78932,7 +78932,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Flexibility conductor role model (flexibilitaetsorchestrierung, rollenmodell flexibilitaet)"
+      "displayLabel": "Flexibilität · Koordination · Rolle · Modell"
     },
     {
       "functionId": "fn-fnav-commercial-hedging",
@@ -79214,7 +79214,7 @@
           "fnav_commercial_hedging"
         ]
       },
-      "displayLabel": "Fnav commercial hedging (compensation liability, commercial risk)"
+      "displayLabel": "Wirtschaftlichkeit · Absicherung"
     },
     {
       "functionId": "fn-fnav-fast-track-contract-gate",
@@ -81900,7 +81900,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Cross channel vnb signal queue (fnav fast track contract gate, fast track vertragsgate)"
+      "displayLabel": "Übergreifend · Kommunikationswege · Verteilnetz · Hinweise · Aufgabenliste"
     },
     {
       "functionId": "fn-gas-capacity-booking-review-gate",
@@ -84171,7 +84171,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Gas capacity booking review gate (residual load presentation mismatch, renderer source action mismatch)"
+      "displayLabel": "Gas · Kapazität · Buchung · Prüfung · Freigabeprüfung"
     },
     {
       "functionId": "fn-gas-infrastructure-risk-governance",
@@ -87955,7 +87955,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Cls digital twin compliance gate (investitionsprozess owner frist budget gate, investment owner deadline budget gate)"
+      "displayLabel": "Digital · Abbild · Regelkonformität · Freigabeprüfung"
     },
     {
       "functionId": "fn-gas-network-decision-chain",
@@ -90280,7 +90280,7 @@
           "gasnetz_waermeplanung"
         ]
       },
-      "displayLabel": "Gas network decision chain (blocked follow up decision, gasnetz entscheidungskette)"
+      "displayLabel": "Gas · Netz · Entscheidung · Zusammenhänge"
     },
     {
       "functionId": "fn-gas-transformation-dataroom-status",
@@ -92746,7 +92746,7 @@
           "gasnetz_waermeplanung_assessment"
         ]
       },
-      "displayLabel": "Gas transformation dataroom status (gas transformation roadmap snapshot, gasnetz transformationsdatenraum)"
+      "displayLabel": "Gas · Umbau · Unterlagen · Stand"
     },
     {
       "functionId": "fn-gas-transformation-dependency-map",
@@ -96446,7 +96446,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Gas decommissioning roadmap status (gas network decommissioning, gas transformation evidence)"
+      "displayLabel": "Gas · Stilllegung · Zeitplan · Stand"
     },
     {
       "functionId": "fn-ghost-asset-alert",
@@ -97642,7 +97642,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Ghost asset alert (ortsfremde anlage, eeg vergutung)"
+      "displayLabel": "Unbestätigt · Anlagen · Warnung"
     },
     {
       "functionId": "fn-gremiencoach-workbook-readiness",
@@ -99410,7 +99410,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Gremiencoach workbook readiness (gremiencoach fuer eine vnb arbeitsmappe, vnb arbeitsmappe claims evidenz luecken)"
+      "displayLabel": "Gremienarbeit · Arbeitsunterlagen · Bereitschaft"
     },
     {
       "functionId": "fn-grid-operator-identity-resolution",
@@ -100187,7 +100187,7 @@
           "mastr_asset_inventory"
         ]
       },
-      "displayLabel": "Grid operator identity resolution (netzbetreiber identitaet, netzbetreiber zuordnung)"
+      "displayLabel": "Netz · Betreiber · Identität · Zuordnung"
     },
     {
       "functionId": "fn-grossspeicher-anschluss-readiness-gate",
@@ -102423,7 +102423,7 @@
           "netzfahrplan_fnav_assessment"
         ]
       },
-      "displayLabel": "Grossspeicher anschluss readiness gate (flexibler netzanschluss speicher, flexibler netzanschlussvertrag)"
+      "displayLabel": "Großspeicher · Anschluss · Bereitschaft · Freigabeprüfung"
     },
     {
       "functionId": "fn-heat-transformation-line-asset-model",
@@ -104667,7 +104667,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Heat transformation line asset model (stilllegungshistorie, waermetransformation)"
+      "displayLabel": "Wärme · Umbau · Leitungen · Anlagen · Modell"
     },
     {
       "functionId": "fn-inhouse-timeseries-analysis",
@@ -105610,7 +105610,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Inhouse timeseries analysis (datasource, lastprofil)"
+      "displayLabel": "Eigene Daten · Zeitreihen · Auswertung"
     },
     {
       "functionId": "fn-interconnection-release-file-2",
@@ -107260,7 +107260,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Interconnection release file (koppelpunkt mapping version, koppelpunkt freigabeakte)"
+      "displayLabel": "Netzverknüpfung · Freigabe · Dateien"
     },
     {
       "functionId": "fn-investment-budget-cap-exception-governance",
@@ -111911,7 +111911,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Asset valuation transformation gate (investment budget cap exception governance, gasnetztransformation vdmi asset cockpit)"
+      "displayLabel": "Anlagen · Bewertung · Umbau · Freigabeprüfung"
     },
     {
       "functionId": "fn-investment-data-review-queue",
@@ -114978,7 +114978,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Investment data review queue (spartenuebergreifende zaehlkennzahlen, metering rollout process indicator)"
+      "displayLabel": "Investitionen · Daten · Prüfung · Aufgabenliste"
     },
     {
       "functionId": "fn-investment-maturity-off-balance-gate",
@@ -116377,7 +116377,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Investment maturity off balance gate (finanzierungszusatzkosten, zusatzkosten finanzierung)"
+      "displayLabel": "Investitionen · Reifegrad · Außerhalb · Bilanz · Freigabeprüfung"
     },
     {
       "functionId": "fn-investment-risk-translation-status-2",
@@ -117269,7 +117269,7 @@
           "investment_risk_translation_status"
         ]
       },
-      "displayLabel": "Investment risk translation status (entscheidungsgrundlage, investment handover)"
+      "displayLabel": "Investitionen · Risiken · Einordnung · Stand"
     },
     {
       "functionId": "fn-jour-fixe-decision-closure-tracker",
@@ -118227,7 +118227,7 @@
           "jour_fixe_decision_closure_tracker"
         ]
       },
-      "displayLabel": "Jour fixe decision closure tracker (entscheidungskriterium, offene entscheidung)"
+      "displayLabel": "Regeltermin · Abstimmung · Entscheidung · Abschluss · Nachverfolgung"
     },
     {
       "functionId": "fn-ki-floorwalker-governance",
@@ -118816,6 +118816,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-capability-loop.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-chat-presentation.js"
         },
         {
           "kind": "service",
@@ -120050,7 +120054,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Ki floorwalker governance (use case priorisierung, prompt standard)"
+      "displayLabel": "Künstliche Intelligenz · Begleitung · Verantwortung"
     },
     {
       "functionId": "fn-knowledge-continuity-governance-gate",
@@ -121372,7 +121376,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Knowledge continuity governance gate (prozesskontinuitaet, berechtigungsowner)"
+      "displayLabel": "Wissen · Kontinuität · Verantwortung · Freigabeprüfung"
     },
     {
       "functionId": "fn-layer0-audit-drilldown-note",
@@ -123099,7 +123103,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Layer0 audit drilldown note (audit drilldown generator, benchmark abweichung)"
+      "displayLabel": "Nachvollziehbarkeit · Detailprüfung · Hinweis"
     },
     {
       "functionId": "fn-leadership-delta-cockpit",
@@ -124804,7 +124808,7 @@
           "leadership_delta_cockpit"
         ]
       },
-      "displayLabel": "Leadership delta cockpit (managementsteuerung, entscheidungsreif)"
+      "displayLabel": "Führung · Änderungen · Übersicht"
     },
     {
       "functionId": "fn-legal-clarification-operating-model",
@@ -126940,7 +126944,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Datasource registry classification governance (legal clarification operating model, entscheidung nach rechtsantwort)"
+      "displayLabel": "Datenquellen · Verzeichnis · Einordnung · Verantwortung"
     },
     {
       "functionId": "fn-liquidity-planning-governance-module",
@@ -129549,7 +129553,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Liquidity planning governance module (smart meter gateway finanzierung, quellenregister finance)"
+      "displayLabel": "Liquidität · Planung · Verantwortung · Unterstützung"
     },
     {
       "functionId": "fn-live-update-stream-contract-status",
@@ -131291,7 +131295,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Live update stream contract status (live update contract, streaming readiness)"
+      "displayLabel": "Aktualisierung · Datenstrom · Vertrag · Stand"
     },
     {
       "functionId": "fn-load-profile-stream-monitor",
@@ -133451,7 +133455,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Load profile stream monitor (redispatch abrechnungsgate, redispatch datenqualitaet)"
+      "displayLabel": "Last · Profil · Datenstrom · Überwachung"
     },
     {
       "functionId": "fn-market-communication-evidence-chain",
@@ -135639,7 +135643,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Market communication evidence chain (dynamischer tarif abrechnungsreife, energy sharing marktkommunikation)"
+      "displayLabel": "Markt · Kommunikation · Nachweise · Zusammenhänge"
     },
     {
       "functionId": "fn-mastr-quality-oemetadata",
@@ -137292,7 +137296,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Mastr quality oemetadata (fair export fuer audit reports, mastr quality fair export)"
+      "displayLabel": "Marktstammdatenregister · Qualität"
     },
     {
       "functionId": "fn-mastr-sync-gap-alerting",
@@ -138727,7 +138731,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Mastr sync gap alerting (redispatch monitoring, mastr monitoring)"
+      "displayLabel": "Marktstammdatenregister · Abgleich · Lücken · Warnungen"
     },
     {
       "functionId": "fn-model-viability-evidence-gate",
@@ -140547,7 +140551,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Model viability evidence gate (lieferanten dienstleistungsmodell, flexible connection logic)"
+      "displayLabel": "Modell · Tragfähigkeit · Nachweise · Freigabeprüfung"
     },
     {
       "functionId": "fn-netzkoppelvertrag-workflow",
@@ -141624,7 +141628,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Netzkoppelvertrag workflow (interconnection, dso tso)"
+      "displayLabel": "Netzkoppelvertrag · Ablauf"
     },
     {
       "functionId": "fn-netzprozess-readiness-gate",
@@ -143785,7 +143789,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Netzprozess readiness gate (rollenberechtigung readiness, operational role readiness)"
+      "displayLabel": "Netzprozesse · Bereitschaft · Freigabeprüfung"
     },
     {
       "functionId": "fn-nkp-reporting",
@@ -143946,7 +143950,7 @@
           "nkp_reporting"
         ]
       },
-      "displayLabel": "Nkp reporting (plausibilitaetspruefung, netzknotenpunkt)"
+      "displayLabel": "Netzkoppelvertrag · Berichtswesen"
     },
     {
       "functionId": "fn-non-escalation-control-evidence",
@@ -145882,7 +145886,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Non escalation control evidence (monitoring non escalation status, owner naechster pruefzeitpunkt)"
+      "displayLabel": "Vermeidung · Eskalation · Prüfung · Nachweise"
     },
     {
       "functionId": "fn-nova-decision-lifecycle-readiness",
@@ -147765,7 +147769,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Nova decision lifecycle readiness (nova tenant isolated sse readiness, nova decision source catalogue)"
+      "displayLabel": "Entscheidung · Lebenszyklus · Bereitschaft"
     },
     {
       "functionId": "fn-oep-research-dataset-discovery",
@@ -148357,7 +148361,7 @@
           "oep_research_dataset_discovery"
         ]
       },
-      "displayLabel": "Oep research dataset discovery (open energy platform, tyndp)"
+      "displayLabel": "Recherche · Datensätze · Suche"
     },
     {
       "functionId": "fn-owner-deadline-evidence-gate-2",
@@ -150514,7 +150518,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Owner deadline evidence gate (management nachhaltung, owner deadline gate)"
+      "displayLabel": "Zuständigkeit · Fristen · Nachweise · Freigabeprüfung"
     },
     {
       "functionId": "fn-re4de-variable-grid-fee-layer3",
@@ -151673,7 +151677,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Re4de variable grid fee layer3 (netzentgelt berechnung, variable netzentgelte)"
+      "displayLabel": "Variabel · Netz · Entgelte"
     },
     {
       "functionId": "fn-redispatch-asset-register",
@@ -153069,7 +153073,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Redispatch asset register (anlagenregister redispatch, malo zuordnung redispatch)"
+      "displayLabel": "Redispatch · Anlagen · Register"
     },
     {
       "functionId": "fn-redispatch-data-governance",
@@ -154901,7 +154905,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Redispatch data governance (redispatch operative bereitschaft, stammdatentemplate redispatch)"
+      "displayLabel": "Redispatch · Daten · Verantwortung"
     },
     {
       "functionId": "fn-redispatch-participation-readiness",
@@ -155515,7 +155519,7 @@
           "redispatch_participation_readiness"
         ]
       },
-      "displayLabel": "Redispatch participation readiness (stadtwerk mauer redispatch, virtuelles stadtwerk mauer)"
+      "displayLabel": "Redispatch · Teilnahme · Bereitschaft"
     },
     {
       "functionId": "fn-redispatch-settlement-sandbox",
@@ -156750,7 +156754,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Redispatch settlement sandbox (einspeisemanagement abrechnung, redispatch abrechnung variante)"
+      "displayLabel": "Redispatch · Abrechnung · Testumgebung"
     },
     {
       "functionId": "fn-regulatorische-entgeltlogik",
@@ -157749,7 +157753,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Regulatorische entgeltlogik (tarifversionen, billing rules)"
+      "displayLabel": "Regulatorische · Entgeltlogik"
     },
     {
       "functionId": "fn-regulatory-risk-revenue-scenario",
@@ -159823,7 +159827,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Regulatory risk revenue scenario (regulatory revenue scenario, revenue cap scenario)"
+      "displayLabel": "Regulierung · Risiken · Erlöse · Szenarien"
     },
     {
       "functionId": "fn-reinvest-signal",
@@ -160789,7 +160793,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Reinvest signal (aregv fotojahr, wartungslog)"
+      "displayLabel": "Ersatzinvestitionen · Hinweise"
     },
     {
       "functionId": "fn-renewable-generation-forecast",
@@ -162120,7 +162124,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Renewable generation forecast (wieviel strom wird erzeugt, wetterprognose erzeugung)"
+      "displayLabel": "Erneuerbar · Erzeugung · Prognose"
     },
     {
       "functionId": "fn-reporting-governance",
@@ -163070,7 +163074,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Reporting governance (berichtswesen maturity, onelake)"
+      "displayLabel": "Berichtswesen · Verantwortung"
     },
     {
       "functionId": "fn-residual-load-forecast-for-dso-2",
@@ -163806,7 +163810,7 @@
           "residual_load_forecast_for_dso"
         ]
       },
-      "displayLabel": "Residual load forecast for dso (flexibilitatsfenster, beschaffungsplanung)"
+      "displayLabel": "Restbedarf · Last · Prognose · für · Verteilnetz"
     },
     {
       "functionId": "fn-schedule-management-governance-roadmap",
@@ -166833,7 +166837,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Process sensitization readiness map (datenqualitaet vor schulung, sensibilisierung readiness)"
+      "displayLabel": "Ablauf · Sensibilisierung · Bereitschaft · Übersicht"
     },
     {
       "functionId": "fn-scqa-decision-framing",
@@ -167561,7 +167565,7 @@
           "scqa_decision_framing"
         ]
       },
-      "displayLabel": "Scqa decision framing (shared situation picture, transformationsdruck)"
+      "displayLabel": "Entscheidung · Einordnung"
     },
     {
       "functionId": "fn-settlement-a96-reconciliation",
@@ -168567,7 +168571,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Settlement a96 reconciliation (zeitfenster, abweichung)"
+      "displayLabel": "Abrechnung · Abgleich"
     },
     {
       "functionId": "fn-smart-meter-cls-data-governance-receipt",
@@ -170606,7 +170610,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Smart meter cls data governance receipt (messstellenbetrieb marktkommunikation, smgw cls data governance receipt)"
+      "displayLabel": "Intelligent · Messsysteme · Daten · Verantwortung · Nachweis"
     },
     {
       "functionId": "fn-smgw-connector-readiness-status",
@@ -172268,7 +172272,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Smgw connector readiness status (voltaris adapter readiness, gateway adapter readiness)"
+      "displayLabel": "Anbindung · Bereitschaft · Stand"
     },
     {
       "functionId": "fn-stadtwerk-mauer-capability-projection",
@@ -173691,7 +173695,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Stadtwerk mauer capability projection (stadtwerk mauer event simulation preview, capability projection stadtwerk mauer)"
+      "displayLabel": "Stadtwerke · Fähigkeiten · Zuordnung"
     },
     {
       "functionId": "fn-stadtwerk-mauer-e2e-process-demo",
@@ -175606,7 +175610,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Stadtwerk mauer e2e process demo (stadtwerk mauer externe schnittstellen stubs, stadtwerk mauer external interface stubs)"
+      "displayLabel": "Stadtwerke · Ablauf · Demonstration"
     },
     {
       "functionId": "fn-stadtwerk-mauer-mastr-data-overlay",
@@ -177273,7 +177277,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Stadtwerk mauer mastr data overlay (real mastr baseline virtual operator overlay, stadtwerk mauer blended mastr data overlay)"
+      "displayLabel": "Stadtwerke · Marktstammdatenregister · Daten · Ergänzung"
     },
     {
       "functionId": "fn-stadtwerk-mauer-sandbox-runtime",
@@ -178905,7 +178909,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Stadtwerk mauer sandbox runtime (sandbox derived state inventory, stadtwerk mauer tenant reset)"
+      "displayLabel": "Stadtwerke · Testumgebung · Betrieb"
     },
     {
       "functionId": "fn-vdmi-asset-validation-governance",
@@ -180704,7 +180708,7 @@
           "vdmi_role_boundary_governance"
         ]
       },
-      "displayLabel": "Vdmi asset validation governance (decision blocked pending formal request, darf keine netzanschlusszusage treffen)"
+      "displayLabel": "Anlagen · Validierung · Verantwortung"
     },
     {
       "functionId": "fn-vdmi-governance-templates",
@@ -181939,7 +181943,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Vdmi governance templates (interface definition, vdmi vorlage)"
+      "displayLabel": "Verantwortung · Vorlagen"
     },
     {
       "functionId": "fn-vdmi-portfolio-gatekeeping",
@@ -183084,7 +183088,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Vdmi portfolio gatekeeping (investitionsfreigabe, forbidden assumption)"
+      "displayLabel": "Portfolio · Freigabeprüfung"
     },
     {
       "functionId": "fn-vnb-100-tage-assessment",
@@ -184076,7 +184080,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Vnb 100 tage assessment (quick assessment, kpi benchmark)"
+      "displayLabel": "Verteilnetz · Tage · Bewertung"
     },
     {
       "functionId": "fn-vnb-delta-signal-classifier-2",
@@ -184839,7 +184843,7 @@
           "vnb_delta_signal_classifier"
         ]
       },
-      "displayLabel": "Vnb delta signal classifier (entscheidungssignal, evu fuehrungssignal)"
+      "displayLabel": "Verteilnetz · Änderungen · Hinweise · Einordnung"
     },
     {
       "functionId": "fn-water-pricing-net-investment-alignment-gate",
@@ -185926,7 +185930,7 @@
         "missingCapabilities": [],
         "staleCapabilities": []
       },
-      "displayLabel": "Water pricing net investment alignment gate (anlagenbuchhaltung pachtnetz, kalkulatorischer wasserpreis)"
+      "displayLabel": "Wasser · Preisbildung · Netz · Investitionen · Abstimmung · Freigabeprüfung"
     },
     {
       "functionId": "fn-znp-portfolio-assessment",
@@ -188614,7 +188618,7 @@
           "znp_portfolio_assessment"
         ]
       },
-      "displayLabel": "Grid connection transformation gate (znp production readiness evidence gate, hoeheinoed acceptance evidence)"
+      "displayLabel": "Netz · Netzanschluss · Umbau · Freigabeprüfung"
     }
   ],
   "gaps": {

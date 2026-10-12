@@ -569,6 +569,7 @@ module.exports = {
           if (!proposal || proposal.outcome || !proposal.recipients.includes(p.actorId))
             return false;
           item.text = proposal.summary || '';
+          item.internalReview = Boolean(proposal.internalReview);
           return Boolean(item.text);
         }
         if (item.kind === 'gap') return await this.canSeeGap(ctx, p, item);
@@ -636,6 +637,12 @@ module.exports = {
         operationInput(entry, item.context, p.tenantId),
         this.broker
       );
+      const stateText = {
+        warn: 'Ein fachlicher Warnhinweis liegt vor.',
+        breach: 'Eine fachliche Grenze ist verletzt.',
+        ok: 'Der zuvor gemeldete Befund ist wieder unauffällig.',
+      };
+      item.text = stateText[item.state] || '';
       if (!item.context) return entry.classification === 'standing';
       if (item.context.kind !== 'case') return false;
       const journal = this.broker.getLocalService('journal');
@@ -678,8 +685,33 @@ module.exports = {
               .join('; ');
             publicItem.context = gap.context;
           }
-          if (noticeText(publicItem, this.model) || publicItem.kind === 'signal')
-            items.push(publicItem);
+          if (publicItem.context?.kind === 'case') {
+            const store = this.broker.getLocalService('workbench')?.store;
+            if (store?.caseDisplayRef) {
+              const ref = await store.caseDisplayRef({
+                tenantId: p.tenantId,
+                caseId: publicItem.context.ref,
+              });
+              if (/^F-\d+$/u.test(ref) && publicItem.text)
+                publicItem.text = `Fall ${ref}: ${publicItem.text}`;
+            }
+          }
+          if (noticeText(publicItem, this.model)) items.push(publicItem);
+          else {
+            doc.audit ||= [];
+            if (!doc.audit.some((entry) => entry.eventKey === item.eventKey)) {
+              doc.audit.push({
+                kind: 'notice_withheld',
+                eventKey: item.eventKey,
+                ref: item.ref,
+                reason: 'internal_or_non_german_content',
+                delivered: false,
+                at: new Date().toISOString(),
+              });
+              doc.audit = doc.audit.slice(-this.settings.maxHistory);
+              await this.save(doc);
+            }
+          }
         }
       return { items, preference: doc.preference, block: renderNoticeBlock(items, 0, this.model) };
     },

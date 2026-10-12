@@ -5,6 +5,8 @@ const { exactToken } = require('./workbench-codes');
 const { normalizePhrase } = require('./function-resolver');
 const { bindingDraftPatterns } = require('./workbench-code-catalog.json');
 const REASONS = {
+  unsolicited_advice:
+    'Keine unverlangten allgemeinen Empfehlungen oder Angebote zur Vertiefung anhängen.',
   chat_address: 'Im Chat durchgängig du verwenden; Sie nur in Entwürfen an Externe.',
   raw_tool_output: 'Interne Codes durch natürliche Sprache ersetzen.',
   meta_text: 'Direkt antworten, keine Sätze über den Nutzer oder den Anfragenden.',
@@ -92,7 +94,21 @@ function filterAnswer(
     const original = parsed[field] || [];
     const rejectedConditions = new Set();
     const filtered = original.filter((claim) => {
+      claim.text = require('./case-continuation').readableCaseText(claim.text);
+      if (field !== 'draft') {
+        const clean = require('./workbench-chat-presentation').withoutUnsolicitedAdvice(
+          claim.text,
+          message
+        );
+        if (clean !== claim.text) reject(field, 'unsolicited_advice');
+        claim.text = clean;
+      }
       const rules = [];
+      if (
+        field !== 'draft' &&
+        require('./workbench-chat-presentation').unsolicitedAdvice(claim.text, message)
+      )
+        rules.push('unsolicited_advice');
       if (require('./workbench-conversation-shape').forbiddenMeta(claim.text))
         rules.push('meta_text');
       if (

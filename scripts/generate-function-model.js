@@ -52,6 +52,8 @@ function buildFunctionModel({ previousModel = readCommittedFunctionModel() } = {
     'operation-capability-index.json',
     'function-model.parameters.json',
     'scripts/generate-function-model.js',
+    'src/function-display-label.js',
+    'src/function-display-vocabulary.json',
     'scripts/function-model-projection.js',
     'scripts/function-model-lineage.js',
     'scripts/function-model-embeddings.js',
@@ -74,44 +76,8 @@ function buildFunctionModel({ previousModel = readCommittedFunctionModel() } = {
     previousModel,
     embeddingCache,
   });
-  const frequency = new Map();
   for (const fn of model.functions)
-    for (const keyword of new Set(fn.keywords || []))
-      frequency.set(keyword, (frequency.get(keyword) || 0) + 1);
-  const readable = (value) =>
-    String(value)
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .replace(/[_-]+/g, ' ')
-      .trim();
-  for (const fn of model.functions) {
-    const label = readable(fn.label);
-    const ranked = [...new Set(fn.keywords || [])]
-      .filter(
-        (keyword) =>
-          keyword.length >= 4 &&
-          keyword.length <= 60 &&
-          !label.toLowerCase().includes(readable(keyword).toLowerCase())
-      )
-      .sort(
-        (a, b) =>
-          frequency.get(a) - frequency.get(b) ||
-          b.length - a.length ||
-          compareCanonicalStrings(a, b)
-      );
-    const distinct = new Map();
-    for (const keyword of ranked) {
-      const key = readable(keyword)
-        .normalize('NFKD')
-        .replace(/\p{M}/gu, '')
-        .toLowerCase()
-        .replace(/ae/g, 'a')
-        .replace(/oe/g, 'o')
-        .replace(/ue/g, 'u');
-      if (!distinct.has(key)) distinct.set(key, readable(keyword));
-    }
-    const keywords = [...distinct.values()].slice(0, 2);
-    fn.displayLabel = `${label.charAt(0).toUpperCase()}${label.slice(1)}${keywords.length ? ` (${keywords.join(', ')})` : ''}`;
-  }
+    fn.displayLabel = require('../src/function-display-label').functionDisplayLabel(fn);
   return model;
 }
 

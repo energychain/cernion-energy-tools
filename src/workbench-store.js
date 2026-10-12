@@ -294,6 +294,7 @@ class WorkbenchStore {
       ...(email ? { externalUserEmail: email } : {}),
       cetTenantId: input.cetTenantId,
       cetActorId: input.cetActorId,
+      displayName: input.displayName ?? existing?.displayName ?? null,
       roles: [...new Set(input.roles || [])],
       sensitivityClearance: [...new Set(input.sensitivityClearance || [])],
       defaultClientId: input.defaultClientId || existing?.defaultClientId || null,

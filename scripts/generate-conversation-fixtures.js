@@ -129,3 +129,36 @@ if (process.argv.includes('--check')) {
     process.exitCode = 1;
 } else fs.writeFileSync(hotfixTarget, hotfixContent);
 module.exports = { generateHotfixConversationFixtures };
+
+function generateChatPolishFixtures() {
+  return {
+    humanProposal: 'Die ausstehende Fallprüfung braucht eine Freigabe.',
+    internalNotice:
+      'Internal Review Proposal: Case 00000000-0000-4000-8000-000000000850 requires operational review due to blocking breaches in the handover process.',
+    unsafeNotices: [
+      'Operational status requires immediate attention.',
+      'Die interne Funktion fn-private-review ist offen.',
+      'Die Abfrage meldet READ_SOURCE_FAILED.',
+      'Die Prüfung von internalSource.pending steht aus.',
+    ],
+    relationshipNotice:
+      'Die geplante Stilllegung der Gasleitung bis 2030 beeinflusst den Netzausbau ab 2034.',
+    summaryQuestion: 'Fasse das Protokoll kurz zusammen.',
+    functionQuestion: 'Welche Funktionen passen zu diesem Fall?',
+    peakQuestion: 'Wann war die Spitzenlast?',
+    detailsQuestion: 'Zeig mir den Rechenweg',
+    draftQuestion: 'Mach mir die Antwort fertig',
+    displayName: 'ben',
+    draft:
+      'Guten Tag,\n\nzu der offenen Netzanmeldung fehlt noch [… Bearbeitungsstand].\n\nMit freundlichen Grüßen\n[Name]',
+    fieldError:
+      'Ein angefordertes Auswertungsfeld ist nicht in den Daten enthalten. Wiederhole die Abfrage mit den korrekten Feldbezeichnungen.',
+  };
+}
+const polishTarget = path.join(__dirname, '../tests/fixtures/workbench-850.generated.json');
+const polishContent = JSON.stringify(generateChatPolishFixtures(), null, 2) + '\n';
+if (process.argv.includes('--check')) {
+  if (!fs.existsSync(polishTarget) || fs.readFileSync(polishTarget, 'utf8') !== polishContent)
+    process.exitCode = 1;
+} else fs.writeFileSync(polishTarget, polishContent);
+module.exports.generateChatPolishFixtures = generateChatPolishFixtures;

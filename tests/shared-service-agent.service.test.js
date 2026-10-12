@@ -260,7 +260,7 @@ test('AC-04/06: findings precede quota-bound LLM; only neighboring observed peop
       tenantId: 'tenant-a',
       agentId: item.agentId,
       functionId: 'fn-b',
-      summary: 'Internal review requested.',
+      summary: 'Eine fachliche Prüfung ist erforderlich.',
     }),
   ]);
   expect(item.stats.consumedUnits).toBeCloseTo(1.85);

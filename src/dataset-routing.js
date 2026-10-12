@@ -57,7 +57,11 @@ async function selectDatasetCandidates(
       ) ||
         newDatasetIds.includes(record.id))
   );
-  if (elliptical && contextual.length) return contextual;
+  if (
+    (elliptical || require('./workbench-chat-presentation').queryDetailsOnly(question)) &&
+    contextual.length
+  )
+    return contextual;
   const intent = require('./dataset-question-dimensions.json').find((item) =>
     new RegExp(item.pattern, 'i').test(String(question).trim())
   );

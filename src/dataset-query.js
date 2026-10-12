@@ -546,6 +546,8 @@ function executeDatasetQuery(pool, record, input) {
         )))
   )
     answer = metricAnswer;
+  if (require('./workbench-chat-presentation').requestsQueryDetails(question))
+    answer = lines.slice(1).join('\n\n');
   return {
     responseText: `${answer}\n\n${origin}`.replace(/\bSpalte\s+\d+\b/gi, 'Messwert'),
     rowCount: db.prepare(`SELECT COUNT(*) AS n FROM (${sql})`).get(...params).n,

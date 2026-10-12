@@ -5,6 +5,7 @@ const { WorkbenchStore } = require('../src/workbench-store');
 const { memoryPouch } = require('./helpers/shared-service/memory-pouch');
 const { getNeighbors } = require('../src/function-model');
 const { project, configuration } = require('../src/function-coverage');
+const polishFixtures = require('./fixtures/workbench-850.generated.json');
 const model = {
   sourceHash: 'learning-v1',
   parameters: { minWeight: 0.2 },
@@ -302,7 +303,7 @@ test.each(['identifier', 'description', 'english'])(
     agent.proposals.push({
       ref: 'proposal-one',
       functionId: 'fn-b',
-      summary: 'Beta Review follow-up',
+      summary: polishFixtures.humanProposal,
       recipients: ['person'],
       outcome: null,
     });
@@ -340,10 +341,10 @@ test.each(['identifier', 'description', 'english'])(
       mode === 'identifier'
         ? `Nimm ${notice.ref} an`
         : mode === 'english'
-          ? 'Accept the proposal about Beta Review follow-up'
-          : 'Den Vorschlag zum Beta Review follow-up nehme ich an'
+          ? `Accept the proposal about ${polishFixtures.humanProposal}`
+          : `Den Vorschlag zu ${polishFixtures.humanProposal} nehme ich an`
     );
-    expect(response.responseText).toContain('Beta Review follow-up');
+    expect(response.responseText).toContain(polishFixtures.humanProposal);
     expect(calls).not.toContain('shared-service-agent.resolveProposal');
     await chat('Ja');
     expect(calls.filter((name) => name === 'shared-service-agent.resolveProposal')).toHaveLength(1);
@@ -371,7 +372,7 @@ test('wrong proposal updates rejection statistics and decreases generation frequ
   const agent = doc.agents.find((item) => item.functionId === 'fn-b');
   agent.proposals.push({
     ref: 'proposal-one',
-    summary: 'Beta Review follow-up',
+    summary: polishFixtures.humanProposal,
     recipients: ['person'],
     outcome: null,
   });
@@ -384,7 +385,7 @@ test('wrong proposal updates rejection statistics and decreases generation frequ
         ? Promise.resolve({ count: 1 })
         : original(name, ...args)
     );
-  await chat('Den Vorschlag zum Beta Review follow-up ist falsch');
+  await chat(`Den Vorschlag zu ${polishFixtures.humanProposal} ist falsch`);
   await chat('Ja');
   const updated = await adapter.agents.readDocument('tenant-a');
   const saved = updated.agents.find((item) => item.functionId === 'fn-b');
