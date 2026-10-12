@@ -36,10 +36,11 @@ function anchorSyntax() {
 function anchorParts(value) {
   const original = String(value || '').trim();
   const parenthesized = original.match(/^(.+?)\s*\(([^()]+)\)$/);
-  if (parenthesized) return { value: parenthesized[1].trim(), qualifier: parenthesized[2].trim() };
+  if (parenthesized)
+    return { value: anchorParts(parenthesized[1]).value, qualifier: parenthesized[2].trim() };
   const { prepositions, articles } = anchorSyntax();
   const tokens = original.split(/\s+/u);
-  const boundary = tokens.findIndex(
+  const boundary = tokens.findLastIndex(
     (token, index) =>
       index > 0 && index < tokens.length - 1 && prepositions.includes(normalizeAnchor(token))
   );

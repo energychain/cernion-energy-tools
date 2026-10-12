@@ -173,6 +173,16 @@ describe('861 deterministic tenant memory acceptance', () => {
     }
   });
 
+  test('A.1 / A.3: multi-preposition and parenthesized anchors normalize idempotently', () => {
+    for (const value of f.compoundVariants) {
+      const canonical = store.qualifiedAnchor({ value, aliases: [value] });
+      expect(canonical.value).toBe(f.base);
+      expect(store.qualifiedAnchor(canonical)).toEqual(canonical);
+      expect(store.anchorKeys({ value, aliases: [value] })).toEqual(store.anchorKeys(canonical));
+    }
+    expect(store.qualifiedAnchor({ value: f.compoundVariants[1] }).qualifier).toBe('Prüfvariante');
+  });
+
   test('scenario 4 / K: an explicit qualifier keeps its variant and unqualified facts, excludes others', async () => {
     await capture(f.first);
     await capture(f.second, f.actorB);

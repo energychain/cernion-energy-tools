@@ -40,6 +40,10 @@ function generateMemoryAnchorFixture() {
     second: assertion(textB, `Gasleitung im ${base}`),
     query: `Was wissen wir zu ${base}?`,
     variants: [`Leitung in der ${base}`, `Netz am ${base}`, `${base} (Gasleitung)`],
+    compoundVariants: [
+      `Prüfgegenstand über Prüfmittel im ${base}`,
+      `Gasleitung im ${base} (Prüfvariante)`,
+    ],
     internalFunction: 'Synthetic processing chain (pending follow up)',
     rule: 'Synthetische Regel: ' + 'Die angegebenen Fristen bedürfen einer Prüfung. '.repeat(24),
     signature: `Mit freundlichen Grüßen\nFremdperson${suffix}\nFremdes Testteam`,

@@ -33,7 +33,11 @@ Das gilt auch dann, wenn die Extraktion den gesamten Ausdruck als `value` liefer
 Belegte Aliases werden mit derselben Grammatik normalisiert. Die kommaseparierten
 Variablen `TENANT_MEMORY_ANCHOR_PREPOSITIONS` und `TENANT_MEMORY_ANCHOR_ARTICLES`
 ersetzen die Standardlisten der Präpositionen beziehungsweise Artikel. Es gibt keine
-Fachbegriff- oder Ortslisten. Grammatikänderungen erfordern danach den auditierten
+Fachbegriff- oder Ortslisten. Bei mehreren Präpositionen wird am letzten passenden
+Trenner zerlegt; eine ausdrücklich angehängte Klammerqualifikation hat Vorrang.
+Auch deren Basiswert wird vor dem Speichern vollständig normalisiert, sodass ein
+weiterer Normalisierungslauf dieselben Anker und Schlüssel ergibt.
+Grammatikänderungen erfordern danach den auditierten
 Migrationslauf für vorhandene Aussagen.
 
 Ein Basisanker findet alle sichtbaren Varianten, auch bei mehreren Qualifiern.
