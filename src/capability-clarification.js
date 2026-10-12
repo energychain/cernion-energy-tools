@@ -29,7 +29,7 @@ function choiceCandidates(classification, model = getFunctionModel()) {
   return compatibleCandidates(classification, model)
     .map((candidate) => {
       const fn = matchingFunction(candidate, classification, model);
-      const label = fn?.displayLabel || fn?.label || 'Weitere Klärung';
+      const label = fn?.displayLabel || 'Weitere fachliche Klärung';
       if (seen.has(label)) return null;
       seen.add(label);
       return { candidate, label };

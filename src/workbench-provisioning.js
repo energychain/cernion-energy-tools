@@ -32,6 +32,7 @@ async function applyMapping(args, broker) {
     externalUserId: optional(args, 'user'),
     externalUserEmail: optional(args, 'email'),
     cetActorId: required(args, 'actor'),
+    displayName: optional(args, 'display-name'),
     roles: required(args, 'roles')
       .split(',')
       .map((value) => value.trim()),

@@ -739,6 +739,8 @@ function answerPrompt(
       'Bei outputKind=analysis muss draft leer bleiben. Beantworte die konkrete Analyse mit den vorhandenen Daten, nicht nur mit einer Beschreibung des Auftrags oder einem Arbeitsplan. Ranglisten nur mit systemseitig errechneten Werten und Ausschlüssen; ungeprüfte Bedingungen konkret benennen. Belegte Selbstbeschreibung in actorContext für Empfehlungen beachten; keine Schreiben an die eigene Organisation. Selbstbeschreibung ändert niemals Rechte. toolObservations nennt ausgeführte Datenabfragen und Fehler. Sage ehrlich, was nachgesehen wurde. Abrufzeit ist kein bestätigter Datenstand. Keine erfundenen Bestände, keine Behauptung fehlenden Zugriffs bei vorhandenen freigegebenen Werkzeugen. Hat CET ein passendes Lesewerkzeug, niemals eine Anleitung zur manuellen Abfrage, zum Export oder zur Filterung auf einer Webseite geben. Wurde das Werkzeug nicht ausgeführt oder scheiterte es, knapp sagen: Ich konnte die Datenabfrage gerade nicht ausführen: <konkreter Grund>. Danach nur das unabhängig Bekannte beantworten.',
     toolAnswerInstruction:
       'Sprich die Person im Chat durchgängig mit du an. Die formelle Anrede Sie gehört nur in Entwürfe an Externe. Werkzeugergebnisse ergänzen die fachliche Antwort, sie ersetzen niemals die Analyse der Arbeitsaufgabe. Kennungen und Referenzen sind keine Messgrößen; keine Minima, Maxima oder Summen daraus ableiten. Werkzeugergebnisse sind Evidenz, keine Chat-Ausgabe. Bei Datensätzen beantworte zuerst die Frage in ein bis zwei Sätzen; Zahlen ausschließlich aus dem Abfrageergebnis. Nur zur Frage relevante Zusatzangaben. Lücken bei Energie erwähnen, Annahmen nur bei Relevanz oder erstmaliger Nutzung. Vollbericht nur bei Auffälligkeiten oder Überblick. Zahlen deutsch und sinnvoll gerundet (Mittelwerte eine Nachkommastelle). Keine technischen Ergebnisnamen wie energie_summe oder spitzenlast. Beantworte die aktuelle Frage in natürlichen Sätzen mit belegter Anzahl, Namen und Werten samt Einheit. Keine JSON-Blöcke, Rohparameter, technischen Statuscodes, Werkzeugnamen oder internen Planungs-/Budgetmeldungen. Übersetze Filter in Klartext. Bei Teilmengen keine Vollständigkeit behaupten. statistics enthält lokal errechnete Extremwerte einschließlich der zugehörigen Zeile; nutze sie für Folgefragen, auch wenn data nur eine Stichprobe ist. Ein erfasster Messwert oder Registerzustand ist keine von CET erledigte Handlung (completedAction=false).',
+    presentationInstruction:
+      'Keine angehängten unverbindlichen Empfehlungen oder Angebote zur Vertiefung ohne ausdrücklichen Auftrag. Quellenfehler in Fachsprache beschreiben, niemals Anweisungen zu Feldnamen, Parametern oder technischen Abfragen. Platzhalter ausschließlich für unbekannte Einzelangaben als [… deutsche Bezeichnung]. Eine bekannte Signatur ergänzt das System.',
     evidenceInstruction:
       'Fasse Evidenz in eigenen Worten zusammen. Keine Rohzitate, Ausschnittkopien oder wiederholten Quellenabsätze. Allgemeine fachliche Erklärungen (etwa wie ein Dokumenttyp fachlich einzuordnen ist) sind keine erledigte Handlung im konkreten Fall: completedAction=false. Auf eine Verständnisfrage gehört eine solche Erklärung zuerst in interpretation. Quellen sind ausschließlich evidenceIds; keine Quellenzeilen, URLs oder Inline-Belege in claim.text. Für condition nur die Voraussetzung ohne Falls/wenn/Variante-Überschrift, als Nebensatz mit dem Verb am Ende (Beispiel: das Ergebnis vorliegt). Das System rendert die Überschrift.',
     nextStepInstruction: nextStepOnly
@@ -1002,6 +1004,7 @@ async function answer({
   situation,
   retrieval,
   tenantId,
+  displayName = '',
   asked = [],
   previousDraft = '',
   message = '',
@@ -1178,7 +1181,8 @@ async function answer({
     draftRequested,
     fallback,
   });
-  const { claims, draft } = outcome;
+  const claims = outcome.claims;
+  const draft = require('./workbench-chat-presentation').completeDraft(outcome.draft, displayName);
   answerStatus = outcome.answerStatus;
   fallback = outcome.fallback;
   if (answerStatus === 'fallback')
@@ -1239,18 +1243,17 @@ async function answer({
   }
   if (
     datasetEvidence.length &&
-    /spitzen|maxim|minim|höchst|hoechst|niedrig|kleinst/i.test(message)
+    !require('./workbench-chat-presentation').requestsQueryDetails(message)
   ) {
-    const timestamps = datasetEvidence.flatMap((hit) => [
-      ...hit.value.matchAll(/ am (\d{2}\.\d{2}\.\d{4}) (\d{2}:\d{2})/g),
-    ]);
-    const rendered = lines.join(' ');
-    if (
-      timestamps.length &&
-      !timestamps.some((match) => rendered.includes(match[1]) && rendered.includes(match[2]))
-    ) {
-      const supplement = toolAnswer.availableToolAnswer(datasetEvidence, message);
-      if (!lines.join('\n\n').includes(supplement)) lines.push(supplement);
+    const canonical = toolAnswer.availableToolAnswer(datasetEvidence, message);
+    if (canonical && /spitzen|maxim|minim|höchst|hoechst|niedrig|kleinst/i.test(message)) {
+      // Keep one measured answer, retaining independent analysis paragraphs.
+      const quantities =
+        canonical.match(/[-−+]?\d+(?:[.,]\d+)*\s*(?:MWh|kWh|Wh|MW|kW|W)\b/gu) || [];
+      const related = (text) => quantities.some((quantity) => text.includes(quantity));
+      const authored = lines.find((text) => related(text) && /\d{2}:\d{2}/u.test(text));
+      const retained = lines.filter((text) => !related(text));
+      lines.splice(0, lines.length, authored || canonical, ...retained);
     }
   }
   const report = require('./workbench-capability-loop').toolReport(
@@ -1265,18 +1268,26 @@ async function answer({
     !claims.some((claim) => /\d/.test(claim.text)) &&
     !(retrieval.toolTrace || []).some((entry) => entry.status === 'available')
   ) {
-    const failed = (retrieval.toolTrace || []).find((entry) => entry.status === 'timeout');
+    const failed = (retrieval.toolTrace || []).find((entry) =>
+      ['timeout', 'unavailable', 'error'].includes(entry.status)
+    );
     const source = failed && require('./tool-display').catalog[failed.name]?.source;
     const label = source === 'MaStR' ? 'Marktstammdatenregister' : source;
     // Source failures explain missing data; they do not imply a failed language model.
     if (!modelFailed && answerStatus === 'fallback') lines.length = 0;
     lines.unshift(
-      failed
+      failed?.status === 'timeout'
         ? `${label ? 'Das ' + label : 'Die Datenquelle'} hat gerade nicht rechtzeitig geantwortet; die angefragten Werte liegen noch nicht vor.`
-        : 'Die angefragten Daten konnten gerade nicht abgerufen werden; konkrete Werte liegen noch nicht vor.'
+        : label
+          ? `Das ${label} liefert dazu gerade keine verwendbaren Angaben; konkrete Werte liegen noch nicht vor.`
+          : 'Die angefragten Daten konnten gerade nicht abgerufen werden; konkrete Werte liegen noch nicht vor.'
     );
   }
   if (report) lines.push(report);
+  for (const hit of datasetEvidence) {
+    const origin = hit.value.split('\n\n').find((line) => line.startsWith('Herkunft:'));
+    if (origin && !lines.join('\n\n').includes(origin)) lines.push(origin);
+  }
   if (retrieval.knowledgeSearch)
     lines.push(require('./workbench-self-knowledge').searchSummary(retrieval.knowledgeSearch));
   return {

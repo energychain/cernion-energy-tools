@@ -41,6 +41,13 @@ function sourceLabel(label) {
 }
 
 function internalToolText(text, evidence = []) {
+  if (/\b(?:fn|ds|case|agent|proc|operation|capability)[_:-][A-Za-z\d_.:-]+\b/u.test(text))
+    return true;
+  if (/\b[a-z][a-z-]{2,}\.[a-z][A-Za-z\d]+\b/u.test(text)) return true;
+  if (/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/iu.test(text)) return true;
+  if (/\b[\p{L}][\p{L}\d]*_[\p{L}\d_]+\b/u.test(text)) return true;
+  if (/(?:Feldbezeichnung|Auswertungsfeld|korrekte[nr]? Feld|Parametername)/iu.test(text))
+    return true;
   if (/\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b/u.test(text)) return true;
   if (
     /```|\{\s*"|\btruncated\b|Werkzeug außerhalb|Aufrufbudget|Datenabfrage:\s*(?:skipped|blocked|missing|unavailable)|Werkzeug-Zeitbudget/iu.test(

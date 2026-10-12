@@ -87,7 +87,7 @@ describe('Domain Router #595 (real Moleculer + PouchDB)', () => {
     const fn = getFunctionModel().functions.find(
       (row) =>
         row.domains.some((domain) => domain === 'grid-connection') &&
-        /zielnetz|redispatch|management|budget/i.test(row.displayLabel)
+        row.keywords.some((word) => /zielnetz|redispatch|management|budget/i.test(word))
     );
     recommend.mockReturnValue({
       uncertain: true,

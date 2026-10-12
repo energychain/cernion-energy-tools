@@ -52,12 +52,14 @@ function run(commandArgs, options = {}) {
   });
 }
 
-function listTests() {
+function listTests(includeAll = false) {
   const result = run(
     [
       jestBin,
       '--listTests',
-      '--testPathIgnorePatterns=tests/.*\\.integration\\.test\\.js|custom-tests',
+      ...(includeAll
+        ? []
+        : ['--testPathIgnorePatterns=tests/.*\\.integration\\.test\\.js|custom-tests']),
     ],
     { stdio: ['ignore', 'pipe', 'inherit'] }
   );
@@ -68,7 +70,7 @@ function listTests() {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
-    .filter((file) => !file.endsWith('.integration.test.js'))
+    .filter((file) => includeAll || !file.endsWith('.integration.test.js'))
     .filter((file) => !file.includes(`${path.sep}custom-tests${path.sep}`))
     .sort();
 }
@@ -192,7 +194,12 @@ function verifyThresholds(summary) {
 }
 
 function main() {
-  const tests = listTests();
+  const includeAll = process.argv.includes('--all-tests');
+  const tests = listTests(includeAll);
+  if (process.argv.includes('--list-tests')) {
+    console.log(JSON.stringify(tests));
+    return;
+  }
   if (tests.length === 0) {
     console.error('[unit-ci] No unit tests found.');
     process.exit(1);
@@ -200,7 +207,7 @@ function main() {
   cleanCoverage();
   const chunks = chunk(tests, chunkSize);
   console.log(
-    `[unit-ci] Running ${tests.length} unit test files in ${chunks.length} chunks of up to ${chunkSize}.`
+    `[unit-ci] Running ${tests.length} ${includeAll ? 'test' : 'unit test'} files in ${chunks.length} chunks of up to ${chunkSize}.`
   );
   const coverageFiles = chunks.map((testFiles, index) => runChunk(testFiles, index, chunks.length));
   const coverageMap = mergeCoverage(coverageFiles);

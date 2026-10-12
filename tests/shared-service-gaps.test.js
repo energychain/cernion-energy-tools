@@ -1,4 +1,5 @@
 'use strict';
+const { gapLabels } = require('./fixtures/workbench-850.generated.json');
 
 const { projectSignals, isFinding } = require('../src/signal-projection');
 const { handleCorrectionTurn } = require('../src/workbench-corrections');
@@ -73,7 +74,7 @@ const chat = (message, auth = meta(), conversationId = 'one') =>
 
 test('AC-01: missing status/entries become gap only with context; native gap fails closed', () => {
   const entry = { ...operation, functionIds: ['fn-b'], classification: 'standing' };
-  for (const input of [response, { status: 'missing_input' }, { missingInputs: ['Field A'] }]) {
+  for (const input of [response, { status: 'missing_input' }, { missingInputs: [gapLabels[0]] }]) {
     expect(projectSignals(input, entry).every((s) => s.state === 'needs_context')).toBe(true);
     const contextual = projectSignals(input, entry, { context: { kind: 'case', ref: 'case-a' } });
     expect(contextual.some((s) => s.state === 'gap')).toBe(true);
@@ -89,7 +90,7 @@ test('AC-02/06: one bundled list, repeat/reorder update without duplicates, no m
   expect(result).toMatchObject({ findings: 0, proposals: 0, consumedUnits: 0.35 });
   expect(backend).toHaveBeenCalledTimes(1);
   expect(await gaps()).toHaveLength(1);
-  expect((await gaps())[0]).toMatchObject({ state: 'open', labels: ['Field A', 'Field B'] });
+  expect((await gaps())[0]).toMatchObject({ state: 'open', labels: [gapLabels[0], gapLabels[1]] });
   response.missingInputs.reverse();
   await cycle();
   expect(await gaps()).toHaveLength(1);
@@ -160,10 +161,10 @@ test('AC-04: confirmed ignore refreshes without positive score, survives same co
   ).attention;
   expect(after.reactivationScore).toBe(before.reactivationScore);
   expect(after.turnsSinceRefresh).toBe(0);
-  response.missingInputs = [{ id: 'c', label: 'Field C' }];
+  response.missingInputs = [{ id: 'c', label: gapLabels[2] }];
   await cycle();
   expect((await queue()).items.filter((i) => i.kind === 'gap')).toHaveLength(1);
-  expect((await gaps())[0].labels).toEqual(['Field C']);
+  expect((await gaps())[0].labels).toEqual([gapLabels[2]]);
 });
 
 test('AC-05: preferences, visibility, tenant isolation and exactly-once L notices', async () => {
@@ -184,8 +185,8 @@ test('AC-05: preferences, visibility, tenant isolation and exactly-once L notice
   const first = await deliver();
   const [notice] = first.items.filter((i) => i.kind === 'gap');
   expect(notice.ref).toMatch(/^L-\d+$/);
-  expect(notice.labels).toEqual(['Field A', 'Field B']);
-  expect(first.block).toContain('Field A; Field B');
+  expect(notice.labels).toEqual([gapLabels[0], gapLabels[1]]);
+  expect(first.block).toContain(gapLabels.slice(0, 2).join('; '));
   expect(first.block).not.toContain('Für deine aktuelle Arbeit fehlen noch Angaben.');
   expect(first.block).not.toMatch(/L-\d+|R-\d+/);
   expect((await deliver('turn-b')).items).toEqual([]);
@@ -214,11 +215,11 @@ test('AC-08: bounded lists and labels, separate contexts, no eviction of open wo
 
 test('description reactions, cancellation and stale confirmation fail closed', async () => {
   await cycle();
-  await chat('Lückenliste Field A erledigt');
+  await chat(`Lückenliste ${gapLabels[0]} erledigt`);
   await chat('Nein');
   expect((await gaps())[0].completionRequested).toBe(false);
-  await chat('Lückenliste Field A ignorieren');
-  response.missingInputs = [{ id: 'c', label: 'Field C' }];
+  await chat(`Lückenliste ${gapLabels[0]} ignorieren`);
+  response.missingInputs = [{ id: 'c', label: gapLabels[2] }];
   await cycle();
   await expect(chat('Ja')).rejects.toThrow('Gap list not accessible');
   expect((await gaps())[0].ignoredHash).toBeNull();
@@ -239,11 +240,11 @@ test('AC-05: producer replay preserves the queued notice; returning content has 
   });
   await adapter.noticesService.settle();
   const [first] = (await deliver()).items.filter((i) => i.kind === 'gap');
-  response.missingInputs = [{ id: 'c', label: 'Field C' }];
+  response.missingInputs = [{ id: 'c', label: gapLabels[2] }];
   await cycle();
   response.missingInputs = [
-    { id: 'a', label: 'Field A' },
-    { id: 'b', label: 'Field B' },
+    { id: 'a', label: gapLabels[0] },
+    { id: 'b', label: gapLabels[1] },
   ];
   await cycle();
   const [last] = (await queue()).items.filter((i) => i.kind === 'gap');
@@ -314,16 +315,16 @@ test('AC-02/03: one list groups two operations; partial observations cannot clos
     parameterNames: ['caseId'],
     signals: [],
   });
-  let other = { status: 'missing_input', missingInputs: [{ id: 'c', label: 'Field C' }] };
+  let other = { status: 'missing_input', missingInputs: [{ id: 'c', label: gapLabels[2] }] };
   adapter.broker.createService({ name: 'neutral-extra', actions: { read2: () => other } });
   await adapter.broker.waitForServices(['neutral-extra']);
   await cycle();
   expect(await gaps()).toHaveLength(1);
-  expect((await gaps())[0].labels).toEqual(['Field A', 'Field B', 'Field C']);
+  expect((await gaps())[0].labels).toEqual([gapLabels[0], gapLabels[1], gapLabels[2]]);
   response = { status: 'ready', missingInputs: [] };
   other = { status: 'unknown' };
   await cycle();
-  expect((await gaps())[0]).toMatchObject({ state: 'open', labels: ['Field C'] });
+  expect((await gaps())[0]).toMatchObject({ state: 'open', labels: [gapLabels[2]] });
   other = { status: 'ready', missingInputs: [] };
   await cycle();
   expect((await gaps())[0].state).toBe('completed');
@@ -332,12 +333,12 @@ test('AC-02/03: one list groups two operations; partial observations cannot clos
 
 test('native gap aggregates close only on their explicit ok counterpart', async () => {
   response = {
-    signals: [{ signalId: 'a', kind: 'count', label: 'Field A', state: 'gap', value: 1 }],
+    signals: [{ signalId: 'a', kind: 'count', label: gapLabels[0], state: 'gap', value: 1 }],
   };
   await cycle();
   await deliver();
   response = {
-    signals: [{ signalId: 'a', kind: 'count', label: 'Field A', state: 'ok', value: 0 }],
+    signals: [{ signalId: 'a', kind: 'count', label: gapLabels[0], state: 'ok', value: 0 }],
   };
   await cycle();
   expect((await gaps())[0].state).toBe('completed');
