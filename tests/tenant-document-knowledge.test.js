@@ -106,6 +106,42 @@ describe('tenant document knowledge (#789)', () => {
     expect(await docCall('documentList', {})).toHaveLength(1);
   });
 
+  test('identical private copies cannot attach restricted original references to a public source', async () => {
+    const publicSource = await ingest();
+    const privateSource = await docCall(
+      'documentIngest',
+      {
+        ...generateDocument(),
+        name: 'Vertrauliche Kopie.txt',
+        sensitivityFlags: ['restricted'],
+        refs: [{ fileId: 'private-original' }],
+      },
+      'actor-a',
+      ['restricted']
+    );
+    expect(privateSource.duplicate).toBe(false);
+    expect(privateSource.id).not.toBe(publicSource.id);
+    const publicRows = await docCall('documentList', {}, 'actor-b');
+    expect(publicRows).toHaveLength(1);
+    expect(publicRows[0].refs).not.toContainEqual({ fileId: 'private-original' });
+    const helper = require('../src/workbench-document-knowledge');
+    const envelope = { documents: [{ ...generateDocument(), name: 'Vertrauliche Kopie.txt' }] };
+    await helper.ingestDocuments(
+      app.workbench,
+      {
+        broker: app.broker,
+        call: (name, params) =>
+          app.broker.call(name, params, { meta: meta('actor-a', ['restricted']) }),
+      },
+      {
+        p: { tenantId: 'tenant-a', actorId: 'actor-a', clearance: ['restricted'] },
+        envelope,
+        situation: { turnKind: 'review' },
+      }
+    );
+    expect(envelope.sensitivityFlags).toContain('restricted');
+  });
+
   test('AC-05: version 2 is used by default and version 1 remains explicitly readable', async () => {
     const old = await ingest();
     const latest = await ingest(generateDocument(2));

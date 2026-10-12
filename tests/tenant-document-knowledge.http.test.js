@@ -8,7 +8,7 @@ jest.mock('../src/llm-client', () => ({
 }));
 const fs = require('node:fs');
 const path = require('node:path');
-const { createCaseBroker } = require('./helpers/case-linking-broker');
+const { createCaseBroker, auth } = require('./helpers/case-linking-broker');
 const Objects = require('../services/object-store.service');
 const Knowledge = require('../services/knowledge-rag.service');
 const TokenManager = require('../services/token-manager.service');
@@ -197,5 +197,13 @@ describe('document knowledge through authenticated Open WebUI HTTP (#789)', () =
     const answer = await chat('alice', 'thread-a', generateThread().text);
     expect(answer).toContain('Abgelegt:');
     expect(answer).not.toMatch(/Entwurf|Als Nächstes|Schritte/);
+    const second = generateThread().text.replaceAll('Delta', 'Epsilon');
+    await chat('alice', 'thread-b', second);
+    const rows = await app.call(
+      'knowledge-rag.documentList',
+      {},
+      auth('cet-bob', ['ROLE_GRID_OPERATOR'], 'public')
+    );
+    expect(rows.filter((row) => row.status === 'active')).toHaveLength(2);
   });
 });

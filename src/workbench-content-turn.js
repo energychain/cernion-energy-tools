@@ -362,7 +362,14 @@ async function runContentTurn(
     };
   }
   if (situation.conversationShape === 'filing' && !envelope.documents?.length) {
-    envelope = { ...envelope, documents: [{ name: 'Gesprächsunterlage', text: rawMessage }] };
+    const firstMessage = thread.prepareThread(rawMessage).timeline[0];
+    const sourceName = [firstMessage?.subject, firstMessage?.date].filter(Boolean).join(' — ');
+    envelope = {
+      ...envelope,
+      documents: [
+        { name: sourceName || situation.concern || 'Gesprächsunterlage', text: rawMessage },
+      ],
+    };
     situation.turnKind = 'work';
   }
   const documentKnowledge = require('./workbench-document-knowledge');

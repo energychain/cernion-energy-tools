@@ -127,6 +127,12 @@ async function ingestDocuments(
       if (situation.turnKind !== 'review') await job;
     }
   }
+  envelope.sensitivityFlags = [
+    ...new Set([
+      ...(envelope.sensitivityFlags || []),
+      ...stored.flatMap((row) => row.sensitivityFlags || []),
+    ]),
+  ];
   return stored;
 }
 function filingReply(rows) {

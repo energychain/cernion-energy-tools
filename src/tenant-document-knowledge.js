@@ -199,10 +199,16 @@ async function ingestDocument(service, ctx, input) {
     const documentId = family[0]?.documentId || `doc-${randomUUID()}`;
     // A same-name inaccessible source must not reveal itself or be superseded.
     if (family.some((row) => !visible(p, row))) deny('Document not accessible');
+    // A replacement cannot silently downgrade the family's confidentiality.
+    for (const old of family)
+      for (const flag of old.sensitivityFlags || [])
+        if (!sensitivityFlags.includes(flag)) sensitivityFlags.push(flag);
     const duplicate = rows.find(
       (row) =>
         visible(p, row) &&
         row.hash === sha &&
+        JSON.stringify([...(row.sensitivityFlags || [])].sort()) ===
+          JSON.stringify([...sensitivityFlags].sort()) &&
         !['deleted', 'deleting', 'obsolete'].includes(row.status)
     );
     if (duplicate) {
@@ -221,10 +227,6 @@ async function ingestDocument(service, ctx, input) {
       }
       return { ...publicRecord(duplicate), duplicate: true };
     }
-    // A replacement cannot silently downgrade the family's confidentiality.
-    for (const old of family)
-      for (const flag of old.sensitivityFlags || [])
-        if (!sensitivityFlags.includes(flag)) sensitivityFlags.push(flag);
     const version = Math.max(0, ...family.map((row) => row.version)) + 1;
     const at = new Date().toISOString();
     const row = {
