@@ -38,6 +38,7 @@ function setup() {
         : [{ title: 'System X Datensatz', tenantId: p.tenantId }]
     ),
   };
+  service.broker = ctx.broker;
   loadDocuments.mockResolvedValue([
     { name: 'System X Leitfaden', text: 'System X ist ein synthetisches System.' },
   ]);
@@ -52,7 +53,11 @@ test('searches all four stores using existing tenant-scoped reads and reports re
   expect(result.trace).toHaveLength(4);
   expect(result.trace.every((entry) => entry.hitCount === 1)).toBe(true);
   expect(router.visibleStates).toHaveBeenCalledWith(p);
-  expect(loadDocuments).toHaveBeenCalledWith(service.store, { ...p, caseId: 'case-a' });
+  expect(loadDocuments).toHaveBeenCalledWith(
+    service.store,
+    { ...p, caseId: 'case-a' },
+    { broker: ctx.broker, roles: p.roles }
+  );
   expect(ctx.call).toHaveBeenCalledWith('datapoint.datasetCatalog', { operation: 'list' });
   expect(result.evidence.map((hit) => hit.retrievalSource).sort()).toEqual([
     'cases',
