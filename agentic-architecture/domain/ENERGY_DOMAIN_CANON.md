@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-12T13:55:46.168Z
+Generated: 2026-10-12T20:01:32.137Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -42,8 +42,8 @@ Starke Code-/Doku-Signale:
 - `services/dashboard-api/methods-part-09-of-14.js` (265 hits)
 - `services/dashboard-api/methods-part-08-of-14.js` (264 hits)
 - `services/dashboard-api/actions-part-06-of-8.js` (256 hits)
+- `src/workbench-content-turn.js` (238 hits)
 - `services/dashboard-api/methods-part-10-of-14.js` (228 hits)
-- `src/workbench-content-turn.js` (228 hits)
 - `integrations/budibase/README.md` (196 hits)
 
 Zugeordnete Services nach Heuristik:
@@ -259,7 +259,7 @@ Arbeitsmodell: Ein selbstlaufender EVU-Assistent muss bei erster Nutzung Kontext
 
 Starke Code-/Doku-Signale:
 
-- `services/workbench.service.js` (592 hits)
+- `services/workbench.service.js` (596 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (492 hits)
 - `services/api.service.js` (453 hits)
 - `docs/v0.58-architecture/lagebild/roles_audit.md` (449 hits)
