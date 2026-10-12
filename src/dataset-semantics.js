@@ -102,6 +102,10 @@ async function datasetSemantics(table, tenantId, question, previous) {
 
 function standardDatasetPlan(record, question) {
   const text = String(question || '').toLocaleLowerCase('de-DE');
+  const requested = require('./dataset-query').requestedDatasetField(record, question);
+  if (requested === false)
+    throw new Error('Die angefragte Spalte wurde im Datensatz nicht gefunden.');
+  if (requested) return null;
   if (
     !/welche daten haben wir|auffäll|auffaell|überblick|ueberblick|zusammenfassung|spitzen|maxim|minim|höchst|hoechst|niedrig|kleinst|mittel|durchschnitt|energie|arbeit|summe|gesamt|zeilen|anzahl|wie viele|count|rows|leere|lücken|luecken|zeitumstellung|monat/i.test(
       text

@@ -323,12 +323,12 @@ function updateUsageEntry(state, resource, delta, meta = {}) {
         used: next.used,
         estimated: next.estimatedUsed > 0 && next.actualUsed === 0,
       });
-    } else if (ratio >= 0.9) {
+    } else if (ratio >= 0.8) {
       appendEvent(state, {
         type: 'quota.threshold.reached',
         resource,
         window,
-        threshold: '90',
+        threshold: '80',
         limit,
         used: next.used,
         estimated: next.estimatedUsed > 0 && next.actualUsed === 0,
@@ -469,12 +469,19 @@ function buildQuotaSnapshot(tenantId) {
             estimatedUsed: 0,
             actualUsed: 0,
             remaining: state.config.quotas[resource],
+            resetAt: boundaryAfter(period).toISOString(),
             updatedAt: null,
             lastMeta: null,
           },
         ];
       }
-      return [resource, entry];
+      return [
+        resource,
+        {
+          ...buildCurrentUsageEntry(state, resource),
+          resetAt: boundaryAfter(period).toISOString(),
+        },
+      ];
     })
   );
 

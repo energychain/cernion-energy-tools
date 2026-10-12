@@ -1,10 +1,26 @@
 # Tenant-Datenkatalog – Phase 1
 
-Open WebUI muss angehängte Dateien im **Volltextmodus** übermitteln. CET erkennt CSV,
-TSV, Markdown-Tabellen und XLSX-Text (wiederholte `Spalte: Wert`-Paare). Mehrere Blätter
-können durch `Sheet: Name` oder `Blatt: Name` getrennt werden. Ein eigener Transport
-für Originaldateien ist eine spätere Phase. Ausschnitte aus einer RAG-Suche lassen
-sich nicht als vollständige Datei rekonstruieren.
+Open WebUI kann Originaldateien über den Dateikanal (#790) oder vollständigen Text
+übermitteln. CET erkennt CSV, TSV, Markdown-Tabellen und XLSX-Text. Mehrere Blätter
+bleiben durch `Sheet: Name` oder `Blatt: Name` getrennt. Ausschnitte aus einer RAG-Suche
+lassen sich nicht als vollständige Datei rekonstruieren.
+
+Datei und zugehörige Frage werden in einem Turn verarbeitet: erst Ablage, dann Abfrage
+über `dataset.query` gegen die gerade übermittelten Datensätze. In der Nachricht steht
+die Antwort zuerst, danach die kurze Ablagebestätigung. Bei mehreren Blättern wird das
+benannte Blatt ausgewählt oder nachgefragt. Fremde Fragen behalten die Relevanzprüfung.
+
+Das zerlegte Open-WebUI-Muster mit einer Semikolon-Kopfzeile als Schlüssel und `None:`-
+Restfeldern wird nur bei eindeutiger Zuordnung verlustfrei rekonstruiert. Mehrdeutige
+Restfelder, fehlende Spaltennamen, abgeschnittene Zahlen und zu viele Leerwerte führen
+vor der Ablage zur Bitte um erneuten Upload oder Aktivierung des Dateikanals. Auch die
+Duplikatserkennung prüft die Plausibilität. Unbrauchbare Altbestände werden beim nächsten
+Tabelleneingang oder beim direkten Zugriff mit Audit markiert und aus `current` entfernt;
+sie bleiben für die Nachvollziehbarkeit gespeichert, sind aber keine Antwortquelle.
+
+Leere Abfragebereiche und ausschließlich leere angefragte Werte erhalten eine konkrete
+Ursache statt eines scheinbaren Ergebnisses. Technische Spaltennummern und sachfremde
+Handlungsempfehlungen erscheinen nicht in den Antworten.
 
 Die vollständigen typisierten Zeilen liegen lokal in SQLite, getrennt je authentifiziertem
 Tenant. Zeitspalten behalten den Originalwert und einen UTC-Wert. Der Pool verwendet die
@@ -58,6 +74,7 @@ wird gespeichert.
 | `WORKBENCH_DATASET_DB_PATH` | `data/datasets` | SQLite-Zeilenablage |
 | `WORKBENCH_DATASET_MAX_ROWS` | 50000 | Zeilen pro Blatt |
 | `WORKBENCH_DATASET_MAX_BYTES` | 8000000 | UTF-8-Bytes des Tabelleninhalts |
+| `WORKBENCH_DATASET_MAX_EMPTY_RATIO` | 0.5 | Maximaler Anteil leerer Zellen (0–1, Grenze exklusiv) |
 | `WORKBENCH_DATASET_MAX_COLUMNS` | 128 | Spalten pro Blatt |
 | `WORKBENCH_DATASET_DISPOSABLE_ROWS` | 20 | Wegwerfgrenze, exklusiv |
 | `WORKBENCH_DATASET_TIMEZONE` | `Europe/Berlin` | Explizit benannte Annahme bei fehlender Zeitzone |
@@ -102,8 +119,9 @@ keine Behauptung eines fachlichen Fehlers.
 
 ## Antwort- und Kalenderfilterregeln
 
-Datensatzfragen durchlaufen die normale Antwortphase mit aggregierter `dataset.query`-
-Evidenz und `answerMs`. Zahlen bleiben an das deterministische Ergebnis gebunden;
+Fragen zu gerade übermittelten Tabellen und belegte kurze Folgefragen verwenden die
+deterministische Kurzantwort von `dataset.query`; andere Datensatzfragen durchlaufen
+die normale Antwortphase mit aggregierter Evidenz und `answerMs`. Zahlen bleiben an das deterministische Ergebnis gebunden;
 bei Antwortausfall bleibt eine passende Kurzantwort mit Herkunft verfügbar.
 Spitzenwert-, Energie- und Mittelwertfragen liefern gezielte Sätze. Nur Überblicks-
 und Auffälligkeitsfragen erhalten einen Bericht. Mittelwerte werden auf eine,
@@ -141,10 +159,16 @@ Abfragen. Lücken und Zeitumstellungen werden für den tatsächlichen Zeitraum a
 Die reproduzierbare Live-Prüfung verwendet ausschließlich generierte synthetische Daten:
 
 ```bash
-WORKBENCH_ENV_FILE=/path/to/configured.env \
+WORKBENCH_VALIDATION_NON_PRODUCTION=true \
+WORKBENCH_ENV_FILE=/path/to/staging.env \
 WORKBENCH_VALIDATION_REPORT=/tmp/dataset-routing-live.json \
 node scripts/validate-workbench-dataset-routing-live.js
 ```
+
+Diese Validierung wurde für #838 erweitert, aber nicht gegen Produktion ausgeführt.
+Sie startet einen lokalen Broker mit temporären Datenbanken; die Konfiguration muss
+eine dedizierte Nichtproduktions-Konfiguration sein. Zusätzlich zu den drei Läufen je
+Routingfrage prüft sie die Upload-und-Frage-Szenarien 1, 2 und 4 aus #838.
 
 Der Modellweg ist die zentrale LLM-Fassade ohne Modellüberschreibung. Katalog, Executor und
 Workbench laufen real; Register- und Gedächtnisquellen liefern kontrollierte synthetische

@@ -12,6 +12,7 @@ const {
   eligibleNotices,
   renderNoticeBlock,
   resolvedNotice,
+  noticeText,
 } = require('../src/shared-service-notices');
 
 const personParams = {
@@ -70,6 +71,36 @@ module.exports = {
     await this.queue;
   },
   actions: {
+    enqueueQuota: {
+      visibility: 'protected',
+      params: personParams,
+      async handler(ctx) {
+        const p = this.self(ctx);
+        if (!p.roles.some((role) => ['ROLE_TENANT_ADMIN', 'ROLE_ADMIN'].includes(role)))
+          deny('Admin required');
+        const daily = require('../src/rate-quota-store').buildQuotaSnapshot(p.tenantId).usage
+          .llm_tokens_per_day;
+        if (!daily.limit || daily.used / daily.limit < 0.8) return { queued: false };
+        return this.serialize(async () => {
+          const doc = await this.read(p.tenantId, p.actorId);
+          const key = noticeKey('quota', [daily.window, '80']);
+          if (doc.seen.includes(key)) return { queued: false };
+          doc.seen = [...doc.seen, key].slice(-this.settings.dedupLimit);
+          const sequence = ++doc.sequence;
+          doc.queue.push({
+            kind: 'quota',
+            ref: `Q-${sequence}`,
+            sequence,
+            turn: doc.turn,
+            eventKey: key,
+            text: `Euer Tageskontingent ist zu ${Math.round((daily.used / daily.limit) * 100)} % verbraucht (${daily.used.toLocaleString('de-DE')} von ${daily.limit.toLocaleString('de-DE')} Tokens). Du kannst Nutzung und Grenze über die Kontingentabfrage prüfen.`,
+          });
+          doc.queue = doc.queue.slice(-this.settings.maxQueue);
+          await this.save(doc);
+          return { queued: true };
+        });
+      },
+    },
     enqueueMemory: {
       visibility: 'protected',
       params: {
@@ -511,6 +542,8 @@ module.exports = {
     },
     async canSee(ctx, p, item) {
       try {
+        if (item.kind === 'quota')
+          return p.roles.some((role) => ['ROLE_TENANT_ADMIN', 'ROLE_ADMIN'].includes(role));
         if (item.kind === 'memory') {
           const memoryStore = require('../src/tenant-memory-store');
           if (item.change) {
@@ -533,7 +566,10 @@ module.exports = {
             .resolvedAgents(doc.agents)
             .find((row) => row.agentId === item.agentId && row.functionId === item.functionId);
           const proposal = agent?.proposals.find((row) => row.ref === item.objectRef);
-          return !!proposal && !proposal.outcome && proposal.recipients.includes(p.actorId);
+          if (!proposal || proposal.outcome || !proposal.recipients.includes(p.actorId))
+            return false;
+          item.text = proposal.summary || '';
+          return Boolean(item.text);
         }
         if (item.kind === 'gap') return await this.canSeeGap(ctx, p, item);
         if (item.kind === 'signal') return await this.canSeeSignal(ctx, p, item);
@@ -619,7 +655,7 @@ module.exports = {
         : null;
       for (const item of eligibleNotices(doc, this.model))
         if (
-          (item.kind === 'memory' ||
+          (['memory', 'quota'].includes(item.kind) ||
             ctx.params.fullQueue ||
             !context ||
             (relevant.has(item.functionId) &&
@@ -635,9 +671,15 @@ module.exports = {
               .flatMap((row) => row.gapLists || [])
               .find((row) => row.ref === item.objectRef);
             publicItem.labels = gap.labels;
+            publicItem.text = (gap.labels || [])
+              .filter(
+                (label) => !/^[a-z][A-Za-z0-9_.-]*[A-Z_.-][A-Za-z0-9_.-]*$/.test(String(label))
+              )
+              .join('; ');
             publicItem.context = gap.context;
           }
-          items.push(publicItem);
+          if (noticeText(publicItem, this.model) || publicItem.kind === 'signal')
+            items.push(publicItem);
         }
       return { items, preference: doc.preference, block: renderNoticeBlock(items, 0, this.model) };
     },

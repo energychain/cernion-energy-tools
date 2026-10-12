@@ -432,7 +432,12 @@ test('real notices follow corrected neighbors, removal, undo and tenant isolatio
     if (tenantId === 'tenant-a') {
       const agent = doc.agents.find((row) => row.functionId === 'fn-b');
       if (!agent.proposals.some((row) => row.ref === ref)) {
-        agent.proposals.push({ ref, recipients: ['person'], outcome: null });
+        agent.proposals.push({
+          ref,
+          recipients: ['person'],
+          summary: require('./fixtures/workbench-846.generated.json').newsText,
+          outcome: null,
+        });
         await adapter.agents.save(doc);
       }
       await adapter.broker.emit('shared-agent.proposal.created.v1', {

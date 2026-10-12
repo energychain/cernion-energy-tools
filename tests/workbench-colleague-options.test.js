@@ -106,7 +106,8 @@ test('model error returns honest degradation with findings and facts', async () 
   expect(reply.responseText).toContain('Eingang dokumentieren.');
   expect(reply.responseText).not.toContain('Quellen: Prozessnotiz');
   expect(reply.draft).toBe('');
-  expect(reply.responseText).toContain('Die Anfrage ist offen.');
+  expect(reply.responseText).toContain('Modell ist gerade nicht verfügbar');
+  expect(reply.responseText).not.toContain('Deine Angaben im Lagebild');
   expect(reply.metadata.degraded).toBe(true);
 });
 

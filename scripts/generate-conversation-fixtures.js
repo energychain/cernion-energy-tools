@@ -88,3 +88,44 @@ const content = JSON.stringify(corpus, null, 2) + '\n';
 if (process.argv.includes('--check')) {
   if (!fs.existsSync(target) || fs.readFileSync(target, 'utf8') !== content) process.exitCode = 1;
 } else fs.writeFileSync(target, content);
+
+function generateHotfixConversationFixtures() {
+  const mail = [
+    'Kannst Du mir hier weiterhelfen?',
+    'Von: Lieferant Beispiel Mako <mako@lieferant-beispiel.example>',
+    'Gesendet: Montag, 5. Oktober 2026 09:12',
+    'An: Netz Beispiel <netz@stadtwerk-beispiel.example>',
+    'Betreff: Überfällige Antwort Netzanmeldung, MaLo 50800000001, Referenz SYN-REF-001',
+    '',
+    'Sehr geehrte Damen und Herren,',
+    '',
+    'zu unserer Netzanmeldung vom 21.09.2026 liegt uns bis heute keine Antwort vor.',
+    'Lieferstelle: Beispielweg 1, 12345 Musterstadt',
+    'Marktlokation: 50800000001',
+    '',
+    'Mit freundlichen Grüßen',
+    'Erika Beispiel',
+    'Team Wechselmanagement, Lieferant Beispiel GmbH',
+    'Tel.: 0000 000000, Fax: 0000 000001',
+  ].join('\n');
+  return {
+    mail,
+    draftQuestion: 'Mach mir die Antwort fertig',
+    thread:
+      mail +
+      '\n\nVon: Netz Beispiel <netz@stadtwerk-beispiel.example>\nGesendet: 04.10.2026 08:00\nBetreff: SYN-REF-001\nDie APERAK bestätigt den Empfang der Nachricht. Die fachliche Antwort zur Netzanmeldung bleibt offen.',
+    explicitQuestion: 'Schlüssele SYN-INV-002 auf',
+    keywordQuestion: 'Die APERAK Nachricht bitte prüfen.',
+    labelledProse:
+      'Thema: Synthetische Abstimmung\nStand: Offen\nThema: Synthetische Rückmeldung\nStand: Ausstehend',
+    ambiguousTexts: ['None: 2\nFreitext: bleibt Text', 'Titel;Datum: Dokument\nErgebnis: Offen'],
+    newsText: 'Die synthetische Gasleitung endet 2030; das Stromnetz wird erst 2034 erweitert.',
+  };
+}
+const hotfixTarget = path.join(__dirname, '../tests/fixtures/workbench-846.generated.json');
+const hotfixContent = JSON.stringify(generateHotfixConversationFixtures(), null, 2) + '\n';
+if (process.argv.includes('--check')) {
+  if (!fs.existsSync(hotfixTarget) || fs.readFileSync(hotfixTarget, 'utf8') !== hotfixContent)
+    process.exitCode = 1;
+} else fs.writeFileSync(hotfixTarget, hotfixContent);
+module.exports = { generateHotfixConversationFixtures };

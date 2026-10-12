@@ -1,4 +1,5 @@
 'use strict';
+require('./live-validation-budget').installLiveBudget();
 
 // Explicit opt-in: real central LLM facade, anonymous input, stubbed source services.
 const fs = require('node:fs');

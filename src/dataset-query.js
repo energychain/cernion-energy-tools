@@ -10,6 +10,26 @@ function formatDatasetNumber(value) {
   return Number(value).toLocaleString('de-DE', { maximumFractionDigits: 3 });
 }
 
+function requestedDatasetField(record, question) {
+  const match = String(question || '').match(/\b(?:spalte|column)\s+[„"'“]?([^?\n"'“”]+)["'“”]?/i);
+  if (!match) return null;
+  const name = match[1].trim().replace(/[.!]$/, '').trim().toLocaleLowerCase('de-DE');
+  return (
+    record.columns.find((column) => column.name.toLocaleLowerCase('de-DE') === name)?.name || false
+  );
+}
+
+function datasetQueryFailure(record, cause) {
+  return {
+    responseText: cause,
+    status: 'unavailable',
+    datasetId: record.id,
+    version: record.version,
+    summaries: [],
+    result: [],
+  };
+}
+
 function compileDatasetPlan(record, input, sql, params, utcAlias, localAlias) {
   const columns = record.columns;
   const plan = validateAndBindPlan(
@@ -39,7 +59,9 @@ function compileDatasetPlan(record, input, sql, params, utcAlias, localAlias) {
       ...(operation.metrics || []).map((metric) => metric.field),
     ].filter(Boolean);
     if (fields.some((field) => !available.has(field)))
-      throw new Error('Unbekanntes oder vertrauliches Abfragefeld.');
+      throw new Error(
+        'Die angefragte Spalte wurde im Datensatz nicht gefunden oder ist nicht zum Lesen freigegeben.'
+      );
     if (operation.op === 'filter') {
       let field = quoteDatasetField(operation.field),
         value = operation.value;
@@ -131,6 +153,11 @@ function compileDatasetPlan(record, input, sql, params, utcAlias, localAlias) {
 }
 
 function executeDatasetQuery(pool, record, input) {
+  const requestedField = requestedDatasetField(record, input.question);
+  if (requestedField === false)
+    return datasetQueryFailure(record, 'Die angefragte Spalte wurde im Datensatz nicht gefunden.');
+  if (record.quality?.unusable)
+    return datasetQueryFailure(record, 'Der Datensatz ist unbrauchbar.');
   const db = pool.tenant(record.tenantId),
     table = pool.table(record.id);
   const columns = record.columns,
@@ -185,6 +212,30 @@ function executeDatasetQuery(pool, record, input) {
   } = compileDatasetPlan(record, input, sql, params, utcAlias, localAlias);
   sql = scopeSql;
   params = scopeParams;
+  const scopeCount = db.prepare(`SELECT COUNT(*) AS n FROM (${sql})`).get(...params).n;
+  if (!scopeCount)
+    return datasetQueryFailure(
+      record,
+      timeIndex >= 0 &&
+        (requestedYear ||
+          input.from ||
+          input.to ||
+          plan.operations.some(
+            (operation) => operation.op === 'filter' && operation.field === semantic.timeField
+          ))
+        ? 'Der angefragte Zeitraum liegt außerhalb der vorhandenen Daten.'
+        : 'Für die angegebenen Filter gibt es keine passenden Daten.'
+    );
+  if (
+    requestedField &&
+    !db
+      .prepare(`SELECT COUNT(${quoteDatasetField(requestedField)}) AS n FROM (${sql})`)
+      .get(...params).n
+  )
+    return datasetQueryFailure(
+      record,
+      'Die angefragte Spalte enthält im gewählten Bereich keine ausgefüllten Werte.'
+    );
   const scopedTimes =
     timeIndex >= 0
       ? db
@@ -304,6 +355,48 @@ function executeDatasetQuery(pool, record, input) {
     .all(...plannedParams);
   if (result.length > plan.output.maxRows)
     throw new Error('Das Ergebnis überschreitet das Ausgabebudget; bitte enger filtern.');
+  const aggregateFields = plan.operations.find((operation) => operation.op === 'aggregate').metrics;
+  if (
+    !result.length ||
+    result.every((row) => aggregateFields.every((metric) => row[metric.as] == null))
+  )
+    return datasetQueryFailure(
+      record,
+      'Für die angefragten Werte sind keine ausgefüllten Daten vorhanden.'
+    );
+  const measured = aggregateFields.map((metric) => metric.field).filter(Boolean);
+  if (
+    measured.length &&
+    measured.every(
+      (field) =>
+        !db
+          .prepare(`SELECT COUNT(${quoteDatasetField(field)}) AS n FROM (${metricScopeSql})`)
+          .get(...metricScopeParams).n
+    )
+  )
+    return datasetQueryFailure(
+      record,
+      'Die angefragte Spalte enthält im gewählten Bereich keine ausgefüllten Werte.'
+    );
+  if (
+    !summaries.some((summary) => summary.present) &&
+    !measured.length &&
+    record.columns.some((column) => column.type === 'number')
+  )
+    return datasetQueryFailure(
+      record,
+      'Der Datensatz enthält im gewählten Bereich keine verwendbaren Werte.'
+    );
+  if (
+    !summaries.some((summary) => summary.present) &&
+    /spitzen|maxim|minim|höchst|hoechst|niedrig|kleinst|mittel|durchschnitt|energie|arbeit|summe|gesamt/i.test(
+      input.question || ''
+    )
+  )
+    return datasetQueryFailure(
+      record,
+      'Für die angefragte Größe sind keine verwendbaren Werte vorhanden.'
+    );
   const provenance = `Nutzerangabe von ${record.provenance.person} am ${record.provenance.at.slice(0, 10)}`;
   const period =
     [input.from || record.period?.from, input.to || record.period?.to]
@@ -315,11 +408,11 @@ function executeDatasetQuery(pool, record, input) {
   ];
   for (const summary of summaries) {
     if (!summary.present) {
-      lines.push(`${summary.field}: keine ausgefüllten Werte.`);
+      lines.push('Eine der angefragten Größen enthält keine ausgefüllten Werte.');
       continue;
     }
     lines.push(
-      `${summary.field}: Maximum ${formatDatasetNumber(summary.max)} ${summary.unit}${summary.peak?.at ? ` am ${summary.peak.at} (${semantic.timezone})` : ''}; Minimum ${formatDatasetNumber(summary.min)} ${summary.unit}${summary.trough?.at ? ` am ${summary.trough.at} (${semantic.timezone})` : ''}; Mittelwert ${Number(summary.mean).toLocaleString('de-DE', { maximumFractionDigits: 1 })} ${summary.unit} aus ${summary.present} vorhandenen Werten. ${summary.missing} leere Werte und ${summary.outliers} statistische Ausreißer (mehr als drei Standardabweichungen).`
+      `${/^Spalte \d+$/i.test(summary.field) ? 'Messwert' : summary.field}: Maximum ${formatDatasetNumber(summary.max)} ${summary.unit}${summary.peak?.at ? ` am ${summary.peak.at} (${semantic.timezone})` : ''}; Minimum ${formatDatasetNumber(summary.min)} ${summary.unit}${summary.trough?.at ? ` am ${summary.trough.at} (${semantic.timezone})` : ''}; Mittelwert ${Number(summary.mean).toLocaleString('de-DE', { maximumFractionDigits: 1 })} ${summary.unit} aus ${summary.present} vorhandenen Werten. ${summary.missing} leere Werte und ${summary.outliers} statistische Ausreißer (mehr als drei Standardabweichungen).`
     );
     if (summary.missingAt.length)
       lines.push(
@@ -386,6 +479,8 @@ function executeDatasetQuery(pool, record, input) {
             : metric.fn === 'count' && standard && !groups.length
               ? db.prepare(`SELECT COUNT(*) AS n FROM (${sql})`).get(...params).n
               : row[metric.as];
+          if (value == null)
+            return 'Für eine der angefragten Größen sind keine ausgefüllten Werte vorhanden.';
           const unit =
             metric.fn === 'count' ? 'Zeilen' : semantic.units[metric.field] || 'Einheit ungeklärt';
           const extremum =
@@ -400,7 +495,7 @@ function executeDatasetQuery(pool, record, input) {
                     )
                     .get(...metricScopeParams, ...groupParams)
                 : null;
-          return `${labels[metric.fn]}${metric.field ? ` (${metric.field})` : ''}: ${typeof value === 'number' ? formatDatasetNumber(value) : value} ${unit}${extremum?.at ? ` am ${extremum.at} (${semantic.timezone})` : ''}.`;
+          return `${labels[metric.fn]}${metric.field ? ` (${/^Spalte \d+$/i.test(metric.field) ? 'Messwert' : metric.field})` : ''}: ${typeof value === 'number' ? formatDatasetNumber(value) : value} ${unit}${extremum?.at ? ` am ${extremum.at} (${semantic.timezone})` : ''}.`;
         })
         .join(' ');
       return [groups.map((field) => `${field}: ${row[field]}`).join(', '), values]
@@ -436,7 +531,7 @@ function executeDatasetQuery(pool, record, input) {
     } else if (/minim|niedrig|kleinst/i.test(question)) {
       answer = `Der niedrigste Wert beträgt ${formatDatasetNumber(summary.min)} ${summary.unit}${summary.trough?.at ? ` am ${summary.trough.at} (${semantic.timezone})` : ''}.`;
     } else if (/spitzen|maxim|höchst|hoechst|größt|groesst/i.test(question)) {
-      answer = `Die Spitzenlast lag bei ${formatDatasetNumber(summary.max)} ${summary.unit}${summary.peak?.at ? ` am ${summary.peak.at} (${semantic.timezone})` : ''}.`;
+      answer = `${/spitzenlast/i.test(question) ? 'Die Spitzenlast lag bei' : 'Der höchste Wert beträgt'} ${formatDatasetNumber(summary.max)} ${summary.unit}${summary.peak?.at ? ` am ${summary.peak.at} (${semantic.timezone})` : ''}.`;
     } else {
       answer = metricAnswer;
     }
@@ -452,7 +547,7 @@ function executeDatasetQuery(pool, record, input) {
   )
     answer = metricAnswer;
   return {
-    responseText: `${answer}\n\n${origin}`,
+    responseText: `${answer}\n\n${origin}`.replace(/\bSpalte\s+\d+\b/gi, 'Messwert'),
     rowCount: db.prepare(`SELECT COUNT(*) AS n FROM (${sql})`).get(...params).n,
     datasetId: record.id,
     version: record.version,
@@ -468,4 +563,5 @@ module.exports = {
   compileDatasetPlan,
   quoteDatasetField,
   formatDatasetNumber,
+  requestedDatasetField,
 };

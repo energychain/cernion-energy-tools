@@ -103,7 +103,9 @@ test('two rejected outputs use natural draft fallback with known facts and logge
   const result = await draftAnswer(log);
   expect(result.draft).toBe('');
   expect(result.responseText).toContain('Entwurf ist gerade nicht sauber');
-  expect(result.responseText).toContain('Rückmeldung zur Anfrage');
+  expect(result.responseText).not.toContain('Deine Angaben im Lagebild');
+  expect(result.responseText).not.toContain('Modell ist gerade nicht verfügbar');
+  expect(JSON.parse(llm.generateText.mock.calls[0][0]).situation.concern).toBe(situation.concern);
   expect(result.responseText).not.toContain('Als Nächstes:');
   expect(log.info.mock.calls).toEqual(
     expect.arrayContaining([

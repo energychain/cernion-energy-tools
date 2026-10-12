@@ -134,13 +134,11 @@ function source(fact) {
     year: 'numeric',
   });
   const label = fact.person.functionLabel;
-  const technical = require('./function-model')
+  const fn = require('./function-model')
     .getFunctionModel()
-    .functions.some((fn) => [fn.functionId, fn.label, fn.displayLabel].includes(label));
-  const functionLabel = technical
-    ? 'Funktion noch nicht in Klartext hinterlegt'
-    : label || 'Funktion nicht angegeben';
-  return `${fact.person.name} (${functionLabel}, ${date})`;
+    .functions.find((fn) => [fn.functionId, fn.label, fn.displayLabel].includes(label));
+  const functionLabel = !fn && label !== 'Funktion nicht angegeben' ? label : '';
+  return `${fact.person.name} (${[functionLabel, date].filter(Boolean).join(', ')})`;
 }
 function factText(fact) {
   const labels = {
@@ -158,7 +156,7 @@ function factText(fact) {
         : '';
   return `${source(fact)}: „${fact.text}“ (${labels[active(fact) ? 'valid' : fact.status === 'valid' ? 'expired' : fact.status]}).${checking}`;
 }
-async function relationText(ctx, p, id) {
+async function relationText(ctx, p, id, { includeFacts = true } = {}) {
   const relation = (await get(ctx, p, id)).payload;
   if (relation.type === 'tenant_memory_fact')
     return active(relation) ? (relation.plausibility || []).join('\n') : '';
@@ -170,7 +168,15 @@ async function relationText(ctx, p, id) {
   const references = (relation.evidence || [])
     .map((hit) => `${hit.source}${hit.url ? ` (${hit.url})` : ''}`)
     .join('; ');
-  return `${facts.map(factText).join(' ')} ${relation.reason} ${relation.question || ''}${references ? ` Quelle: ${references}.` : ''}`.trim();
+  // A rejected or lower-priority question must never remove the evidence and connection.
+  return [
+    ...(includeFacts ? facts.map(factText) : []),
+    relation.reason,
+    relation.question,
+    references ? `Quelle: ${references}.` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 }
 module.exports = {
   namespace,

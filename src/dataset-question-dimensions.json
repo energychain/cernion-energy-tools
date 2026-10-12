@@ -1,6 +1,6 @@
 [
   {
-    "pattern": "^wie hoch (?:war|ist) die spitzenlast(?: und wann)?[?!.\\s]*$",
+    "pattern": "^wie (?:hoch (?:war|ist)|ist) die spitzenlast(?: und wann)?[?!.\\s]*$",
     "dimensions": ["power"]
   },
   {

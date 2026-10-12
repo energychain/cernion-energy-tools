@@ -11,7 +11,7 @@ function noticeKey(source, event) {
 }
 
 function resolvedNotice(item, model) {
-  if (item.kind === 'memory') return item;
+  if (['memory', 'quota'].includes(item.kind)) return item;
   const candidates = resolveFunctionId(item.functionId, { model });
   const matches =
     item.modelSourceHash === model.sourceHash
@@ -22,34 +22,14 @@ function resolvedNotice(item, model) {
 }
 
 function noticeText(item, _model) {
-  if (item.kind === 'memory') return item.text || '';
-  const text = {
-    proposal: 'Für deine aktuelle Arbeit liegt ein neuer Vorschlag vor.',
-    gap: 'Für deine aktuelle Arbeit fehlen noch Angaben.',
-    signal:
-      item.state === 'ok'
-        ? 'Ein für deine aktuelle Arbeit relevanter Hinweis ist wieder unauffällig.'
-        : 'Für deine aktuelle Arbeit gibt es einen Hinweis, den du prüfen solltest.',
-    responsibility: item.cet
-      ? 'CET unterstützt dich jetzt bei dieser Aufgabe.'
-      : 'Für diese Aufgabe ist jetzt wieder deine Bearbeitung erforderlich.',
-    tier:
-      item.tier === 'inventory'
-        ? 'Diese Aufgabe wurde in die Übersicht aufgenommen.'
-        : 'CET unterstützt diese Aufgabe jetzt regelmäßig.',
-  }[item.kind];
-  return text || '';
+  if (['memory', 'quota'].includes(item.kind)) return item.text || '';
+  // Status transitions without case content are not useful notifications.
+  return typeof item.text === 'string' ? item.text.trim() : '';
 }
 
 function renderNoticeBlock(items, remaining = 0, model) {
-  if (!items.length) return '';
-  const groups = new Map();
-  for (const item of items) {
-    const values = groups.get(item.functionId) || [];
-    values.push(noticeText(item, model));
-    groups.set(item.functionId, values);
-  }
-  const lines = [...groups.values()].map((values) => values.join(' '));
+  const lines = [...new Set(items.map((item) => noticeText(item, model)).filter(Boolean))];
+  if (!lines.length) return '';
   if (remaining) lines.push(`Und ${remaining} weitere – frag: „Was gibt es Neues?“`);
   return `Hinweise für dich:\n${lines.join('\n')}`;
 }
@@ -59,6 +39,10 @@ function eligibleNotices(doc, model) {
     .filter((item) => doc.turn - item.turn < doc.expireAfterTurns)
     .map((item) => resolvedNotice(item, model))
     .filter(Boolean)
+    .filter(
+      (item) =>
+        ['memory', 'proposal', 'gap', 'signal'].includes(item.kind) || noticeText(item, model)
+    )
     .filter(
       (item) =>
         doc.preference === 'all' ||
