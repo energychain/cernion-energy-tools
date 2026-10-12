@@ -52,13 +52,13 @@ Impact-Aufruf auf den neu angelegten Entwurfshelfer meldete vor Neuindizierung U
 
 Vor jedem Commit wurde `detect_changes` für den gestagten Stand sowie als Vergleich gegen
 `main` und `origin/main` ausgeführt. Der abschließende Gesamtvergleich gegen `origin/main`
-meldet 41 Dateien, 87 Symbole, sechs betroffene Abläufe, Risiko **HIGH**. Der gestagte
+meldet 42 Dateien, 87 Symbole, sechs betroffene Abläufe, Risiko **HIGH**. Der gestagte
 Folgecommit meldet 15 Dateien, elf Symbole, keine zusätzlichen Abläufe und **LOW**.
 Betroffen sind ausschließlich
 die erwarteten Inhaltsantwort-, Fallklassifikations-, Funktionsauswahl- und
 Workbench-/Datensatzabläufe einschließlich ihrer Generatoren und Abnahmeskripte.
 
-Der vorgeschriebene Vergleich gegen den lokalen `main` meldet 220 Dateien, 1253 Symbole,
+Der vorgeschriebene Vergleich gegen den lokalen `main` meldet 221 Dateien, 1253 Symbole,
 47 Abläufe und **CRITICAL**. Dieser lokale Branch steht noch auf `e1e039` und ist in
 einem anderen Worktree ausgecheckt; er wurde nicht verändert. Der zusätzlich ausgeführte
 Vergleich gegen den aktuellen Remote-Stand `origin/main` grenzt die Änderungen von #850

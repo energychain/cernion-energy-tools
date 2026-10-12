@@ -80,7 +80,7 @@ describe('candidate confirmation is not a new routing request', () => {
     const fn = model.functions.find(
       (row) =>
         row.domains.some((domain) => domain === 'grid-connection') &&
-        /zielnetz|redispatch|management|budget/i.test(row.displayLabel)
+        row.keywords.some((word) => /zielnetz|redispatch|management|budget/i.test(word))
     );
     expect(fn).toBeDefined();
     const previousState = {
