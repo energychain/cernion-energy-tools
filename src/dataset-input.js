@@ -2,7 +2,7 @@
 
 const { parseRecords, parseCsvLine } = require('./csv-text');
 const { Errors } = require('moleculer');
-const { profileRows, hashValue, parseNumber, parseDate } = require('./tabular-intelligence');
+const { parseDate } = require('./tabular-intelligence');
 
 function datasetSetting(name, fallback) {
   const value = Number(process.env[`WORKBENCH_DATASET_${name}`] || fallback);

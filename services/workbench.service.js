@@ -1636,7 +1636,7 @@ module.exports = {
           }
         );
         if (correctionResult) {
-          let offeredCorrectionContent = pending?.offeredContent || '';
+          const offeredCorrectionContent = pending?.offeredContent || '';
           const question = correctionResult.responseText.includes('?')
             ? correctionResult.responseText
             : '';
