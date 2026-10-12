@@ -90,6 +90,7 @@ describe('document knowledge through authenticated Open WebUI HTTP (#789)', () =
             : 'knowledge',
         documentKnowledge: {
           action: command,
+          basis: command === 'delete' ? input.message : '',
           query: command === 'none' ? '' : 'Beschluss Delta',
           id: '',
           version: command === 'read' ? 1 : 0,

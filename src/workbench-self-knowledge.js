@@ -37,11 +37,11 @@ async function searchKnowledge(service, ctx, p, situation) {
       });
     }
   };
-  const hit = (source, title, value) => ({
+  const hit = (source, title, value, metadata = {}) => ({
     source,
     retrievalSource: source,
     value: value.slice(0, 1200),
-    metadata: { name: title },
+    metadata: { name: title, ...metadata },
   });
   const router = ctx.broker.getLocalService('domain-router');
   let states = [];
@@ -67,7 +67,13 @@ async function searchKnowledge(service, ctx, p, situation) {
       const facts = await memory.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
       return facts
         .filter((fact) => memory.active(fact) && matches(memory.factText(fact), terms))
-        .map((fact) => hit('tenant-memory', 'Tenant-Gedächtnis', memory.factText(fact)));
+        .map((fact) =>
+          hit('tenant-memory', 'Tenant-Gedächtnis', memory.factText(fact), {
+            namespace: memory.namespace(p),
+            key: fact.id,
+            workbenchDocument: fact.documentSource?.id,
+          })
+        );
     }),
     read('documents', async () => {
       if (
@@ -90,7 +96,8 @@ async function searchKnowledge(service, ctx, p, situation) {
               hit(
                 'documents',
                 doc.name,
-                `${doc.name}: ${doc.text.slice(Math.max(0, offset - 100), Math.max(0, offset - 100) + 900)}`
+                `${doc.name}: ${doc.text.slice(Math.max(0, offset - 100), Math.max(0, offset - 100) + 900)}`,
+                { workbenchDocument: doc.knowledgeDocumentId }
               )
             );
           }

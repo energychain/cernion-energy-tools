@@ -137,9 +137,27 @@ async function evidence(ctx, query) {
   return ctx.call('knowledge-rag.documentSearch', { query: String(query || '').slice(0, 2000) });
 }
 async function currentEvidence(ctx, hits) {
-  const states = new Map();
+  const states = new Map(),
+    ids = new Map(),
+    invalid = new Set();
   for (const hit of hits) {
-    const id = hit.metadata?.workbenchDocument;
+    let id = hit.metadata?.workbenchDocument;
+    if (hit.retrievalSource === 'tenant-memory' && hit.metadata?.key) {
+      try {
+        const store = require('./tenant-memory-store');
+        const p = require('./domain-router-policy').principal(ctx);
+        const fact = (await store.get(ctx, p, hit.metadata.key)).payload;
+        if (!store.active(fact)) {
+          invalid.add(hit);
+          continue;
+        }
+        id ||= fact.documentSource?.id;
+      } catch (_error) {
+        invalid.add(hit);
+        continue;
+      }
+    }
+    ids.set(hit, id);
     if (!id || states.has(id)) continue;
     try {
       const row = await ctx.call('knowledge-rag.documentGet', { id });
@@ -148,9 +166,7 @@ async function currentEvidence(ctx, hits) {
       states.set(id, false);
     }
   }
-  return hits.filter(
-    (hit) => !hit.metadata?.workbenchDocument || states.get(hit.metadata.workbenchDocument)
-  );
+  return hits.filter((hit) => !invalid.has(hit) && (!ids.get(hit) || states.get(ids.get(hit))));
 }
 async function purgeCaseCopies(service, p, row) {
   const docs = await service.store.evidenceDb.allDocs({ include_docs: true });
@@ -164,9 +180,16 @@ async function purgeCaseCopies(service, p, row) {
       await service.store.evidenceDb.remove(doc);
   }
 }
-async function command(service, ctx, { p, situation }) {
+async function command(service, ctx, { p, envelope, situation }) {
   const request = situation.documentKnowledge;
   if (!request || request.action === 'none' || !ctx.broker.getLocalService('knowledge-rag'))
+    return null;
+  if (
+    ['delete', 'obsolete'].includes(request.action) &&
+    (!request.basis?.trim() ||
+      !envelope?.userRequest?.includes(request.basis) ||
+      require('./workbench-thread').isThreadInput(envelope.userRequest))
+  )
     return null;
   const rows = await ctx.call('knowledge-rag.documentList', { query: request.query || '' });
   const matches = rows.filter(
