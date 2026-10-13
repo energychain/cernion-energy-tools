@@ -111,4 +111,108 @@ async function cleanup(ctx, p) {
   await audit(ctx, p, 'admin_cleanup', { failed });
   return { failed };
 }
-module.exports = { audit, change, adminList, cleanup, exhaust, MAX_ATTEMPTS };
+// Only this audited administrative path upgrades persisted legacy anchors.
+async function migrateAnchors(ctx, p, reason) {
+  if (!p.roles.includes('ROLE_TENANT_ADMIN')) deny('Tenant administrator required');
+  if (typeof reason !== 'string' || !reason.trim()) deny('Migration reason required');
+  return require('./tenant-memory').serialized(p, async () => {
+    const facts = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
+    const normalized = facts.map((fact) => {
+      const anchors = store.groundedAnchors(fact.anchors || [], fact.basis || fact.text);
+      return {
+        ...fact,
+        anchors,
+        anchorKeys: [...new Set(anchors.flatMap(store.anchorKeys))],
+        person: {
+          ...fact.person,
+          functionLabel: store.humanFunctionLabel(fact.person.functionLabel),
+        },
+        checkingEvidence: store.compactEvidence(fact.checkingEvidence || []),
+        plausibility: [...new Set(fact.plausibility || [])],
+      };
+    });
+    const changedIds = new Set(
+      normalized
+        .filter((fact, index) =>
+          ['anchors', 'anchorKeys', 'person', 'checkingEvidence', 'plausibility'].some(
+            (field) =>
+              JSON.stringify(fact[field]) !==
+              JSON.stringify(facts[index][field] || (field === 'person' ? {} : []))
+          )
+        )
+        .map((fact) => fact.id)
+    );
+    const requeue = new Set();
+    for (const fact of normalized.filter((item) => changedIds.has(item.id) && store.active(item))) {
+      const before = new Set(
+        store
+          .candidates(
+            facts.find((item) => item.id === fact.id),
+            facts
+          )
+          .map((item) => item.id)
+      );
+      for (const candidate of store.candidates(fact, normalized)) {
+        if (!before.has(candidate.id)) {
+          requeue.add(fact.id);
+          requeue.add(candidate.id);
+        }
+      }
+    }
+    let changed = 0,
+      requeued = 0;
+    for (const fact of normalized) {
+      if (!changedIds.has(fact.id) && !requeue.has(fact.id)) continue;
+      let written = false;
+      const queue = requeue.has(fact.id) && store.active(fact);
+      await store.mutate(ctx, p, fact.id, (latest) => {
+        written = false;
+        // A concurrent revocation/redaction must never be undone by migration.
+        if (latest.status !== fact.status) return null;
+        const at = new Date().toISOString();
+        written = true;
+        return {
+          ...latest,
+          anchors: fact.anchors,
+          anchorKeys: fact.anchorKeys,
+          person: fact.person,
+          checkingEvidence: fact.checkingEvidence,
+          plausibility: fact.plausibility,
+          ...(queue
+            ? {
+                checking: 'pending',
+                attempts: 0,
+                nextAttemptAt: '',
+                checkingFailure: null,
+                recoveryPrincipal: latest.recoveryPrincipal || {
+                  tenantId: latest.tenantId,
+                  actorId: latest.person.actorId,
+                  roles: latest.person.roles || [],
+                  clearance: latest.sensitivityFlags || [],
+                },
+              }
+            : {}),
+          audit: [
+            ...(latest.audit || []),
+            {
+              kind: 'anchors_migrated',
+              migration: 'anchor-canonical-v2',
+              actorId: p.actorId,
+              at,
+              reason,
+              requeued: queue,
+            },
+          ],
+        };
+      });
+      if (written) {
+        changed += Number(changedIds.has(fact.id));
+        requeued += Number(queue);
+      }
+    }
+    const result = { migration: 'anchor-canonical-v2', scanned: facts.length, changed, requeued };
+    await audit(ctx, p, 'admin_migrate_anchors', { ...result, reason });
+    return result;
+  });
+}
+module.exports = { audit, change, adminList, cleanup, exhaust, MAX_ATTEMPTS, migrateAnchors };

@@ -2,15 +2,15 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "2628c40b7013065ed49dfca49c4f237a4a131f88b14231aceee84cfb33ee7167",
+  "sourceOpenApiHash": "c3920b98d5b274edf97d765ec20bea2daf96cd013cd732c69db8e6f756ff70ef",
   "coverage": {
-    "rawOperationCount": 1254,
-    "operationCount": 998,
-    "agentableCount": 996,
+    "rawOperationCount": 1255,
+    "operationCount": 999,
+    "agentableCount": 997,
     "nonAgentableCount": 2,
     "byOperationKind": {
       "data_read": 431,
-      "admin": 22,
+      "admin": 23,
       "object_store_write": 268,
       "process_step": 26,
       "process_start": 50,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 979,
+    "resolvedActionCount": 980,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -80688,6 +80688,77 @@
         "negativeCues": [],
         "examples": [
           "Please mark exhausted pending assessments failed with an audit entry"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "tenant-memory-policy_migrateAnchors",
+      "method": "POST",
+      "path": "/api/tenant-memory-policy/migrate-anchors",
+      "service": "tenant-memory-policy",
+      "action": "tenant-memory-policy.migrateAnchors",
+      "summary": "Audit legacy anchor normalization and queue newly connected statements",
+      "tags": [
+        "Tenant Memory Policy"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tenant-memory-policy.migrate_anchors"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tenant-memory-policy:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "tenant-memory-policy"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tenant",
+          "memory",
+          "policy",
+          "migrate",
+          "anchors",
+          "audit",
+          "legacy",
+          "anchor",
+          "normalization",
+          "queue",
+          "newly",
+          "connected",
+          "statements"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please audit legacy anchor normalization and queue newly connected statements"
         ],
         "synonyms": [
           "agent infrastructure",

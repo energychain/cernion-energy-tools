@@ -26,12 +26,46 @@ wird auch bei HTTP-Turns in neue Aussagen übernommen.
 
 ## Anker und Beziehungen
 
-Anker werden nur für den Vergleich normalisiert. Schreibvarianten können als belegte
-Aliases übernommen werden; Qualifikatoren bleiben Teil der Identität. Der Begriff allein findet eine einzige
-Tenant-Variante; erst mehrere vorhandene Varianten verlangen eine Rückfrage. Das gilt
-für neue Beziehungen, Abfragen und spätere Arbeitsaufträge. Eine unqualifizierte
-Bezeichnung wird akzeptiert. Nur bereits vorhandene unterschiedliche Qualifikatoren
-innerhalb des sichtbaren Tenant-Bestands führen zu einer Rückfrage.
+Seit #861 zerlegt der Store zusammengesetzte Anker deterministisch: „Gegenstand im
+Prüfbezug“ wird zu `value: Prüfbezug`, `qualifier: Gegenstand`; dasselbe gilt für
+„Gegenstand in der Prüfbezug“, „Gegenstand am Prüfbezug“ und „Prüfbezug (Gegenstand)“.
+Das gilt auch dann, wenn die Extraktion den gesamten Ausdruck als `value` liefert.
+Belegte Aliases werden mit derselben Grammatik normalisiert. Die kommaseparierten
+Variablen `TENANT_MEMORY_ANCHOR_PREPOSITIONS` und `TENANT_MEMORY_ANCHOR_ARTICLES`
+ersetzen die Standardlisten der Präpositionen beziehungsweise Artikel. Es gibt keine
+Fachbegriff- oder Ortslisten. Bei mehreren Präpositionen wird am letzten passenden
+Trenner zerlegt; eine ausdrücklich angehängte Klammerqualifikation hat Vorrang.
+Auch deren Basiswert wird vor dem Speichern vollständig normalisiert, sodass ein
+weiterer Normalisierungslauf dieselben Anker und Schlüssel ergibt.
+Seit #863 vervollständigt derselbe Store-Helfer neue und vorhandene Anker am
+wörtlichen `basis`: Ein Gegenstand unmittelbar vor einer konfigurierten
+Präposition wird zum Qualifier des nachfolgenden Bezugs. Das gilt auch bei
+vertauschter Modell-Qualifikation. Vollständige belegte Aliases werden als
+Basiswert übernommen. Weitere fehlende Bezüge werden unabhängig vom Modell
+ergänzt. Erkannt werden großgeschriebene Wortfolgen und strukturelle Kennungen;
+Satzanfänge, Genitivanschlüsse, wiederholte Gegenstände und abstrakte
+Substantivformen werden konservativ ausgeschlossen. Die Präpositions- und
+Artikellisten bleiben die einzigen konfigurierbaren Wortlisten; es gibt keine
+Fachwortlisten. Jahreszahlen allein sind keine Kennungen.
+Grammatikänderungen erfordern danach den auditierten
+Migrationslauf für vorhandene Aussagen.
+
+Ein Basisanker findet alle sichtbaren Varianten, auch bei mehreren Qualifiern.
+Eine neue unqualifizierte Aussage bleibt erfassbar. Ein ausdrücklich genannter
+Qualifier filtert weiterhin auf diese Variante und unqualifizierte Aussagen (K-Regel).
+Die ursprüngliche Frage ist dafür maßgeblich, auch wenn die Extraktion nur den
+Basisanker liefert. Ein unbekannter ausdrücklich genannter Qualifier liefert nur
+unqualifizierte Basisaussagen; ein vom Modell erfundener Qualifier wird verworfen.
+Für Wechselwirkungen werden gemeinsame Basisanker verglichen: Aussagen zu verschiedenen
+Gegenständen am selben Bezug können zusammenhängen. Die Qualifier bleiben gespeichert
+und bestimmen weiterhin ausdrücklich qualifizierte Abfragen.
+
+„Hab ich festgehalten“ erscheint erst, wenn die geschriebene Aussage im selben Turn
+über mindestens einen Basisanker aus dem Object-Store wieder gelesen wurde. Ein
+zusätzlich im Beleg ermittelter Bezugsanker muss ebenfalls dieselbe Aussage
+finden: Die Prüfung umfasst jeden solchen Bezug, nicht nur den ersten Treffer. Ein
+Schreibfehler oder fehlgeschlagener Basisanker-Zugriff erzeugt eine ehrliche Meldung
+über die fehlende Bestätigung. Ein erfolgreicher Put allein reicht nicht aus.
 
 Die Gewichtung ist ausschließlich aus Dokumenthäufigkeiten abgeleitet:
 `log((N + 4) / (df + 1))`. Vier virtuelle Dokumente ermöglichen den Kaltstart eines Tenants;
@@ -101,7 +135,15 @@ Delegierte Abfragen zählen zum aufrufenden Chat-Turn. Die Zeile wird sofort bei
 
 ## Abnahme
 
-`tests/tenant-memory.test.js` deckt AC-01–AC-11 mit synthetischen Daten ab;
+`tests/tenant-memory-861.test.js` deckt #861 Szenarien 1–11 mit frisch generierten
+synthetischen Daten ab, einschließlich Signaturen und Datensatz-Rückfragen.
+`tests/tenant-memory-863.test.js` deckt #863 Szenarien 1–10 einschließlich
+verkürzter/vertauschter Extraktion, auditierter v2-Migration und vollständiger
+Mail-/Folgeturns ab. Der gemeinsame Tool-Trigger verlangt bei Korrespondenz und
+Verläufen eine konkrete Datenfrage der fragenden Person; vom Modell gesetztes
+`dataNeeds`, eingefügte Fragen und frühere Abfragen reichen allein nicht aus.
+Kennungsfelder und als Kennung klassifizierte Statistiken liefern keine Extrema.
+`tests/tenant-memory.test.js` deckt die bisherigen AC-01–AC-11 ab;
 `tests/tenant-memory.http.test.js` prüft den authentifizierten OpenAI-HTTP-Pfad mit zwei
 Personen und getrennten Tenants. Die neuen Core-Module sind im Domänenfreiheits-Gate.
 Bestehende Conversation-, Notice-, Fallfortsetzungs- und Dokumenttests bleiben Bestandteil
@@ -131,10 +173,19 @@ extrahiert und bestätigt. Das Festhalten dokumentiert die Quelle; eine spätere
 Plausibilitätsprüfung kann die Aussage mit konkreten Wissensbelegen anzweifeln.
 Gedächtnisabfragen mit vorhandenen Ankern haben vor dem Datensatzpfad Vorrang.
 Quellen zeigen Person, konfigurierte oder in Klartext extrahierte Funktion und das
-Datum als TT.MM.JJJJ. Eine unbekannte Funktion wird als solche kenntlich gemacht.
+Datum als TT.MM.JJJJ. Bei unbekannter Funktion erscheinen nur Name und Datum. Kurze
+deutsche Funktionsangaben stammen aus der aktuellen Nachricht oder dem Mapping;
+technische interne Bezeichnungen werden nicht angezeigt. Gleiche Wissensbelege
+werden nach Quelle und Text dedupliziert; Ausschnitte sind auf 600 Zeichen begrenzt.
 
 Live-Abnahme mit synthetischen Akteuren und frischen Ankern:
-`WORKBENCH_ENV_FILE=/path/to/.env node scripts/validate-tenant-memory-live.js`.
+`WORKBENCH_ENV_FILE=/path/to/development.env node scripts/validate-tenant-memory-live.js`.
+Nur mit einer Entwicklungs-/Testkonfiguration starten, niemals gegen Produktion.
+Der Lauf prüft zusätzlich #861 Szenario 1 (gemeinsamer Basisanker und Beziehung),
+2 (beide Personen finden alle Varianten) und 7 (lokal injizierter Schreib-/Lesefehler
+erzeugt keine Festhaltebestätigung). Die Datenbank liegt ausschließlich in einem
+frischen temporären lokalen Verzeichnis. Neue Anker stammen aus
+`scripts/generate-memory-cleanup-fixture.js`. Dieser Lauf wurde für #861 nicht ausgeführt.
 Das Skript nutzt das konfigurierte echte Modell ausschließlich über `llm-client`,
 den realen lokalen Object-Store und Notice-Dienst sowie dokumentierte Quell-Stubs.
 Es prüft beide Reihenfolgen je zweimal und schreibt `docs/validation/tenant-memory-live.json`.
@@ -191,3 +242,99 @@ erhalten, bis die idempotenten Notice-Aufträge eingereiht sind. Zustellfehler n
 Backoff und `Retry-After`; ein Neustart löst dafür keinen neuen Modellaufruf aus.
 Recovery fragt nur fällige Modell- oder Notice-Aufträge ab und beendet die Seitensuche
 sobald ein Batch gesammelt ist.
+
+## Runbook: Anker-Migration nach #861
+
+Nach dem Deploy startet der Betreiber den Lauf einmal je betroffenem Tenant. Der
+Bearer-Token muss `ROLE_TENANT_ADMIN`, API-Zugriff und die Clearance aller zu
+migrierenden Aussagen dieses Tenants besitzen. Der Tenant kommt ausschließlich aus
+dem Token; kein Tenant-Parameter im Request kann ihn ersetzen. Ohne ausreichende
+Clearance werden nur sichtbare Aussagen migriert.
+
+```bash
+curl --fail-with-body --request POST \
+  "$CET_BASE_URL/api/tenant-memory-policy/migrate-anchors" \
+  --header "Authorization: Bearer $CET_TENANT_ADMIN_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data '{"reason":"Anker-Normalisierung nach Issue #861"}'
+```
+
+Route: `POST /api/tenant-memory-policy/migrate-anchors`; Action:
+`tenant-memory-policy.migrateAnchors`; Pflichtfeld: `reason` (1–1200 Zeichen).
+Für zwei alte, neu zusammenfallende Aussagen ist die erwartete HTTP-200-Antwort:
+
+```json
+{ "migration": "anchor-canonical-v1", "scanned": 2, "changed": 2, "requeued": 2 }
+```
+
+`scanned` zählt die sichtbaren Aussagen, `changed` die normalisierten Datensätze,
+`requeued` die erneut zur Wechselwirkungsprüfung eingeplanten aktiven Aussagen.
+Die Migration korrigiert Anker und Aliases, entfernt technische Funktionslabels
+und verdichtet doppelte Prüfbelege. Jede Mutation erhält `anchors_migrated` in ihrer
+Historie; jeder erfolgreiche Aufruf zusätzlich `admin_migrate_anchors` im Audit.
+Widerrufene oder gelöschte Aussagen werden nicht reaktiviert. Der bestehende
+Recovery-Worker verarbeitet die persistierte Warteschlange standardmäßig innerhalb
+des nächsten 30-Sekunden-Takts, mit den dokumentierten Budgets und Backoff-Regeln.
+`TENANT_MEMORY_RECOVERY` muss dafür eingeschaltet sein.
+
+Eine Wiederholung liefert bei unverändertem Bestand `changed:0,requeued:0`; Aussagen
+und Beziehungen bleiben unverändert. Der Aufruf selbst wird weiter auditiert.
+Anschließend mit `GET /api/tenant-memory-policy/statements` Anker, Prüfstatus,
+Beziehungsreferenzen und Audit prüfen und über den Basisanker im Chat nachfragen.
+Keine direkten `object-store.put`/`delete` auf `workbench_facts`, kein Datenbankskript.
+Deployment und Migrationsstart bleiben beim Betreiber; sie gehören nicht zur
+Implementierungs- oder lokalen Testausführung.
+
+## Runbook: Bezugsanker-Migration nach #863
+
+Die oben beschriebene Action führt nach dem Deploy jetzt `anchor-canonical-v2`
+aus. Auch Tenants, die bereits v1 durchlaufen haben, benötigen den neuen Lauf.
+Route, Rolle und Clearance bleiben unverändert: `ROLE_TENANT_ADMIN` mit
+API-Zugriff und vollständiger Clearance, Tenant ausschließlich aus dem Token.
+
+```bash
+curl --fail-with-body --request POST \
+  "$CET_BASE_URL/api/tenant-memory-policy/migrate-anchors" \
+  --header "Authorization: Bearer $CET_TENANT_ADMIN_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data '{"reason":"Bezugsanker-Normalisierung nach Issue #863"}'
+```
+
+Erwartete HTTP-200-Antwort für zwei Aussagen, davon eine mit verkürztem
+Gegenstandsanker und eine bereits mit vollständigem Bezug:
+
+```json
+{ "migration": "anchor-canonical-v2", "scanned": 2, "changed": 1, "requeued": 2 }
+```
+
+Die Anker werden aus `basis` (bei alten Daten ersatzweise `text`) vervollständigt.
+Neu zusammenfallende aktive Aussagen werden beidseitig zur vorhandenen
+Wechselwirkungsprüfung eingeplant. `anchors_migrated` enthält v2 und Begründung;
+`admin_migrate_anchors` auditiert jeden Lauf. Wiederholung bei unverändertem
+Bestand: `changed:0,requeued:0`, keine Änderung der Aussagen oder Beziehungen.
+Recovery einschalten und anschließend Admin-Liste und Basisfrage prüfen wie
+im v1-Runbook. Keine direkten Object-Store-Schreib-/Löschaufrufe.
+
+## Lokale Live-Abnahme #863, Szenario 3
+
+Das bestehende Skript kann ausschließlich mit lokaler temporärer Persistenz,
+synthetischen Quellen-Stubs und echten Modellaufrufen über die zentrale Fassade
+fünf unabhängige Läufe ausführen. Jeder Lauf erzeugt neue Anker und Personen,
+wechselt die Reihenfolge und prüft beide Basisfragen, die sofortige Beziehung
+und den Hinweis beim nächsten Kontakt. Keine Produktionsinstanz wird kontaktiert.
+
+```bash
+WORKBENCH_ENV_FILE=/path/to/test.env \
+TENANT_MEMORY_LIVE_SCENARIO=863 TENANT_MEMORY_LIVE_RUNS=5 \
+LIVE_MAX_MODEL_CALLS=80 LIVE_MAX_TOKENS=400000 \
+WORKBENCH_VALIDATION_REPORT=/tmp/tenant-memory-863-live.json \
+LIVE_BUDGET_REPORT=/tmp/tenant-memory-863-budget.json \
+node scripts/validate-tenant-memory-live.js
+```
+
+Die lokale Quote und Datenbanken liegen jeweils in neuen temporären Verzeichnissen.
+Das Aufruf-/Tokenbudget ist begrenzt; Kontingentfehler (429 oder lokale Quote)
+brechen den Lauf ab, ohne weitere Turns oder sofortige Modell-Retries. Ein
+Abbruch oder fehlgeschlagenes Kriterium liefert Exit 1 und zählt nicht als
+bestandene Live-Abnahme. Ergebnis und Budget werden ohne Modellbezeichnungen
+dokumentiert. Deployment und Produktionsmigration bleiben beim Betreiber.

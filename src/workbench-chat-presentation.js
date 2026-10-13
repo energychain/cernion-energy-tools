@@ -60,7 +60,11 @@ function completeDraft(text, displayName = '') {
   return String(text || '')
     .replace(/\[([^\]\n]+)\]/gu, (_all, value) => {
       const label = value.replace(/^…\s*/, '').trim();
-      if (/^(?:Name|Ihr Name|dein Name|Absender(?:name)?|Unterschrift|Signatur)$/iu.test(label))
+      if (
+        /^(?:Name|Ihr Name(?:\s*[/|]\s*(?:Team|Abteilung))?|dein Name|Absender(?:name)?|Unterschrift|Signatur)$/iu.test(
+          label
+        )
+      )
         return name || '[… Anzeigename]';
       const translated = label.replace(
         /\b(?:reference(?:[ _]?number)?|date|signature|missing|document|information)\b/giu,
@@ -81,17 +85,18 @@ function completeDraft(text, displayName = '') {
       return `[… ${words.charAt(0).toLocaleUpperCase('de-DE')}${words.slice(1)}]`;
     })
     .replace(
-      /((?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße|Beste Grüße)[ \t]*\n)[^\n]+(?=\n\n|$)/gu,
+      /((?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße|Beste Grüße)[,!]?[ \t]*\n)[^\n]+(?:\n(?!\n)[^\n]+)*(?=\n\n|$)/gu,
       (all, greeting) => (name ? `${greeting}${name}` : all)
     )
     .replace(
-      /((?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße|Beste Grüße)\s*)(?=\n\n|$)/gu,
+      /((?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße|Beste Grüße)[,!]?\s*)(?=\n\n|$)/gu,
       (all) => (name ? `${all.trimEnd()}\n${name}` : all)
     );
 }
 
 function mappedDisplayName(mapping, meta = {}) {
-  if (mapping) return mapping.displayName || '';
+  if (mapping)
+    return mapping.displayName || mapping.name || mapping.actorId || mapping.openWebuiUserId || '';
   const auth = meta.authUser || meta.apiToken || {};
   return auth.displayName || auth.name || '';
 }

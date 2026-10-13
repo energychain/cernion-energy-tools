@@ -39,6 +39,8 @@
     "transactionid",
     "requestid",
     "documentid",
-    "caseid"
+    "caseid",
+    "zählpunkt",
+    "zaehlpunkt"
   ]
 }
