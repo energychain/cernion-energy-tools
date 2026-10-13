@@ -174,6 +174,7 @@ async function attachNotices(ctx, result, facts) {
           !!result.toolCalls ||
           !!result.structuredOutput,
         fullQueue,
+        currentFactIds: meta.tenantMemoryCurrentFacts || [],
       },
       {
         meta: {

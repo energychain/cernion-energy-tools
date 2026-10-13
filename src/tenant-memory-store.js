@@ -85,7 +85,6 @@ function referenceAnchors(basis) {
   for (let i = 0; i < tokens.length - 1; i++) {
     if (!prepositions.includes(normalizeAnchor(tokens[i][0]))) continue;
     const prefix = text.slice(0, tokens[i].index);
-    if (!prefix.trim() || /[.!?]\s*$/u.test(prefix)) continue;
     let start = i + 1;
     while (start < tokens.length && articles.includes(normalizeAnchor(tokens[start][0]))) start++;
     if (start >= tokens.length) continue;
@@ -94,7 +93,7 @@ function referenceAnchors(basis) {
     while (end < tokens.length && (/^\p{Lu}/u.test(tokens[end][0]) || isId(tokens[end][0]))) {
       if (
         end > start &&
-        /[,.!?;\n]/u.test(
+        /[:,.!?;()\[\]—–\n-]/u.test(
           text.slice(tokens[end - 1].index + tokens[end - 1][0].length, tokens[end].index)
         )
       )
@@ -122,11 +121,32 @@ function referenceAnchors(basis) {
   }
   return result;
 }
-function groundedAnchors(anchors = [], basis = '') {
+function groundedAnchors(anchors = [], basis = '', facts = [], corpus = facts) {
   const references = referenceAnchors(basis);
+  const words = ` ${normalizeAnchor(basis)} `;
+  const known = facts.flatMap((fact) => (fact.anchors || []).map(qualifiedAnchor));
+  const structural = [
+    ...String(basis).matchAll(
+      /(?:^|[\s.!?])([\p{Lu}][\p{L}\p{N}]*)-[\p{Lu}][\p{L}]+|\p{L}[ \t]+([\p{Lu}][\p{L}\p{N}]*)\s*:/gu
+    ),
+  ].map((match) => match[1] || match[2]);
+  const matches = [...known.map((anchor) => anchor.value), ...structural].filter((value) =>
+    words.includes(` ${normalizeAnchor(value)} `)
+  );
+  for (const value of weightedAnchors(matches, corpus))
+    if (!references.some((ref) => normalizeAnchor(ref.value) === normalizeAnchor(value)))
+      references.push({ value, prefix: '' });
   const normalized = anchors
     .map((anchor) => {
       let qualified = qualifiedAnchor(anchor);
+      const extended =
+        !references.some(
+          (item) => normalizeAnchor(item.value) === normalizeAnchor(qualified.value)
+        ) &&
+        references.find((item) =>
+          normalizeAnchor(qualified.value).startsWith(`${normalizeAnchor(item.value)} `)
+        );
+      if (extended) qualified = { ...qualified, value: extended.value, aliases: [] };
       const reference = references.find((item) =>
         ` ${normalizeAnchor(item.prefix)} `.endsWith(` ${normalizeAnchor(qualified.value)} `)
       );
@@ -287,19 +307,68 @@ async function mutate(ctx, p, id, change) {
     }
   }
 }
-function candidates(fact, facts) {
+// Internal aggregate input: tenant-scoped reads only, never exposed as evidence.
+async function frequencyCorpus(ctx, p) {
+  const objects = ctx.broker?.getLocalService('object-store');
+  if (!objects?.db) return query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
+  const authenticated = require('./domain-router-policy').principal(ctx);
+  if (authenticated.tenantId !== p.tenantId) deny('Tenant mismatch');
+  const facts = [];
+  for (let skip = 0; ; skip += 1000) {
+    const page = await objects.db.find({
+      selector: { ns: namespace(p), 'payload.type': 'tenant_memory_fact' },
+      limit: 1000,
+      skip,
+    });
+    facts.push(...page.docs.map((doc) => doc.payload));
+    if (page.docs.length < 1000) return facts;
+  }
+}
+// One tenant-wide document-frequency rule for both literal candidates and relations.
+function weightedAnchors(values, facts) {
+  const valid = facts.filter((fact) => active(fact));
+  const documents = valid.map((fact) => ({
+    words: ` ${normalizeAnchor([fact.message, fact.basis, fact.text].filter(Boolean).join(' '))} `,
+    bases: new Set((fact.anchorKeys || []).map((key) => JSON.parse(key)[0])),
+  }));
+  return [...new Set(values)].filter((value) => {
+    const base = normalizeAnchor(value);
+    if (!base) return false;
+    const df = documents.filter(
+      (doc) => doc.bases.has(base) || doc.words.includes(` ${base} `)
+    ).length;
+    return Math.log((valid.length + 4) / (df + 1)) >= Math.log(2);
+  });
+}
+// Expand only by copying a continuous literal sentence/paragraph span.
+function literalBasis(basis, message, anchors) {
+  const original = String(message || basis || '');
+  const bases = anchors.flatMap(anchorKeys).map((key) => JSON.parse(key)[0]);
+  if (bases.every((base) => ` ${normalizeAnchor(basis)} `.includes(` ${base} `))) return basis;
+  const index = original.indexOf(basis);
+  if (index < 0) return original;
+  const boundaries = [
+    0,
+    ...[...original.matchAll(/[.!?]\s+|\n\s*\n/gu)].map((match) => match.index + match[0].length),
+    original.length,
+  ];
+  let start = boundaries.filter((offset) => offset <= index).at(-1);
+  let end = boundaries.find((offset) => offset >= index + basis.length);
+  while (
+    !bases.every((base) => ` ${normalizeAnchor(original.slice(start, end))} `.includes(` ${base} `))
+  ) {
+    if (start === 0 && end === original.length) break;
+    start = boundaries[boundaries.indexOf(start) - 1] ?? 0;
+    end = boundaries[boundaries.indexOf(end) + 1] ?? original.length;
+  }
+  return original.slice(start, end).trim();
+}
+function candidates(fact, facts, corpus = facts) {
   const valid = facts.filter((item) => active(item));
   // Shared objects can connect statements about different subjects. Qualifiers
   // constrain explicit questions, not the relationship candidate search.
   const keys = (item) => [...new Set(item.anchorKeys.map((key) => JSON.parse(key)[0]))];
-  const frequency = new Map();
-  for (const item of valid)
-    for (const anchor of keys(item)) frequency.set(anchor, (frequency.get(anchor) || 0) + 1);
-  const strong = new Set(
-    keys(fact).filter(
-      (anchor) => Math.log((valid.length + 4) / ((frequency.get(anchor) || 0) + 1)) >= Math.log(2)
-    )
-  );
+  const strong = new Set(weightedAnchors(keys(fact), corpus).map(normalizeAnchor));
   return valid.filter(
     (item) => item.id !== fact.id && keys(item).some((anchor) => strong.has(anchor))
   );
@@ -367,6 +436,42 @@ async function relationText(ctx, p, id, { includeFacts = true } = {}) {
     .filter(Boolean)
     .join('\n\n');
 }
+// A recipient-specific summary, never an unassessed pair of raw statements.
+async function relationNotice(ctx, p, id, actorId) {
+  const relation = (await get(ctx, p, id)).payload;
+  if (relation.type !== 'tenant_memory_relation' || !relation.reason?.trim()) return '';
+  const facts = await Promise.all(
+    relation.factIds.map(async (ref) => (await get(ctx, p, ref)).payload)
+  );
+  if (!facts.every((fact) => active(fact))) return '';
+  const own = facts.find((fact) => fact.person.actorId === actorId);
+  const other = facts.find((fact) => fact.person.actorId !== actorId);
+  if (!own || !other) return '';
+  const shared = own.anchors
+    .map(qualifiedAnchor)
+    .find((anchor) =>
+      other.anchorKeys.some((key) => JSON.parse(key)[0] === normalizeAnchor(anchor.value))
+    );
+  if (!shared) return '';
+  const date = (fact) =>
+    new Date(fact.at).toLocaleDateString('de-DE', {
+      timeZone: 'Europe/Berlin',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  const label = humanFunctionLabel(other.person.functionLabel);
+  const refs = (relation.evidence || []).map((hit) => hit.source).filter(Boolean);
+  const reason =
+    relation.reason
+      .replace(/\s+Unsicherheit:\s*\d+ %\.$/u, '')
+      .split(/(?<=[.!?])\s+/u)
+      .map((sentence) => sentence.replace(/[.!?]+$/u, ''))
+      .join('; ') +
+    '.' +
+    (refs.length ? ` Quelle: ${[...new Set(refs)].join('; ')}.` : '');
+  return `Zu ${shared.value} gibt es etwas Neues: ${other.person.name}${label ? ` (${label})` : ''} hat am ${date(other)} festgehalten: „${other.text}“. Das hängt mit deiner Aussage vom ${date(own)} zusammen: ${reason}`;
+}
 module.exports = {
   namespace,
   key,
@@ -376,6 +481,10 @@ module.exports = {
   anchorSyntax,
   referenceAnchors,
   groundedAnchors,
+  weightedAnchors,
+  frequencyCorpus,
+  literalBasis,
+  relationNotice,
   qualifiedMention,
   humanFunctionLabel,
   compactEvidence,

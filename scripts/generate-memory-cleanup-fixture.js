@@ -79,4 +79,49 @@ function generateMemoryAnchorFixture() {
     scopeQuestion: 'Welchen Zeitraum oder Bereich meinst du?',
   };
 }
-module.exports = { generateMemoryCleanupFixture, generateMemoryAnchorFixture };
+function generateMemoryMessageFixture() {
+  const f = generateMemoryAnchorFixture();
+  const x = f.base;
+  return {
+    ...f,
+    patterns: [
+      [
+        `Die Gasleitung im ${x} müssen wir bis 2030 außer Betrieb nehmen.`,
+        `Das Stromnetz im ${x} ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.`,
+      ],
+      [
+        `Gasleitung im ${x}: Außerbetriebnahme spätestens 2030 geplant.`,
+        `Stromnetz ${x}: frühestens 2034 wieder Kapazität für neue Wärmepumpen.`,
+      ],
+      [
+        `Für den ${x} haben wir beschlossen: Gasversorgung endet spätestens Ende 2030.`,
+        `Im ${x} ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034.`,
+      ],
+      [
+        `Die Leitung in der ${x} legen wir bis 2030 still.`,
+        `Das Netz am ${x} ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.`,
+      ],
+      [`${x}-Gasleitung wird 2030 stillgelegt.`, `Bei ${x} keine neuen Wärmepumpen vor 2034.`],
+    ],
+    punctuation: [':', ',', ';', '.', '(', ')', '—', '–'].map(
+      (end) => `Weitere Arbeiten im ${x}${end} Außerbetriebnahme geplant.`
+    ),
+    initial: [
+      `Im ${x} ist das Netz begrenzt.`,
+      `Für den ${x} haben wir beschlossen: Weitere Arbeiten sind begrenzt.`,
+      `Am ${x} ist die Planung begrenzt.`,
+    ],
+    fragment: 'Gasversorgung endet spätestens Ende 2030.',
+    common: 'Wärmepumpen',
+    commonText: 'Wärmepumpen werden für weitere Arbeiten geplant.',
+    singleCase: `Eine einzelne Anlage im ${x} wird geprüft.`,
+    unrelated: 'Was ist eine allgemeine Definition?',
+    news: 'Gibt es Neuigkeiten?',
+    reason: 'Die Fristen 2030 und 2034 müssen abgestimmt werden.',
+  };
+}
+module.exports = {
+  generateMemoryCleanupFixture,
+  generateMemoryAnchorFixture,
+  generateMemoryMessageFixture,
+};

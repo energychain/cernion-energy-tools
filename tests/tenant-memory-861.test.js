@@ -251,7 +251,7 @@ describe('861 deterministic tenant memory acceptance', () => {
       reason: 'Synthetische Prüfung',
     });
     expect(result).toEqual({
-      migration: 'anchor-canonical-v2',
+      migration: 'anchor-canonical-v3',
       scanned: 2,
       changed: 2,
       requeued: 2,

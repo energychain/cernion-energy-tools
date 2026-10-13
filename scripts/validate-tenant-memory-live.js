@@ -10,11 +10,19 @@ const { createLiveHarness } = require('./workbench-live-harness');
 const llm = require('../src/llm-client');
 const memory = require('../src/tenant-memory');
 const store = require('../src/tenant-memory-store');
-const { generateMemoryAnchorFixture } = require('./generate-memory-cleanup-fixture');
+const {
+  generateMemoryAnchorFixture,
+  generateMemoryMessageFixture,
+} = require('./generate-memory-cleanup-fixture');
 
 async function validateTenantMemoryLive() {
-  const scenario863 = process.env.TENANT_MEMORY_LIVE_SCENARIO === '863';
-  const repeats = scenario863 ? Number(process.env.TENANT_MEMORY_LIVE_RUNS || 5) : 2;
+  const scenario868 = process.env.TENANT_MEMORY_LIVE_SCENARIO === '868';
+  const scenario863 = scenario868 || process.env.TENANT_MEMORY_LIVE_SCENARIO === '863';
+  const repeats = scenario863
+    ? Number(process.env.TENANT_MEMORY_LIVE_RUNS || (scenario868 ? 10 : 5))
+    : 2;
+  if (scenario868 && (repeats < 10 || repeats % 10 !== 0))
+    throw new Error('Run complete ten-case live batches');
   if (!Number.isSafeInteger(repeats) || repeats < 1 || repeats > 20)
     throw new Error('Invalid live run count');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-memory-live-'));
@@ -96,7 +104,10 @@ async function validateTenantMemoryLive() {
         ]) {
       for (let run = 1; run <= repeats; run++) {
         budget.assertReady();
-        const fixture = generateMemoryAnchorFixture();
+        const fixture = scenario868
+          ? generateMemoryMessageFixture()
+          : generateMemoryAnchorFixture();
+        const pattern = Math.floor(((run - 1) % 10) / 2);
         const order = scenario863
           ? run % 2
             ? [fixture.actorA, fixture.actorB]
@@ -114,7 +125,10 @@ async function validateTenantMemoryLive() {
             actorId,
             roleFamilies: [functionLabel],
           });
-        const texts = { [actors[0]]: fixture.textB, [actors[1]]: fixture.textA };
+        const texts = {
+          [actors[0]]: scenario868 ? fixture.patterns[pattern][0] : fixture.textB,
+          [actors[1]]: scenario868 ? fixture.patterns[pattern][1] : fixture.textA,
+        };
         const send = async (actor, message, freshConversation = false) => {
           budget.assertReady();
           const result = await broker.call(
@@ -145,6 +159,8 @@ async function validateTenantMemoryLive() {
         const turns = [];
         for (const actor of order) turns.push({ actor, ...(await send(actor, texts[actor])) });
         const notice = await send(order[0], 'Was ist der nächste Schritt?');
+        const repeated = scenario868 ? await send(order[0], fixture.news) : null;
+        const unrelated = scenario868 ? await send(order[0], fixture.unrelated) : null;
         const queries = await Promise.all(order.map((actor) => send(actor, fixture.query, true)));
         const query = queries[0];
         const p = { tenantId, actorId: order[0], roles: ['ROLE_GRID_OPERATOR'], clearance: [] };
@@ -198,10 +214,55 @@ async function validateTenantMemoryLive() {
           ),
           readableDate: /\d{2}\.\d{2}\.\d{4}/.test(query.responseText),
         };
+        if (scenario868)
+          Object.assign(checks, {
+            literalWordsContainBase: facts.every(
+              (fact) =>
+                fact.text.includes(anchor) &&
+                fact.basis.includes(anchor) &&
+                texts[fact.person.actorId]?.includes(fact.basis)
+            ),
+            immediateInteraction:
+              turns[1].responseText.includes(order[0]) &&
+              /2030/.test(turns[1].responseText) &&
+              /2034/.test(turns[1].responseText),
+            noOwnSameTurnNotice: turns.every(
+              (turn) =>
+                !turn.noticeBlock &&
+                !(turn.metadata?.notices || []).some((item) => item.kind === 'memory')
+            ),
+            exactlyOneNotice:
+              (notice.metadata?.notices || []).filter((item) => item.kind === 'memory').length ===
+              1,
+            noticeForm:
+              (notice.noticeBlock || notice.responseText).includes(
+                `Zu ${anchor} gibt es etwas Neues: ${order[1]}`
+              ) &&
+              /hat am \d{2}\.\d{2}\.\d{4} festgehalten/.test(
+                notice.noticeBlock || notice.responseText
+              ) &&
+              (notice.noticeBlock || notice.responseText).includes(
+                'Das hängt mit deiner Aussage vom'
+              ) &&
+              !/Prüfung ausstehend/.test(notice.noticeBlock || notice.responseText),
+            noRepeatedNotice:
+              !repeated.noticeBlock &&
+              !(repeated.metadata?.notices || []).some((item) => item.kind === 'memory'),
+            noUnrelatedNotice:
+              !unrelated.noticeBlock &&
+              !(unrelated.metadata?.notices || []).some((item) => item.kind === 'memory'),
+          });
         recoveryReplay = { p, factId: facts.find((fact) => fact.relationIds.length)?.id };
         report.runs.push({
           order,
           run,
+          ...(scenario868
+            ? {
+                pattern: pattern + 1,
+                repeated: repeated.responseText,
+                unrelated: unrelated.responseText,
+              }
+            : {}),
           anchor,
           checks,
           turns: turns.map(({ actor, responseText, situation, state }) => ({
@@ -238,11 +299,11 @@ async function validateTenantMemoryLive() {
       }
     }
     if (scenario863) {
-      report.scenario = '863/3';
+      report.scenario = scenario868 ? '868/all-patterns-both-orders' : '863/3';
       report.budget = budget.report();
       delete report.budget.tokens.lastMeta;
       report.passed =
-        report.runs.length >= 5 &&
+        report.runs.length >= (scenario868 ? 10 : 5) &&
         report.runs.every(
           (run) => Object.values(run.checks).every(Boolean) && run.connectionChannel === 'turn'
         );
