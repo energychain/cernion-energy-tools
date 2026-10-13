@@ -1,6 +1,6 @@
 # Netzanschluss-/Kapazitäts-Klärfall
 
-Generated: 2026-10-13T02:06:12.149Z
+Generated: 2026-10-13T08:10:51.838Z
 
 Status: observed
 Priority: 4
@@ -95,6 +95,7 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `src/report-builder.js` (44 hits)
 - `docs/validation/813-live.json` (36 hits)
 - `src/answer-dossier-hydration-rules.json` (35 hits)
+- `docs/validation/tenant-memory-863-live.json` (33 hits)
 - `services/personal-agent/shared.js` (30 hits)
 - `docs/validation/tenant-memory-live.json` (29 hits)
 - `src/consultation-execution-bridge.js` (26 hits)
@@ -113,4 +114,3 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `integrations/budibase/README.md` (13 hits)
 - `services/redispatch-expost.service.js` (13 hits)
 - `src/blueprints/grid-connection-validation-v1.json` (13 hits)
-- `services/community.service.js` (12 hits)

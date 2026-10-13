@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-13T02:06:12.149Z",
+  "generatedAt": "2026-10-13T08:10:51.838Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261013T020458Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261013T080926Z",
   "counts": {
-    "files": 1921,
-    "candidateFiles": 1144,
+    "files": 1924,
+    "candidateFiles": 1145,
     "services": 159,
     "srcFiles": 433,
-    "docs": 508,
+    "docs": 509,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -15,7 +15,7 @@
       "label": "Fallarbeit und Assistenz",
       "files": 25,
       "services": 2,
-      "hits": 6181
+      "hits": 6182
     },
     "evidence-and-trust": {
       "label": "Evidence, Nachweis und Vertrauen",
@@ -51,7 +51,7 @@
       "label": "Gas, Wärme und EOG",
       "files": 25,
       "services": 3,
-      "hits": 2858
+      "hits": 2959
     },
     "tenant-and-operation": {
       "label": "Tenant, Rollen und Betrieb",
@@ -63,7 +63,7 @@
       "label": "OpenWebUI und agentisches Routing",
       "files": 25,
       "services": 7,
-      "hits": 5041
+      "hits": 5043
     }
   },
   "ambiguousTerms": [
@@ -292,6 +292,10 @@
           "hits": 35
         },
         {
+          "path": "docs/validation/tenant-memory-863-live.json",
+          "hits": 33
+        },
+        {
           "path": "services/personal-agent/shared.js",
           "hits": 30
         },
@@ -302,10 +306,6 @@
         {
           "path": "src/consultation-execution-bridge.js",
           "hits": 26
-        },
-        {
-          "path": "src/personal-agent-routing.js",
-          "hits": 21
         }
       ]
     },
@@ -443,6 +443,10 @@
           "hits": 175
         },
         {
+          "path": "docs/validation/tenant-memory-863-live.json",
+          "hits": 138
+        },
+        {
           "path": "src/evidence-registry.js",
           "hits": 132
         },
@@ -460,10 +464,6 @@
         },
         {
           "path": "docs/reviews/730-capability-routing-evaluation.json",
-          "hits": 67
-        },
-        {
-          "path": "docs/validation/rc3-closeout-live.json",
           "hits": 67
         }
       ]
@@ -552,5 +552,5 @@
       "hits": 263
     }
   ],
-  "fingerprint": "8ecd29ce2b19291958aecc88cba582569e507c25540494e296d4f021e24a17c7"
+  "fingerprint": "3433f2465657c087de7f4e839ad7a87c05d31b876b1ace16c69740bed41d221f"
 }
