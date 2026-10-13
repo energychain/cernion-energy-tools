@@ -30,6 +30,12 @@ function generateMemoryAnchorFixture() {
     base,
     identifier: `97${Date.now().toString().slice(-9)}`,
     generic: 'Im Rahmen der Planung werden weitere Arbeiten abgestimmt.',
+    genericVariants: [
+      'Die Abstimmung erfolgt im Rahmen der Planung.',
+      'Die Planung erfolgt in der Planung.',
+      'Die Abstimmung erfolgt in der Planung.',
+    ],
+    measureQuestion: 'Wie hoch ist der größte Wert?',
     greeting: 'Mit freundlichen Grüßen',
     shortGreeting: 'Viele Grüße',
     nextQuestion: 'Wie geht es weiter?',

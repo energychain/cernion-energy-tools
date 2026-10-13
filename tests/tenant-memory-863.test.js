@@ -146,9 +146,7 @@ describe('863 grounded anchor and correspondence acceptance', () => {
   });
   test('scenario 4: sentence starts, common abstractions and repeated subject are not reference anchors', () => {
     expect(store.referenceAnchors(f.generic)).toEqual([]);
-    expect(store.referenceAnchors('Die Abstimmung erfolgt im Rahmen der Planung.')).toEqual([]);
-    expect(store.referenceAnchors('Die Planung erfolgt in der Planung.')).toEqual([]);
-    expect(store.referenceAnchors('Die Abstimmung erfolgt in der Planung.')).toEqual([]);
+    for (const text of f.genericVariants) expect(store.referenceAnchors(text)).toEqual([]);
   });
   test('scenario 5: digit and alphanumeric identifiers are basis anchors', async () => {
     const text = `Weitere Arbeiten an der Marktlokation ${f.identifier} sind begrenzt.`;
@@ -336,7 +334,7 @@ describe('863 grounded anchor and correspondence acceptance', () => {
   });
   test('scenario 9: explicit measured data questions remain eligible, including within correspondence', () => {
     expect(loop.allowsDataRead({ outputKind: 'correspondence' }, f.peakQuestion)).toBe(true);
-    expect(loop.allowsDataRead({}, 'Wie hoch ist der größte Wert?')).toBe(true);
+    expect(loop.allowsDataRead({}, f.measureQuestion)).toBe(true);
     expect(
       tools.availableToolAnswer(
         [{ source: 'dataset.query', retrievalSource: 'capability-read', value: f.peakAnswer }],
