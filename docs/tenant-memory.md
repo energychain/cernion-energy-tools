@@ -338,3 +338,116 @@ brechen den Lauf ab, ohne weitere Turns oder sofortige Modell-Retries. Ein
 Abbruch oder fehlgeschlagenes Kriterium liefert Exit 1 und zählt nicht als
 bestandene Live-Abnahme. Ergebnis und Budget werden ohne Modellbezeichnungen
 dokumentiert. Deployment und Produktionsmigration bleiben beim Betreiber.
+
+## Bezugsanker und neue Hinweise nach #868
+
+Die deterministische Ergänzung verwendet die vollständige aktuelle Nachricht. Präpositionsbezüge
+am Satzanfang zählen ebenfalls. Benennungen enden an Satzzeichen, Klammern, Gedankenstrichen
+und kleingeschriebenen Folgewörtern. Auch ein zu lang extrahierter Modellanker wird auf den
+wörtlich belegten Bezug gekürzt. Die Präpositions- und Artikellisten aus #861 bleiben erhalten.
+
+Bei Formulierungen ohne Präposition werden vorhandene sichtbare Basisanker gegen die ganze
+Nachricht geprüft. Beschriftungs- und Bindestrichformen liefern zusätzlich strukturelle Kandidaten.
+Ergänzung und Beziehungssuche verwenden denselben Filter `log((N+4)/(df+1)) >= log(2)`.
+Die Dokumenthäufigkeit umfasst alle aktiven Aussagen des Tenants, einschließlich der Wortlaute
+und geschützter Aussagen. Geschützte Inhalte fließen ausschließlich intern in die Statistik ein;
+sie werden dadurch weder als Kandidatenanker noch als Evidenz offengelegt. Häufige Begriffe
+reichen nicht für eine Verbindung. Es gibt keine Fachwort- oder Ortslisten.
+
+Die Originalnachricht bleibt an der Aussage gespeichert und unterliegt derselben Clearance und
+Redaktion wie ihr Wortlaut. Fehlt ein ergänzter Bezug im übernommenen Beleg, werden `basis`
+und bei Bedarf `text` ausschließlich durch Kopieren eines zusammenhängenden wörtlichen
+Satz-/Absatzbereichs erweitert. Jede darin erkannte Bezugsstelle muss nach dem Schreiben
+wieder dieselbe Aussage liefern. Einzelvorgänge bleiben ausgeschlossen.
+
+Wechselwirkungshinweise verwenden die geprüfte Relation und zeigen nur die neue Aussage
+der anderen Person, Funktion, Datum, das Datum der eigenen Aussage und eine knappe
+Begründung. Mehrteilige Begründungen werden zu einem Satz verdichtet, ohne die Folgewirkung
+abzuschneiden. Rohpaare und ausstehende Prüfungen werden nicht als Wechselwirkung ausgeliefert.
+Eigene Aussagen erzeugen im selben Turn keinen Hinweis. Nach Zustellung bleiben Relationskennungen
+dauerhaft als gesehen gespeichert, auch über Migration, Recovery und die begrenzte allgemeine
+Hinweishistorie hinaus. Der Filter aus #850 gilt weiterhin. Ein Hinweis ist durch eine Leerzeile
+von der eigentlichen Antwort getrennt; die Antwort bleibt erhalten.
+
+## Runbook: Nachrichtenbezugs-Migration nach #868
+
+Nach dem Deploy führt dieselbe Route jetzt **`anchor-canonical-v3`** aus. Die Beispiele zu
+v1/v2 oben dokumentieren ihre damaligen Antworten; der aktuelle Aufruf liefert v3. Auch nach
+bereits ausgeführter v2-Migration ist dieser Lauf nötig.
+
+**Route:** `POST /api/tenant-memory-policy/migrate-anchors`.
+**Action:** `tenant-memory-policy.migrateAnchors`.
+**Rolle:** authentifizierte `ROLE_TENANT_ADMIN` mit API-Zugriff und vollständiger Clearance
+für die zu migrierenden Aussagen. Der Tenant kommt ausschließlich aus dem Token.
+Pflichtfeld `reason`: 1–1200 Zeichen.
+
+```bash
+curl --fail-with-body --request POST \
+  "$CET_BASE_URL/api/tenant-memory-policy/migrate-anchors" \
+  --header "Authorization: Bearer $CET_TENANT_ADMIN_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data '{"reason":"Nachrichtenbezugs-Normalisierung nach Issue #868"}'
+```
+
+Erwartete HTTP-200-Antwort für zwei korrigierte, neu zusammenfallende Aussagen:
+
+```json
+{ "migration": "anchor-canonical-v3", "scanned": 2, "changed": 2, "requeued": 2 }
+```
+
+Wiederholung bei unverändertem Bestand: `changed:0,requeued:0`. Jeder Aufruf ist auditiert;
+jede Mutation enthält `anchors_migrated`, v3, Begründung und Einplanungsstatus. Aktive neu
+zusammenfallende Aussagen werden beidseitig über die vorhandene persistierte Recovery geprüft.
+Recovery einschalten und Anker, Belege und Beziehungen anschließend über Admin-Liste und
+Basisfrage prüfen. Bereits zugestellte Hinweise werden nicht erneut eingereiht.
+
+Vor v3 wurde die vollständige Nachricht nicht an der Aussage aufbewahrt. Wo `basis` und `text`
+den Bezug bereits verloren haben, kann der Betreiber die tatsächliche Originalnachricht aus
+seiner Quelle zusätzlich über **dieselbe auditierte Route** übergeben. Die Migration erfindet
+keinen verlorenen Wortlaut. `originalMessages` ist optional, höchstens 1000 Einträge mit `id`
+und `message` (höchstens 8000 Zeichen). Die Quelle muss zum bestehenden Beleg einer sichtbaren,
+aktiven Aussage passen; fremde, unsichtbare, redigierte und doppelte Kennungen werden abgewiesen.
+
+```json
+{
+  "reason": "Nachrichtenbezugs-Normalisierung nach Issue #868 mit Originalbelegen",
+  "originalMessages": [
+    { "id": "<AUSSAGE-ID-AUS-DER-ADMIN-LISTE>", "message": "<WÖRTLICHE-ORIGINALNACHRICHT>" }
+  ]
+}
+```
+
+Bleibt ein Bezugsanker im verfügbaren Wortlaut unbelegt, enthält die HTTP-200-Antwort zusätzlich
+`originalMessagesRequired:["<AUSSAGE-ID>"]`. Für diese Aussagen ist die wörtliche
+Originalquelle nötig; die Zähler allein bedeuten keine Wiederherstellung verlorener Texte.
+
+Diesen JSON-Body mit derselben Route und Rolle senden. Die Antwort behält dieselben Zähler;
+bei der Mutation steht zusätzlich `originalRestored:true` im Audit. Die wiederholte Übergabe
+der identischen Quelle ist idempotent. Löschen redigiert auch die wiederhergestellte Nachricht.
+Keine direkten `object-store.put/delete`, kein Deployment oder Produktionslauf durch die
+Implementierungs- und Abnahmeskripte.
+
+## Lokale Live-Abnahme #868
+
+Das vorhandene Skript prüft alle fünf Formulierungsmuster in beiden Reihenfolgen: mindestens
+zehn vollständig unabhängige Läufe mit frischen generierten Ankern und Personen. Es verwendet
+reale Aufrufe über `llm-client`, lokale temporäre Persistenz und synthetische Quellen-Stubs.
+Je Lauf: beide Basisabfragen, wörtliche Bezüge, sofortige Relation, keine eigene Same-Turn-Notice,
+genau ein Hinweis an die erste Person in der verlangten Form, keine Wiederholung beim nächsten
+Neuigkeitenabruf und keine alten Hinweise in einem unbeteiligten Turn. Nur Testkonfigurationen
+verwenden, niemals Produktion.
+
+```bash
+WORKBENCH_ENV_FILE=/path/to/test.env \
+TENANT_MEMORY_LIVE_SCENARIO=868 TENANT_MEMORY_LIVE_RUNS=10 \
+LIVE_MAX_MODEL_CALLS=180 LIVE_MAX_TOKENS=1000000 \
+WORKBENCH_VALIDATION_REPORT=/tmp/tenant-memory-868-live.json \
+LIVE_BUDGET_REPORT=/tmp/tenant-memory-868-budget.json \
+node scripts/validate-tenant-memory-live.js
+```
+
+Zehn oder zwanzig Läufe sind möglich; eine Teilserie zählt nicht als vollständige Abnahme.
+Budgetende oder Kontingentfehler brechen weitere Modellaufrufe ab. Ein roter Lauf liefert Exit 1:
+Ursache beheben und **die gesamte Zehnerserie** mit neuen Ankern wiederholen, keine einzelnen
+Läufe nachholen. Der JSON-Bericht enthält sämtliche Erwartungen aller Läufe und das Budget,
+ohne Modellbezeichnungen. Unit-Abnahme: `tests/tenant-memory-868.test.js`.

@@ -1,0 +1,2853 @@
+{
+  "synthetic": true,
+  "mode": "Real configured LLM via llm-client, real local Object-Store and notices; empty knowledge sources and adversarial dataset routing stub.",
+  "recovery": {
+    "intervalMs": 30000,
+    "batchSize": 5,
+    "maxAttempts": 3,
+    "backoffMs": 30000,
+    "maxBackoffMs": 3600000,
+    "toolTimeoutMs": 10000
+  },
+  "budgets": {
+    "workbench": "default",
+    "assessmentMs": 15000
+  },
+  "runs": [
+    {
+      "order": ["PrüfpersonAaabafdcbecfb", "PrüfpersonBaabafdcbecfb"],
+      "run": 1,
+      "pattern": 1,
+      "repeated": "Derzeit gibt es keine neuen Hinweise für dich.",
+      "unrelated": "Eine allgemeine Definition beschreibt die grundlegende Bedeutung eines Begriffs oder Sachverhalts klar und verständlich im jeweiligen Kontext.",
+      "anchor": "Prüfbezugaabafdcbecfb",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true,
+        "literalWordsContainBase": true,
+        "immediateInteraction": true,
+        "noOwnSameTurnNotice": true,
+        "exactlyOneNotice": true,
+        "noticeForm": true,
+        "noRepeatedNotice": true,
+        "noUnrelatedNotice": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonAaabafdcbecfb",
+          "responseText": "Die Gasleitung im Prüfbezugaabafdcbecfb muss nach Mitteilung bis zum Jahr 2030 außer Betrieb genommen werden.\n\nPrüfung der Frist zur Außerbetriebnahme der Gasleitung im Prüfbezugaabafdcbecfb bis zum Jahr 2030 dokumentieren.\n\nHab ich festgehalten: Die Gasleitung im Prüfbezugaabafdcbecfb müssen wir bis 2030 außer Betrieb nehmen.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonBaabafdcbecfb",
+          "responseText": "PrüfpersonAaabafdcbecfb (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugaabafdcbecfb müssen wir bis 2030 außer Betrieb nehmen.“ (gültig).\n\nPrüfpersonBaabafdcbecfb (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugaabafdcbecfb ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie Gasleitung muss bis 2030 außer Betrieb genommen werden, aber das Stromnetz ist bis 2034 am Limit und schränkt neue Wärmepumpen ein, wodurch eine zeitliche Lücke in der Wärmeversorgung entsteht. Unsicherheit: 20 %.\n\nEine verlässliche neue Bewertung ist gerade nicht zustande gekommen.\n\nGefundene Fundstellen:\nPrüfpersonBaabafdcbecfb (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugaabafdcbecfb ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\nPrüfpersonAaabafdcbecfb (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugaabafdcbecfb müssen wir bis 2030 außer Betrieb nehmen.“ (gültig).\n\nHab ich festgehalten: Das Stromnetz im Prüfbezugaabafdcbecfb ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nZu Prüfbezugaabafdcbecfb gibt es etwas Neues: PrüfpersonBaabafdcbecfb (Stromnetz) hat am 13.10.2026 festgehalten: „Das Stromnetz im Prüfbezugaabafdcbecfb ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.“. Das hängt mit deiner Aussage vom 13.10.2026 zusammen: Die Gasleitung muss bis 2030 außer Betrieb genommen werden, aber das Stromnetz ist bis 2034 am Limit und schränkt neue Wärmepumpen ein, wodurch eine zeitliche Lücke in der Wärmeversorgung entsteht.\n\nEine allgemeine Definition beschreibt die grundlegende Bedeutung eines Begriffs oder Sachverhalts in einem bestimmten Kontext.",
+      "queries": [
+        "PrüfpersonAaabafdcbecfb (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugaabafdcbecfb müssen wir bis 2030 außer Betrieb nehmen.“ (gültig).\n\nPrüfpersonBaabafdcbecfb (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugaabafdcbecfb ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie Gasleitung muss bis 2030 außer Betrieb genommen werden, aber das Stromnetz ist bis 2034 am Limit und schränkt neue Wärmepumpen ein, wodurch eine zeitliche Lücke in der Wärmeversorgung entsteht. Unsicherheit: 20 %.\n\nWie soll die Wärmeversorgung im Prüfbezug zwischen 2030 und 2034 sichergestellt werden, wenn weder Gas noch uneingeschränkt Wärmepumpen zur Verfügung stehen?",
+        "PrüfpersonAaabafdcbecfb (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugaabafdcbecfb müssen wir bis 2030 außer Betrieb nehmen.“ (gültig).\n\nPrüfpersonBaabafdcbecfb (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugaabafdcbecfb ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie Gasleitung muss bis 2030 außer Betrieb genommen werden, aber das Stromnetz ist bis 2034 am Limit und schränkt neue Wärmepumpen ein, wodurch eine zeitliche Lücke in der Wärmeversorgung entsteht. Unsicherheit: 20 %.\n\nWie soll die Wärmeversorgung im Prüfbezug zwischen 2030 und 2034 sichergestellt werden, wenn weder Gas noch uneingeschränkt Wärmepumpen zur Verfügung stehen?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonAaabafdcbecfb",
+            "name": "PrüfpersonAaabafdcbecfb",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugaabafdcbecfb",
+              "qualifier": "Gasleitung",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["70fbb47e4c2bc53029a10a24c30c43ecd3bb9b1078d68051493c5ac5c99ea1e2"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonBaabafdcbecfb",
+            "name": "PrüfpersonBaabafdcbecfb",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugaabafdcbecfb",
+              "qualifier": "Stromnetz",
+              "aliases": []
+            },
+            {
+              "value": "Limit",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["70fbb47e4c2bc53029a10a24c30c43ecd3bb9b1078d68051493c5ac5c99ea1e2"]
+        }
+      ]
+    },
+    {
+      "order": ["PrüfpersonBefbbcafffbdd", "PrüfpersonAefbbcafffbdd"],
+      "run": 2,
+      "pattern": 1,
+      "repeated": "Derzeit gibt es keine neuen Hinweise für dich.",
+      "unrelated": "Eine allgemeine Definition beschreibt präzise die wesentlichen Merkmale und den Bedeutungsumfang eines Begriffs oder Phänomens.",
+      "anchor": "Prüfbezugefbbcafffbdd",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true,
+        "literalWordsContainBase": true,
+        "immediateInteraction": true,
+        "noOwnSameTurnNotice": true,
+        "exactlyOneNotice": true,
+        "noticeForm": true,
+        "noRepeatedNotice": true,
+        "noUnrelatedNotice": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonBefbbcafffbdd",
+          "responseText": "Das Stromnetz im Prüfbezugefbbcafffbdd weist Kapazitätsgrenzen bis 2034 auf, wodurch der Anschluss neuer Wärmepumpen eingeschränkt ist.\n\nDie Information zur Netzlast im Prüfbezug sowie die Einschränkungen für Wärmepumpen bis 2034 werden dokumentiert.\n\nHab ich festgehalten: Das Stromnetz im Prüfbezugefbbcafffbdd ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonAefbbcafffbdd",
+          "responseText": "PrüfpersonAefbbcafffbdd (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugefbbcafffbdd müssen wir bis 2030 außer Betrieb nehmen.“ (gültig).\n\nPrüfpersonBefbbcafffbdd (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugefbbcafffbdd ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie außer Betrieb genommenen Gasleitungen erfordern einen Wechsel auf andere Energieträger, während das Stromnetz gleichzeitig bis 2034 für Wärmepumpen limitiert ist, was zu einer zeitlichen und kapazitiven Abhängigkeit führt. Unsicherheit: 20 %.\n\nWie wird der Ausgleich für wegfallende Gasleitungen im Zeitraum bis 2034 sichergestellt, wenn gleichzeitig Wärmepumpen eingeschränkt sind?\n\nIm Prüfbezirk Prüfbezugefbbcafffbdd ist die Außerbetriebnahme der Gasleitung gemäß Mitteilung bis zum Jahr 2030 vorgesehen.\n\nDie geplante Außerbetriebnahme der Gasleitung im Prüfbezirk Prüfbezugefbbcafffbdd bis zum Jahr 2030 ist im Rahmen der kommunalen Wärmplanung und Gasnetztransformation zu erfassen und mit den Netzentwicklungsplänen abzugleichen.\n\nPrüfe die technischen und kapazitiven Auswirkungen auf angrenzende Versorgungsstrukturen im Hinblick auf den zeitlichen Horizont bis 2030.\n\nHab ich festgehalten: Die Gasleitung im Prüfbezugefbbcafffbdd müssen wir bis 2030 außer Betrieb nehmen.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nZu Prüfbezugefbbcafffbdd gibt es etwas Neues: PrüfpersonAefbbcafffbdd (Gasnetzplanung) hat am 13.10.2026 festgehalten: „Die Gasleitung im Prüfbezugefbbcafffbdd müssen wir bis 2030 außer Betrieb nehmen.“. Das hängt mit deiner Aussage vom 13.10.2026 zusammen: Die außer Betrieb genommenen Gasleitungen erfordern einen Wechsel auf andere Energieträger, während das Stromnetz gleichzeitig bis 2034 für Wärmepumpen limitiert ist, was zu einer zeitlichen und kapazitiven Abhängigkeit führt.\n\nEine allgemeine Definition beschreibt präzise die wesentlichen Merkmale und den Bedeutungsumfang eines Begriffs oder Phänomens.",
+      "queries": [
+        "PrüfpersonAefbbcafffbdd (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugefbbcafffbdd müssen wir bis 2030 außer Betrieb nehmen.“ (gültig).\n\nPrüfpersonBefbbcafffbdd (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugefbbcafffbdd ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie außer Betrieb genommenen Gasleitungen erfordern einen Wechsel auf andere Energieträger, während das Stromnetz gleichzeitig bis 2034 für Wärmepumpen limitiert ist, was zu einer zeitlichen und kapazitiven Abhängigkeit führt. Unsicherheit: 20 %.\n\nWie wird der Ausgleich für wegfallende Gasleitungen im Zeitraum bis 2034 sichergestellt, wenn gleichzeitig Wärmepumpen eingeschränkt sind?",
+        "PrüfpersonAefbbcafffbdd (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugefbbcafffbdd müssen wir bis 2030 außer Betrieb nehmen.“ (gültig).\n\nPrüfpersonBefbbcafffbdd (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugefbbcafffbdd ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie außer Betrieb genommenen Gasleitungen erfordern einen Wechsel auf andere Energieträger, während das Stromnetz gleichzeitig bis 2034 für Wärmepumpen limitiert ist, was zu einer zeitlichen und kapazitiven Abhängigkeit führt. Unsicherheit: 20 %.\n\nWie wird der Ausgleich für wegfallende Gasleitungen im Zeitraum bis 2034 sichergestellt, wenn gleichzeitig Wärmepumpen eingeschränkt sind?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonAefbbcafffbdd",
+            "name": "PrüfpersonAefbbcafffbdd",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugefbbcafffbdd",
+              "qualifier": "Gasleitung",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["1f42523370148f1d7e1f767b5fcbfef1341772442c9f78669bc3abc2219113a2"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonBefbbcafffbdd",
+            "name": "PrüfpersonBefbbcafffbdd",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugefbbcafffbdd",
+              "qualifier": "",
+              "aliases": []
+            },
+            {
+              "value": "Limit",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["1f42523370148f1d7e1f767b5fcbfef1341772442c9f78669bc3abc2219113a2"]
+        }
+      ]
+    },
+    {
+      "order": ["PrüfpersonAedbbfacfabfe", "PrüfpersonBedbbfacfabfe"],
+      "run": 3,
+      "pattern": 2,
+      "repeated": "Derzeit gibt es keine neuen Hinweise für dich.",
+      "unrelated": "Eine allgemeine Definition beschreibt präzise den wesentlichen Inhalt oder die Bedeutung eines Begriffs, sodass dieser eindeutig verstanden und von anderen abgegrenzt werden kann.",
+      "anchor": "Prüfbezugedbbfacfabfe",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true,
+        "literalWordsContainBase": true,
+        "immediateInteraction": true,
+        "noOwnSameTurnNotice": true,
+        "exactlyOneNotice": true,
+        "noticeForm": true,
+        "noRepeatedNotice": true,
+        "noUnrelatedNotice": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonAedbbfacfabfe",
+          "responseText": "Es liegt eine Mitteilung über die geplante Außerbetriebnahme einer Gasleitung im Prüfbezugedbbfacfabfe bis spätestens 2030 vor.\n\nErfassung der Mitteilung zur geplanten Außerbetriebnahme der Gasleitung im Prüfbezugedbbfacfabfe bis zum Jahr 2030 im System.\n\nHab ich festgehalten: Gasleitung im Prüfbezugedbbfacfabfe: Außerbetriebnahme spätestens 2030 geplant.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonBedbbfacfabfe",
+          "responseText": "PrüfpersonBedbbfacfabfe (Stromnetz, 13.10.2026): „Frühestens 2034 wieder Kapazität für neue Wärmepumpen im Stromnetz Prüfbezugedbbfacfabfe“ (gültig).\n\nPrüfpersonAedbbfacfabfe (Gasnetzplanung, 13.10.2026): „Gasleitung im Prüfbezugedbbfacfabfe: Außerbetriebnahme spätestens 2030 geplant.“ (gültig).\n\nDie Außerbetriebnahme der Gasleitung bis 2030 erzeugt einen dringenden Bedarf an alternativen Heizsystemen wie Wärmepumpen, für die das Stromnetz jedoch erst ab 2034 wieder Kapazitäten bereitstellen kann, was eine vierjährige Versorgungslücke zur Folge hat. Unsicherheit: 20 %.\n\nWie wird die Wärmeversorgung im Prüfbezug in der Übergangszeit zwischen 2030 und 2034 sichergestellt, wenn Gasleitungen abgeschaltet sind und Wärmepumpen noch keine Netzkapazität haben?\n\nEine verlässliche neue Bewertung ist gerade nicht zustande gekommen.\n\nGefundene Fundstellen:\nPrüfpersonBedbbfacfabfe (Stromnetz, 13.10.2026): „Frühestens 2034 wieder Kapazität für neue Wärmepumpen im Stromnetz Prüfbezugedbbfacfabfe“ (gültig).\nPrüfpersonAedbbfacfabfe (Gasnetzplanung, 13.10.2026): „Gasleitung im Prüfbezugedbbfacfabfe: Außerbetriebnahme spätestens 2030 geplant.“ (gültig).\n\nHab ich festgehalten: Frühestens 2034 wieder Kapazität für neue Wärmepumpen im Stromnetz Prüfbezugedbbfacfabfe",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nZu Prüfbezugedbbfacfabfe gibt es etwas Neues: PrüfpersonBedbbfacfabfe (Stromnetz) hat am 13.10.2026 festgehalten: „Frühestens 2034 wieder Kapazität für neue Wärmepumpen im Stromnetz Prüfbezugedbbfacfabfe“. Das hängt mit deiner Aussage vom 13.10.2026 zusammen: Die Außerbetriebnahme der Gasleitung bis 2030 erzeugt einen dringenden Bedarf an alternativen Heizsystemen wie Wärmepumpen, für die das Stromnetz jedoch erst ab 2034 wieder Kapazitäten bereitstellen kann, was eine vierjährige Versorgungslücke zur Folge hat.\n\nEine allgemeine Definition beschreibt präzise den wesentlichen Inhalt oder die Bedeutung eines Begriffs, sodass dieser eindeutig verstanden und von anderen abgegrenzt werden kann.",
+      "queries": [
+        "PrüfpersonBedbbfacfabfe (Stromnetz, 13.10.2026): „Frühestens 2034 wieder Kapazität für neue Wärmepumpen im Stromnetz Prüfbezugedbbfacfabfe“ (gültig).\n\nPrüfpersonAedbbfacfabfe (Gasnetzplanung, 13.10.2026): „Gasleitung im Prüfbezugedbbfacfabfe: Außerbetriebnahme spätestens 2030 geplant.“ (gültig).\n\nDie Außerbetriebnahme der Gasleitung bis 2030 erzeugt einen dringenden Bedarf an alternativen Heizsystemen wie Wärmepumpen, für die das Stromnetz jedoch erst ab 2034 wieder Kapazitäten bereitstellen kann, was eine vierjährige Versorgungslücke zur Folge hat. Unsicherheit: 20 %.\n\nWie wird die Wärmeversorgung im Prüfbezug in der Übergangszeit zwischen 2030 und 2034 sichergestellt, wenn Gasleitungen abgeschaltet sind und Wärmepumpen noch keine Netzkapazität haben?",
+        "PrüfpersonBedbbfacfabfe (Stromnetz, 13.10.2026): „Frühestens 2034 wieder Kapazität für neue Wärmepumpen im Stromnetz Prüfbezugedbbfacfabfe“ (gültig).\n\nPrüfpersonAedbbfacfabfe (Gasnetzplanung, 13.10.2026): „Gasleitung im Prüfbezugedbbfacfabfe: Außerbetriebnahme spätestens 2030 geplant.“ (gültig).\n\nDie Außerbetriebnahme der Gasleitung bis 2030 erzeugt einen dringenden Bedarf an alternativen Heizsystemen wie Wärmepumpen, für die das Stromnetz jedoch erst ab 2034 wieder Kapazitäten bereitstellen kann, was eine vierjährige Versorgungslücke zur Folge hat. Unsicherheit: 20 %.\n\nWie wird die Wärmeversorgung im Prüfbezug in der Übergangszeit zwischen 2030 und 2034 sichergestellt, wenn Gasleitungen abgeschaltet sind und Wärmepumpen noch keine Netzkapazität haben?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonBedbbfacfabfe",
+            "name": "PrüfpersonBedbbfacfabfe",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugedbbfacfabfe",
+              "qualifier": "Stromnetz",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["2044f0b9c41c59871bade4f9a9d92f4e29b2fa4219a2a475b8cec7357e89a459"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonAedbbfacfabfe",
+            "name": "PrüfpersonAedbbfacfabfe",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugedbbfacfabfe",
+              "qualifier": "Gasleitung",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["2044f0b9c41c59871bade4f9a9d92f4e29b2fa4219a2a475b8cec7357e89a459"]
+        }
+      ]
+    },
+    {
+      "order": ["PrüfpersonBbceaadcffa", "PrüfpersonAbceaadcffa"],
+      "run": 4,
+      "pattern": 2,
+      "repeated": "Derzeit gibt es keine neuen Hinweise für dich.",
+      "unrelated": "PrüfpersonAbceaadcffa (Gasnetzplanung, 13.10.2026): „Gasleitung im Prüfbezugbceaadcffa: Außerbetriebnahme spätestens 2030 geplant.“ (gültig).\n\nPrüfpersonBbceaadcffa (Stromnetz, 13.10.2026): „Stromnetz Prüfbezugbceaadcffa hat frühestens 2034 wieder Kapazität für neue Wärmepumpen.“ (gültig).\n\nDie Abschaltung der Gasleitung bis 2030 erzeugt einen sofortigen Bedarf an alternativen Wärmequellen, dem eine Stromnetz-Kapazitätsblockade bis 2034 gegenübersteht, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %.\n\nEine allgemeine Definition beschreibt die grundlegende Bedeutung eines Begriffs oder Sachverhalts, um ein einheitliches Verständnis in einem Fachbereich zu ermöglichen.",
+      "anchor": "Prüfbezugbceaadcffa",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true,
+        "literalWordsContainBase": true,
+        "immediateInteraction": true,
+        "noOwnSameTurnNotice": true,
+        "exactlyOneNotice": true,
+        "noticeForm": true,
+        "noRepeatedNotice": true,
+        "noUnrelatedNotice": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonBbceaadcffa",
+          "responseText": "Erfassung der Kapazitätseinschränkung im Stromnetz Prüfbezugbceaadcffa für neue Wärmepumpen ab 2034.\n\nHab ich festgehalten: Stromnetz Prüfbezugbceaadcffa hat frühestens 2034 wieder Kapazität für neue Wärmepumpen.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonAbceaadcffa",
+          "responseText": "PrüfpersonAbceaadcffa (Gasnetzplanung, 13.10.2026): „Gasleitung im Prüfbezugbceaadcffa: Außerbetriebnahme spätestens 2030 geplant.“ (gültig).\n\nPrüfpersonBbceaadcffa (Stromnetz, 13.10.2026): „Stromnetz Prüfbezugbceaadcffa hat frühestens 2034 wieder Kapazität für neue Wärmepumpen.“ (gültig).\n\nDie Abschaltung der Gasleitung bis 2030 erzeugt einen sofortigen Bedarf an alternativen Wärmequellen, dem eine Stromnetz-Kapazitätsblockade bis 2034 gegenübersteht, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %.\n\nDer Sachverhalt betrifft die Netzplanung und die geplante Außerbetriebnahme der Gasleitung im Prüfbezug bceaadcffa bis zum Jahr 2030.\n\nHab ich festgehalten: Gasleitung im Prüfbezugbceaadcffa: Außerbetriebnahme spätestens 2030 geplant.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nZu Prüfbezugbceaadcffa gibt es etwas Neues: PrüfpersonAbceaadcffa (Gasnetzplanung) hat am 13.10.2026 festgehalten: „Gasleitung im Prüfbezugbceaadcffa: Außerbetriebnahme spätestens 2030 geplant.“. Das hängt mit deiner Aussage vom 13.10.2026 zusammen: Die Abschaltung der Gasleitung bis 2030 erzeugt einen sofortigen Bedarf an alternativen Wärmequellen, dem eine Stromnetz-Kapazitätsblockade bis 2034 gegenübersteht, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht.\n\nPrüfpersonAbceaadcffa (Gasnetzplanung, 13.10.2026): „Gasleitung im Prüfbezugbceaadcffa: Außerbetriebnahme spätestens 2030 geplant.“ (gültig).\n\nPrüfpersonBbceaadcffa (Stromnetz, 13.10.2026): „Stromnetz Prüfbezugbceaadcffa hat frühestens 2034 wieder Kapazität für neue Wärmepumpen.“ (gültig).\n\nDie Abschaltung der Gasleitung bis 2030 erzeugt einen sofortigen Bedarf an alternativen Wärmequellen, dem eine Stromnetz-Kapazitätsblockade bis 2034 gegenübersteht, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %.\n\nEine allgemeine Definition legt die grundlegende Bedeutung eines Begriffs oder Kontexts fest, um ein einheitliches Verständnis sicherzustellen.",
+      "queries": [
+        "PrüfpersonAbceaadcffa (Gasnetzplanung, 13.10.2026): „Gasleitung im Prüfbezugbceaadcffa: Außerbetriebnahme spätestens 2030 geplant.“ (gültig).\n\nPrüfpersonBbceaadcffa (Stromnetz, 13.10.2026): „Stromnetz Prüfbezugbceaadcffa hat frühestens 2034 wieder Kapazität für neue Wärmepumpen.“ (gültig).\n\nDie Abschaltung der Gasleitung bis 2030 erzeugt einen sofortigen Bedarf an alternativen Wärmequellen, dem eine Stromnetz-Kapazitätsblockade bis 2034 gegenübersteht, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %.\n\nWie kann der Wärmebedarf im Prüfbezug zwischen 2030 und 2034 gedeckt werden, wenn weder Gas noch ausreichende Stromnetz-Kapazitäten für Wärmepumpen zur Verfügung stehen?",
+        "PrüfpersonAbceaadcffa (Gasnetzplanung, 13.10.2026): „Gasleitung im Prüfbezugbceaadcffa: Außerbetriebnahme spätestens 2030 geplant.“ (gültig).\n\nPrüfpersonBbceaadcffa (Stromnetz, 13.10.2026): „Stromnetz Prüfbezugbceaadcffa hat frühestens 2034 wieder Kapazität für neue Wärmepumpen.“ (gültig).\n\nDie Abschaltung der Gasleitung bis 2030 erzeugt einen sofortigen Bedarf an alternativen Wärmequellen, dem eine Stromnetz-Kapazitätsblockade bis 2034 gegenübersteht, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht. Unsicherheit: 20 %.\n\nWie kann der Wärmebedarf im Prüfbezug zwischen 2030 und 2034 gedeckt werden, wenn weder Gas noch ausreichende Stromnetz-Kapazitäten für Wärmepumpen zur Verfügung stehen?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonAbceaadcffa",
+            "name": "PrüfpersonAbceaadcffa",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugbceaadcffa",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["e6b5282d4ea289aa4e8d88837e51e8c6827367d10056eb01a1d9594031765f69"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonBbceaadcffa",
+            "name": "PrüfpersonBbceaadcffa",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugbceaadcffa",
+              "qualifier": "Stromnetz",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["e6b5282d4ea289aa4e8d88837e51e8c6827367d10056eb01a1d9594031765f69"]
+        }
+      ]
+    },
+    {
+      "order": ["PrüfpersonAafbbfbebbede", "PrüfpersonBafbbfbebbede"],
+      "run": 5,
+      "pattern": 3,
+      "repeated": "Derzeit gibt es keine neuen Hinweise für dich.",
+      "unrelated": "Eine allgemeine Definition legt die grundlegende Bedeutung eines Begriffs fest, um Klarheit und ein einheitliches Verständnis in einem Fachbereich zu schaffen.",
+      "anchor": "Prüfbezugafbbfbebbede",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true,
+        "literalWordsContainBase": true,
+        "immediateInteraction": true,
+        "noOwnSameTurnNotice": true,
+        "exactlyOneNotice": true,
+        "noticeForm": true,
+        "noRepeatedNotice": true,
+        "noUnrelatedNotice": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonAafbbfbebbede",
+          "responseText": "Die Mitteilung zur Beendigung der Gasversorgung im Prüfbezug afbbfbebbede bis spätestens Ende 2030 wird zur Kenntnis genommen.\n\nHab ich festgehalten: Für den Prüfbezugafbbfbebbede haben wir beschlossen: Gasversorgung endet spätestens Ende 2030.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonBafbbfbebbede",
+          "responseText": "PrüfpersonAafbbfbebbede (Gasnetzplanung, 13.10.2026): „Für den Prüfbezugafbbfbebbede haben wir beschlossen: Gasversorgung endet spätestens Ende 2030.“ (gültig).\n\nPrüfpersonBafbbfbebbede (Stromnetz, 13.10.2026): „Im Prüfbezugafbbfbebbede ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034.“ (gültig).\n\nDie Einstellung der Gasversorgung Ende 2030 erfordert einen zeitnahen Heizungswechsel, während der Ortsnetztrafo überlastet ist und Wärmepumpen-Anträge erst ab 2034 zulässt, wodurch eine vierjährige Versorgungslücke entsteht. Unsicherheit: 10 %.\n\nDie Mitteilung zur Trafokapazität im Prüfbezug Prüfbezugafbbfbebbede und die Einschränkung für Wärmepumpen-Anträge ab 2034 werden zur Kenntnis genommen.\n\nHab ich festgehalten: Im Prüfbezugafbbfbebbede ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nZu Prüfbezugafbbfbebbede gibt es etwas Neues: PrüfpersonBafbbfbebbede (Stromnetz) hat am 13.10.2026 festgehalten: „Im Prüfbezugafbbfbebbede ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034.“. Das hängt mit deiner Aussage vom 13.10.2026 zusammen: Die Einstellung der Gasversorgung Ende 2030 erfordert einen zeitnahen Heizungswechsel, während der Ortsnetztrafo überlastet ist und Wärmepumpen-Anträge erst ab 2034 zulässt, wodurch eine vierjährige Versorgungslücke entsteht.\n\nEine allgemeine Definition legt die grundlegende Bedeutung eines Begriffs fest, um Klarheit und ein einheitliches Verständnis in einem Fachbereich zu schaffen.",
+      "queries": [
+        "PrüfpersonAafbbfbebbede (Gasnetzplanung, 13.10.2026): „Für den Prüfbezugafbbfbebbede haben wir beschlossen: Gasversorgung endet spätestens Ende 2030.“ (gültig).\n\nPrüfpersonBafbbfbebbede (Stromnetz, 13.10.2026): „Im Prüfbezugafbbfbebbede ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034.“ (gültig).\n\nDie Einstellung der Gasversorgung Ende 2030 erfordert einen zeitnahen Heizungswechsel, während der Ortsnetztrafo überlastet ist und Wärmepumpen-Anträge erst ab 2034 zulässt, wodurch eine vierjährige Versorgungslücke entsteht. Unsicherheit: 10 %.\n\nWie soll die Wärmeversorgung im Prüfbezugafbbfbebbede in der Übergangszeit zwischen 2031 und 2033 sichergestellt werden?",
+        "PrüfpersonAafbbfbebbede (Gasnetzplanung, 13.10.2026): „Für den Prüfbezugafbbfbebbede haben wir beschlossen: Gasversorgung endet spätestens Ende 2030.“ (gültig).\n\nPrüfpersonBafbbfbebbede (Stromnetz, 13.10.2026): „Im Prüfbezugafbbfbebbede ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034.“ (gültig).\n\nDie Einstellung der Gasversorgung Ende 2030 erfordert einen zeitnahen Heizungswechsel, während der Ortsnetztrafo überlastet ist und Wärmepumpen-Anträge erst ab 2034 zulässt, wodurch eine vierjährige Versorgungslücke entsteht. Unsicherheit: 10 %.\n\nWie soll die Wärmeversorgung im Prüfbezugafbbfbebbede in der Übergangszeit zwischen 2031 und 2033 sichergestellt werden?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonAafbbfbebbede",
+            "name": "PrüfpersonAafbbfbebbede",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Gasversorgung",
+              "qualifier": "",
+              "aliases": []
+            },
+            {
+              "value": "Prüfbezugafbbfbebbede",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["0ee91f7d6698cf15123fd02f0594613ec4e91ab92f27754eca02091e5ab9e389"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonBafbbfbebbede",
+            "name": "PrüfpersonBafbbfbebbede",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Ortsnetztrafo",
+              "qualifier": "",
+              "aliases": []
+            },
+            {
+              "value": "Prüfbezugafbbfbebbede",
+              "qualifier": "",
+              "aliases": []
+            },
+            {
+              "value": "Wärmepumpen",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["0ee91f7d6698cf15123fd02f0594613ec4e91ab92f27754eca02091e5ab9e389"]
+        }
+      ]
+    },
+    {
+      "order": ["PrüfpersonBdbbdaabee", "PrüfpersonAdbbdaabee"],
+      "run": 6,
+      "pattern": 3,
+      "repeated": "Derzeit gibt es keine neuen Hinweise für dich.",
+      "unrelated": "Eine allgemeine Definition beschreibt die grundlegende Bedeutung und die wesentlichen Merkmale eines Begriffs, um ein gemeinsames fachliches Verständnis sicherzustellen.",
+      "anchor": "Prüfbezugdbbdaabee",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true,
+        "literalWordsContainBase": true,
+        "immediateInteraction": true,
+        "noOwnSameTurnNotice": true,
+        "exactlyOneNotice": true,
+        "noticeForm": true,
+        "noRepeatedNotice": true,
+        "noUnrelatedNotice": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonBdbbdaabee",
+          "responseText": "Im Prüfbezug dbbdaabee ist der Ortsnetztrafo voll ausgelastet, weshalb Wärmepumpen-Anträge dort erst ab dem Jahr 2034 möglich sind.\n\nDie Situation des Ortsnetztrafos im Prüfbezug dbbdaabee und die daraus resultierende Frist für Wärmepumpen-Anträge ab dem Jahr 2034 werden zur Kenntnis genommen.\n\nHab ich festgehalten: Im Prüfbezugdbbdaabee ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonAdbbdaabee",
+          "responseText": "PrüfpersonAdbbdaabee (Gasnetzplanung, 13.10.2026): „Für den Prüfbezugdbbdaabee haben wir beschlossen: Gasversorgung endet spätestens Ende 2030.“ (gültig).\n\nPrüfpersonBdbbdaabee (Stromnetz, 13.10.2026): „Im Prüfbezugdbbdaabee ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034.“ (gültig).\n\nDas Ende der Gasversorgung im Jahr 2030 erzeugt einen früheren Bedarf an elektrischen Heizsystemen, wohingegen der Netzausbau und die Freigabe für Wärmepumpen erst ab 2034 erfolgen, wodurch eine zeitliche Lücke entsteht. Unsicherheit: 20 %.\n\nWie kann die Übergangsphase für betroffene Gebäude zwischen 2030 und 2034 ohne Gas und ohne neue Wärmepumpen-Genehmigungen überbrückt werden?\n\nDas Enddatum der Gasversorgung für den Prüfbezugdbbdaabee auf spätestens Ende 2030 im System festhalten.\n\nHab ich festgehalten: Für den Prüfbezugdbbdaabee haben wir beschlossen: Gasversorgung endet spätestens Ende 2030.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nZu Prüfbezugdbbdaabee gibt es etwas Neues: PrüfpersonAdbbdaabee (Gasnetzplanung) hat am 13.10.2026 festgehalten: „Für den Prüfbezugdbbdaabee haben wir beschlossen: Gasversorgung endet spätestens Ende 2030.“. Das hängt mit deiner Aussage vom 13.10.2026 zusammen: Das Ende der Gasversorgung im Jahr 2030 erzeugt einen früheren Bedarf an elektrischen Heizsystemen, wohingegen der Netzausbau und die Freigabe für Wärmepumpen erst ab 2034 erfolgen, wodurch eine zeitliche Lücke entsteht.\n\nEine allgemeine Definition beschreibt die grundlegende Bedeutung und die wesentlichen Merkmale eines Begriffs oder Kontexts, um ein gemeinsames fachliches Verständnis sicherzustellen.",
+      "queries": [
+        "PrüfpersonAdbbdaabee (Gasnetzplanung, 13.10.2026): „Für den Prüfbezugdbbdaabee haben wir beschlossen: Gasversorgung endet spätestens Ende 2030.“ (gültig).\n\nPrüfpersonBdbbdaabee (Stromnetz, 13.10.2026): „Im Prüfbezugdbbdaabee ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034.“ (gültig).\n\nDas Ende der Gasversorgung im Jahr 2030 erzeugt einen früheren Bedarf an elektrischen Heizsystemen, wohingegen der Netzausbau und die Freigabe für Wärmepumpen erst ab 2034 erfolgen, wodurch eine zeitliche Lücke entsteht. Unsicherheit: 20 %.\n\nWie kann die Übergangsphase für betroffene Gebäude zwischen 2030 und 2034 ohne Gas und ohne neue Wärmepumpen-Genehmigungen überbrückt werden?",
+        "PrüfpersonAdbbdaabee (Gasnetzplanung, 13.10.2026): „Für den Prüfbezugdbbdaabee haben wir beschlossen: Gasversorgung endet spätestens Ende 2030.“ (gültig).\n\nPrüfpersonBdbbdaabee (Stromnetz, 13.10.2026): „Im Prüfbezugdbbdaabee ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034.“ (gültig).\n\nDas Ende der Gasversorgung im Jahr 2030 erzeugt einen früheren Bedarf an elektrischen Heizsystemen, wohingegen der Netzausbau und die Freigabe für Wärmepumpen erst ab 2034 erfolgen, wodurch eine zeitliche Lücke entsteht. Unsicherheit: 20 %.\n\nWie kann die Übergangsphase für betroffene Gebäude zwischen 2030 und 2034 ohne Gas und ohne neue Wärmepumpen-Genehmigungen überbrückt werden?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonAdbbdaabee",
+            "name": "PrüfpersonAdbbdaabee",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Gasversorgung",
+              "qualifier": "",
+              "aliases": []
+            },
+            {
+              "value": "Prüfbezugdbbdaabee",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["6f36c8fb76097af5394398056a2f34ecfbfb18d7900a5aaa2256e3211664556a"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonBdbbdaabee",
+            "name": "PrüfpersonBdbbdaabee",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Ortsnetztrafo",
+              "qualifier": "",
+              "aliases": []
+            },
+            {
+              "value": "Prüfbezugdbbdaabee",
+              "qualifier": "",
+              "aliases": []
+            },
+            {
+              "value": "Wärmepumpen",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["6f36c8fb76097af5394398056a2f34ecfbfb18d7900a5aaa2256e3211664556a"]
+        }
+      ]
+    },
+    {
+      "order": ["PrüfpersonAaffeccefea", "PrüfpersonBaffeccefea"],
+      "run": 7,
+      "pattern": 4,
+      "repeated": "Derzeit gibt es keine neuen Hinweise für dich.",
+      "unrelated": "PrüfpersonAaffeccefea (Gasnetzplanung, 13.10.2026): „Die Leitung in der Prüfbezugaffeccefea legen wir bis 2030 still.“ (gültig).\n\nPrüfpersonBaffeccefea (Stromnetz, 13.10.2026): „Das Netz am Prüfbezugaffeccefea ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie Stilllegung der Gasleitung bis 2030 erfordert einen Heizungswechsel, während das Stromnetz bis 2034 für neue Wärmepumpen ausgelastet und eingeschränkt ist, was zu einer Versorgungslücke führt. Unsicherheit: 20 %.\n\nEine allgemeine Definition beschreibt die grundlegende Bedeutung eines Begriffs unabhängig von einem spezifischen Anwendungskontext.",
+      "anchor": "Prüfbezugaffeccefea",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true,
+        "literalWordsContainBase": true,
+        "immediateInteraction": true,
+        "noOwnSameTurnNotice": true,
+        "exactlyOneNotice": true,
+        "noticeForm": true,
+        "noRepeatedNotice": true,
+        "noUnrelatedNotice": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonAaffeccefea",
+          "responseText": "Die Mitteilung betrifft die angekündigte Stilllegung der Leitung im Bereich Prüfbezugaffeccefea bis 2030.\n\nDie geplante Stilllegung der Leitung im Prüfbezug Prüfbezugaffeccefea bis zum Jahr 2030 wird zur Kenntnis genommen.\n\nHab ich festgehalten: Die Leitung in der Prüfbezugaffeccefea legen wir bis 2030 still.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonBaffeccefea",
+          "responseText": "PrüfpersonAaffeccefea (Gasnetzplanung, 13.10.2026): „Die Leitung in der Prüfbezugaffeccefea legen wir bis 2030 still.“ (gültig).\n\nPrüfpersonBaffeccefea (Stromnetz, 13.10.2026): „Das Netz am Prüfbezugaffeccefea ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie Stilllegung der Gasleitung bis 2030 erfordert einen Heizungswechsel, während das Stromnetz bis 2034 für neue Wärmepumpen ausgelastet und eingeschränkt ist, was zu einer Versorgungslücke führt. Unsicherheit: 20 %.\n\nAm Prüfbezugaffeccefea besteht eine Netzauslastung, die den Anschluss neuer Wärmepumpen bis zum Jahr 2034 einschränkt.\n\nDas Netz am Prüfbezugaffeccefea ist bis 2034 ausgelastet, wodurch neue Wärmepumpen bis dahin eingeschränkt sind.\n\nHab ich festgehalten: Das Netz am Prüfbezugaffeccefea ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nZu Prüfbezugaffeccefea gibt es etwas Neues: PrüfpersonBaffeccefea (Stromnetz) hat am 13.10.2026 festgehalten: „Das Netz am Prüfbezugaffeccefea ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.“. Das hängt mit deiner Aussage vom 13.10.2026 zusammen: Die Stilllegung der Gasleitung bis 2030 erfordert einen Heizungswechsel, während das Stromnetz bis 2034 für neue Wärmepumpen ausgelastet und eingeschränkt ist, was zu einer Versorgungslücke führt.\n\nPrüfpersonAaffeccefea (Gasnetzplanung, 13.10.2026): „Die Leitung in der Prüfbezugaffeccefea legen wir bis 2030 still.“ (gültig).\n\nPrüfpersonBaffeccefea (Stromnetz, 13.10.2026): „Das Netz am Prüfbezugaffeccefea ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie Stilllegung der Gasleitung bis 2030 erfordert einen Heizungswechsel, während das Stromnetz bis 2034 für neue Wärmepumpen ausgelastet und eingeschränkt ist, was zu einer Versorgungslücke führt. Unsicherheit: 20 %.\n\nEine allgemeine Definition beschreibt die grundlegende Bedeutung eines Begriffs unabhängig von einem spezifischen Einzelfall.",
+      "queries": [
+        "PrüfpersonAaffeccefea (Gasnetzplanung, 13.10.2026): „Die Leitung in der Prüfbezugaffeccefea legen wir bis 2030 still.“ (gültig).\n\nPrüfpersonBaffeccefea (Stromnetz, 13.10.2026): „Das Netz am Prüfbezugaffeccefea ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie Stilllegung der Gasleitung bis 2030 erfordert einen Heizungswechsel, während das Stromnetz bis 2034 für neue Wärmepumpen ausgelastet und eingeschränkt ist, was zu einer Versorgungslücke führt. Unsicherheit: 20 %.\n\nWie soll die Wärmeversorgung im Prüfbezug zwischen 2030 und 2034 sichergestellt werden, wenn Gas wegfällt und Wärmepumpen eingeschränkt sind?",
+        "PrüfpersonAaffeccefea (Gasnetzplanung, 13.10.2026): „Die Leitung in der Prüfbezugaffeccefea legen wir bis 2030 still.“ (gültig).\n\nPrüfpersonBaffeccefea (Stromnetz, 13.10.2026): „Das Netz am Prüfbezugaffeccefea ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie Stilllegung der Gasleitung bis 2030 erfordert einen Heizungswechsel, während das Stromnetz bis 2034 für neue Wärmepumpen ausgelastet und eingeschränkt ist, was zu einer Versorgungslücke führt. Unsicherheit: 20 %.\n\nWie soll die Wärmeversorgung im Prüfbezug zwischen 2030 und 2034 sichergestellt werden, wenn Gas wegfällt und Wärmepumpen eingeschränkt sind?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonAaffeccefea",
+            "name": "PrüfpersonAaffeccefea",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugaffeccefea",
+              "qualifier": "Leitung",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["7e2975dfdf9e553bf0f188763047b7fe7cb17f20c86ad0be3cce0b5b702ec835"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonBaffeccefea",
+            "name": "PrüfpersonBaffeccefea",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugaffeccefea",
+              "qualifier": "Netz",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["7e2975dfdf9e553bf0f188763047b7fe7cb17f20c86ad0be3cce0b5b702ec835"]
+        }
+      ]
+    },
+    {
+      "order": ["PrüfpersonBecafcdcbfbdb", "PrüfpersonAecafcdcbfbdb"],
+      "run": 8,
+      "pattern": 4,
+      "repeated": "Derzeit gibt es keine neuen Hinweise für dich.",
+      "unrelated": "PrüfpersonAecafcdcbfbdb (Gasnetzplanung, 13.10.2026): „Die Leitung in der Prüfbezugecafcdcbfbdb legen wir bis 2030 still.“ (gültig).\n\nPrüfpersonBecafcdcbfbdb (Stromnetz, 13.10.2026): „Das Netz am Prüfbezugecafcdcbfbdb ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie Stilllegung der Gasleitung bis 2030 erhöht den Bedarf an elektrischen Wärmelösungen, obwohl das Stromnetz bis 2034 ausgelastet und in der Aufnahme neuer Wärmepumpen eingeschränkt ist, was zu einer zeitlichen Diskrepanz und Verlagerung der Last führt. Unsicherheit: 30 %.\n\nEine allgemeine Definition beschreibt die grundlegenden Merkmale und den Bedeutungsumfang eines Begriffs oder Sachverhalts, unabhängig von einem spezifischen Einzelfall.",
+      "anchor": "Prüfbezugecafcdcbfbdb",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true,
+        "literalWordsContainBase": true,
+        "immediateInteraction": true,
+        "noOwnSameTurnNotice": true,
+        "exactlyOneNotice": true,
+        "noticeForm": true,
+        "noRepeatedNotice": true,
+        "noUnrelatedNotice": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonBecafcdcbfbdb",
+          "responseText": "Das Netz am Prüfbezugecafcdcbfbdb weist eine vollständige Auslastung bis zum Jahr 2034 auf, wodurch der Anschluss neuer Wärmepumpen in diesem Zeitraum eingeschränkt ist.\n\nDie Netzauslastung und die Einschränkung neuer Wärmepumpen im Prüfbezugecafcdcbfbdb bis zum Jahr 2034 werden zur Kenntnis genommen.\n\nHab ich festgehalten: Das Netz am Prüfbezugecafcdcbfbdb ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonAecafcdcbfbdb",
+          "responseText": "PrüfpersonAecafcdcbfbdb (Gasnetzplanung, 13.10.2026): „Die Leitung in der Prüfbezugecafcdcbfbdb legen wir bis 2030 still.“ (gültig).\n\nPrüfpersonBecafcdcbfbdb (Stromnetz, 13.10.2026): „Das Netz am Prüfbezugecafcdcbfbdb ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie Stilllegung der Gasleitung bis 2030 erhöht den Bedarf an elektrischen Wärmelösungen, obwohl das Stromnetz bis 2034 ausgelastet und in der Aufnahme neuer Wärmepumpen eingeschränkt ist, was zu einer zeitlichen Diskrepanz und Verlagerung der Last führt. Unsicherheit: 30 %.\n\nDie geplante Stilllegung der Leitung im Prüfbezug Prüfbezugecafcdcbfbdb bis 2030 im System zur Fristen- und Netzentwicklungsplanung erfassen.\n\nDen Status der Leitung im Prüfbezug Prüfbezugecafcdcbfbdb mit den Daten der Gasnetzplanung abgleichen. (bitte gegenprüfen)\n\nHab ich festgehalten: Die Leitung in der Prüfbezugecafcdcbfbdb legen wir bis 2030 still.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nZu Prüfbezugecafcdcbfbdb gibt es etwas Neues: PrüfpersonAecafcdcbfbdb (Gasnetzplanung) hat am 13.10.2026 festgehalten: „Die Leitung in der Prüfbezugecafcdcbfbdb legen wir bis 2030 still.“. Das hängt mit deiner Aussage vom 13.10.2026 zusammen: Die Stilllegung der Gasleitung bis 2030 erhöht den Bedarf an elektrischen Wärmelösungen, obwohl das Stromnetz bis 2034 ausgelastet und in der Aufnahme neuer Wärmepumpen eingeschränkt ist, was zu einer zeitlichen Diskrepanz und Verlagerung der Last führt.\n\nPrüfpersonAecafcdcbfbdb (Gasnetzplanung, 13.10.2026): „Die Leitung in der Prüfbezugecafcdcbfbdb legen wir bis 2030 still.“ (gültig).\n\nPrüfpersonBecafcdcbfbdb (Stromnetz, 13.10.2026): „Das Netz am Prüfbezugecafcdcbfbdb ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie Stilllegung der Gasleitung bis 2030 erhöht den Bedarf an elektrischen Wärmelösungen, obwohl das Stromnetz bis 2034 ausgelastet und in der Aufnahme neuer Wärmepumpen eingeschränkt ist, was zu einer zeitlichen Diskrepanz und Verlagerung der Last führt. Unsicherheit: 30 %.\n\nEine allgemeine Definition beschreibt die grundlegenden Merkmale und den Bedeutungsumfang eines Begriffs oder Sachverhalts, unabhängig von einem spezifischen Einzelfall.",
+      "queries": [
+        "PrüfpersonAecafcdcbfbdb (Gasnetzplanung, 13.10.2026): „Die Leitung in der Prüfbezugecafcdcbfbdb legen wir bis 2030 still.“ (gültig).\n\nPrüfpersonBecafcdcbfbdb (Stromnetz, 13.10.2026): „Das Netz am Prüfbezugecafcdcbfbdb ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie Stilllegung der Gasleitung bis 2030 erhöht den Bedarf an elektrischen Wärmelösungen, obwohl das Stromnetz bis 2034 ausgelastet und in der Aufnahme neuer Wärmepumpen eingeschränkt ist, was zu einer zeitlichen Diskrepanz und Verlagerung der Last führt. Unsicherheit: 30 %.\n\nWie soll der Wärmebedarf im Prüfbezug zwischen 2030 und 2034 gedeckt werden, wenn die Gasleitung stillgelegt ist und gleichzeitig das Stromnetz für Wärmepumpen eingeschränkt bleibt?",
+        "PrüfpersonAecafcdcbfbdb (Gasnetzplanung, 13.10.2026): „Die Leitung in der Prüfbezugecafcdcbfbdb legen wir bis 2030 still.“ (gültig).\n\nPrüfpersonBecafcdcbfbdb (Stromnetz, 13.10.2026): „Das Netz am Prüfbezugecafcdcbfbdb ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.“ (gültig).\n\nDie Stilllegung der Gasleitung bis 2030 erhöht den Bedarf an elektrischen Wärmelösungen, obwohl das Stromnetz bis 2034 ausgelastet und in der Aufnahme neuer Wärmepumpen eingeschränkt ist, was zu einer zeitlichen Diskrepanz und Verlagerung der Last führt. Unsicherheit: 30 %.\n\nWie soll der Wärmebedarf im Prüfbezug zwischen 2030 und 2034 gedeckt werden, wenn die Gasleitung stillgelegt ist und gleichzeitig das Stromnetz für Wärmepumpen eingeschränkt bleibt?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonAecafcdcbfbdb",
+            "name": "PrüfpersonAecafcdcbfbdb",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugecafcdcbfbdb",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["d75f0ba2d3e8ffbc072ed545f87bfe93e7cb5de9ba7725319e456f9d3d4bbcc6"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonBecafcdcbfbdb",
+            "name": "PrüfpersonBecafcdcbfbdb",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugecafcdcbfbdb",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["d75f0ba2d3e8ffbc072ed545f87bfe93e7cb5de9ba7725319e456f9d3d4bbcc6"]
+        }
+      ]
+    },
+    {
+      "order": ["PrüfpersonAebcdacddddb", "PrüfpersonBebcdacddddb"],
+      "run": 9,
+      "pattern": 5,
+      "repeated": "Derzeit gibt es keine neuen Hinweise für dich.",
+      "unrelated": "Eine allgemeine Definition beschreibt die wesentlichen Merkmale und den Bedeutungsumfang eines Begriffs, um ihn präzise und verständlich zu erklären.",
+      "anchor": "Prüfbezugebcdacddddb",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true,
+        "literalWordsContainBase": true,
+        "immediateInteraction": true,
+        "noOwnSameTurnNotice": true,
+        "exactlyOneNotice": true,
+        "noticeForm": true,
+        "noRepeatedNotice": true,
+        "noUnrelatedNotice": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonAebcdacddddb",
+          "responseText": "Die Information zur Stilllegung der Gasleitung MASKED bis zum Jahr 2030 liegt vor.\n\nDie geplante Stilllegung der Gasleitung MASKED im Jahr 2030 wird zur Kenntnis genommen und im Rahmen der Netzentwicklung berücksichtigt.\n\nHab ich festgehalten: Prüfbezugebcdacddddb-Gasleitung wird 2030 stillgelegt.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonBebcdacddddb",
+          "responseText": "PrüfpersonAebcdacddddb (Gasnetzplanung, 13.10.2026): „Prüfbezugebcdacddddb-Gasleitung wird 2030 stillgelegt.“ (gültig).\n\nPrüfpersonBebcdacddddb (Stromnetz, 13.10.2026): „Keine neuen Wärmepumpen vor 2034 bei Prüfbezugebcdacddddb“ (gültig).\n\nDie Stilllegung der Gasleitung 2030 und das Verbot neuer Wärmepumpen bis 2034 erzeugen eine zeitliche Lücke in der Wärmeversorgung, da keine zeitnahen Alternativen aufgebaut werden können. Unsicherheit: 20 %.\n\nDie Mitteilung zur Einschränkung bei Prüfbezugebcdacddddb im Netzbereich wird im System dokumentiert.\n\nHab ich festgehalten: Keine neuen Wärmepumpen vor 2034 bei Prüfbezugebcdacddddb",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nZu Prüfbezugebcdacddddb gibt es etwas Neues: PrüfpersonBebcdacddddb (Stromnetz) hat am 13.10.2026 festgehalten: „Keine neuen Wärmepumpen vor 2034 bei Prüfbezugebcdacddddb“. Das hängt mit deiner Aussage vom 13.10.2026 zusammen: Die Stilllegung der Gasleitung 2030 und das Verbot neuer Wärmepumpen bis 2034 erzeugen eine zeitliche Lücke in der Wärmeversorgung, da keine zeitnahen Alternativen aufgebaut werden können.\n\nEine allgemeine Definition beschreibt die wesentlichen Merkmale und den Bedeutungsumfang eines Begriffs, um ihn präzise und allgemein verständlich zu erklären.\n\nWelchen Begriff möchten Sie genauer definiert haben?",
+      "queries": [
+        "PrüfpersonAebcdacddddb (Gasnetzplanung, 13.10.2026): „Prüfbezugebcdacddddb-Gasleitung wird 2030 stillgelegt.“ (gültig).\n\nPrüfpersonBebcdacddddb (Stromnetz, 13.10.2026): „Keine neuen Wärmepumpen vor 2034 bei Prüfbezugebcdacddddb“ (gültig).\n\nDie Stilllegung der Gasleitung 2030 und das Verbot neuer Wärmepumpen bis 2034 erzeugen eine zeitliche Lücke in der Wärmeversorgung, da keine zeitnahen Alternativen aufgebaut werden können. Unsicherheit: 20 %.\n\nWie soll die Wärmeversorgung im Prüfbezirk zwischen 2030 und 2034 sichergestellt werden?",
+        "PrüfpersonAebcdacddddb (Gasnetzplanung, 13.10.2026): „Prüfbezugebcdacddddb-Gasleitung wird 2030 stillgelegt.“ (gültig).\n\nPrüfpersonBebcdacddddb (Stromnetz, 13.10.2026): „Keine neuen Wärmepumpen vor 2034 bei Prüfbezugebcdacddddb“ (gültig).\n\nDie Stilllegung der Gasleitung 2030 und das Verbot neuer Wärmepumpen bis 2034 erzeugen eine zeitliche Lücke in der Wärmeversorgung, da keine zeitnahen Alternativen aufgebaut werden können. Unsicherheit: 20 %.\n\nWie soll die Wärmeversorgung im Prüfbezirk zwischen 2030 und 2034 sichergestellt werden?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonAebcdacddddb",
+            "name": "PrüfpersonAebcdacddddb",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Gasleitung",
+              "qualifier": "",
+              "aliases": []
+            },
+            {
+              "value": "Prüfbezugebcdacddddb",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["e8ab037eb9214fd3c76dce1cc5e06b60a2c38254c189adbf6a946c2e2b8d6378"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonBebcdacddddb",
+            "name": "PrüfpersonBebcdacddddb",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugebcdacddddb",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["e8ab037eb9214fd3c76dce1cc5e06b60a2c38254c189adbf6a946c2e2b8d6378"]
+        }
+      ]
+    },
+    {
+      "order": ["PrüfpersonBefcaecefdfac", "PrüfpersonAefcaecefdfac"],
+      "run": 10,
+      "pattern": 5,
+      "repeated": "Derzeit gibt es keine neuen Hinweise für dich.",
+      "unrelated": "Eine allgemeine Definition beschreibt die wesentlichen Merkmale und den Bedeutungsumfang eines Begriffs oder Sachverhalts in präziser und verständlicher Form.",
+      "anchor": "Prüfbezugefcaecefdfac",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true,
+        "literalWordsContainBase": true,
+        "immediateInteraction": true,
+        "noOwnSameTurnNotice": true,
+        "exactlyOneNotice": true,
+        "noticeForm": true,
+        "noRepeatedNotice": true,
+        "noUnrelatedNotice": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonBefcaecefdfac",
+          "responseText": "Information zur Einschränkung bei Wärmepumpen im Prüfbezug festhalten.\n\nHab ich festgehalten: Keine neuen Wärmepumpen vor 2034 bei Prüfbezugefcaecefdfac",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonAefcaecefdfac",
+          "responseText": "PrüfpersonBefcaecefdfac (Stromnetz, 13.10.2026): „Keine neuen Wärmepumpen vor 2034 bei Prüfbezugefcaecefdfac“ (gültig).\n\nPrüfpersonAefcaecefdfac (Gasnetzplanung, 13.10.2026): „Prüfbezugefcaecefdfac-Gasleitung wird 2030 stillgelegt.“ (gültig).\n\nDie Stilllegung der Gasleitung 2030 erfordert zeitnah eine alternative Wärmeversorgung, jedoch sind Wärmepumpen laut der anderen Aussage erst ab 2034 erlaubt, wodurch eine Übergangslücke entsteht. Unsicherheit: 20 %.\n\nWie wird die Wärmeversorgung im Prüfbezirk zwischen der Gasstilllegung 2030 und der Zulassung von Wärmepumpen 2034 sichergestellt?\n\nDie vorliegende Angabe dokumentiert die geplante Stilllegung der Gasleitung im Jahr 2030 für den Prüfbezug.\n\nHab ich festgehalten: Prüfbezugefcaecefdfac-Gasleitung wird 2030 stillgelegt.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nZu Prüfbezugefcaecefdfac gibt es etwas Neues: PrüfpersonAefcaecefdfac (Gasnetzplanung) hat am 13.10.2026 festgehalten: „Prüfbezugefcaecefdfac-Gasleitung wird 2030 stillgelegt.“. Das hängt mit deiner Aussage vom 13.10.2026 zusammen: Die Stilllegung der Gasleitung 2030 erfordert zeitnah eine alternative Wärmeversorgung, jedoch sind Wärmepumpen laut der anderen Aussage erst ab 2034 erlaubt, wodurch eine Übergangslücke entsteht.\n\nEine allgemeine Definition beschreibt die wesentlichen Merkmale und den Bedeutungsumfang eines Begriffs oder Sachverhalts in allgemein verständlicher Form.",
+      "queries": [
+        "PrüfpersonBefcaecefdfac (Stromnetz, 13.10.2026): „Keine neuen Wärmepumpen vor 2034 bei Prüfbezugefcaecefdfac“ (gültig).\n\nPrüfpersonAefcaecefdfac (Gasnetzplanung, 13.10.2026): „Prüfbezugefcaecefdfac-Gasleitung wird 2030 stillgelegt.“ (gültig).\n\nDie Stilllegung der Gasleitung 2030 erfordert zeitnah eine alternative Wärmeversorgung, jedoch sind Wärmepumpen laut der anderen Aussage erst ab 2034 erlaubt, wodurch eine Übergangslücke entsteht. Unsicherheit: 20 %.\n\nWie wird die Wärmeversorgung im Prüfbezirk zwischen der Gasstilllegung 2030 und der Zulassung von Wärmepumpen 2034 sichergestellt?",
+        "PrüfpersonBefcaecefdfac (Stromnetz, 13.10.2026): „Keine neuen Wärmepumpen vor 2034 bei Prüfbezugefcaecefdfac“ (gültig).\n\nPrüfpersonAefcaecefdfac (Gasnetzplanung, 13.10.2026): „Prüfbezugefcaecefdfac-Gasleitung wird 2030 stillgelegt.“ (gültig).\n\nDie Stilllegung der Gasleitung 2030 erfordert zeitnah eine alternative Wärmeversorgung, jedoch sind Wärmepumpen laut der anderen Aussage erst ab 2034 erlaubt, wodurch eine Übergangslücke entsteht. Unsicherheit: 20 %.\n\nWie wird die Wärmeversorgung im Prüfbezirk zwischen der Gasstilllegung 2030 und der Zulassung von Wärmepumpen 2034 sichergestellt?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonBefcaecefdfac",
+            "name": "PrüfpersonBefcaecefdfac",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Wärmepumpen",
+              "qualifier": "",
+              "aliases": []
+            },
+            {
+              "value": "Prüfbezugefcaecefdfac",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["363baf3eebbb8194c7117e9bc9fa145094d31ad2d4150dcc87694b0d7bee8fb8"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonAefcaecefdfac",
+            "name": "PrüfpersonAefcaecefdfac",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Gasleitung",
+              "qualifier": "Prüfbezugefcaecefdfac",
+              "aliases": []
+            },
+            {
+              "value": "Prüfbezugefcaecefdfac",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["363baf3eebbb8194c7117e9bc9fa145094d31ad2d4150dcc87694b0d7bee8fb8"]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 3,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 4,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 3,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 3,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 4,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-6"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 4,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-6"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-6"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-6"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-6"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-6"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-6"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-7"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 3,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-7"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-7"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-7"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-7"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-7"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-7"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-8"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 3,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-8"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-8"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-8"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-8"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-8"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-8"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-9"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 4,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-9"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-9"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-9"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-9"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-9"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-9"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-10"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 3,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-10"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-10"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-10"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-10"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-10"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-10"
+    }
+  ],
+  "assessments": [
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Die Gasleitung im Pruefbezugaabafdcbecfb müssen wir bis 2030 außer Betrieb nehmen.",
+          "basis": "Die Gasleitung im Prüfbezugaabafdcbecfb müssen wir bis 2030 außer Betrieb nehmen.",
+          "commitment": "planned",
+          "anchors": [
+            {
+              "value": "Gasleitung",
+              "qualifier": "Prüfbezugaabafdcbecfb",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2030",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Das Stromnetz im Prüfbezugaabafdcbecfb ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.",
+          "basis": "Das Stromnetz im Prüfbezugaabafdcbecfb ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.",
+          "commitment": "assessment",
+          "anchors": [
+            {
+              "value": "Prüfbezugaabafdcbecfb",
+              "qualifier": "Stromnetz",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2034",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-edca46b8]",
+            "possibleConsequence": "Wärmepumpen können aufgrund der Netzüberlastung bis 2034 nicht als Ersatz für die bis 2030 außer Betrieb genommene Gasleitung dienen.",
+            "affectedWork": "Wärmeversorgung und Heizungswechsel im Prüfbezug",
+            "availabilityLimit": "Bis 2034 durch Netzlimit eingeschränkt"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-edca46b8]",
+            "kind": "gap",
+            "reason": "Die Gasleitung muss bis 2030 außer Betrieb genommen werden, aber das Stromnetz ist bis 2034 am Limit und schränkt neue Wärmepumpen ein, wodurch eine zeitliche Lücke in der Wärmeversorgung entsteht.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie soll die Wärmeversorgung im Prüfbezug zwischen 2030 und 2034 sichergestellt werden, wenn weder Gas noch uneingeschränkt Wärmepumpen zur Verfügung stehen?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Das Stromnetz im Prüfbezug ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.",
+          "basis": "Das Stromnetz im Prüfbezugefbbcafffbdd ist bis 2034 am Limit, neue Wärmepumpen sind bis dahin eingeschränkt.",
+          "commitment": "assessment",
+          "anchors": [
+            {
+              "value": "Prüfbezug",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2034",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Die Gasleitung im Prüfbezugefbbcafffbdd müssen wir bis 2030 außer Betrieb nehmen.",
+          "basis": "Die Gasleitung im Prüfbezugefbbcafffbdd müssen wir bis 2030 außer Betrieb nehmen.",
+          "commitment": "planned",
+          "anchors": [
+            {
+              "value": "Gasleitung",
+              "qualifier": "",
+              "aliases": ["Gasleitung"]
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2030",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-8edacbc4]",
+            "possibleConsequence": "Stilllegung der Gasleitung bis 2030 erfordert verstärkten Einsatz alternativer Heiztechnologien wie Wärmepumpen, deren Nutzung jedoch aufgrund der Netzauslastung bis 2034 eingeschränkt ist.",
+            "affectedWork": "Wärmewende und Heizungsplanung im Prüfbezirk",
+            "availabilityLimit": "Bis 2034 durch Stromnetzlimitierung eingeschränkt"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-8edacbc4]",
+            "kind": "dependency",
+            "reason": "Die außer Betrieb genommenen Gasleitungen erfordern einen Wechsel auf andere Energieträger, während das Stromnetz gleichzeitig bis 2034 für Wärmepumpen limitiert ist, was zu einer zeitlichen und kapazitiven Abhängigkeit führt.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie wird der Ausgleich für wegfallende Gasleitungen im Zeitraum bis 2034 sichergestellt, wenn gleichzeitig Wärmepumpen eingeschränkt sind?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Gasleitung im Prüfbezugedbbfacfabfe: Außerbetriebnahme spätestens 2030 geplant.",
+          "basis": "Gasleitung im Prüfbezugedbbfacfabfe: Außerbetriebnahme spätestens 2030 geplant.",
+          "commitment": "planned",
+          "anchors": [
+            {
+              "value": "Gasleitung",
+              "qualifier": "Prüfbezugedbbfacfabfe",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "2030",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Frühestens 2034 wieder Kapazität für neue Wärmepumpen im Stromnetz Prüfbezugedbbfacfabfe",
+          "basis": "Stromnetz Prüfbezugedbbfacfabfe: frühestens 2034 wieder Kapazität für neue Wärmepumpen.",
+          "commitment": "assessment",
+          "anchors": [
+            {
+              "value": "Prüfbezugedbbfacfabfe",
+              "qualifier": "Stromnetz",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "",
+            "earliest": "2034",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-5ed07b8b]",
+            "possibleConsequence": "Die Außerkraftsetzung der Gasleitung bis 2030 erfordert alternative Heiztechnologien, während neue Wärmepumpen laut Stromnetz erst ab 2034 Kapazität haben.",
+            "affectedWork": "Wärmeversorgung im Prüfbezug",
+            "availabilityLimit": "Zeitliche Lücke zwischen 2030 und 2034 ohne ausreichende Stromnetz-Kapazität für Wärmepumpen"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-5ed07b8b]",
+            "kind": "gap",
+            "reason": "Die Außerbetriebnahme der Gasleitung bis 2030 erzeugt einen dringenden Bedarf an alternativen Heizsystemen wie Wärmepumpen, für die das Stromnetz jedoch erst ab 2034 wieder Kapazitäten bereitstellen kann, was eine vierjährige Versorgungslücke zur Folge hat.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie wird die Wärmeversorgung im Prüfbezug in der Übergangszeit zwischen 2030 und 2034 sichergestellt, wenn Gasleitungen abgeschaltet sind und Wärmepumpen noch keine Netzkapazität haben?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Stromnetz Prüfbezugbceaadcffa hat frühestens 2034 wieder Kapazität für neue Wärmepumpen.",
+          "basis": "Stromnetz Prüfbezugbceaadcffa: frühestens 2034 wieder Kapazität für neue Wärmepumpen.",
+          "commitment": "assessment",
+          "anchors": [
+            {
+              "value": "Prüfbezugbceaadcffa",
+              "qualifier": "Stromnetz",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "",
+            "earliest": "2034",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Außerbetriebnahme der Gasleitung im Prüfbezug bceaadcffa bis spätestens 2030 geplant",
+          "basis": "Gasleitung im Prüfbezugbceaadcffa: Außerbetriebnahme spätestens 2030 geplant.",
+          "commitment": "planned",
+          "anchors": [
+            {
+              "value": "Prüfbezug",
+              "qualifier": "Gasleitung",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "2030",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-0a3f30b0]",
+            "possibleConsequence": "Die Außerbetriebnahme der Gasleitung bis 2030 erhöht den Bedarf an alternativen Heiztechnologien wie Wärmepumpen im selben Prüfbezug, während das Stromnetz erst ab 2034 wieder Kapazitäten bereitstellen kann.",
+            "affectedWork": "Stromnetz-Ausbau und Wärmewende-Integration im Prüfbezug",
+            "availabilityLimit": "Stromnetz hat Kapazitätsgrenze bis 2034, Gasleitung endet 2030"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-0a3f30b0]",
+            "kind": "gap",
+            "reason": "Die Abschaltung der Gasleitung bis 2030 erzeugt einen sofortigen Bedarf an alternativen Wärmequellen, dem eine Stromnetz-Kapazitätsblockade bis 2034 gegenübersteht, wodurch eine zeitliche Lücke von mindestens vier Jahren entsteht.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie kann der Wärmebedarf im Prüfbezug zwischen 2030 und 2034 gedeckt werden, wenn weder Gas noch ausreichende Stromnetz-Kapazitäten für Wärmepumpen zur Verfügung stehen?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Gasversorgung endet spätestens Ende 2030",
+          "basis": "Gasversorgung endet spätestens Ende 2030.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Gasversorgung",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "Ende 2030",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Im Prüfbezugafbbfbebbede ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034.",
+          "basis": "Im Prüfbezugafbbfbebbede ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Ortsnetztrafo",
+              "qualifier": "",
+              "aliases": []
+            },
+            {
+              "value": "Prüfbezug",
+              "qualifier": "afbbfbebbede",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-d401796a]",
+            "possibleConsequence": "Das Ende der Gasversorgung bis Ende 2030 erfordert den Wechsel zu alternativen Heizsystemen, jedoch können Wärmepumpen-Anträge laut Stromnetz erst ab 2034 bedient werden.",
+            "affectedWork": "Wärmepumpen-Integration und Gebäudebeheizung im Prüfbezugafbbfbebbede",
+            "availabilityLimit": "Zeitliche Lücke von 2031 bis 2033 ohne verfügbare Wärmepumpen-Kapazität"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-d401796a]",
+            "kind": "gap",
+            "reason": "Die Einstellung der Gasversorgung Ende 2030 erfordert einen zeitnahen Heizungswechsel, während der Ortsnetztrafo überlastet ist und Wärmepumpen-Anträge erst ab 2034 zulässt, wodurch eine vierjährige Versorgungslücke entsteht.",
+            "uncertainty": 0.1,
+            "evidenceIds": [],
+            "question": "Wie soll die Wärmeversorgung im Prüfbezugafbbfbebbede in der Übergangszeit zwischen 2031 und 2033 sichergestellt werden?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Im Prüfbezug dbbdaabee ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034",
+          "basis": "Im Prüfbezugdbbdaabee ist der Ortsnetztrafo voll, Wärmepumpen-Anträge gehen dort erst ab 2034.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Ortsnetztrafo",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "",
+            "earliest": "",
+            "date": "2034"
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Gasversorgung endet spätestens Ende 2030",
+          "basis": "Gasversorgung endet spätestens Ende 2030.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Gasversorgung",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "2030",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-c9f7e564]",
+            "possibleConsequence": "Das Ende der Gasversorgung bis 2030 erhöht den Bedarf an alternativen Heizformen wie Wärmepumpen, während der Trafoselbst erst ab 2034 wieder Kapazitäten bietet.",
+            "affectedWork": "Wärmepumpen-Integration und Netzausbau",
+            "availabilityLimit": "Wärmepumpen-Anträge erst ab 2034 möglich, Gasversorgung endet 2030"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-c9f7e564]",
+            "kind": "gap",
+            "reason": "Das Ende der Gasversorgung im Jahr 2030 erzeugt einen früheren Bedarf an elektrischen Heizsystemen, wohingegen der Netzausbau und die Freigabe für Wärmepumpen erst ab 2034 erfolgen, wodurch eine zeitliche Lücke entsteht.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie kann die Übergangsphase für betroffene Gebäude zwischen 2030 und 2034 ohne Gas und ohne neue Wärmepumpen-Genehmigungen überbrückt werden?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Die Leitung in der Prüfbezugaffeccefea legen wir bis 2030 still.",
+          "basis": "Die Leitung in der Prüfbezugaffeccefea legen wir bis 2030 still.",
+          "commitment": "planned",
+          "anchors": [
+            {
+              "value": "Leitung",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2030",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Das Netz am Prüfbezugaffeccefea ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.",
+          "basis": "Das Netz am Prüfbezugaffeccefea ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.",
+          "commitment": "assessment",
+          "anchors": [
+            {
+              "value": "Netz",
+              "qualifier": "Prüfbezugaffeccefea",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2034",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-ef603736]",
+            "possibleConsequence": "Stilllegung des Gasnetzes bis 2030 erfordert den Wechsel zu alternativen Heiztechnologien wie Wärmepumpen, deren Nutzung jedoch aufgrund der Netzauslastung bis 2034 eingeschränkt ist.",
+            "affectedWork": "Wärmeversorgung und Heizungswechsel im Prüfbezug",
+            "availabilityLimit": "Bis 2034 durch Netzauslastung eingeschränkt"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-ef603736]",
+            "kind": "conflict",
+            "reason": "Die Stilllegung der Gasleitung bis 2030 erfordert einen Heizungswechsel, während das Stromnetz bis 2034 für neue Wärmepumpen ausgelastet und eingeschränkt ist, was zu einer Versorgungslücke führt.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie soll die Wärmeversorgung im Prüfbezug zwischen 2030 und 2034 sichergestellt werden, wenn Gas wegfällt und Wärmepumpen eingeschränkt sind?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Das Netz am Prüfbezugecafcdcbfbdb ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.",
+          "basis": "Das Netz am Prüfbezugecafcdcbfbdb ist bis 2034 ausgelastet, neue Wärmepumpen sind bis dahin eingeschränkt.",
+          "commitment": "assessment",
+          "anchors": [
+            {
+              "value": "Prüfbezugecafcdcbfbdb",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2034",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Die Leitung in der Prüfbezugecafcdcbfbdb legen wir bis 2030 still.",
+          "basis": "Die Leitung in der Prüfbezugecafcdcbfbdb legen wir bis 2030 still.",
+          "commitment": "planned",
+          "anchors": [
+            {
+              "value": "Prüfbezug",
+              "qualifier": "Prüfbezugecafcdcbfbdb",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "2030",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-0b5843d2]",
+            "possibleConsequence": "Stilllegung der Gasleitung bis 2030 erfordert alternativ oder parallel den Ausbau anderer Energieträger, während das Stromnetz bis 2034 ausgelastet ist.",
+            "affectedWork": "Wärmepumpen-Integration und Stromnetzverstärkung im Prüfbezug",
+            "availabilityLimit": "Verfügbarkeit neuer Wärmepumpen und Stromnetzkapazitäten eingeschränkt bis 2034"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-0b5843d2]",
+            "kind": "dependency",
+            "reason": "Die Stilllegung der Gasleitung bis 2030 erhöht den Bedarf an elektrischen Wärmelösungen, obwohl das Stromnetz bis 2034 ausgelastet und in der Aufnahme neuer Wärmepumpen eingeschränkt ist, was zu einer zeitlichen Diskrepanz und Verlagerung der Last führt.",
+            "uncertainty": 0.3,
+            "evidenceIds": [],
+            "question": "Wie soll der Wärmebedarf im Prüfbezug zwischen 2030 und 2034 gedeckt werden, wenn die Gasleitung stillgelegt ist und gleichzeitig das Stromnetz für Wärmepumpen eingeschränkt bleibt?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Gasleitung MASKED wird 2030 stillgelegt",
+          "basis": "Prüfbezugebcdacddddb-Gasleitung wird 2030 stillgelegt.",
+          "commitment": "planned",
+          "anchors": [
+            {
+              "value": "Gasleitung",
+              "qualifier": "MASKED",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "2030",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Keine neuen Wärmepumpen vor 2034 bei Prüfbezugebcdacddddb",
+          "basis": "Bei Prüfbezugebcdacddddb keine neuen Wärmepumpen vor 2034.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Prüfbezugebcdacddddb",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-be2d07c1]",
+            "possibleConsequence": "Stilllegung der Gasleitung im Jahr 2030 bei gleichzeitigem Verbot neuer Wärmepumpen bis 2034 führt zu einer Versorgungslücke im Wärmebereich.",
+            "affectedWork": "Wärmeversorgung und alternative Heizsysteme",
+            "availabilityLimit": "Einschränkung neuer Wärmepumpen bis 2034"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-be2d07c1]",
+            "kind": "gap",
+            "reason": "Die Stilllegung der Gasleitung 2030 und das Verbot neuer Wärmepumpen bis 2034 erzeugen eine zeitliche Lücke in der Wärmeversorgung, da keine zeitnahen Alternativen aufgebaut werden können.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie soll die Wärmeversorgung im Prüfbezirk zwischen 2030 und 2034 sichergestellt werden?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Keine neuen Wärmepumpen vor 2034 bei Prüfbezugefcaecefdfac",
+          "basis": "Bei Prüfbezugefcaecefdfac keine neuen Wärmepumpen vor 2034.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Wärmepumpen",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2034",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Gasleitung wird 2030 stillgelegt",
+          "basis": "Prüfbezugefcaecefdfac-Gasleitung wird 2030 stillgelegt.",
+          "commitment": "planned",
+          "anchors": [
+            {
+              "value": "Gasleitung",
+              "qualifier": "Prüfbezugefcaecefdfac",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "",
+            "earliest": "",
+            "date": "2030"
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-d64c7122]",
+            "possibleConsequence": "Stilllegung der Gasleitung im Jahr 2030 erfordert alternative Wärmeversorgung, während Wärmepumpen erst ab 2034 zulässig sind.",
+            "affectedWork": "Wärmeversorgungsplanung im Prüfbezirk",
+            "availabilityLimit": "Zeitliche Lücke von 2030 bis 2034 ohne Wärmepumpen als Ersatzlösung."
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-d64c7122]",
+            "kind": "gap",
+            "reason": "Die Stilllegung der Gasleitung 2030 erfordert zeitnah eine alternative Wärmeversorgung, jedoch sind Wärmepumpen laut der anderen Aussage erst ab 2034 erlaubt, wodurch eine Übergangslücke entsteht.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie wird die Wärmeversorgung im Prüfbezirk zwischen der Gasstilllegung 2030 und der Zulassung von Wärmepumpen 2034 sichergestellt?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "knowledge",
+      "assertions": []
+    }
+  ],
+  "scenario": "868/all-patterns-both-orders",
+  "budget": {
+    "tenantId": "synthetic-validation-20bc8b27-db7c-4ada-8230-1d6e69ac6b24",
+    "limit": 180,
+    "calls": 106,
+    "completed": 106,
+    "stopped": null,
+    "tokens": {
+      "resource": "llm_tokens_per_day",
+      "period": "day",
+      "window": "2026-10-13",
+      "used": 579252,
+      "estimatedUsed": 579252,
+      "actualUsed": 0,
+      "limit": 1000000,
+      "remaining": 420748,
+      "updatedAt": "2026-10-13T10:09:33.703Z",
+      "resetAt": "2026-10-14T00:00:00.000Z"
+    }
+  },
+  "passed": true
+}
