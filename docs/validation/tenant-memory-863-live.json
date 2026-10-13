@@ -1,0 +1,1193 @@
+{
+  "synthetic": true,
+  "mode": "Real configured LLM via llm-client, real local Object-Store and notices; empty knowledge sources and adversarial dataset routing stub.",
+  "recovery": {
+    "intervalMs": 30000,
+    "batchSize": 5,
+    "maxAttempts": 3,
+    "backoffMs": 30000,
+    "maxBackoffMs": 3600000,
+    "toolTimeoutMs": 10000
+  },
+  "budgets": {
+    "workbench": "default",
+    "assessmentMs": 15000
+  },
+  "runs": [
+    {
+      "order": ["PrüfpersonAafbaabedaac", "PrüfpersonBafbaabedaac"],
+      "run": 1,
+      "anchor": "Prüfbezugafbaabedaac",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonAafbaabedaac",
+          "responseText": "Eine verlässliche neue Bewertung ist gerade nicht zustande gekommen.\n\nHab ich festgehalten: Die Gasleitung im Prüfbezugafbaabedaac wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonBafbaabedaac",
+          "responseText": "PrüfpersonBafbaabedaac (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugafbaabedaac ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAafbaabedaac (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugafbaabedaac wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Einstellung der Gasleitung bis 2030 kann zu einer Verlagerung des Bedarfs auf das Stromnetz führen, dessen Arbeiten jedoch bis 2034 limitiert sind. Unsicherheit: 20 %.\n\nKann die Netzlast nach der Gasabschaltung 2030 ohne zusätzliche Arbeiten im Stromnetz bewältigt werden?\n\nInformation über die Kapazitätsbegrenzung des Stromnetzes im Prüfbezug Prüfbezugafbaabedaac bis zum Jahr 2034 für alle weiteren Arbeiten aufnehmen.\n\nHab ich festgehalten: Das Stromnetz im Prüfbezugafbaabedaac ist bis 2034 für alle weiteren Arbeiten begrenzt.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "PrüfpersonBafbaabedaac (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugafbaabedaac ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAafbaabedaac (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugafbaabedaac wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Einstellung der Gasleitung bis 2030 kann zu einer Verlagerung des Bedarfs auf das Stromnetz führen, dessen Arbeiten jedoch bis 2034 limitiert sind. Unsicherheit: 20 %.\n\nKann die Netzlast nach der Gasabschaltung 2030 ohne zusätzliche Arbeiten im Stromnetz bewältigt werden?\n\nDie Außerbetriebsetzung der Gasleitung im Prüfbezug Prüfbezugafbaabedaac bis 2030 zur Kenntnis nehmen.\n\nAuf weitere Abstimmungen zur Netzplanung im Prüfbezug warten.\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "queries": [
+        "PrüfpersonBafbaabedaac (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugafbaabedaac ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAafbaabedaac (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugafbaabedaac wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Einstellung der Gasleitung bis 2030 kann zu einer Verlagerung des Bedarfs auf das Stromnetz führen, dessen Arbeiten jedoch bis 2034 limitiert sind. Unsicherheit: 20 %.\n\nKann die Netzlast nach der Gasabschaltung 2030 ohne zusätzliche Arbeiten im Stromnetz bewältigt werden?",
+        "PrüfpersonBafbaabedaac (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugafbaabedaac ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAafbaabedaac (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugafbaabedaac wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Einstellung der Gasleitung bis 2030 kann zu einer Verlagerung des Bedarfs auf das Stromnetz führen, dessen Arbeiten jedoch bis 2034 limitiert sind. Unsicherheit: 20 %.\n\nKann die Netzlast nach der Gasabschaltung 2030 ohne zusätzliche Arbeiten im Stromnetz bewältigt werden?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonBafbaabedaac",
+            "name": "PrüfpersonBafbaabedaac",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugafbaabedaac",
+              "qualifier": "Stromnetz",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["966c835c6ad16dd66c97447e2d4cf7a2cd9b0d873ef6b8bb6ea4a4cf87089a97"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonAafbaabedaac",
+            "name": "PrüfpersonAafbaabedaac",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugafbaabedaac",
+              "qualifier": "Gasleitung",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["966c835c6ad16dd66c97447e2d4cf7a2cd9b0d873ef6b8bb6ea4a4cf87089a97"]
+        }
+      ]
+    },
+    {
+      "order": ["PrüfpersonBbaefdfbfefad", "PrüfpersonAbaefdfbfefad"],
+      "run": 2,
+      "anchor": "Prüfbezugbaefdfbfefad",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonBbaefdfbfefad",
+          "responseText": "Das Stromnetz im Prüfbezugbaefdfbfefad weist bis zum Jahr 2034 Kapazitätsbeschränkungen für weitere Arbeiten auf.\n\nDie Netzkapazitätsgrenze für den Prüfbezugbaefdfbfefad ist bis 2034 zu beachten.\n\nHab ich festgehalten: Das Stromnetz im Prüfbezugbaefdfbfefad ist bis 2034 für alle weiteren Arbeiten begrenzt.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonAbaefdfbfefad",
+          "responseText": "PrüfpersonBbaefdfbfefad (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugbaefdfbfefad ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAbaefdfbfefad (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugbaefdfbfefad wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Außerbetriebnahme der Gasleitung bis 2030 löst einen Wechselbedarf auf Strom aus, dessen Netzkapazitäten jedoch durch bestehende Einschränkungen bis 2034 limitiert sind, wodurch eine zeitliche und kapazitive Abhängigkeit entsteht. Unsicherheit: 20 %.\n\nWie kann der zusätzliche Strombedarf durch den Wegfall der Gasversorgung kompensiert werden, wenn das Stromnetz bis 2034 für weitere Arbeiten begrenzt ist?\n\nPrüfe die internen Netzentwicklungspläne und betroffenen Anschlüsse im Prüfbezugbaefdfbfefad auf konkrete Stilllegungsmeilensteine bis zum Jahr 2030.\n\nInformiere die betroffenen internen Fachbereiche und Anschlussnehmer über die geplante Außerbetriebnahme der Gasleitung.\n\nHab ich festgehalten: Die Gasleitung im Prüfbezugbaefdfbfefad wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nPrüfpersonBbaefdfbfefad (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugbaefdfbfefad ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAbaefdfbfefad (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugbaefdfbfefad wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Außerbetriebnahme der Gasleitung bis 2030 löst einen Wechselbedarf auf Strom aus, dessen Netzkapazitäten jedoch durch bestehende Einschränkungen bis 2034 limitiert sind, wodurch eine zeitliche und kapazitive Abhängigkeit entsteht. Unsicherheit: 20 %.\n\nWie kann der zusätzliche Strombedarf durch den Wegfall der Gasversorgung kompensiert werden, wenn das Stromnetz bis 2034 für weitere Arbeiten begrenzt ist?\n\nDas Stromnetz im Prüfbezugbaefdfbfefad ist bis 2034 für weitere Arbeiten begrenzt.\n\nDie Netzkapazitätsgrenze im Prüfbezugbaefdfbfefad bis 2034 ist zu berücksichtigen.\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "queries": [
+        "PrüfpersonBbaefdfbfefad (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugbaefdfbfefad ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAbaefdfbfefad (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugbaefdfbfefad wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Außerbetriebnahme der Gasleitung bis 2030 löst einen Wechselbedarf auf Strom aus, dessen Netzkapazitäten jedoch durch bestehende Einschränkungen bis 2034 limitiert sind, wodurch eine zeitliche und kapazitive Abhängigkeit entsteht. Unsicherheit: 20 %.\n\nWie kann der zusätzliche Strombedarf durch den Wegfall der Gasversorgung kompensiert werden, wenn das Stromnetz bis 2034 für weitere Arbeiten begrenzt ist?",
+        "PrüfpersonBbaefdfbfefad (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugbaefdfbfefad ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAbaefdfbfefad (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugbaefdfbfefad wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Außerbetriebnahme der Gasleitung bis 2030 löst einen Wechselbedarf auf Strom aus, dessen Netzkapazitäten jedoch durch bestehende Einschränkungen bis 2034 limitiert sind, wodurch eine zeitliche und kapazitive Abhängigkeit entsteht. Unsicherheit: 20 %.\n\nWie kann der zusätzliche Strombedarf durch den Wegfall der Gasversorgung kompensiert werden, wenn das Stromnetz bis 2034 für weitere Arbeiten begrenzt ist?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonBbaefdfbfefad",
+            "name": "PrüfpersonBbaefdfbfefad",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugbaefdfbfefad",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["8a5aa26f2beafddf3c3967423f9e851bb356fbcab76d58e901bfc5230cc3c42e"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonAbaefdfbfefad",
+            "name": "PrüfpersonAbaefdfbfefad",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugbaefdfbfefad",
+              "qualifier": "Gasleitung",
+              "aliases": []
+            },
+            {
+              "value": "Prüfbezugbaefdfbfefad",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["8a5aa26f2beafddf3c3967423f9e851bb356fbcab76d58e901bfc5230cc3c42e"]
+        }
+      ]
+    },
+    {
+      "order": ["PrüfpersonAdaacacefafab", "PrüfpersonBdaacacefafab"],
+      "run": 3,
+      "anchor": "Prüfbezugdaacacefafab",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonAdaacacefafab",
+          "responseText": "Die Gasleitung im Prüfbezug Prüfbezugdaacacefafab wird bis zum Jahr 2030 für alle Betroffenen außer Betrieb genommen.\n\nHab ich festgehalten: Die Gasleitung im Prüfbezugdaacacefafab wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonBdaacacefafab",
+          "responseText": "PrüfpersonBdaacacefafab (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugdaacacefafab ist bis 2034 für alle weiteren Arbeiten begrenzt“ (gültig).\n\nPrüfpersonAdaacacefafab (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugdaacacefafab wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Außernbetriebnahme der Gasleitung bis 2030 führt zu erhöhtem Bedarf im Stromnetz, dessen Kapazitäten und Erweiterungen jedoch laut neuer Aussage bis 2034 gesperrt sind. Unsicherheit: 20 %.\n\nWie kann der Mehrbedarf durch den Ausfall der Gasleitung gedeckt werden, während das Stromnetz bis 2034 für Arbeiten gesperrt ist?\n\nDie Kapazitätsbegrenzung des Stromnetzes im Prüfbezug Prüfbezugdaacacefafab bis zum Jahr 2034 wird für die Fristprüfung registriert.\n\nHab ich festgehalten: Das Stromnetz im Prüfbezugdaacacefafab ist bis 2034 für alle weiteren Arbeiten begrenzt",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "PrüfpersonBdaacacefafab (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugdaacacefafab ist bis 2034 für alle weiteren Arbeiten begrenzt“ (gültig).\n\nPrüfpersonAdaacacefafab (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugdaacacefafab wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Außernbetriebnahme der Gasleitung bis 2030 führt zu erhöhtem Bedarf im Stromnetz, dessen Kapazitäten und Erweiterungen jedoch laut neuer Aussage bis 2034 gesperrt sind. Unsicherheit: 20 %.\n\nWie kann der Mehrbedarf durch den Ausfall der Gasleitung gedeckt werden, während das Stromnetz bis 2034 für Arbeiten gesperrt ist?\n\nDie Außerbetriebnahme der Gasleitung im Prüfbezug Prüfbezugdaacacefafab bis 2030 erfordert als nächsten Schritt die Planung der alternativen Versorgung für die Betroffenen.\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "queries": [
+        "PrüfpersonBdaacacefafab (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugdaacacefafab ist bis 2034 für alle weiteren Arbeiten begrenzt“ (gültig).\n\nPrüfpersonAdaacacefafab (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugdaacacefafab wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Außernbetriebnahme der Gasleitung bis 2030 führt zu erhöhtem Bedarf im Stromnetz, dessen Kapazitäten und Erweiterungen jedoch laut neuer Aussage bis 2034 gesperrt sind. Unsicherheit: 20 %.\n\nWie kann der Mehrbedarf durch den Ausfall der Gasleitung gedeckt werden, während das Stromnetz bis 2034 für Arbeiten gesperrt ist?",
+        "PrüfpersonBdaacacefafab (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugdaacacefafab ist bis 2034 für alle weiteren Arbeiten begrenzt“ (gültig).\n\nPrüfpersonAdaacacefafab (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugdaacacefafab wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Außernbetriebnahme der Gasleitung bis 2030 führt zu erhöhtem Bedarf im Stromnetz, dessen Kapazitäten und Erweiterungen jedoch laut neuer Aussage bis 2034 gesperrt sind. Unsicherheit: 20 %.\n\nWie kann der Mehrbedarf durch den Ausfall der Gasleitung gedeckt werden, während das Stromnetz bis 2034 für Arbeiten gesperrt ist?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonBdaacacefafab",
+            "name": "PrüfpersonBdaacacefafab",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugdaacacefafab",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["4a9ca792c1392f6f276125c2a131c4fe80240657039103d90b456b54d0adf335"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonAdaacacefafab",
+            "name": "PrüfpersonAdaacacefafab",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugdaacacefafab",
+              "qualifier": "Gasleitung",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["4a9ca792c1392f6f276125c2a131c4fe80240657039103d90b456b54d0adf335"]
+        }
+      ]
+    },
+    {
+      "order": ["PrüfpersonBbfdabcfbbfef", "PrüfpersonAbfdabcfbbfef"],
+      "run": 4,
+      "anchor": "Prüfbezugbfdabcfbbfef",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonBbfdabcfbbfef",
+          "responseText": "Das Stromnetz im Prüfbezug Prüfbezugbfdabcfbbfef ist laut Mitteilung bis 2034 für alle weiteren Arbeiten begrenzt.\n\nErfassung der netzbezogenen Einschränkung im Prüfbezug Prüfbezugbfdabcfbbfef bis zum Jahr 2034.\n\nHab ich festgehalten: Das Stromnetz im Prüfbezugbfdabcfbbfef ist bis 2034 für alle weiteren Arbeiten begrenzt.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonAbfdabcfbbfef",
+          "responseText": "PrüfpersonBbfdabcfbbfef (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugbfdabcfbbfef ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAbfdabcfbbfef (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugbfdabcfbbfef wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Einstellung der Gasversorgung verlagert den Bedarf auf das Stromnetz, dessen Kapazität und Arbeiten bis 2034 limitiert sind, wodurch eine zeitliche und kapazitive Abstimmung notwendig wird. Unsicherheit: 30 %.\n\nWie wird der zusätzliche Strombedarf nach der Gasstilllegung bis 2030 innerhalb der Kapazitätsgrenzen des Stromnetzes bis 2034 gedeckt?\n\nDie Mitteilung zur Außerbetriebnahme der Gasleitung im Prüfbezugbfdabcfbbfef wird im System erfasst.\n\nHab ich festgehalten: Die Gasleitung im Prüfbezugbfdabcfbbfef wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "PrüfpersonBbfdabcfbbfef (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugbfdabcfbbfef ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAbfdabcfbbfef (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugbfdabcfbbfef wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Einstellung der Gasversorgung verlagert den Bedarf auf das Stromnetz, dessen Kapazität und Arbeiten bis 2034 limitiert sind, wodurch eine zeitliche und kapazitive Abstimmung notwendig wird. Unsicherheit: 30 %.\n\nWie wird der zusätzliche Strombedarf nach der Gasstilllegung bis 2030 innerhalb der Kapazitätsgrenzen des Stromnetzes bis 2034 gedeckt?\n\nPrüfung der Netzkapazitäten im Prüfbezug Prüfbezugbfdabcfbbfef unter Berücksichtigung der Beschränkung bis zum Jahr 2034.\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "queries": [
+        "PrüfpersonBbfdabcfbbfef (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugbfdabcfbbfef ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAbfdabcfbbfef (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugbfdabcfbbfef wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Einstellung der Gasversorgung verlagert den Bedarf auf das Stromnetz, dessen Kapazität und Arbeiten bis 2034 limitiert sind, wodurch eine zeitliche und kapazitive Abstimmung notwendig wird. Unsicherheit: 30 %.\n\nWie wird der zusätzliche Strombedarf nach der Gasstilllegung bis 2030 innerhalb der Kapazitätsgrenzen des Stromnetzes bis 2034 gedeckt?",
+        "PrüfpersonBbfdabcfbbfef (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugbfdabcfbbfef ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAbfdabcfbbfef (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugbfdabcfbbfef wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Einstellung der Gasversorgung verlagert den Bedarf auf das Stromnetz, dessen Kapazität und Arbeiten bis 2034 limitiert sind, wodurch eine zeitliche und kapazitive Abstimmung notwendig wird. Unsicherheit: 30 %.\n\nWie wird der zusätzliche Strombedarf nach der Gasstilllegung bis 2030 innerhalb der Kapazitätsgrenzen des Stromnetzes bis 2034 gedeckt?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonBbfdabcfbbfef",
+            "name": "PrüfpersonBbfdabcfbbfef",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugbfdabcfbbfef",
+              "qualifier": "Stromnetz",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["c678c827cbb7dd1825ef74b911acf5982b66e84fe304be071fef99081c7efb87"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonAbfdabcfbbfef",
+            "name": "PrüfpersonAbfdabcfbbfef",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugbfdabcfbbfef",
+              "qualifier": "Gasleitung",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["c678c827cbb7dd1825ef74b911acf5982b66e84fe304be071fef99081c7efb87"]
+        }
+      ]
+    },
+    {
+      "order": ["PrüfpersonAeedcaafaabb", "PrüfpersonBeedcaafaabb"],
+      "run": 5,
+      "anchor": "Prüfbezugeedcaafaabb",
+      "checks": {
+        "bothCaptured": true,
+        "confirmations": true,
+        "connected": true,
+        "connectionMentioned": true,
+        "clearFunctions": true,
+        "noticeDelivered": true,
+        "scenario1CanonicalBases": true,
+        "scenario2EachActorListsBoth": true,
+        "readableDate": true
+      },
+      "turns": [
+        {
+          "actor": "PrüfpersonAeedcaafaabb",
+          "responseText": "Es liegt eine Information darüber vor, dass die Gasleitung im Prüfbezirk eedcaafaabb bis zum Jahr 2030 für alle Betroffenen außer Betrieb genommen wird.\n\nDie Mitteilung zur Außerkraftsetzung der Gasleitung im Prüfbezirk eedcaafaabb bis 2030 ist zur Kenntnis zu nehmen.\n\nHab ich festgehalten: Die Gasleitung im Prüfbezugeedcaafaabb wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "state": "assistance",
+          "candidates": 1
+        },
+        {
+          "actor": "PrüfpersonBeedcaafaabb",
+          "responseText": "PrüfpersonBeedcaafaabb (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugeedcaafaabb ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAeedcaafaabb (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugeedcaafaabb wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Außerbetriebnahme der Gasleitung bis 2030 erfordert einen Ausweichbedarf auf das Stromnetz, dessen Kapazität und Arbeiten jedoch bis 2034 im selben Bezirk limitiert sind, wodurch eine fachliche und zeitliche Abhängigkeit entsteht. Unsicherheit: 20 %.\n\nWie kann der durch den Wegfall der Gasversorgung entstehende Mehrbedarf im Stromnetz gedeckt werden, wenn dort bis 2034 keine weiteren Arbeiten zulässig sind?\n\nEine verlässliche neue Bewertung ist gerade nicht zustande gekommen.\n\nGefundene Fundstellen:\nPrüfpersonBeedcaafaabb (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugeedcaafaabb ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\nPrüfpersonAeedcaafaabb (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugeedcaafaabb wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nHab ich festgehalten: Das Stromnetz im Prüfbezugeedcaafaabb ist bis 2034 für alle weiteren Arbeiten begrenzt.",
+          "state": "assistance",
+          "candidates": 1
+        }
+      ],
+      "connectionChannel": "turn",
+      "notice": "Hinweise für dich:\nPrüfpersonBeedcaafaabb (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugeedcaafaabb ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAeedcaafaabb (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugeedcaafaabb wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Außerbetriebnahme der Gasleitung bis 2030 erfordert einen Ausweichbedarf auf das Stromnetz, dessen Kapazität und Arbeiten jedoch bis 2034 im selben Bezirk limitiert sind, wodurch eine fachliche und zeitliche Abhängigkeit entsteht. Unsicherheit: 20 %.\n\nWie kann der durch den Wegfall der Gasversorgung entstehende Mehrbedarf im Stromnetz gedeckt werden, wenn dort bis 2034 keine weiteren Arbeiten zulässig sind?\n\nBezüglich der Außerkraftsetzung der Gasleitung im Prüfbezirk eedcaafaabb bis zum Jahr 2030 ist der nächste Schritt die Abstimmung der weiteren organisatorischen Maßnahmen.\n\nDie Mitteilung zur Außerkraftsetzung der Gasleitung im Prüfbezirk eedcaafaabb bis 2030 ist im weiteren Verlauf zu berücksichtigen.\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "queries": [
+        "PrüfpersonBeedcaafaabb (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugeedcaafaabb ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAeedcaafaabb (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugeedcaafaabb wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Außerbetriebnahme der Gasleitung bis 2030 erfordert einen Ausweichbedarf auf das Stromnetz, dessen Kapazität und Arbeiten jedoch bis 2034 im selben Bezirk limitiert sind, wodurch eine fachliche und zeitliche Abhängigkeit entsteht. Unsicherheit: 20 %.\n\nWie kann der durch den Wegfall der Gasversorgung entstehende Mehrbedarf im Stromnetz gedeckt werden, wenn dort bis 2034 keine weiteren Arbeiten zulässig sind?",
+        "PrüfpersonBeedcaafaabb (Stromnetz, 13.10.2026): „Das Stromnetz im Prüfbezugeedcaafaabb ist bis 2034 für alle weiteren Arbeiten begrenzt.“ (gültig).\n\nPrüfpersonAeedcaafaabb (Gasnetzplanung, 13.10.2026): „Die Gasleitung im Prüfbezugeedcaafaabb wird bis 2030 für alle Betroffenen außer Betrieb genommen.“ (gültig).\n\nDie Außerbetriebnahme der Gasleitung bis 2030 erfordert einen Ausweichbedarf auf das Stromnetz, dessen Kapazität und Arbeiten jedoch bis 2034 im selben Bezirk limitiert sind, wodurch eine fachliche und zeitliche Abhängigkeit entsteht. Unsicherheit: 20 %.\n\nWie kann der durch den Wegfall der Gasversorgung entstehende Mehrbedarf im Stromnetz gedeckt werden, wenn dort bis 2034 keine weiteren Arbeiten zulässig sind?"
+      ],
+      "facts": [
+        {
+          "person": {
+            "actorId": "PrüfpersonBeedcaafaabb",
+            "name": "PrüfpersonBeedcaafaabb",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Stromnetz"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugeedcaafaabb",
+              "qualifier": "Stromnetz",
+              "aliases": []
+            }
+          ],
+          "checkingFailure": null,
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["dab9f6a34ef2c3300220b2e0308168bc6cb528c7545e6f8b586c7e2c1edd5de2"]
+        },
+        {
+          "person": {
+            "actorId": "PrüfpersonAeedcaafaabb",
+            "name": "PrüfpersonAeedcaafaabb",
+            "roles": ["ROLE_GRID_OPERATOR"],
+            "functionLabel": "Gasnetzplanung"
+          },
+          "anchors": [
+            {
+              "value": "Prüfbezugeedcaafaabb",
+              "qualifier": "Gasleitung",
+              "aliases": []
+            }
+          ],
+          "checking": "complete",
+          "attempts": 1,
+          "relationIds": ["dab9f6a34ef2c3300220b2e0308168bc6cb528c7545e6f8b586c7e2c1edd5de2"]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 3,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-1"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 4,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-2"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 4,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-3"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 3,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-4"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "no_candidates",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 1,
+      "accepted": 1,
+      "rejected": {},
+      "anchorHits": 3,
+      "assessmentStarted": 1,
+      "assessmentResult": "complete",
+      "relations": 1,
+      "notices": 1,
+      "tenantId": "synthetic-memory-5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 0,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-5"
+    },
+    {
+      "level": "info",
+      "label": "Tenant memory",
+      "candidates": 0,
+      "accepted": 0,
+      "rejected": {},
+      "anchorHits": 2,
+      "assessmentStarted": 0,
+      "assessmentResult": "not_started",
+      "relations": 0,
+      "notices": 0,
+      "tenantId": "synthetic-memory-5"
+    }
+  ],
+  "assessments": [
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Die Gasleitung im Prüfbezugafbaabedaac wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "basis": "Die Gasleitung im Prüfbezugafbaabedaac wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Gasleitung",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "",
+            "latest": "2030",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Das Stromnetz im Prüfbezugafbaabedaac ist bis 2034 für alle weiteren Arbeiten begrenzt.",
+          "basis": "Das Stromnetz im Prüfbezugafbaabedaac ist bis 2034 für alle weiteren Arbeiten begrenzt.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Stromnetz",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2034",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-e3bdd8a5]",
+            "possibleConsequence": "Die Außernbetriebsetzung der Gasleitung bis 2030 erfordert möglicherweise den Wechsel zu alternativen Energieträgern wie Strom.",
+            "affectedWork": "Stromnetz- und Energieversorgungsumstellung",
+            "availabilityLimit": "Das Stromnetz ist im selben Gebiet bis 2034 für alle weiteren Arbeiten begrenzt."
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-e3bdd8a5]",
+            "kind": "dependency",
+            "reason": "Die Einstellung der Gasleitung bis 2030 kann zu einer Verlagerung des Bedarfs auf das Stromnetz führen, dessen Arbeiten jedoch bis 2034 limitiert sind.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Kann die Netzlast nach der Gasabschaltung 2030 ohne zusätzliche Arbeiten im Stromnetz bewältigt werden?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "work",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Das Stromnetz im Prüfbezugbaefdfbfefad ist bis 2034 für alle weiteren Arbeiten begrenzt.",
+          "basis": "Das Stromnetz im Prüfbezugbaefdfbfefad ist bis 2034 für alle weiteren Arbeiten begrenzt.",
+          "commitment": "assessment",
+          "anchors": [
+            {
+              "value": "Prüfbezugbaefdfbfefad",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2034",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Die Gasleitung im Prüfbezugbaefdfbfefad wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "basis": "Die Gasleitung im Prüfbezugbaefdfbfefad wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "commitment": "planned",
+          "anchors": [
+            {
+              "value": "Gasleitung",
+              "qualifier": "",
+              "aliases": []
+            },
+            {
+              "value": "Prüfbezugbaefdfbfefad",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2030",
+            "latest": "2030",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-b202f042]",
+            "possibleConsequence": "Die Stilllegung der Gasleitung bis 2030 erfordert einen Wechsel auf alternative Energieträger oder Netze wie Strom, was zu einer erhöhten Last und Nachfrage im Stromnetz führt.",
+            "affectedWork": "Ausbau und Bereitstellung von Kapazitäten im Stromnetz im Prüfbezugbaefdfbfefad",
+            "availabilityLimit": "Das Stromnetz ist laut Befund bis 2034 für alle weiteren Arbeiten begrenzt, wodurch der notwendige Mehrbedarf durch den Gasausstieg zeitlich blockiert wird."
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-b202f042]",
+            "kind": "dependency",
+            "reason": "Die Außerbetriebnahme der Gasleitung bis 2030 löst einen Wechselbedarf auf Strom aus, dessen Netzkapazitäten jedoch durch bestehende Einschränkungen bis 2034 limitiert sind, wodurch eine zeitliche und kapazitive Abhängigkeit entsteht.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie kann der zusätzliche Strombedarf durch den Wegfall der Gasversorgung kompensiert werden, wenn das Stromnetz bis 2034 für weitere Arbeiten begrenzt ist?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "work",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Die Gasleitung im Prüfbezugdaacacefafab wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "basis": "Die Gasleitung im Prüfbezugdaacacefafab wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "commitment": "planned",
+          "anchors": [
+            {
+              "value": "Gasleitung",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2030",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Das Stromnetz im Prüfbezugdaacacefafab ist bis 2034 für alle weiteren Arbeiten begrenzt",
+          "basis": "Das Stromnetz im Prüfbezugdaacacefafab ist bis 2034 für alle weiteren Arbeiten begrenzt.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Prüfbezugdaacacefafab",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2034",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-f47146af]",
+            "possibleConsequence": "Die Stilllegung der Gasleitung bis 2030 erfordert einen Ausweichbedarf auf alternative Energieträger oder Stromnetzkapazitäten, welcher jedoch durch die Stromnetzbegrenzung bis 2034 blockiert wird.",
+            "affectedWork": "Stromnetz im Prüfbezugdaacacefafab",
+            "availabilityLimit": "Bis 2034 für alle weiteren Arbeiten begrenzt"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-f47146af]",
+            "kind": "conflict",
+            "reason": "Die Außernbetriebnahme der Gasleitung bis 2030 führt zu erhöhtem Bedarf im Stromnetz, dessen Kapazitäten und Erweiterungen jedoch laut neuer Aussage bis 2034 gesperrt sind.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie kann der Mehrbedarf durch den Ausfall der Gasleitung gedeckt werden, während das Stromnetz bis 2034 für Arbeiten gesperrt ist?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "work",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Das Stromnetz im Prüfbezugbfdabcfbbfef ist bis 2034 für alle weiteren Arbeiten begrenzt.",
+          "basis": "Das Stromnetz im Prüfbezugbfdabcfbbfef ist bis 2034 für alle weiteren Arbeiten begrenzt.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Stromnetz",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2034",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Die Gasleitung im Prüfbezugbfdabcfbbfef wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "basis": "Die Gasleitung im Prüfbezugbfdabcfbbfef wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "commitment": "planned",
+          "anchors": [
+            {
+              "value": "Gasleitung",
+              "qualifier": "Prüfbezugbfdabcfbbfef",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2030",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-e3e56750]",
+            "possibleConsequence": "Stilllegung der Gasleitung bis 2030 erfordert möglicherweise elektrischen Ersatz oder Mehrbedarf, während das Stromnetz bis 2034 begrenzt ist.",
+            "affectedWork": "Stromnetz- und Wärmeversorgungsumbau",
+            "availabilityLimit": "Verfügbarkeit des Stromnetzes bis 2034 eingeschränkt"
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-e3e56750]",
+            "kind": "dependency",
+            "reason": "Die Einstellung der Gasversorgung verlagert den Bedarf auf das Stromnetz, dessen Kapazität und Arbeiten bis 2034 limitiert sind, wodurch eine zeitliche und kapazitive Abstimmung notwendig wird.",
+            "uncertainty": 0.3,
+            "evidenceIds": [],
+            "question": "Wie wird der zusätzliche Strombedarf nach der Gasstilllegung bis 2030 innerhalb der Kapazitätsgrenzen des Stromnetzes bis 2034 gedeckt?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "work",
+      "assertions": []
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Die Gasleitung im Prüfbezugeedcaafaabb wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "basis": "Die Gasleitung im Prüfbezugeedcaafaabb wird bis 2030 für alle Betroffenen außer Betrieb genommen.",
+          "commitment": "decided",
+          "anchors": [
+            {
+              "value": "Gasleitung",
+              "qualifier": "",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2030",
+            "latest": "2030",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "understanding",
+      "candidates": 1,
+      "turnKind": "work",
+      "assertions": [
+        {
+          "text": "Das Stromnetz im Prüfbezugeedcaafaabb ist bis 2034 für alle weiteren Arbeiten begrenzt.",
+          "basis": "Das Stromnetz im Prüfbezugeedcaafaabb ist bis 2034 für alle weiteren Arbeiten begrenzt.",
+          "commitment": "assessment",
+          "anchors": [
+            {
+              "value": "Stromnetz",
+              "qualifier": "",
+              "aliases": []
+            },
+            {
+              "value": "Prüfbezug",
+              "qualifier": "eedcaafaabb",
+              "aliases": []
+            }
+          ],
+          "time": {
+            "from": "",
+            "until": "2034",
+            "latest": "",
+            "earliest": "",
+            "date": ""
+          },
+          "expiresAt": "",
+          "scope": "organization"
+        }
+      ]
+    },
+    {
+      "phase": "assessment",
+      "relations": 1,
+      "result": {
+        "effects": [
+          {
+            "candidateId": "[MASKED-09e2a86a]",
+            "possibleConsequence": "Die Einstellung der Gasleitung bis 2030 erfordert einen Wechsel zu alternativen Energieträgern wie Strom, wodurch der Strombedarf im selben Gebiet steigt.",
+            "affectedWork": "Stromnetz- und Energieversorgungsumstellung im Prüfbezug",
+            "availabilityLimit": "Das Stromnetz ist im selben Gebiet bis 2034 für alle weiteren Arbeiten begrenzt."
+          }
+        ],
+        "relations": [
+          {
+            "candidateId": "[MASKED-09e2a86a]",
+            "kind": "dependency",
+            "reason": "Die Außerbetriebnahme der Gasleitung bis 2030 erfordert einen Ausweichbedarf auf das Stromnetz, dessen Kapazität und Arbeiten jedoch bis 2034 im selben Bezirk limitiert sind, wodurch eine fachliche und zeitliche Abhängigkeit entsteht.",
+            "uncertainty": 0.2,
+            "evidenceIds": [],
+            "question": "Wie kann der durch den Wegfall der Gasversorgung entstehende Mehrbedarf im Stromnetz gedeckt werden, wenn dort bis 2034 keine weiteren Arbeiten zulässig sind?"
+          }
+        ],
+        "plausibility": []
+      }
+    },
+    {
+      "phase": "understanding",
+      "candidates": 0,
+      "turnKind": "work",
+      "assertions": []
+    }
+  ],
+  "scenario": "863/3",
+  "budget": {
+    "tenantId": "synthetic-validation-73e9056f-d2ca-4325-a618-6d4db6df0384",
+    "limit": 80,
+    "calls": 37,
+    "completed": 37,
+    "stopped": null,
+    "tokens": {
+      "resource": "llm_tokens_per_day",
+      "period": "day",
+      "window": "2026-10-13",
+      "used": 216289,
+      "estimatedUsed": 216289,
+      "actualUsed": 0,
+      "limit": 400000,
+      "remaining": 183711,
+      "updatedAt": "2026-10-13T00:23:52.665Z",
+      "resetAt": "2026-10-14T00:00:00.000Z"
+    }
+  },
+  "passed": true
+}

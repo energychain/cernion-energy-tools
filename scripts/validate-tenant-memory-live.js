@@ -1,5 +1,5 @@
 'use strict';
-require('./live-validation-budget').installLiveBudget();
+const budget = require('./live-validation-budget').installLiveBudget();
 
 // Real configured LLM facade; synthetic actors/anchors and isolated local persistence.
 const fs = require('node:fs');
@@ -10,8 +10,13 @@ const { createLiveHarness } = require('./workbench-live-harness');
 const llm = require('../src/llm-client');
 const memory = require('../src/tenant-memory');
 const store = require('../src/tenant-memory-store');
+const { generateMemoryAnchorFixture } = require('./generate-memory-cleanup-fixture');
 
 async function validateTenantMemoryLive() {
+  const scenario863 = process.env.TENANT_MEMORY_LIVE_SCENARIO === '863';
+  const repeats = scenario863 ? Number(process.env.TENANT_MEMORY_LIVE_RUNS || 5) : 2;
+  if (!Number.isSafeInteger(repeats) || repeats < 1 || repeats > 20)
+    throw new Error('Invalid live run count');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-memory-live-'));
   const ObjectStore = require('../services/object-store.service');
   const Notices = require('../services/shared-service-notices.service');
@@ -83,31 +88,35 @@ async function validateTenantMemoryLive() {
   let recoveryReplay;
   try {
     await broker.start();
-    for (const order of [
-      ['ben', 'anna'],
-      ['anna', 'ben'],
-    ]) {
-      for (let run = 1; run <= 2; run++) {
-        const suffix = require('node:crypto')
-          .randomBytes(6)
-          .toString('hex')
-          .replace(/[0-9]/g, (digit) => String.fromCharCode(107 + Number(digit)));
-        const anchor = `Test${suffix}allee`;
+    for (const defaultOrder of scenario863
+      ? [['first', 'second']]
+      : [
+          ['ben', 'anna'],
+          ['anna', 'ben'],
+        ]) {
+      for (let run = 1; run <= repeats; run++) {
+        budget.assertReady();
+        const fixture = generateMemoryAnchorFixture();
+        const order = scenario863
+          ? run % 2
+            ? [fixture.actorA, fixture.actorB]
+            : [fixture.actorB, fixture.actorA]
+          : defaultOrder;
+        const actors = scenario863 ? [fixture.actorA, fixture.actorB] : ['ben', 'anna'];
+        const anchor = fixture.base;
         const tenantId = `synthetic-memory-${report.runs.length + 1}`;
         for (const [actorId, functionLabel] of [
-          ['ben', 'Gasnetzplanung'],
-          ['anna', 'Stromnetz'],
+          [actors[0], 'Gasnetzplanung'],
+          [actors[1], 'Stromnetz'],
         ])
           await workbench.store.saveUserContext({
             tenantId,
             actorId,
             roleFamilies: [functionLabel],
           });
-        const texts = {
-          ben: `Gerade komme ich aus der Gasnetzplanung. Die Leitung in der ${anchor} müssen wir spätestens 2030 außer Betrieb nehmen. Die Kunden sollen zeitnah informiert werden.`,
-          anna: `Das Stromnetz in der ${anchor} ist aktuell so weit am Limit, dass wir frühestens im Jahr 2034 neue Anträge für Wallboxen oder Wärmepumpen akzeptieren können.`,
-        };
+        const texts = { [actors[0]]: fixture.textB, [actors[1]]: fixture.textA };
         const send = async (actor, message, freshConversation = false) => {
+          budget.assertReady();
           const result = await broker.call(
             'workbench.chat',
             {
@@ -130,12 +139,14 @@ async function validateTenantMemoryLive() {
             }
           );
           await Promise.allSettled([...(workbench.tenantMemoryJobs || [])]);
+          budget.assertReady();
           return result;
         };
         const turns = [];
         for (const actor of order) turns.push({ actor, ...(await send(actor, texts[actor])) });
         const notice = await send(order[0], 'Was ist der nächste Schritt?');
-        const query = await send(order[0], `Was wissen wir insgesamt zur ${anchor}?`, true);
+        const queries = await Promise.all(order.map((actor) => send(actor, fixture.query, true)));
+        const query = queries[0];
         const p = { tenantId, actorId: order[0], roles: ['ROLE_GRID_OPERATOR'], clearance: [] };
         const facts = await store.query(
           {
@@ -156,7 +167,7 @@ async function validateTenantMemoryLive() {
           { 'payload.type': 'tenant_memory_fact' }
         );
         const checks = {
-          bothCaptured: ['ben', 'anna'].every((actor) =>
+          bothCaptured: actors.every((actor) =>
             facts.some((fact) => fact.person.actorId === actor)
           ),
           confirmations: turns.every((turn) => /Hab ich festgehalten/.test(turn.responseText)),
@@ -171,11 +182,20 @@ async function validateTenantMemoryLive() {
           noticeDelivered:
             /2030/.test(notice.noticeBlock || notice.responseText) &&
             /2034/.test(notice.noticeBlock || notice.responseText),
-          queryListsBoth:
-            query.state === 'tenant_memory_query' &&
-            ['ben', 'anna'].every((actor) =>
-              query.statements?.some((fact) => fact.person.actorId === actor)
-            ),
+          scenario1CanonicalBases: facts.every((fact) =>
+            fact.anchors.some((item) =>
+              store
+                .anchorKeys(item)
+                .some((key) => JSON.parse(key)[0] === store.normalizeAnchor(anchor))
+            )
+          ),
+          scenario2EachActorListsBoth: queries.every(
+            (reply) =>
+              reply.state === 'tenant_memory_query' &&
+              actors.every((actor) =>
+                reply.statements?.some((fact) => fact.person.actorId === actor)
+              )
+          ),
           readableDate: /\d{2}\.\d{2}\.\d{4}/.test(query.responseText),
         };
         recoveryReplay = { p, factId: facts.find((fact) => fact.relationIds.length)?.id };
@@ -197,7 +217,7 @@ async function validateTenantMemoryLive() {
               ? 'turn'
               : 'notice',
           notice: notice.noticeBlock || notice.responseText,
-          query: query.responseText,
+          queries: queries.map((reply) => reply.responseText),
           facts: facts.map(
             ({ person, checking, attempts, relationIds, anchors, checkingFailure }) => ({
               person,
@@ -216,6 +236,69 @@ async function validateTenantMemoryLive() {
         );
         console.log(JSON.stringify({ order, run, checks }));
       }
+    }
+    if (scenario863) {
+      report.scenario = '863/3';
+      report.budget = budget.report();
+      delete report.budget.tokens.lastMeta;
+      report.passed =
+        report.runs.length >= 5 &&
+        report.runs.every(
+          (run) => Object.values(run.checks).every(Boolean) && run.connectionChannel === 'turn'
+        );
+      if (!report.passed) process.exitCode = 1;
+      return;
+    }
+    // Scenario 7 uses the same local persistence, with deterministic boundary failures.
+    // Never connects to a remote object store; the real facade remains configured above.
+    report.scenario7 = [];
+    for (const failure of ['write', 'read']) {
+      const fixture = generateMemoryAnchorFixture();
+      const p = {
+        tenantId: 'synthetic-memory-failure',
+        actorId: fixture.actorA,
+        roles: ['ROLE_GRID_OPERATOR'],
+        clearance: [],
+      };
+      const meta = {
+        apiToken: {
+          id: p.actorId,
+          tenantId: p.tenantId,
+          roles: p.roles,
+          sensitivityFlags: [],
+          scope: 'agentos-session',
+        },
+      };
+      const ctx = {
+        broker,
+        meta,
+        params: {},
+        call: (name, params, options) => {
+          if (failure === 'write' && name === 'object-store.put')
+            return Promise.reject(new Error('Synthetic local write failure'));
+          if (
+            failure === 'read' &&
+            name === 'object-store.query' &&
+            params.selector['payload.anchorKeys']
+          )
+            return Promise.resolve({ docs: [] });
+          return broker.call(name, params, { ...options, meta: { ...meta, ...options?.meta } });
+        },
+      };
+      const state = memory.start(workbench, ctx, p, {
+        situation: {
+          turnKind: 'work',
+          requestedAction: {},
+          tenantMemory: { assertions: [fixture.second] },
+        },
+        envelope: { userRequest: fixture.textB, channel: 'api', conversationId: fixture.base },
+      });
+      await state.job;
+      report.scenario7.push({
+        failure,
+        confirmation: state.confirmation,
+        passed: Boolean(state.confirmation) && !/Hab ich festgehalten/u.test(state.confirmation),
+      });
     }
     // Replay one completed synthetic fact through the durable queue with the real facade.
     // No provider failure is injected: this verifies the actual recovery timeout and logs.
@@ -259,6 +342,7 @@ async function validateTenantMemoryLive() {
     report.recovery.idleObservations = report.observations.length - before;
     report.passed =
       report.runs.length === 4 &&
+      report.scenario7.every((item) => item.passed) &&
       report.recovery.realModelReplay?.passed &&
       report.observations.some(
         (item) => item.label === 'Tenant memory recovery completed' && item.tenantId

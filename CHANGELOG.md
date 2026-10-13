@@ -1,4 +1,21 @@
 # Changelog
+## RC3 – Teamgedächtnis und Mail-Verläufe (#863)
+
+- Bezugsanker aus dem wörtlichen Beleg deterministisch vervollständigen und ergänzen; alle Bezüge vor Festhaltebestätigung wieder lesen.
+- Auditierte idempotente Anker-Migration v2 mit erneuter Wechselwirkungsprüfung.
+- Mail-/Verlaufsturns ohne Datenfrage lösen keine Capability-/Datensatzabfrage aus; Kennungen liefern keine Messwert-Extrema.
+- Entwurfssignaturen mit gemapptem Anzeigenamen auch bei leerem Gruß und fehlendem optionalem Displayfeld.
+- Synthetische Abnahmetests und wiederholbare budgetierte lokale Live-Abnahme für #863.
+
+
+## Unreleased — Teamgedächtnis mit kanonischen Basisankern (#861)
+
+- Der Store zerlegt zusammengesetzte Anker deterministisch über konfigurierbare Präpositionen und Artikel. Basisfragen und Wechselwirkungen berücksichtigen alle Qualifier; ausdrücklich qualifizierte Fragen behalten ihre Filterung.
+- Festhaltebestätigungen erfordern das erneute Lesen der gespeicherten Aussage über einen Basisanker im selben Turn. Schreib- und Lesefehler führen zu einer ehrlichen Meldung.
+- Auditierte, idempotente Tenant-Admin-Migration normalisiert Altdaten, bereinigt interne Funktionslabels und doppelte Prüfbelege und plant neu verbundene Aussagen zur erneuten Prüfung ein; Betreiberaufruf im Tenant-Gedächtnis-Runbook.
+- Entwürfe verwenden den gemappten Anzeigenamen für die Signatur. Vollständig beantwortete Fragen zu einem eindeutigen Datensatz erhalten keine zusätzliche Bereichs- oder Zeitraumfrage.
+- Synthetische Generator-Daten und Tests für alle elf Abnahmeszenarien. Die vorhandene Nichtproduktions-Live-Validierung ist um Szenarien 1, 2 und 7 ergänzt; sie wurde nicht ausgeführt.
+
 
 ## Unreleased — RC3: Tenant-Wissen aus Dokumenten (#789)
 
