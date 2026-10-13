@@ -188,7 +188,7 @@ function predictStateModel(params, meta = {}, store = createStateStore()) {
   const backup = a.model.fallback_reference_model
     ? restoreModel(a.model.fallback_reference_model)
     : null;
-  let referenceFallback = false;
+  const referenceFallback = false;
   let lastReferencePrediction;
   const referencePredict = restored
     ? (row) => {
