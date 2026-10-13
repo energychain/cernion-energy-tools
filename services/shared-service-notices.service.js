@@ -133,7 +133,14 @@ module.exports = {
             Boolean(ctx.params.confirmation),
             Boolean(ctx.params.change),
           ]);
-          if (doc.seen.includes(key)) return { queued: false };
+          if (
+            doc.seen.includes(key) ||
+            (doc.memoryDelivered || []).includes(ctx.params.relationId) ||
+            doc.history.some(
+              (item) => item.kind === 'memory' && item.relationId === ctx.params.relationId
+            )
+          )
+            return { queued: false };
           doc.seen = [...doc.seen, key].slice(-this.settings.dedupLimit);
           const sequence = ++doc.sequence;
           doc.queue.push({
@@ -245,6 +252,7 @@ module.exports = {
         turnRef: { type: 'string', min: 1, max: 256 },
         structured: { type: 'boolean', optional: true },
         fullQueue: { type: 'boolean', optional: true },
+        currentFactIds: { type: 'array', items: 'string', optional: true },
       },
       handler(ctx) {
         const p = this.self(ctx);
@@ -259,7 +267,21 @@ module.exports = {
           const selected = ctx.params.fullQueue
             ? result.items
             : result.items.slice(0, this.settings.maxPerResponse);
-          const refs = new Set(selected.map((item) => item.ref));
+          const current = new Set(ctx.params.currentFactIds || []);
+          const suppressed = doc.queue.filter(
+            (item) => item.kind === 'memory' && item.factIds?.some((id) => current.has(id))
+          );
+          const refs = new Set([...selected, ...suppressed].map((item) => item.ref));
+          doc.memoryDelivered = [
+            ...new Set([
+              ...(doc.memoryDelivered || []),
+              ...doc.history
+                .filter((item) => item.kind === 'memory')
+                .map((item) => item.relationId),
+              ...selected.filter((item) => item.kind === 'memory').map((item) => item.relationId),
+              ...suppressed.map((item) => item.relationId),
+            ]),
+          ];
           doc.history = [...doc.history, ...doc.queue.filter((item) => refs.has(item.ref))].slice(
             -this.settings.maxHistory
           );
@@ -554,7 +576,7 @@ module.exports = {
           } else if (item.confirmation) {
             const fact = (await memoryStore.get(ctx, p, item.relationId)).payload;
             item.text = memoryStore.active(fact) ? `Hab ich festgehalten: ${fact.text}` : '';
-          } else item.text = await memoryStore.relationText(ctx, p, item.relationId);
+          } else item.text = await memoryStore.relationNotice(ctx, p, item.relationId, p.actorId);
           return Boolean(item.text);
         }
         if (item.kind === 'proposal') {
@@ -662,6 +684,10 @@ module.exports = {
         : null;
       for (const item of eligibleNotices(doc, this.model))
         if (
+          !(
+            item.kind === 'memory' &&
+            item.factIds?.some((id) => (ctx.params.currentFactIds || []).includes(id))
+          ) &&
           (['memory', 'quota'].includes(item.kind) ||
             ctx.params.fullQueue ||
             !context ||

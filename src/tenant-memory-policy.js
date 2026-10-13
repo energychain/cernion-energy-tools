@@ -39,6 +39,7 @@ async function change(ctx, p, id, kind, basis, { confirmed = false, admin = fals
     if (kind === 'deleted') {
       next.text = '';
       next.basis = '';
+      next.message = '';
       next.time = {};
       next.commitment = '';
       next.recoveryPrincipal = undefined;
@@ -112,15 +113,52 @@ async function cleanup(ctx, p) {
   return { failed };
 }
 // Only this audited administrative path upgrades persisted legacy anchors.
-async function migrateAnchors(ctx, p, reason) {
+async function migrateAnchors(ctx, p, reason, originalMessages = []) {
   if (!p.roles.includes('ROLE_TENANT_ADMIN')) deny('Tenant administrator required');
   if (typeof reason !== 'string' || !reason.trim()) deny('Migration reason required');
   return require('./tenant-memory').serialized(p, async () => {
     const facts = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
-    const normalized = facts.map((fact) => {
-      const anchors = store.groundedAnchors(fact.anchors || [], fact.basis || fact.text);
+    const corpus = await store.frequencyCorpus(ctx, p);
+    const originals = new Map();
+    for (const source of originalMessages) {
+      const fact = facts.find((item) => item.id === source.id);
+      if (
+        !fact ||
+        !store.active(fact) ||
+        originals.has(source.id) ||
+        !require('./tenant-memory').basisMatches(fact.basis || fact.text, source.message)
+      )
+        deny('Original message does not match accessible active statement');
+      originals.set(source.id, source.message);
+    }
+    const normalized = facts.map((previous) => {
+      const fact = originals.has(previous.id)
+        ? { ...previous, message: originals.get(previous.id) }
+        : previous;
+      const anchors = store.groundedAnchors(
+        fact.anchors || [],
+        fact.message || fact.basis || fact.text,
+        facts,
+        corpus
+      );
       return {
         ...fact,
+        basis: store.literalBasis(
+          fact.basis || fact.text,
+          fact.message || fact.basis || fact.text,
+          anchors
+        ),
+        text: anchors.every((anchor) =>
+          ` ${store.normalizeAnchor(fact.text)} `.includes(
+            ` ${store.normalizeAnchor(anchor.value)} `
+          )
+        )
+          ? fact.text
+          : store.literalBasis(
+              fact.basis || fact.text,
+              fact.message || fact.basis || fact.text,
+              anchors
+            ),
         anchors,
         anchorKeys: [...new Set(anchors.flatMap(store.anchorKeys))],
         person: {
@@ -134,10 +172,25 @@ async function migrateAnchors(ctx, p, reason) {
     const changedIds = new Set(
       normalized
         .filter((fact, index) =>
-          ['anchors', 'anchorKeys', 'person', 'checkingEvidence', 'plausibility'].some(
+          [
+            'basis',
+            'text',
+            'message',
+            'anchors',
+            'anchorKeys',
+            'person',
+            'checkingEvidence',
+            'plausibility',
+          ].some(
             (field) =>
-              JSON.stringify(fact[field]) !==
-              JSON.stringify(facts[index][field] || (field === 'person' ? {} : []))
+              JSON.stringify(
+                fact[field] ||
+                  (field === 'person' ? {} : ['basis', 'text', 'message'].includes(field) ? '' : [])
+              ) !==
+              JSON.stringify(
+                facts[index][field] ||
+                  (field === 'person' ? {} : ['basis', 'text', 'message'].includes(field) ? '' : [])
+              )
           )
         )
         .map((fact) => fact.id)
@@ -148,11 +201,16 @@ async function migrateAnchors(ctx, p, reason) {
         store
           .candidates(
             facts.find((item) => item.id === fact.id),
-            facts
+            facts,
+            corpus
           )
           .map((item) => item.id)
       );
-      for (const candidate of store.candidates(fact, normalized)) {
+      for (const candidate of store.candidates(
+        fact,
+        normalized,
+        corpus.map((item) => normalized.find((next) => next.id === item.id) || item)
+      )) {
         if (!before.has(candidate.id)) {
           requeue.add(fact.id);
           requeue.add(candidate.id);
@@ -173,6 +231,9 @@ async function migrateAnchors(ctx, p, reason) {
         written = true;
         return {
           ...latest,
+          basis: fact.basis,
+          text: fact.text,
+          ...(fact.message ? { message: fact.message } : {}),
           anchors: fact.anchors,
           anchorKeys: fact.anchorKeys,
           person: fact.person,
@@ -196,11 +257,12 @@ async function migrateAnchors(ctx, p, reason) {
             ...(latest.audit || []),
             {
               kind: 'anchors_migrated',
-              migration: 'anchor-canonical-v2',
+              migration: 'anchor-canonical-v3',
               actorId: p.actorId,
               at,
               reason,
               requeued: queue,
+              originalRestored: originals.has(fact.id),
             },
           ],
         };
@@ -210,7 +272,41 @@ async function migrateAnchors(ctx, p, reason) {
         requeued += Number(queue);
       }
     }
-    const result = { migration: 'anchor-canonical-v2', scanned: facts.length, changed, requeued };
+    const originalMessagesRequired = normalized
+      .filter(
+        (fact, index) =>
+          store.active(fact) &&
+          [
+            ...fact.anchors,
+            ...(originals.has(fact.id)
+              ? []
+              : (facts[index].anchors || []).filter(
+                  (anchor) =>
+                    !fact.anchors.some((next) =>
+                      ` ${store.normalizeAnchor(store.qualifiedAnchor(anchor).value)} `.includes(
+                        ` ${store.normalizeAnchor(next.value)} `
+                      )
+                    )
+                )),
+          ].some(
+            (anchor) =>
+              !store.anchorKeys(anchor).some((key) => {
+                const base = JSON.parse(key)[0];
+                return (
+                  ` ${store.normalizeAnchor(fact.basis)} `.includes(` ${base} `) &&
+                  ` ${store.normalizeAnchor(fact.text)} `.includes(` ${base} `)
+                );
+              })
+          )
+      )
+      .map((fact) => fact.id);
+    const result = {
+      migration: 'anchor-canonical-v3',
+      scanned: facts.length,
+      changed,
+      requeued,
+      ...(originalMessagesRequired.length ? { originalMessagesRequired } : {}),
+    };
     await audit(ctx, p, 'admin_migrate_anchors', { ...result, reason });
     return result;
   });
