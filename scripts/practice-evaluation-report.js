@@ -101,14 +101,10 @@ function excerpt(value) {
 }
 const cell = (value) =>
   String(value ?? '–')
-    .replaceAll('\\', '\\\\')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replace(/\|/gu, '\\|')
-    .replaceAll('[', '\\[')
-    .replaceAll(']', '\\]')
-    .replaceAll('`', '\\`')
+    .replace(/[\\|[\]`&<>]/gu, (character) => {
+      const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+      return entities[character] || `\\${character}`;
+    })
     .replace(/\r?\n/gu, ' ');
 function compareMetrics(current, previous = []) {
   return current.map((item) => {
