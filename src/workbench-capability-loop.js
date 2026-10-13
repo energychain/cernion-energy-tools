@@ -170,19 +170,14 @@ function candidatesFor(
   });
 }
 
-// Generic question forms only; subject matching stays in the generated operation index.
-function resolveCapabilityNeed(situation, message, options = {}) {
-  const model = options.model || getFunctionModel();
-  const index = options.index || loadOperationCapabilityIndex();
-  const api = options.api || require('../openapi-export.json');
+function dataQuestionIntent(message) {
   // Quoted correspondence cannot open a query; plain requests may span lines.
   const request = String(message || '').trim();
   const text = normalizePhrase(
     require('./workbench-thread').isThreadInput(request) ? request.split('\n')[0] : request
   );
-  const refinement = /\b(davon|darunter|dieser|diesen|deren|of those|among them)\b/.test(text);
   const concrete =
-    /\b(wie viele|wieviele|wie viel|wie hoch|wie gross|wie klein|wie niedrig|anzahl|liste|auflisten|welche|welcher|welches|wert|maximum|minimum|groesste|grosste|kleinste|hoechste|hochste|niedrigste|stand|status|how many|list|value|largest|smallest|highest|lowest)\b/.test(
+    /\b(wie viele|wieviele|wie viel|wie hoch|wie gross|wie klein|wie niedrig|anzahl|liste|auflisten|welche|welcher|welches|wert|maximum|minimum|spitzenlast|summe|mittelwert|groesste|grosste|kleinste|hoechste|hochste|niedrigste|stand|status|how many|list|value|largest|smallest|highest|lowest)\b/.test(
       text
     );
   const conceptual =
@@ -190,19 +185,46 @@ function resolveCapabilityNeed(situation, message, options = {}) {
       text
     );
   const knowledgeList =
-    /\bwelche[nmrs]? (?:arten|typen|formen|voraussetzungen|anforderungen|regeln|grundlagen)\b/.test(
+    /\bwelche[nmrs]? (?:arten|typen|formen|voraussetzungen|anforderungen|regeln|grundlagen|antwort(?:en)?|formulierung(?:en)?|entwurf|entwurfe)\b/.test(
       text
     );
-  const explicit = Boolean(situation.dataNeeds?.trim());
-  const datasetMatch = Boolean(options.datasetCandidates?.length);
-  const materialOnly =
+  return {
+    text,
+    concrete:
+      concrete &&
+      !conceptual &&
+      !knowledgeList &&
+      !/^(?:mein|unser) (?:antwort)?entwurf\b|^(?:von|from)\b/u.test(text),
+  };
+}
+function allowsDataRead(situation, message, previous = {}) {
+  const material =
     situation.conversationShape === 'filing' ||
     situation.outputKind === 'correspondence' ||
     situation.responseMode === 'correspondence' ||
-    require('./workbench-thread').isThreadInput(request);
-  if (!explicit && materialOnly)
-    return { situation, candidates: [], reason: 'no_data_need', refinement: false };
-  if (!explicit && !datasetMatch && (!concrete || conceptual || knowledgeList))
+    situation.timeline?.length ||
+    previous?.timeline?.length ||
+    previous?.outputKind === 'correspondence' ||
+    require('./workbench-thread').isDocumentInput(message);
+  return !material || dataQuestionIntent(message).concrete;
+}
+// Generic question forms only; subject matching stays in the generated operation index.
+function resolveCapabilityNeed(situation, message, options = {}) {
+  const model = options.model || getFunctionModel();
+  const index = options.index || loadOperationCapabilityIndex();
+  const api = options.api || require('../openapi-export.json');
+  const { text, concrete } = dataQuestionIntent(message);
+  const refinement = /\b(davon|darunter|dieser|diesen|deren|of those|among them)\b/.test(text);
+  if (!allowsDataRead(situation, message, options.previous))
+    return {
+      situation: { ...situation, dataNeeds: '' },
+      candidates: [],
+      reason: 'no_data_need',
+      refinement: false,
+    };
+  const explicit = Boolean(situation.dataNeeds?.trim());
+  const datasetMatch = Boolean(options.datasetCandidates?.length);
+  if (!explicit && !datasetMatch && !concrete)
     return { situation, candidates: [], reason: 'no_data_need', refinement: false };
   const querySituation = {
     ...situation,
@@ -973,6 +995,7 @@ function toolReport(trace = [], evidence = [], _message = '') {
 }
 
 module.exports = {
+  allowsDataRead,
   runCapabilityLoop,
   resolveCapabilityNeed,
   loopDiagnostics,

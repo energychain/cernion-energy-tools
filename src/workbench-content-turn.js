@@ -172,6 +172,14 @@ async function readTurnDataset(ctx, p, envelope, candidates, meta) {
 
 async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }) {
   const started = performance.now();
+  if (
+    !require('./workbench-capability-loop').allowsDataRead(
+      {},
+      envelope.userRequest,
+      pending?.situation
+    )
+  )
+    return null;
   if (!ctx.broker.getLocalService('dataset')) return null;
   const fresh = envelope.datasetIds || [];
   // Replayed attachments retain the established answer phase and its grounded checks.
@@ -489,6 +497,7 @@ async function runContentTurn(
       tenantMemory.acceptedAssertion(item, envelope.userRequest)
     );
   const toolLoop = require('./workbench-capability-loop');
+  const dataReadAllowed = toolLoop.allowsDataRead(situation, envelope.userRequest, previous);
   const answerReserve = understanding.llmOptions(p.tenantId, 'answer', Boolean(previous)).timeoutMs;
   const turnBudget =
     Number(process.env.WORKBENCH_TURN_TIMEOUT_MS) ||
@@ -501,7 +510,8 @@ async function runContentTurn(
     ctx.broker.getLocalService('dataset') &&
     !incomingDocuments &&
     !draftRequest &&
-    !understandingFailed
+    !understandingFailed &&
+    dataReadAllowed
       ? await ctx
           .call('datapoint.datasetCatalog', { operation: 'list' }, { meta })
           .then((records) =>
@@ -551,6 +561,7 @@ async function runContentTurn(
   const nextStepRequest =
     !understanding.isDraftRequest(envelope.userRequest) && situation.followupKind === 'next_step';
   const reuseTools = Boolean(
+    dataReadAllowed &&
     previous &&
     (cachedExtremum ||
       nextStepRequest ||

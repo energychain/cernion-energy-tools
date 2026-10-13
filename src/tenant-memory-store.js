@@ -75,6 +75,101 @@ function anchorKeys(anchor) {
     .filter(Boolean)
     .map((base) => JSON.stringify([base, qualifier]));
 }
+// Parse the literal evidence with case and sentence boundaries. Grammar,
+// morphology and structural identifiers replace any subject/place vocabulary.
+function referenceAnchors(basis) {
+  const text = String(basis || '');
+  const tokens = [...text.matchAll(/[\p{L}\p{N}]+(?:[-_/][\p{L}\p{N}]+)*/gu)];
+  const { prepositions, articles } = anchorSyntax();
+  const result = [];
+  for (let i = 0; i < tokens.length - 1; i++) {
+    if (!prepositions.includes(normalizeAnchor(tokens[i][0]))) continue;
+    const prefix = text.slice(0, tokens[i].index);
+    if (!prefix.trim() || /[.!?]\s*$/u.test(prefix)) continue;
+    let start = i + 1;
+    while (start < tokens.length && articles.includes(normalizeAnchor(tokens[start][0]))) start++;
+    if (start >= tokens.length) continue;
+    let end = start;
+    const isId = (word) => /\d/u.test(word) && !/^\d{1,4}$/u.test(word);
+    while (end < tokens.length && (/^\p{Lu}/u.test(tokens[end][0]) || isId(tokens[end][0]))) {
+      if (
+        end > start &&
+        /[,.!?;\n]/u.test(
+          text.slice(tokens[end - 1].index + tokens[end - 1][0].length, tokens[end].index)
+        )
+      )
+        break;
+      end++;
+    }
+    if (end === start) continue;
+    const identifier = tokens.slice(start, end).find((token) => isId(token[0]));
+    const value = identifier
+      ? identifier[0]
+      : tokens
+          .slice(start, end)
+          .map((token) => token[0])
+          .join(' ');
+    if (
+      !identifier &&
+      (articles.includes(normalizeAnchor(tokens[end]?.[0])) ||
+        /(?:ung|heit|keit|schaft|tion|ität)$/u.test(value) ||
+        new RegExp(`(?:^|\\s)${normalizeAnchor(value)}(?:\\s|$)`, 'u').test(
+          normalizeAnchor(prefix)
+        ))
+    )
+      continue;
+    result.push({ value, prefix });
+  }
+  return result;
+}
+function groundedAnchors(anchors = [], basis = '') {
+  const references = referenceAnchors(basis);
+  const normalized = anchors
+    .map((anchor) => {
+      let qualified = qualifiedAnchor(anchor);
+      const reference = references.find((item) =>
+        ` ${normalizeAnchor(item.prefix)} `.endsWith(` ${normalizeAnchor(qualified.value)} `)
+      );
+      if (reference)
+        qualified = {
+          ...qualified,
+          value: reference.value,
+          qualifier: qualified.value,
+          aliases: [],
+        };
+      else {
+        const aliasReference = references.find((item) =>
+          qualified.aliases.some((alias) => normalizeAnchor(alias) === normalizeAnchor(item.value))
+        );
+        if (aliasReference) qualified = { ...qualified, value: aliasReference.value };
+      }
+      return qualified.qualifier && !qualifiedMention(qualified, basis)
+        ? { ...qualified, qualifier: '' }
+        : qualified;
+    })
+    .filter(
+      (anchor) =>
+        !references.length ||
+        anchorKeys(anchor).some((key) =>
+          ` ${normalizeAnchor(basis)} `.includes(` ${JSON.parse(key)[0]} `)
+        )
+    );
+  for (const reference of references) {
+    if (
+      !normalized.some((anchor) =>
+        anchorKeys(anchor).some((key) => JSON.parse(key)[0] === normalizeAnchor(reference.value))
+      )
+    )
+      normalized.push({ value: reference.value, qualifier: '', aliases: [] });
+  }
+  const seen = new Set();
+  return normalized.filter((anchor) => {
+    const identity = JSON.stringify(anchorKeys(anchor));
+    if (seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
+  });
+}
 function qualifiedMention(anchor, message) {
   const normalized = qualifiedAnchor(anchor);
   const qualifier = normalizeAnchor(normalized.qualifier);
@@ -279,6 +374,8 @@ module.exports = {
   qualifiedAnchor,
   anchorKeys,
   anchorSyntax,
+  referenceAnchors,
+  groundedAnchors,
   qualifiedMention,
   humanFunctionLabel,
   compactEvidence,

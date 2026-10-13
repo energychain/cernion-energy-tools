@@ -1,7 +1,22 @@
 'use strict';
 
 // Structural field names; independent of user text and domain identifiers.
-function identifierField(field) {
+function identifierField(field, metadata = {}) {
+  if (
+    metadata.sensitive ||
+    metadata.privacyFlag ||
+    /identifier|reference|kennung|\bid\b/iu.test(metadata.semanticRole || '')
+  )
+    return true;
+  if (
+    require('./workbench-identifier-kinds.json').strongReferenceKinds.includes(
+      String(field)
+        .toLocaleLowerCase()
+        .replace(/[_\s-]/gu, '')
+    )
+  )
+    return true;
+  field = String(field).replace(/([\p{Ll}\d])(\p{Lu})/gu, '$1 $2');
   if (require('./tabular-intelligence').profileRows([{ [field]: null }]).columns[0]?.sensitive)
     return true;
   const tokens = require('./function-resolver').normalizePhrase(field).split(' ');
@@ -82,7 +97,7 @@ function availableToolAnswer(evidence, message = '') {
         ? hit.metadata?.sourceStatistics || hit.metadata?.statistics || data.statistics || []
         : hit.metadata?.statistics || data.statistics || [];
       const candidates = stats.filter(
-        (stat) => !identifierField(stat.field) && !/status|year|jahr/iu.test(stat.field)
+        (stat) => !identifierField(stat.field, stat) && !/status|year|jahr/iu.test(stat.field)
       );
       const statistic =
         candidates.find((stat) => /(?:kW|kWh|MW|MWh|EUR|Hz)$/iu.test(stat.field)) || candidates[0];

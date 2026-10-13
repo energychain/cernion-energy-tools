@@ -1,5 +1,5 @@
 'use strict';
-require('./live-validation-budget').installLiveBudget();
+const budget = require('./live-validation-budget').installLiveBudget();
 
 // Real configured LLM facade; synthetic actors/anchors and isolated local persistence.
 const fs = require('node:fs');
@@ -13,6 +13,10 @@ const store = require('../src/tenant-memory-store');
 const { generateMemoryAnchorFixture } = require('./generate-memory-cleanup-fixture');
 
 async function validateTenantMemoryLive() {
+  const scenario863 = process.env.TENANT_MEMORY_LIVE_SCENARIO === '863';
+  const repeats = scenario863 ? Number(process.env.TENANT_MEMORY_LIVE_RUNS || 5) : 2;
+  if (!Number.isSafeInteger(repeats) || repeats < 1 || repeats > 20)
+    throw new Error('Invalid live run count');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-memory-live-'));
   const ObjectStore = require('../services/object-store.service');
   const Notices = require('../services/shared-service-notices.service');
@@ -84,25 +88,35 @@ async function validateTenantMemoryLive() {
   let recoveryReplay;
   try {
     await broker.start();
-    for (const order of [
-      ['ben', 'anna'],
-      ['anna', 'ben'],
-    ]) {
-      for (let run = 1; run <= 2; run++) {
+    for (const defaultOrder of scenario863
+      ? [['first', 'second']]
+      : [
+          ['ben', 'anna'],
+          ['anna', 'ben'],
+        ]) {
+      for (let run = 1; run <= repeats; run++) {
+        budget.assertReady();
         const fixture = generateMemoryAnchorFixture();
+        const order = scenario863
+          ? run % 2
+            ? [fixture.actorA, fixture.actorB]
+            : [fixture.actorB, fixture.actorA]
+          : defaultOrder;
+        const actors = scenario863 ? [fixture.actorA, fixture.actorB] : ['ben', 'anna'];
         const anchor = fixture.base;
         const tenantId = `synthetic-memory-${report.runs.length + 1}`;
         for (const [actorId, functionLabel] of [
-          ['ben', 'Gasnetzplanung'],
-          ['anna', 'Stromnetz'],
+          [actors[0], 'Gasnetzplanung'],
+          [actors[1], 'Stromnetz'],
         ])
           await workbench.store.saveUserContext({
             tenantId,
             actorId,
             roleFamilies: [functionLabel],
           });
-        const texts = { ben: fixture.textB, anna: fixture.textA };
+        const texts = { [actors[0]]: fixture.textB, [actors[1]]: fixture.textA };
         const send = async (actor, message, freshConversation = false) => {
+          budget.assertReady();
           const result = await broker.call(
             'workbench.chat',
             {
@@ -125,6 +139,7 @@ async function validateTenantMemoryLive() {
             }
           );
           await Promise.allSettled([...(workbench.tenantMemoryJobs || [])]);
+          budget.assertReady();
           return result;
         };
         const turns = [];
@@ -152,7 +167,7 @@ async function validateTenantMemoryLive() {
           { 'payload.type': 'tenant_memory_fact' }
         );
         const checks = {
-          bothCaptured: ['ben', 'anna'].every((actor) =>
+          bothCaptured: actors.every((actor) =>
             facts.some((fact) => fact.person.actorId === actor)
           ),
           confirmations: turns.every((turn) => /Hab ich festgehalten/.test(turn.responseText)),
@@ -168,12 +183,16 @@ async function validateTenantMemoryLive() {
             /2030/.test(notice.noticeBlock || notice.responseText) &&
             /2034/.test(notice.noticeBlock || notice.responseText),
           scenario1CanonicalBases: facts.every((fact) =>
-            fact.anchors.some((item) => item.value === anchor)
+            fact.anchors.some((item) =>
+              store
+                .anchorKeys(item)
+                .some((key) => JSON.parse(key)[0] === store.normalizeAnchor(anchor))
+            )
           ),
           scenario2EachActorListsBoth: queries.every(
             (reply) =>
               reply.state === 'tenant_memory_query' &&
-              ['ben', 'anna'].every((actor) =>
+              actors.every((actor) =>
                 reply.statements?.some((fact) => fact.person.actorId === actor)
               )
           ),
@@ -217,6 +236,18 @@ async function validateTenantMemoryLive() {
         );
         console.log(JSON.stringify({ order, run, checks }));
       }
+    }
+    if (scenario863) {
+      report.scenario = '863/3';
+      report.budget = budget.report();
+      delete report.budget.tokens.lastMeta;
+      report.passed =
+        report.runs.length >= 5 &&
+        report.runs.every(
+          (run) => Object.values(run.checks).every(Boolean) && run.connectionChannel === 'turn'
+        );
+      if (!report.passed) process.exitCode = 1;
+      return;
     }
     // Scenario 7 uses the same local persistence, with deterministic boundary failures.
     // Never connects to a remote object store; the real facade remains configured above.

@@ -189,7 +189,8 @@ function basisMatches(basis, message) {
 }
 function rejectionReason(item, message) {
   if (item.scope === 'case') return 'case_scope';
-  if (!item.anchors?.length || !item.anchors.every((anchor) => matchesAnchor(anchor, message)))
+  const anchors = store.groundedAnchors(item.anchors || [], item.basis);
+  if (!anchors.length || !anchors.every((anchor) => matchesAnchor(anchor, message)))
     return 'no_anchor';
   if (!item.text?.trim() || !basisMatches(item.basis, message)) return 'basis_mismatch';
   return '';
@@ -312,12 +313,7 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
     const facts = [];
     const confirmations = [];
     for (const assertion of assertions) {
-      const groundedAnchors = assertion.anchors.map((anchor) => {
-        const qualified = store.qualifiedAnchor(anchor);
-        return qualified.qualifier && !store.qualifiedMention(qualified, message)
-          ? { ...qualified, qualifier: '' }
-          : qualified;
-      });
+      const groundedAnchors = store.groundedAnchors(assertion.anchors || [], assertion.basis);
       const id = store.key([
         'statement',
         p.actorId,
@@ -353,17 +349,20 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
       };
       await store.put(ctx, p, fact);
       const bases = [...new Set(fact.anchorKeys.map((key) => JSON.parse(key)[0]))];
-      let readable = false;
-      for (const base of bases) {
+      const required = [
+        ...new Set(
+          store.referenceAnchors(assertion.basis).map((item) => store.normalizeAnchor(item.value))
+        ),
+      ];
+      const found = new Set();
+      for (const base of bases)
         if (
           (await store.byBase(ctx, p, base)).some(
             (saved) => saved.id === fact.id && store.active(saved)
           )
-        ) {
-          readable = true;
-          break;
-        }
-      }
+        )
+          found.add(base);
+      const readable = found.size > 0 && required.every((base) => found.has(base));
       if (!readable) {
         confirmations.push(
           'Die Aussage wurde geschrieben, ist über ihren Bezug aber noch nicht lesbar. Ich kann das Festhalten daher noch nicht bestätigen.'
