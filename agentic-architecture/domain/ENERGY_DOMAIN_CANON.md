@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-13T14:14:53.827Z
+Generated: 2026-10-13T20:20:26.676Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -234,6 +234,7 @@ Arbeitsmodell: Wärme-/Gasprozesse sind politisch, planerisch und datenfachlich 
 
 Starke Code-/Doku-Signale:
 
+- `docs/validation/tenant-memory-868-live.json` (514 hits)
 - `src/capability-catalog.js` (426 hits)
 - `docs/validation/739-routing.json` (257 hits)
 - `src/evidence-registry.js` (249 hits)
@@ -245,7 +246,6 @@ Starke Code-/Doku-Signale:
 - `services/dashboard-api/methods-part-12-of-14.js` (100 hits)
 - `services/znp.service.js` (89 hits)
 - `services/eog-calculator.service.js` (85 hits)
-- `docs/eog-calculator-quality-element.md` (77 hits)
 
 Zugeordnete Services nach Heuristik:
 

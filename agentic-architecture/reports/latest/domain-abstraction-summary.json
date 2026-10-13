@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-13T14:14:53.827Z",
+  "generatedAt": "2026-10-13T20:20:26.676Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261013T141303Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261013T201921Z",
   "counts": {
-    "files": 1924,
-    "candidateFiles": 1145,
+    "files": 1926,
+    "candidateFiles": 1146,
     "services": 159,
     "srcFiles": 433,
-    "docs": 509,
+    "docs": 510,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -33,7 +33,7 @@
       "label": "Netz, Anschluss und Kapazität",
       "files": 25,
       "services": 46,
-      "hits": 10922
+      "hits": 11012
     },
     "forecast-and-market": {
       "label": "Prognose, Markt und Portfolio",
@@ -51,13 +51,13 @@
       "label": "Gas, Wärme und EOG",
       "files": 25,
       "services": 3,
-      "hits": 2959
+      "hits": 3432
     },
     "tenant-and-operation": {
       "label": "Tenant, Rollen und Betrieb",
       "files": 25,
       "services": 51,
-      "hits": 8148
+      "hits": 8286
     },
     "openwebui-agentic-routing": {
       "label": "OpenWebUI und agentisches Routing",
@@ -276,6 +276,10 @@
           "hits": 91
         },
         {
+          "path": "docs/validation/tenant-memory-868-live.json",
+          "hits": 71
+        },
+        {
           "path": "services/capability-broker.service.js",
           "hits": 67
         },
@@ -302,10 +306,6 @@
         {
           "path": "docs/validation/tenant-memory-live.json",
           "hits": 29
-        },
-        {
-          "path": "src/consultation-execution-bridge.js",
-          "hits": 26
         }
       ]
     },
@@ -427,6 +427,10 @@
       "signalFiles": 25,
       "topSignalFiles": [
         {
+          "path": "docs/validation/tenant-memory-868-live.json",
+          "hits": 497
+        },
+        {
           "path": "src/capability-catalog.js",
           "hits": 338
         },
@@ -461,10 +465,6 @@
         {
           "path": "docs/eog-calculator-quality-element.md",
           "hits": 77
-        },
-        {
-          "path": "docs/reviews/730-capability-routing-evaluation.json",
-          "hits": 67
         }
       ]
     }
@@ -552,5 +552,5 @@
       "hits": 263
     }
   ],
-  "fingerprint": "3433f2465657c087de7f4e839ad7a87c05d31b876b1ace16c69740bed41d221f"
+  "fingerprint": "6b9ed3f5eb1c83d4bf0f3533018b20034cf4fed7900d76ebbd3e5134b3c47c4e"
 }
