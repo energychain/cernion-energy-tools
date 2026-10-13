@@ -31,7 +31,7 @@ const {
   evaluationConfig,
   createHttpTransport,
 } = require('../scripts/practice-evaluation-transport');
-const { runPracticeEvaluation } = require('../scripts/validate-practice-live');
+const { runPracticeEvaluation, readProductRef } = require('../scripts/validate-practice-live');
 
 const scores = (total = 12, safety = 2) => {
   const keys = Object.keys(CRITERIA);
@@ -583,4 +583,54 @@ describe('configuration, remote boundaries and partial-run behavior', () => {
     expect(report.runs).toHaveLength(0);
     expect(fs.readFileSync(path.join(directory, 'startup.md'), 'utf8')).toContain('Teilbericht');
   });
+});
+
+// Repository metadata and report cells are evaluated without shell execution or active markup.
+test('report table cells escape backslashes and active markup', () => {
+  const report = {
+    startedAt: 'test',
+    mode: 'local',
+    productRef: 'ref',
+    catalogVersion: '1.0',
+    completed: 1,
+    planned: 1,
+    catalogCount: 1,
+    cleanup: [],
+    fixtureErrors: [],
+    runs: [
+      {
+        id: 'synthetic',
+        dependencies: [],
+        cleanup: [],
+        repeat: 1,
+        expected: 1,
+        turns: [{ id: 'turn', checks: [], responseExcerpt: '<script>[link]`code`\\|' }],
+        rubric: scores(),
+      },
+    ],
+  };
+  const rendered = renderPracticeReport(report);
+  expect(rendered).toContain('&lt;script&gt;');
+  expect(rendered).not.toContain('<script>');
+  expect(rendered).toContain('\\[link\\]');
+  expect(rendered).toContain('\\\\\\|');
+});
+
+test('product reference reads detached and packed repository metadata', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'synthetic-ref-'));
+  const directory = path.join(root, '.git');
+  fs.mkdirSync(directory);
+  const sha = 'a'.repeat(40);
+  try {
+    fs.writeFileSync(path.join(directory, 'HEAD'), sha);
+    expect(readProductRef(root)).toBe(sha);
+    fs.writeFileSync(path.join(directory, 'HEAD'), 'ref: refs/heads/main');
+    fs.writeFileSync(path.join(directory, 'packed-refs'), `${sha} refs/heads/main\n`);
+    expect(readProductRef(root)).toBe(sha);
+  } finally {
+    fs.unlinkSync(path.join(directory, 'HEAD'));
+    fs.unlinkSync(path.join(directory, 'packed-refs'));
+    fs.rmdirSync(directory);
+    fs.rmdirSync(root);
+  }
 });

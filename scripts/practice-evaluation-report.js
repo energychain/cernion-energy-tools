@@ -101,7 +101,14 @@ function excerpt(value) {
 }
 const cell = (value) =>
   String(value ?? '–')
+    .replaceAll('\\', '\\\\')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
     .replace(/\|/gu, '\\|')
+    .replaceAll('[', '\\[')
+    .replaceAll(']', '\\]')
+    .replaceAll('`', '\\`')
     .replace(/\r?\n/gu, ' ');
 function compareMetrics(current, previous = []) {
   return current.map((item) => {

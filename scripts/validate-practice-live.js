@@ -2,7 +2,6 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { execFileSync } = require('node:child_process');
 const {
   generatePracticeCatalog,
   instantiatePracticeScenario,
@@ -15,6 +14,38 @@ const {
   createLocalTransport,
   createHttpTransport,
 } = require('./practice-evaluation-transport');
+
+function readProductRef(root = path.join(__dirname, '..')) {
+  const marker = path.join(root, '.git');
+  const directory = fs.statSync(marker).isDirectory()
+    ? marker
+    : path.resolve(
+        root,
+        fs
+          .readFileSync(marker, 'utf8')
+          .trim()
+          .replace(/^gitdir: /u, '')
+      );
+  const head = fs.readFileSync(path.join(directory, 'HEAD'), 'utf8').trim();
+  if (/^[a-f0-9]{40,64}$/u.test(head)) return head;
+  const ref = head.replace(/^ref: /u, '');
+  if (!/^refs\/[\w./-]+$/u.test(ref) || ref.includes('..'))
+    throw new Error('Invalid git reference');
+  const commonFile = path.join(directory, 'commondir');
+  const common = fs.existsSync(commonFile)
+    ? path.resolve(directory, fs.readFileSync(commonFile, 'utf8').trim())
+    : directory;
+  for (const base of [directory, common]) {
+    const file = path.join(base, ref);
+    if (fs.existsSync(file)) return fs.readFileSync(file, 'utf8').trim();
+  }
+  const packed = fs
+    .readFileSync(path.join(common, 'packed-refs'), 'utf8')
+    .split('\n')
+    .find((line) => line.endsWith(` ${ref}`));
+  if (!packed) throw new Error('Git reference not found');
+  return packed.split(' ')[0];
+}
 
 async function runPracticeEvaluation({
   config,
@@ -40,10 +71,7 @@ async function runPracticeEvaluation({
   const report = {
     schemaVersion: '1.0',
     startedAt: new Date(started).toISOString(),
-    productRef: execFileSync('git', ['rev-parse', 'HEAD'], {
-      cwd: path.join(__dirname, '..'),
-      encoding: 'utf8',
-    }).trim(),
+    productRef: readProductRef(),
     mode: transport?.mode || config.mode,
     catalogVersion: catalog.schemaVersion,
     catalogCount: scenarios.length,
@@ -245,4 +273,4 @@ if (require.main === module)
     process.stderr.write(`Evaluation failed: ${error.type || error.name}\n`);
     process.exitCode = 2;
   });
-module.exports = { runPracticeEvaluation, validatePracticeLive };
+module.exports = { runPracticeEvaluation, validatePracticeLive, readProductRef };
