@@ -189,9 +189,32 @@ async function attachNotices(ctx, result, facts) {
       }
     );
     const renderedFacts = new Set((result.statements || []).map((fact) => fact.id));
+    const renderedRelations = new Set();
+    if (result.responseText && ctx.broker.getLocalService('object-store')) {
+      const memoryCtx = {
+        ...ctx,
+        meta,
+        call: (name, params, options) => ctx.call(name, params, { ...options, meta }),
+      };
+      for (const item of notice.items || []) {
+        if (item.kind !== 'memory' || !item.relationId) continue;
+        try {
+          const text = await require('./tenant-memory-store').relationText(
+            memoryCtx,
+            p,
+            item.relationId,
+            { includeFacts: false }
+          );
+          if (text && result.responseText.includes(text)) renderedRelations.add(item.relationId);
+        } catch (error) {
+          if (![403, 404].includes(error.code)) throw error;
+        }
+      }
+    }
     const visibleItems = (notice.items || []).filter(
       (item) =>
         !(item.text && result.responseText?.includes(item.text)) &&
+        !renderedRelations.has(item.relationId) &&
         !(
           item.kind === 'memory' &&
           item.factIds?.length &&
@@ -202,10 +225,10 @@ async function attachNotices(ctx, result, facts) {
       visibleItems,
       notice.remaining || 0
     );
-    if (notice.items?.length)
+    if (visibleItems.length)
       result = {
         ...result,
-        metadata: { ...result.metadata, notices: notice.items },
+        metadata: { ...result.metadata, notices: visibleItems },
       };
     if (fullQueue) return { ...result, noticeQueue: notice, noticeBlock: notice.block };
     if (!notice.block) return result;

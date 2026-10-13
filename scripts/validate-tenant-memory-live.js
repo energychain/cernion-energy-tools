@@ -158,7 +158,10 @@ async function validateTenantMemoryLive() {
         };
         const turns = [];
         for (const actor of order) turns.push({ actor, ...(await send(actor, texts[actor])) });
-        const notice = await send(order[0], 'Was ist der nächste Schritt?');
+        const notice = await send(
+          order[0],
+          scenario868 ? fixture.unrelated : 'Was ist der nächste Schritt?'
+        );
         const repeated = scenario868 ? await send(order[0], fixture.news) : null;
         const unrelated = scenario868 ? await send(order[0], fixture.unrelated) : null;
         const queries = await Promise.all(order.map((actor) => send(actor, fixture.query, true)));

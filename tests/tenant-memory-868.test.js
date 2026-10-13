@@ -268,6 +268,22 @@ describe('868 literal message anchors and unseen interaction notices', () => {
     expect(result.state.ids).toEqual([]);
     expect(result.state.confirmation).toBe('');
   });
+  test('B.1/B.3: an interaction already rendered in the answer is seen without a duplicate notice', async () => {
+    await capture(f.patterns[0][0], f.actorA);
+    const b = await capture(f.patterns[0][1], f.actorB);
+    const facts = await store.byBase(b.ctx, b.p, f.base);
+    const relationId = facts[0].relationIds[0];
+    const ctx = context(principal(f.actorA));
+    const hook = require('../src/function-coverage-turn');
+    const responseText =
+      (await store.relationText(ctx, principal(f.actorA), relationId)) + '\n\n' + f.otherBase;
+    hook.before(ctx);
+    const response = await hook.after(ctx, { responseText });
+    expect(response.responseText).toBe(responseText);
+    expect(response.responseText).not.toContain('Hinweise für dich:');
+    expect(response.metadata?.notices).toBeUndefined();
+    expect((await deliver(f.actorA, f.otherBase)).block).toBe('');
+  });
   test('A.4: protected tenant documents affect df without exposing their facts or anchors', async () => {
     const p = { ...principal(f.actorA), clearance: ['restricted'] },
       ctx = context(p);
