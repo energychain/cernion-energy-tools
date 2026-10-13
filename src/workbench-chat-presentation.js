@@ -89,13 +89,14 @@ function completeDraft(text, displayName = '') {
       (all, greeting) => (name ? `${greeting}${name}` : all)
     )
     .replace(
-      /((?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße|Beste Grüße)\s*)(?=\n\n|$)/gu,
+      /((?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße|Beste Grüße)[,!]?\s*)(?=\n\n|$)/gu,
       (all) => (name ? `${all.trimEnd()}\n${name}` : all)
     );
 }
 
 function mappedDisplayName(mapping, meta = {}) {
-  if (mapping) return mapping.displayName || '';
+  if (mapping)
+    return mapping.displayName || mapping.name || mapping.actorId || mapping.openWebuiUserId || '';
   const auth = meta.authUser || meta.apiToken || {};
   return auth.displayName || auth.name || '';
 }

@@ -840,7 +840,7 @@ test.each([
       index,
       api,
     }).reason
-  ).toBe('data_need');
+  ).toBe('no_data_need');
 });
 
 test('fallback respects configurable threshold, read policy and domain restrictions', () => {

@@ -1,4 +1,12 @@
 # Changelog
+## RC3 – Teamgedächtnis und Mail-Verläufe (#863)
+
+- Bezugsanker aus dem wörtlichen Beleg deterministisch vervollständigen und ergänzen; alle Bezüge vor Festhaltebestätigung wieder lesen.
+- Auditierte idempotente Anker-Migration v2 mit erneuter Wechselwirkungsprüfung.
+- Mail-/Verlaufsturns ohne Datenfrage lösen keine Capability-/Datensatzabfrage aus; Kennungen liefern keine Messwert-Extrema.
+- Entwurfssignaturen mit gemapptem Anzeigenamen auch bei leerem Gruß und fehlendem optionalem Displayfeld.
+- Synthetische Abnahmetests und wiederholbare budgetierte lokale Live-Abnahme für #863.
+
 
 ## Unreleased — Teamgedächtnis mit kanonischen Basisankern (#861)
 

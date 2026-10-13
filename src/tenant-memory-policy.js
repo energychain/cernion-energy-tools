@@ -117,17 +117,20 @@ async function migrateAnchors(ctx, p, reason) {
   if (typeof reason !== 'string' || !reason.trim()) deny('Migration reason required');
   return require('./tenant-memory').serialized(p, async () => {
     const facts = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
-    const normalized = facts.map((fact) => ({
-      ...fact,
-      anchors: fact.anchors.map(store.qualifiedAnchor),
-      anchorKeys: [...new Set(fact.anchors.flatMap(store.anchorKeys))],
-      person: {
-        ...fact.person,
-        functionLabel: store.humanFunctionLabel(fact.person.functionLabel),
-      },
-      checkingEvidence: store.compactEvidence(fact.checkingEvidence || []),
-      plausibility: [...new Set(fact.plausibility || [])],
-    }));
+    const normalized = facts.map((fact) => {
+      const anchors = store.groundedAnchors(fact.anchors || [], fact.basis || fact.text);
+      return {
+        ...fact,
+        anchors,
+        anchorKeys: [...new Set(anchors.flatMap(store.anchorKeys))],
+        person: {
+          ...fact.person,
+          functionLabel: store.humanFunctionLabel(fact.person.functionLabel),
+        },
+        checkingEvidence: store.compactEvidence(fact.checkingEvidence || []),
+        plausibility: [...new Set(fact.plausibility || [])],
+      };
+    });
     const changedIds = new Set(
       normalized
         .filter((fact, index) =>
@@ -193,7 +196,7 @@ async function migrateAnchors(ctx, p, reason) {
             ...(latest.audit || []),
             {
               kind: 'anchors_migrated',
-              migration: 'anchor-canonical-v1',
+              migration: 'anchor-canonical-v2',
               actorId: p.actorId,
               at,
               reason,
@@ -207,7 +210,7 @@ async function migrateAnchors(ctx, p, reason) {
         requeued += Number(queue);
       }
     }
-    const result = { migration: 'anchor-canonical-v1', scanned: facts.length, changed, requeued };
+    const result = { migration: 'anchor-canonical-v2', scanned: facts.length, changed, requeued };
     await audit(ctx, p, 'admin_migrate_anchors', { ...result, reason });
     return result;
   });
