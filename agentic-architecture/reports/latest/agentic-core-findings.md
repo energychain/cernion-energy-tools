@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-10-12T20:01:27.501Z
+Generated: 2026-10-13T02:06:08.052Z
 
 ## Current measurable surface
 
@@ -13,13 +13,13 @@ Generated: 2026-10-12T20:01:27.501Z
 
 ## Domain term distribution
 
-- `evidence`: 24553 hits in 760 files
-- `tenant`: 15545 hits in 718 files
-- `broker`: 10981 hits in 609 files
-- `grid`: 9816 hits in 644 files
-- `agent`: 8380 hits in 744 files
+- `evidence`: 24589 hits in 764 files
+- `tenant`: 15674 hits in 723 files
+- `broker`: 11034 hits in 613 files
+- `grid`: 9818 hits in 645 files
+- `agent`: 8382 hits in 746 files
 - `decision`: 6916 hits in 442 files
-- `capability`: 5845 hits in 479 files
+- `capability`: 5856 hits in 482 files
 - `stadtwerk`: 5633 hits in 249 files
 - `forecast`: 4565 hits in 325 files
 - `vdmi`: 4536 hits in 297 files
@@ -28,18 +28,18 @@ Generated: 2026-10-12T20:01:27.501Z
 - `hitl`: 3706 hits in 446 files
 - `regulator`: 2499 hits in 318 files
 - `edm`: 2447 hits in 349 files
-- `receipt`: 2410 hits in 159 files
+- `receipt`: 2417 hits in 162 files
 - `mako`: 2315 hits in 290 files
 - `routing`: 2196 hits in 342 files
-- `personal-agent`: 2021 hits in 303 files
-- `workflow`: 1585 hits in 236 files
+- `personal-agent`: 2023 hits in 305 files
+- `workflow`: 1591 hits in 237 files
 - `willi`: 1532 hits in 109 files
 - `sidecar`: 1005 hits in 114 files
 - `eog`: 799 hits in 101 files
 - `utility`: 613 hits in 94 files
-- `openwebui`: 579 hits in 88 files
+- `openwebui`: 581 hits in 89 files
 - `chatgpt`: 405 hits in 41 files
-- `open-webui`: 388 hits in 63 files
+- `open-webui`: 391 hits in 65 files
 
 ## Evidence and HITL files
 

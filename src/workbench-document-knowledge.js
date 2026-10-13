@@ -4,7 +4,7 @@ const llm = require('./llm-client');
 const memory = require('./tenant-memory');
 const { MEMORY_SCHEMA } = require('./tenant-memory-schema');
 const { llmOptions, toFacadeSchema } = require('./workbench-understanding');
-const { sourceText, sections, withDocumentSource } = require('./tenant-document-knowledge');
+const { sections, withDocumentSource } = require('./tenant-document-knowledge');
 const validate = new (require('ajv'))({ allErrors: true }).compile(MEMORY_SCHEMA);
 
 async function rememberDocument(service, ctx, p, row, mapping) {
@@ -149,7 +149,7 @@ async function currentEvidence(ctx, hits) {
     ids = new Map(),
     invalid = new Set();
   for (const hit of hits) {
-    let id = hit.metadata?.workbenchDocument;
+    const id = hit.metadata?.workbenchDocument;
     if (hit.retrievalSource === 'tenant-memory' && hit.metadata?.key) {
       try {
         const store = require('./tenant-memory-store');

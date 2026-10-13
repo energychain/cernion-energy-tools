@@ -1,6 +1,6 @@
 'use strict';
 
-const { createHash, randomUUID } = require('node:crypto');
+const { createHash } = require('node:crypto');
 const { Errors } = require('moleculer');
 const { principal, visible, deny } = require('./domain-router-policy');
 const { writeCapability, documentNamespace } = require('./tenant-document-policy');
@@ -60,7 +60,7 @@ function sourceText(row, location = '') {
   return `${row.title}, Version ${row.version}${location ? `, ${location}` : ''}; eingebracht von ${row.person.name}${row.person.functionLabel ? ` (${row.person.functionLabel})` : ''} am ${row.at.slice(0, 10)}${row.standDate ? `, Stand ${row.standDate}` : ''}`;
 }
 function sections(row) {
-  let ordinal = 0;
+  const ordinal = 0;
   return documentSections(row.text, 4000).flatMap((section) =>
     (section.locations || [section]).flatMap((span) =>
       chunkText(row.text.slice(span.start, span.end), { mode: 'paragraph' }).map((text) => ({

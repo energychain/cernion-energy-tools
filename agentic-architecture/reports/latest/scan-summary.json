@@ -1,17 +1,17 @@
 {
-  "generatedAt": "2026-10-12T20:01:27.501Z",
+  "generatedAt": "2026-10-13T02:06:08.052Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261012T200002Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261013T020458Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
     "version": "0.99.22"
   },
   "counts": {
-    "files": 1915,
+    "files": 1921,
     "services": 159,
-    "srcJs": 365,
-    "tests": 477,
+    "srcJs": 368,
+    "tests": 479,
     "integrations": 31,
     "docs": 508,
     "agentFiles": 270,
@@ -30,11 +30,11 @@
   "topDirectories": [
     {
       "dir": "tests",
-      "files": 544
+      "files": 546
     },
     {
       "dir": "src",
-      "files": 432
+      "files": 435
     },
     {
       "dir": "docs",
@@ -50,7 +50,7 @@
     },
     {
       "dir": "scripts",
-      "files": 71
+      "files": 72
     },
     {
       "dir": "agentic-architecture",
@@ -369,44 +369,44 @@
   ],
   "domainTermCounts": {
     "agent": {
-      "files": 744,
-      "hits": 8380
+      "files": 746,
+      "hits": 8382
     },
     "personal-agent": {
-      "files": 303,
-      "hits": 2021
+      "files": 305,
+      "hits": 2023
     },
     "sidecar": {
       "files": 114,
       "hits": 1005
     },
     "capability": {
-      "files": 479,
-      "hits": 5845
+      "files": 482,
+      "hits": 5856
     },
     "broker": {
-      "files": 609,
-      "hits": 10981
+      "files": 613,
+      "hits": 11034
     },
     "openwebui": {
-      "files": 88,
-      "hits": 579
+      "files": 89,
+      "hits": 581
     },
     "open-webui": {
-      "files": 63,
-      "hits": 388
+      "files": 65,
+      "hits": 391
     },
     "chatgpt": {
       "files": 41,
       "hits": 405
     },
     "evidence": {
-      "files": 760,
-      "hits": 24553
+      "files": 764,
+      "hits": 24589
     },
     "receipt": {
-      "files": 159,
-      "hits": 2410
+      "files": 162,
+      "hits": 2417
     },
     "hitl": {
       "files": 446,
@@ -417,20 +417,20 @@
       "hits": 2196
     },
     "workflow": {
-      "files": 236,
-      "hits": 1585
+      "files": 237,
+      "hits": 1591
     },
     "tenant": {
-      "files": 718,
-      "hits": 15545
+      "files": 723,
+      "hits": 15674
     },
     "market": {
       "files": 398,
       "hits": 3945
     },
     "grid": {
-      "files": 644,
-      "hits": 9816
+      "files": 645,
+      "hits": 9818
     },
     "redispatch": {
       "files": 312,

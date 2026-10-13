@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-12T20:01:32.137Z",
+  "generatedAt": "2026-10-13T02:06:12.149Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261012T200002Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261013T020458Z",
   "counts": {
-    "files": 1915,
-    "candidateFiles": 1141,
+    "files": 1921,
+    "candidateFiles": 1144,
     "services": 159,
-    "srcFiles": 430,
+    "srcFiles": 433,
     "docs": 508,
     "unclassifiedServices": 0
   },
@@ -15,7 +15,7 @@
       "label": "Fallarbeit und Assistenz",
       "files": 25,
       "services": 2,
-      "hits": 6179
+      "hits": 6181
     },
     "evidence-and-trust": {
       "label": "Evidence, Nachweis und Vertrauen",
@@ -552,5 +552,5 @@
       "hits": 263
     }
   ],
-  "fingerprint": "31066e5f4a162d42df7e531dc90795837210ab97e4f42c0c1d40b3509e301c96"
+  "fingerprint": "8ecd29ce2b19291958aecc88cba582569e507c25540494e296d4f021e24a17c7"
 }
