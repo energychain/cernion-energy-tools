@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-13T14:14:48.156Z
+Generated: 2026-10-13T20:20:22.286Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 1924
+- Files scanned: 1926
 - Services: 159
 - src/*.js files: 368
-- Tests: 481
+- Tests: 482
 - Integrations files: 31
-- Markdown/docs files: 509
+- Markdown/docs files: 510
 
 ## Existing validation summary
 
@@ -26,9 +26,9 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 548 files
+- `tests`: 549 files
 - `src`: 435 files
-- `docs`: 384 files
+- `docs`: 385 files
 - `services`: 195 files
 - `tools`: 85 files
 - `scripts`: 72 files

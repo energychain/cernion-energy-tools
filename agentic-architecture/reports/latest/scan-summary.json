@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-10-13T14:14:48.156Z",
+  "generatedAt": "2026-10-13T20:20:22.286Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261013T141303Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261013T201921Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
     "version": "0.99.22"
   },
   "counts": {
-    "files": 1924,
+    "files": 1926,
     "services": 159,
     "srcJs": 368,
-    "tests": 481,
+    "tests": 482,
     "integrations": 31,
-    "docs": 509,
+    "docs": 510,
     "agentFiles": 270,
     "openWebUiFiles": 33,
     "evidenceFiles": 74,
@@ -30,7 +30,7 @@
   "topDirectories": [
     {
       "dir": "tests",
-      "files": 548
+      "files": 549
     },
     {
       "dir": "src",
@@ -38,7 +38,7 @@
     },
     {
       "dir": "docs",
-      "files": 384
+      "files": 385
     },
     {
       "dir": "services",
@@ -385,8 +385,8 @@
       "hits": 5862
     },
     "broker": {
-      "files": 615,
-      "hits": 11063
+      "files": 617,
+      "hits": 11083
     },
     "openwebui": {
       "files": 90,
@@ -401,8 +401,8 @@
       "hits": 405
     },
     "evidence": {
-      "files": 767,
-      "hits": 24632
+      "files": 769,
+      "hits": 24646
     },
     "receipt": {
       "files": 162,
@@ -413,24 +413,24 @@
       "hits": 3706
     },
     "routing": {
-      "files": 343,
-      "hits": 2195
+      "files": 344,
+      "hits": 2196
     },
     "workflow": {
       "files": 238,
       "hits": 1592
     },
     "tenant": {
-      "files": 726,
-      "hits": 15824
+      "files": 728,
+      "hits": 16019
     },
     "market": {
       "files": 399,
       "hits": 3946
     },
     "grid": {
-      "files": 646,
-      "hits": 9829
+      "files": 647,
+      "hits": 9849
     },
     "redispatch": {
       "files": 312,

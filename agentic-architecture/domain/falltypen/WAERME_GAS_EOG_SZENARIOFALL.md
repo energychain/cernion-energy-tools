@@ -1,6 +1,6 @@
 # Wärme-/Gas-/EOG-Szenariofall
 
-Generated: 2026-10-13T14:14:53.827Z
+Generated: 2026-10-13T20:20:26.676Z
 
 Status: observed
 Priority: 7
@@ -89,6 +89,7 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 
 ## Code-/Doku-Signale
 
+- `docs/validation/tenant-memory-868-live.json` (497 hits)
 - `src/capability-catalog.js` (338 hits)
 - `docs/validation/739-routing.json` (183 hits)
 - `services/capability-broker.service.js` (180 hits)
@@ -113,4 +114,3 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-gas-transformation-dataroom-review-v1.json` (37 hits)
 - `docs/validation/813-live.json` (34 hits)
 - `services/chatgpt-sidecar.service.js` (33 hits)
-- `src/cookbook-recipes.js` (32 hits)
