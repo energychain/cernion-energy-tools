@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('node:path');
+const { AsyncLocalStorage } = require('node:async_hooks');
 const { ServiceBroker } = require('moleculer');
 const Workbench = require('../services/workbench.service');
 const Router = require('../services/domain-router.service');
@@ -26,10 +27,11 @@ function createLiveHarness(directory, sourceServices) {
   const budget = require('./live-validation-budget').installLiveBudget();
   const broker = new ServiceBroker({ logger: false, transporter: null });
   const call = broker.call.bind(broker);
+  const cleanup = new AsyncLocalStorage();
   broker.call = async (...args) => {
-    budget.assertReady();
+    if (!cleanup.getStore()) budget.assertReady();
     const result = await call(...args);
-    budget.assertReady();
+    if (!cleanup.getStore()) budget.assertReady();
     return result;
   };
   const workbench = broker.createService({
@@ -47,6 +49,27 @@ function createLiveHarness(directory, sourceServices) {
     actions: { collectWorkbenchEvidence: collector },
   });
   for (const schema of sourceServices) broker.createService(schema);
-  return { broker, workbench };
+  const cleanupCall = (name, params, options) => {
+    if (
+      ![
+        'tenant-memory-policy.list',
+        'tenant-memory-policy.delete',
+        'files.remove',
+        'dataset.turn',
+        'datapoint.datasetCatalog',
+        'workbench.chat',
+        'journal.append',
+      ].includes(name)
+    )
+      throw new Error('Only audited cleanup actions are available');
+    if (name === 'workbench.chat' && params.userRequest !== 'Kein Fall')
+      throw new Error('Cleanup chat is limited to case discard');
+    if (name === 'datapoint.datasetCatalog' && params.operation !== 'list')
+      throw new Error('Cleanup catalog access is read-only');
+    if (name === 'dataset.turn' && !/^Bitte Datensatz .+ löschen\.$/u.test(params.question))
+      throw new Error('Cleanup dataset action is limited to deletion');
+    return cleanup.run(true, () => call(name, params, options));
+  };
+  return { broker, workbench, cleanupCall };
 }
-module.exports = { createLiveHarness };
+module.exports = { createLiveHarness, isolatedSettings };
