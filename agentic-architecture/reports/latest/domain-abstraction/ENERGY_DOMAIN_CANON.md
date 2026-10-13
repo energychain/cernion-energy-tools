@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-13T02:06:12.149Z
+Generated: 2026-10-13T08:10:51.838Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -42,7 +42,7 @@ Starke Code-/Doku-Signale:
 - `services/dashboard-api/methods-part-09-of-14.js` (265 hits)
 - `services/dashboard-api/methods-part-08-of-14.js` (264 hits)
 - `services/dashboard-api/actions-part-06-of-8.js` (256 hits)
-- `src/workbench-content-turn.js` (240 hits)
+- `src/workbench-content-turn.js` (241 hits)
 - `services/dashboard-api/methods-part-10-of-14.js` (228 hits)
 - `integrations/budibase/README.md` (196 hits)
 
@@ -241,11 +241,11 @@ Starke Code-/Doku-Signale:
 - `src/answer-dossier-hydration-rules.json` (181 hits)
 - `docs/validation/tenant-memory-live.json` (175 hits)
 - `services/dashboard-api/methods-part-06-of-14.js` (165 hits)
+- `docs/validation/tenant-memory-863-live.json` (138 hits)
 - `services/dashboard-api/methods-part-12-of-14.js` (100 hits)
 - `services/znp.service.js` (89 hits)
 - `services/eog-calculator.service.js` (85 hits)
 - `docs/eog-calculator-quality-element.md` (77 hits)
-- `docs/reviews/730-capability-routing-evaluation.json` (74 hits)
 
 Zugeordnete Services nach Heuristik:
 
