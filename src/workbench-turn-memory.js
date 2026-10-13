@@ -88,6 +88,8 @@ function buildTurnMemory({
   principal,
   workbenchContext = null,
 }) {
+  const context = envelope.knownContext?.situation;
+  const caseMemory = context?.caseMemory?.applicable ? context.caseMemory : null;
   const now = new Date().toISOString();
   const activeRole = selectActiveRole({ mapping, principal });
   const roleHistory = [
@@ -105,7 +107,13 @@ function buildTurnMemory({
   const readinessState =
     classification.readinessState || previousMemory?.readinessState || 'unknown';
   const requiredClarifications = safeList(
-    classification.requiredClarifications || previousMemory?.openQuestions || []
+    caseMemory?.openPoints ||
+      envelope.knownContext?.situation?.missingInformation
+        ?.filter((item) => !item.answered)
+        .map((item) => item.question) ||
+      classification.requiredClarifications ||
+      previousMemory?.openQuestions ||
+      []
   );
   const missingEvidence = safeList(
     classification.missingEvidence ||
@@ -126,6 +134,15 @@ function buildTurnMemory({
   );
   return {
     schemaVersion: '1.0',
+    topic: safeText(previousMemory?.topic || caseMemory?.topic || context?.concern),
+    situation: safeText(caseMemory?.status || previousMemory?.situation || context?.situation),
+    risks: safeList(caseMemory?.risks || context?.risks || previousMemory?.risks || []),
+    nextSteps: safeList(
+      caseMemory?.nextSteps ||
+        classification.memorySummary?.nextSteps?.map((item) => item.text) ||
+        previousMemory?.nextSteps ||
+        []
+    ),
     primaryDomain,
     alternativeDomains,
     readinessState,
@@ -137,12 +154,15 @@ function buildTurnMemory({
     openQuestions: requiredClarifications,
     requiredClarifications,
     missingEvidence,
-    workingAssumptions: [
-      ...new Set([
-        ...(previousMemory?.workingAssumptions || []),
-        ...safeAssumptions(envelope.knownContext),
-      ]),
-    ].slice(-MAX_ITEMS),
+    workingAssumptions: caseMemory
+      ? safeList(caseMemory.assumptions)
+      : [
+          ...new Set([
+            ...(previousMemory?.workingAssumptions || []),
+            ...safeAssumptions(envelope.knownContext),
+            ...(classification.memorySummary?.assumptions || []).map((item) => item.text),
+          ]),
+        ].slice(-MAX_ITEMS),
     noCallGuards: safeList(classification.noCallGuards || previousMemory?.noCallGuards || []),
     allowedActions: safeList(classification.allowedActions || previousMemory?.allowedActions || []),
     blockedActions: safeList(classification.blockedActions || previousMemory?.blockedActions || []),
@@ -161,6 +181,10 @@ function safeTurnMemory(memory) {
   if (!memory) return null;
   return {
     schemaVersion: memory.schemaVersion || '1.0',
+    topic: safeText(memory.topic),
+    situation: safeText(memory.situation),
+    risks: safeList(memory.risks || []),
+    nextSteps: safeList(memory.nextSteps || []),
     primaryDomain: memory.primaryDomain || 'unknown',
     alternativeDomains: asArray(memory.alternativeDomains).slice(0, MAX_ITEMS),
     readinessState: memory.readinessState || 'unknown',
@@ -187,6 +211,10 @@ function turnMemorySummary(memory) {
   const safe = safeTurnMemory(memory);
   if (!safe) return null;
   return {
+    topic: safe.topic,
+    situation: safe.situation,
+    risks: safe.risks,
+    nextSteps: safe.nextSteps,
     primaryDomain: safe.primaryDomain,
     readinessState: safe.readinessState,
     activeRole: safe.activeRole,

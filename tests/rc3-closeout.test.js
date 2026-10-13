@@ -86,7 +86,7 @@ test('correspondence never triggers tools from candidate datasets without an exp
   expect(result.reason).toBe('no_data_need');
 });
 
-test('tool evidence supplements the full thread analysis and never replaces it', async () => {
+test('unrequested tool evidence is omitted while the full thread analysis remains intact', async () => {
   llm.generateText.mockResolvedValue(
     JSON.stringify({
       expectation: [],
@@ -119,7 +119,8 @@ test('tool evidence supplements the full thread analysis and never replaces it',
   expect(result.responseText).toContain('fachliche Antwort');
   expect(result.responseText).toContain('Prozessantwort');
   expect(result.responseText).not.toContain('50.800.000.001');
-  expect(result.responseText.match(/Die vorhandene Abfrage/g)).toHaveLength(1);
+  expect(result.responseText).not.toContain('Die vorhandene Abfrage');
+  expect(llm.generateText.mock.calls[0][0]).not.toContain('50800000001');
 });
 
 test('untranslated source summaries and duplicate provenance are not rendered', () => {

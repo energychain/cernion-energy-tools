@@ -200,7 +200,7 @@ describe('datasets through authenticated Open WebUI HTTP', () => {
     expect(repeated.text).toContain('Mittelwert');
     expect(repeated.text).not.toContain('Hab ich abgelegt:');
     const colleague = await request(
-      'Wie hoch war die Spitzenlast 2025?',
+      'Wie hoch war die Spitzenlast 2025 in Synthetic.csv?',
       'synthetic-colleague',
       'other-chat',
       false
@@ -287,7 +287,7 @@ describe('datasets through authenticated Open WebUI HTTP', () => {
     expect(prompt).not.toContain('Zeitstempel (Beginn);');
     expect(prompt).not.toContain('rows":[');
     const colleague = await request(
-      'Wie hoch war die Jahresenergie 2025?',
+      'Wie hoch war die Jahresenergie 2025 in Synthetic.csv?',
       'synthetic-colleague',
       'year-check',
       false

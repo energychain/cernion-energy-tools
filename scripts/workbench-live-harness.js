@@ -49,4 +49,4 @@ function createLiveHarness(directory, sourceServices) {
   for (const schema of sourceServices) broker.createService(schema);
   return { broker, workbench };
 }
-module.exports = { createLiveHarness };
+module.exports = { createLiveHarness, isolatedSettings };

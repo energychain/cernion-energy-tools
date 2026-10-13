@@ -57,7 +57,7 @@ async function change(ctx, p, id, kind, basis, { confirmed = false, admin = fals
     admin,
     sensitivityFlags: previous.sensitivityFlags || [],
   });
-  if (foreign && ctx.broker.getLocalService('notices'))
+  if (foreign && !admin && fact.text?.trim() && ctx.broker.getLocalService('notices'))
     await ctx.call('notices.enqueueMemory', {
       tenantId: p.tenantId,
       actorId: previous.person.actorId,

@@ -198,6 +198,7 @@ function dataQuestionIntent(message) {
   };
 }
 function allowsDataRead(situation, message, previous = {}) {
+  if (situation.dataQuestion) return situation.dataQuestion.requested === true;
   const material =
     situation.conversationShape === 'filing' ||
     situation.outputKind === 'correspondence' ||
@@ -961,6 +962,7 @@ function validateCachedReads(
 }
 
 function toolReport(trace = [], evidence = [], _message = '') {
+  const sources = new Set();
   return trace
     .filter((entry) => entry.status === 'available' && (entry.called || entry.cached))
     .map((entry) => {
@@ -971,6 +973,12 @@ function toolReport(trace = [], evidence = [], _message = '') {
           item.metadata?.sourceId === entry.sourceId
       );
       if (!hit) return '';
+      const identity = JSON.stringify([
+        hit.source,
+        hit.metadata?.datasetId || hit.metadata?.parameters,
+      ]);
+      if (sources.has(identity)) return '';
+      sources.add(identity);
       if (entry.name === 'dataset.query')
         return hit.value.split('\n\n').find((line) => line.startsWith('Herkunft:')) || '';
       const label = require('./workbench-tool-answer').sourceLabel(hit.metadata?.sourceLabel);
@@ -996,6 +1004,7 @@ function toolReport(trace = [], evidence = [], _message = '') {
 
 module.exports = {
   allowsDataRead,
+  dataQuestionIntent,
   runCapabilityLoop,
   resolveCapabilityNeed,
   loopDiagnostics,

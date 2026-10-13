@@ -32,6 +32,7 @@ async function matchingDatasets(records, question, conversationId) {
   }
   return require('../src/dataset-routing').selectDatasetCandidates(records, question, {
     conversationId,
+    scopeRequired: Boolean(conversationId),
   });
 }
 

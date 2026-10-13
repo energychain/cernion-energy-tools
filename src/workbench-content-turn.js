@@ -317,6 +317,14 @@ async function runContentTurn(
           : draftRequest
             ? {
                 ...previous,
+                ...(pending?.lastArtifactRequest
+                  ? {
+                      requestedOutput: {
+                        ...pending.lastArtifactRequest,
+                        basis: envelope.userRequest,
+                      },
+                    }
+                  : {}),
                 requestedAction: {
                   ...previous.requestedAction,
                   externalEffect: false,
@@ -460,7 +468,12 @@ async function runContentTurn(
     if (correction && !situation.tenantMemory?.assertions?.length) return correction;
   }
   const selfKnowledgeJob = situation.selfKnowledge?.requested
-    ? require('./workbench-self-knowledge').searchKnowledge(service, memoryCtx, p, situation)
+    ? require('./workbench-self-knowledge').searchKnowledge(service, memoryCtx, p, situation, {
+        conversationId: envelope.conversationId,
+        caseId: envelope.cetCaseId || conversation?.cetCaseId,
+        previousReads: pending?.retrieval?.evidence || [],
+        newDatasetIds: envelope.datasetIds || [],
+      })
     : null;
   const memoryContextJob = !incomingDocuments
     ? require('./workbench-capability-loop')
@@ -497,7 +510,10 @@ async function runContentTurn(
       tenantMemory.acceptedAssertion(item, envelope.userRequest)
     );
   const toolLoop = require('./workbench-capability-loop');
-  const dataReadAllowed = toolLoop.allowsDataRead(situation, envelope.userRequest, previous);
+  const dataReadAllowed =
+    !draftRequest &&
+    !understandingFailed &&
+    toolLoop.allowsDataRead(situation, envelope.userRequest, previous);
   const answerReserve = understanding.llmOptions(p.tenantId, 'answer', Boolean(previous)).timeoutMs;
   const turnBudget =
     Number(process.env.WORKBENCH_TURN_TIMEOUT_MS) ||
@@ -517,6 +533,7 @@ async function runContentTurn(
           .then((records) =>
             require('./dataset-routing').selectDatasetCandidates(records, envelope.userRequest, {
               conversationId: envelope.conversationId,
+              caseId: envelope.cetCaseId || conversation?.cetCaseId,
               previousReads: pending?.retrieval?.evidence || [],
               previousSubject: previous?.concern || '',
               newDatasetIds: envelope.datasetIds || [],
@@ -1016,6 +1033,19 @@ async function runContentTurn(
   }
   // Revalidate managed evidence, including cached reads and draft follow-ups.
   retrieval.evidence = await documentKnowledge.currentEvidence(memoryCtx, retrieval.evidence);
+  retrieval.dataScope = {
+    dataRequested: dataReadAllowed,
+    tenantId: p.tenantId,
+    conversationId: envelope.conversationId,
+    caseId,
+    message: envelope.userRequest,
+    datasetIds: datasetCandidates.map((record) => record.id),
+  };
+  retrieval.evidence = require('./workbench-data-scope').scopedDataEvidence(
+    retrieval.evidence,
+    retrieval.dataScope
+  );
+  if (!dataReadAllowed) retrieval.toolTrace = [];
   if (
     situation.conversationContext?.durable &&
     situation.conversationContext.basis &&
@@ -1125,11 +1155,14 @@ async function runContentTurn(
       .filter(Boolean)
       .join('\n\n')
   );
-  const guarded = require('./workbench-conversation-shape').singleQuestion(
-    result.responseText,
-    reply.questions,
-    assignment?.question || memory.ambiguous || ''
-  );
+  const guarded =
+    situation.requestedOutput?.requested || situation.caseSearch?.requested
+      ? { responseText: result.responseText, questions: reply.questions }
+      : require('./workbench-conversation-shape').singleQuestion(
+          result.responseText,
+          reply.questions,
+          assignment?.question || memory.ambiguous || ''
+        );
   result.responseText = guarded.responseText;
   reply.questions = guarded.questions;
   result.requiredClarifications = reply.questions.map((item) => item.question);
@@ -1188,6 +1221,9 @@ async function runContentTurn(
         }
       : {}),
     situation,
+    ...(situation.requestedOutput?.requested
+      ? { lastArtifactRequest: situation.requestedOutput }
+      : {}),
     lastConversationShape: situation.conversationShape,
     retrieval,
     tenantMemoryFactIds: memory.ids.length
@@ -1208,8 +1244,12 @@ async function runContentTurn(
         caseId,
         caseStateVersion: result.caseStateVersion,
         previousMemory,
-        classification: result,
-        envelope: { ...envelope, userRequest: understanding.routingRequest(situation) },
+        classification: { ...result, memorySummary: reply.memorySummary },
+        envelope: {
+          ...envelope,
+          userRequest: understanding.routingRequest(situation),
+          knownContext: { situation },
+        },
         mapping,
         workbenchContext,
       })
@@ -1356,7 +1396,7 @@ async function queuedContentTurn(service, ctx, input) {
       input.mapping,
       ctx.meta
     );
-    if (/Entwurf/iu.test(response.responseText))
+    if (!response.situation?.requestedOutput?.requested && /Entwurf/iu.test(response.responseText))
       response.responseText = require('./workbench-chat-presentation').completeDraft(
         response.responseText,
         displayName

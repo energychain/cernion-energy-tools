@@ -9,16 +9,26 @@ function matches(value, terms) {
   const content = normalizePhrase(value);
   return terms.some((term) => content.includes(normalizePhrase(term)));
 }
-async function searchKnowledge(service, ctx, p, situation) {
+async function searchKnowledge(service, ctx, p, situation, scope = {}) {
+  const semanticRequested = situation.caseSearch?.requested === true;
   const terms = [situation.selfKnowledge.query, ...(situation.retrievalTerms || [])].filter(
     Boolean
   );
   const evidence = [],
     trace = [];
   const read = async (source, task) => {
+    if (source === 'datasets' && situation.dataQuestion && !situation.dataQuestion.requested) {
+      trace.push({ source, called: false, status: 'skipped', hitCount: 0, ms: 0 });
+      return;
+    }
     const started = performance.now();
     try {
-      const hits = await require('./workbench-capability-loop').withinToolBudget(task, 2000);
+      const hits = await require('./workbench-capability-loop').withinToolBudget(
+        task,
+        source === 'cases' && semanticRequested
+          ? require('./workbench-understanding').llmOptions(p.tenantId).timeoutMs + 1000
+          : 2000
+      );
       evidence.push(...hits);
       trace.push({
         source,
@@ -49,14 +59,68 @@ async function searchKnowledge(service, ctx, p, situation) {
     if (!router) throw new Error('Cases unavailable');
     states = (await router.visibleStates(p)).filter((state) => rawContentAllowed(p, state));
     const hits = [];
+    const candidates = [];
     for (const state of states) {
       const summary = await router.readCaseSummary(p, state);
-      if (matches(JSON.stringify(summary), terms)) {
+      const turnMemory = service.loadTurnMemory
+        ? await service.loadTurnMemory(p, state.cetCaseId)
+        : null;
+      const situation = state.knownContext?.situation;
+      if (
+        situation?.concern ||
+        situation?.situation ||
+        turnMemory?.lastSafeConclusion ||
+        (!service.loadTurnMemory && summary.summary)
+      )
+        candidates.push({
+          caseId: state.cetCaseId,
+          summary: summary.summary,
+          topic: situation?.concern,
+          situation: situation?.situation,
+          memory: turnMemory,
+        });
+      if (!semanticRequested && matches(JSON.stringify(summary), terms)) {
         const ref = await service.store.caseDisplayRef({
           tenantId: p.tenantId,
           caseId: state.cetCaseId,
         });
         hits.push(hit('cases', `Fall ${ref}`, `Fall ${ref}: ${summary.summary}`));
+      }
+    }
+    if (semanticRequested) {
+      const selected = await require('./workbench-case-search').selectSemanticCases(
+        situation.caseSearch.query || situation.selfKnowledge.query,
+        candidates,
+        p.tenantId
+      );
+      for (const item of selected) {
+        if (router.loadCase) {
+          try {
+            const current = await router.loadCase(p, item.caseId);
+            if (!rawContentAllowed(p, current)) continue;
+          } catch (error) {
+            if ([403, 404].includes(error.code || error.status)) continue;
+            throw error;
+          }
+        }
+        const ref = await service.store.caseDisplayRef({
+          tenantId: p.tenantId,
+          caseId: item.caseId,
+        });
+        hits.push({
+          source: 'cases',
+          retrievalSource: 'cases',
+          value: require('./workbench-case-search').renderCaseMemory(item, ref),
+          metadata: {
+            name: `Fall ${ref}`,
+            caseId: item.caseId,
+            displayRef: ref,
+            caseMemory: item.memory,
+            caseTopic: item.topic,
+            caseSituation: item.situation,
+            caseSummary: item.summary,
+          },
+        });
       }
     }
     return hits;
@@ -107,7 +171,14 @@ async function searchKnowledge(service, ctx, p, situation) {
     read('datasets', async () => {
       if (!ctx.broker.getLocalService('datapoint')) throw new Error('Datasets unavailable');
       const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
-      return records
+      const scoped = situation.dataQuestion
+        ? require('./workbench-data-scope').scopedDatasets(
+            records,
+            situation.selfKnowledge.query,
+            scope
+          )
+        : records;
+      return scoped
         .filter((record) =>
           matches(JSON.stringify([record.title, record.description, record.anchors]), terms)
         )
@@ -115,7 +186,8 @@ async function searchKnowledge(service, ctx, p, situation) {
           hit(
             'datasets',
             record.title,
-            `Datensatz ${record.title}: ${record.description || ''}; ${record.provenance?.at || ''}`
+            `Datensatz ${record.title}: ${record.description || ''}; ${record.provenance?.at || ''}`,
+            { datasetId: record.id, tenantId: record.tenantId }
           )
         );
     }),
@@ -132,6 +204,7 @@ function searchSummary(trace) {
   return (
     'Nachgesehen: ' +
     trace
+      .filter((entry) => entry.called !== false)
       .map(
         (entry) =>
           `${labels[entry.source]} (${entry.status === 'unavailable' ? 'gerade nicht erreichbar' : entry.hitCount ? `${entry.hitCount} Treffer` : 'keine Treffer'})`
