@@ -274,9 +274,21 @@ async function migrateAnchors(ctx, p, reason, originalMessages = []) {
     }
     const originalMessagesRequired = normalized
       .filter(
-        (fact) =>
+        (fact, index) =>
           store.active(fact) &&
-          fact.anchors.some(
+          [
+            ...fact.anchors,
+            ...(originals.has(fact.id)
+              ? []
+              : (facts[index].anchors || []).filter(
+                  (anchor) =>
+                    !fact.anchors.some((next) =>
+                      ` ${store.normalizeAnchor(store.qualifiedAnchor(anchor).value)} `.includes(
+                        ` ${store.normalizeAnchor(next.value)} `
+                      )
+                    )
+                )),
+          ].some(
             (anchor) =>
               !store.anchorKeys(anchor).some((key) => {
                 const base = JSON.parse(key)[0];
