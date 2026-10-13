@@ -185,7 +185,7 @@ function dataQuestionIntent(message) {
       text
     );
   const knowledgeList =
-    /\bwelche[nmrs]? (?:arten|typen|formen|voraussetzungen|anforderungen|regeln|grundlagen)\b/.test(
+    /\bwelche[nmrs]? (?:arten|typen|formen|voraussetzungen|anforderungen|regeln|grundlagen|antwort(?:en)?|formulierung(?:en)?|entwurf|entwurfe)\b/.test(
       text
     );
   return {
