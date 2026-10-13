@@ -189,7 +189,7 @@ function basisMatches(basis, message) {
 }
 function rejectionReason(item, message) {
   if (item.scope === 'case') return 'case_scope';
-  const anchors = store.groundedAnchors(item.anchors || [], item.basis);
+  const anchors = store.groundedAnchors(item.anchors || [], message);
   if (!anchors.length || !anchors.every((anchor) => matchesAnchor(anchor, message)))
     return 'no_anchor';
   if (!item.text?.trim() || !basisMatches(item.basis, message)) return 'basis_mismatch';
@@ -310,10 +310,20 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
   if (!assertions.length) return { facts: [], ids: [], confirmation: '', ambiguous: '' };
   return serialized(p, async () => {
     const existing = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
+    const corpus = await store.frequencyCorpus(ctx, p);
     const facts = [];
     const confirmations = [];
     for (const assertion of assertions) {
-      const groundedAnchors = store.groundedAnchors(assertion.anchors || [], assertion.basis);
+      const groundedAnchors = store.groundedAnchors(
+        assertion.anchors || [],
+        message,
+        existing,
+        corpus
+      );
+      const basis = store.literalBasis(assertion.basis, message, groundedAnchors);
+      const text = groundedAnchors.every((anchor) => matchesAnchor(anchor, assertion.text))
+        ? assertion.text
+        : basis;
       const id = store.key([
         'statement',
         p.actorId,
@@ -333,8 +343,9 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
         recoveryPrincipal: { ...p },
         person: person(p, mapping, situation, ctx, message),
         at,
-        text: assertion.text,
-        basis: assertion.basis,
+        text,
+        basis,
+        message,
         commitment: assertion.commitment,
         anchors: groundedAnchors,
         anchorKeys: [...new Set(groundedAnchors.flatMap(store.anchorKeys))],
@@ -351,7 +362,7 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
       const bases = [...new Set(fact.anchorKeys.map((key) => JSON.parse(key)[0]))];
       const required = [
         ...new Set(
-          store.referenceAnchors(assertion.basis).map((item) => store.normalizeAnchor(item.value))
+          store.referenceAnchors(message).map((item) => store.normalizeAnchor(item.value))
         ),
       ];
       const found = new Set();
@@ -370,7 +381,9 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
         continue;
       }
       existing.push(fact);
+      corpus.push(fact);
       facts.push(fact);
+      (ctx.meta.tenantMemoryCurrentFacts ||= []).push(fact.id);
       stats.accepted++;
       confirmations.push(`Hab ich festgehalten: ${fact.text}`);
     }
@@ -460,7 +473,9 @@ async function deferredNotices(ctx, p, fact, includeActor = true) {
 async function assess(ctx, p, fact, retrieval) {
   if (!store.active((await store.get(ctx, p, fact.id)).payload)) return [];
   const all = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
-  const weighted = new Set(store.candidates(fact, all).map((item) => item.id));
+  const weighted = new Set(
+    store.candidates(fact, all, await store.frequencyCorpus(ctx, p)).map((item) => item.id)
+  );
   const shared = fact.anchorKeys.length
     ? await store.query(ctx, p, {
         'payload.type': 'tenant_memory_fact',
@@ -1060,6 +1075,7 @@ async function correctFacts(ctx, p, envelope, pending, correction) {
 module.exports = {
   serialized,
   acceptedAssertion,
+  basisMatches,
   beforeTurn,
   afterTurn,
   pureQuestion,

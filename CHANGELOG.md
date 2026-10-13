@@ -1,4 +1,11 @@
 # Changelog
+
+## RC3 – Teamgedächtnis #868
+
+- Bezugsanker deterministisch aus der vollständigen Nachricht, mit Satzzeichengrenzen und gemeinsamer tenantweiter Dokumenthäufigkeit.
+- Belege wörtlich erweitern; auditierte, idempotente Migration `anchor-canonical-v3` samt optionaler geprüfter Originalquelle.
+- Neue Wechselwirkungen als kurze empfängerbezogene Hinweise, dauerhaft einmalig und ohne eigene Same-Turn-Aussagen.
+- Synthetische Unit-Abnahme und zehn echte lokale Live-Läufe für alle fünf Muster in beiden Reihenfolgen.
 ## RC3 – Teamgedächtnis und Mail-Verläufe (#863)
 
 - Bezugsanker aus dem wörtlichen Beleg deterministisch vervollständigen und ergänzen; alle Bezüge vor Festhaltebestätigung wieder lesen.

@@ -18,10 +18,79 @@ module.exports = {
       openapi: {
         summary: 'Audit legacy anchor normalization and queue newly connected statements',
         tags: ['Tenant Memory Policy'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['reason'],
+                additionalProperties: false,
+                properties: {
+                  reason: { type: 'string', minLength: 1, maxLength: 1200 },
+                  originalMessages: {
+                    type: 'array',
+                    maxItems: 1000,
+                    items: {
+                      type: 'object',
+                      required: ['id', 'message'],
+                      additionalProperties: false,
+                      properties: {
+                        id: { type: 'string', minLength: 1 },
+                        message: { type: 'string', minLength: 1, maxLength: 8000 },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description:
+              'Audited idempotent v3 migration; unresolved literal sources are reported by statement ID',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['migration', 'scanned', 'changed', 'requeued'],
+                  properties: {
+                    migration: { type: 'string', enum: ['anchor-canonical-v3'] },
+                    scanned: { type: 'integer' },
+                    changed: { type: 'integer' },
+                    requeued: { type: 'integer' },
+                    originalMessagesRequired: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
-      params: { reason: { type: 'string', min: 1, max: 1200 } },
+      params: {
+        reason: { type: 'string', min: 1, max: 1200 },
+        originalMessages: {
+          type: 'array',
+          optional: true,
+          max: 1000,
+          items: {
+            type: 'object',
+            strict: true,
+            props: {
+              id: { type: 'string', min: 1 },
+              message: { type: 'string', min: 1, max: 8000 },
+            },
+          },
+        },
+      },
       async handler(ctx) {
-        return policy.migrateAnchors(ctx, await admin(ctx), ctx.params.reason);
+        return policy.migrateAnchors(
+          ctx,
+          await admin(ctx),
+          ctx.params.reason,
+          ctx.params.originalMessages
+        );
       },
     },
     list: {

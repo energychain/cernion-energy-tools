@@ -173,14 +173,14 @@ describe('863 grounded anchor and correspondence acceptance', () => {
       reason: 'Synthetische v2-Abnahme',
     });
     expect(result).toEqual({
-      migration: 'anchor-canonical-v2',
+      migration: 'anchor-canonical-v3',
       scanned: 2,
       changed: 1,
       requeued: 2,
     });
     expect((await store.get(ctx, p, second.ids[0])).payload.audit.at(-1)).toMatchObject({
       kind: 'anchors_migrated',
-      migration: 'anchor-canonical-v2',
+      migration: 'anchor-canonical-v3',
     });
     expect((await store.get(ctx, p, first.ids[0])).payload.checking).toBe('pending');
     await memory.recover(app.workbench);

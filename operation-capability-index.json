@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "c3920b98d5b274edf97d765ec20bea2daf96cd013cd732c69db8e6f756ff70ef",
+  "sourceOpenApiHash": "377fddd74c9b99779d669709ed2744dc5962d44b151d985581133127d89b604a",
   "coverage": {
     "rawOperationCount": 1255,
     "operationCount": 999,
@@ -80737,8 +80737,24 @@
       "idempotency": "not_idempotent",
       "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
       "parameters": {
-        "required": [],
-        "optional": []
+        "required": [
+          {
+            "name": "reason",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "originalMessages",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
