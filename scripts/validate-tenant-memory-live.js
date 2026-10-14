@@ -9,6 +9,7 @@ require('dotenv').config({ path: process.env.WORKBENCH_ENV_FILE || '.env', quiet
 const { createLiveHarness } = require('./workbench-live-harness');
 const llm = require('../src/llm-client');
 const memory = require('../src/tenant-memory');
+const { memoryNoticeCount } = require('./live-validation-checks');
 const store = require('../src/tenant-memory-store');
 const {
   generateMemoryAnchorFixture,
@@ -230,13 +231,9 @@ async function validateTenantMemoryLive() {
               /2030/.test(turns[1].responseText) &&
               /2034/.test(turns[1].responseText),
             noOwnSameTurnNotice: turns.every(
-              (turn) =>
-                !turn.noticeBlock &&
-                !(turn.metadata?.notices || []).some((item) => item.kind === 'memory')
+              (turn) => !turn.noticeBlock && memoryNoticeCount(turn) === 0
             ),
-            exactlyOneNotice:
-              (notice.metadata?.notices || []).filter((item) => item.kind === 'memory').length ===
-              1,
+            exactlyOneNotice: memoryNoticeCount(notice) === 1,
             noticeForm:
               (notice.noticeBlock || notice.responseText).includes(
                 `Zu ${anchor} gibt es etwas Neues: ${order[1]}`
@@ -248,12 +245,8 @@ async function validateTenantMemoryLive() {
                 'Das hängt mit deiner Aussage vom'
               ) &&
               !/Prüfung ausstehend/.test(notice.noticeBlock || notice.responseText),
-            noRepeatedNotice:
-              !repeated.noticeBlock &&
-              !(repeated.metadata?.notices || []).some((item) => item.kind === 'memory'),
-            noUnrelatedNotice:
-              !unrelated.noticeBlock &&
-              !(unrelated.metadata?.notices || []).some((item) => item.kind === 'memory'),
+            noRepeatedNotice: !repeated.noticeBlock && memoryNoticeCount(repeated) === 0,
+            noUnrelatedNotice: !unrelated.noticeBlock && memoryNoticeCount(unrelated) === 0,
           });
         recoveryReplay = { p, factId: facts.find((fact) => fact.relationIds.length)?.id };
         report.runs.push({
