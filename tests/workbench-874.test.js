@@ -1908,3 +1908,53 @@ test('a section artifact is delivered from the closed structure without generate
   expect(result.answerAttempts).toBe(1);
   for (const heading of data.sections) expect(result.responseText).toContain(`### ${heading}`);
 });
+
+test.each(['unique', 'ambiguous', 'compound'])(
+  'reported context recovery uses only an unambiguous literal input (%s)',
+  async (variant) => {
+    const turn = require('../scripts/generate-practice-evaluation-fixtures')
+      .generatePracticeCatalog()
+      .scenarios.find((item) => item.id === 'mako-pricat').turns[0];
+    const value =
+      variant === 'compound'
+        ? fixture.compoundReference.split(' ')[0]
+        : turn.message.match(/\b[A-Z]{2,}\b/u)[0];
+    const quote =
+      variant === 'compound'
+        ? `${value} ${fixture.proposal.title}.`
+        : turn.message.slice(0, turn.message.indexOf('. ') + 1);
+    const initial =
+      variant === 'compound' ? `${quote} ${fixture.proposal.nextConsideration}.` : turn.message;
+    const message =
+      variant === 'ambiguous' ? `${initial} ${value} ${fixture.proposal.title}.` : initial;
+    const invalidQuote = quote + fixture.term;
+    llm.generateText.mockResolvedValue(
+      JSON.stringify({
+        expectation: [],
+        assumptions: [],
+        draft: [],
+        nextSteps: [fixture.claim(fixture.proposal.nextConsideration)],
+        interpretation: [
+          { ...fixture.claim(quote), inputQuote: invalidQuote, codeDependencies: [value] },
+        ],
+      })
+    );
+    const result = await answer({
+      tenantId: fixture.tenantId,
+      message,
+      situation: fixture.situation(message, {
+        turnKind: 'work',
+        conversationShape: 'task',
+        outputKind: 'analysis',
+        codeMeaningQuestion: false,
+        codeReferences: [{ value, family: fixture.codeSourceFixture.code.family, basis: value }],
+        codeResolutions: [{ value, status: 'unresolved', sources: [] }],
+      }),
+      retrieval: { evidence: [] },
+    });
+    expect(result.answerAttempts).toBe(2);
+    expect(result.responseText).not.toContain(invalidQuote);
+    expect(result.metadata.degraded).toBe(variant === 'ambiguous');
+    if (variant !== 'ambiguous') expect(result.responseText).toContain(`Berichtet: „${quote}“`);
+  }
+);

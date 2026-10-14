@@ -441,3 +441,26 @@ vorhandenen generierten Abschnitts- und Inhaltsfixtures.
 Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 467 Symbole /
 38 Abläufe (CRITICAL); lokale `main` 290 / 2563 / 93 (CRITICAL); staged
 8 / 12 / 0 (LOW). Alle 832 gezielten Tests in 15 Testsuiten bestanden.
+
+## Eindeutigen Originalbeleg nach erfolgloser Reparatur zurückgewinnen
+
+Vorab upstream `generateAnswerResult`: HIGH, 1 direkter Aufrufer, 4 betroffene
+Symbole, 2 Abläufe; vor der Änderung benannt. Die vollständige Aufzeichnung zeigte,
+dass die zweite Antwort den Beleg erneut paraphrasierte. Der vorherige begrenzte
+Reparaturweg verweigerte deshalb folgerichtig die Aussage.
+
+Nur nach diesem erfolglosen Versuch darf jetzt ein eindeutiger Originalsatz der
+aktuellen Nachricht zurückgewonnen werden. Die Anker stammen ausschließlich aus
+den bereits schemagebundenen ungeklärten Referenzen; es gibt keine Wortliste.
+Genau ein Originalsatz muss alle in der aktuellen Nachricht genannten betroffenen
+Referenzen enthalten und in die vorhandene Claim-Längengrenze passen. Es wird
+niemals der unbelegte Modelltext übernommen: Der unveränderte Originaltext wird
+als Nutzerbericht mit `completedAction=false` durch dieselben Quellen- und
+Sprachprüfungen geführt. Mehrere passende Originalstellen bleiben mehrdeutig und
+werden nicht automatisch ausgewählt. Zusammengesetzte Referenzen mit Punkten
+bleiben erhalten. Kein neuer LLM-Aufruf und keine Lockerung von `filterAnswer`;
+dessen bestehende Tests für nicht wörtliche Belege bleiben unverändert.
+
+Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 468 Symbole /
+38 Abläufe (CRITICAL); lokale `main` 290 / 2564 / 93 (CRITICAL); staged
+7 / 6 / 0 (LOW). Alle 835 gezielten Tests in 15 Testsuiten bestanden.

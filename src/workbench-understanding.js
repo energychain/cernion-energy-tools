@@ -1431,7 +1431,7 @@ async function generateAnswerResult({
         }
         if (conversationMode) parsed.nextSteps = [];
         if (decisive || conversationMode) parsed.assumptions = [];
-        filterAnswer(parsed, {
+        const filterOptions = {
           evidence,
           answerEvidence,
           unresolved,
@@ -1442,7 +1442,8 @@ async function generateAnswerResult({
           register: situation.conversationPreferences?.register,
           requireCompleteDraft:
             draftRequested && situation.conversationShape === 'task' && !isDraftRequest(message),
-        });
+        };
+        filterAnswer(parsed, filterOptions);
         require('./workbench-communication').validateCommunication(parsed, situation, evidence);
         if (
           Object.hasOwn(situation, 'codeReferences') &&
@@ -1454,10 +1455,49 @@ async function generateAnswerResult({
           !(parsed.interpretation || []).length &&
           filterCounts.has('interpretation:unresolved_code')
         ) {
-          const error = schemaError([], 'reported_situation_filtered');
-          error.repairInstruction =
-            'Die Codeprüfung hat den berichteten Sachstand entfernt. Stelle interpretation wieder her: ausschließlich wörtlich in der aktuellen Nachricht enthaltene Sachangaben als origin=input mit unverändertem inputQuote. Benenne sie als berichtete Angabe, keine bestätigte Codebedeutung. Keine neuen Ursachen oder Bedeutungen ergänzen. Ein weiterer Prüfschritt ersetzt den berichteten Ausgangsstand nicht.';
-          throw error;
+          if (attempt) {
+            const { exactToken } = require('./workbench-codes');
+            const references = unresolved.filter((code) => exactToken(message, code.value));
+            const originals = references.length
+              ? message
+                  .split(/(?<=[.!?])\s+|\r?\n/gu)
+                  .map((value) => value.trim())
+                  .filter((value) => references.every((code) => exactToken(value, code.value)))
+              : [];
+            if (
+              originals.length === 1 &&
+              originals[0].length <= CLAIM.properties.text.maxLength - 'Berichtet: „“'.length
+            ) {
+              const recovered = {
+                interpretation: [
+                  {
+                    origin: 'input',
+                    text: originals[0],
+                    inputQuote: originals[0],
+                    supported: 'model',
+                    condition: '',
+                    completedAction: false,
+                    specific: false,
+                    codeDependencies: references.map((code) => code.value),
+                    evidenceIds: [],
+                  },
+                ],
+              };
+              filterAnswer(recovered, filterOptions);
+              parsed.interpretation = recovered.interpretation;
+              require('./workbench-communication').validateCommunication(
+                parsed,
+                situation,
+                evidence
+              );
+            }
+          }
+          if (!(parsed.interpretation || []).length) {
+            const error = schemaError([], 'reported_situation_filtered');
+            error.repairInstruction =
+              'Die Codeprüfung hat den berichteten Sachstand entfernt. Stelle interpretation wieder her: ausschließlich wörtlich in der aktuellen Nachricht enthaltene Sachangaben als origin=input mit unverändertem inputQuote. Benenne sie als berichtete Angabe, keine bestätigte Codebedeutung. Keine neuen Ursachen oder Bedeutungen ergänzen. Ein weiterer Prüfschritt ersetzt den berichteten Ausgangsstand nicht.';
+            throw error;
+          }
         }
         if (
           Object.hasOwn(situation, 'codeReferences') &&
