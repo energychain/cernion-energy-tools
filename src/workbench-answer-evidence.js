@@ -48,8 +48,9 @@ function prepareAnswerEvidence(evidence, situation, limit = 500) {
         evidenceId: hit.evidenceId,
         source: hit.source,
         title: readableSourceTitle(hit),
-        value:
-          hit.source === 'dataset.query' ? value.slice(0, 12000) : value.slice(best, best + limit),
+        value: ['dataset.query', 'cases'].includes(hit.source)
+          ? value.slice(0, 12000)
+          : value.slice(best, best + limit),
       };
     });
 }

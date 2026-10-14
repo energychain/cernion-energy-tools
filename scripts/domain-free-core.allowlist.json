@@ -873,6 +873,34 @@
     {
       "term": "administrative",
       "reason": "Generische Berechtigungsgrenze für auditiertes Umschreiben persistierter Daten; unabhängig von Fachdomänen."
+    },
+    {
+      "term": "artifact",
+      "reason": "Generischer schemagebundener Antwortinhalt für ausdrücklich bestellte Ausgabeformen; keine fachliche Capability oder Domänenentscheidung."
+    },
+    {
+      "term": "topic",
+      "reason": "Generischer gespeicherter Gegenstand für semantische Fallsuche; keine Liste fachlicher Themen."
+    },
+    {
+      "term": "verbotene",
+      "reason": "Wörtlich aus der aktuellen Nutzerbitte extrahierte Inhaltsbeschränkung für alle Ausgabeteile; keine Fachwortliste."
+    },
+    {
+      "term": "bekannter",
+      "reason": "Generische Erklärung, dass Ausgabeformen nicht über eine Liste von Systemnamen erkannt werden; keine System- oder Domänenliste."
+    },
+    {
+      "term": "zusagen",
+      "reason": "Generischer Ausschluss erfundener verbindlicher Handlungsversprechen in Ausgaben, ohne fachliche Prozessregel."
+    },
+    {
+      "term": "nachweis",
+      "reason": "Generisches wörtliches Belegstück der aktuellen Nachricht zur ausdrücklich bestätigten Auflösung eines gespeicherten Gedächtnispunkts; keine fachliche Nachweisart."
+    },
+    {
+      "term": "assumption",
+      "reason": "Generischer lokaler Wert aus dem schemagebundenen Arbeitsannahmenfeld; verhindert, dass eine Annahme einen offenen Punkt als erledigt entfernt."
     }
   ]
 }

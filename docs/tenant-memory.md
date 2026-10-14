@@ -451,3 +451,48 @@ Budgetende oder Kontingentfehler brechen weitere Modellaufrufe ab. Ein roter Lau
 Ursache beheben und **die gesamte Zehnerserie** mit neuen Ankern wiederholen, keine einzelnen
 Läufe nachholen. Der JSON-Bericht enthält sämtliche Erwartungen aller Läufe und das Budget,
 ohne Modellbezeichnungen. Unit-Abnahme: `tests/tenant-memory-868.test.js`.
+
+## Einmalige Bereinigung administrativer Bestands-Hinweise (#873)
+
+Administrative Löschung, Widerruf und Bereinigung erzeugen ausschließlich Audit-Einträge.
+Redigierte oder leere Aussagen werden weder eingereiht noch zugestellt. Die bestehenden
+Hinweise auf neue Wechselwirkungen und bestätigte nicht administrative Änderungen bleiben
+bestehen. Ohne zustellbaren Inhalt entfällt auch „Hinweise für dich:“.
+
+Nach Einspielen der Korrektur kann die Tenant-Administration bereits gespeicherte
+Lösch- und administrative Änderungs-Hinweise einmalig aus Queue und Historie entfernen:
+
+- Route: `POST /api/tenant-memory-policy/discard-deletion-notices`
+- Action: `tenant-memory-policy.discardDeletionNotices`
+- Rolle: authentifizierte `ROLE_TENANT_ADMIN` mit API-Zugriff und vollständiger Clearance
+  für die betroffenen Aussagen. Tenant ausschließlich aus dem Token.
+- Parameter: nicht leere Begründung `reason`, höchstens 1200 Zeichen.
+
+```bash
+curl --fail-with-body --request POST \
+  "$CET_TEST_BASE_URL/api/tenant-memory-policy/discard-deletion-notices" \
+  --header "Authorization: Bearer $CET_TEST_TENANT_ADMIN_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data '{"reason":"Einmalige Bereinigung administrativer Bestands-Hinweise nach Issue #873"}'
+```
+
+Erwartete Antwort HTTP 200 bei 20 verworfenen Hinweisen:
+
+```json
+{"migration":"deletion-notices-v1","discarded":20,"alreadyApplied":false}
+```
+
+Wiederholung HTTP 200:
+
+```json
+{"migration":"deletion-notices-v1","discarded":0,"alreadyApplied":true}
+```
+
+Jede Veränderung wird vor dem Speichern auditiert, jeder Aufruf zusätzlich mit seinem
+Ergebnis. Ein persistierter tenantgebundener Marker verhindert einen zweiten Lauf.
+Die Bereinigung entfernt ausschließlich Hinweise auf gelöschte/leere Aussagen oder
+administrativ geänderte Aussagen; normale Relationshinweise bleiben erhalten. Unzugängliche
+Aussagen werden nicht gelesen oder verändert. Ein Teilfehler lässt den Marker offen; der
+Aufruf kann dann wiederholt werden. Es werden keine Aussageinhalte im Bereinigungsaudit
+kopiert. Das Runbook beschreibt den Betreiberaufruf; die Abnahme führt ihn ausschließlich
+an synthetischen lokalen Testbeständen aus.
