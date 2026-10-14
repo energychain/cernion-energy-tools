@@ -25,10 +25,62 @@ function installLiveBudget({ limit = Number(process.env.LIVE_MAX_MODEL_CALLS || 
   testQuota.config.quotas.llm_tokens_per_day = tokenLimit;
   testQuota.config.quotas.llm_tokens_per_month = tokenLimit;
   quota.saveTenantState(tenantId, testQuota);
-  const state = { tenantId, limit, calls: 0, completed: 0, stopped: null };
+  const state = {
+    tenantId,
+    limit,
+    calls: 0,
+    completed: 0,
+    stopped: null,
+    externalRequests: 0,
+    externalTokens: 0,
+  };
   const assertReady = () => {
+    if (
+      !state.stopped &&
+      quota.buildQuotaSnapshot(tenantId).usage.llm_tokens_per_day.used + state.externalTokens >=
+        tokenLimit
+    )
+      state.stopped = 'token_limit';
     if (state.stopped)
       throw Object.assign(new Error('Live validation stopped'), { type: state.stopped });
+  };
+  // A remote gateway does not expose its internal model-call count. Account for
+  // client requests separately and reserve conservative input/output token estimates.
+  const reserveExternal = (input, maxOutputChars = 16000, { retainReservation = false } = {}) => {
+    assertReady();
+    if (state.calls >= limit) state.stopped = 'call_limit';
+    const reserved = Math.ceil((String(input).length + maxOutputChars) / 4);
+    if (
+      quota.buildQuotaSnapshot(tenantId).usage.llm_tokens_per_day.used +
+        state.externalTokens +
+        reserved >
+      tokenLimit
+    )
+      state.stopped = 'token_limit';
+    assertReady();
+    state.calls++;
+    state.externalRequests++;
+    state.externalTokens += reserved;
+    let settled = false;
+    return (output) => {
+      if (settled) return;
+      settled = true;
+      if (!retainReservation)
+        state.externalTokens +=
+          Math.ceil((String(input).length + String(output).length) / 4) - reserved;
+      state.completed++;
+      assertReady();
+    };
+  };
+  const stopForQuota = (error) => {
+    if (
+      error.type === 'LLM_QUOTA_EXCEEDED' ||
+      Number(error.status || error.response?.status || error.code) === 429
+    ) {
+      state.stopped =
+        error.type === 'LLM_QUOTA_EXCEEDED' ? 'tenant_quota_exceeded' : 'provider_quota';
+      process.exitCode = 1;
+    }
   };
   const originals = {};
   for (const name of [
@@ -62,22 +114,19 @@ function installLiveBudget({ limit = Number(process.env.LIVE_MAX_MODEL_CALLS || 
         state.completed++;
         return result;
       } catch (error) {
-        if (
-          error.type === 'LLM_QUOTA_EXCEEDED' ||
-          Number(error.status || error.response?.status || error.code) === 429
-        ) {
-          state.stopped =
-            error.type === 'LLM_QUOTA_EXCEEDED' ? 'tenant_quota_exceeded' : 'provider_quota';
-          process.exitCode = 1;
-        }
+        stopForQuota(error);
         throw error;
       }
     };
   }
-  const report = () => ({
-    ...state,
-    tokens: quota.buildQuotaSnapshot(tenantId).usage.llm_tokens_per_day,
-  });
+  const report = () => {
+    const tokens = { ...quota.buildQuotaSnapshot(tenantId).usage.llm_tokens_per_day };
+    delete tokens.lastMeta;
+    tokens.used += state.externalTokens;
+    tokens.estimatedUsed += state.externalTokens;
+    tokens.remaining = Math.max(0, tokenLimit - tokens.used);
+    return { ...state, tokens };
+  };
   process.once('exit', () => {
     const result = report();
     // Do not put provider/model identifiers from lastMeta into validation artifacts.
@@ -87,7 +136,7 @@ function installLiveBudget({ limit = Number(process.env.LIVE_MAX_MODEL_CALLS || 
       fs.writeFileSync(process.env.LIVE_BUDGET_REPORT, JSON.stringify(result, null, 2) + '\n');
     fs.rmSync(directory, { recursive: true, force: true });
   });
-  installed = { state, assertReady, report };
+  installed = { state, assertReady, report, reserveExternal, stopForQuota };
   return installed;
 }
 module.exports = { installLiveBudget };

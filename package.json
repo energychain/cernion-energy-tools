@@ -67,7 +67,11 @@
     "check:signal-catalog": "node scripts/generate-signal-catalog.js --check",
     "check:capability-keywords": "node scripts/check-capability-keywords.js",
     "eval:capability-routing": "node scripts/eval-capability-routing.js",
-    "test:e2e:shared-service": "node scripts/run-shared-service-e2e.js"
+    "test:e2e:shared-service": "node scripts/run-shared-service-e2e.js",
+    "generate:practice-fixtures": "node scripts/generate-practice-evaluation-fixtures.js",
+    "check:practice-fixtures": "node scripts/check-practice-fixtures.js",
+    "release:practice": "node scripts/validate-practice-live.js",
+    "release:gate": "npm run release:check && npm run check:practice-fixtures && npm run release:practice"
   },
   "repository": {
     "type": "git",

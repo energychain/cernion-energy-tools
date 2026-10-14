@@ -7,6 +7,12 @@
 - Keep administrative memory deletion/revocation audit-only; discard legacy notices through an audited one-time tenant action.
 - Find substantive visible cases across chats using semantic topic and persisted turn memory, retaining unresolved points until grounded resolution.
 
+## RC3 – Praxis-Evaluationssuite #875
+
+- Versionierter generatorbasierter Katalog für Marktkommunikation, Governance und RC3-Regressionen.
+- Gemeinsamer Live-Harness und Budgetschutz für lokale sowie HTTP-Testinstanzen, mit auditiertem Aufräumen.
+- Reine Turn-Prüfungen, schemagebundene Rubrik, Wiederholläufe und striktes Release-Gate.
+- Markdown-Bericht mit Ausgangsmessung, Vergleich, Sichtbarkeit und Wechselwirkungsquote; Runbook für den Betreiber.
 
 ## RC3 – Teamgedächtnis #868
 

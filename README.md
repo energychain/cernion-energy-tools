@@ -383,7 +383,12 @@ npm run lint
 npm run audit:openapi
 npm run check:llm
 npm run release:check
+npm run release:gate
 ```
+
+Das [Runbook „Release-Gate ausführen“](docs/release-practice-gate.md) beschreibt die
+Praxis-Evaluation mit synthetischen Mehrturn-Szenarien, Rubrik und Wiederholläufen gegen
+eine lokale oder HTTP-Testinstanz. `release:gate` ergänzt die Repository-Prüfungen um diese Abnahme.
 
 Useful generation commands:
 
