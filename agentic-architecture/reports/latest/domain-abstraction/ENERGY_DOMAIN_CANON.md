@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-14T08:27:20.571Z
+Generated: 2026-10-14T14:32:22.077Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -43,8 +43,8 @@ Starke Code-/Doku-Signale:
 - `src/answer-dossier-hydration-rules.json` (361 hits)
 - `services/personal-agent/actions-part-01-of-1.js` (360 hits)
 - `services/capability-broker.service.js` (329 hits)
+- `docs/validation/workbench-873-live.json` (320 hits)
 - `services/dashboard-api/methods-part-09-of-14.js` (265 hits)
-- `services/dashboard-api/methods-part-08-of-14.js` (264 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -260,6 +260,7 @@ Arbeitsmodell: Ein selbstlaufender EVU-Assistent muss bei erster Nutzung Kontext
 Starke Code-/Doku-Signale:
 
 - `services/workbench.service.js` (596 hits)
+- `docs/validation/workbench-873-live.json` (512 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (492 hits)
 - `services/api.service.js` (453 hits)
 - `docs/v0.58-architecture/lagebild/roles_audit.md` (449 hits)
@@ -270,7 +271,6 @@ Starke Code-/Doku-Signale:
 - `src/capability-catalog.js` (381 hits)
 - `services/vdmi.service.js` (376 hits)
 - `src/answer-dossier-hydration-rules.json` (375 hits)
-- `src/vdmi-blueprint-pack-seeds.js` (370 hits)
 
 Zugeordnete Services nach Heuristik:
 

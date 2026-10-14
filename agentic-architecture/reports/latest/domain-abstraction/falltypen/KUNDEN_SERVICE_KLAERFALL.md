@@ -1,6 +1,6 @@
 # Kunden-/Service-Klärfall
 
-Generated: 2026-10-14T08:27:20.571Z
+Generated: 2026-10-14T14:32:22.077Z
 
 Status: routable
 Priority: 3
@@ -132,8 +132,8 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 
 - `src/capability-catalog.js` (479 hits)
 - `docs/validation/813-live.json` (343 hits)
-- `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md` (313 hits)
-- `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md` (313 hits)
+- `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md` (304 hits)
+- `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md` (304 hits)
 - `agentic-architecture/reports/latest/architecture-scan.md` (268 hits)
 - `services/capability-broker.service.js` (261 hits)
 - `src/report-builder.js` (174 hits)
@@ -143,7 +143,7 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 - `docs/validation/practice-evaluation-baseline.md` (147 hits)
 - `feedback/HYGIENE_SPRINT.md` (145 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (142 hits)
-- `function-model.report.md` (140 hits)
+- `function-model.report.md` (142 hits)
 - `docs/v0.58-architecture/lagebild/tranche_c.md` (136 hits)
 - `src/cookbook-recipes.js` (129 hits)
 - `src/answer-dossier-hydration-rules.json` (127 hits)
