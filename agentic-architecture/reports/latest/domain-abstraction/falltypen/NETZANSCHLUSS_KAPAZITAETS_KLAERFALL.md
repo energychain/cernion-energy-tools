@@ -1,6 +1,6 @@
 # Netzanschluss-/Kapazitäts-Klärfall
 
-Generated: 2026-10-14T08:27:20.571Z
+Generated: 2026-10-14T14:32:22.077Z
 
 Status: observed
 Priority: 4
@@ -113,4 +113,4 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `docs/v0.52-implementation-plans/v0.52.x-agentic-redteam-uat-bank-dd.md` (17 hits)
 - `src/semantic-domains.js` (17 hits)
 - `services/dashboard-api/methods-part-13-of-14.js` (16 hits)
-- `agentic-architecture/domain/falltypen/NETZANSCHLUSS_KAPAZITAETS_KLAERFALL.md` (15 hits)
+- `services/mastr-quality.service.js` (14 hits)
