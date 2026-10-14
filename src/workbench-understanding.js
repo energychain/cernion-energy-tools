@@ -209,6 +209,11 @@ const CLAIM = object(
         'true wenn neue prüfbare Einzelangaben eingeführt werden: Fristen in Tagen/Werktagen, Paragraphen, Betrag, Norm-/Format-/Prüfcode. Bereits im input vorhandene Kennungen, Adressen oder Daten zählen nicht als neue Modellangaben; bei reinen Empfehlungen mit diesen Angaben false.',
     },
     codeDependencies: { type: 'array', maxItems: 20, items: text },
+    inputQuote: {
+      type: 'string',
+      description:
+        'Optionaler unveränderter Originalausschnitt aus message für eine ausdrücklich als Bericht wiederzugebende Eingangsangabe; sonst leer.',
+    },
     evidenceIds: { type: 'array', maxItems: 15, items: { type: 'string' } },
   },
   ['text', 'supported', 'completedAction', 'specific', 'evidenceIds']
@@ -238,6 +243,11 @@ ARTIFACT_ANSWER_SCHEMA.properties.artifact = {
     {
       title: text,
       content: { type: 'array', maxItems: 100, items: CLAIM },
+      orderedSteps: {
+        type: 'array',
+        maxItems: 100,
+        items: object({ ...CLAIM.properties, section: text }, [...CLAIM.required, 'section']),
+      },
       tableRows: {
         type: 'array',
         maxItems: 40,
@@ -930,11 +940,17 @@ async function understand({
     result.codeMeaningQuestion = classified.meaningRequested;
     if (
       preferences.workContext?.intent === 'work' &&
+      !result.preferenceOnly &&
+      !result.codeMeaningQuestion &&
+      !['review', 'smalltalk'].includes(result.turnKind) &&
       preferences.workContext.basis?.trim() &&
       message.includes(preferences.workContext.basis)
     ) {
       result.caseSearch = { requested: false, query: '' };
       result.selfKnowledge = { requested: false, query: '' };
+      result.turnKind = 'work';
+      result.conversationShape = 'task';
+      if (result.caseMemory) result.caseMemory.applicable = true;
     }
     if (
       preferences.workContext?.concrete &&
@@ -1001,8 +1017,10 @@ async function understand({
       result.situation = `Berichtete Beobachtung: ${result.personAssessment.observations.join('; ') || 'nicht unabhängig belegt'}. Nutzerhypothese, nicht erwiesen: ${result.personAssessment.hypotheses.join('; ') || result.personAssessment.basis}`;
       if (result.caseMemory) {
         result.caseMemory.assumptions = previous?.caseMemory?.assumptions || [];
+        result.caseMemory.risks = previous?.caseMemory?.risks || [];
         result.caseMemory.status = result.situation;
       }
+      result.risks = previous?.risks || [];
       if (result.tenantMemory) result.tenantMemory.assertions = [];
     }
   }
@@ -1041,6 +1059,10 @@ function questionsFor(situation, asked = []) {
       !item.key ||
       !item.question ||
       !shape.naturalQuestion(item.question) ||
+      require('./workbench-communication').forbiddenWording(
+        item.question,
+        situation.conversationPreferences?.forbiddenTerms
+      ) ||
       (item.question.match(/\?/g) || []).length !== 1 ||
       (situation.conversationPreferences?.questions !== 'requested' &&
         shape.kind(situation) === 'task' &&
@@ -1135,18 +1157,37 @@ function fallbackAnswer(
   evidence = [],
   questions = [],
   draftRequested = false,
-  modelFailed = false
+  modelFailed = false,
+  message = ''
 ) {
   const findings = prepareAnswerEvidence(evidence, situation, 240).map((hit) =>
     [sourceLine([hit]).replace(/^Quellen: /u, ''), safeSituationText(hit.value, 240)]
       .filter(Boolean)
       .join(': ')
   );
+  const reported =
+    situation.conversationPreferences?.questions === 'requested' &&
+    questions.length &&
+    !draftRequested
+      ? String(message)
+          .split(/(?<=[.!?])\s+/u)
+          .find(
+            (part) =>
+              !part.includes('?') &&
+              part.trim().length >= 12 &&
+              !require('./workbench-communication').forbiddenWording(
+                part,
+                situation.conversationPreferences?.forbiddenTerms
+              )
+          )
+      : '';
   return [
     modelFailed
       ? 'Das Modell ist gerade nicht verfügbar; eine verlässliche neue Bewertung kann ich deshalb noch nicht formulieren.'
       : 'Eine verlässliche neue Bewertung ist gerade nicht zustande gekommen.',
     draftRequested ? 'Der Entwurf ist gerade nicht sauber zustande gekommen.' : '',
+    reported ? `Berichtet: „${safeSituationText(reported, 1200)}“` : '',
+    reported ? 'Die Einordnung bleibt vorläufig, bis die offenen Angaben geklärt sind.' : '',
     findings.length ? `Gefundene Fundstellen:\n${findings.join('\n')}` : '',
     ...questions.map((item) => safeSituationText(item.question, 1200)).filter(Boolean),
   ]
@@ -1212,7 +1253,7 @@ function answerPrompt(
     conversationShapeInstruction:
       'Systemkenntnis ehrlich beschreiben: fachliches Wissen, tatsächlich freigegebener Zugriff und mögliche Arbeit mit Dateien/Exporten unterscheiden. Keine pauschalen Zugriffsbehauptungen. Bei selfKnowledge sind knowledgeSearch und Evidenz maßgeblich; durchsuchte Quellen und Ergebnis rendert das System. Keine Behauptung, es seien keine Fälle bekannt, ohne diese Suche. expectation nie ausgeben. Rückfragen rendert das System, keine in claims.',
     unverifiedValues: value.situation.codeResolutions?.some((entry) => entry.status !== 'resolved')
-      ? 'Ungeklärte Codewerte nennt ausschließlich der systemseitige Beleg-Hinweis. In claims nicht wiederholen oder von ihrer Bedeutung abhängig machen. Die unstrittig berichteten übrigen Sachverhalte konkret einordnen; eine fehlende Codebedeutung ersetzt nicht die Analyse der Arbeitsaufgabe.'
+      ? 'Ungeklärte Codebedeutungen nennt ausschließlich der systemseitige Beleg-Hinweis. Keine eigene Bedeutung oder davon abhängige Schlussfolgerung behaupten. Ein unveränderter berichteter Sachverhalt darf erhalten bleiben: liefere dafür origin=input und inputQuote als unveränderten zusammenhängenden Originalausschnitt aus message; der Server gibt ausschließlich dieses Zitat ausdrücklich als Bericht wieder. Die übrigen Textangaben dieses Claims dürfen keine Deutung hinzufügen. Die unstrittig berichteten übrigen Sachverhalte konkret einordnen; eine fehlende Codebedeutung ersetzt nicht die Analyse der Arbeitsaufgabe.'
       : '',
     schema: STANDARD_ANSWER_SCHEMA,
     ...(attempt
@@ -1347,11 +1388,13 @@ async function generateAnswerResult({
             userFacts: situation.personFacts || [],
             register: situation.conversationPreferences?.register,
           });
-          return await require('./workbench-disclosure-review').reviewDisclosure(
+          const reviewed = await require('./workbench-disclosure-review').reviewDisclosure(
             parsed,
             situation,
             { tenantId, logger, evidence }
           );
+          require('./workbench-communication').validateCommunication(reviewed, situation, evidence);
+          return reviewed;
         }
         if (conversationMode || analysisOnly) parsed.draft = [];
         parsed.expectation = [];
@@ -1374,6 +1417,22 @@ async function generateAnswerResult({
           requireCompleteDraft:
             draftRequested && situation.conversationShape === 'task' && !isDraftRequest(message),
         });
+        require('./workbench-communication').validateCommunication(parsed, situation, evidence);
+        if (
+          Object.hasOwn(situation, 'codeReferences') &&
+          message.includes('?') &&
+          !questions.length &&
+          !unresolved.length &&
+          !draftRequested &&
+          !nextStepOnly &&
+          !conversationMode &&
+          !(parsed.interpretation || []).length
+        ) {
+          const error = schemaError([], 'direct_answer_missing');
+          error.repairInstruction =
+            'Beantworte die aktuelle äußere Sachfrage zuerst ausdrücklich in interpretation. Nur weitere Prüfschritte reichen nicht als Antwort; keine unbelegten Tatsachen oder Codebedeutungen ergänzen. nextSteps darf erst danach folgen.';
+          throw error;
+        }
         if (draftRequested && !parsed.draft.length) {
           const error = schemaError([], filterCounts.size ? 'draft_filtered' : 'draft_missing');
           error.repairInstruction = repairForFilters(filterCounts);
@@ -1475,11 +1534,11 @@ function answerBody({
   if (draft && (isDraftRequest(message) || (!claims.length && answerStatus !== 'fallback')))
     return [];
   if (draftRequested && !draft)
-    return [fallbackAnswer(situation, evidence, questions, true, modelFailed)];
+    return [fallbackAnswer(situation, evidence, questions, true, modelFailed, message)];
   if (!claims.length && answerStatus !== 'fallback' && questions.length)
     return questions.map((item) => item.question);
   if (!claims.length)
-    return [fallbackAnswer(situation, evidence, questions, draftRequested, modelFailed)];
+    return [fallbackAnswer(situation, evidence, questions, draftRequested, modelFailed, message)];
   const questionLines = questions.map((item) => item.question);
   const steps = new Set(result.nextSteps || []);
   const body = [
@@ -1669,42 +1728,55 @@ async function answer({
   if (
     situation.caseSearch?.requested &&
     caseEvidence.length &&
-    !situation.conversationPreferences?.forbiddenTerms?.length &&
     situation.conversationPreferences?.register !== 'Sie' &&
     situation.conversationPreferences?.concise !== 'yes' &&
     casePresentation.canRenderCaseRequest(situation.requestedOutput)
   ) {
     const part = situation.requestedOutput?.requested ? situation.requestedOutput.parts[0] : null;
-    return {
-      responseText: caseEvidence
-        .map((hit) =>
-          part
-            ? casePresentation.renderCaseMemory(
-                {
-                  memory: hit.metadata?.caseMemory,
-                  topic: hit.metadata?.caseTopic,
-                  situation: hit.metadata?.caseSituation,
-                  summary: hit.metadata?.caseSummary,
-                },
-                hit.metadata.displayRef,
-                part
-              )
-            : hit.value
-        )
-        .join('\n\n'),
-      draft: '',
-      questions: [],
-      evidence: caseEvidence,
-      answerStatus: 'grounded',
-      answerAttempts: 0,
-      answerMs: 1,
-      metadata: { degraded: false },
-      evidenceTrace: {
-        source: 'answer',
-        rawEvidence: caseEvidence,
-        selectedIds: caseEvidence.map((hit) => hit.evidenceId),
-      },
-    };
+    const responseText = caseEvidence
+      .map((hit) =>
+        part || hit.metadata?.caseMemory
+          ? casePresentation.renderCaseMemory(
+              {
+                memory: hit.metadata?.caseMemory,
+                topic: hit.metadata?.caseTopic,
+                situation: hit.metadata?.caseSituation,
+                summary: hit.metadata?.caseSummary,
+              },
+              hit.metadata.displayRef,
+              part,
+              {
+                ...situation.conversationPreferences,
+                forbiddenTerms: [
+                  ...(situation.conversationPreferences?.forbiddenTerms || []),
+                  ...(situation.requestedOutput?.forbiddenTerms || []),
+                ],
+              }
+            )
+          : hit.value
+      )
+      .join('\n\n');
+    if (
+      !require('./workbench-communication').forbiddenWording(responseText, [
+        ...(situation.conversationPreferences?.forbiddenTerms || []),
+        ...(situation.requestedOutput?.forbiddenTerms || []),
+      ])
+    )
+      return {
+        responseText,
+        draft: '',
+        questions: [],
+        evidence: caseEvidence,
+        answerStatus: 'grounded',
+        answerAttempts: 0,
+        answerMs: 1,
+        metadata: { degraded: false },
+        evidenceTrace: {
+          source: 'answer',
+          rawEvidence: caseEvidence,
+          selectedIds: caseEvidence.map((hit) => hit.evidenceId),
+        },
+      };
   }
   const preparedEvidence = prepareAnswerEvidence(evidence, situation);
   const unresolved = (situation.codeResolutions || []).filter(

@@ -106,12 +106,12 @@ async function resolveCodes(
   return { evidence, resolutions, trace };
 }
 
-function unresolvedQuestions(resolutions) {
+function unresolvedQuestions(resolutions, preferences = {}) {
   return resolutions
     .filter((entry) => entry.status !== 'resolved')
     .map((entry) => ({
       key: `code:${entry.kind}:${entry.value}`,
-      question: `Code ${entry.value} kann ich nicht sicher zuordnen – was steht in eurer Antwortnachricht dazu?`,
+      question: `Code ${entry.value} kann ich nicht sicher zuordnen – was steht in ${preferences?.register === 'Sie' ? 'Ihrer' : 'eurer'} Antwortnachricht dazu?`,
       blocking: false,
     }));
 }

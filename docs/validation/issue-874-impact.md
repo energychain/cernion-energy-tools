@@ -158,3 +158,94 @@ analysiert: `extractConversationPreferences` LOW (0 direkte Aufrufer),
 `understand` HIGH (3 direkte Aufrufer, 14 betroffene Symbole, 2 Abläufe).
 Die Unterscheidung ist ein geschlossenes semantisches Feld; sie verwendet keine
 Suchwort-, Systemnamen- oder Fachcodeliste.
+
+## Abschließende Rückfrage- und Sicherheitsprüfung
+
+Vor der Korrektur der Rückfrageliste wurde `classifyCodeTokens` erneut geprüft
+(LOW, 0 direkte Aufrufer). Bei ausdrücklich aktivem Rückfragemodus führt eine
+schemagebunden als klärungsbedürftig erkannte Situation ohne verwendbare neue
+Frage zur bestehenden begrenzten Reparatur. Der gezielte Regressionstest deckt
+auch diese leere Liste ab.
+
+Vor den CI-Sicherheitskorrekturen: `materializeTables` LOW (0 direkte Aufrufer),
+`renderCaseMemory` HIGH (1 direkter Aufrufer, 4 betroffene Symbole, 2 Abläufe),
+`validateWorkbench874Live` und `generateEmbeddingDriftFixture` LOW;
+`escapeTableCell` vor seiner Aufnahme UNKNOWN. Der HIGH-Befund wurde vorab
+benannt. Beide Tabellenpfade teilen nun dieselbe vollständige Behandlung von
+Backslashes, Zelltrennern und Zeilenumbrüchen. Der Live-Runner verwendet ohne
+expliziten Zielpfad ein privat angelegtes temporäres Verzeichnis.
+
+Die weitere Upstream-Prüfung der Tokenklassifikation ist LOW (0 direkte
+Aufrufer). Die vorgeschlagenen Zeichenformen dürfen nicht selbst wieder als
+Kennung maskiert werden: ausschließlich numerische Zeichen-, Buchstaben- und
+Ziffernanzahlen werden mitgegeben. Bei einer ausdrücklichen Bedeutungsfrage
+bleiben nicht zuordenbare Referenzwerte ohne belegte Familie als ungeklärte
+Kandidaten erhalten, statt stillschweigend zu verschwinden. Das behauptet keine
+Bedeutung und erzeugt ohne Quelle weiterhin ausschließlich „nicht belegt“.
+Bekannte Objektfamilien, Systeme und Glossarbegriffe werden dadurch nicht zu
+Fachcodes. Bestellte Arbeitsprodukte aktivieren diesen Unsicherheitspfad nicht.
+
+## Bericht, Rückfragen und lesbarer Fallstatus
+
+Weitere erfolgreiche Upstream-Analysen vor den Änderungen:
+`questionsFor`, `validateCommunication` LOW; `forbiddenWording` als neues Symbol
+UNKNOWN. Wortstämme gelten jetzt auch für Rückfragen und einleitende Sachabsätze.
+`answer` LOW (2 direkte Aufrufer, 10 betroffene Symbole, 2 Abläufe),
+`renderCaseMemory` und `canRenderCaseRequest` HIGH (je 1 direkter Aufrufer,
+4 betroffene Symbole, 2 Abläufe), Query-`handler` LOW; bei Mehrdeutigkeit wurde
+zusätzlich die Symbolposition 1426–1561 im Graphen überprüft. Ein eindeutiger
+Status-Treffer liefert seine bereits autorisierte Fallreferenz mit, ohne den
+Vorgang oder die Chat-Zuordnung zu ändern. Sprachverbote gelten für die
+vorhandene Falldarstellung; betroffene gespeicherte Werte werden neutral markiert.
+
+`filterAnswer`, `CLAIM` und `answerPrompt` sind LOW. Ein optionales `inputQuote`
+wird nur bei einem exakten Originalausschnitt akzeptiert; dann überschreibt der
+Server jeden zusätzlich generierten Text durch ein ausdrücklich bezeichnetes
+Berichtszitat. Daraus folgt keine eigene Codebedeutung oder bestätigte Erledigung.
+Ohne exakten Beleg bleibt der bisherige Codefilter wirksam.
+`clarifyMissingInformation` war vor seiner Aufnahme UNKNOWN; der begrenzte
+Klärungsschritt nutzt den vorhandenen Informations-/Fragenvertrag und zentralen
+Client. `classifyCodeTokens` wurde vor seiner Anbindung erneut mit LOW geprüft.
+`fallbackAnswer` HIGH (1 direkter Aufrufer, 4 betroffene Symbole, 2 Abläufe),
+`answerBody` LOW: bei vorhandenen Rückfragen bleibt ein sprachlich zulässiger,
+wörtlicher Berichtskontext sichtbar, auch wenn keine Modellbewertung zustande kam.
+`generateAnswerResult` HIGH (1 direkter Aufrufer, 4 betroffene Symbole, 2 Abläufe):
+Sprachprüfung auch nach Umwandlung von Berichtszitaten und nach Offenlegungsprüfung.
+Alle HIGH-Befunde wurden vor den jeweiligen Änderungen benannt.
+
+## Aktuelle Codefragen und schemagebundene Schrittfolge
+
+Upstream vor den Änderungen: `runContentTurn` LOW (1 direkter Aufrufer,
+16 betroffene Symbole, 0 ausgewiesene Abläufe), `unresolvedQuestions` LOW
+(1 direkter Aufrufer, 9 betroffene Symbole, 1 Ablauf). Code-Rückfragen werden
+nur aus den aktuellen Auflösungen erzeugt; alte `code:`-Fragen gelangen nicht
+in eine neue unabhängige Sachfrage. Die gespeicherte Anrede gilt auch dort.
+
+`materializeTables`, `instruction`, `ARTIFACT_ANSWER_SCHEMA`,
+`extractOutputContract`, `generateCommunicationFixture` und `filterAnswer` LOW;
+`generatePracticeCatalog` LOW (4 direkte Aufrufer). Das vorhandene Materialisieren
+wird auch für `orderedSteps` wiederverwendet: fortlaufende Nummern und bestellte
+Abschnittsüberschriften entstehen serverseitig, Quellenmetadaten bleiben erhalten.
+`generateAnswerResult` HIGH (1 direkter Aufrufer, 4 betroffene Symbole, 2 Abläufe):
+eine klare aktuelle Sachfrage darf nicht ausschließlich mit weiteren Schritten
+beantwortet werden. Die bestehende begrenzte Reparatur verlangt eine direkte Antwort.
+`understand` HIGH (3 direkte Aufrufer, 14 betroffene Symbole, 2 Abläufe):
+neue personenbezogene Deutungen werden weder als neue Fallrisiken noch als
+Sachstandsrisiken übernommen. Die HIGH-Risiken wurden vorab benannt.
+
+Das Risiko-Pflichtmuster des bestehenden Governance-Szenarios wurde um die
+korrekte Mehrzahl erweitert. Dafür wurden ausschließlich die unveränderten
+Referenzantworten erneut deterministisch geprüft; Modellaufrufe, übrige Prüfungen
+und Rubriken bleiben erhalten. Die Beschreibung der Korrektur steht im Referenzbericht.
+
+Abschließender geprüfter Änderungsumfang vor dem Commit: gegen `origin/main`
+59 Dateien, 449 Symbole und 38 Abläufe, CRITICAL; gegen die ältere lokale
+`main`-Referenz 290 Dateien, 2549 Symbole und 93 Abläufe, CRITICAL; im Staging
+23 Dateien, 180 Symbole und 34 Abläufe, CRITICAL. Die größere lokale
+`main`-Differenz enthält bereits auf `origin/main` vorhandene Vorläufer.
+Die tatsächliche PR-Differenz wird zusätzlich gegen `origin/main` geprüft.
+Die geprüften Abläufe betreffen Gesprächsführung, Code-/Belegverarbeitung,
+Maskierung und Fallzugriff. Die gemeinsam genutzten zentralen Aufrufe erklären
+den übergreifenden Wirkungsbereich. Für die großen generierten Diffs wurde nur
+bei den GitNexus-Aufrufen `diff.interHunkContext=100000` verwendet; dies erweitert
+Diff-Bereiche und schließt keine Änderungen aus.

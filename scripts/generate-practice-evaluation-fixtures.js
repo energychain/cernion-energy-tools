@@ -290,7 +290,7 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
         'Vorgang im neuen Chat finden und inhaltlich zusammenfassen',
         {
           ...noDecision,
-          require: ['Mandat', 'Stand', 'Annahme', 'Risiko', 'Owner', 'Frist'],
+          require: ['Mandat', 'Stand', 'Annahme', 'Risiko|Risiken', 'Owner', 'Frist'],
           previousCaseMention: true,
         },
         { chat: 'fresh', dependencies: ['873', '874'] }

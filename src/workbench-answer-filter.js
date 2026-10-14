@@ -96,6 +96,24 @@ function filterAnswer(
     const original = parsed[field] || [];
     const rejectedConditions = new Set();
     const filtered = original.filter((claim) => {
+      const unresolvedDependency = unresolved.some(
+        (code) =>
+          exactToken(claim.text, code.value) || (claim.codeDependencies || []).includes(code.value)
+      );
+      const reportedInput =
+        unresolvedDependency &&
+        claim.origin === 'input' &&
+        typeof claim.inputQuote === 'string' &&
+        claim.inputQuote.trim() &&
+        message.includes(claim.inputQuote);
+      if (reportedInput) {
+        const numbering = artifact ? /^\s*\d+\.\s+/u.exec(claim.text)?.[0] || '' : '';
+        claim.text = `${numbering}Berichtet: „${claim.inputQuote}“`;
+        claim.supported = 'model';
+        claim.evidenceIds = [];
+        claim.completedAction = false;
+        claim.specific = false;
+      }
       claim.text = require('./case-continuation').readableCaseText(claim.text);
       if (field !== 'draft') {
         const clean = require('./workbench-chat-presentation').withoutUnsolicitedAdvice(
@@ -127,6 +145,7 @@ function filterAnswer(
       if (!artifact && require('./workbench-tool-answer').internalToolText(claim.text, evidence))
         rules.push('raw_tool_output');
       if (
+        !reportedInput &&
         unresolved.some(
           (code) =>
             exactToken(claim.text, code.value) ||

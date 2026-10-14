@@ -12,7 +12,11 @@ async function validateWorkbench874Live() {
   const fs = require('node:fs');
   const path = require('node:path');
   const target = path.resolve(
-    process.env.WORKBENCH_VALIDATION_REPORT || '/tmp/workbench-874-live.json'
+    process.env.WORKBENCH_VALIDATION_REPORT ||
+      path.join(
+        fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'workbench-874-')),
+        'turns.json'
+      )
   );
   const turns = [];
   const flush = () =>

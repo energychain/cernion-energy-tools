@@ -1000,8 +1000,8 @@ async function runContentTurn(
   }
   situation.codeResolutions = resolvedCodes.resolutions;
   situation.missingInformation = [
-    ...codes.unresolvedQuestions(resolvedCodes.resolutions),
-    ...situation.missingInformation,
+    ...codes.unresolvedQuestions(resolvedCodes.resolutions, situation.conversationPreferences),
+    ...situation.missingInformation.filter((item) => !item.key?.startsWith('code:')),
   ].slice(0, 10);
   retrieval.evidence = [...resolvedCodes.evidence, ...(retrieval.evidence || [])];
   retrieval.trace = [...(retrieval.trace || []), ...resolvedCodes.trace];

@@ -881,7 +881,7 @@ test('workflow metadata respects stored wording restrictions', () => {
   expect(caseWorkLines(memory, [], { forbiddenTerms: [term] }).join('\n')).not.toContain(term);
 });
 
-test('new-chat case recall runs stored language preferences through the shared answer validator', async () => {
+test('new-chat case recall renders known fields with stored language preferences', async () => {
   const term = fixture.scenarios[4].turns[2].expect.rules.forbid[0];
   const part = {
     title: fixture.proposal.title,
@@ -936,7 +936,7 @@ test('new-chat case recall runs stored language preferences through the shared a
       ],
     },
   });
-  expect(llm.generateText).toHaveBeenCalled();
+  expect(llm.generateText).not.toHaveBeenCalled();
   expect(result.responseText).toContain(fixture.queryCaseMemory.situation);
   expect(result.responseText).toContain('Wiedervorlage:');
   expect(result.responseText).not.toContain(term);
@@ -1191,4 +1191,279 @@ test('part audiences and addressed correspondence survive a global internal clas
     letter: true,
     recipient: fixture.proposal.ownerRole,
   });
+});
+
+test('requested clarification repairs an empty question list before answering', async () => {
+  const { classifyCodeTokens } = require('../src/workbench-code-classification');
+  const message = fixture.scenarios[5].turns[1].message;
+  const question = message.slice(message.indexOf('Was'));
+  let controls = 0;
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    const data = JSON.parse(prompt);
+    if (data.task === 'output_contract') return fixture.outputContract(message);
+    if (data.task === 'token_roles')
+      return {
+        tokens: data.candidates.map(({ index }) => ({
+          index,
+          category: 'other',
+          family: '',
+          meaningRequested: false,
+        })),
+      };
+    controls++;
+    return {
+      needsClarification: true,
+      missingInformation:
+        controls === 1
+          ? []
+          : [
+              {
+                key: 'synthetic-clarification',
+                question,
+                blocking: true,
+                decisive: true,
+                answered: false,
+                reason: 'decisive',
+              },
+            ],
+    };
+  });
+  const result = await classifyCodeTokens(message, [], {}, false, {
+    conversationPreferences: { questions: 'requested' },
+    askedQuestions: [],
+  });
+  expect(controls).toBe(2);
+  expect(result.missingInformation).toHaveLength(1);
+});
+
+test('table cells escape existing backslashes before delimiter and line-break handling', () => {
+  const { escapeTableCell } = require('../src/workbench-artifact');
+  const value = fixture.matrix.cells[0];
+  expect(escapeTableCell(`\\${value}|\r\n`)).toBe(`\\\\${value}\\| `);
+});
+
+test('language bans cover factual introductions and previously generated clarification questions', () => {
+  const term = fixture.proposal.ownerRole.split(/\s/u)[0];
+  const situation = fixture.situation(fixture.scenarios[5].turns[1].message, {
+    conversationPreferences: { forbiddenTerms: [term] },
+    missingInformation: [
+      {
+        key: 'synthetic-question',
+        question: `${term}?`,
+        reason: 'decisive',
+        decisive: true,
+        blocking: true,
+        answered: false,
+      },
+    ],
+  });
+  expect(questionsFor(situation)).toEqual([]);
+  expect(() =>
+    validateCommunication({ expectation: [fixture.claim(term)] }, situation, [])
+  ).toThrow(expect.objectContaining({ fallbackReason: 'conversation_wording' }));
+});
+
+test('an ambiguous family in a shared meaning query stays explicitly unproven', async () => {
+  const { classifyCodeTokens } = require('../src/workbench-code-classification');
+  const turn = fixture.scenarios[0].turns[0];
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    const data = JSON.parse(prompt);
+    if (data.task === 'output_contract') return fixture.outputContract(turn.message);
+    if (data.task === 'turn_controls') return { missingInformation: [] };
+    return {
+      tokens: data.candidates.map(({ index }) => ({
+        index,
+        category: index === 0 ? 'reference' : 'code',
+        family: '',
+        meaningRequested: index !== 0,
+      })),
+    };
+  });
+  const result = await classifyCodeTokens(turn.message, [], {});
+  for (const value of turn.expect.rules.codes)
+    expect(result.references).toContainEqual(expect.objectContaining({ value }));
+});
+
+test('an ungrounded dependency cannot erase an exact reported input or add a new meaning to it', () => {
+  const { filterAnswer } = require('../src/workbench-answer-filter');
+  const value = fixture.scenarios[0].turns[0].expect.rules.codes[0];
+  const options = {
+    evidence: [],
+    answerEvidence: [],
+    unresolved: [{ value }],
+    message: fixture.scenarios[0].turns[0].message,
+    normalizeCondition: (x) => x,
+    counts: new Map(),
+  };
+  const parsed = {
+    interpretation: [
+      {
+        ...fixture.claim(`${value} ${fixture.proposal.title}`),
+        inputQuote: fixture.reportedFact,
+        origin: 'input',
+        codeDependencies: [value],
+      },
+    ],
+  };
+  filterAnswer(parsed, options);
+  expect(parsed.interpretation[0].text).toBe(`Berichtet: „${fixture.reportedFact}“`);
+  expect(parsed.interpretation[0].text).not.toContain(fixture.proposal.title);
+  const invalid = {
+    interpretation: [
+      {
+        ...fixture.claim(value),
+        origin: 'input',
+        inputQuote: fixture.reportedFact + '\n',
+        codeDependencies: [value],
+      },
+    ],
+  };
+  filterAnswer(invalid, { ...options, counts: new Map() });
+  expect(invalid.interpretation).toEqual([]);
+});
+
+test('the focused clarification contract repairs an empty clarification decision', async () => {
+  const { clarifyMissingInformation } = require('../src/workbench-clarification');
+  const message = fixture.scenarios[5].turns[1].message;
+  const question = message.slice(message.indexOf('Was'));
+  llm.generateStructured
+    .mockResolvedValueOnce({ mode: 'clarify_and_answer', questions: [] })
+    .mockResolvedValueOnce({
+      mode: 'clarify_and_answer',
+      questions: [
+        {
+          key: 'synthetic-focused',
+          question,
+          reason: 'decisive',
+          decisive: true,
+          blocking: true,
+          answered: false,
+        },
+      ],
+    });
+  expect(
+    await clarifyMissingInformation(
+      message,
+      { conversationPreferences: { questions: 'requested' }, askedQuestions: [] },
+      {}
+    )
+  ).toHaveLength(1);
+  expect(llm.generateStructured).toHaveBeenCalledTimes(2);
+});
+
+test('code-source clarification follows the stored formal register', () => {
+  const { unresolvedQuestions } = require('../src/workbench-codes');
+  const value = fixture.scenarios[0].turns[0].expect.rules.codes[0];
+  const questions = unresolvedQuestions([{ value, status: 'unresolved' }], { register: 'Sie' });
+  expect(questions[0].question).toContain('Ihrer');
+  expect(questions[0].question).not.toContain('eurer');
+});
+
+test('structured steps retain provenance and render a complete numbered internal order', () => {
+  const {
+    materializeTables,
+    validateArtifact,
+    renderArtifact,
+  } = require('../src/workbench-artifact');
+  const texts = [fixture.term, fixture.proposal.ownerRole, fixture.proposal.nextConsideration];
+  const request = {
+    requested: true,
+    kind: 'internal',
+    parts: [
+      {
+        title: fixture.term,
+        sections: [],
+        columns: [],
+        layout: 'steps',
+        audience: 'internal',
+        letter: false,
+        minimumSteps: 3,
+      },
+    ],
+    subjects: [fixture.term],
+    constraints: [],
+    forbiddenTerms: [],
+  };
+  const parsed = {
+    artifact: [
+      {
+        title: fixture.term,
+        content: [],
+        orderedSteps: texts.map((text) => ({ ...fixture.claim(text), section: '' })),
+      },
+    ],
+  };
+  materializeTables(parsed, request);
+  validateArtifact(parsed, request, {
+    evidence: [],
+    answerEvidence: [],
+    unresolved: [],
+    message: fixture.scenarios[2].turns[1].message,
+    normalizeCondition: (x) => x || '',
+    counts: new Map(),
+  });
+  const output = renderArtifact(parsed.artifact, request);
+  texts.forEach((text, i) => expect(output).toContain(`${i + 1}. ${text}`));
+  expect(parsed.artifact[0].content[0].origin).toBe('input');
+  expect(parsed.artifact[0].orderedSteps).toBeUndefined();
+});
+
+test('a current direct question requires an answer rather than only further steps', async () => {
+  const base = { expectation: [], interpretation: [], assumptions: [], draft: [] };
+  llm.generateText
+    .mockResolvedValueOnce(
+      JSON.stringify({ ...base, nextSteps: [fixture.claim(fixture.proposal.nextConsideration)] })
+    )
+    .mockResolvedValueOnce(
+      JSON.stringify({
+        ...base,
+        nextSteps: [],
+        interpretation: [fixture.claim(fixture.directQuestion.split(';')[0])],
+      })
+    );
+  const result = await answer({
+    tenantId: fixture.tenantId,
+    message: fixture.directQuestion,
+    situation: fixture.situation(fixture.directQuestion, {
+      codeReferences: [],
+      conversationShape: 'task',
+      turnKind: 'work',
+      outputKind: 'analysis',
+    }),
+    retrieval: { evidence: [] },
+  });
+  expect(result.answerAttempts).toBe(2);
+  expect(result.responseText).toContain(fixture.directQuestion.split(';')[0]);
+});
+
+test('personal interpretations do not become new factual risks in case memory', async () => {
+  const message = fixture.scenarios[7].turns[0].message;
+  const previous = fixture.situation(message, {
+    risks: [fixture.proposal.ownerRole],
+    caseMemory: {
+      applicable: true,
+      topic: fixture.proposal.title,
+      status: '',
+      openPoints: [],
+      assumptions: [],
+      risks: [fixture.proposal.ownerRole],
+      nextSteps: [],
+      resolvedItems: [],
+    },
+  });
+  llm.generateStructured.mockResolvedValue(
+    fixture.situation(message, {
+      personAssessment: {
+        applicable: true,
+        basis: message,
+        observations: [message.split('. ')[0]],
+        hypotheses: [message.split('. ').at(-1)],
+      },
+      risks: [fixture.unsupportedObservation],
+      caseMemory: { ...previous.caseMemory, risks: [fixture.unsupportedObservation] },
+    })
+  );
+  const result = await understand({ tenantId: fixture.tenantId, message, previous });
+  expect(result.caseMemory.risks).toEqual(previous.caseMemory.risks);
+  expect(result.risks).toEqual(previous.risks);
 });

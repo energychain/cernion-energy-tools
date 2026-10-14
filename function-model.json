@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "412a69516dc18bf8b7e7b5eeaee11b5b8d8f8d64a01269ae0669803c71c6c730",
+  "sourceHash": "47a04d5e53d3c3cb61faef13ce74eba85e0e489f6d015a5b693b3cd141ec7cc2",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -69688,6 +69688,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-clarification.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-code-classification.js"
         },
         {
@@ -122445,6 +122449,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-chat-presentation.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-clarification.js"
         },
         {
           "kind": "service",

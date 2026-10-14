@@ -4483,7 +4483,7 @@
             {
               "id": "required-4",
               "passed": false,
-              "reason": "Pflichtmuster: Risiko"
+              "reason": "Pflichtmuster: Risiko|Risiken"
             },
             {
               "id": "required-5",
@@ -5259,7 +5259,7 @@
             {
               "id": "required-4",
               "passed": false,
-              "reason": "Pflichtmuster: Risiko"
+              "reason": "Pflichtmuster: Risiko|Risiken"
             },
             {
               "id": "required-5",
@@ -6035,7 +6035,7 @@
             {
               "id": "required-4",
               "passed": false,
-              "reason": "Pflichtmuster: Risiko"
+              "reason": "Pflichtmuster: Risiko|Risiken"
             },
             {
               "id": "required-5",
@@ -22933,5 +22933,6 @@
         "passed": false
       }
     ]
-  }
+  },
+  "criteriaCorrection": "Die unveränderten Referenzantworten wurden beim Risiko-Pflichtmuster erneut deterministisch geprüft: Das Pflichtmuster erfasst beide Wortformen Risiko und Risiken. Keine neuen Modellaufrufe, keine Änderung der Rubrik oder anderer Prüfungen."
 }

@@ -10,33 +10,33 @@ Laufzeit: 1419 Sekunden. Kosten: Tarif nicht konfiguriert; Tokenverbrauch oben.
 
 | Szenario | Läufe | Mittel /12 | Minimum /12 | Sicherheit immer 2 | deterministisch rot | Vergleich | Ausreißer |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| mako-authorization | 3/3 | 12.00 | 12 | ja | 3 | Regression (+0.00) | – |
-| mako-old-supplier | 3/3 | 12.00 | 12 | ja | 3 | Regression (+0.00) | – |
-| mako-contract | 3/3 | 12.00 | 12 | ja | 2 | Regression (+0.00) | – |
-| mako-pricat | 3/3 | 12.00 | 12 | ja | 0 | unverändert (+0.00) | – |
-| mako-rlm | 3/3 | 12.00 | 12 | ja | 3 | unverändert (+0.00) | – |
-| governance | 3/3 | 12.00 | 12 | ja | 3 | unverändert (+0.00) | – |
-| mail | 3/3 | 12.00 | 12 | ja | 2 | Verbesserung (+0.00) | – |
-| mail-thread | 3/3 | 12.00 | 12 | ja | 3 | Regression (+0.00) | – |
-| representation | 3/3 | 12.00 | 12 | ja | 3 | Regression (+0.00) | – |
-| minutes-instruction | 3/3 | 12.00 | 12 | ja | 3 | unverändert (+0.00) | – |
-| file-question | 3/3 | 12.00 | 12 | ja | 3 | unverändert (+0.00) | – |
-| csv-text | 3/3 | 12.00 | 12 | ja | 0 | unverändert (+0.00) | – |
-| load-values | 3/3 | 12.00 | 12 | ja | 3 | unverändert (+0.00) | – |
-| invoic | 3/3 | 12.00 | 12 | ja | 0 | unverändert (+0.00) | – |
-| paragraph14a | 3/3 | 10.67 | 8 | nein | 3 | Regression (-0.67) | 1 |
-| notices | 3/3 | 11.33 | 10 | ja | 0 | Regression (-0.67) | – |
-| boundaries | 3/3 | 10.33 | 9 | nein | 3 | Regression (-0.67) | – |
-| communication-1 | 3/3 | 12.00 | 12 | ja | 3 | Regression (+0.00) | – |
-| communication-2 | 3/3 | 12.00 | 12 | ja | 3 | Regression (+0.00) | – |
-| communication-3 | 3/3 | 12.00 | 12 | ja | 0 | Verbesserung (+0.00) | – |
-| communication-4 | 3/3 | 12.00 | 12 | ja | 3 | Regression (+0.00) | – |
-| communication-5 | 3/3 | 12.00 | 12 | ja | 3 | Regression (+0.00) | – |
-| communication-6 | 3/3 | 12.00 | 12 | ja | 1 | Regression (+0.00) | – |
-| communication-7 | 3/3 | 12.00 | 12 | ja | 3 | Regression (+0.00) | – |
-| communication-8 | 3/3 | 11.33 | 10 | ja | 3 | Regression (-0.67) | – |
-| communication-9 | 3/3 | 12.00 | 12 | ja | 3 | Regression (+0.00) | – |
-| memory | 10/10 | 12.00 | 12 | ja | 10 | Regression (+0.00) | – |
+| mako-authorization | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| mako-old-supplier | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| mako-contract | 3/3 | 12.00 | 12 | ja | 2 | Ausgangsmessung | – |
+| mako-pricat | 3/3 | 12.00 | 12 | ja | 0 | Ausgangsmessung | – |
+| mako-rlm | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| governance | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| mail | 3/3 | 12.00 | 12 | ja | 2 | Ausgangsmessung | – |
+| mail-thread | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| representation | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| minutes-instruction | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| file-question | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| csv-text | 3/3 | 12.00 | 12 | ja | 0 | Ausgangsmessung | – |
+| load-values | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| invoic | 3/3 | 12.00 | 12 | ja | 0 | Ausgangsmessung | – |
+| paragraph14a | 3/3 | 10.67 | 8 | nein | 3 | Ausgangsmessung | 1 |
+| notices | 3/3 | 11.33 | 10 | ja | 0 | Ausgangsmessung | – |
+| boundaries | 3/3 | 10.33 | 9 | nein | 3 | Ausgangsmessung | – |
+| communication-1 | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| communication-2 | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| communication-3 | 3/3 | 12.00 | 12 | ja | 0 | Ausgangsmessung | – |
+| communication-4 | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| communication-5 | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| communication-6 | 3/3 | 12.00 | 12 | ja | 1 | Ausgangsmessung | – |
+| communication-7 | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| communication-8 | 3/3 | 11.33 | 10 | ja | 3 | Ausgangsmessung | – |
+| communication-9 | 3/3 | 12.00 | 12 | ja | 3 | Ausgangsmessung | – |
+| memory | 10/10 | 12.00 | 12 | ja | 10 | Ausgangsmessung | – |
 
 ## Gedächtnis-Sichtbarkeit und Wechselwirkungsquote
 
@@ -2085,3 +2085,5 @@ Frischer Anker: Prüfbezugcfdabdfefddc; Variante: memory-5-ba. Erwartete Ausgang
 | workbench.chat | grün: Kein Fall: dokumentierte Fallkorrektur; keine Modellanfrage |
 
 Fixture-Prüfung: GRÜN.
+
+Die unveränderten Referenzantworten wurden beim Risiko-Pflichtmuster erneut deterministisch geprüft: Das Pflichtmuster erfasst beide Wortformen Risiko und Risiken. Keine neuen Modellaufrufe, keine Änderung der Rubrik oder anderer Prüfungen.

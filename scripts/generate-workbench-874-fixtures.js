@@ -211,6 +211,10 @@ function generateCommunicationFixture(seed = 'unit874') {
     ),
   };
 
+  result.reportedFact = scenarios[0].turns[0].message.split('. ')[0] + '.';
+  result.directQuestion = catalog.scenarios.find(
+    (item) => item.id === 'mako-authorization'
+  ).turns[2].message;
   result.codeSourceFixture.compoundCodes = ['Q42_OTHER', 'Q42-1', 'Q42.1'];
   return result;
 }
@@ -221,7 +225,9 @@ function generateEmbeddingDriftFixture(count = 25) {
   const semanticDomains = require('../src/semantic-domains').semanticDomains;
   const parameters = require('../function-model.parameters.json');
   const cache = structuredClone(require('../function-model.embeddings.json'));
-  for (const id of Object.keys(cache.entries).sort().slice(0, count))
+  for (const id of Object.keys(cache.entries)
+    .sort((a, b) => a.localeCompare(b))
+    .slice(0, count))
     cache.entries[id].textHash = require('node:crypto')
       .createHash('sha256')
       .update(`synthetic-stale-${id}`)

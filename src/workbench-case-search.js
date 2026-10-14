@@ -85,7 +85,6 @@ function canRenderCaseRequest(request) {
     part.layout !== 'steps' &&
     part.columns.every((heading) => caseFieldIndex(heading) >= 0) &&
     !request.constraints.length &&
-    !request.forbiddenTerms?.length &&
     part.sections.every((heading) => caseFieldIndex(heading) >= 0)
   );
 }
@@ -129,8 +128,12 @@ function caseWorkForAnswer(situation, hits) {
     .join('\n');
 }
 
-function renderCaseMemory(candidate, displayRef, part) {
+function renderCaseMemory(candidate, displayRef, part, preferences = {}) {
   const m = safeTurnMemory(candidate.memory) || {};
+  const safeText = (value) =>
+    require('./workbench-communication').forbiddenWording(value, preferences.forbiddenTerms)
+      ? 'nach Gesprächsvorgabe noch einzuordnen'
+      : value;
   const list = (values) => (values?.length ? values.join('; ') : 'nicht hinterlegt');
   const values = [
     displayRef,
@@ -144,8 +147,9 @@ function renderCaseMemory(candidate, displayRef, part) {
     m.caseWork?.deadline || 'nicht hinterlegt',
     m.caseWork?.nextConsideration || 'nicht hinterlegt',
     m.caseWork?.reminder || 'nicht hinterlegt',
-  ];
-  const context = candidate.topic && candidate.topic !== values[1] ? `\n${candidate.topic}` : '';
+  ].map(safeText);
+  const context =
+    candidate.topic && candidate.topic !== values[1] ? `\n${safeText(candidate.topic)}` : '';
   const title = `Fall ${displayRef}: ${values[1]}${context}`;
   if (part?.layout === 'table' && part.columns.length)
     return [
@@ -153,7 +157,7 @@ function renderCaseMemory(candidate, displayRef, part) {
       title,
       `| ${part.columns.join(' | ')} |`,
       `| ${part.columns.map(() => '---').join(' | ')} |`,
-      `| ${part.columns.map((heading) => String(values[caseFieldIndex(heading)]).replace(/\|/gu, '\\|').replace(/\n/gu, ' ')).join(' | ')} |`,
+      `| ${part.columns.map((heading) => require('./workbench-artifact').escapeTableCell(values[caseFieldIndex(heading)])).join(' | ')} |`,
     ]
       .filter(Boolean)
       .join('\n');
@@ -165,7 +169,7 @@ function renderCaseMemory(candidate, displayRef, part) {
         const index = caseFieldIndex(heading);
         return `### ${heading}\n\n${values[index]}`;
       }),
-      ...caseWorkLines(m, part.sections),
+      ...caseWorkLines(m, part.sections, preferences),
     ]
       .filter(Boolean)
       .join('\n\n');

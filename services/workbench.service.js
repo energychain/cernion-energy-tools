@@ -1523,7 +1523,7 @@ module.exports = {
               )
             )
               return linkedStatus || conversationStatus;
-            return understanding.answer({
+            const reply = await understanding.answer({
               situation: {
                 ...situation,
                 turnKind: 'knowledge',
@@ -1537,6 +1537,16 @@ module.exports = {
               message: envelope.userRequest,
               logger: this.logger,
             });
+            const hits = found.evidence.filter((hit) => hit.source === 'cases');
+            return {
+              ...reply,
+              ...(hits.length === 1
+                ? {
+                    cetCaseId: hits[0].metadata.caseId,
+                    caseDisplayRef: hits[0].metadata.displayRef,
+                  }
+                : {}),
+            };
           }
           if (linkedStatus || conversationStatus) return linkedStatus || conversationStatus;
           return {

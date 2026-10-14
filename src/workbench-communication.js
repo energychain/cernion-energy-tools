@@ -105,8 +105,22 @@ function proposalText(proposal, preferences = {}) {
   return `Vorschlag für einen verbundenen Vorgang:\n\n### Titel\n${proposal.title}\n\n### Typ\n${value(proposal.type)}\n\n### Bezug\n${value(proposal.reference)}\n\n### Owner\n${value(proposal.ownerRole)} (Vorschlag)\n\n### Frist\n${value(proposal.deadline)}\n\n### Wiedervorlage\n${value(proposal.reminder)}\n\n### nächste Befassung\n${value(proposal.nextConsideration)}\n\nMit „Leg an“ ${preferences.register === 'Sie' ? 'bestätigen Sie' : 'bestätigst du'} die Anlage. Bis dahin bleibt es ein Vorschlag.`;
 }
 
+function forbiddenWording(text, forbidden = []) {
+  const words =
+    String(text)
+      .normalize('NFKC')
+      .toLocaleLowerCase()
+      .match(/[\p{L}\p{N}]+/gu) || [];
+  return forbidden.some(
+    (term) =>
+      term.trim() &&
+      words.some((word) => word.startsWith(term.normalize('NFKC').toLocaleLowerCase()))
+  );
+}
+
 function validateCommunication(parsed, situation, evidence) {
   const claims = [
+    ...(parsed.expectation || []),
     ...(parsed.interpretation || []),
     ...(parsed.nextSteps || []),
     ...(parsed.assumptions || []),
@@ -115,18 +129,7 @@ function validateCommunication(parsed, situation, evidence) {
   ];
   const forbidden = situation.conversationPreferences?.forbiddenTerms || [];
   for (const claim of claims) {
-    const words =
-      claim.text
-        .normalize('NFKC')
-        .toLocaleLowerCase()
-        .match(/[\p{L}\p{N}]+/gu) || [];
-    if (
-      forbidden.some(
-        (term) =>
-          term.trim() &&
-          words.some((word) => word.startsWith(term.normalize('NFKC').toLocaleLowerCase()))
-      )
-    ) {
+    if (forbiddenWording(claim.text, forbidden)) {
       const error = require('./workbench-llm-repair').schemaError([], 'conversation_wording');
       error.repairInstruction = `Formuliere alle Teile neu ohne diese ausgeschlossenen Wörter/Wortstämme: ${JSON.stringify(forbidden)}. Verwende Befassung, Einordnung und Prüfauftrag. Wiederhole auch nicht die Sprachregel oder die ausgeschlossenen Wörter in einem Satz wie ohne/keine. Formuliere die Sachinhalte positiv; alle bestellten Teile und Sachangaben bleiben erhalten.`;
       throw error;
@@ -167,4 +170,5 @@ module.exports = {
   answerInstruction,
   proposalText,
   validateCommunication,
+  forbiddenWording,
 };
