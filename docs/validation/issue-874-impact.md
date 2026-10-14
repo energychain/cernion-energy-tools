@@ -348,3 +348,35 @@ synthetische Bedeutungsfragen über die zentrale Fassade, ohne Produktivzugriff.
 Änderungsprüfung vor diesem Folgecommit: gegen `origin/main` 59 Dateien,
 463 Symbole, 38 Abläufe (CRITICAL); lokale `main` 290 / 2559 / 93 (CRITICAL);
 staged 8 / 7 / 1 (MEDIUM). Alle 822 gezielten Tests in 15 Testsuiten grün.
+
+## Nachgewiesene Filterursache und Erhalt bestellter Abschnitte
+
+Vorab upstream erneut erfolgreich: `classifyCodeTokens` LOW (0 direkte Aufrufer),
+`understand` HIGH (3 direkte Aufrufer, 14 betroffene Symbole, 2 Abläufe), vor der
+Änderung benannt. Die diagnostische Aufzeichnung zeigte die genaue Codeursache:
+Ein Wert bekam `category=reference`, eine nicht leere Familie und
+`meaningRequested=false`; die gemeinsame Bedeutungsfrage blieb ausdrücklich
+erkannt. Die zusätzliche Bedingung „Familie leer“ entfernte ihn aus der Antwort.
+Bei diesem ausdrücklich erkannten Bedeutungsanliegen darf eine Familie den Wert
+nicht mehr ausschließen. Die Quellenpflicht bleibt unverändert. Eine alternative
+Diagnose mit stabilen Platzhaltern löste den Fehler nicht und wurde nicht in den
+Produktcode übernommen.
+
+Eine weitere beobachtete Ursache: Der aktuelle ursprüngliche Artefaktvertrag
+enthielt die wörtlichen Abschnittsnamen; die Verfeinerung lieferte für dieselbe
+Abschnittsausgabe eine leere Liste. Bei gleich vielen Teilen werden nun ausschließlich
+wörtlich im aktuellen Auftrag belegte ursprüngliche Abschnittsnamen erhalten.
+Keine Abschnittsnamenliste, keine zusätzliche Erkennung und kein weiterer Aufruf.
+Die Regressionstests reproduzieren beide dokumentierten Fehlpfade.
+
+Für den letzten Rückfragepfad wurde `understand` erneut upstream geprüft (HIGH,
+3 direkte Aufrufer, 14 betroffene Symbole, 2 Abläufe), vorher benannt. Eine
+wörtlich belegte Modusmitteilung bleibt zunächst ohne künstliche Fragen. Wenn
+der Rückfragemodus aber schon aus dem vorherigen Turn gilt, haben unabhängig
+ermittelte neue Fragen zur aktuellen Sachfrage Vorrang vor `preferenceOnly`.
+Der Regressionstest nutzt dafür nun ausdrücklich einen nicht leeren aktuellen
+Beleg; die Gegenprüfung für die erstmalige Modusmitteilung bleibt erhalten.
+
+Änderungsprüfung vor diesem Folgecommit: gegen `origin/main` 59 Dateien /
+464 Symbole / 38 Abläufe (CRITICAL); lokale `main` 290 / 2560 / 93 (CRITICAL);
+staged 8 / 9 / 1 (MEDIUM). Alle 824 gezielten Tests in 15 Testsuiten grün.

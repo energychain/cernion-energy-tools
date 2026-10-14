@@ -229,7 +229,7 @@ async function classifyCodeTokens(
         token.category === 'code' ||
         (['reference', 'other'].includes(token.category) &&
           (token.meaningRequested ||
-            (!token.family.trim() &&
+            ((meaningQuestion || !token.family.trim()) &&
               !output.requested &&
               (meaningQuestion || result.tokens.some((item) => item.meaningRequested)))) &&
           !glossary.some((entry) => entry.term === candidates[token.index]))

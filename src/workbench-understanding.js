@@ -872,9 +872,20 @@ async function understand({
         (!output.basis.trim() || !message.includes(output.basis) || !output.parts.length)
       )
         throw schemaError([], 'output_contract_unproven');
-      for (const part of output.parts) {
+      const originalParts = result.requestedOutput?.parts || [];
+      for (const [index, part] of output.parts.entries()) {
         if (part.sectionsExplicit === false) part.sections = [];
-        if (part.minimumSteps > 0) part.layout = 'steps';
+        if (
+          part.layout === 'sections' &&
+          !part.sections.length &&
+          originalParts.length === output.parts.length
+        ) {
+          part.sections = (originalParts[index].sections || []).filter((heading) =>
+            require('./workbench-codes').exactToken(message, heading)
+          );
+          if (part.sections.length) part.sectionsExplicit = true;
+        }
+        if (part.minimumSteps > 0 && !part.sections.length) part.layout = 'steps';
       }
       output.subjects = output.subjects.filter(
         (name) =>
@@ -914,7 +925,14 @@ async function understand({
     result.preferenceOnly =
       preferences.preferenceOnly === true &&
       Boolean(preferences.basis?.trim()) &&
-      message.includes(preferences.basis);
+      message.includes(preferences.basis) &&
+      !(
+        previous?.conversationPreferences?.questions === 'requested' &&
+        questionsFor(
+          { ...classified, conversationPreferences: result.conversationPreferences },
+          asked
+        ).length
+      );
     if (result.preferenceOnly) {
       result.missingInformation = [];
       result.turnKind = 'knowledge';

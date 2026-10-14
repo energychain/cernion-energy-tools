@@ -1583,7 +1583,7 @@ test('a mode-only misclassification cannot suppress independently established re
       return { mode: 'clarify_and_answer', questions: [missing] };
     if (data.currentUserMessage)
       return {
-        basis: '',
+        basis: message,
         register: 'unchanged',
         concise: 'unchanged',
         questions: 'unchanged',
@@ -1676,4 +1676,64 @@ test('a grounded current mode stays question-free even when a refinement invents
   expect(result.preferenceOnly).toBe(true);
   expect(questionsFor(result)).toEqual([]);
   expect(result.conversationPreferences.questions).toBe('requested');
+});
+
+test('a reference family does not erase a value from a shared meaning question', async () => {
+  const { classifyCodeTokens } = require('../src/workbench-code-classification');
+  const turn = fixture.scenarios[0].turns[0];
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    const data = JSON.parse(prompt);
+    if (data.task === 'output_contract') return fixture.outputContract(turn.message);
+    if (data.task === 'turn_controls') return { missingInformation: [] };
+    return {
+      tokens: data.candidates.map(({ index }) => ({
+        index,
+        category: index === 0 ? 'reference' : 'code',
+        family: fixture.codeSourceFixture.code.family,
+        meaningRequested: index !== 0,
+      })),
+    };
+  });
+  const result = await classifyCodeTokens(turn.message, [], {}, true);
+  expect(result.references.map((item) => item.value)).toEqual(
+    expect.arrayContaining(turn.expect.rules.codes)
+  );
+});
+
+test('an empty refined section list preserves literal current sections from the original contract', async () => {
+  const data = fixture.literalSections;
+  const original = {
+    requested: true,
+    basis: data.message,
+    kind: 'summary',
+    parts: [{ title: '', sections: data.sections, columns: [], layout: 'sections' }],
+    subjects: [],
+    constraints: [],
+    forbiddenTerms: [],
+  };
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    const request = JSON.parse(prompt);
+    if (request.task === 'output_contract')
+      return {
+        requestedOutput: {
+          ...original,
+          parts: [{ ...original.parts[0], sections: [], sectionsExplicit: false }],
+        },
+      };
+    if (request.task === 'turn_controls') return { missingInformation: [] };
+    if (request.currentUserMessage)
+      return {
+        basis: '',
+        register: 'unchanged',
+        concise: 'unchanged',
+        questions: 'unchanged',
+        wording: [],
+        forbiddenTerms: [],
+        preferenceOnly: false,
+      };
+    if (request.candidates) return { tokens: [] };
+    return fixture.situation(data.message, { codeReferences: [], requestedOutput: original });
+  });
+  const result = await understand({ message: data.message, tenantId: fixture.tenantId });
+  expect(result.requestedOutput.parts[0].sections).toEqual(data.sections);
 });
