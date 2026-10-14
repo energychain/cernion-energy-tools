@@ -573,3 +573,32 @@ er wird nicht als bestandener Abschlusslauf ausgegeben.
 472 Symbole / 38 Abläufe (CRITICAL); lokale `main` 292 / 2627 / 93
 (CRITICAL); staged acht Dateien / acht Symbole / sechs Abläufe (HIGH).
 Die hohen Stufen wurden vor dem Commit ausdrücklich gemeldet.
+
+## Aktive Gesprächsvorgaben statt leerer Standardobjekte
+
+Der folgende lokale Gesamtlauf deckte eine Kompatibilitätsabweichung bei
+Identifier-Status über HTTP auf: Leere Standardpräferenzen lösten die ausführliche
+Fallprojektion aus und ersetzten die bisherige einfache Statusantwort.
+`hasConversationPreferences` bestimmt deshalb die Aktivität aus dem vorhandenen
+`PREFERENCES`-Schema: belegte Register-/Längenvorgaben, erbetene Rückfragen oder
+nicht leere Sprachvorgaben. `unchanged`, normale Rückfragepraxis, leere Listen und
+fehlende Werte sind wirkungslos. Beide Rückfallentscheidungen verwenden dieselbe
+Prüfung; eine neue Liste von Präferenzfeldern wird nicht im Kern dupliziert.
+Die bestehende Zusammenführung bleibt unverändert.
+
+Vor Änderung: Status-Handler upstream LOW, keine statisch erkannten direkten
+Aufrufer oder Abläufe. Der neue Helfer war vor Definition im Index nicht vorhanden
+(UNKNOWN). Die zusätzliche Prüfung von `mergePreferences` meldete CRITICAL,
+einen direkten Aufrufer, sieben betroffene Symbole und zwei Prozesse; dies wurde
+vor weiteren Änderungen ausdrücklich gemeldet. `mergePreferences` wurde nicht
+geändert. Die 104 gezielten Tests in drei Suiten bestanden, einschließlich
+Bestands-HTTP, gespeicherter Vorgaben und schemaabgeleiteter Standardwerte.
+Der fehlgeschlagene Gesamtlauf wird nicht als grüne Abschlussprüfung verwendet.
+
+Änderungsprüfung vor diesem Abschlusscommit: `origin/main` 59 Dateien /
+509 Symbole / 40 Abläufe (CRITICAL); lokale `main` 292 / 2629 / 95
+(CRITICAL); staged acht Dateien / 48 Symbole / acht Abläufe (HIGH).
+Die neuen Beziehungen stammen aus dem gemeinsamen Präferenzhelfer im Statuspfad;
+zusammengefasste Diff-Bereiche umfassen konservativ weitere Symbole. Die Stufen
+wurden vor dem Commit ausdrücklich gemeldet. Der zuvor fehlgeschlagene
+Bestands-HTTP-Block bestand im neuen Gesamtlauf vollständig.

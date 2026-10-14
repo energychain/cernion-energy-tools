@@ -2110,3 +2110,23 @@ test.each([false, true])(
     }
   }
 );
+
+test('preference activity follows the shared schema and ignores empty defaults', () => {
+  const { hasConversationPreferences, PREFERENCES } = require('../src/workbench-communication');
+  const empty = Object.fromEntries(
+    Object.entries(PREFERENCES.properties).map(([key, definition]) => [
+      key,
+      definition.type === 'array' ? [] : definition.enum ? definition.enum[0] : '',
+    ])
+  );
+  empty.questions = 'usual';
+  expect(hasConversationPreferences()).toBe(false);
+  expect(hasConversationPreferences(null)).toBe(false);
+  expect(hasConversationPreferences(empty)).toBe(false);
+  expect(hasConversationPreferences(fixture.statusRecallMemory.conversationPreferences)).toBe(true);
+  for (const key of ['register', 'concise', 'questions'])
+    for (const value of PREFERENCES.properties[key].enum.filter(
+      (entry) => entry !== 'unchanged' && entry !== 'usual'
+    ))
+      expect(hasConversationPreferences({ ...empty, [key]: value })).toBe(true);
+});

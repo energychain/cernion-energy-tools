@@ -87,6 +87,19 @@ function mergePreferences(previous = {}, current, message = '') {
   return result;
 }
 
+function hasConversationPreferences(preferences = {}) {
+  return Object.entries(PREFERENCES.properties).some(([key, definition]) => {
+    const value = preferences?.[key];
+    if (definition.type === 'array')
+      return Array.isArray(value) && value.some((item) => typeof item === 'string' && item.trim());
+    return (
+      definition.enum?.includes(value) &&
+      value !== 'unchanged' &&
+      !(key === 'questions' && value === 'usual')
+    );
+  });
+}
+
 function answerInstruction(situation) {
   return [
     'Fachcodebedeutungen ausschließlich aus codeResolutions mit Fundstelle, niemals aus Modellwissen. Ohne Beleg ausdrücklich Bedeutung von <Code> nicht belegt. Normative Ansprüche ausschließlich mit tatsächlich gelieferter Fundstelle; ohne Quelle als zu prüfende Annahme formulieren, niemals als feststehendes Recht.',
@@ -187,6 +200,7 @@ module.exports = {
   CASE_WORK,
   INSTRUCTION,
   mergePreferences,
+  hasConversationPreferences,
   answerInstruction,
   proposalText,
   validateCommunication,

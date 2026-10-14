@@ -37,6 +37,7 @@ const {
   presentToolRunInspectorList,
 } = require('../src/workbench-toolrun-presenter');
 const { buildTurnMemory, safeTurnMemory } = require('../src/workbench-turn-memory');
+const { hasConversationPreferences } = require('../src/workbench-communication');
 const {
   defaultPlaybooksForTenant,
   matchPlaybooks,
@@ -1511,8 +1512,10 @@ module.exports = {
               if (!require('../src/case-linking').rawContentAllowed(p, state)) continue;
               const turnMemory = await this.loadTurnMemory(p, state.cetCaseId);
               if (
-                Object.hasOwn(state.knownContext?.situation || {}, 'conversationPreferences') ||
-                Object.hasOwn(turnMemory || {}, 'conversationPreferences') ||
+                hasConversationPreferences(
+                  state.knownContext?.situation?.conversationPreferences
+                ) ||
+                hasConversationPreferences(turnMemory?.conversationPreferences) ||
                 Object.values(state.caseWork || {}).some((value) => value?.trim()) ||
                 Object.values(turnMemory?.caseWork || {}).some((value) => value?.trim())
               )
@@ -1551,7 +1554,7 @@ module.exports = {
               !situation.requestedOutput?.requested &&
               !found.evidence.some(
                 (hit) =>
-                  Object.hasOwn(hit.metadata?.caseMemory || {}, 'conversationPreferences') ||
+                  hasConversationPreferences(hit.metadata?.caseMemory?.conversationPreferences) ||
                   Object.values(hit.metadata?.caseMemory?.caseWork || {}).some((value) =>
                     value?.trim()
                   )
