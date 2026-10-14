@@ -1617,3 +1617,63 @@ test('the intake expectation accepts equivalent registration states but requires
     expect(check(responseText)).toBe(true);
   expect(check('Bedeutung nicht belegt.')).toBe(false);
 });
+
+test.each(['reference', 'other'])(
+  'a shared meaning question keeps an unclassified value explicitly unproven (%s)',
+  async (category) => {
+    const { classifyCodeTokens } = require('../src/workbench-code-classification');
+    const turn = fixture.scenarios[0].turns[0];
+    llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+      const data = JSON.parse(prompt);
+      if (data.task === 'output_contract') return fixture.outputContract(turn.message);
+      if (data.task === 'turn_controls') return { missingInformation: [] };
+      return {
+        tokens: data.candidates.map(({ index }) => ({
+          index,
+          category: index === 0 ? category : 'code',
+          family: '',
+          meaningRequested: false,
+        })),
+      };
+    });
+    const result = await classifyCodeTokens(turn.message, [], {}, true);
+    expect(result.meaningRequested).toBe(true);
+    expect(result.references.map((item) => item.value)).toEqual(
+      expect.arrayContaining(turn.expect.rules.codes)
+    );
+  }
+);
+
+test('a grounded current mode stays question-free even when a refinement invents missing context', async () => {
+  const message = fixture.scenarios[5].turns[0].message;
+  const problem = fixture.scenarios[5].turns[1].message;
+  const missing = {
+    key: 'synthetic-focused',
+    question: problem.slice(problem.indexOf('Was')),
+    reason: 'decisive',
+    decisive: true,
+    blocking: true,
+    answered: false,
+  };
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    const data = JSON.parse(prompt);
+    if (data.task === 'output_contract') return fixture.outputContract(message);
+    if (data.task === 'turn_controls') return { missingInformation: [missing] };
+    if (data.currentUserMessage)
+      return {
+        basis: message,
+        register: 'unchanged',
+        concise: 'unchanged',
+        questions: 'ask_when_needed',
+        wording: [],
+        forbiddenTerms: [],
+        preferenceOnly: true,
+      };
+    if (data.candidates) return { tokens: [] };
+    return fixture.situation(message, { codeReferences: [] });
+  });
+  const result = await understand({ message, tenantId: fixture.tenantId });
+  expect(result.preferenceOnly).toBe(true);
+  expect(questionsFor(result)).toEqual([]);
+  expect(result.conversationPreferences.questions).toBe('requested');
+});

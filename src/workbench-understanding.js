@@ -913,10 +913,8 @@ async function understand({
     }
     result.preferenceOnly =
       preferences.preferenceOnly === true &&
-      !questionsFor(
-        { ...classified, conversationPreferences: result.conversationPreferences },
-        asked
-      ).length;
+      Boolean(preferences.basis?.trim()) &&
+      message.includes(preferences.basis);
     if (result.preferenceOnly) {
       result.missingInformation = [];
       result.turnKind = 'knowledge';

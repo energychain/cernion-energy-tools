@@ -322,3 +322,29 @@ Pflichtmuster nachgeprüft, ohne neue Modellaufrufe oder Änderungen der Rubrike
 Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 461 Symbole /
 38 Abläufe (CRITICAL); lokale `main` 290 / 2557 / 93 (CRITICAL); staged
 13 / 9 / 1 (MEDIUM). Die gezielten 15 Testsuiten bestehen alle 819 Tests.
+
+## Präferenzbeleg und unsicher klassifizierte Werte
+
+Erneut vorab geprüft: `understand` HIGH (3 direkte Aufrufer, 14 betroffene
+Symbole, 2 Abläufe); `classifyCodeTokens` LOW (0 direkte Aufrufer). Die Warnung
+für den zentralen Verständnispfad wurde vor der Änderung ausgesprochen.
+
+Die Live-Abnahme zeigte zu früh gestellte Fragen bereits bei der bloßen
+Modusmitteilung. `preferenceOnly` benötigt nun den wörtlichen aktuellen
+Präferenzbeleg. Ein solcher Modus bleibt ohne künstliche Fragen; eine spätere
+Sachfrage ohne neue Präferenz wird nicht als bloßer Modus unterdrückt.
+Beide Gegenrichtungen sind als Regression getestet.
+
+Bei einer ausdrücklich erfragten gemeinsamen Bedeutung darf eine unsichere
+Einordnung eines Werts als `other` ihn nicht ersatzlos aus der Antwort entfernen.
+Die vorhandene ungesicherte Referenzbehandlung gilt auch für diese Enthaltung.
+Ein unabhängig erkanntes Bedeutungsanliegen bleibt erhalten. System-, Format-,
+Feld- und Begriffskategorien bleiben getrennt. Keine Bedeutung wird geraten;
+auch diese Werte benötigen die vorhandenen Wissensquellen oder „nicht belegt“.
+Die Tests prüfen `reference` und `other` mit vollständig fehlenden lokalen
+Bedeutungsmarkierungen. Ein zusätzlicher diagnostischer Lauf erfasste zehn
+synthetische Bedeutungsfragen über die zentrale Fassade, ohne Produktivzugriff.
+
+Änderungsprüfung vor diesem Folgecommit: gegen `origin/main` 59 Dateien,
+463 Symbole, 38 Abläufe (CRITICAL); lokale `main` 290 / 2559 / 93 (CRITICAL);
+staged 8 / 7 / 1 (MEDIUM). Alle 822 gezielten Tests in 15 Testsuiten grün.

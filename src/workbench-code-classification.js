@@ -227,11 +227,11 @@ async function classifyCodeTokens(
     .filter(
       (token) =>
         token.category === 'code' ||
-        (token.category === 'reference' &&
+        (['reference', 'other'].includes(token.category) &&
           (token.meaningRequested ||
             (!token.family.trim() &&
               !output.requested &&
-              result.tokens.some((item) => item.meaningRequested))) &&
+              (meaningQuestion || result.tokens.some((item) => item.meaningRequested)))) &&
           !glossary.some((entry) => entry.term === candidates[token.index]))
     )
     .map(({ index, family }) => ({
@@ -247,7 +247,7 @@ async function classifyCodeTokens(
     systems: result.tokens
       .filter((token) => token.category === 'system')
       .map((token) => candidates[token.index]),
-    meaningRequested: result.tokens.some((token) => token.meaningRequested),
+    meaningRequested: meaningQuestion || result.tokens.some((token) => token.meaningRequested),
     ...Object.fromEntries(
       [
         'conversationPreferences',
