@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-10-14T14:32:17.662Z
+Generated: 2026-10-14T20:35:33.333Z
 
 ## Current measurable surface
 
@@ -17,12 +17,12 @@ Generated: 2026-10-14T14:32:17.662Z
 - `tenant`: 16852 hits in 747 files
 - `broker`: 11140 hits in 624 files
 - `grid`: 9858 hits in 652 files
-- `agent`: 8385 hits in 752 files
+- `agent`: 8383 hits in 752 files
 - `decision`: 6960 hits in 446 files
 - `capability`: 5872 hits in 488 files
 - `stadtwerk`: 5631 hits in 247 files
 - `forecast`: 4565 hits in 325 files
-- `vdmi`: 4534 hits in 295 files
+- `vdmi`: 4532 hits in 295 files
 - `redispatch`: 4131 hits in 310 files
 - `market`: 3961 hits in 400 files
 - `hitl`: 3706 hits in 446 files
