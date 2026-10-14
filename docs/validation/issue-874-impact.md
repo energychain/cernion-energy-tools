@@ -260,3 +260,42 @@ Erneute Änderungsprüfung vor diesem Folgecommit: gegen `origin/main` 59 Dateie
 450 Symbole, 38 Abläufe (CRITICAL); gegen die ältere lokale `main` 290 Dateien,
 2550 Symbole, 93 Abläufe (CRITICAL); der Folgecommit selbst umfasst 7 Dateien,
 5 Symbole und keine zusätzlich ausgewiesenen Abläufe (LOW).
+
+## Erhalt der vorhandenen Organisationsaussagen
+
+Der Vergleich deckte eine Regression auf: Die zusätzliche Klassifikation des
+Arbeitskontexts behandelte eine organisationswirksame Planung eines benannten
+Gegenstands als Einzelfall und verwarf eine zuvor korrekt erkannte Aussage.
+Vor der Korrektur wurden `INSTRUCTION` in `tenant-memory-schema`,
+`extractConversationPreferences` und `generateCommunicationFixture` erneut
+Upstream geprüft (LOW, jeweils 0 direkte Aufrufer). Die neue gemeinsame
+Konstante `SCOPE_INSTRUCTION` war vor ihrer Aufnahme UNKNOWN.
+Die vorhandene Geltungsbereichsregel wird jetzt gemeinsam verwendet; der
+bisherige Extraktionshinweis ist zur Laufzeit bytegleich geblieben. Es gibt
+keinen zusätzlichen Modellaufruf und keine neue fachliche Begriffsliste.
+Einzelfall-Sachbearbeitung wird weiterhin ausgeschlossen. Die Regression wird
+zusätzlich mit den bestehenden Gedächtnistests und zehn echten Wiederholungen
+für die Verknüpfung der Aussagen geprüft.
+
+## Präzise Glossareinträge und quellengebundene Fachcodes
+
+Vor diesen Änderungen: `ASSERTION` LOW; `capture` HIGH (1 direkter Aufrufer,
+8 betroffene Symbole, 1 Ablauf); `understand` HIGH (3 direkte Aufrufer,
+14 betroffene Symbole, 2 Abläufe); `classifyCodeTokens` und
+`extractConversationPreferences` LOW. Die Risiken der zentralen Speicher- und
+Verständnispfade wurden vorab benannt. Die neue gemeinsame Funktion
+`glossaryDefinition` war vor ihrer Aufnahme UNKNOWN.
+
+Die schemagebundene Auswahl enthält ausdrücklich „none“. Normale Planungen und
+Randbedingungen bleiben Organisationsaussagen. Ein Glossareintrag erfordert
+unterschiedliche, nicht leere Begriffe und Bedeutungen, beide im zugrunde
+liegenden Text belegt. Verständnis und Speicherung verwenden dieselbe Prüfung.
+Eine positiv als Fachcode erkannte Referenz bleibt auch bei gleichlautendem
+Tenant-Glossar quellenpflichtig; die Bedeutung wird nicht durch eine bloße
+Benutzeraussage ersetzt. Die bestehenden Tenant-Gedächtnistests sowie die
+Regressionstests für Codebelege und Glossarvalidierung bleiben erhalten.
+
+Abschließende Änderungsprüfung dieses Folgecommits: `origin/main` 59 Dateien,
+459 Symbole, 38 Abläufe (CRITICAL); lokale `main` 290 Dateien, 2555 Symbole,
+93 Abläufe (CRITICAL); staged 12 Dateien, 50 Symbole, 1 Ablauf (MEDIUM).
+Die zentrale Verständnis- und Speicherlogik erklärt den erwarteten Umfang.

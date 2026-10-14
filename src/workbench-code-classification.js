@@ -227,13 +227,13 @@ async function classifyCodeTokens(
   const references = result.tokens
     .filter(
       (token) =>
-        (token.category === 'code' ||
-          (token.category === 'reference' &&
-            (token.meaningRequested ||
-              (!token.family.trim() &&
-                !output.requested &&
-                result.tokens.some((item) => item.meaningRequested))))) &&
-        !glossary.some((entry) => entry.term === candidates[token.index])
+        token.category === 'code' ||
+        (token.category === 'reference' &&
+          (token.meaningRequested ||
+            (!token.family.trim() &&
+              !output.requested &&
+              result.tokens.some((item) => item.meaningRequested))) &&
+          !glossary.some((entry) => entry.term === candidates[token.index]))
     )
     .map(({ index, family }) => ({
       value: candidates[index],

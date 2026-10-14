@@ -215,6 +215,25 @@ function generateCommunicationFixture(seed = 'unit874') {
   result.directQuestion = catalog.scenarios.find(
     (item) => item.id === 'mako-authorization'
   ).turns[2].message;
+  const shared = catalog.scenarios.find((item) => item.id === 'memory');
+  result.sharedContext = {
+    message: shared.turns[0].message,
+    assertion: {
+      ...result.caseAssertion,
+      text: shared.turns[0].message,
+      basis: shared.turns[0].message,
+      commitment: 'planned',
+      scope: 'organization',
+      anchors: [{ value: shared.anchor, qualifier: '', aliases: [] }],
+      time: {
+        from: '',
+        until: /\b\d{4}\b/u.exec(shared.turns[0].message)[0],
+        latest: '',
+        earliest: '',
+        date: '',
+      },
+    },
+  };
   result.codeSourceFixture.compoundCodes = ['Q42_OTHER', 'Q42-1', 'Q42.1'];
   return result;
 }

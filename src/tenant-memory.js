@@ -304,6 +304,31 @@ function logObservation(ctx) {
     tenantId: ctx.meta?.tenantId || ctx.meta?.apiToken?.tenantId || ctx.meta?.authUser?.tenantId,
   });
 }
+function glossaryDefinition(assertion, basis) {
+  const entry = assertion.glossary;
+  if (
+    !entry ||
+    entry.kind === 'none' ||
+    typeof entry.term !== 'string' ||
+    typeof entry.meaning !== 'string' ||
+    !entry.term.trim() ||
+    !entry.meaning.trim()
+  )
+    return undefined;
+  const term = store.normalizeAnchor(entry.term);
+  const meaning = store.normalizeAnchor(entry.meaning);
+  const text = store.normalizeAnchor(basis || '');
+  if (
+    !term ||
+    !meaning ||
+    term === meaning ||
+    !require('./workbench-codes').exactToken(text, term) ||
+    !require('./workbench-codes').exactToken(text, meaning)
+  )
+    return undefined;
+  return { term: entry.term, meaning: entry.meaning, kind: entry.kind || 'other' };
+}
+
 async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags, documentSource }) {
   const message = envelope.userRequest;
   const stats = observation(ctx);
@@ -343,21 +368,11 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
       const prior = existing.find((item) => item.id === id);
       if (prior) continue;
       const at = new Date().toISOString();
+      const glossary = glossaryDefinition(assertion, basis);
       const fact = {
         id,
         type: 'tenant_memory_fact',
-        ...(assertion.glossary?.term &&
-        assertion.glossary?.meaning &&
-        require('./workbench-codes').exactToken(
-          store.normalizeAnchor(basis),
-          store.normalizeAnchor(assertion.glossary.term)
-        ) &&
-        require('./workbench-codes').exactToken(
-          store.normalizeAnchor(basis),
-          store.normalizeAnchor(assertion.glossary.meaning)
-        )
-          ? { statementKind: 'glossary', glossary: assertion.glossary }
-          : {}),
+        ...(glossary ? { statementKind: 'glossary', glossary } : {}),
         ...(documentSource ? { documentSource } : {}),
         tenantId: p.tenantId,
         sensitivityFlags: sensitivityFlags || ctx.params.sensitivityFlags || [],
@@ -1128,6 +1143,7 @@ async function correctFacts(ctx, p, envelope, pending, correction) {
 module.exports = {
   serialized,
   acceptedAssertion,
+  glossaryDefinition,
   basisMatches,
   beforeTurn,
   afterTurn,

@@ -892,11 +892,8 @@ async function understand({
       result.personAssessment = preferences.personAssessment;
     const glossaryAssertions = (preferences.glossaryAssertions || []).filter(
       (item) =>
-        item.glossary?.term &&
-        item.glossary?.meaning &&
-        require('./tenant-memory').acceptedAssertion(item, message) &&
-        message.includes(item.glossary.term) &&
-        message.includes(item.glossary.meaning)
+        require('./tenant-memory').glossaryDefinition(item, message) &&
+        require('./tenant-memory').acceptedAssertion(item, message)
     );
     if (glossaryAssertions.length) {
       result.tenantMemory = result.tenantMemory || {
@@ -921,8 +918,8 @@ async function understand({
       result.conversationShape = 'orientation';
       result.requestedAction.draftRequested = false;
       if (result.tenantMemory)
-        result.tenantMemory.assertions = result.tenantMemory.assertions.filter(
-          (item) => item.glossary?.term?.trim() && item.glossary?.meaning?.trim()
+        result.tenantMemory.assertions = result.tenantMemory.assertions.filter((item) =>
+          require('./tenant-memory').glossaryDefinition(item, message)
         );
     }
     if (result.tenantMemory && preferences.basis?.trim()) {
@@ -965,8 +962,8 @@ async function understand({
       result.conversationShape = 'task';
       if (result.caseMemory) result.caseMemory.applicable = true;
       if (preferences.workContext.scope === 'single_item' && result.tenantMemory)
-        result.tenantMemory.assertions = result.tenantMemory.assertions.filter(
-          (item) => item.glossary?.term && item.glossary?.meaning
+        result.tenantMemory.assertions = result.tenantMemory.assertions.filter((item) =>
+          require('./tenant-memory').glossaryDefinition(item, message)
         );
     }
 

@@ -1477,3 +1477,89 @@ test('ordinary case recall includes the existing last working conclusion and app
   });
   expect(restricted).not.toContain(fixture.proposal.title);
 });
+
+test('shared planning remains an organizational statement under the common scope policy', async () => {
+  const message = fixture.sharedContext.message;
+  const primary = fixture.situation(message, {
+    codeReferences: [],
+    tenantMemory: {
+      assertions: [fixture.sharedContext.assertion],
+      correction: { kind: 'none', basis: '', factId: '' },
+      query: { requested: false, anchor: '', functionLabel: '' },
+      functionLabel: '',
+    },
+  });
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    const data = JSON.parse(prompt);
+    if (data.task === 'output_contract') return fixture.outputContract(message);
+    if (data.task === 'turn_controls') return { missingInformation: [] };
+    if (data.currentUserMessage) {
+      expect(data.organizationScopeInstruction).toBe(
+        require('../src/tenant-memory-schema').SCOPE_INSTRUCTION
+      );
+      return {
+        basis: '',
+        register: 'unchanged',
+        concise: 'unchanged',
+        questions: 'unchanged',
+        wording: [],
+        forbiddenTerms: [],
+        preferenceOnly: false,
+        workContext: { concrete: true, intent: 'work', basis: message, scope: 'shared_context' },
+      };
+    }
+    if (data.candidates) return { tokens: [] };
+    return primary;
+  });
+  const result = await understand({ message, tenantId: fixture.tenantId });
+  expect(result.tenantMemory.assertions).toEqual([fixture.sharedContext.assertion]);
+});
+
+test('ordinary assertions and identity entries cannot become glossary definitions', () => {
+  const { glossaryDefinition } = require('../src/tenant-memory');
+  const assertion = fixture.glossaryAssertion;
+  expect(glossaryDefinition(assertion, assertion.basis)).toEqual(fixture.glossary);
+  expect(
+    glossaryDefinition(
+      { ...assertion, glossary: { ...fixture.glossary, kind: 'none' } },
+      assertion.basis
+    )
+  ).toBeUndefined();
+  expect(
+    glossaryDefinition(
+      { ...assertion, glossary: { ...fixture.glossary, meaning: fixture.term } },
+      assertion.basis
+    )
+  ).toBeUndefined();
+  expect(
+    glossaryDefinition(
+      { ...assertion, glossary: { ...fixture.glossary, meaning: fixture.proposal.ownerRole } },
+      assertion.basis
+    )
+  ).toBeUndefined();
+});
+
+test('a positively classified technical code requires knowledge evidence even when present in the glossary', async () => {
+  const { classifyCodeTokens } = require('../src/workbench-code-classification');
+  const turn = fixture.scenarios[0].turns[0];
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    const data = JSON.parse(prompt);
+    if (data.task === 'output_contract') return fixture.outputContract(turn.message);
+    if (data.task === 'turn_controls') return { missingInformation: [] };
+    return {
+      tokens: data.candidates.map(({ index }) => ({
+        index,
+        category: 'code',
+        family: '',
+        meaningRequested: true,
+      })),
+    };
+  });
+  const value = turn.expect.rules.codes[0];
+  const result = await classifyCodeTokens(
+    turn.message,
+    [{ term: value, meaning: fixture.meaning, kind: 'other' }],
+    {}
+  );
+  expect(result.references).toContainEqual(expect.objectContaining({ value }));
+});
