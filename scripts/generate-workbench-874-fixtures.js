@@ -167,6 +167,20 @@ function generateCommunicationFixture(seed = 'unit874') {
     .find((item) => item.id === 'governance')
     .turns.at(-1).message;
   const correction = scenarios[4].turns.find((turn) => turn.id === 'correction');
+  result.statusActorId = `${result.actorId}-${require('node:crypto').randomUUID()}`;
+  result.statusRecallMemory = {
+    ...result.queryCaseMemory,
+    caseWork: {},
+    lastSafeConclusion: result.proposal.nextConsideration,
+    conversationPreferences: {
+      basis: correction.message,
+      register: 'unchanged',
+      concise: 'unchanged',
+      questions: 'usual',
+      wording: [],
+      forbiddenTerms: correction.expect.rules.forbid,
+    },
+  };
   result.matrix = {
     message: correction.message,
     columns: correction.expect.rules.tableColumns,

@@ -1508,10 +1508,13 @@ module.exports = {
             let rich = false;
             for (const item of (linkedStatus || conversationStatus).items || []) {
               const state = await router.loadCase(p, item.cetCaseId, { summaryOnly: true });
+              if (!require('../src/case-linking').rawContentAllowed(p, state)) continue;
+              const turnMemory = await this.loadTurnMemory(p, state.cetCaseId);
               if (
-                require('../src/case-linking').rawContentAllowed(p, state) &&
-                (Object.hasOwn(state.knownContext?.situation || {}, 'conversationPreferences') ||
-                  Object.values(state.caseWork || {}).some((value) => value?.trim()))
+                Object.hasOwn(state.knownContext?.situation || {}, 'conversationPreferences') ||
+                Object.hasOwn(turnMemory || {}, 'conversationPreferences') ||
+                Object.values(state.caseWork || {}).some((value) => value?.trim()) ||
+                Object.values(turnMemory?.caseWork || {}).some((value) => value?.trim())
               )
                 rich = true;
             }
@@ -1546,10 +1549,12 @@ module.exports = {
             if (
               (linkedStatus || conversationStatus) &&
               !situation.requestedOutput?.requested &&
-              !found.evidence.some((hit) =>
-                Object.values(hit.metadata?.caseMemory?.caseWork || {}).some((value) =>
-                  value?.trim()
-                )
+              !found.evidence.some(
+                (hit) =>
+                  Object.hasOwn(hit.metadata?.caseMemory || {}, 'conversationPreferences') ||
+                  Object.values(hit.metadata?.caseMemory?.caseWork || {}).some((value) =>
+                    value?.trim()
+                  )
               )
             )
               return linkedStatus || conversationStatus;

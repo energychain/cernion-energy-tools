@@ -539,3 +539,37 @@ gegen `origin/main` 59 Dateien / 471 Symbole / 38 Abläufe (CRITICAL), gegen
 lokale `main` 292 / 2626 / 93 (CRITICAL), staged 13 / 113 / 6 (HIGH).
 Die vorab gemeldeten hohen Stufen umfassen konservativ den unverändert
 importierten Inspector sowie gemeinsame Laufzeitpfade und generierte Bereiche.
+
+## Gespeicherte Präferenzen im lesenden Statuspfad
+
+Die vollständige Messung `c09f202d` lieferte 88/88 Läufe, alle neun neuen
+Abnahmeszenarien jeweils dreimal grün, aber nur 14/15 betroffene Gruppen.
+Im dritten Governance-Lauf kehrte der Statuspfad ohne Modellaufruf mit der
+alten Kurzbeschreibung zurück: Arbeitsfelder fehlten, eine ausgeschlossene
+Formulierung und die technische Actor-ID erschienen. Daher keine Merge-Freigabe.
+
+Die erste Rückfallentscheidung prüfte nur `knownContext.situation` und
+`caseWork` im Routerzustand; gespeicherte Turn-Präferenzen blieben unsichtbar.
+Die zweite Entscheidung berücksichtigte nur bestellte Artefakte und Arbeitsfelder,
+nicht die aus der Fallsuche zurückgelieferten Turn-Präferenzen. Beide
+Entscheidungen verwenden nun zusätzlich das bereits vorhandene Turn-Gedächtnis.
+Die erste liest es ausschließlich nach bestätigter `rawContentAllowed`-Prüfung.
+Dieselbe bestehende semantische Suche und Fallprojektion erstellt die Antwort;
+Tenant-Sichtbarkeit und Clearance bleiben gleich. Keine neue Wortliste oder
+zusätzliche Klassifikation.
+
+Vor Änderung: `Method:services/workbench.service.js:handler#1` upstream LOW,
+keine statisch erkannten direkten Aufrufer oder Abläufe; `generateCommunicationFixture`
+upstream LOW, ebenfalls keine erkannten direkten Aufrufer oder Abläufe.
+Die dynamischen Routen werden durch zwei generierte Regressionsvarianten geprüft:
+Präferenz ausschließlich im Turn-Gedächtnis sowie zusätzlich im Fallzustand,
+jeweils ohne Arbeitsfelder oder bestelltes Artefakt. Beide bestehen mit Korrektur
+und scheitern mit dem unveränderten vorherigen Handler (gezielte Gegenprobe).
+Die Test-Actor-ID wird ausschließlich synthetisch im Generator erzeugt.
+Der supersedierte lokale Gesamtlauf wurde vor Änderung des Produktstands beendet;
+er wird nicht als bestandener Abschlusslauf ausgegeben.
+
+Änderungsprüfung vor dem letzten Folgecommit: `origin/main` 59 Dateien /
+472 Symbole / 38 Abläufe (CRITICAL); lokale `main` 292 / 2627 / 93
+(CRITICAL); staged acht Dateien / acht Symbole / sechs Abläufe (HIGH).
+Die hohen Stufen wurden vor dem Commit ausdrücklich gemeldet.

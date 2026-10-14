@@ -2042,3 +2042,71 @@ test.each(['structured', 'legacy'])(
     expect(text).toContain('Zu prüfende Annahme');
   }
 );
+
+test.each([false, true])(
+  'status recall uses stored turn preferences even without requested artifacts or work fields (%s)',
+  async (preferencesInCase) => {
+    const app = await createCaseBroker();
+    const meta = auth(fixture.statusActorId, ['ROLE_ALPHA'], 'tenant-a');
+    const message = fixture.statusQueryMessage;
+    try {
+      await app.broker.start();
+      const created = await app.create([], meta, {
+        knownContext: {
+          identifiers: [],
+          situation: fixture.situation(message, {
+            ...(preferencesInCase
+              ? { conversationPreferences: fixture.statusRecallMemory.conversationPreferences }
+              : {}),
+          }),
+        },
+      });
+      await app.workbench.store.saveTurnMemory({
+        tenantId: 'tenant-a',
+        actorId: fixture.statusActorId,
+        caseId: created.cetCaseId,
+        caseStateVersion: created.caseStateVersion,
+        memory: fixture.statusRecallMemory,
+      });
+      const displayRef = await app.workbench.store.caseDisplayRef({
+        tenantId: 'tenant-a',
+        caseId: created.cetCaseId,
+      });
+      const situation = fixture.situation(message);
+      llm.generateStructured.mockImplementation(async (_schema, prompt) =>
+        JSON.parse(prompt).cases ? { caseIds: [created.cetCaseId] } : situation
+      );
+      const reply = await app.call(
+        'workbench.query',
+        {
+          channel: 'api',
+          conversationId: fixture.tenantId,
+          userRequest: message,
+          intentMode: 'status_query',
+          cetCaseId: created.cetCaseId,
+        },
+        meta
+      );
+      expect(reply.responseText).toContain(displayRef);
+      expect(reply.responseText).toContain(fixture.proposal.nextConsideration);
+      expect(reply.responseText).toContain('Frist');
+      expect(reply.responseText).not.toContain(fixture.statusActorId);
+      expect(reply.cetCaseId).toBe(created.cetCaseId);
+      expect(
+        (
+          await app.router.loadCase(
+            {
+              tenantId: 'tenant-a',
+              actorId: fixture.statusActorId,
+              roles: ['ROLE_ALPHA'],
+              clearance: [],
+            },
+            created.cetCaseId
+          )
+        ).caseStateVersion
+      ).toBe(created.caseStateVersion);
+    } finally {
+      await app.cleanup();
+    }
+  }
+);
