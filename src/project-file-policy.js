@@ -1,6 +1,5 @@
 'use strict';
 
-const { createHash } = require('node:crypto');
 const { Errors } = require('moleculer');
 const { principal, visible, deny } = require('./domain-router-policy');
 const {
@@ -8,7 +7,6 @@ const {
   assertSensitivityAllowed,
   SENSITIVITY_LEVELS,
 } = require('./workbench-evidence');
-const { tenantKey } = require('./tenant-context');
 
 const storeCapability = Symbol('project-file-store');
 const fileCapability = Symbol('project-file-originals');
@@ -17,8 +15,9 @@ const statNames = ['files', 'bytes', 'datasets', 'nodes', 'edges'];
 const idParam = { type: 'string', min: 1, max: 200 };
 
 function projectPrefix(tenantId) {
-  // The hyphenated root cannot be addressed by generic Object Store namespaces.
-  return `project-file:${createHash('sha256').update(tenantKey('projects', tenantId)).digest('hex')}:`;
+  // The hyphenated root cannot be addressed by generic Object Store namespaces; encoding
+  // keeps the tenant segment free of ':' so tenant ranges never overlap.
+  return `project-file:${encodeURIComponent(tenantId)}:`;
 }
 
 function visibleProject(project, p) {
