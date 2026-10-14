@@ -105,7 +105,10 @@ function authorizeFile(p, file) {
   if (file.tenantId !== p.tenantId) fileError('Datei nicht zugänglich.', 403);
   assertSensitivityAllowed(file.sensitivityLevel, p.clearance);
   for (const level of file.requiredClearance || []) assertSensitivityAllowed(level, p.clearance);
-  if (file.deletedAt || file.expiresAt <= Date.now())
+  if (
+    file.deletedAt ||
+    (!file.projectId && !file.projectIds?.length && file.expiresAt <= Date.now())
+  )
     fileError('Datei gelöscht oder Aufbewahrung abgelaufen.', 410);
 }
 function reference(file) {

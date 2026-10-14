@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Projektakte: Datenmodell und Lebenszyklus (#883)
+
+- Dauerhafte, tenantweite Projektakten mit optionalen Mitgliedern, aggregierter Clearance und strukturellen Fall-/Gesprächsreferenzen; geschützte Erweiterungspunkte für Bestandteile und Lebenszyklus.
+- PouchDB-Persistenz über den bestehenden Object-Store-Lifecycle-Mixin, REST/OpenAPI und MCP-lesbare Aktionen ohne neue Datenbank.
+- Bestätigte, wiederholbare Löschkaskade mit dauerhaftem Fehlerzustand und vorhandenem Audit-Trail; zugeordnete Originale verfallen nicht durch die File-Retention.
+- Synthetische Tests für Tenant-/Clearance-Grenzen, Neustart, Events, Cleanup, Audit und verkürzte Retention.
+
 ## Unreleased – RC3 completion (#873)
 
 - Deliver explicitly requested artifacts with every ordered version, section and column; preserve internal work orders and their full length.

@@ -2,16 +2,16 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "60e11c27b5cd00190cbfb41a24d76c9b3f3d58a3ba4e1b57cbea6a6f8b624a77",
+  "sourceOpenApiHash": "0e312ac2a33b959be214994f0c28157d3d29790c1d0425538b565f15dab00146",
   "coverage": {
-    "rawOperationCount": 1256,
-    "operationCount": 1000,
-    "agentableCount": 998,
+    "rawOperationCount": 1263,
+    "operationCount": 1007,
+    "agentableCount": 1005,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 431,
-      "admin": 23,
-      "object_store_write": 269,
+      "data_read": 434,
+      "admin": 24,
+      "object_store_write": 272,
       "process_step": 26,
       "process_start": 50,
       "advisory_plan": 48,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 981,
+    "resolvedActionCount": 988,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -73812,6 +73812,553 @@
         "negativeCues": [],
         "examples": [
           "Please render domain result as structured human view"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-file_list",
+      "method": "GET",
+      "path": "/api/project-file/",
+      "service": "project-file",
+      "action": "project-file.list",
+      "summary": "List visible tenant project files",
+      "tags": [
+        "Project files"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-file.list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "project-file:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "routingOnly",
+            "in": "query",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "file",
+          "list",
+          "visible",
+          "tenant",
+          "files"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list visible tenant project files"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-file_create",
+      "method": "POST",
+      "path": "/api/project-file/",
+      "service": "project-file",
+      "action": "project-file.create",
+      "summary": "Create a durable tenant project file",
+      "tags": [
+        "Project files"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-file.create"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "project-file:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "project-file"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [
+          {
+            "name": "title",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "members",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "projectRefs",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "file",
+          "create",
+          "durable",
+          "tenant",
+          "files"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please create a durable tenant project file"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-file_delete",
+      "method": "DELETE",
+      "path": "/api/project-file/:projectId",
+      "service": "project-file",
+      "action": "project-file.delete",
+      "summary": "Delete a project file through acknowledged audited cleanup",
+      "tags": [
+        "Project files"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-file.delete"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Project"
+      ],
+      "requiredScopes": [
+        "project-file:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "project-file"
+      ],
+      "sideEffects": [
+        "deletes_stored_object"
+      ],
+      "idempotency": "idempotent",
+      "rollbackHint": "Deletion is generally not reversible via API - restore from backup/audit trail if available.",
+      "parameters": {
+        "required": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "file",
+          "delete",
+          "through",
+          "acknowledged",
+          "audited",
+          "cleanup",
+          "files"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please delete a project file through acknowledged audited cleanup"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-file_get",
+      "method": "GET",
+      "path": "/api/project-file/:projectId",
+      "service": "project-file",
+      "action": "project-file.get",
+      "summary": "Get a visible tenant project file",
+      "tags": [
+        "Project files"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-file.get"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Project"
+      ],
+      "requiredScopes": [
+        "project-file:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "file",
+          "visible",
+          "tenant",
+          "files"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me get a visible tenant project file"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-file_update",
+      "method": "PATCH",
+      "path": "/api/project-file/:projectId",
+      "service": "project-file",
+      "action": "project-file.update",
+      "summary": "Update project title, members and structural refs",
+      "tags": [
+        "Project files"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-file.update"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Project"
+      ],
+      "requiredScopes": [
+        "project-file:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "project-file"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "title",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "members",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "projectRefs",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "file",
+          "update",
+          "title,",
+          "members",
+          "structural",
+          "refs",
+          "files"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please update project title, members and structural refs"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-file_archive",
+      "method": "POST",
+      "path": "/api/project-file/:projectId/archive",
+      "service": "project-file",
+      "action": "project-file.archive",
+      "summary": "Archive a project file and exclude it from routing",
+      "tags": [
+        "Project files"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-file.archive"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Project"
+      ],
+      "requiredScopes": [
+        "project-file:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "project-file"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "file",
+          "archive",
+          "exclude",
+          "it",
+          "from",
+          "routing",
+          "files"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please archive a project file and exclude it from routing"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-file_forReference",
+      "method": "GET",
+      "path": "/api/project-file/refs",
+      "service": "project-file",
+      "action": "project-file.forReference",
+      "summary": "List visible project refs for a case or conversation",
+      "tags": [
+        "Project files"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-file.for_reference"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "project-file:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "conversationId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "file",
+          "reference",
+          "list",
+          "visible",
+          "refs",
+          "case",
+          "or",
+          "conversation",
+          "files"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list visible project refs for a case or conversation"
         ],
         "synonyms": [
           "agent infrastructure",
