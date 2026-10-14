@@ -1,5 +1,12 @@
 # Changelog
 
+## RC3 – Praxis-Evaluationssuite #875
+
+- Versionierter generatorbasierter Katalog für Marktkommunikation, Governance und RC3-Regressionen.
+- Gemeinsamer Live-Harness und Budgetschutz für lokale sowie HTTP-Testinstanzen, mit auditiertem Aufräumen.
+- Reine Turn-Prüfungen, schemagebundene Rubrik, Wiederholläufe und striktes Release-Gate.
+- Markdown-Bericht mit Ausgangsmessung, Vergleich, Sichtbarkeit und Wechselwirkungsquote; Runbook für den Betreiber.
+
 ## RC3 – Teamgedächtnis #868
 
 - Bezugsanker deterministisch aus der vollständigen Nachricht, mit Satzzeichengrenzen und gemeinsamer tenantweiter Dokumenthäufigkeit.
