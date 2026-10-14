@@ -145,6 +145,7 @@ async function classifyCodeTokens(
             toFacadeSchema(answerProviderSchema(schema)),
             JSON.stringify({
               task: 'turn_controls',
+              regulatoryInstruction: SITUATION_SCHEMA.properties.regulatoryQuestion.description,
               instruction:
                 'Prüfe ausschließlich Gesprächsführung, aktuelle offene Angaben, Befassung, Personenbewertung, Außenhandlungsgrenze und Vorschläge für verbundene Vorgänge gemäß Schema. Die Ausgabeform ist bereits separat geprüft; outputContract ist nur Kontext, kein erneut zu erzeugendes Feld. Fehlende Angaben ausschließlich aus tatsächlichem Sachstand und aktueller Originalbitte bestimmen. needsClarification=true bei wesentlichen unbekannten Punkten einer unscharfen Problemschilderung. Auch eine Frage danach, was für eine belastbare Einordnung eines unklaren Prozesses benötigt wird, ist bei aktivem Rückfragewunsch eine Bitte um konkrete Rückfragen zusätzlich zur vorläufigen Antwort; eine bloße Liste benötigter Angaben genügt nicht. needsClarification=false bei vollständig klarer Bestellung, reiner Modusmitteilung, bereits beantworteten Punkten oder klarer allgemeiner Wissensfrage. Bei ausdrücklich gespeichertem Rückfragewunsch und einer unscharfen Problemschilderung 1–3 neue unabhängige relevante Fragen zusätzlich zur Einordnung ermitteln; keine künstlichen Kennungen oder bereits beantworteten Fragen.',
               ...(repairInstruction ? { repairInstruction } : {}),

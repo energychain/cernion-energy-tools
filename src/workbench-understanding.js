@@ -831,8 +831,11 @@ async function understand({
       'selfKnowledge',
     ])
       if (classified[key] !== undefined) {
-        // A refinement cannot erase a literal, already validated personal assessment.
-        if (key === 'personAssessment' && result[key]?.applicable && !classified[key].applicable)
+        // A refinement must not clear an independently recognized safety requirement.
+        if (
+          (key === 'personAssessment' && result[key]?.applicable && !classified[key].applicable) ||
+          (key === 'regulatoryQuestion' && result[key] === true && classified[key] === false)
+        )
           continue;
         result[key] = classified[key];
       }

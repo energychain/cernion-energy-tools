@@ -23,6 +23,8 @@ const CASE_WORK = closed({
   nextConsideration: text,
   reminder: text,
 });
+const REGULATORY_SCOPE =
+  'regulatoryQuestion=true bei Fragen nach normativen Rechten, Pflichten, Ansprüchen oder einem Regulatorikimpuls mit verlangter Quellenprüfung oder ausdrücklich zu prüfender Annahme.';
 const SCHEMAS = {
   preferenceOnly: { type: 'boolean' },
   internalSubjects: strings,
@@ -33,7 +35,7 @@ const SCHEMAS = {
     items: closed({ value: text, family: text, basis: text }),
   },
   codeMeaningQuestion: { type: 'boolean' },
-  regulatoryQuestion: { type: 'boolean' },
+  regulatoryQuestion: { type: 'boolean', description: REGULATORY_SCOPE },
   governanceContext: { type: 'boolean' },
   disclosure: closed({ external: { type: 'boolean' }, recipient: text, restricted: strings }),
   personAssessment: closed({
@@ -54,7 +56,9 @@ const SCHEMAS = {
 };
 const INSTRUCTION = [
   'conversationPreferences enthält ausschließlich ausdrücklich gewünschte Gesprächspräferenzen der aktuellen äußeren Bitte; basis wörtlich. Sonst basis leer, enums unchanged und Listen leer. wording umfasst positive Sprachvorgaben; forbiddenTerms ausdrücklich ausgeschlossene Wörter und deren im Beleg genannten Wortstämme. Ein Verbot von Entscheidungssprache ist eine dauerhafte Vorgabe für alle folgenden Antworten und Artefakte. questions=requested bei Arbeitsmodus mit Rückfragewunsch; dann 1–3 unabhängige relevante fehlende Angaben in missingInformation ermitteln (Ziel, Beteiligte, Termin, Unterlagen), keine unnötige Kennung bei einer Prozessfrage.',
-  'codeReferences erfasst schemagebunden alle in der aktuellen Nachricht enthaltenen Fachcodes, deren Bedeutung geklärt oder fachlich verwendet wird: value wörtlicher Token, family semantischer Familien-/Formatkontext aus der Nachricht, basis wörtliches Belegstück. Keine Liste bekannter Codes; Zahlen allein sind nicht automatisch Codes. codeMeaningQuestion=true bei Bedeutungs-/Belegfragen zu diesen Codes. regulatoryQuestion=true bei Fragen nach normativen Rechten, Pflichten, Ansprüchen oder einem Regulatorikimpuls mit verlangter Quellenprüfung oder ausdrücklich zu prüfender Annahme. governanceContext=true bei Führung, Mandat oder Befassung; Einordnung und Prüfauftrag, niemals behauptete Entscheidung durch CET.',
+  'codeReferences erfasst schemagebunden alle in der aktuellen Nachricht enthaltenen Fachcodes, deren Bedeutung geklärt oder fachlich verwendet wird: value wörtlicher Token, family semantischer Familien-/Formatkontext aus der Nachricht, basis wörtliches Belegstück. Keine Liste bekannter Codes; Zahlen allein sind nicht automatisch Codes. codeMeaningQuestion=true bei Bedeutungs-/Belegfragen zu diesen Codes. ' +
+    REGULATORY_SCOPE +
+    ' governanceContext=true bei Führung, Mandat oder Befassung; Einordnung und Prüfauftrag, niemals behauptete Entscheidung durch CET.',
   'requestedOutput.parts[].minimumSteps ist bei steps die ausdrücklich bestellte Mindestzahl, sonst ohne genannte Zahl drei; bei anderen Layouts null Schritte (0). requestedOutput.parts[].audience kennzeichnet jeden Teil als internal oder external; letter=true ausschließlich bei einem ausdrücklich bestellten Brief/Mailentwurf; sonst false. Eine Fassung für eine Zielgruppe ist noch kein Brief. recipient ist beim Brief die ausdrücklich genannte Zielgruppe, innerhalb oder außerhalb der Organisation. Interne Diagnose und externer Entwurf bleiben getrennte Teile; interne Inhalte dürfen nicht in den externen Teil übertragen werden.',
   'disclosure.external=true wenn ein Entwurf an ein externes Gegenüber verlangt oder proaktiv angeboten wird. recipient ist nur das ausdrücklich belegte Gegenüber. restricted enthält alle nicht erforderlichen Drittbeteiligten, internen Systeme, Dienstleister, Fehlerursachen und Personendetails aus aktuellem und früherem Kontext. Diese bleiben im internen Teil. Systembegriffe in Arbeitsaufträgen sind Gegenstände, niemals Empfänger; nutze tenantGlossary. Unbekannte mehrdeutige Abkürzungen als Gegenstand behandeln und eine relevante Rückfrage stellen.',
   'personAssessment.applicable=true bei Bewertung einer Person/Rolle. observations enthält nur wörtlich belegte beobachtbare Handlungen/Äußerungen, hypotheses enthält ausdrücklich die Deutungen der Person als unbewiesen; basis wörtlich. Keine Motivzuschreibung; niemals diese Deutung in situation, caseMemory.assumptions oder tenantMemory als eigene Arbeitsannahme übernehmen. Beobachtung, Hypothese, Wirkung/Governance-Risiko und führungsfähige Formulierung getrennt.',
@@ -148,6 +152,8 @@ function validateCommunication(parsed, situation, evidence) {
           )
         );
       if (!grounded && !/zu prüfende Annahme/iu.test(claim.text)) {
+        const heading = /^(?:\s*#{1,6}\s+[^\n]+(?:\n|$))+/u.exec(claim.text);
+        if (heading && !claim.text.slice(heading[0].length).trim()) continue;
         if (
           claim.text
             .trim()
@@ -155,7 +161,12 @@ function validateCommunication(parsed, situation, evidence) {
             .every((line) => /^\s*\|.*\|\s*$/u.test(line))
         )
           claim.regulatoryUnverified = true;
-        else claim.text = `Zu prüfende Annahme, ohne belegte Fundstelle: ${claim.text}`;
+        else {
+          const prefix = 'Zu prüfende Annahme, ohne belegte Fundstelle: ';
+          claim.text = heading
+            ? `${heading[0].trimEnd()}\n\n${prefix}${claim.text.slice(heading[0].length).trimStart()}`
+            : prefix + claim.text;
+        }
       }
     }
   }

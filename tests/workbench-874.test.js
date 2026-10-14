@@ -1958,3 +1958,87 @@ test.each(['unique', 'ambiguous', 'compound'])(
     if (variant !== 'ambiguous') expect(result.responseText).toContain(`Berichtet: „${quote}“`);
   }
 );
+
+test('a refinement keeps an independently recognized source requirement and receives its shared schema meaning', async () => {
+  const turn = fixture.scenarios[4].turns.find((item) => item.id === 'regulation');
+  const message = turn.message;
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    const data = JSON.parse(prompt);
+    if (data.task === 'output_contract') return fixture.outputContract(message);
+    if (data.task === 'turn_controls') {
+      expect(data.regulatoryInstruction).toBe(
+        require('../src/workbench-communication').SCHEMAS.regulatoryQuestion.description
+      );
+      expect(data.regulatoryInstruction).toBeTruthy();
+      return { missingInformation: [], regulatoryQuestion: false };
+    }
+    if (data.currentUserMessage)
+      return {
+        basis: '',
+        register: 'unchanged',
+        concise: 'unchanged',
+        questions: 'unchanged',
+        wording: [],
+        forbiddenTerms: [],
+        preferenceOnly: false,
+      };
+    if (data.candidates) return { tokens: [] };
+    return fixture.situation(message, {
+      regulatoryQuestion: true,
+      codeReferences: [],
+      turnKind: 'work',
+      conversationShape: 'task',
+    });
+  });
+  const result = await understand({ message, tenantId: fixture.tenantId });
+  expect(result.regulatoryQuestion).toBe(true);
+});
+
+test.each(['structured', 'legacy'])(
+  'regulatory qualification preserves requested section headings (%s)',
+  (variant) => {
+    const {
+      materializeTables,
+      validateArtifact,
+      renderArtifact,
+    } = require('../src/workbench-artifact');
+    const data = fixture.literalSections;
+    const request = {
+      kind: 'summary',
+      parts: [
+        { title: '', sections: data.sections, columns: [], layout: 'sections', letter: false },
+      ],
+      subjects: [],
+      constraints: [],
+      forbiddenTerms: [],
+    };
+    const part = { title: '', content: [] };
+    if (variant === 'structured')
+      part.sectionContents = data.sections.map((section) => ({
+        section,
+        content: [fixture.claim(`${section}: ${fixture.proposal.nextConsideration}`)],
+      }));
+    else
+      part.content = [
+        fixture.claim(
+          data.sections
+            .map((section) => `### ${section}\n\n${section}: ${fixture.proposal.nextConsideration}`)
+            .join('\n\n')
+        ),
+      ];
+    const parsed = { artifact: [part] };
+    materializeTables(parsed, request);
+    validateCommunication(parsed, { regulatoryQuestion: true, conversationPreferences: {} }, []);
+    validateArtifact(parsed, request, {
+      evidence: [],
+      answerEvidence: [],
+      unresolved: [],
+      message: data.message,
+      normalizeCondition: (value) => value || '',
+      counts: new Map(),
+    });
+    const text = renderArtifact(parsed.artifact, request);
+    expect([...text.matchAll(/^### (.+)$/gm)].map((match) => match[1])).toEqual(data.sections);
+    expect(text).toContain('Zu prüfende Annahme');
+  }
+);

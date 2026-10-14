@@ -464,3 +464,41 @@ dessen bestehende Tests für nicht wörtliche Belege bleiben unverändert.
 Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 468 Symbole /
 38 Abläufe (CRITICAL); lokale `main` 290 / 2564 / 93 (CRITICAL); staged
 7 / 6 / 0 (LOW). Alle 835 gezielten Tests in 15 Testsuiten bestanden.
+
+## Quellenpflicht in allen Klassifikationsstufen und Abschnittsformen
+
+Vorab upstream: `understand` HIGH (3 direkte Aufrufer, 14 betroffene Symbole,
+2 Abläufe), vorher benannt; `SCHEMAS`, `INSTRUCTION` und
+`validateCommunication` LOW (jeweils 0 direkte Aufrufer im Index). Die neue
+Konstante `REGULATORY_SCOPE` war vor ihrer Aufnahme UNKNOWN.
+
+Die Aufzeichnung eines Governance-Turns enthielt bereits eine korrekte
+Unsicherheitskennzeichnung im Modell-Ergebnis. Die global entscheidenden offenen
+Angaben entfernten jedoch die Annahmen, während die normative Einordnung im
+Lagebild falsch negativ war. Die bestehende semantische Definition wird nun als
+eine gemeinsame Schemabeschreibung an beide Klassifikationsstufen weitergegeben;
+eine Verfeinerung darf eine bereits erkannte Quellenpflicht nicht löschen.
+Der bisherige Verständnis-Hinweis bleibt zur Laufzeit bytegleich (zusätzlich
+gegen die gespeicherte Vorversion geprüft). Keine Fachwortsuche im Nachrichtentext.
+
+Die Quellenkennzeichnung behandelt reine Abschnittsüberschriften als Beschriftung.
+Bei herkömmlichem Markdown mit Überschrift und Inhalt folgt die Kennzeichnung
+unter der Überschrift. Strukturierte und herkömmliche Abschnitte behalten so
+ihre bestellten Namen und Reihenfolge; ihre inhaltlichen Aussagen bleiben bei
+fehlendem Beleg ausdrücklich zu prüfende Annahmen. Tabellen behalten den
+bestehenden Kennzeichnungsweg. Neue Tests prüfen die gemeinsame Beschreibung,
+den Erhalt einer positiven Quellenpflicht und beide Abschnittsformen.
+
+Die neue Prüfung des tatsächlichen Übergabekanals zeigte zusätzlich, dass die
+Fassade Schema-Beschreibungen im Anbieterschema nicht überträgt. Deshalb reicht
+die neue gemeinsame Beschreibung allein nicht: Nach Upstream-Prüfung von
+`classifyCodeTokens` (LOW, 0 direkte Aufrufer) wird derselbe Wert auch ausdrücklich
+als vertrauenswürdige Prompt-Vorgabe in die Verfeinerung gegeben. Die generische
+Fassade bleibt unverändert. Der Test prüft diesen tatsächlich übertragenen Wert,
+nicht lediglich die lokale Schemadefinition.
+
+Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 528 Symbole /
+38 Abläufe (CRITICAL); lokale `main` 290 / 2566 / 93 (CRITICAL); staged
+9 / 16 / 1 (MEDIUM). Die zusammengefassten Diff-Bereiche umfassen konservativ
+weitere Symbole der gemeinsam verwendeten Kommunikationsmodule. Alle 838
+gezielten Tests in 15 Testsuiten bestanden.
