@@ -249,3 +249,14 @@ Maskierung und Fallzugriff. Die gemeinsam genutzten zentralen Aufrufe erklären
 den übergreifenden Wirkungsbereich. Für die großen generierten Diffs wurde nur
 bei den GitNexus-Aufrufen `diff.interHunkContext=100000` verwendet; dies erweitert
 Diff-Bereiche und schließt keine Änderungen aus.
+
+Vor Ergänzung der letzten vorhandenen Einordnung im normalen Fallabruf:
+`renderCaseMemory` HIGH (1 direkter Aufrufer, 4 betroffene Symbole, 2 Abläufe),
+vorher benannt. Das bereits bestehende `lastSafeConclusion` wird als Arbeitsstand
+gezeigt und durch dieselbe Sprachprüfung geschützt. Explizite Tabellen- und
+Abschnittsaufträge behalten ihre bestellte Form.
+
+Erneute Änderungsprüfung vor diesem Folgecommit: gegen `origin/main` 59 Dateien,
+450 Symbole, 38 Abläufe (CRITICAL); gegen die ältere lokale `main` 290 Dateien,
+2550 Symbole, 93 Abläufe (CRITICAL); der Folgecommit selbst umfasst 7 Dateien,
+5 Symbole und keine zusätzlich ausgewiesenen Abläufe (LOW).

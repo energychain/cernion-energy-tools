@@ -179,6 +179,9 @@ function renderCaseMemory(candidate, displayRef, part, preferences = {}) {
     ...CASE_FIELDS.slice(2).flatMap((field, index) =>
       index < 5 || m.caseWork ? [`${field}: ${values[index + 2]}`] : []
     ),
+    m.lastSafeConclusion && m.lastSafeConclusion !== values[2]
+      ? `Letzte Einordnung (Arbeitsstand): ${safeText(m.lastSafeConclusion)}`
+      : '',
   ]
     .filter(Boolean)
     .join('\n');
