@@ -243,6 +243,14 @@ ARTIFACT_ANSWER_SCHEMA.properties.artifact = {
     {
       title: text,
       content: { type: 'array', maxItems: 100, items: CLAIM },
+      sectionContents: {
+        type: 'array',
+        maxItems: 30,
+        items: object({
+          section: text,
+          content: { type: 'array', minItems: 1, maxItems: 100, items: CLAIM },
+        }),
+      },
       orderedSteps: {
         type: 'array',
         maxItems: 100,

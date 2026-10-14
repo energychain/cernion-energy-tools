@@ -417,3 +417,27 @@ Rückfragepfad ohne diesen Vertrag bleibt erhalten; sein Test wurde nicht geänd
 Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 465 Symbole /
 38 Abläufe (CRITICAL); lokale `main` 290 / 2561 / 93 (CRITICAL); staged
 7 / 6 / 0 (LOW). Alle 826 gezielten Tests in 15 Testsuiten bestanden.
+
+## Schemagebundener Abschnittsaufbau
+
+Vorab upstream: `materializeTables`, die gemeinsame Artefaktanweisung und
+`ARTIFACT_ANSWER_SCHEMA` jeweils LOW (0 direkte Aufrufer im Index). Dynamische
+Aufrufe werden zusätzlich durch die bestehenden Artefakt- und Antworttests geprüft.
+Der größere Live-Lauf auf `e8284140` lieferte bei einem Muster trotz korrektem
+Abschnittsvertrag die sichere Rückfallantwort mit `artifact_sections_mismatch`.
+Die Codeprüfung für Standardantworten war hier nicht beteiligt.
+
+Die vorhandene Materialisierung für Tabellen und nummerierte Schritte übernimmt
+nun auch `sectionContents`: je bestellter Überschrift genau ein nicht leerer
+Abschnitt mit den ursprünglichen Claims. Überschriften werden auf dem Server aus
+dem Vertrag erzeugt. Fehlende, zusätzliche, falsch geordnete und widersprüchlich
+mit anderem Inhalt gemischte Abschnitte bleiben ungültig. Quellen-, Sprach- und
+Offenlegungsprüfungen arbeiten anschließend auf denselben materialisierten Claims.
+Der alte Markdown-Vertrag bleibt für bestehende Aufrufer verfügbar und wird
+weiterhin unverändert streng geprüft. Keine Stichwortliste, kein neuer LLM-Pfad
+und keine zusätzliche Wiederholungsschleife. Die Tests nutzen ausschließlich die
+vorhandenen generierten Abschnitts- und Inhaltsfixtures.
+
+Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 467 Symbole /
+38 Abläufe (CRITICAL); lokale `main` 290 / 2563 / 93 (CRITICAL); staged
+8 / 12 / 0 (LOW). Alle 832 gezielten Tests in 15 Testsuiten bestanden.

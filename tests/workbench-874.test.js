@@ -1786,3 +1786,125 @@ test.each([false, true])(
     expect(result.responseText).toContain(`Bedeutung von ${value} nicht belegt`);
   }
 );
+
+test('structured sections render exact requested headings and retain content provenance', () => {
+  const {
+    materializeTables,
+    validateArtifact,
+    renderArtifact,
+  } = require('../src/workbench-artifact');
+  const data = fixture.literalSections;
+  const request = {
+    kind: 'summary',
+    parts: [{ title: '', sections: data.sections, columns: [], layout: 'sections', letter: false }],
+    subjects: [],
+    constraints: [],
+    forbiddenTerms: [],
+  };
+  const bodies = data.sections.map((section) =>
+    fixture.claim(`${section}: ${fixture.proposal.nextConsideration}`)
+  );
+  const parsed = {
+    artifact: [
+      {
+        title: '',
+        content: [],
+        sectionContents: data.sections.map((section, index) => ({
+          section,
+          content: [bodies[index]],
+        })),
+      },
+    ],
+  };
+  materializeTables(parsed, request);
+  expect(parsed.artifact[0].sectionContents).toBeUndefined();
+  expect(parsed.artifact[0].content.filter((_, index) => index % 2 === 1)).toEqual(bodies);
+  validateArtifact(parsed, request, {
+    evidence: [],
+    answerEvidence: [],
+    unresolved: [],
+    message: data.message,
+    normalizeCondition: (value) => value || '',
+    counts: new Map(),
+  });
+  const headings = [...renderArtifact(parsed.artifact, request).matchAll(/^### (.+)$/gm)].map(
+    (match) => match[1]
+  );
+  expect(headings).toEqual(data.sections);
+});
+
+test.each(['missing', 'reordered', 'empty', 'mixed'])(
+  'structured sections reject an incomplete or contradictory contract (%s)',
+  (variant) => {
+    const { materializeTables } = require('../src/workbench-artifact');
+    const sections = fixture.literalSections.sections;
+    let sectionContents = sections.map((section) => ({
+      section,
+      content: [fixture.claim(`${section}: ${fixture.proposal.nextConsideration}`)],
+    }));
+    if (variant === 'missing') sectionContents = sectionContents.slice(1);
+    if (variant === 'reordered') sectionContents.reverse();
+    if (variant === 'empty') sectionContents[0].content = [];
+    const parsed = {
+      artifact: [
+        {
+          title: '',
+          content: variant === 'mixed' ? [fixture.claim(fixture.proposal.title)] : [],
+          sectionContents,
+        },
+      ],
+    };
+    expect(() => materializeTables(parsed, { parts: [{ sections, layout: 'sections' }] })).toThrow(
+      expect.objectContaining({ fallbackReason: 'artifact_section_contract' })
+    );
+  }
+);
+
+test('a section artifact is delivered from the closed structure without generated Markdown headings', async () => {
+  const data = fixture.literalSections;
+  const requestedOutput = {
+    requested: true,
+    basis: data.message,
+    kind: 'summary',
+    parts: [
+      {
+        title: '',
+        sections: data.sections,
+        columns: [],
+        layout: 'sections',
+        audience: 'internal',
+        letter: false,
+      },
+    ],
+    subjects: [],
+    constraints: [],
+    forbiddenTerms: [],
+  };
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      expectation: [],
+      nextSteps: [],
+      interpretation: [],
+      assumptions: [],
+      draft: [],
+      artifact: [
+        {
+          title: '',
+          content: [],
+          sectionContents: data.sections.map((section) => ({
+            section,
+            content: [fixture.claim(`${section}: ${fixture.proposal.nextConsideration}`)],
+          })),
+        },
+      ],
+    })
+  );
+  const result = await answer({
+    tenantId: fixture.tenantId,
+    message: data.message,
+    situation: fixture.situation(data.message, { requestedOutput, codeReferences: [] }),
+    retrieval: { evidence: [] },
+  });
+  expect(result.answerAttempts).toBe(1);
+  for (const heading of data.sections) expect(result.responseText).toContain(`### ${heading}`);
+});
