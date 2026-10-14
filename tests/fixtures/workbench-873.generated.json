@@ -1,0 +1,170 @@
+{
+  "synthetic": true,
+  "generator": "scripts/generate-workbench-873-fixtures.js",
+  "scenarios": [
+    {
+      "number": 1,
+      "message": "Schreibe einen internen Arbeitsauftrag für Prüfsystem873. Nummerierte Schritte mit Objekten und Reihenfolge.",
+      "output": {
+        "requested": true,
+        "kind": "internal",
+        "basis": "Schreibe einen internen Arbeitsauftrag für Prüfsystem873. Nummerierte Schritte mit Objekten und Reihenfolge.",
+        "parts": [
+          {
+            "title": "Arbeitsauftrag",
+            "sections": [],
+            "columns": [],
+            "layout": "steps"
+          }
+        ],
+        "constraints": [],
+        "forbiddenTerms": [],
+        "subjects": [
+          "Prüfsystem873"
+        ]
+      },
+      "content": "1. Öffne den betroffenen Zuordnungsdatensatz in Prüfsystem873.\n2. Vergleiche die berichtete Kennung mit der Zuordnung.\n3. Dokumentiere den Unterschied und den offenen Prüfpunkt."
+    },
+    {
+      "number": 2,
+      "message": "Formuliere zwei Fassungen: Interne Arbeitsdiagnose und Fassung für Geschäftsführung und Linie. Keine Beschluss-/Freigabesprache; die Wörter Beschluss, Freigabe, beschließen, freigeben dürfen nicht vorkommen.",
+      "output": {
+        "requested": true,
+        "kind": "internal",
+        "basis": "Formuliere zwei Fassungen: Interne Arbeitsdiagnose und Fassung für Geschäftsführung und Linie. Keine Beschluss-/Freigabesprache; die Wörter Beschluss, Freigabe, beschließen, freigeben dürfen nicht vorkommen.",
+        "parts": [
+          {
+            "title": "Interne Arbeitsdiagnose",
+            "sections": [],
+            "columns": [],
+            "layout": "paragraphs"
+          },
+          {
+            "title": "Fassung für Geschäftsführung und Linie",
+            "sections": [],
+            "columns": [],
+            "layout": "paragraphs"
+          }
+        ],
+        "constraints": [
+          "Keine Beschluss-/Freigabesprache"
+        ],
+        "forbiddenTerms": [
+          "Beschluss",
+          "Freigabe",
+          "beschließen",
+          "freigeben"
+        ],
+        "subjects": [
+          "Prüfsystem873"
+        ]
+      },
+      "content": "Die berichtete Zuordnung im Prüfsystem873 ist offen. Als Arbeitsannahme dient ein Unterschied zwischen Eingabe und gespeichertem Objekt. Nächster Schritt ist der Vergleich der beiden Zuordnungen."
+    },
+    {
+      "number": 3,
+      "message": "Fasse das als wiederverwendbares Muster zusammen: Auslöser, Prüfpfad, Grenzen.",
+      "output": {
+        "requested": true,
+        "kind": "internal",
+        "basis": "Fasse das als wiederverwendbares Muster zusammen: Auslöser, Prüfpfad, Grenzen.",
+        "parts": [
+          {
+            "title": "Muster",
+            "sections": [
+              "Auslöser",
+              "Prüfpfad",
+              "Grenzen"
+            ],
+            "columns": [],
+            "layout": "sections"
+          }
+        ],
+        "constraints": [],
+        "forbiddenTerms": [],
+        "subjects": [
+          "Prüfsystem873"
+        ]
+      },
+      "content": "### Auslöser\nEine berichtete Zuordnung im Prüfsystem873 fehlt.\n\n### Prüfpfad\nEingabe und gespeichertes Objekt vergleichen.\n\n### Grenzen\nDer tatsächliche Bearbeitungsstand bleibt offen."
+    },
+    {
+      "number": 4,
+      "message": "Erstelle eine Matrix mit Spalten Ergebnis, Annahme, Grenze, offener Punkt, Owner, Frist, nächste Befassung.",
+      "output": {
+        "requested": true,
+        "kind": "table",
+        "basis": "Erstelle eine Matrix mit Spalten Ergebnis, Annahme, Grenze, offener Punkt, Owner, Frist, nächste Befassung.",
+        "parts": [
+          {
+            "title": "Matrix",
+            "sections": [],
+            "columns": [
+              "Ergebnis",
+              "Annahme",
+              "Grenze",
+              "offener Punkt",
+              "Owner",
+              "Frist",
+              "nächste Befassung"
+            ],
+            "layout": "table"
+          }
+        ],
+        "constraints": [],
+        "forbiddenTerms": [],
+        "subjects": [
+          "Prüfsystem873"
+        ]
+      },
+      "content": "| Ergebnis | Annahme | Grenze | offener Punkt | Owner | Frist | nächste Befassung |\n| --- | --- | --- | --- | --- | --- | --- |\n| Zuordnung offen | Eingabe weicht ab | Status unbekannt | Vergleich | offen | offen | nach Vergleich |"
+    },
+    {
+      "number": 5,
+      "message": "Wie lässt sich die Verantwortung für Prüfmandat873 zwischen Linie und Projekt sinnvoll abgrenzen?"
+    },
+    {
+      "number": 6,
+      "message": "Ordne die fachliche Antwortpflicht beim Zuordnungsfehler in Prüfsystem873 ein, ohne Daten abzufragen."
+    },
+    {
+      "number": 7,
+      "message": "Wie viele Zeilen hat Prüftabelle873.csv?"
+    },
+    {
+      "number": 8,
+      "message": "Was bedeutet eine Arbeitsannahme bei einer noch offenen Prüfung?"
+    },
+    {
+      "number": 9,
+      "message": "Welche Rolle hat eine noch offene Annahme?"
+    },
+    {
+      "number": 10,
+      "message": "Was wissen wir inzwischen zu dem Prüfmandat873-Vorgang? Nenne Stand, offene Punkte, Annahmen, Risiken und nächste Schritte."
+    }
+  ],
+  "workTurns": [
+    "Beim manuellen Anlegen im Prüfsystem873 ist die Prüfkennung unbekannt. Es geht nur um diesen einzelnen Vorgang.",
+    "Die Eingabe wurde manuell übertragen; der genaue Bearbeitungsstand ist unbekannt.",
+    "Das betroffene Objekt ist der Zuordnungsdatensatz, kein Kommunikationspartner.",
+    "Der Vergleich von Eingabe und gespeichertem Objekt steht noch aus.",
+    "Die interne Bearbeitung soll zuerst die Objektzuordnung nachvollziehen und dann den Unterschied dokumentieren."
+  ],
+  "caseTurns": [
+    "Lege einen Fall zum Prüfmandat873 an. Es geht um den Abschluss einer einzelnen Prüfaufgabe und die Abgrenzung der Verantwortung.",
+    "Stand des Vorgangs: Die fachliche Prüfung ist vorbereitet, die Zuständigkeit ist noch offen.",
+    "Offener Punkt ist die Zuordnung zwischen Linie und Projekt.",
+    "Arbeitsannahme für diesen Vorgang: Das Projekt sammelt den Sachstand, die Linie bewertet die Zuständigkeit.",
+    "Risiko dieses Vorgangs: Ohne Zuständigkeit bleibt der nächste Prüfschritt offen.",
+    "Nächster Schritt ist ein Vergleich der Aufgabenbeschreibung mit der Rollenbeschreibung.",
+    "Ein Ergebnis dieser Gegenüberstellung liegt noch nicht vor.",
+    "Fasse den Sachstand des Prüfmandat873 kurz zusammen und benenne den nächsten Schritt."
+  ],
+  "noisyLines": [
+    "Die vorhandene Abfrage enthält 1 Datensätze.",
+    "Die Abfrage umfasst 4 Zeilen. 0 fehlende Zeitintervalle.",
+    "Die vorhandene Abfrage enthält 4 Datensätze. Der größte erfasste Wert beträgt 42 kW.",
+    "Herkunft: Abgefragte Datenquelle; Abruf 14.10.2026, 12:00.\n\nHerkunft: Abgefragte Datenquelle; Abruf 14.10.2026, 12:00."
+  ]
+}

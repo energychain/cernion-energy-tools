@@ -60,6 +60,8 @@ test('central turn-field list strips transient metadata without mutating or losi
   const original = {
     ...situation,
     followupKind: 'next_step',
+    caseMemory: require('../scripts/generate-workbench-873-fixtures').generateAcceptanceFixture()
+      .caseMemory,
     requestedAction: { ...situation.requestedAction, externalEffect: true },
   };
   const saved = persistentSituation(original);
@@ -70,6 +72,7 @@ test('central turn-field list strips transient metadata without mutating or losi
   expect(original.followupKind).toBe('next_step');
   expect(original.requestedAction.externalEffect).toBe(true);
   expect(saved.turnKind).toBe('work');
+  expect(saved.caseMemory.topic).toBe(original.caseMemory.topic);
   expect(saved.requestedAction.draftRequested).toBe(true);
 });
 

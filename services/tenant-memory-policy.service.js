@@ -13,6 +13,49 @@ async function admin(ctx) {
 module.exports = {
   name: 'tenant-memory-policy',
   actions: {
+    discardDeletionNotices: {
+      rest: 'POST /discard-deletion-notices',
+      openapi: {
+        summary: 'Audit and discard legacy administrative deletion notices once per tenant',
+        tags: ['Tenant Memory Policy'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['reason'],
+                additionalProperties: false,
+                properties: { reason: { type: 'string', minLength: 1, maxLength: 1200 } },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Audited one-time cleanup',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['migration', 'discarded', 'alreadyApplied'],
+                  properties: {
+                    migration: { type: 'string', enum: ['deletion-notices-v1'] },
+                    discarded: { type: 'integer' },
+                    alreadyApplied: { type: 'boolean' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      params: { reason: { type: 'string', min: 1, max: 1200 } },
+      async handler(ctx) {
+        await admin(ctx);
+        return ctx.call('notices.discardDeletionNotices', { reason: ctx.params.reason });
+      },
+    },
     migrateAnchors: {
       rest: 'POST /migrate-anchors',
       openapi: {

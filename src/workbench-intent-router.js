@@ -11,6 +11,24 @@ const {
 function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
   if (isCorrectionTurn(message)) return 'correction';
   const text = String(message || '').toLowerCase();
+  const status = /\b(?:status|stand|bearbeitungsstand)\b/u.test(text);
+  const explicitCase =
+    cetCaseId ||
+    /\bF-\d+\b|\bcase[_-][\w-]+\b/iu.test(text) ||
+    /\b[A-Z][A-Z\d]*(?:[-_][A-Z\d]+)+\b|\b[\p{L}]{2,}[-_]\d{2,}\b/u.test(String(message));
+  // A labelled assertion updates the situation; a thematic question needs semantic retrieval.
+  if (
+    status &&
+    ((/:\s+\S/u.test(text) && !text.includes('?')) ||
+      (!explicitCase &&
+        !/^(?:status|stand|bearbeitungsstand)\s+(?:des|der|von|zum|zu|bei)\s+(?:falls?|falles|vorgangs?|cases?)[?.!\s]*$/iu.test(
+          text.trim()
+        ) &&
+        /\b(?:status|stand|bearbeitungsstand)\b[^?]*\b(?:bei|zu|zum|zur|von|für|des|der)\s+\S/iu.test(
+          text
+        )))
+  )
+    return 'decision_support';
   // Words inside a pasted document describe the counterpart's request, not a CET command.
   if (
     /^(?:(?:weitergeleitete|eingefügte|anonymisierte)\s+)?(?:mail|e-mail|dokument|schreiben)\b/i.test(
