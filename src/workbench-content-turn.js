@@ -1102,6 +1102,17 @@ async function runContentTurn(
   } finally {
     phaseTimes.answerMs = Math.max(1, Math.round(performance.now() - answerStarted));
   }
+  if (reply.draft && !situation.requestedOutput?.requested) {
+    // Document drafts bypass understanding.answer; complete them before durable storage.
+    const presentation = require('./workbench-chat-presentation');
+    const draft = presentation.completeDraft(
+      reply.draft,
+      presentation.mappedDisplayName(mapping, ctx.meta)
+    );
+    if (reply.responseText?.includes(reply.draft))
+      reply.responseText = reply.responseText.replace(reply.draft, () => draft);
+    reply.draft = draft;
+  }
   const { sourceMetadata } = require('./workbench-retrieval');
   const sources = sourceMetadata(
     retrieval.trace.map((entry) =>

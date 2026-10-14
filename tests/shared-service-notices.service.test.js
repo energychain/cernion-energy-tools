@@ -22,6 +22,7 @@ const model = {
     {
       functionId: 'fn-b',
       label: 'Function B',
+      displayLabel: 'Netzprozesse · Bereitschaft',
       capabilities: ['synthetic.notice'],
       operations: ['notice-source.read'],
       neighbors: [{ functionId: 'fn-a', weight: 1 }],
@@ -417,6 +418,34 @@ test('standing signal visibility rechecks backend roles without observing again'
   env.source.schema.actions.read.requiredRoles = ['ROLE_ADMIN'];
   expect((await env.call('list')).items).toEqual([]);
   expect(await env.call('resolveRef', { ref })).toBeNull();
+});
+
+test('standing signal text names its fachliche function, not a bare state sentence', async () => {
+  env = await setup();
+  await env.observe('ok', null);
+  await env.observe('warn', null);
+  const result = await env.call('completeTurn', { turnRef: 'standing-label' });
+  expect(result.block).toBe(
+    'Hinweise für dich:\nNetzprozesse · Bereitschaft: Ein fachlicher Warnhinweis liegt vor.'
+  );
+});
+
+test('#846 D: contentless standing signals are withheld and do not consume the response slice', async () => {
+  const displayLabel = model.functions[1].displayLabel;
+  delete model.functions[1].displayLabel;
+  try {
+    env = await setup();
+    for (const state of ['ok', 'warn', 'blocked', 'ok']) await env.observe(state, null);
+    await env.proposal();
+    const result = await env.call('completeTurn', { turnRef: 'blank-signals' });
+    expect(result.items.map((item) => item.kind)).toEqual(['proposal']);
+    expect(result.block).toContain('ausstehende Fallprüfung');
+    expect(result.block).not.toMatch(/Warnhinweis|Grenze ist verletzt|wieder unauffällig/);
+    const doc = await env.service.read('tenant-a', 'actor-a');
+    expect(doc.audit.filter((entry) => entry.kind === 'notice_withheld')).toHaveLength(3);
+  } finally {
+    model.functions[1].displayLabel = displayLabel;
+  }
 });
 
 test('unobserved or evicted signal references fail closed despite visible context', async () => {

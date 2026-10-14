@@ -238,4 +238,51 @@ describe('structured messages through authenticated chat and original-file HTTP'
     expect(detail.body.choices[0].message.content).toContain('MOA 203');
     expect(detail.body.choices[0].message.content).not.toContain('SYN-INV-001');
   });
+  test('#847 finding 3: legacy records use a bounded reference lookup instead of loading all rows', async () => {
+    const fixture = require('./fixtures/workbench-846.generated.json');
+    const pool = app.broker.getLocalService('dataset').datasetPool;
+    const rows = jest.spyOn(pool, 'rows');
+    const lookup = jest.spyOn(pool, 'matchingValues');
+    const originalCall = app.broker.call.bind(app.broker);
+    // Simulate records persisted before structured.references existed.
+    app.broker.call = async (name, params, options) => {
+      const result = await originalCall(name, params, options);
+      return name === 'datapoint.datasetCatalog' && params?.operation === 'list'
+        ? result.map((record) =>
+            record.structured
+              ? { ...record, structured: { ...record.structured, references: undefined } }
+              : record
+          )
+        : result;
+    };
+    const send = (message, conversationId) =>
+      request('/v1/chat/completions', {
+        model: GOVERNANCE_MODEL,
+        messages: [{ role: 'user', content: message }],
+        metadata: {
+          conversationId,
+          openWebuiOrgId: 'synthetic-org',
+          openWebuiUserId: 'synthetic-person',
+        },
+      });
+    try {
+      const ordinary = await send(
+        'Wie ist der Stand der Netzanmeldung 2026?',
+        'synthetic-847-legacy-text'
+      );
+      expect(ordinary.status).toBe(200);
+      expect(ordinary.body.choices[0].message.content).not.toMatch(/INVOIC|SYN-INV-00/);
+      expect(rows).not.toHaveBeenCalled();
+      expect(lookup).toHaveBeenCalled();
+      const detail = await send(fixture.explicitQuestion, 'synthetic-847-legacy-explicit');
+      expect(detail.status).toBe(200);
+      expect(detail.body.choices[0].message.content).toContain('SYN-INV-002');
+      expect(detail.body.choices[0].message.content).not.toContain('SYN-INV-001');
+      expect(lookup.mock.results.some((entry) => entry.value.includes('SYN-INV-002'))).toBe(true);
+    } finally {
+      app.broker.call = originalCall;
+      rows.mockRestore();
+      lookup.mockRestore();
+    }
+  });
 });
