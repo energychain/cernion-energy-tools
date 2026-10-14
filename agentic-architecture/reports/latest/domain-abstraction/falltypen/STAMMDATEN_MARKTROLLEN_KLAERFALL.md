@@ -1,6 +1,6 @@
 # Stammdaten-/Marktrollen-Klärfall
 
-Generated: 2026-10-14T02:23:22.749Z
+Generated: 2026-10-14T08:27:20.571Z
 
 Status: observed
 Priority: 1
@@ -119,7 +119,11 @@ Die Datenlage reicht nicht für eine abschließende Stammdatenaussage. Fachlich 
 - `src/capability-catalog.js` (231 hits)
 - `docs/validation/813-live.json` (207 hits)
 - `services/grid-operations.service.js` (191 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.json` (169 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.md` (165 hits)
 - `services/edm.service.js` (164 hits)
+- `docs/validation/practice-evaluation-baseline.json` (149 hits)
+- `docs/validation/practice-evaluation-baseline.md` (146 hits)
 - `services/capability-broker.service.js` (129 hits)
 - `services/finance-agent.service.js` (122 hits)
 - `docs/validation/739-routing.json` (115 hits)
@@ -134,7 +138,3 @@ Die Datenlage reicht nicht für eine abschließende Stammdatenaussage. Fachlich 
 - `services/dashboard-api/actions-part-01-of-8.js` (83 hits)
 - `services/bilanzkreis.service.js` (75 hits)
 - `services/energy-sharing.service.js` (74 hits)
-- `src/evidence-registry.js` (73 hits)
-- `services/dashboard-api/methods-part-07-of-14.js` (71 hits)
-- `docs/validation/752-before-cache.json` (70 hits)
-- `services/ewk-monitoring.service.js` (70 hits)

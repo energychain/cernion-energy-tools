@@ -1,6 +1,6 @@
 # Wärme-/Gas-/EOG-Szenariofall
 
-Generated: 2026-10-14T02:23:22.749Z
+Generated: 2026-10-14T08:27:20.571Z
 
 Status: observed
 Priority: 7
@@ -91,7 +91,11 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 
 - `docs/validation/tenant-memory-868-live.json` (497 hits)
 - `src/capability-catalog.js` (338 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.json` (191 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.md` (191 hits)
+- `docs/validation/practice-evaluation-baseline.md` (184 hits)
 - `docs/validation/739-routing.json` (183 hits)
+- `docs/validation/practice-evaluation-baseline.json` (183 hits)
 - `services/capability-broker.service.js` (180 hits)
 - `docs/validation/tenant-memory-live.json` (175 hits)
 - `docs/validation/tenant-memory-863-live.json` (138 hits)
@@ -110,7 +114,3 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `services/gas-storage.service.js` (41 hits)
 - `src/report-builder.js` (41 hits)
 - `function-model.report.md` (40 hits)
-- `services/gas-capacity-order-revision-gate.service.js` (37 hits)
-- `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-gas-transformation-dataroom-review-v1.json` (37 hits)
-- `docs/validation/813-live.json` (34 hits)
-- `services/chatgpt-sidecar.service.js` (33 hits)
