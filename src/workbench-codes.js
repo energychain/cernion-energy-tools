@@ -24,10 +24,17 @@ async function resolveCodes(
   catalog = defaults,
   sourceCatalog = sourceDefaults
 ) {
+  const referenced = await require('./workbench-code-sources').resolveReferencedCodes(
+    ctx,
+    situation.codeReferences || [],
+    access
+  );
   const evidence = [],
     resolutions = [],
     trace = [];
-  const identifiers = situation.identifiers || [];
+  // Current-turn schema classification supersedes retained identifier tags.
+  // Legacy callers without the contract keep the established adapter path.
+  const identifiers = Object.hasOwn(situation, 'codeReferences') ? [] : situation.identifiers || [];
   await Promise.all(
     identifiers.map(async (code) => {
       const type = catalog.types.find((entry) => entry.kind === code.kind);
@@ -82,6 +89,20 @@ async function resolveCodes(
       identifiers.findIndex((code) => code.kind === a.kind && code.value === a.value) -
       identifiers.findIndex((code) => code.kind === b.kind && code.value === b.value)
   );
+  for (const code of referenced) {
+    const index = resolutions.findIndex((entry) => entry.value === code.value);
+    if (index >= 0) resolutions[index] = code;
+    else resolutions.push(code);
+    trace.push(...code.trace);
+    for (const source of code.sources)
+      evidence.push({
+        source: source.source,
+        retrievalSource: source.source,
+        title: source.title,
+        value: source.excerpt,
+        metadata: { sectionId: source.sectionId, url: source.url },
+      });
+  }
   return { evidence, resolutions, trace };
 }
 

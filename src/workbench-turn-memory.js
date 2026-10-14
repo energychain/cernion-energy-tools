@@ -134,6 +134,16 @@ function buildTurnMemory({
   );
   return {
     schemaVersion: '1.0',
+    ...(context?.conversationPreferences
+      ? { conversationPreferences: context.conversationPreferences }
+      : {}),
+    ...(context?.caseWork
+      ? {
+          caseWork: Object.fromEntries(
+            Object.entries(context.caseWork).map(([key, value]) => [key, safeText(value)])
+          ),
+        }
+      : {}),
     topic: safeText(previousMemory?.topic || caseMemory?.topic || context?.concern),
     situation: safeText(caseMemory?.status || previousMemory?.situation || context?.situation),
     risks: safeList(caseMemory?.risks || context?.risks || previousMemory?.risks || []),
@@ -181,6 +191,29 @@ function safeTurnMemory(memory) {
   if (!memory) return null;
   return {
     schemaVersion: memory.schemaVersion || '1.0',
+    ...(memory.conversationPreferences
+      ? {
+          conversationPreferences: {
+            register: ['du', 'Sie'].includes(memory.conversationPreferences.register)
+              ? memory.conversationPreferences.register
+              : undefined,
+            concise: memory.conversationPreferences.concise,
+            questions: memory.conversationPreferences.questions,
+            wording: safeList(memory.conversationPreferences.wording),
+            forbiddenTerms: safeList(memory.conversationPreferences.forbiddenTerms),
+          },
+        }
+      : {}),
+    ...(memory.caseWork
+      ? {
+          caseWork: Object.fromEntries(
+            ['ownerRole', 'deadline', 'nextConsideration', 'reminder'].map((key) => [
+              key,
+              safeText(memory.caseWork[key]),
+            ])
+          ),
+        }
+      : {}),
     topic: safeText(memory.topic),
     situation: safeText(memory.situation),
     risks: safeList(memory.risks || []),

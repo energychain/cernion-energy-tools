@@ -446,7 +446,7 @@
             "description": "Einzelvorgang und Strukturthema unterscheiden",
             "rules": {
               "require": [
-                "Lastgang"
+                "Lastgang|Lastgänge"
               ],
               "casePresent": true
             },
@@ -1494,6 +1494,777 @@
             },
             "dependencies": []
           }
+        }
+      ]
+    },
+    {
+      "id": "communication-1",
+      "group": "874",
+      "title": "Kommunikation 1",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "rejection",
+          "actor": "a",
+          "chat": "main",
+          "message": "Die Ablehnung nennt 55003 und Produktcode 9991000002082. Welche Bedeutung ist belegt?",
+          "expect": {
+            "description": "Je Fachcode Fundstelle oder ausdrücklich nicht belegt",
+            "rules": {
+              "codes": [
+                "55003",
+                "9991000002082"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "communication-2",
+      "group": "874",
+      "title": "Kommunikation 2",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "nnv",
+          "actor": "a",
+          "chat": "main",
+          "message": "Ein NNV mit Lieferant A liegt vor. ZY2, ZAN und ZX4 stehen in den Nachrichten. Was muss ich belegen, bevor ich entscheide?",
+          "expect": {
+            "description": "Keine freie Deutung der Codes; Prüflücke benennen",
+            "rules": {
+              "codes": [
+                "ZY2",
+                "ZAN",
+                "ZX4"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "communication-3",
+      "group": "874",
+      "title": "Kommunikation 3",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "definition",
+          "actor": "a",
+          "chat": "main",
+          "message": "SYN-A ist bei uns System A. Halte den Begriff fest.",
+          "expect": {
+            "description": "Tenant-Glossar festhalten",
+            "rules": {
+              "require": [
+                "Hab ich festgehalten",
+                "SYN-A",
+                "System A"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          }
+        },
+        {
+          "id": "order",
+          "actor": "a",
+          "chat": "fresh",
+          "message": "Schreibe einen internen Arbeitsauftrag für SYN-A. Nummerierte Schritte, mindestens drei: Prüfung des Vertragsstands, Objekte und Reihenfolge; keine Mail.",
+          "expect": {
+            "description": "Glossar nutzen; System als Gegenstand",
+            "rules": {
+              "numberedSteps": 3,
+              "internalArtifact": true,
+              "require": [
+                "SYN-A"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "communication-4",
+      "group": "874",
+      "title": "Kommunikation 4",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "intake",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wechselvorgang Prüfbezugcacbafeebafc, MALO-A: Lieferant A meldet an, Lieferant B ist bisher zugeordnet. Eine negative APERAK mit Z17 liegt vor. Ordne den Klärfall ein.",
+          "expect": {
+            "description": "Empfang und fachliche Zuordnung unterscheiden; Z17 nicht raten",
+            "rules": {
+              "codes": [
+                "Z17"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        },
+        {
+          "id": "external",
+          "actor": "a",
+          "chat": "main",
+          "message": "Entwirf die Rückmeldung an Lieferant A. Die Abstimmung mit MP-LF-B und System A gehört nur in den internen Teil.",
+          "expect": {
+            "description": "Externer Entwurf ohne fremde Beteiligte",
+            "rules": {
+              "externalDraft": {
+                "recipient": "Lieferant A",
+                "forbidden": [
+                  "Lieferant B",
+                  "MP-LF-B",
+                  "System A",
+                  "Dienstleister B"
+                ]
+              }
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "communication-5",
+      "group": "874",
+      "title": "Kommunikation 5",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "mode",
+          "actor": "a",
+          "chat": "main",
+          "message": "Arbeitsmodus für Prüfbezugcacbafeebafc: Unterstütze die Befassung, entscheide nichts. Wenn Ziel, Beteiligte, Frist oder Unterlagen fehlen, stelle 1–3 gezielte Rückfragen.",
+          "expect": {
+            "description": "Arbeitsmodus bestätigen; keine Außenhandlung oder Entscheidung",
+            "rules": {},
+            "dependencies": []
+          }
+        },
+        {
+          "id": "process",
+          "actor": "a",
+          "chat": "main",
+          "message": "Der Investprozess ist unklar. Was brauche ich für eine belastbare Einordnung?",
+          "expect": {
+            "description": "Vorläufige Einordnung und 1–3 zielbezogene Rückfragen",
+            "rules": {
+              "questions": {
+                "min": 1,
+                "max": 3
+              }
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        },
+        {
+          "id": "case",
+          "actor": "a",
+          "chat": "main",
+          "message": "Investfall Prüfbezugcacbafeebafc: ein Netzanschlusscluster ist vorgesehen; Nachweise und Owner sind offen. Ab jetzt keine Beschluss- oder Freigabesprache.",
+          "expect": {
+            "description": "Investfall einordnen und Sprachpräferenz erhalten",
+            "rules": {
+              "forbid": [
+                "\\bBeschluss\\b",
+                "\\bFreigabe\\b",
+                "\\bbeschließen\\b",
+                "\\bfreigeben\\b",
+                "\\bBudgetfreigabe\\b"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        },
+        {
+          "id": "regulation",
+          "actor": "a",
+          "chat": "main",
+          "message": "Ein neuer Regulatorikimpuls beeinflusst die Investannahmen. Ordne ihn als verbundenes Thema ein; Quelle oder zu prüfende Annahme, Owner-Rolle und nächste Befassung benennen.",
+          "expect": {
+            "description": "Verbundener Vorschlag und belastbare Quellenkennzeichnung",
+            "rules": {
+              "forbid": [
+                "\\bBeschluss\\b",
+                "\\bFreigabe\\b",
+                "\\bbeschließen\\b",
+                "\\bfreigeben\\b",
+                "\\bBudgetfreigabe\\b"
+              ],
+              "sourceOrUncertainty": true,
+              "require": [
+                "Owner",
+                "Befassung"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        },
+        {
+          "id": "mandate",
+          "actor": "a",
+          "chat": "main",
+          "message": "Beim Mandatsabschluss fehlen Verantwortlichkeit und dokumentierte Abgrenzung zur Linie. Welche Unterlagen und Befassungsschritte fehlen?",
+          "expect": {
+            "description": "Mandat und Linienverantwortung trennen, keine Entscheidung behaupten",
+            "rules": {
+              "forbid": [
+                "\\bBeschluss\\b",
+                "\\bFreigabe\\b",
+                "\\bbeschließen\\b",
+                "\\bfreigeben\\b",
+                "\\bBudgetfreigabe\\b"
+              ],
+              "require": [
+                "Mandat"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        },
+        {
+          "id": "minutes",
+          "actor": "a",
+          "chat": "main",
+          "message": "Ein Meetingauszug nennt „wir steuern das“. Der Sprecher ist nicht eindeutig. Ich vermute eine informelle Geschäftsführung ohne Auftrag.",
+          "expect": {
+            "description": "Beobachtung, Hypothese, Wirkung und führungsfähige Formulierung trennen; keine Motivzuschreibung",
+            "rules": {
+              "forbid": [
+                "\\bBeschluss\\b",
+                "\\bFreigabe\\b",
+                "\\bbeschließen\\b",
+                "\\bfreigeben\\b",
+                "\\bBudgetfreigabe\\b"
+              ],
+              "sections": [
+                "Beobachtung",
+                "Hypothese",
+                "Wirkung",
+                "führungsfähig"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        },
+        {
+          "id": "hypothesis",
+          "actor": "a",
+          "chat": "main",
+          "message": "Formuliere eine Musterhypothese als Befassungsangebot. Die Personendeutung ist nicht erwiesen.",
+          "expect": {
+            "description": "Hypothese als vorläufig markieren, keine Motivation als Tatsache",
+            "rules": {
+              "forbid": [
+                "\\bBeschluss\\b",
+                "\\bFreigabe\\b",
+                "\\bbeschließen\\b",
+                "\\bfreigeben\\b",
+                "\\bBudgetfreigabe\\b"
+              ],
+              "require": [
+                "Hypothese"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        },
+        {
+          "id": "correction",
+          "actor": "a",
+          "chat": "main",
+          "message": "Kontextkorrektur: Es geht um Mandatsabgrenzung, nicht um eine Organisationsentscheidung. Stelle Ergebnis, Annahme, Grenze, offenen Punkt, Owner, Frist und nächste Befassung als Matrix dar.",
+          "expect": {
+            "description": "Korrektur aufgreifen; bestellte Matrix vollständig",
+            "rules": {
+              "forbid": [
+                "\\bBeschluss\\b",
+                "\\bFreigabe\\b",
+                "\\bbeschließen\\b",
+                "\\bfreigeben\\b",
+                "\\bBudgetfreigabe\\b"
+              ],
+              "tableColumns": [
+                "Ergebnis",
+                "Annahme",
+                "Grenze",
+                "offener Punkt",
+                "Owner",
+                "Frist",
+                "nächste Befassung"
+              ],
+              "require": [
+                "Mandat"
+              ]
+            },
+            "dependencies": [
+              "873",
+              "874"
+            ]
+          },
+          "dependencies": [
+            "873",
+            "874"
+          ]
+        },
+        {
+          "id": "versions",
+          "actor": "a",
+          "chat": "main",
+          "message": "Formuliere zwei Fassungen: Interne Arbeitsdiagnose und Fassung für Geschäftsführung und Linie. In beiden keine Beschluss- oder Freigabesprache.",
+          "expect": {
+            "description": "Zwei vollständige getrennte Fassungen statt Metatext",
+            "rules": {
+              "forbid": [
+                "\\bBeschluss\\b",
+                "\\bFreigabe\\b",
+                "\\bbeschließen\\b",
+                "\\bfreigeben\\b",
+                "\\bBudgetfreigabe\\b"
+              ],
+              "sections": [
+                "Interne Arbeitsdiagnose",
+                "Fassung für Geschäftsführung und Linie"
+              ]
+            },
+            "dependencies": [
+              "873",
+              "874"
+            ]
+          },
+          "dependencies": [
+            "873",
+            "874"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "communication-6",
+      "group": "874",
+      "title": "Kommunikation 6",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "mode",
+          "actor": "a",
+          "chat": "main",
+          "message": "Arbeitsmodus für Prüfbezugcacbafeebafc: Unterstütze die Befassung, entscheide nichts. Wenn Ziel, Beteiligte, Frist oder Unterlagen fehlen, stelle 1–3 gezielte Rückfragen.",
+          "expect": {
+            "description": "Arbeitsmodus bestätigen; keine Außenhandlung oder Entscheidung",
+            "rules": {},
+            "dependencies": []
+          }
+        },
+        {
+          "id": "process",
+          "actor": "a",
+          "chat": "main",
+          "message": "Der Investprozess ist unklar. Was brauche ich für eine belastbare Einordnung?",
+          "expect": {
+            "description": "Vorläufige Einordnung und 1–3 zielbezogene Rückfragen",
+            "rules": {
+              "questions": {
+                "min": 1,
+                "max": 3
+              }
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "communication-7",
+      "group": "874",
+      "title": "Kommunikation 7",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "case",
+          "actor": "a",
+          "chat": "main",
+          "message": "Investfall Prüfbezugcacbafeebafc: ein Netzanschlusscluster ist vorgesehen; Nachweise und Owner sind offen. Ab jetzt keine Beschluss- oder Freigabesprache.",
+          "expect": {
+            "description": "Investfall einordnen und Sprachpräferenz erhalten",
+            "rules": {
+              "forbid": [
+                "\\bBeschluss\\b",
+                "\\bFreigabe\\b",
+                "\\bbeschließen\\b",
+                "\\bfreigeben\\b",
+                "\\bBudgetfreigabe\\b"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        },
+        {
+          "id": "regulation",
+          "actor": "a",
+          "chat": "main",
+          "message": "Ein neuer Regulatorikimpuls beeinflusst die Investannahmen. Ordne ihn als verbundenes Thema ein; Quelle oder zu prüfende Annahme, Owner-Rolle und nächste Befassung benennen.",
+          "expect": {
+            "description": "Verbundener Vorschlag und belastbare Quellenkennzeichnung",
+            "rules": {
+              "forbid": [
+                "\\bBeschluss\\b",
+                "\\bFreigabe\\b",
+                "\\bbeschließen\\b",
+                "\\bfreigeben\\b",
+                "\\bBudgetfreigabe\\b"
+              ],
+              "sourceOrUncertainty": true,
+              "require": [
+                "Owner",
+                "Befassung"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        },
+        {
+          "id": "proposal",
+          "actor": "a",
+          "chat": "main",
+          "message": "Schlage einen verbundenen Vorgang für den Regulatorikimpuls zu Prüfbezugcacbafeebafc vor: Titel, Typ, Bezug, Owner-Rolle, Frist, Wiedervorlage und nächste Befassung. Noch nicht anlegen.",
+          "expect": {
+            "description": "Vorschlag vollständig, noch keine Anlage",
+            "rules": {
+              "sections": [
+                "Titel",
+                "Typ",
+                "Bezug",
+                "Owner",
+                "Frist",
+                "Wiedervorlage",
+                "nächste Befassung"
+              ],
+              "forbid": [
+                "habe.*angelegt"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          }
+        },
+        {
+          "id": "confirm",
+          "actor": "a",
+          "chat": "main",
+          "message": "Leg an",
+          "expect": {
+            "description": "Anlage nur nach ausdrücklicher Bestätigung",
+            "rules": {
+              "require": [
+                "angelegt",
+                "Owner",
+                "Frist",
+                "Befassung",
+                "Wiedervorlage"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          }
+        },
+        {
+          "id": "find",
+          "actor": "a",
+          "chat": "fresh",
+          "message": "Was wissen wir zum Regulatorikimpuls zu Prüfbezugcacbafeebafc? Nenne Owner, Frist, nächste Befassung und Wiedervorlage.",
+          "expect": {
+            "description": "Verbundener Vorgang im neuen Chat mit Arbeitsfeldern sichtbar",
+            "rules": {
+              "require": [
+                "Owner",
+                "Frist",
+                "Befassung",
+                "Wiedervorlage"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "communication-8",
+      "group": "874",
+      "title": "Kommunikation 8",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "minutes",
+          "actor": "a",
+          "chat": "main",
+          "message": "Ein Meetingauszug nennt „wir steuern das“. Der Sprecher ist nicht eindeutig. Ich vermute eine informelle Geschäftsführung ohne Auftrag.",
+          "expect": {
+            "description": "Beobachtung, Hypothese, Wirkung und führungsfähige Formulierung trennen; keine Motivzuschreibung",
+            "rules": {
+              "forbid": [
+                "\\bBeschluss\\b",
+                "\\bFreigabe\\b",
+                "\\bbeschließen\\b",
+                "\\bfreigeben\\b",
+                "\\bBudgetfreigabe\\b"
+              ],
+              "sections": [
+                "Beobachtung",
+                "Hypothese",
+                "Wirkung",
+                "führungsfähig"
+              ]
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "communication-9",
+      "group": "874",
+      "title": "Kommunikation 9",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "rights",
+          "actor": "a",
+          "chat": "main",
+          "message": "Besteht grundsätzlich ein Anspruch auf den RLM-Lastgang? Nenne eine Fundstelle oder markiere die Aussage als zu prüfende Annahme.",
+          "expect": {
+            "description": "Regulatorische Aussage mit Quelle oder Unsicherheit",
+            "rules": {
+              "sourceOrUncertainty": true
+            },
+            "dependencies": [
+              "874"
+            ]
+          },
+          "dependencies": [
+            "874"
+          ]
         }
       ]
     },

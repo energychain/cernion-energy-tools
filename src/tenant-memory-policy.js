@@ -37,6 +37,8 @@ async function change(ctx, p, id, kind, basis, { confirmed = false, admin = fals
     };
     const next = { ...value, status: kind, checking: 'complete', audit: [...value.audit, entry] };
     if (kind === 'deleted') {
+      next.glossary = undefined;
+      next.statementKind = undefined;
       next.text = '';
       next.basis = '';
       next.message = '';

@@ -64,6 +64,74 @@ module.exports = {
   ],
   settings: { knowledgeTimeoutMs: 1500 },
   actions: {
+    createLinkedConfirmed: {
+      visibility: 'protected',
+      params: {
+        parentCaseId: 'string',
+        confirmed: 'boolean',
+        proposal: 'object',
+        conversationId: 'string',
+      },
+      async handler(ctx) {
+        if (ctx.params.confirmed !== true) deny('Explicit confirmation required');
+        const p = principal(ctx, ctx.params);
+        const parent = await this.loadCase(p, ctx.params.parentCaseId);
+        authorize(p, parent);
+        if (parent.disposition === 'discarded') deny('Active parent required');
+        const proposal = ctx.params.proposal;
+        const valid = new (require('ajv'))().compile(
+          require('../src/workbench-communication').SCHEMAS.linkedCaseProposal
+        );
+        const { parentCaseId: _parent, ...content } = proposal;
+        if (!valid(content) || !content.requested || !content.title.trim())
+          throw new Errors.MoleculerClientError('Valid stored proposal required', 422);
+        const result = await ctx.call('domain-router.classify', {
+          userRequest: content.title,
+          conversationId: ctx.params.conversationId,
+          sensitivityFlags: parent.sensitivityFlags,
+          disableKnowledgeRouting: true,
+          knownContext: {
+            situation: {
+              concern: content.title,
+              situation: content.reference,
+              participants: [],
+              identifiers: [],
+              deadlines: [],
+              hypotheses: [],
+              missingInformation: [],
+              turnKind: 'work',
+              requestedAction: {
+                description: content.nextConsideration,
+                draftRequested: false,
+                externalEffect: false,
+              },
+              caseWork: Object.fromEntries(
+                ['ownerRole', 'deadline', 'nextConsideration', 'reminder'].map((field) => [
+                  field,
+                  content[field],
+                ])
+              ),
+              conversationPreferences:
+                parent.knownContext?.situation?.conversationPreferences || {},
+            },
+          },
+        });
+        const child = await this.loadCase(p, result.cetCaseId);
+        child.caseDescription = content.title;
+        child.parentCaseId = parent.cetCaseId;
+        child.caseWork = child.knownContext.situation.caseWork;
+        const linkedParent = await this.loadCase(p, parent.cetCaseId);
+        await this.linkCases(p, linkedParent, child, 'related_topic');
+        child.confirmation = {
+          actorId: p.actorId,
+          at: new Date().toISOString(),
+          basis: 'Leg an',
+          parentCaseId: parent.cetCaseId,
+        };
+        await this.saveState(p, child);
+        return { ...result, parentCaseId: parent.cetCaseId };
+      },
+    },
     recordWorkbenchTurn: {
       visibility: 'protected',
       params: {
@@ -518,6 +586,7 @@ module.exports = {
         conversationId: input.conversationId || previous?.conversationId || null,
         agentSessionId: input.agentSessionId || previous?.agentSessionId || null,
         knownContext: input.knownContext,
+        caseWork: input.knownContext.situation?.caseWork || previous?.caseWork || {},
         caseVisibility: this.casePolicy(p).caseVisibility,
         typedIdentifiers: normalizeIdentifiers(
           input.knownContext.identifiers ||
@@ -563,7 +632,8 @@ module.exports = {
         ...evaluateEventTriggers(previous, state),
       ];
       await this.saveState(p, state);
-      if (classification.transition.type === 'branch') await this.createBranch(p, state);
+      if (classification.transition.type === 'branch' && !input.knownContext.linkedProposalPending)
+        await this.createBranch(p, state);
       const discovered = await this.discover(ctx, p, state);
       return { ...state.lastClassification, relatedCases: discovered.relatedCases };
     },

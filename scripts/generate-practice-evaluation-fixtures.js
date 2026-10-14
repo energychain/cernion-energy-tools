@@ -188,7 +188,7 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
         'intake',
         `RLM-Strang ${x}: Seit einer Netzübernahme fehlen wiederholt Lastgänge für MALO-A. Die einzelne Eskalation ist Teil eines strukturellen Übergabethemas. Ordne beides getrennt ein.`,
         'Einzelvorgang und Strukturthema unterscheiden',
-        { require: ['Lastgang'], casePresent: true }
+        { require: ['Lastgang|Lastgänge'], casePresent: true }
       ),
       turn(
         'rights',
@@ -480,6 +480,12 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
         boundary: true,
       }),
     ])
+  );
+  catalog.push(
+    ...require('./generate-workbench-874-fixtures').generateCommunicationScenarios(catalog, {
+      anchor: x,
+      actors,
+    })
   );
   const patterns = generateMemoryMessageFixture().patterns.map((pair) =>
     pair.map((text) => text.replace(/Prüfbezug[a-f]*/gu, x))

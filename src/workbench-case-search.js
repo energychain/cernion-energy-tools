@@ -1,5 +1,6 @@
 'use strict';
 
+const SERVER_CASE_HINT = Symbol('visible-case-search');
 const llm = require('./llm-client');
 const { llmOptions, toFacadeSchema } = require('./workbench-understanding');
 const { safeTurnMemory } = require('./workbench-turn-memory');
@@ -60,7 +61,19 @@ const CASE_FIELDS = [
   'Annahmen',
   'Risiken',
   'Nächste Schritte',
+  'Owner',
+  'Frist',
+  'Nächste Befassung',
+  'Wiedervorlage',
 ];
+
+function caseFieldIndex(heading) {
+  const normalize = require('./function-resolver').normalizePhrase;
+  const name = normalize(heading);
+  return CASE_FIELDS.findIndex(
+    (field) => normalize(field) === name || (name === normalize('Fall') && field === 'Fallnummer')
+  );
+}
 
 function canRenderCaseRequest(request) {
   if (!request?.requested) return true;
@@ -68,18 +81,12 @@ function canRenderCaseRequest(request) {
   return (
     request.parts.length === 1 &&
     request.kind !== 'correspondence' &&
-    (request.kind === 'summary' || part.layout === 'sections') &&
+    (request.kind === 'summary' || ['sections', 'table'].includes(part.layout)) &&
     part.layout !== 'steps' &&
-    !part.columns.length &&
+    part.columns.every((heading) => caseFieldIndex(heading) >= 0) &&
     !request.constraints.length &&
     !request.forbiddenTerms?.length &&
-    part.sections.every((heading) =>
-      CASE_FIELDS.some(
-        (field) =>
-          require('./function-resolver').normalizePhrase(heading) ===
-          require('./function-resolver').normalizePhrase(field)
-      )
-    )
+    part.sections.every((heading) => caseFieldIndex(heading) >= 0)
   );
 }
 
@@ -94,19 +101,29 @@ function renderCaseMemory(candidate, displayRef, part) {
     list(m.workingAssumptions),
     list(m.risks),
     list(m.nextSteps),
+    m.caseWork?.ownerRole || 'nicht hinterlegt',
+    m.caseWork?.deadline || 'nicht hinterlegt',
+    m.caseWork?.nextConsideration || 'nicht hinterlegt',
+    m.caseWork?.reminder || 'nicht hinterlegt',
   ];
   const context = candidate.topic && candidate.topic !== values[1] ? `\n${candidate.topic}` : '';
   const title = `Fall ${displayRef}: ${values[1]}${context}`;
+  if (part?.layout === 'table' && part.columns.length)
+    return [
+      part.title ? `## ${part.title}` : '',
+      title,
+      `| ${part.columns.join(' | ')} |`,
+      `| ${part.columns.map(() => '---').join(' | ')} |`,
+      `| ${part.columns.map((heading) => String(values[caseFieldIndex(heading)]).replace(/\|/gu, '\\|').replace(/\n/gu, ' ')).join(' | ')} |`,
+    ]
+      .filter(Boolean)
+      .join('\n');
   if (part?.sections.length)
     return [
       part.title ? `## ${part.title}` : '',
       title,
       ...part.sections.map((heading) => {
-        const index = CASE_FIELDS.findIndex(
-          (field) =>
-            require('./function-resolver').normalizePhrase(field) ===
-            require('./function-resolver').normalizePhrase(heading)
-        );
+        const index = caseFieldIndex(heading);
         return `### ${heading}\n\n${values[index]}`;
       }),
     ]
@@ -115,10 +132,12 @@ function renderCaseMemory(candidate, displayRef, part) {
   return [
     part?.title ? `## ${part.title}` : '',
     title,
-    ...CASE_FIELDS.slice(2).map((field, index) => `${field}: ${values[index + 2]}`),
+    ...CASE_FIELDS.slice(2).flatMap((field, index) =>
+      index < 5 || m.caseWork ? [`${field}: ${values[index + 2]}`] : []
+    ),
   ]
     .filter(Boolean)
     .join('\n');
 }
 
-module.exports = { selectSemanticCases, renderCaseMemory, canRenderCaseRequest };
+module.exports = { SERVER_CASE_HINT, selectSemanticCases, renderCaseMemory, canRenderCaseRequest };

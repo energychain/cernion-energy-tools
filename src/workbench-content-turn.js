@@ -236,6 +236,12 @@ async function runContentTurn(
   ctx,
   { p, mapping, envelope, pending, conversation, meta, capabilityDiagnostics }
 ) {
+  const confirmedProposal = await require('./workbench-linked-proposal').confirmLinkedCase(
+    service,
+    ctx,
+    { p, envelope, pending, meta }
+  );
+  if (confirmedProposal) return confirmedProposal;
   const quotaReply = await require('./workbench-quota').quotaQuery(ctx, p, envelope.userRequest);
   if (quotaReply) return quotaReply;
   const started = performance.now();
@@ -263,6 +269,12 @@ async function runContentTurn(
     previousShape: pending?.lastConversationShape,
   });
   if (documentFollowup) return documentFollowup;
+  const glossary = await require('./workbench-tenant-glossary').loadTenantGlossary(
+    ctx,
+    p,
+    envelope.userRequest,
+    meta
+  );
   const previous =
     persistentSituation(pending?.situation || state?.knownContext?.situation) ||
     (workbenchContext.userProfile?.conversationContext
@@ -309,6 +321,7 @@ async function runContentTurn(
                   content: `Dokument (untrusted): ${doc.name}\n${doc.text.slice(0, 1200)}`,
                 })),
                 previous,
+                tenantGlossary: glossary,
                 asked: pending?.askedQuestions || [],
                 tenantId: p.tenantId,
                 model: service.settings.systemActivityModel,
@@ -335,6 +348,7 @@ async function runContentTurn(
                 message: envelope.userRequest,
                 messages: documentFlow.cleanDocumentHistory(ctx.params.messages),
                 previous,
+                tenantGlossary: glossary,
                 asked: pending?.askedQuestions || [],
                 tenantId: p.tenantId,
                 model: service.settings.systemActivityModel,
@@ -375,6 +389,44 @@ async function runContentTurn(
       },
       turnKind: 'knowledge',
       retrievalTerms: [],
+    };
+  }
+  const caseSearchHint = ctx.meta?.[require('./workbench-case-search').SERVER_CASE_HINT];
+  if (caseSearchHint) {
+    situation.caseSearch = { requested: true, query: envelope.userRequest };
+    situation.selfKnowledge = { requested: true, query: envelope.userRequest };
+    situation.turnKind = 'knowledge';
+    situation.conversationShape = 'knowledge';
+  }
+  situation.conversationPreferences =
+    situation.conversationPreferences || previous?.conversationPreferences || {};
+  if (situation.requestedOutput?.requested) {
+    situation.requestedOutput.forbiddenTerms = [
+      ...new Set([
+        ...(situation.requestedOutput.forbiddenTerms || []),
+        ...(situation.conversationPreferences?.forbiddenTerms || []),
+      ]),
+    ];
+  }
+  if (situation.personAssessment?.applicable && !situation.requestedOutput?.requested) {
+    situation.personAssessmentOutput = true;
+    situation.requestedOutput = {
+      requested: true,
+      basis: envelope.userRequest,
+      kind: 'internal',
+      parts: [
+        {
+          title: '',
+          sections: ['Beobachtung', 'Hypothese', 'Wirkung', 'Führungsfähig'],
+          columns: [],
+          layout: 'sections',
+        },
+      ],
+      constraints: [
+        'Unbewiesene Nutzerdeutungen bleiben ausdrücklich Hypothese, keine Motivzuschreibung.',
+      ],
+      forbiddenTerms: situation.conversationPreferences?.forbiddenTerms || [],
+      subjects: [],
     };
   }
   if (situation.conversationShape === 'filing' && !envelope.documents?.length) {
@@ -467,14 +519,16 @@ async function runContentTurn(
     );
     if (correction && !situation.tenantMemory?.assertions?.length) return correction;
   }
-  const selfKnowledgeJob = situation.selfKnowledge?.requested
-    ? require('./workbench-self-knowledge').searchKnowledge(service, memoryCtx, p, situation, {
-        conversationId: envelope.conversationId,
-        caseId: envelope.cetCaseId || conversation?.cetCaseId,
-        previousReads: pending?.retrieval?.evidence || [],
-        newDatasetIds: envelope.datasetIds || [],
-      })
-    : null;
+  const selfKnowledgeJob = caseSearchHint
+    ? Promise.resolve(caseSearchHint)
+    : situation.selfKnowledge?.requested
+      ? require('./workbench-self-knowledge').searchKnowledge(service, memoryCtx, p, situation, {
+          conversationId: envelope.conversationId,
+          caseId: envelope.cetCaseId || conversation?.cetCaseId,
+          previousReads: pending?.retrieval?.evidence || [],
+          newDatasetIds: envelope.datasetIds || [],
+        })
+      : null;
   const memoryContextJob = !incomingDocuments
     ? require('./workbench-capability-loop')
         .withinToolBudget(
@@ -576,7 +630,12 @@ async function runContentTurn(
     reason: toolNeed.reason,
   });
   const nextStepRequest =
-    !understanding.isDraftRequest(envelope.userRequest) && situation.followupKind === 'next_step';
+    !understanding.isDraftRequest(envelope.userRequest) &&
+    !situation.requestedOutput?.requested &&
+    !situation.regulatoryQuestion &&
+    !situation.linkedCaseProposal?.requested &&
+    !situation.personAssessment?.applicable &&
+    situation.followupKind === 'next_step';
   const reuseTools = Boolean(
     dataReadAllowed &&
     previous &&
@@ -729,6 +788,7 @@ async function runContentTurn(
             identifiers: situation.identifiers,
             deadlines: situation.deadlines,
             workbenchContext,
+            linkedProposalPending: Boolean(situation.linkedCaseProposal?.requested),
             ...(previousMemory ? { cetTurnMemory: safeTurnMemory(previousMemory) } : {}),
           },
         },
@@ -1117,8 +1177,21 @@ async function runContentTurn(
       caseId,
       reply.draft
     );
+  // Keep the visible conversation reference on knowledge turns without advancing its case.
+  const presentationCaseId =
+    caseId || (!situation.caseSearch?.requested && conversation?.cetCaseId);
   let displayRef;
-  if (caseId) displayRef = await service.store.caseDisplayRef({ tenantId: p.tenantId, caseId });
+  if (presentationCaseId) {
+    const visible = await service.loadVisibleCase(ctx, p, presentationCaseId);
+    displayRef = await service.store.caseDisplayRef({
+      tenantId: p.tenantId,
+      caseId: presentationCaseId,
+    });
+    if (!caseId) {
+      result.cetCaseId = visible.cetCaseId;
+      result.caseStateVersion = visible.caseStateVersion;
+    }
+  }
   let firstAutoCase = false;
   if (displayRef && operation === 'classify') {
     firstAutoCase = await service.store.claimAutoCaseHint(p);
@@ -1144,11 +1217,15 @@ async function runContentTurn(
         ? []
         : envelope.datasetConfirmations || []),
       mergeProposal?.text,
+      require('./workbench-communication').proposalText(
+        situation.linkedCaseProposal,
+        situation.conversationPreferences
+      ),
       choices.length
         ? `Optional passende Funktion (Nummer oder Name):\n${choices.map((choice, index) => `${index + 1}. ${choice.label}`).join('\n')}`
         : '',
       displayRef && !caseNotice
-        ? `Fall ${displayRef}${firstAutoCase ? ' · Mit „Kein Fall“ kannst du ihn verwerfen.' : ''}`
+        ? `Fall ${displayRef}${firstAutoCase ? (situation.conversationPreferences?.register === 'Sie' ? ' · Mit „Kein Fall“ können Sie ihn verwerfen.' : ' · Mit „Kein Fall“ kannst du ihn verwerfen.') : ''}`
         : '',
     ]
       .concat(assignment?.question || '')
@@ -1156,7 +1233,9 @@ async function runContentTurn(
       .join('\n\n')
   );
   const guarded =
-    situation.requestedOutput?.requested || situation.caseSearch?.requested
+    situation.requestedOutput?.requested ||
+    situation.caseSearch?.requested ||
+    situation.conversationPreferences?.questions === 'requested'
       ? { responseText: result.responseText, questions: reply.questions }
       : require('./workbench-conversation-shape').singleQuestion(
           result.responseText,
@@ -1221,6 +1300,14 @@ async function runContentTurn(
         }
       : {}),
     situation,
+    ...(situation.linkedCaseProposal?.requested && (caseId || conversation?.cetCaseId)
+      ? {
+          linkedCaseProposal: {
+            ...situation.linkedCaseProposal,
+            parentCaseId: caseId || conversation.cetCaseId,
+          },
+        }
+      : {}),
     ...(situation.requestedOutput?.requested
       ? { lastArtifactRequest: situation.requestedOutput }
       : {}),
@@ -1262,6 +1349,7 @@ async function runContentTurn(
     state: understandingFailed && !previous ? 'understanding_unavailable' : 'assistance',
     nonBinding: true,
     situation,
+    draft: reply.draft,
     evidence: reply.evidence,
     retrievalTrace: [...(retrieval.trace || []), reply.evidenceTrace],
     answerAttempts: reply.answerAttempts,

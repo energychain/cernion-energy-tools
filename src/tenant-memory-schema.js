@@ -33,6 +33,11 @@ const ASSERTION = closed({
   time: closed({ from: text, until: text, latest: text, earliest: text, date: text }),
   expiresAt: text,
 });
+ASSERTION.properties.glossary = closed({
+  term: text,
+  meaning: text,
+  kind: { type: 'string', enum: ['system', 'abbreviation', 'department', 'other'] },
+});
 // Optional locally for pre-closeout payload compatibility; requested in the extraction schema.
 ASSERTION.properties.scope = {
   type: 'string',

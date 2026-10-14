@@ -4,19 +4,26 @@ const { semanticDomains } = require('../src/semantic-domains');
 const { resolveEmbeddings, functionEmbedding } = require('../scripts/function-model-embeddings');
 const { resolveFunctionsHybrid } = require('../src/function-resolver-hybrid');
 const { resolveFunctions } = require('../src/function-resolver');
-const model = require('../function-model.json');
-const cache = require('../function-model.embeddings.json');
+const committedModel = require('../function-model.json');
+const committedCache = require('../function-model.embeddings.json');
 const parameters = require('../function-model.parameters.json');
-const resolved = resolveEmbeddings(
+const committedResolved = resolveEmbeddings(
   CURATED_CAPABILITIES,
   require('../operation-capability-index.json').operations,
   semanticDomains,
-  cache,
+  committedCache,
   parameters
 );
+const { model, cache, resolved } =
+  require('../scripts/generate-workbench-874-fixtures').generateEmbeddingDriftFixture();
 const stale = resolved.gaps.filter((item) => item.reason === 'stale');
 
-test('committed cache drift reports all 25 stale entries and excludes their vectors', () => {
+test('regenerated cache is synchronized with its generated model', () => {
+  expect(committedResolved.gaps).toEqual([]);
+  expect(committedModel.gaps.embeddingCacheEntries).toEqual([]);
+});
+
+test('generated cache drift reports all 25 stale entries and excludes their vectors', () => {
   expect(stale).toHaveLength(25);
   expect(model.gaps.embeddingCacheEntries).toEqual(resolved.gaps);
   for (const { capability } of stale) {
