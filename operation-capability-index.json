@@ -2,16 +2,16 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "377fddd74c9b99779d669709ed2744dc5962d44b151d985581133127d89b604a",
+  "sourceOpenApiHash": "60e11c27b5cd00190cbfb41a24d76c9b3f3d58a3ba4e1b57cbea6a6f8b624a77",
   "coverage": {
-    "rawOperationCount": 1255,
-    "operationCount": 999,
-    "agentableCount": 997,
+    "rawOperationCount": 1256,
+    "operationCount": 1000,
+    "agentableCount": 998,
     "nonAgentableCount": 2,
     "byOperationKind": {
       "data_read": 431,
       "admin": 23,
-      "object_store_write": 268,
+      "object_store_write": 269,
       "process_step": 26,
       "process_start": 50,
       "advisory_plan": 48,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 980,
+    "resolvedActionCount": 981,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -80688,6 +80688,82 @@
         "negativeCues": [],
         "examples": [
           "Please mark exhausted pending assessments failed with an audit entry"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "tenant-memory-policy_discardDeletionNotices",
+      "method": "POST",
+      "path": "/api/tenant-memory-policy/discard-deletion-notices",
+      "service": "tenant-memory-policy",
+      "action": "tenant-memory-policy.discardDeletionNotices",
+      "summary": "Audit and discard legacy administrative deletion notices once per tenant",
+      "tags": [
+        "Tenant Memory Policy"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tenant-memory-policy.discard_deletion_notices"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tenant-memory-policy:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "tenant-memory-policy"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "reason",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tenant",
+          "memory",
+          "policy",
+          "discard",
+          "deletion",
+          "notices",
+          "audit",
+          "legacy",
+          "administrative",
+          "once",
+          "per"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please audit and discard legacy administrative deletion notices once per tenant"
         ],
         "synonyms": [
           "agent infrastructure",

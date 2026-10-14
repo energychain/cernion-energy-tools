@@ -79,7 +79,8 @@ function internalToolText(text, evidence = []) {
     );
 }
 
-function availableToolAnswer(evidence, message = '') {
+function availableToolAnswer(evidence, message = '', scope) {
+  if (scope) evidence = require('./workbench-data-scope').scopedDataEvidence(evidence, scope);
   const hits = evidence.filter((hit) => hit.retrievalSource === 'capability-read');
   return hits
     .map((hit) => {

@@ -9,14 +9,31 @@ const { opaqueContext, restoreContext } = require('./workbench-identifier-contex
 async function selectDatasetCandidates(
   records,
   question,
-  { conversationId, previousReads = [], previousSubject = '', newDatasetIds = [] } = {}
+  {
+    conversationId,
+    caseId,
+    scopeRequired = true,
+    previousReads = [],
+    previousSubject = '',
+    newDatasetIds = [],
+  } = {}
 ) {
   if (!records.length || !String(question || '').trim()) return [];
   question = String(question).replace(/^und\s+/i, '');
-  const current = records.filter(
+  const current = (
+    scopeRequired
+      ? require('./workbench-data-scope').scopedDatasets(records, question, {
+          conversationId,
+          caseId,
+          previousReads,
+          newDatasetIds,
+        })
+      : records
+  ).filter(
     (record) =>
       (record.current !== false || newDatasetIds.includes(record.id)) && !record.quality?.unusable
   );
+  if (!current.length) return [];
   if (newDatasetIds.length) {
     const uploaded = current.filter((record) => newDatasetIds.includes(record.id));
     const sheets = uploaded.filter(

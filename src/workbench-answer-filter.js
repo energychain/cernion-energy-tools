@@ -82,6 +82,7 @@ function filterAnswer(
     counts,
     userFacts = [],
     requireCompleteDraft = false,
+    artifact = false,
   }
 ) {
   const ids = new Set(answerEvidence.map((entry) => entry.evidenceId));
@@ -118,7 +119,7 @@ function filterAnswer(
         rules.push('imperative_question');
       if (field !== 'draft' && /\b(?:Sie|Ihnen|Ihr(?:e|en|em|er|es)?)\b/u.test(claim.text))
         rules.push('chat_address');
-      if (require('./workbench-tool-answer').internalToolText(claim.text, evidence))
+      if (!artifact && require('./workbench-tool-answer').internalToolText(claim.text, evidence))
         rules.push('raw_tool_output');
       if (
         unresolved.some(
@@ -187,7 +188,7 @@ function filterAnswer(
             }
             return true;
           });
-    if (field === 'draft') {
+    if (field === 'draft' && !artifact) {
       if (
         original.some((claim) => conditionOf(claim, normalizeCondition)) &&
         !parsed.draft.some((claim) => conditionOf(claim, normalizeCondition))

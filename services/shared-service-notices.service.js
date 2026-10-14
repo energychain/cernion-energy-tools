@@ -71,6 +71,88 @@ module.exports = {
     await this.queue;
   },
   actions: {
+    discardDeletionNotices: {
+      visibility: 'protected',
+      params: { reason: { type: 'string', min: 1, max: 1200 } },
+      async handler(ctx) {
+        const p = principal(ctx);
+        if (!p.roles.includes('ROLE_TENANT_ADMIN')) deny('Tenant administrator required');
+        return this.serialize(async () => {
+          const markerId = `memory-notice-cleanup:${p.tenantId}:873`;
+          let marker;
+          try {
+            marker = await this.db.get(markerId);
+          } catch (error) {
+            if (error.status !== 404) throw error;
+          }
+          let discarded = 0;
+          if (!marker) {
+            for (const { doc } of (await this.db.allDocs({ include_docs: true })).rows) {
+              if (doc.tenantId !== p.tenantId || !Array.isArray(doc.queue)) continue;
+              const rejected = new Set();
+              for (const item of [...doc.queue, ...(doc.history || [])]) {
+                if (item.kind !== 'memory' || !item.change) continue;
+                try {
+                  const fact = (
+                    await require('../src/tenant-memory-store').get(ctx, p, item.relationId)
+                  ).payload;
+                  if (
+                    fact.status === 'deleted' ||
+                    !fact.text?.trim() ||
+                    fact.audit?.some((entry) => entry.admin && entry.kind === fact.status)
+                  )
+                    rejected.add(item.eventKey || item.ref);
+                } catch (error) {
+                  if (error.code === 404) rejected.add(item.eventKey || item.ref);
+                  else throw error;
+                }
+              }
+              if (!rejected.size) continue;
+              await require('../src/tenant-memory-policy').audit(
+                ctx,
+                p,
+                'admin_discard_memory_notices',
+                {
+                  migration: 'deletion-notices-v1',
+                  reason: ctx.params.reason,
+                  noticeKeys: [...rejected],
+                  count: rejected.size,
+                }
+              );
+              doc.queue = doc.queue.filter((item) => !rejected.has(item.eventKey || item.ref));
+              doc.history = (doc.history || []).filter(
+                (item) => !rejected.has(item.eventKey || item.ref)
+              );
+              await this.save(doc);
+              discarded += rejected.size;
+            }
+            await this.db.put({
+              _id: markerId,
+              tenantId: p.tenantId,
+              migration: 'deletion-notices-v1',
+              actorId: p.actorId,
+              at: new Date().toISOString(),
+              discarded,
+            });
+          }
+          const result = {
+            migration: 'deletion-notices-v1',
+            discarded,
+            alreadyApplied: Boolean(marker),
+          };
+          await require('../src/tenant-memory-policy').audit(
+            ctx,
+            p,
+            'admin_discard_memory_notices_complete',
+            {
+              ...result,
+              reason: ctx.params.reason,
+            }
+          );
+          return result;
+        });
+      },
+    },
     enqueueQuota: {
       visibility: 'protected',
       params: personParams,
@@ -117,7 +199,18 @@ module.exports = {
           p,
           ctx.params.relationId
         );
-        if (!text && !ctx.params.confirmation && !ctx.params.change) return { queued: false };
+        if (ctx.params.confirmation || ctx.params.change) {
+          const fact = (
+            await require('../src/tenant-memory-store').get(ctx, p, ctx.params.relationId)
+          ).payload;
+          if (
+            !fact.text?.trim() ||
+            fact.status === 'deleted' ||
+            (ctx.params.change &&
+              fact.audit?.some((entry) => entry.admin && entry.kind === fact.status))
+          )
+            return { queued: false };
+        } else if (!text?.trim()) return { queued: false };
         if (ctx.params.confirmation) {
           const doc = await require('../src/tenant-memory-store').get(
             ctx,
@@ -570,12 +663,18 @@ module.exports = {
           const memoryStore = require('../src/tenant-memory-store');
           if (item.change) {
             const fact = (await memoryStore.get(ctx, p, item.relationId)).payload;
-            item.text = ['revoked', 'corrected', 'deleted'].includes(fact.status)
-              ? `Deine Aussage wurde geändert: ${memoryStore.factText(fact)}`
-              : '';
+            item.text =
+              fact.text?.trim() &&
+              !fact.audit?.some((entry) => entry.admin && entry.kind === fact.status) &&
+              ['revoked', 'corrected'].includes(fact.status)
+                ? `Deine Aussage wurde geändert: ${memoryStore.factText(fact)}`
+                : '';
           } else if (item.confirmation) {
             const fact = (await memoryStore.get(ctx, p, item.relationId)).payload;
-            item.text = memoryStore.active(fact) ? `Hab ich festgehalten: ${fact.text}` : '';
+            item.text =
+              memoryStore.active(fact) && fact.text?.trim()
+                ? `Hab ich festgehalten: ${fact.text}`
+                : '';
           } else item.text = await memoryStore.relationNotice(ctx, p, item.relationId, p.actorId);
           return Boolean(item.text);
         }

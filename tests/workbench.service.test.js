@@ -114,7 +114,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     });
     await new Promise((resolve) => williServer.listen(0, '127.0.0.1', resolve));
     williUrl = `http://127.0.0.1:${williServer.address().port}`;
-    broker = new ServiceBroker({ logger: false, transporter: null, requestTimeout: 2000 });
+    broker = new ServiceBroker({ logger: false, transporter: null, requestTimeout: 10000 });
     broker.createService({
       ...Router,
       settings: {

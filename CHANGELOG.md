@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – RC3 completion (#873)
+
+- Deliver explicitly requested artifacts with every ordered version, section and column; preserve internal work orders and their full length.
+- Scope chat dataset reads to the current conversation/case or an explicitly named source, and show each used source once.
+- Keep administrative memory deletion/revocation audit-only; discard legacy notices through an audited one-time tenant action.
+- Find substantive visible cases across chats using semantic topic and persisted turn memory, retaining unresolved points until grounded resolution.
+
 ## RC3 – Praxis-Evaluationssuite #875
 
 - Versionierter generatorbasierter Katalog für Marktkommunikation, Governance und RC3-Regressionen.
