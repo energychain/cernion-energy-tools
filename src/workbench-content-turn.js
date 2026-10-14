@@ -1248,7 +1248,7 @@ async function runContentTurn(
         envelope: {
           ...envelope,
           userRequest: understanding.routingRequest(situation),
-          knownContext: { situation },
+          knownContext: { ...envelope.knownContext, situation },
         },
         mapping,
         workbenchContext,

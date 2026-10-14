@@ -388,7 +388,7 @@ test('873 scenario 10 / D: semantically select substantive visible case using st
   const situation = {
     ...fixtureSituation(f, scenario),
     selfKnowledge: { requested: true, query: scenario.message },
-    caseSearch: { requested: true, query: f.topic },
+    caseSearch: { requested: true, query: m.situation },
   };
   const found = await searchKnowledge(service, ctx, p, situation);
   expect(found.evidence).toHaveLength(1);
@@ -442,6 +442,8 @@ test('D.1: thematic status questions and labelled status updates use semantic un
   expect(classifyWorkbenchIntent(f.statusQuestion)).toBe('decision_support');
   expect(classifyWorkbenchIntent(f.caseTurns[1])).toBe('decision_support');
   expect(classifyWorkbenchIntent('Status F-873?')).toBe('status_query');
+  expect(classifyWorkbenchIntent('Status des Falls')).toBe('status_query');
+  expect(classifyWorkbenchIntent('Stand des Vorgangs?')).toBe('status_query');
 });
 
 test('D.2: accumulated open points survive omission and only explicit grounded resolution removes them', async () => {
@@ -558,7 +560,7 @@ test('D.1/D.3: a named reversible subject excludes a different masked subject be
   ];
   const selected = await selectSemanticCases(f.scenarios[9].message, candidates, f.tenantId);
   expect(selected.map((item) => item.caseId)).toEqual(['synthetic-case-1']);
-  expect(JSON.parse(llm.generateStructured.mock.calls[0][1]).cases).toHaveLength(1);
+  expect(llm.generateStructured).not.toHaveBeenCalled();
 });
 
 test('A.3: standalone draft continuation reuses the last schema-bound internal artifact form', async () => {
@@ -638,3 +640,13 @@ test('D.2: case presentation retains the stored subject alongside a generic memo
   expect(text).toContain(f.topic);
   expect(text).toContain('Abgrenzung der Verantwortung');
 });
+
+test.each(['summary', 'internal', 'other'])(
+  'D.2: compatible case sections render for schema kind %s',
+  (kind) => {
+    const { canRenderCaseRequest } = require('../src/workbench-case-search');
+    const request = { ...generateAcceptanceFixture().caseSummaryOutput, kind };
+    expect(canRenderCaseRequest(request)).toBe(true);
+    expect(canRenderCaseRequest({ ...request, kind: 'correspondence' })).toBe(false);
+  }
+);

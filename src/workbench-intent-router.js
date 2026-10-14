@@ -21,6 +21,9 @@ function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
     status &&
     ((/:\s+\S/u.test(text) && !text.includes('?')) ||
       (!explicitCase &&
+        !/^(?:status|stand|bearbeitungsstand)\s+(?:des|der|von|zum|zu|bei)\s+(?:falls?|falles|vorgangs?|cases?)[?.!\s]*$/iu.test(
+          text.trim()
+        ) &&
         /\b(?:status|stand|bearbeitungsstand)\b[^?]*\b(?:bei|zu|zum|zur|von|für|des|der)\s+\S/iu.test(
           text
         )))

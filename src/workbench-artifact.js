@@ -16,7 +16,7 @@ function validateArtifact(parsed, request, options) {
       require('./workbench-answer-filter').repairForFilters(options.counts) +
       '\n' +
       instruction +
-      '\nDie Ausgabe war unvollständig oder entsprach nicht allen bestellten Teilen. Alle Teile neu und vollständig liefern.';
+      `\n${reason}. Bestellte Teile exakt: ${JSON.stringify(request.parts)}. Die Ausgabe war unvollständig oder entsprach nicht allen bestellten Teilen. Alle Teile neu und vollständig liefern.`;
     throw error;
   };
   if (!request.parts?.length || parsed.artifact?.length !== request.parts.length)

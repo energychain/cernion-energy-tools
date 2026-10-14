@@ -157,6 +157,10 @@ function generateAcceptanceFixture(seed = '873') {
     noisyLines,
     records,
     fact,
+    caseSummaryOutput: output(
+      'summary',
+      parts('Sachstand', ['Stand', 'offene Punkte', 'Annahmen', 'Risiken', 'nächste Schritte'])
+    ),
     artifactQuestion: 'Welche Zuordnung liegt vor?',
     shortDraftRequest: 'Entwurf',
     statusQuestion: `Wie ist der Stand bei ${topic}?`,
@@ -234,7 +238,8 @@ function acceptanceChecks(scenario, response, fixture) {
   if (scenario.number === 2)
     Object.assign(checks, {
       bothVersions:
-        /Interne Arbeitsdiagnose/.test(text) && /Fassung für Geschäftsführung und Linie/.test(text),
+        /(?:^|\n)#{1,6}\s+Interne Arbeitsdiagnose(?:\n|$)/u.test(text) &&
+        /(?:^|\n)#{1,6}\s+(?:Fassung für )?Geschäftsführung und Linie(?:\n|$)/u.test(text),
       noBindingLanguage: !/\b(?:Beschluss|Freigabe|beschließen|freigeben)\b/iu.test(text),
     });
   if (scenario.number === 3)

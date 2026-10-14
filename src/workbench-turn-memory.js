@@ -155,7 +155,7 @@ function buildTurnMemory({
     requiredClarifications,
     missingEvidence,
     workingAssumptions: caseMemory
-      ? safeList(caseMemory.assumptions)
+      ? safeList([...caseMemory.assumptions, ...safeAssumptions(envelope.knownContext)])
       : [
           ...new Set([
             ...(previousMemory?.workingAssumptions || []),

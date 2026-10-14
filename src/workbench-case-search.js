@@ -31,6 +31,7 @@ async function selectSemanticCases(query, candidates, tenantId) {
   const eligible = new Set(
     safe.value.cases.map((item) => restoreContext(item.caseId, safe.reidentMap))
   );
+  if (bound.length) return candidates.filter((item) => eligible.has(item.caseId)).slice(0, 5);
   const result = restoreContext(
     await llm.generateStructured(
       toFacadeSchema(schema),
@@ -66,8 +67,8 @@ function canRenderCaseRequest(request) {
   const part = request.parts?.[0];
   return (
     request.parts.length === 1 &&
-    (request.kind === 'summary' ||
-      (request.kind === 'internal' && part.layout === 'sections' && part.sections.length > 0)) &&
+    request.kind !== 'correspondence' &&
+    (request.kind === 'summary' || part.layout === 'sections') &&
     part.layout !== 'steps' &&
     !part.columns.length &&
     !request.constraints.length &&
