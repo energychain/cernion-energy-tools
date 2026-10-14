@@ -53,6 +53,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Audit generated practice fixtures
+        run: npm run check:practice-fixtures
+
       - name: Unit tests (coverage gates)
         run: npm run test:unit:ci
 
