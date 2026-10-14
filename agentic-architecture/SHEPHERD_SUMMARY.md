@@ -1,16 +1,16 @@
 # Shepherd Summary
 
-Generated: 2026-10-14T02:23:22.812Z
-Run: 20261014T022215Z
-Branch: shepherd/runtime-refactor-20261014T022215Z
-Fingerprint: fd2890fce72712aa1a325aad61962a32a91e65498c96218503b642404e43bf04
+Generated: 2026-10-14T08:27:20.657Z
+Run: 20261014T082603Z
+Branch: shepherd/runtime-refactor-20261014T082603Z
+Fingerprint: 8ecb3d4c2f31cb23527273611eb980daebd4ef32af1d83bceec446986fb1b66e
 
 ## Current measurable surface
 
-- Files: 1926
+- Files: 1945
 - Services: 159
 - src JS files: 368
-- Tests: 482
+- Tests: 485
 - Agentic files: 270
 - OpenWebUI/ChatGPT files: 33
 - Evidence/HITL files: 74
@@ -27,12 +27,12 @@ Fingerprint: fd2890fce72712aa1a325aad61962a32a91e65498c96218503b642404e43bf04
 
 ## Top directories
 
-- `tests`: 549 files
+- `tests`: 553 files
 - `src`: 435 files
-- `docs`: 385 files
+- `docs`: 391 files
 - `services`: 195 files
 - `tools`: 85 files
-- `scripts`: 72 files
+- `scripts`: 81 files
 - `agentic-architecture`: 61 files
 - `integrations`: 31 files
 - `.claude`: 26 files
@@ -51,8 +51,8 @@ Fingerprint: fd2890fce72712aa1a325aad61962a32a91e65498c96218503b642404e43bf04
 ## Domain abstraction
 
 - Domain abstraction: present
-- Domain fingerprint: 6b9ed3f5eb1c83d4bf0f3533018b20034cf4fed7900d76ebbd3e5134b3c47c4e
-- Candidate files: 1146
+- Domain fingerprint: 92ecb593e7c3657936c453f81d2cbe616404daddaee97766888fd0c750676961
+- Candidate files: 1152
 - Unclassified services: 0
 
 Cluster counts:

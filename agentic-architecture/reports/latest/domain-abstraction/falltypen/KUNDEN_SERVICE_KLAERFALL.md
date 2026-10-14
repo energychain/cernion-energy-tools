@@ -1,6 +1,6 @@
 # Kunden-/Service-Klärfall
 
-Generated: 2026-10-14T02:23:22.749Z
+Generated: 2026-10-14T08:27:20.571Z
 
 Status: routable
 Priority: 3
@@ -138,7 +138,11 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 - `services/capability-broker.service.js` (261 hits)
 - `src/report-builder.js` (174 hits)
 - `services/chatgpt-sidecar.service.js` (156 hits)
+- `docs/validation/practice-evaluation-baseline.json` (151 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.json` (149 hits)
+- `docs/validation/practice-evaluation-baseline.md` (147 hits)
 - `feedback/HYGIENE_SPRINT.md` (145 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.md` (142 hits)
 - `function-model.report.md` (140 hits)
 - `docs/v0.58-architecture/lagebild/tranche_c.md` (136 hits)
 - `src/cookbook-recipes.js` (129 hits)
@@ -151,7 +155,3 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 - `services/dashboard-api/methods-part-07-of-14.js` (99 hits)
 - `docs/ARCHITECTURE.md` (93 hits)
 - `docs/v0.52-implementation-plans/v0.52.8-conversational-onboarding.md` (89 hits)
-- `docs/v0.58-architecture/lagebild/tranche_b.md` (88 hits)
-- `docs/validation/739-routing.json` (88 hits)
-- `services/business-intelligence.service.js` (88 hits)
-- `docs/v0.58-architecture/LAGEBILD_EXPLORATION_PROTOCOL.md` (87 hits)

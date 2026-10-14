@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-14T02:23:22.749Z",
+  "generatedAt": "2026-10-14T08:27:20.571Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261014T022215Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261014T082603Z",
   "counts": {
-    "files": 1926,
-    "candidateFiles": 1146,
+    "files": 1945,
+    "candidateFiles": 1152,
     "services": 159,
     "srcFiles": 433,
-    "docs": 510,
+    "docs": 516,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -15,7 +15,7 @@
       "label": "Fallarbeit und Assistenz",
       "files": 25,
       "services": 2,
-      "hits": 6182
+      "hits": 8491
     },
     "evidence-and-trust": {
       "label": "Evidence, Nachweis und Vertrauen",
@@ -27,7 +27,7 @@
       "label": "MaKo / EDM / Stammdaten",
       "files": 25,
       "services": 8,
-      "hits": 2889
+      "hits": 3539
     },
     "grid-and-connection": {
       "label": "Netz, Anschluss und Kapazität",
@@ -51,13 +51,13 @@
       "label": "Gas, Wärme und EOG",
       "files": 25,
       "services": 3,
-      "hits": 3432
+      "hits": 3982
     },
     "tenant-and-operation": {
       "label": "Tenant, Rollen und Betrieb",
       "files": 25,
       "services": 51,
-      "hits": 8286
+      "hits": 8772
     },
     "openwebui-agentic-routing": {
       "label": "OpenWebUI und agentisches Routing",
@@ -131,20 +131,20 @@
           "hits": 191
         },
         {
+          "path": "docs/validation/practice-evaluation-baseline-corrected.json",
+          "hits": 169
+        },
+        {
+          "path": "docs/validation/practice-evaluation-baseline-corrected.md",
+          "hits": 165
+        },
+        {
           "path": "services/edm.service.js",
           "hits": 164
         },
         {
-          "path": "services/capability-broker.service.js",
-          "hits": 129
-        },
-        {
-          "path": "services/finance-agent.service.js",
-          "hits": 122
-        },
-        {
-          "path": "docs/validation/739-routing.json",
-          "hits": 115
+          "path": "docs/validation/practice-evaluation-baseline.json",
+          "hits": 149
         }
       ]
     },
@@ -169,6 +169,14 @@
           "hits": 299
         },
         {
+          "path": "docs/validation/practice-evaluation-baseline-corrected.json",
+          "hits": 253
+        },
+        {
+          "path": "docs/validation/practice-evaluation-baseline.json",
+          "hits": 251
+        },
+        {
           "path": "src/evidence-registry.js",
           "hits": 187
         },
@@ -191,14 +199,6 @@
         {
           "path": "services/forecast.service.js",
           "hits": 115
-        },
-        {
-          "path": "services/dashboard-api/methods-part-02-of-14.js",
-          "hits": 114
-        },
-        {
-          "path": "docs/sonarcloud-security-review.json",
-          "hits": 109
         }
       ]
     },
@@ -247,12 +247,12 @@
           "hits": 156
         },
         {
-          "path": "feedback/HYGIENE_SPRINT.md",
-          "hits": 145
+          "path": "docs/validation/practice-evaluation-baseline.json",
+          "hits": 151
         },
         {
-          "path": "function-model.report.md",
-          "hits": 140
+          "path": "docs/validation/practice-evaluation-baseline-corrected.json",
+          "hits": 149
         }
       ]
     },
@@ -435,7 +435,23 @@
           "hits": 338
         },
         {
+          "path": "docs/validation/practice-evaluation-baseline-corrected.json",
+          "hits": 191
+        },
+        {
+          "path": "docs/validation/practice-evaluation-baseline-corrected.md",
+          "hits": 191
+        },
+        {
+          "path": "docs/validation/practice-evaluation-baseline.md",
+          "hits": 184
+        },
+        {
           "path": "docs/validation/739-routing.json",
+          "hits": 183
+        },
+        {
+          "path": "docs/validation/practice-evaluation-baseline.json",
           "hits": 183
         },
         {
@@ -449,22 +465,6 @@
         {
           "path": "docs/validation/tenant-memory-863-live.json",
           "hits": 138
-        },
-        {
-          "path": "src/evidence-registry.js",
-          "hits": 132
-        },
-        {
-          "path": "src/answer-dossier-hydration-rules.json",
-          "hits": 108
-        },
-        {
-          "path": "services/eog-calculator.service.js",
-          "hits": 85
-        },
-        {
-          "path": "docs/eog-calculator-quality-element.md",
-          "hits": 77
         }
       ]
     }
@@ -552,5 +552,5 @@
       "hits": 263
     }
   ],
-  "fingerprint": "6b9ed3f5eb1c83d4bf0f3533018b20034cf4fed7900d76ebbd3e5134b3c47c4e"
+  "fingerprint": "92ecb593e7c3657936c453f81d2cbe616404daddaee97766888fd0c750676961"
 }

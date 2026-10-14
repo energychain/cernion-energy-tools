@@ -1,6 +1,6 @@
 # Netzanschluss-/Kapazitäts-Klärfall
 
-Generated: 2026-10-14T02:23:22.749Z
+Generated: 2026-10-14T08:27:20.571Z
 
 Status: observed
 Priority: 4
@@ -100,17 +100,17 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `services/personal-agent/shared.js` (30 hits)
 - `docs/validation/tenant-memory-live.json` (29 hits)
 - `src/consultation-execution-bridge.js` (26 hits)
+- `docs/validation/practice-evaluation-baseline.json` (24 hits)
+- `docs/validation/practice-evaluation-baseline.md` (24 hits)
 - `src/personal-agent-routing.js` (21 hits)
 - `src/validation-findings.js` (21 hits)
 - `services/assets.service.js` (20 hits)
 - `src/case-type-routing.js` (20 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.json` (19 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.md` (19 hits)
 - `src/evidence-registry.js` (18 hits)
 - `docs/v0.52-implementation-plans/v0.52.8-conversational-onboarding.md` (17 hits)
 - `docs/v0.52-implementation-plans/v0.52.x-agentic-redteam-uat-bank-dd.md` (17 hits)
 - `src/semantic-domains.js` (17 hits)
 - `services/dashboard-api/methods-part-13-of-14.js` (16 hits)
 - `agentic-architecture/domain/falltypen/NETZANSCHLUSS_KAPAZITAETS_KLAERFALL.md` (15 hits)
-- `agentic-architecture/reports/latest/domain-abstraction/falltypen/NETZANSCHLUSS_KAPAZITAETS_KLAERFALL.md` (15 hits)
-- `services/mastr-quality.service.js` (14 hits)
-- `integrations/budibase/README.md` (13 hits)
-- `services/redispatch-expost.service.js` (13 hits)

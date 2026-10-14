@@ -1,6 +1,6 @@
 # Messwert-/EDM-Plausibilitätsfall
 
-Generated: 2026-10-14T02:23:22.749Z
+Generated: 2026-10-14T08:27:20.571Z
 
 Status: observed
 Priority: 2
@@ -143,6 +143,8 @@ Der Messwert ist nicht abschließend als falsch belegt. Er ist aber plausibilisi
 
 - `docs/validation/739-routing.json` (308 hits)
 - `src/capability-catalog.js` (299 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.json` (253 hits)
+- `docs/validation/practice-evaluation-baseline.json` (251 hits)
 - `src/evidence-registry.js` (187 hits)
 - `services/api.service.js` (163 hits)
 - `src/answer-dossier-hydration-rules.json` (144 hits)
@@ -164,5 +166,3 @@ Der Messwert ist nicht abschließend als falsch belegt. Er ist aber plausibilisi
 - `services/in-memory-join.service.js` (77 hits)
 - `src/cookbook-recipes.js` (77 hits)
 - `src/forecast-evaluation.js` (76 hits)
-- `services/dashboard-api/methods-part-03-of-14.js` (75 hits)
-- `src/workbench-activity-taxonomy.js` (75 hits)

@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-14T02:23:22.749Z
+Generated: 2026-10-14T08:27:20.571Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -33,6 +33,10 @@ Arbeitsmodell: CET soll unvollständige Vorgänge bearbeitbar machen: einordnen,
 
 Starke Code-/Doku-Signale:
 
+- `docs/validation/practice-evaluation-baseline.json` (753 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.json` (723 hits)
+- `docs/validation/practice-evaluation-baseline.md` (688 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.md` (658 hits)
 - `src/capability-catalog.js` (613 hits)
 - `services/workbench.service.js` (525 hits)
 - `docs/reviews/730-capability-routing-evaluation.json` (462 hits)
@@ -41,10 +45,6 @@ Starke Code-/Doku-Signale:
 - `services/capability-broker.service.js` (329 hits)
 - `services/dashboard-api/methods-part-09-of-14.js` (265 hits)
 - `services/dashboard-api/methods-part-08-of-14.js` (264 hits)
-- `services/dashboard-api/actions-part-06-of-8.js` (256 hits)
-- `src/workbench-content-turn.js` (241 hits)
-- `services/dashboard-api/methods-part-10-of-14.js` (228 hits)
-- `integrations/budibase/README.md` (196 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -100,17 +100,17 @@ Arbeitsmodell: Viele Vorgänge sind fachlich richtige Klärprozesse mit unvollst
 Starke Code-/Doku-Signale:
 
 - `src/capability-catalog.js` (363 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.json` (347 hits)
+- `docs/validation/practice-evaluation-baseline.json` (332 hits)
 - `docs/validation/739-routing.json` (271 hits)
 - `docs/validation/813-live.json` (253 hits)
 - `src/evidence-registry.js` (144 hits)
 - `services/api.service.js` (131 hits)
 - `services/capability-broker.service.js` (131 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.md` (122 hits)
 - `src/answer-dossier-hydration-rules.json` (121 hits)
 - `services/dashboard-api/methods-part-05-of-14.js` (116 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (114 hits)
-- `services/dashboard-api/actions-part-01-of-8.js` (98 hits)
-- `services/dashboard-api/methods-part-03-of-14.js` (96 hits)
-- `docs/validation/746-answer-recovery-timeout-repeat-live.json` (93 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -239,13 +239,13 @@ Starke Code-/Doku-Signale:
 - `docs/validation/739-routing.json` (257 hits)
 - `src/evidence-registry.js` (249 hits)
 - `services/capability-broker.service.js` (243 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.json` (192 hits)
+- `docs/validation/practice-evaluation-baseline-corrected.md` (191 hits)
+- `docs/validation/practice-evaluation-baseline.json` (184 hits)
+- `docs/validation/practice-evaluation-baseline.md` (184 hits)
 - `src/answer-dossier-hydration-rules.json` (181 hits)
 - `docs/validation/tenant-memory-live.json` (175 hits)
 - `services/dashboard-api/methods-part-06-of-14.js` (165 hits)
-- `docs/validation/tenant-memory-863-live.json` (138 hits)
-- `services/dashboard-api/methods-part-12-of-14.js` (100 hits)
-- `services/znp.service.js` (89 hits)
-- `services/eog-calculator.service.js` (85 hits)
 
 Zugeordnete Services nach Heuristik:
 
