@@ -29,6 +29,13 @@ const {
 const { presentCase, presentCaseListItem } = require('../src/workbench-case-presenter');
 const { presentEvent } = require('../src/workbench-event-presenter');
 const { normalizeEvidenceInput, safeEvidenceRef } = require('../src/workbench-evidence');
+const {
+  INSPECTOR_VIEW,
+  INSPECTOR_SCHEMA_VERSION,
+  evidenceIndex,
+  presentToolRunInspector,
+  presentToolRunInspectorList,
+} = require('../src/workbench-toolrun-presenter');
 const { buildTurnMemory, safeTurnMemory } = require('../src/workbench-turn-memory');
 const {
   defaultPlaybooksForTenant,
@@ -92,6 +99,8 @@ const action = (rest, summary, handler, params = {}) => ({
   handler,
 });
 const caseParams = { caseId: { type: 'string', min: 1 } };
+// Explicit opt-in to the closed scalar ToolRun inspector projection (#660).
+const toolRunViewParams = { view: { type: 'enum', values: [INSPECTOR_VIEW], optional: true } };
 const WORKBENCH_DATABASES = [
   ['conversationsDb', './data/cet_workbench_conversations', 'CET_WORKBENCH_CONVERSATIONS_DB_PATH'],
   ['identityDb', './data/cet_workbench_identity_mappings', 'CET_WORKBENCH_IDENTITY_DB_PATH'],
@@ -441,9 +450,18 @@ module.exports = {
           tenantId: p.tenantId,
           caseId: ctx.params.caseId,
         });
-        return { items };
+        if (ctx.params.view !== INSPECTOR_VIEW) return { items };
+        return presentToolRunInspectorList(items, {
+          caseId: ctx.params.caseId,
+          limit: ctx.params.limit,
+          ...(await this.toolRunInspectorOptions(p, ctx.params.caseId)),
+        });
       },
-      caseParams
+      {
+        ...caseParams,
+        ...toolRunViewParams,
+        limit: { type: 'number', optional: true, convert: true, integer: true, min: 1 },
+      }
     ),
     'tool-runs.get': action(
       'GET /cases/:caseId/tool-runs/:toolRunId',
@@ -458,9 +476,21 @@ module.exports = {
         if (toolRun.caseId !== ctx.params.caseId) {
           workbenchError('Tool run belongs to another case', 'WORKBENCH_TOOL_RUN_CASE_MISMATCH');
         }
-        return { toolRun };
+        if (ctx.params.view !== INSPECTOR_VIEW) return { toolRun };
+        return {
+          view: INSPECTOR_VIEW,
+          schemaVersion: INSPECTOR_SCHEMA_VERSION,
+          toolRun: presentToolRunInspector(
+            toolRun,
+            await this.toolRunInspectorOptions(p, ctx.params.caseId)
+          ),
+        };
       },
-      { caseId: { type: 'string', min: 1 }, toolRunId: { type: 'string', min: 1 } }
+      {
+        caseId: { type: 'string', min: 1 },
+        toolRunId: { type: 'string', min: 1 },
+        ...toolRunViewParams,
+      }
     ),
     'governance-map.get': action(
       'GET /governance-map/:domain',
@@ -2209,6 +2239,14 @@ module.exports = {
     async visibleDomainStates(p) {
       const service = this.broker.getLocalService('domain-router');
       return service ? await service.visibleStates(p) : [];
+    },
+    async toolRunInspectorOptions(p, caseId) {
+      const evidence = await this.store.listEvidence({ tenantId: p.tenantId, caseId });
+      return {
+        tenantId: p.tenantId,
+        clearance: p.clearance,
+        evidenceById: evidenceIndex(evidence),
+      };
     },
     async loadVisibleCase(ctx, p, caseId) {
       const service = this.broker.getLocalService('domain-router');

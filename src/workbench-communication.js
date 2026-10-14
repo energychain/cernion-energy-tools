@@ -152,8 +152,17 @@ function validateCommunication(parsed, situation, evidence) {
           )
         );
       if (!grounded && !/zu prüfende Annahme/iu.test(claim.text)) {
-        const heading = /^(?:\s*#{1,6}\s+[^\n]+(?:\n|$))+/u.exec(claim.text);
-        if (heading && !claim.text.slice(heading[0].length).trim()) continue;
+        const lines = claim.text.split('\n');
+        let lastHeading = -1;
+        for (let index = 0; index < lines.length; index++) {
+          const line = lines[index].trim();
+          if (!line) continue;
+          if (!/^#{1,6}\s/u.test(line)) break;
+          lastHeading = index;
+        }
+        const heading = lastHeading >= 0 ? lines.slice(0, lastHeading + 1).join('\n') : '';
+        const body = lastHeading >= 0 ? lines.slice(lastHeading + 1).join('\n') : claim.text;
+        if (heading && !body.trim()) continue;
         if (
           claim.text
             .trim()
@@ -164,7 +173,7 @@ function validateCommunication(parsed, situation, evidence) {
         else {
           const prefix = 'Zu prüfende Annahme, ohne belegte Fundstelle: ';
           claim.text = heading
-            ? `${heading[0].trimEnd()}\n\n${prefix}${claim.text.slice(heading[0].length).trimStart()}`
+            ? `${heading.trimEnd()}\n\n${prefix}${body.trimStart()}`
             : prefix + claim.text;
         }
       }

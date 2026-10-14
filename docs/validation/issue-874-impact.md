@@ -502,3 +502,40 @@ nicht lediglich die lokale Schemadefinition.
 9 / 16 / 1 (MEDIUM). Die zusammengefassten Diff-Bereiche umfassen konservativ
 weitere Symbole der gemeinsam verwendeten Kommunikationsmodule. Alle 838
 gezielten Tests in 15 Testsuiten bestanden.
+
+## Integration des aktuellen Hauptzweigs und Sicherheitskorrektur
+
+Der Hauptzweig `13ef8287db927e5d661a15d517e58aff81a2b432` wird per echtem
+Merge übernommen. Seine bereits überprüfte ToolRun-Inspector-Projektion (#660)
+bleibt unverändert; die Fallstatus-Erweiterungen dieses PR bleiben erhalten.
+Vor Übernahme wurden die bestehenden Service-Symbole upstream geprüft:
+`Function:services/workbench.service.js:action`: LOW, ein direkter Aufrufer,
+16 transitiv betroffene Symbole, keine zugeordneten Abläufe;
+`Function:services/workbench.service.js:*`: LOW, keine erkannten direkten
+Aufrufer oder Abläufe. Die neue Methode `toolRunInspectorOptions` und die neun
+neuen Presenter-Funktionen sind im vorherigen Index noch nicht vorhanden
+(UNKNOWN); sie werden aus dem Hauptzweig unverändert importiert. Diese Aussage
+ersetzt keine Laufzeitprüfung: die neuen Inspector-Tests laufen mit.
+
+Vor der Sicherheitskorrektur wurde `validateCommunication` erneut upstream
+geprüft: LOW, keine statisch erkannten direkten Aufrufer oder Abläufe. Sonar
+meldete am verschachtelten Ausdruck für führende Markdown-Überschriften
+`javascript:S5852`. Ein linearer zeilenweiser Parser ersetzt diesen Ausdruck;
+Kennzeichnung und Abschnittsvertrag bleiben gleich. Die vorhandenen Tests für
+strukturierte und herkömmliche Abschnitte prüfen beide Ausgabewege erneut.
+Keine Unterdrückung der Sicherheitsregel. Konflikte in generierten Dateien
+werden durch die jeweiligen Generatoren aufgelöst; beide Changelog-Einträge
+bleiben erhalten.
+
+Der vollständige vorherige Produktstand `befc4a56` bestand 10.172 Tests
+(73 ausdrücklich übersprungen), alle Coverage-Gates, die TDD-Matrix
+(82 bestanden, vier übersprungen; 66/66 erforderliche IDs) und sämtliche
+statischen Prüfungen. Die vollständige Live-Messung hatte 88/88 Läufe,
+15/15 betroffene Gruppen grün und 23/27 im Gesamtkatalog. Diese Werte werden
+nicht als Nachweis für den neuen integrierten Produktstand ausgegeben.
+
+Änderungsprüfung vor dem Integrationscommit, bei geschlossenem neuem Index:
+gegen `origin/main` 59 Dateien / 471 Symbole / 38 Abläufe (CRITICAL), gegen
+lokale `main` 292 / 2626 / 93 (CRITICAL), staged 13 / 113 / 6 (HIGH).
+Die vorab gemeldeten hohen Stufen umfassen konservativ den unverändert
+importierten Inspector sowie gemeinsame Laufzeitpfade und generierte Bereiche.
