@@ -380,3 +380,40 @@ Beleg; die Gegenprüfung für die erstmalige Modusmitteilung bleibt erhalten.
 Änderungsprüfung vor diesem Folgecommit: gegen `origin/main` 59 Dateien /
 464 Symbole / 38 Abläufe (CRITICAL); lokale `main` 290 / 2560 / 93 (CRITICAL);
 staged 8 / 9 / 1 (MEDIUM). Alle 824 gezielten Tests in 15 Testsuiten grün.
+
+## Berichteten Sachstand nach der Quellenprüfung erhalten
+
+Upstream vorab: `generateAnswerResult` HIGH (1 direkter Aufrufer, 4 betroffene
+Symbole, 2 Abläufe); vor der Änderung benannt. Ein zusätzlicher synthetischer
+Diagnoselauf zeichnete den tatsächlichen Fehler auf: Der Entwurf hatte den
+Sachstand als Eingangsangabe markiert, `inputQuote` jedoch paraphrasiert. Die
+vorhandene Quellenprüfung verwarf folgerichtig den unbelegten Absatz; die übrige
+Antwort enthielt nur noch einen Prüfschritt und wurde trotzdem akzeptiert.
+
+Der neue Regressionstest schlug am bisherigen Stand fehl (eine statt zwei
+Antworterzeugungen; berichteter Sachstand fehlte). In normalen Arbeitsantworten
+wird jetzt die vorhandene begrenzte Reparatur genutzt, wenn die Codeprüfung die
+gesamte Einordnung entfernt hat. Sie fordert einen unveränderten Eingangsbeleg;
+die ursprüngliche Quellenprüfung bleibt unverändert und muss diesen Beleg erneut
+akzeptieren. Keine fachliche Bedeutung wird aus dem Nutzertext bestätigt.
+Fehlende und nicht wörtliche Belege sind getrennt getestet. Reine Bedeutungsfragen,
+Entwürfe, Gespräche und bloße Folgefragen nach dem nächsten Schritt behalten ihre
+vorhandenen Wege. Keine Stichwortliste und kein zusätzlicher eigener Prüfdienst.
+
+Vor dieser letzten Korrektur waren alle lokalen Gates auf `8185ba43` grün:
+`npm test` 10.158 bestanden / 73 ausgelassen, Coverage-Grenzen bestanden;
+TDD 82 bestanden / 4 ausgelassen, Pflicht-IDs 66/66; alle statischen Gates und
+106 Python-Tests bestanden. Die Live-Abnahme der neun neuen Szenarien bestand
+27/27 Läufe; das größere Gate blieb wegen des hier nachgewiesenen Eingangsturns
+bei 14/15 vollständigen Gruppen. Die Abschlussmessung wird für den korrigierten
+Produktstand erneut durchgeführt; ältere Ergebnisse bleiben als Diagnose erhalten.
+
+Die bestehende #813-Regressionsprüfung schützt außerdem alte Aufrufer ohne
+`codeReferences`. Nach erneuter Upstream-Prüfung desselben Antwortpfads (HIGH,
+1 direkter Aufrufer / 4 betroffene Symbole / 2 Abläufe, vorher benannt) wurde die
+neue Reparatur ausdrücklich auf den neuen Codevertrag begrenzt. Der alte
+Rückfragepfad ohne diesen Vertrag bleibt erhalten; sein Test wurde nicht geändert.
+
+Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 465 Symbole /
+38 Abläufe (CRITICAL); lokale `main` 290 / 2561 / 93 (CRITICAL); staged
+7 / 6 / 0 (LOW). Alle 826 gezielten Tests in 15 Testsuiten bestanden.

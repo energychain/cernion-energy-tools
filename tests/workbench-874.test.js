@@ -1737,3 +1737,52 @@ test('an empty refined section list preserves literal current sections from the 
   const result = await understand({ message: data.message, tenantId: fixture.tenantId });
   expect(result.requestedOutput.parts[0].sections).toEqual(data.sections);
 });
+
+test.each([false, true])(
+  'an unresolved token cannot silently erase the reported situation from a work answer (%s)',
+  async (invalidQuote) => {
+    const turn = require('../scripts/generate-practice-evaluation-fixtures')
+      .generatePracticeCatalog()
+      .scenarios.find((item) => item.id === 'mako-pricat').turns[0];
+    const message = turn.message;
+    const value = message.match(/\b[A-Z]{2,}\b/u)[0];
+    const quote = message.slice(0, message.indexOf('. ') + 1);
+    const base = {
+      expectation: [],
+      assumptions: [],
+      draft: [],
+      nextSteps: [fixture.claim(fixture.proposal.nextConsideration)],
+    };
+    llm.generateText
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          ...base,
+          interpretation: [
+            { ...fixture.claim(quote), inputQuote: invalidQuote ? quote + fixture.term : '' },
+          ],
+        })
+      )
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          ...base,
+          interpretation: [{ ...fixture.claim(quote), inputQuote: quote }],
+        })
+      );
+    const result = await answer({
+      tenantId: fixture.tenantId,
+      message,
+      situation: fixture.situation(message, {
+        turnKind: 'work',
+        conversationShape: 'task',
+        outputKind: 'analysis',
+        codeMeaningQuestion: false,
+        codeReferences: [{ value, family: fixture.codeSourceFixture.code.family, basis: value }],
+        codeResolutions: [{ value, status: 'unresolved', sources: [] }],
+      }),
+      retrieval: { evidence: [] },
+    });
+    expect(result.answerAttempts).toBe(2);
+    expect(result.responseText).toContain(`Berichtet: „${quote}“`);
+    expect(result.responseText).toContain(`Bedeutung von ${value} nicht belegt`);
+  }
+);

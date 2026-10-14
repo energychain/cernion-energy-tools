@@ -1438,6 +1438,21 @@ async function generateAnswerResult({
         require('./workbench-communication').validateCommunication(parsed, situation, evidence);
         if (
           Object.hasOwn(situation, 'codeReferences') &&
+          !situation.codeMeaningQuestion &&
+          shape.kind(situation) === 'task' &&
+          !nextStepOnly &&
+          !conversationMode &&
+          !draftRequested &&
+          !(parsed.interpretation || []).length &&
+          filterCounts.has('interpretation:unresolved_code')
+        ) {
+          const error = schemaError([], 'reported_situation_filtered');
+          error.repairInstruction =
+            'Die Codeprüfung hat den berichteten Sachstand entfernt. Stelle interpretation wieder her: ausschließlich wörtlich in der aktuellen Nachricht enthaltene Sachangaben als origin=input mit unverändertem inputQuote. Benenne sie als berichtete Angabe, keine bestätigte Codebedeutung. Keine neuen Ursachen oder Bedeutungen ergänzen. Ein weiterer Prüfschritt ersetzt den berichteten Ausgangsstand nicht.';
+          throw error;
+        }
+        if (
+          Object.hasOwn(situation, 'codeReferences') &&
           message.includes('?') &&
           !questions.length &&
           !unresolved.length &&
