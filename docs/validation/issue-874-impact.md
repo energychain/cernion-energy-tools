@@ -1,0 +1,604 @@
+# GitNexus-Prüfung für #874
+
+Die betroffenen bestehenden Symbole wurden vor Änderungen mit `impact(direction: upstream)` geprüft. Die Tabelle enthält den höchsten beobachteten Risikostand. HIGH und CRITICAL wurden vor dem Fortsetzen gemeldet. Neue Symbole waren vor ihrer ersten Indizierung teilweise UNKNOWN; dies beweist keinen leeren Wirkungsbereich. Dynamische Moleculer-Aufrufe werden zusätzlich durch Laufzeit- und Berechtigungstests geprüft.
+
+| Symbol | Datei | Risiko | direkte Aufrufer | betroffen gesamt | Abläufe | Module |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| mergePreferences | src/workbench-communication.js | CRITICAL | 1 | 6 | 1 | 5 |
+| opaqueContext | src/workbench-identifier-context.js | CRITICAL | 10 | 18 | 2 | 6 |
+| capture | src/tenant-memory.js | HIGH | 1 | 8 | 1 | 4 |
+| person | src/tenant-memory.js | HIGH | 1 | 5 | 1 | 3 |
+| safeTurnMemory | src/workbench-turn-memory.js | HIGH | 6 | 16 | 1 | 3 |
+| understand | src/workbench-understanding.js | HIGH | 3 | 14 | 2 | 4 |
+| answerProviderSchema | src/workbench-understanding.js | HIGH | 6 | 11 | 2 | 4 |
+| generatePracticeCatalog | scripts/generate-practice-evaluation-fixtures.js | LOW | 4 | 10 | 0 | 1 |
+| generateCommunicationFixture | scripts/generate-workbench-874-fixtures.js | LOW | 0 | 0 | 0 | 0 |
+| generateCommunicationScenarios | scripts/generate-workbench-874-fixtures.js | LOW | 0 | 0 | 0 | 0 |
+| checkTurn | scripts/practice-evaluation-checks.js | LOW | 1 | 3 | 0 | 1 |
+| runPracticeEvaluation | scripts/validate-practice-live.js | LOW | 1 | 2 | 0 | 1 |
+| validatePracticeLive | scripts/validate-practice-live.js | LOW | 1 | 1 | 0 | 0 |
+| readProductTree | scripts/validate-practice-live.js | LOW | 1 | 3 | 0 | 1 |
+| validateWorkbench874Live | scripts/validate-workbench-874-live.js | LOW | 1 | 1 | 0 | 0 |
+| routeCase | services/domain-router.service.js | LOW | 1 | 15 | 0 | 0 |
+| handler | services/workbench.service.js | LOW | 0 | 0 | 0 | 0 |
+| resolve | src/edifact-message-adapter.js | LOW | 1 | 1 | 0 | 1 |
+| change | src/tenant-memory-policy.js | LOW | 2 | 9 | 0 | 1 |
+| ASSERTION | src/tenant-memory-schema.js | LOW | 0 | 0 | 0 | 0 |
+| preturn | src/tenant-memory.js | LOW | 0 | 0 | 0 | 0 |
+| filterAnswer | src/workbench-answer-filter.js | LOW | 1 | 1 | 1 | 1 |
+| validateArtifact | src/workbench-artifact.js | LOW | 0 | 0 | 0 | 0 |
+| renderArtifact | src/workbench-artifact.js | LOW | 0 | 0 | 0 | 0 |
+| instruction | src/workbench-artifact.js | LOW | 0 | 0 | 0 | 0 |
+| renderCaseMemory | src/workbench-case-search.js | LOW | 1 | 3 | 1 | 2 |
+| CASE_FIELDS | src/workbench-case-search.js | LOW | 0 | 0 | 0 | 0 |
+| canRenderCaseRequest | src/workbench-case-search.js | LOW | 1 | 3 | 1 | 2 |
+| classifyCodeTokens | src/workbench-code-classification.js | LOW | 0 | 0 | 0 | 0 |
+| citedSource | src/workbench-code-sources.js | LOW | 1 | 1 | 0 | 1 |
+| resolveCodes | src/workbench-codes.js | LOW | 1 | 9 | 1 | 1 |
+| unresolvedQuestions | src/workbench-codes.js | LOW | 1 | 9 | 1 | 1 |
+| answerInstruction | src/workbench-communication.js | LOW | 0 | 0 | 0 | 0 |
+| SCHEMAS | src/workbench-communication.js | LOW | 0 | 0 | 0 | 0 |
+| validateCommunication | src/workbench-communication.js | LOW | 0 | 0 | 0 | 0 |
+| INSTRUCTION | src/workbench-communication.js | LOW | 0 | 0 | 0 | 0 |
+| proposalText | src/workbench-communication.js | LOW | 0 | 0 | 0 | 0 |
+| runContentTurn | src/workbench-content-turn.js | LOW | 1 | 16 | 0 | 0 |
+| reviewDisclosure | src/workbench-disclosure-review.js | LOW | 0 | 0 | 0 | 0 |
+| reviewRetrieval | src/workbench-document-flow.js | LOW | 1 | 3 | 1 | 2 |
+| launchReview | src/workbench-document-flow.js | LOW | 1 | 3 | 1 | 2 |
+| confirmLinkedCase | src/workbench-linked-proposal.js | LOW | 0 | 0 | 0 | 0 |
+| extractConversationPreferences | src/workbench-preference-extraction.js | LOW | 0 | 0 | 0 | 0 |
+| reviewDocuments | src/workbench-review.js | LOW | 1 | 3 | 1 | 2 |
+| searchKnowledge | src/workbench-self-knowledge.js | LOW | 0 | 0 | 0 | 0 |
+| loadTenantGlossary | src/workbench-tenant-glossary.js | LOW | 0 | 0 | 0 | 0 |
+| buildTurnMemory | src/workbench-turn-memory.js | LOW | 1 | 1 | 0 | 1 |
+| TURN_SCOPED_FIELDS | src/workbench-turn-scope.js | LOW | 0 | 0 | 0 | 0 |
+| questionsFor | src/workbench-understanding.js | LOW | 1 | 3 | 1 | 2 |
+| answerPrompt | src/workbench-understanding.js | LOW | 1 | 4 | 1 | 2 |
+| generateAnswerResult | src/workbench-understanding.js | LOW | 1 | 3 | 1 | 2 |
+| answer | src/workbench-understanding.js | LOW | 1 | 9 | 1 | 1 |
+| SITUATION_SCHEMA | src/workbench-understanding.js | LOW | 0 | 0 | 0 | 0 |
+| decorateAnswer | src/workbench-understanding.js | LOW | 1 | 3 | 1 | 2 |
+| ARTIFACT_ANSWER_SCHEMA | src/workbench-understanding.js | LOW | 0 | 0 | 0 | 0 |
+| ARTIFACT_CLAIM | src/workbench-understanding.js | LOW | 0 | 0 | 0 | 0 |
+| CLAIM | src/workbench-understanding.js | LOW | 0 | 0 | 0 | 0 |
+| practice-evaluation.test.js | tests/practice-evaluation.test.js | LOW | 0 | 0 | 0 | 0 |
+| workbench-874.test.js | tests/workbench-874.test.js | LOW | 0 | 0 | 0 | 0 |
+| answer |  | UNKNOWN | – | 0 | – | – |
+| boundaryLine |  | UNKNOWN | – | 0 | – | – |
+| exactCodeToken | src/edifact-message-adapter.js | UNKNOWN | – | 0 | – | – |
+| person | src/person.js | UNKNOWN | – | 0 | – | – |
+| caseFieldIndex | src/workbench-case-search.js | UNKNOWN | – | 0 | – | – |
+| boundaryLine | src/workbench-understanding.js | UNKNOWN | – | 0 | – | – |
+
+Die HIGH-Pfade betreffen Verständnis (Chat und Status), Schemaübersetzung sowie Erfassung und Projektion des Gedächtnisses. Die CRITICAL-Pfade betreffen gemeinsame Maskierung und Präferenzzusammenführung. Regressionen prüfen insbesondere aktuelle Aufträge nach Schemafehlern, Codebelege, Datenabgrenzung, Tenant-/Clearance-Grenzen, vollständige Artefakte und bestätigte Anlage.
+
+## Änderungen gegen die Hauptlinie
+
+Abgeschlossen vor dem Commit mit GitNexus `detect-changes` (entspricht `detect_changes`). Temporär ausschließlich für diese Aufrufe: `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=diff.interHunkContext GIT_CONFIG_VALUE_0=100000`. Die großen generierten JSON-Diffs verursachten mit Einzelhunks Query-Timeouts. Zusammengefasste Hunkbereiche schließen zusätzliche Zwischenbereiche ein; keine Dateien oder Änderungen wurden ausgeschlossen.
+
+| Vergleich | Dateien | Symbole | betroffene Abläufe | Risiko |
+| --- | ---: | ---: | ---: | --- |
+| origin/main | 56 | 418 | 30 | CRITICAL |
+| main | 287 | 2523 | 88 | CRITICAL |
+| staged | 56 | 418 | 30 | CRITICAL |
+
+Die lokale `main`-Referenz ist älter als die eingebundene `origin/main`-Referenz und enthält deshalb zusätzlich bereits vorhandene Änderungen der Vorläufer. Der aktuelle PR-Wirkungsbereich ist der Vergleich gegen `origin/main`. Er enthält die erwarteten Wissens-, Gedächtnis-, Verständnis-, Artefakt-, Status- und Validierungspfade sowie ihre generierten Artefakte. Die breiteren Hunkbereiche erklären zusätzliche Symbole zwischen den tatsächlichen Änderungen. Die betroffenen Chat-, Status-, Quellen-, Dokument- und Gedächtnispfade werden durch die Regressionstests geprüft.
+
+## Ergänzende Analysen vor der Abschlusskorrektur
+
+Die zusätzlichen Prüfungen wurden über den GitNexus-CLI-Runner ausgeführt. Der MCP-Prozess war nach paralleler Änderungsanalyse nicht mehr verfügbar; Einzelprozesse verwenden denselben frisch indizierten Graphen.
+
+| Symbol | Datei | Risiko | direkte Aufrufer | betroffen gesamt | Abläufe | Module |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| generateAnswerResult | src/workbench-understanding.js | HIGH | 1 | 4 | 2 | 3 |
+| tests/capability-routing-cache-drift.test.js | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – | – |
+| classifyCodeTokens | src/workbench-code-classification.js | LOW | 0 | 0 | 0 | 0 |
+| generateEmbeddingDriftFixture | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – | – |
+| generateCommunicationFixture | scripts/generate-workbench-874-fixtures.js | LOW | 0 | 0 | 0 | 0 |
+| extractConversationPreferences | src/workbench-preference-extraction.js | LOW | 0 | 0 | 0 | 0 |
+| handler | services/workbench.service.js | LOW | 0 | 0 | 0 | 0 |
+| repairOutput | src/workbench-llm-repair.js | CRITICAL | 3 | 10 | 2 | 5 |
+| understand | src/workbench-understanding.js | HIGH | 3 | 14 | 2 | 4 |
+| handler | services/workbench.service.js | LOW | 0 | 0 | 0 | 0 |
+| handler | services/workbench.service.js | LOW | 0 | 0 | 0 | 0 |
+
+## Erneute Prüfung der Falldarstellung
+
+Bei einer Zwischenkorrektur scheiterten CLI-Aufrufe wegen einer überlappenden Indizierung; die Shell führte die nachfolgenden Änderungen dennoch aus. Die betroffenen Dateien wurden auf den vorigen Commit zurückgenommen, der Index vollständig neu erzeugt und geschlossen und die Upstream-Analysen anschließend erfolgreich wiederholt. Erst danach wurden die überprüften Änderungen erneut angewendet. Verständnis, Antwortaufbereitung und Falldarstellung sind HIGH; neue Hilfsfunktionen vor Erstindizierung UNKNOWN. Die isolierte Normalisierung von negativem Nullwert im Vektorgenerator ist LOW; der vorhandene Reproduzierbarkeitstest prüft sie.
+
+## Abschließende Vertragskorrekturen
+
+Die erneuten erfolgreichen Analysen vor den Änderungen betreffen die wörtliche Übernahme bestellter Überschriften, die interne Zielgruppe, den privaten schemagebundenen Ausgabemodus, gespeicherte Gesprächsvorgaben in der Fallsuche und die reproduzierbare Vektorgenerierung. Fehlgeschlagene Zwischenaufrufe sind keine erfolgreiche Wirkungsanalyse und werden hier nicht als solche gewertet.
+
+| Symbol | Datei | Risiko | direkte Aufrufer | betroffen gesamt | Abläufe |
+| --- | --- | --- | ---: | ---: | ---: |
+| answer | src/workbench-understanding.js | LOW | 2 | 10 | 2 |
+| decorateAnswer | src/workbench-understanding.js | HIGH | 1 | 4 | 2 |
+| functionEmbedding | scripts/function-model-embeddings.js | LOW | 0 | 0 | 0 |
+| extractConversationPreferences | src/workbench-preference-extraction.js | LOW | 0 | 0 | 0 |
+| renderCaseMemory | src/workbench-case-search.js | LOW | 0 | 0 | 0 |
+| understand | src/workbench-understanding.js | HIGH | 3 | 14 | 2 |
+| caseWorkLines | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – |
+| answer | src/workbench-understanding.js | LOW | 2 | 10 | 2 |
+| decorateAnswer | src/workbench-understanding.js | HIGH | 1 | 4 | 2 |
+| caseWorkLines | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – |
+| renderCaseMemory | src/workbench-case-search.js | HIGH | 1 | 4 | 2 |
+| understand | src/workbench-understanding.js | HIGH | 3 | 14 | 2 |
+| caseWorkForAnswer | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – |
+| classifyCodeTokens | src/workbench-code-classification.js | LOW | 0 | 0 | 0 |
+| classifyCodeTokens | src/workbench-code-classification.js | LOW | 0 | 0 | 0 |
+| extractConversationPreferences | src/workbench-preference-extraction.js | LOW | 0 | 0 | 0 |
+| understand | src/workbench-understanding.js | HIGH | 3 | 14 | 2 |
+| generateCommunicationFixture | scripts/generate-workbench-874-fixtures.js | LOW | 0 | 0 | 0 |
+| classifyCodeTokens | src/workbench-code-classification.js | LOW | 0 | 0 | 0 |
+| artifactProviderSchema | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – |
+| restoreArtifactContract | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – |
+| understand | src/workbench-understanding.js | HIGH | 3 | 14 | 2 |
+| tests/workbench-874.test.js | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – |
+
+## Getrennte Ausgabeform und abschließende Teilverträge
+
+Weitere erfolgreiche Upstream-Prüfungen vor den Korrekturen: `extractOutputContract`
+(bei Erstaufnahme UNKNOWN, nach Indizierung LOW, 0 direkte Aufrufer),
+`classifyCodeTokens` (LOW, 0 direkte Aufrufer), `artifactProviderSchema`
+(LOW, 2 direkte Aufrufer, 2 Abläufe), `materializeTables` (neues Symbol UNKNOWN),
+`generateAnswerResult` und `decorateAnswer` (HIGH, je 1 direkter Aufrufer,
+4 betroffene Symbole, 2 Abläufe), `understand` (HIGH, 3 direkte Aufrufer,
+14 betroffene Symbole, 2 Abläufe). Die HIGH-Risiken wurden vor den Änderungen
+benannt. Die getrennte Extraktion verwendet denselben geschlossenen
+Artefaktvertrag. Teil-Zielgruppen und adressierte Nachrichten werden nicht mehr
+von der globalen Einordnung überschrieben. Tabellenzeilen behalten ihre
+Quellenmetadaten und werden mit den bestellten Spalten deterministisch aufgebaut.
+Die Rollenprüfung erhält ausschließlich aktuelle Originalwerte; eine gemeinsame
+Bedeutungsfrage umfasst alle darin aufgezählten fachlichen Werte.
+
+Die zusätzliche Unterscheidung zwischen aktueller Arbeitsaufgabe und ausdrücklich
+angeforderter Suche nach gespeicherten CET-Vorgängen wurde ebenfalls vorab
+analysiert: `extractConversationPreferences` LOW (0 direkte Aufrufer),
+`understand` HIGH (3 direkte Aufrufer, 14 betroffene Symbole, 2 Abläufe).
+Die Unterscheidung ist ein geschlossenes semantisches Feld; sie verwendet keine
+Suchwort-, Systemnamen- oder Fachcodeliste.
+
+## Abschließende Rückfrage- und Sicherheitsprüfung
+
+Vor der Korrektur der Rückfrageliste wurde `classifyCodeTokens` erneut geprüft
+(LOW, 0 direkte Aufrufer). Bei ausdrücklich aktivem Rückfragemodus führt eine
+schemagebunden als klärungsbedürftig erkannte Situation ohne verwendbare neue
+Frage zur bestehenden begrenzten Reparatur. Der gezielte Regressionstest deckt
+auch diese leere Liste ab.
+
+Vor den CI-Sicherheitskorrekturen: `materializeTables` LOW (0 direkte Aufrufer),
+`renderCaseMemory` HIGH (1 direkter Aufrufer, 4 betroffene Symbole, 2 Abläufe),
+`validateWorkbench874Live` und `generateEmbeddingDriftFixture` LOW;
+`escapeTableCell` vor seiner Aufnahme UNKNOWN. Der HIGH-Befund wurde vorab
+benannt. Beide Tabellenpfade teilen nun dieselbe vollständige Behandlung von
+Backslashes, Zelltrennern und Zeilenumbrüchen. Der Live-Runner verwendet ohne
+expliziten Zielpfad ein privat angelegtes temporäres Verzeichnis.
+
+Die weitere Upstream-Prüfung der Tokenklassifikation ist LOW (0 direkte
+Aufrufer). Die vorgeschlagenen Zeichenformen dürfen nicht selbst wieder als
+Kennung maskiert werden: ausschließlich numerische Zeichen-, Buchstaben- und
+Ziffernanzahlen werden mitgegeben. Bei einer ausdrücklichen Bedeutungsfrage
+bleiben nicht zuordenbare Referenzwerte ohne belegte Familie als ungeklärte
+Kandidaten erhalten, statt stillschweigend zu verschwinden. Das behauptet keine
+Bedeutung und erzeugt ohne Quelle weiterhin ausschließlich „nicht belegt“.
+Bekannte Objektfamilien, Systeme und Glossarbegriffe werden dadurch nicht zu
+Fachcodes. Bestellte Arbeitsprodukte aktivieren diesen Unsicherheitspfad nicht.
+
+## Bericht, Rückfragen und lesbarer Fallstatus
+
+Weitere erfolgreiche Upstream-Analysen vor den Änderungen:
+`questionsFor`, `validateCommunication` LOW; `forbiddenWording` als neues Symbol
+UNKNOWN. Wortstämme gelten jetzt auch für Rückfragen und einleitende Sachabsätze.
+`answer` LOW (2 direkte Aufrufer, 10 betroffene Symbole, 2 Abläufe),
+`renderCaseMemory` und `canRenderCaseRequest` HIGH (je 1 direkter Aufrufer,
+4 betroffene Symbole, 2 Abläufe), Query-`handler` LOW; bei Mehrdeutigkeit wurde
+zusätzlich die Symbolposition 1426–1561 im Graphen überprüft. Ein eindeutiger
+Status-Treffer liefert seine bereits autorisierte Fallreferenz mit, ohne den
+Vorgang oder die Chat-Zuordnung zu ändern. Sprachverbote gelten für die
+vorhandene Falldarstellung; betroffene gespeicherte Werte werden neutral markiert.
+
+`filterAnswer`, `CLAIM` und `answerPrompt` sind LOW. Ein optionales `inputQuote`
+wird nur bei einem exakten Originalausschnitt akzeptiert; dann überschreibt der
+Server jeden zusätzlich generierten Text durch ein ausdrücklich bezeichnetes
+Berichtszitat. Daraus folgt keine eigene Codebedeutung oder bestätigte Erledigung.
+Ohne exakten Beleg bleibt der bisherige Codefilter wirksam.
+`clarifyMissingInformation` war vor seiner Aufnahme UNKNOWN; der begrenzte
+Klärungsschritt nutzt den vorhandenen Informations-/Fragenvertrag und zentralen
+Client. `classifyCodeTokens` wurde vor seiner Anbindung erneut mit LOW geprüft.
+`fallbackAnswer` HIGH (1 direkter Aufrufer, 4 betroffene Symbole, 2 Abläufe),
+`answerBody` LOW: bei vorhandenen Rückfragen bleibt ein sprachlich zulässiger,
+wörtlicher Berichtskontext sichtbar, auch wenn keine Modellbewertung zustande kam.
+`generateAnswerResult` HIGH (1 direkter Aufrufer, 4 betroffene Symbole, 2 Abläufe):
+Sprachprüfung auch nach Umwandlung von Berichtszitaten und nach Offenlegungsprüfung.
+Alle HIGH-Befunde wurden vor den jeweiligen Änderungen benannt.
+
+## Aktuelle Codefragen und schemagebundene Schrittfolge
+
+Upstream vor den Änderungen: `runContentTurn` LOW (1 direkter Aufrufer,
+16 betroffene Symbole, 0 ausgewiesene Abläufe), `unresolvedQuestions` LOW
+(1 direkter Aufrufer, 9 betroffene Symbole, 1 Ablauf). Code-Rückfragen werden
+nur aus den aktuellen Auflösungen erzeugt; alte `code:`-Fragen gelangen nicht
+in eine neue unabhängige Sachfrage. Die gespeicherte Anrede gilt auch dort.
+
+`materializeTables`, `instruction`, `ARTIFACT_ANSWER_SCHEMA`,
+`extractOutputContract`, `generateCommunicationFixture` und `filterAnswer` LOW;
+`generatePracticeCatalog` LOW (4 direkte Aufrufer). Das vorhandene Materialisieren
+wird auch für `orderedSteps` wiederverwendet: fortlaufende Nummern und bestellte
+Abschnittsüberschriften entstehen serverseitig, Quellenmetadaten bleiben erhalten.
+`generateAnswerResult` HIGH (1 direkter Aufrufer, 4 betroffene Symbole, 2 Abläufe):
+eine klare aktuelle Sachfrage darf nicht ausschließlich mit weiteren Schritten
+beantwortet werden. Die bestehende begrenzte Reparatur verlangt eine direkte Antwort.
+`understand` HIGH (3 direkte Aufrufer, 14 betroffene Symbole, 2 Abläufe):
+neue personenbezogene Deutungen werden weder als neue Fallrisiken noch als
+Sachstandsrisiken übernommen. Die HIGH-Risiken wurden vorab benannt.
+
+Das Risiko-Pflichtmuster des bestehenden Governance-Szenarios wurde um die
+korrekte Mehrzahl erweitert. Dafür wurden ausschließlich die unveränderten
+Referenzantworten erneut deterministisch geprüft; Modellaufrufe, übrige Prüfungen
+und Rubriken bleiben erhalten. Die Beschreibung der Korrektur steht im Referenzbericht.
+
+Abschließender geprüfter Änderungsumfang vor dem Commit: gegen `origin/main`
+59 Dateien, 449 Symbole und 38 Abläufe, CRITICAL; gegen die ältere lokale
+`main`-Referenz 290 Dateien, 2549 Symbole und 93 Abläufe, CRITICAL; im Staging
+23 Dateien, 180 Symbole und 34 Abläufe, CRITICAL. Die größere lokale
+`main`-Differenz enthält bereits auf `origin/main` vorhandene Vorläufer.
+Die tatsächliche PR-Differenz wird zusätzlich gegen `origin/main` geprüft.
+Die geprüften Abläufe betreffen Gesprächsführung, Code-/Belegverarbeitung,
+Maskierung und Fallzugriff. Die gemeinsam genutzten zentralen Aufrufe erklären
+den übergreifenden Wirkungsbereich. Für die großen generierten Diffs wurde nur
+bei den GitNexus-Aufrufen `diff.interHunkContext=100000` verwendet; dies erweitert
+Diff-Bereiche und schließt keine Änderungen aus.
+
+Vor Ergänzung der letzten vorhandenen Einordnung im normalen Fallabruf:
+`renderCaseMemory` HIGH (1 direkter Aufrufer, 4 betroffene Symbole, 2 Abläufe),
+vorher benannt. Das bereits bestehende `lastSafeConclusion` wird als Arbeitsstand
+gezeigt und durch dieselbe Sprachprüfung geschützt. Explizite Tabellen- und
+Abschnittsaufträge behalten ihre bestellte Form.
+
+Erneute Änderungsprüfung vor diesem Folgecommit: gegen `origin/main` 59 Dateien,
+450 Symbole, 38 Abläufe (CRITICAL); gegen die ältere lokale `main` 290 Dateien,
+2550 Symbole, 93 Abläufe (CRITICAL); der Folgecommit selbst umfasst 7 Dateien,
+5 Symbole und keine zusätzlich ausgewiesenen Abläufe (LOW).
+
+## Erhalt der vorhandenen Organisationsaussagen
+
+Der Vergleich deckte eine Regression auf: Die zusätzliche Klassifikation des
+Arbeitskontexts behandelte eine organisationswirksame Planung eines benannten
+Gegenstands als Einzelfall und verwarf eine zuvor korrekt erkannte Aussage.
+Vor der Korrektur wurden `INSTRUCTION` in `tenant-memory-schema`,
+`extractConversationPreferences` und `generateCommunicationFixture` erneut
+Upstream geprüft (LOW, jeweils 0 direkte Aufrufer). Die neue gemeinsame
+Konstante `SCOPE_INSTRUCTION` war vor ihrer Aufnahme UNKNOWN.
+Die vorhandene Geltungsbereichsregel wird jetzt gemeinsam verwendet; der
+bisherige Extraktionshinweis ist zur Laufzeit bytegleich geblieben. Es gibt
+keinen zusätzlichen Modellaufruf und keine neue fachliche Begriffsliste.
+Einzelfall-Sachbearbeitung wird weiterhin ausgeschlossen. Die Regression wird
+zusätzlich mit den bestehenden Gedächtnistests und zehn echten Wiederholungen
+für die Verknüpfung der Aussagen geprüft.
+
+## Präzise Glossareinträge und quellengebundene Fachcodes
+
+Vor diesen Änderungen: `ASSERTION` LOW; `capture` HIGH (1 direkter Aufrufer,
+8 betroffene Symbole, 1 Ablauf); `understand` HIGH (3 direkte Aufrufer,
+14 betroffene Symbole, 2 Abläufe); `classifyCodeTokens` und
+`extractConversationPreferences` LOW. Die Risiken der zentralen Speicher- und
+Verständnispfade wurden vorab benannt. Die neue gemeinsame Funktion
+`glossaryDefinition` war vor ihrer Aufnahme UNKNOWN.
+
+Die schemagebundene Auswahl enthält ausdrücklich „none“. Normale Planungen und
+Randbedingungen bleiben Organisationsaussagen. Ein Glossareintrag erfordert
+unterschiedliche, nicht leere Begriffe und Bedeutungen, beide im zugrunde
+liegenden Text belegt. Verständnis und Speicherung verwenden dieselbe Prüfung.
+Eine positiv als Fachcode erkannte Referenz bleibt auch bei gleichlautendem
+Tenant-Glossar quellenpflichtig; die Bedeutung wird nicht durch eine bloße
+Benutzeraussage ersetzt. Die bestehenden Tenant-Gedächtnistests sowie die
+Regressionstests für Codebelege und Glossarvalidierung bleiben erhalten.
+
+Abschließende Änderungsprüfung dieses Folgecommits: `origin/main` 59 Dateien,
+459 Symbole, 38 Abläufe (CRITICAL); lokale `main` 290 Dateien, 2555 Symbole,
+93 Abläufe (CRITICAL); staged 12 Dateien, 50 Symbole, 1 Ablauf (MEDIUM).
+Die zentrale Verständnis- und Speicherlogik erklärt den erwarteten Umfang.
+
+## Rückfragen nach einer Modusmitteilung
+
+Vor der Korrektur erneut upstream: `classifyCodeTokens` LOW (0 direkte Aufrufer),
+`understand` HIGH (3 direkte Aufrufer, 14 betroffene Symbole, 2 Abläufe), vorab
+benannt. Eine falsch als reine Modusmitteilung eingestufte Sachfrage übersprang
+die unabhängige Klärungsprüfung. Diese Prüfung darf jetzt auch die Klassifikation
+korrigieren: Tatsächlich ermittelte neue Fragen haben Vorrang vor `preferenceOnly`.
+Reine Modusmitteilungen bleiben durch den bestehenden geschlossenen Prüfschritt
+ohne künstliche Fragen. Ein Regressionstest reproduziert beide falschen
+Klassifikationen zusammen.
+
+Das Intake-Pflichtmuster akzeptiert die gleichbedeutenden Formulierungen Anmeldung,
+Anmeldestand und Anmeldestatus. Upstream `generatePracticeCatalog` LOW
+(4 direkte Aufrufer, 10 betroffene Symbole, 0 Abläufe). Der feste Datenschutz-
+Wortschatz erhielt nur die beiden geprüften generischen Wörter; sein anonymer
+Export ist UNKNOWN. Alle Namens-, Datenschutz- und Inhaltsprüfungen bleiben aktiv.
+Auch die unveränderten Referenzantworten wurden nur mit diesem präzisierten
+Pflichtmuster nachgeprüft, ohne neue Modellaufrufe oder Änderungen der Rubriken.
+
+Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 461 Symbole /
+38 Abläufe (CRITICAL); lokale `main` 290 / 2557 / 93 (CRITICAL); staged
+13 / 9 / 1 (MEDIUM). Die gezielten 15 Testsuiten bestehen alle 819 Tests.
+
+## Präferenzbeleg und unsicher klassifizierte Werte
+
+Erneut vorab geprüft: `understand` HIGH (3 direkte Aufrufer, 14 betroffene
+Symbole, 2 Abläufe); `classifyCodeTokens` LOW (0 direkte Aufrufer). Die Warnung
+für den zentralen Verständnispfad wurde vor der Änderung ausgesprochen.
+
+Die Live-Abnahme zeigte zu früh gestellte Fragen bereits bei der bloßen
+Modusmitteilung. `preferenceOnly` benötigt nun den wörtlichen aktuellen
+Präferenzbeleg. Ein solcher Modus bleibt ohne künstliche Fragen; eine spätere
+Sachfrage ohne neue Präferenz wird nicht als bloßer Modus unterdrückt.
+Beide Gegenrichtungen sind als Regression getestet.
+
+Bei einer ausdrücklich erfragten gemeinsamen Bedeutung darf eine unsichere
+Einordnung eines Werts als `other` ihn nicht ersatzlos aus der Antwort entfernen.
+Die vorhandene ungesicherte Referenzbehandlung gilt auch für diese Enthaltung.
+Ein unabhängig erkanntes Bedeutungsanliegen bleibt erhalten. System-, Format-,
+Feld- und Begriffskategorien bleiben getrennt. Keine Bedeutung wird geraten;
+auch diese Werte benötigen die vorhandenen Wissensquellen oder „nicht belegt“.
+Die Tests prüfen `reference` und `other` mit vollständig fehlenden lokalen
+Bedeutungsmarkierungen. Ein zusätzlicher diagnostischer Lauf erfasste zehn
+synthetische Bedeutungsfragen über die zentrale Fassade, ohne Produktivzugriff.
+
+Änderungsprüfung vor diesem Folgecommit: gegen `origin/main` 59 Dateien,
+463 Symbole, 38 Abläufe (CRITICAL); lokale `main` 290 / 2559 / 93 (CRITICAL);
+staged 8 / 7 / 1 (MEDIUM). Alle 822 gezielten Tests in 15 Testsuiten grün.
+
+## Nachgewiesene Filterursache und Erhalt bestellter Abschnitte
+
+Vorab upstream erneut erfolgreich: `classifyCodeTokens` LOW (0 direkte Aufrufer),
+`understand` HIGH (3 direkte Aufrufer, 14 betroffene Symbole, 2 Abläufe), vor der
+Änderung benannt. Die diagnostische Aufzeichnung zeigte die genaue Codeursache:
+Ein Wert bekam `category=reference`, eine nicht leere Familie und
+`meaningRequested=false`; die gemeinsame Bedeutungsfrage blieb ausdrücklich
+erkannt. Die zusätzliche Bedingung „Familie leer“ entfernte ihn aus der Antwort.
+Bei diesem ausdrücklich erkannten Bedeutungsanliegen darf eine Familie den Wert
+nicht mehr ausschließen. Die Quellenpflicht bleibt unverändert. Eine alternative
+Diagnose mit stabilen Platzhaltern löste den Fehler nicht und wurde nicht in den
+Produktcode übernommen.
+
+Eine weitere beobachtete Ursache: Der aktuelle ursprüngliche Artefaktvertrag
+enthielt die wörtlichen Abschnittsnamen; die Verfeinerung lieferte für dieselbe
+Abschnittsausgabe eine leere Liste. Bei gleich vielen Teilen werden nun ausschließlich
+wörtlich im aktuellen Auftrag belegte ursprüngliche Abschnittsnamen erhalten.
+Keine Abschnittsnamenliste, keine zusätzliche Erkennung und kein weiterer Aufruf.
+Die Regressionstests reproduzieren beide dokumentierten Fehlpfade.
+
+Für den letzten Rückfragepfad wurde `understand` erneut upstream geprüft (HIGH,
+3 direkte Aufrufer, 14 betroffene Symbole, 2 Abläufe), vorher benannt. Eine
+wörtlich belegte Modusmitteilung bleibt zunächst ohne künstliche Fragen. Wenn
+der Rückfragemodus aber schon aus dem vorherigen Turn gilt, haben unabhängig
+ermittelte neue Fragen zur aktuellen Sachfrage Vorrang vor `preferenceOnly`.
+Der Regressionstest nutzt dafür nun ausdrücklich einen nicht leeren aktuellen
+Beleg; die Gegenprüfung für die erstmalige Modusmitteilung bleibt erhalten.
+
+Änderungsprüfung vor diesem Folgecommit: gegen `origin/main` 59 Dateien /
+464 Symbole / 38 Abläufe (CRITICAL); lokale `main` 290 / 2560 / 93 (CRITICAL);
+staged 8 / 9 / 1 (MEDIUM). Alle 824 gezielten Tests in 15 Testsuiten grün.
+
+## Berichteten Sachstand nach der Quellenprüfung erhalten
+
+Upstream vorab: `generateAnswerResult` HIGH (1 direkter Aufrufer, 4 betroffene
+Symbole, 2 Abläufe); vor der Änderung benannt. Ein zusätzlicher synthetischer
+Diagnoselauf zeichnete den tatsächlichen Fehler auf: Der Entwurf hatte den
+Sachstand als Eingangsangabe markiert, `inputQuote` jedoch paraphrasiert. Die
+vorhandene Quellenprüfung verwarf folgerichtig den unbelegten Absatz; die übrige
+Antwort enthielt nur noch einen Prüfschritt und wurde trotzdem akzeptiert.
+
+Der neue Regressionstest schlug am bisherigen Stand fehl (eine statt zwei
+Antworterzeugungen; berichteter Sachstand fehlte). In normalen Arbeitsantworten
+wird jetzt die vorhandene begrenzte Reparatur genutzt, wenn die Codeprüfung die
+gesamte Einordnung entfernt hat. Sie fordert einen unveränderten Eingangsbeleg;
+die ursprüngliche Quellenprüfung bleibt unverändert und muss diesen Beleg erneut
+akzeptieren. Keine fachliche Bedeutung wird aus dem Nutzertext bestätigt.
+Fehlende und nicht wörtliche Belege sind getrennt getestet. Reine Bedeutungsfragen,
+Entwürfe, Gespräche und bloße Folgefragen nach dem nächsten Schritt behalten ihre
+vorhandenen Wege. Keine Stichwortliste und kein zusätzlicher eigener Prüfdienst.
+
+Vor dieser letzten Korrektur waren alle lokalen Gates auf `8185ba43` grün:
+`npm test` 10.158 bestanden / 73 ausgelassen, Coverage-Grenzen bestanden;
+TDD 82 bestanden / 4 ausgelassen, Pflicht-IDs 66/66; alle statischen Gates und
+106 Python-Tests bestanden. Die Live-Abnahme der neun neuen Szenarien bestand
+27/27 Läufe; das größere Gate blieb wegen des hier nachgewiesenen Eingangsturns
+bei 14/15 vollständigen Gruppen. Die Abschlussmessung wird für den korrigierten
+Produktstand erneut durchgeführt; ältere Ergebnisse bleiben als Diagnose erhalten.
+
+Die bestehende #813-Regressionsprüfung schützt außerdem alte Aufrufer ohne
+`codeReferences`. Nach erneuter Upstream-Prüfung desselben Antwortpfads (HIGH,
+1 direkter Aufrufer / 4 betroffene Symbole / 2 Abläufe, vorher benannt) wurde die
+neue Reparatur ausdrücklich auf den neuen Codevertrag begrenzt. Der alte
+Rückfragepfad ohne diesen Vertrag bleibt erhalten; sein Test wurde nicht geändert.
+
+Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 465 Symbole /
+38 Abläufe (CRITICAL); lokale `main` 290 / 2561 / 93 (CRITICAL); staged
+7 / 6 / 0 (LOW). Alle 826 gezielten Tests in 15 Testsuiten bestanden.
+
+## Schemagebundener Abschnittsaufbau
+
+Vorab upstream: `materializeTables`, die gemeinsame Artefaktanweisung und
+`ARTIFACT_ANSWER_SCHEMA` jeweils LOW (0 direkte Aufrufer im Index). Dynamische
+Aufrufe werden zusätzlich durch die bestehenden Artefakt- und Antworttests geprüft.
+Der größere Live-Lauf auf `e8284140` lieferte bei einem Muster trotz korrektem
+Abschnittsvertrag die sichere Rückfallantwort mit `artifact_sections_mismatch`.
+Die Codeprüfung für Standardantworten war hier nicht beteiligt.
+
+Die vorhandene Materialisierung für Tabellen und nummerierte Schritte übernimmt
+nun auch `sectionContents`: je bestellter Überschrift genau ein nicht leerer
+Abschnitt mit den ursprünglichen Claims. Überschriften werden auf dem Server aus
+dem Vertrag erzeugt. Fehlende, zusätzliche, falsch geordnete und widersprüchlich
+mit anderem Inhalt gemischte Abschnitte bleiben ungültig. Quellen-, Sprach- und
+Offenlegungsprüfungen arbeiten anschließend auf denselben materialisierten Claims.
+Der alte Markdown-Vertrag bleibt für bestehende Aufrufer verfügbar und wird
+weiterhin unverändert streng geprüft. Keine Stichwortliste, kein neuer LLM-Pfad
+und keine zusätzliche Wiederholungsschleife. Die Tests nutzen ausschließlich die
+vorhandenen generierten Abschnitts- und Inhaltsfixtures.
+
+Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 467 Symbole /
+38 Abläufe (CRITICAL); lokale `main` 290 / 2563 / 93 (CRITICAL); staged
+8 / 12 / 0 (LOW). Alle 832 gezielten Tests in 15 Testsuiten bestanden.
+
+## Eindeutigen Originalbeleg nach erfolgloser Reparatur zurückgewinnen
+
+Vorab upstream `generateAnswerResult`: HIGH, 1 direkter Aufrufer, 4 betroffene
+Symbole, 2 Abläufe; vor der Änderung benannt. Die vollständige Aufzeichnung zeigte,
+dass die zweite Antwort den Beleg erneut paraphrasierte. Der vorherige begrenzte
+Reparaturweg verweigerte deshalb folgerichtig die Aussage.
+
+Nur nach diesem erfolglosen Versuch darf jetzt ein eindeutiger Originalsatz der
+aktuellen Nachricht zurückgewonnen werden. Die Anker stammen ausschließlich aus
+den bereits schemagebundenen ungeklärten Referenzen; es gibt keine Wortliste.
+Genau ein Originalsatz muss alle in der aktuellen Nachricht genannten betroffenen
+Referenzen enthalten und in die vorhandene Claim-Längengrenze passen. Es wird
+niemals der unbelegte Modelltext übernommen: Der unveränderte Originaltext wird
+als Nutzerbericht mit `completedAction=false` durch dieselben Quellen- und
+Sprachprüfungen geführt. Mehrere passende Originalstellen bleiben mehrdeutig und
+werden nicht automatisch ausgewählt. Zusammengesetzte Referenzen mit Punkten
+bleiben erhalten. Kein neuer LLM-Aufruf und keine Lockerung von `filterAnswer`;
+dessen bestehende Tests für nicht wörtliche Belege bleiben unverändert.
+
+Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 468 Symbole /
+38 Abläufe (CRITICAL); lokale `main` 290 / 2564 / 93 (CRITICAL); staged
+7 / 6 / 0 (LOW). Alle 835 gezielten Tests in 15 Testsuiten bestanden.
+
+## Quellenpflicht in allen Klassifikationsstufen und Abschnittsformen
+
+Vorab upstream: `understand` HIGH (3 direkte Aufrufer, 14 betroffene Symbole,
+2 Abläufe), vorher benannt; `SCHEMAS`, `INSTRUCTION` und
+`validateCommunication` LOW (jeweils 0 direkte Aufrufer im Index). Die neue
+Konstante `REGULATORY_SCOPE` war vor ihrer Aufnahme UNKNOWN.
+
+Die Aufzeichnung eines Governance-Turns enthielt bereits eine korrekte
+Unsicherheitskennzeichnung im Modell-Ergebnis. Die global entscheidenden offenen
+Angaben entfernten jedoch die Annahmen, während die normative Einordnung im
+Lagebild falsch negativ war. Die bestehende semantische Definition wird nun als
+eine gemeinsame Schemabeschreibung an beide Klassifikationsstufen weitergegeben;
+eine Verfeinerung darf eine bereits erkannte Quellenpflicht nicht löschen.
+Der bisherige Verständnis-Hinweis bleibt zur Laufzeit bytegleich (zusätzlich
+gegen die gespeicherte Vorversion geprüft). Keine Fachwortsuche im Nachrichtentext.
+
+Die Quellenkennzeichnung behandelt reine Abschnittsüberschriften als Beschriftung.
+Bei herkömmlichem Markdown mit Überschrift und Inhalt folgt die Kennzeichnung
+unter der Überschrift. Strukturierte und herkömmliche Abschnitte behalten so
+ihre bestellten Namen und Reihenfolge; ihre inhaltlichen Aussagen bleiben bei
+fehlendem Beleg ausdrücklich zu prüfende Annahmen. Tabellen behalten den
+bestehenden Kennzeichnungsweg. Neue Tests prüfen die gemeinsame Beschreibung,
+den Erhalt einer positiven Quellenpflicht und beide Abschnittsformen.
+
+Die neue Prüfung des tatsächlichen Übergabekanals zeigte zusätzlich, dass die
+Fassade Schema-Beschreibungen im Anbieterschema nicht überträgt. Deshalb reicht
+die neue gemeinsame Beschreibung allein nicht: Nach Upstream-Prüfung von
+`classifyCodeTokens` (LOW, 0 direkte Aufrufer) wird derselbe Wert auch ausdrücklich
+als vertrauenswürdige Prompt-Vorgabe in die Verfeinerung gegeben. Die generische
+Fassade bleibt unverändert. Der Test prüft diesen tatsächlich übertragenen Wert,
+nicht lediglich die lokale Schemadefinition.
+
+Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 528 Symbole /
+38 Abläufe (CRITICAL); lokale `main` 290 / 2566 / 93 (CRITICAL); staged
+9 / 16 / 1 (MEDIUM). Die zusammengefassten Diff-Bereiche umfassen konservativ
+weitere Symbole der gemeinsam verwendeten Kommunikationsmodule. Alle 838
+gezielten Tests in 15 Testsuiten bestanden.
+
+## Integration des aktuellen Hauptzweigs und Sicherheitskorrektur
+
+Der Hauptzweig `13ef8287db927e5d661a15d517e58aff81a2b432` wird per echtem
+Merge übernommen. Seine bereits überprüfte ToolRun-Inspector-Projektion (#660)
+bleibt unverändert; die Fallstatus-Erweiterungen dieses PR bleiben erhalten.
+Vor Übernahme wurden die bestehenden Service-Symbole upstream geprüft:
+`Function:services/workbench.service.js:action`: LOW, ein direkter Aufrufer,
+16 transitiv betroffene Symbole, keine zugeordneten Abläufe;
+`Function:services/workbench.service.js:*`: LOW, keine erkannten direkten
+Aufrufer oder Abläufe. Die neue Methode `toolRunInspectorOptions` und die neun
+neuen Presenter-Funktionen sind im vorherigen Index noch nicht vorhanden
+(UNKNOWN); sie werden aus dem Hauptzweig unverändert importiert. Diese Aussage
+ersetzt keine Laufzeitprüfung: die neuen Inspector-Tests laufen mit.
+
+Vor der Sicherheitskorrektur wurde `validateCommunication` erneut upstream
+geprüft: LOW, keine statisch erkannten direkten Aufrufer oder Abläufe. Sonar
+meldete am verschachtelten Ausdruck für führende Markdown-Überschriften
+`javascript:S5852`. Ein linearer zeilenweiser Parser ersetzt diesen Ausdruck;
+Kennzeichnung und Abschnittsvertrag bleiben gleich. Die vorhandenen Tests für
+strukturierte und herkömmliche Abschnitte prüfen beide Ausgabewege erneut.
+Keine Unterdrückung der Sicherheitsregel. Konflikte in generierten Dateien
+werden durch die jeweiligen Generatoren aufgelöst; beide Changelog-Einträge
+bleiben erhalten.
+
+Der vollständige vorherige Produktstand `befc4a56` bestand 10.172 Tests
+(73 ausdrücklich übersprungen), alle Coverage-Gates, die TDD-Matrix
+(82 bestanden, vier übersprungen; 66/66 erforderliche IDs) und sämtliche
+statischen Prüfungen. Die vollständige Live-Messung hatte 88/88 Läufe,
+15/15 betroffene Gruppen grün und 23/27 im Gesamtkatalog. Diese Werte werden
+nicht als Nachweis für den neuen integrierten Produktstand ausgegeben.
+
+Änderungsprüfung vor dem Integrationscommit, bei geschlossenem neuem Index:
+gegen `origin/main` 59 Dateien / 471 Symbole / 38 Abläufe (CRITICAL), gegen
+lokale `main` 292 / 2626 / 93 (CRITICAL), staged 13 / 113 / 6 (HIGH).
+Die vorab gemeldeten hohen Stufen umfassen konservativ den unverändert
+importierten Inspector sowie gemeinsame Laufzeitpfade und generierte Bereiche.
+
+## Gespeicherte Präferenzen im lesenden Statuspfad
+
+Die vollständige Messung `c09f202d` lieferte 88/88 Läufe, alle neun neuen
+Abnahmeszenarien jeweils dreimal grün, aber nur 14/15 betroffene Gruppen.
+Im dritten Governance-Lauf kehrte der Statuspfad ohne Modellaufruf mit der
+alten Kurzbeschreibung zurück: Arbeitsfelder fehlten, eine ausgeschlossene
+Formulierung und die technische Actor-ID erschienen. Daher keine Merge-Freigabe.
+
+Die erste Rückfallentscheidung prüfte nur `knownContext.situation` und
+`caseWork` im Routerzustand; gespeicherte Turn-Präferenzen blieben unsichtbar.
+Die zweite Entscheidung berücksichtigte nur bestellte Artefakte und Arbeitsfelder,
+nicht die aus der Fallsuche zurückgelieferten Turn-Präferenzen. Beide
+Entscheidungen verwenden nun zusätzlich das bereits vorhandene Turn-Gedächtnis.
+Die erste liest es ausschließlich nach bestätigter `rawContentAllowed`-Prüfung.
+Dieselbe bestehende semantische Suche und Fallprojektion erstellt die Antwort;
+Tenant-Sichtbarkeit und Clearance bleiben gleich. Keine neue Wortliste oder
+zusätzliche Klassifikation.
+
+Vor Änderung: `Method:services/workbench.service.js:handler#1` upstream LOW,
+keine statisch erkannten direkten Aufrufer oder Abläufe; `generateCommunicationFixture`
+upstream LOW, ebenfalls keine erkannten direkten Aufrufer oder Abläufe.
+Die dynamischen Routen werden durch zwei generierte Regressionsvarianten geprüft:
+Präferenz ausschließlich im Turn-Gedächtnis sowie zusätzlich im Fallzustand,
+jeweils ohne Arbeitsfelder oder bestelltes Artefakt. Beide bestehen mit Korrektur
+und scheitern mit dem unveränderten vorherigen Handler (gezielte Gegenprobe).
+Die Test-Actor-ID wird ausschließlich synthetisch im Generator erzeugt.
+Der supersedierte lokale Gesamtlauf wurde vor Änderung des Produktstands beendet;
+er wird nicht als bestandener Abschlusslauf ausgegeben.
+
+Änderungsprüfung vor dem letzten Folgecommit: `origin/main` 59 Dateien /
+472 Symbole / 38 Abläufe (CRITICAL); lokale `main` 292 / 2627 / 93
+(CRITICAL); staged acht Dateien / acht Symbole / sechs Abläufe (HIGH).
+Die hohen Stufen wurden vor dem Commit ausdrücklich gemeldet.
+
+## Aktive Gesprächsvorgaben statt leerer Standardobjekte
+
+Der folgende lokale Gesamtlauf deckte eine Kompatibilitätsabweichung bei
+Identifier-Status über HTTP auf: Leere Standardpräferenzen lösten die ausführliche
+Fallprojektion aus und ersetzten die bisherige einfache Statusantwort.
+`hasConversationPreferences` bestimmt deshalb die Aktivität aus dem vorhandenen
+`PREFERENCES`-Schema: belegte Register-/Längenvorgaben, erbetene Rückfragen oder
+nicht leere Sprachvorgaben. `unchanged`, normale Rückfragepraxis, leere Listen und
+fehlende Werte sind wirkungslos. Beide Rückfallentscheidungen verwenden dieselbe
+Prüfung; eine neue Liste von Präferenzfeldern wird nicht im Kern dupliziert.
+Die bestehende Zusammenführung bleibt unverändert.
+
+Vor Änderung: Status-Handler upstream LOW, keine statisch erkannten direkten
+Aufrufer oder Abläufe. Der neue Helfer war vor Definition im Index nicht vorhanden
+(UNKNOWN). Die zusätzliche Prüfung von `mergePreferences` meldete CRITICAL,
+einen direkten Aufrufer, sieben betroffene Symbole und zwei Prozesse; dies wurde
+vor weiteren Änderungen ausdrücklich gemeldet. `mergePreferences` wurde nicht
+geändert. Die 104 gezielten Tests in drei Suiten bestanden, einschließlich
+Bestands-HTTP, gespeicherter Vorgaben und schemaabgeleiteter Standardwerte.
+Der fehlgeschlagene Gesamtlauf wird nicht als grüne Abschlussprüfung verwendet.
+
+Änderungsprüfung vor diesem Abschlusscommit: `origin/main` 59 Dateien /
+509 Symbole / 40 Abläufe (CRITICAL); lokale `main` 292 / 2629 / 95
+(CRITICAL); staged acht Dateien / 48 Symbole / acht Abläufe (HIGH).
+Die neuen Beziehungen stammen aus dem gemeinsamen Präferenzhelfer im Statuspfad;
+zusammengefasste Diff-Bereiche umfassen konservativ weitere Symbole. Die Stufen
+wurden vor dem Commit ausdrücklich gemeldet. Der zuvor fehlgeschlagene
+Bestands-HTTP-Block bestand im neuen Gesamtlauf vollständig.

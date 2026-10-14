@@ -2,14 +2,14 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "63be19315e9d7f93a6187d6cc94cdc8553cf50e55be164785afbb2ee65de7362",
+  "sourceOpenApiHash": "13654f2f76b8e3da4fc677c6eaa72713beaa0724d4df2d3fa7441f1be197a050",
   "coverage": {
-    "rawOperationCount": 1256,
-    "operationCount": 1000,
-    "agentableCount": 998,
+    "rawOperationCount": 1257,
+    "operationCount": 1001,
+    "agentableCount": 999,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 431,
+      "data_read": 432,
       "admin": 23,
       "object_store_write": 269,
       "process_step": 26,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 981,
+    "resolvedActionCount": 982,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -80764,6 +80764,70 @@
         "negativeCues": [],
         "examples": [
           "Please audit and discard legacy administrative deletion notices once per tenant"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "tenant-memory-policy_glossary",
+      "method": "GET",
+      "path": "/api/tenant-memory-policy/glossary",
+      "service": "tenant-memory-policy",
+      "action": "tenant-memory-policy.glossary",
+      "summary": "List visible tenant glossary entries with an audit entry",
+      "tags": [
+        "Tenant Memory Policy"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tenant-memory-policy.glossary"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tenant-memory-policy:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tenant",
+          "memory",
+          "policy",
+          "glossary",
+          "list",
+          "visible",
+          "entries",
+          "with",
+          "an",
+          "audit",
+          "entry"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list visible tenant glossary entries with an audit entry"
         ],
         "synonyms": [
           "agent infrastructure",

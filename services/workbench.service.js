@@ -37,6 +37,7 @@ const {
   presentToolRunInspectorList,
 } = require('../src/workbench-toolrun-presenter');
 const { buildTurnMemory, safeTurnMemory } = require('../src/workbench-turn-memory');
+const { hasConversationPreferences } = require('../src/workbench-communication');
 const {
   defaultPlaybooksForTenant,
   matchPlaybooks,
@@ -1503,13 +1504,93 @@ module.exports = {
             envelope.userRequest,
             meta
           );
-          return (
-            linkedStatus ||
-            conversationStatus || {
-              responseText:
-                'Ich kann den Vorgang noch nicht eindeutig zuordnen. Nenne mir eine Fallnummer oder eine Kennung, dann prüfe ich Bearbeitung und Stand.',
+          if (linkedStatus || conversationStatus) {
+            const router = this.broker.getLocalService('domain-router');
+            let rich = false;
+            for (const item of (linkedStatus || conversationStatus).items || []) {
+              const state = await router.loadCase(p, item.cetCaseId, { summaryOnly: true });
+              if (!require('../src/case-linking').rawContentAllowed(p, state)) continue;
+              const turnMemory = await this.loadTurnMemory(p, state.cetCaseId);
+              if (
+                hasConversationPreferences(
+                  state.knownContext?.situation?.conversationPreferences
+                ) ||
+                hasConversationPreferences(turnMemory?.conversationPreferences) ||
+                Object.values(state.caseWork || {}).some((value) => value?.trim()) ||
+                Object.values(turnMemory?.caseWork || {}).some((value) => value?.trim())
+              )
+                rich = true;
+            }
+            if (!rich) return linkedStatus || conversationStatus;
+          }
+          // Prefer the shared, schema-bound case presentation even for identifier hits.
+          // Exact status remains a fallback when no readable case memory is found.
+          const readContext = {
+            ...ctx,
+            call: (name, input, options) => ctx.call(name, input, { ...options, meta }),
+          };
+          const search = { requested: true, query: envelope.userRequest };
+          const found = await require('../src/workbench-self-knowledge').searchKnowledge(
+            this,
+            readContext,
+            p,
+            {
+              concern: envelope.userRequest,
+              situation: '',
+              selfKnowledge: search,
+              caseSearch: search,
+              dataQuestion: { requested: false, basis: '' },
             }
           );
+          if (found.evidence.some((hit) => hit.source === 'cases')) {
+            const understanding = require('../src/workbench-understanding');
+            const situation = await understanding.understand({
+              message: envelope.userRequest,
+              tenantId: p.tenantId,
+              logger: this.logger,
+            });
+            if (
+              (linkedStatus || conversationStatus) &&
+              !situation.requestedOutput?.requested &&
+              !found.evidence.some(
+                (hit) =>
+                  hasConversationPreferences(hit.metadata?.caseMemory?.conversationPreferences) ||
+                  Object.values(hit.metadata?.caseMemory?.caseWork || {}).some((value) =>
+                    value?.trim()
+                  )
+              )
+            )
+              return linkedStatus || conversationStatus;
+            const reply = await understanding.answer({
+              situation: {
+                ...situation,
+                turnKind: 'knowledge',
+                caseSearch: search,
+                selfKnowledge: search,
+                dataNeeds: '',
+                dataQuestion: { requested: false, basis: '' },
+              },
+              retrieval: found,
+              tenantId: p.tenantId,
+              message: envelope.userRequest,
+              logger: this.logger,
+            });
+            const hits = found.evidence.filter((hit) => hit.source === 'cases');
+            return {
+              ...reply,
+              ...(hits.length === 1
+                ? {
+                    cetCaseId: hits[0].metadata.caseId,
+                    caseDisplayRef: hits[0].metadata.displayRef,
+                  }
+                : {}),
+            };
+          }
+          if (linkedStatus || conversationStatus) return linkedStatus || conversationStatus;
+          return {
+            responseText:
+              'Ich kann den Vorgang noch nicht eindeutig zuordnen. Nenne mir eine Fallnummer oder eine Kennung, dann prüfe ich Bearbeitung und Stand.',
+          };
         }
         const message = envelope.userRequest.toLowerCase();
         if (/\b(tools)\b/.test(message)) return ctx.call('workbench.tools.list', {}, { meta });
