@@ -1,5 +1,6 @@
 'use strict';
 
+const SERVER_CASE_HINT = Symbol('visible-case-search');
 const llm = require('./llm-client');
 const { llmOptions, toFacadeSchema } = require('./workbench-understanding');
 const { safeTurnMemory } = require('./workbench-turn-memory');
@@ -60,7 +61,19 @@ const CASE_FIELDS = [
   'Annahmen',
   'Risiken',
   'Nächste Schritte',
+  'Owner',
+  'Frist',
+  'Nächste Befassung',
+  'Wiedervorlage',
 ];
+
+function caseFieldIndex(heading) {
+  const normalize = require('./function-resolver').normalizePhrase;
+  const name = normalize(heading);
+  return CASE_FIELDS.findIndex(
+    (field) => normalize(field) === name || (name === normalize('Fall') && field === 'Fallnummer')
+  );
+}
 
 function canRenderCaseRequest(request) {
   if (!request?.requested) return true;
@@ -68,23 +81,59 @@ function canRenderCaseRequest(request) {
   return (
     request.parts.length === 1 &&
     request.kind !== 'correspondence' &&
-    (request.kind === 'summary' || part.layout === 'sections') &&
+    (request.kind === 'summary' || ['sections', 'table'].includes(part.layout)) &&
     part.layout !== 'steps' &&
-    !part.columns.length &&
+    part.columns.every((heading) => caseFieldIndex(heading) >= 0) &&
     !request.constraints.length &&
-    !request.forbiddenTerms?.length &&
-    part.sections.every((heading) =>
-      CASE_FIELDS.some(
-        (field) =>
-          require('./function-resolver').normalizePhrase(heading) ===
-          require('./function-resolver').normalizePhrase(field)
-      )
-    )
+    part.sections.every((heading) => caseFieldIndex(heading) >= 0)
   );
 }
 
-function renderCaseMemory(candidate, displayRef, part) {
+function caseWorkLines(memory, excluded = [], preferences = {}) {
+  if (!memory?.caseWork) return [];
+  const banned = preferences?.forbiddenTerms || [];
+  return Object.keys(require('./workbench-communication').CASE_WORK.properties).flatMap(
+    (key, i) => {
+      const label = CASE_FIELDS[i + 7];
+      if (excluded.some((heading) => caseFieldIndex(heading) === i + 7)) return [];
+      const raw = memory.caseWork[key] || 'nicht hinterlegt';
+      const unsafe = banned.some(
+        (term) =>
+          term.trim() &&
+          raw
+            .normalize('NFKC')
+            .toLocaleLowerCase()
+            .includes(term.normalize('NFKC').toLocaleLowerCase())
+      );
+      return [`${label}: ${unsafe ? 'nach Gesprächsvorgabe noch einzuordnen' : raw}`];
+    }
+  );
+}
+
+function caseWorkForAnswer(situation, hits) {
+  if (
+    !situation.caseSearch?.requested ||
+    situation.disclosure?.external ||
+    situation.requestedOutput?.parts.some((part) => part.audience === 'external')
+  )
+    return '';
+  const excluded = (situation.requestedOutput?.parts || []).flatMap((part) => [
+    ...part.sections,
+    ...part.columns,
+  ]);
+  return hits
+    .flatMap((hit) =>
+      caseWorkLines(hit.metadata?.caseMemory, excluded, situation.conversationPreferences)
+    )
+    .join('\n');
+}
+
+function renderCaseMemory(candidate, displayRef, part, preferences = {}) {
   const m = safeTurnMemory(candidate.memory) || {};
+  const safeText = (value) =>
+    require('./workbench-communication').forbiddenWording(value, preferences.forbiddenTerms)
+      ? 'nach Gesprächsvorgabe noch einzuordnen'
+      : value;
   const list = (values) => (values?.length ? values.join('; ') : 'nicht hinterlegt');
   const values = [
     displayRef,
@@ -94,31 +143,55 @@ function renderCaseMemory(candidate, displayRef, part) {
     list(m.workingAssumptions),
     list(m.risks),
     list(m.nextSteps),
-  ];
-  const context = candidate.topic && candidate.topic !== values[1] ? `\n${candidate.topic}` : '';
+    m.caseWork?.ownerRole || 'nicht hinterlegt',
+    m.caseWork?.deadline || 'nicht hinterlegt',
+    m.caseWork?.nextConsideration || 'nicht hinterlegt',
+    m.caseWork?.reminder || 'nicht hinterlegt',
+  ].map(safeText);
+  const context =
+    candidate.topic && candidate.topic !== values[1] ? `\n${safeText(candidate.topic)}` : '';
   const title = `Fall ${displayRef}: ${values[1]}${context}`;
+  if (part?.layout === 'table' && part.columns.length)
+    return [
+      part.title ? `## ${part.title}` : '',
+      title,
+      `| ${part.columns.join(' | ')} |`,
+      `| ${part.columns.map(() => '---').join(' | ')} |`,
+      `| ${part.columns.map((heading) => require('./workbench-artifact').escapeTableCell(values[caseFieldIndex(heading)])).join(' | ')} |`,
+    ]
+      .filter(Boolean)
+      .join('\n');
   if (part?.sections.length)
     return [
       part.title ? `## ${part.title}` : '',
       title,
       ...part.sections.map((heading) => {
-        const index = CASE_FIELDS.findIndex(
-          (field) =>
-            require('./function-resolver').normalizePhrase(field) ===
-            require('./function-resolver').normalizePhrase(heading)
-        );
+        const index = caseFieldIndex(heading);
         return `### ${heading}\n\n${values[index]}`;
       }),
+      ...caseWorkLines(m, part.sections, preferences),
     ]
       .filter(Boolean)
       .join('\n\n');
   return [
     part?.title ? `## ${part.title}` : '',
     title,
-    ...CASE_FIELDS.slice(2).map((field, index) => `${field}: ${values[index + 2]}`),
+    ...CASE_FIELDS.slice(2).flatMap((field, index) =>
+      index < 5 || m.caseWork ? [`${field}: ${values[index + 2]}`] : []
+    ),
+    m.lastSafeConclusion && m.lastSafeConclusion !== values[2]
+      ? `Letzte Einordnung (Arbeitsstand): ${safeText(m.lastSafeConclusion)}`
+      : '',
   ]
     .filter(Boolean)
     .join('\n');
 }
 
-module.exports = { selectSemanticCases, renderCaseMemory, canRenderCaseRequest };
+module.exports = {
+  SERVER_CASE_HINT,
+  selectSemanticCases,
+  renderCaseMemory,
+  canRenderCaseRequest,
+  caseWorkLines,
+  caseWorkForAnswer,
+};

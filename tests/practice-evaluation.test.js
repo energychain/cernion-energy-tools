@@ -86,7 +86,7 @@ describe('versioned generated practice catalog', () => {
     expect(c.scenarios.some((s) => s.turns.some((t) => t.document?.format === 'openwebui'))).toBe(
       true
     );
-    expect(c.scenarios.reduce((n, s) => n + (s.memory ? 10 : 3), 0)).toBe(61);
+    expect(c.scenarios.reduce((n, s) => n + (s.memory ? 10 : 3), 0)).toBe(88);
   });
   test('A.2/acceptance 6: fixture audit and generator check are green; role names, organizations, emails and provenance cannot be imported', () => {
     const c = generatePracticeCatalog();
@@ -699,4 +699,19 @@ test('privacy gate rejects unreviewed names and legal organization forms in turn
       'Unapproved synthetic vocabulary or proper name'
     );
   }
+});
+
+test('load-profile expectation accepts singular and plural without accepting absent substance', () => {
+  const turn = generatePracticeCatalog().scenarios.find((s) => s.id === 'mako-rlm').turns[0];
+  for (const responseText of ['Lastgang fehlt.', 'Lastgänge fehlen.'])
+    expect(
+      checkTurn(turn, { responseText, cetCaseId: 'synthetic-case' }).find(
+        (c) => c.id === 'required-1'
+      ).passed
+    ).toBe(true);
+  expect(
+    checkTurn(turn, { responseText: 'Bedeutung nicht belegt.', cetCaseId: 'synthetic-case' }).find(
+      (c) => c.id === 'required-1'
+    ).passed
+  ).toBe(false);
 });
