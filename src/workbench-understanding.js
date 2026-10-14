@@ -911,7 +911,12 @@ async function understand({
       result.turnKind = 'work';
       result.conversationShape = 'task';
     }
-    result.preferenceOnly = preferences.preferenceOnly === true;
+    result.preferenceOnly =
+      preferences.preferenceOnly === true &&
+      !questionsFor(
+        { ...classified, conversationPreferences: result.conversationPreferences },
+        asked
+      ).length;
     if (result.preferenceOnly) {
       result.missingInformation = [];
       result.turnKind = 'knowledge';

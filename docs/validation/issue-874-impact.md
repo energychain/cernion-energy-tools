@@ -299,3 +299,26 @@ Abschließende Änderungsprüfung dieses Folgecommits: `origin/main` 59 Dateien,
 459 Symbole, 38 Abläufe (CRITICAL); lokale `main` 290 Dateien, 2555 Symbole,
 93 Abläufe (CRITICAL); staged 12 Dateien, 50 Symbole, 1 Ablauf (MEDIUM).
 Die zentrale Verständnis- und Speicherlogik erklärt den erwarteten Umfang.
+
+## Rückfragen nach einer Modusmitteilung
+
+Vor der Korrektur erneut upstream: `classifyCodeTokens` LOW (0 direkte Aufrufer),
+`understand` HIGH (3 direkte Aufrufer, 14 betroffene Symbole, 2 Abläufe), vorab
+benannt. Eine falsch als reine Modusmitteilung eingestufte Sachfrage übersprang
+die unabhängige Klärungsprüfung. Diese Prüfung darf jetzt auch die Klassifikation
+korrigieren: Tatsächlich ermittelte neue Fragen haben Vorrang vor `preferenceOnly`.
+Reine Modusmitteilungen bleiben durch den bestehenden geschlossenen Prüfschritt
+ohne künstliche Fragen. Ein Regressionstest reproduziert beide falschen
+Klassifikationen zusammen.
+
+Das Intake-Pflichtmuster akzeptiert die gleichbedeutenden Formulierungen Anmeldung,
+Anmeldestand und Anmeldestatus. Upstream `generatePracticeCatalog` LOW
+(4 direkte Aufrufer, 10 betroffene Symbole, 0 Abläufe). Der feste Datenschutz-
+Wortschatz erhielt nur die beiden geprüften generischen Wörter; sein anonymer
+Export ist UNKNOWN. Alle Namens-, Datenschutz- und Inhaltsprüfungen bleiben aktiv.
+Auch die unveränderten Referenzantworten wurden nur mit diesem präzisierten
+Pflichtmuster nachgeprüft, ohne neue Modellaufrufe oder Änderungen der Rubriken.
+
+Änderungsprüfung vor diesem Folgecommit: `origin/main` 59 Dateien / 461 Symbole /
+38 Abläufe (CRITICAL); lokale `main` 290 / 2557 / 93 (CRITICAL); staged
+13 / 9 / 1 (MEDIUM). Die gezielten 15 Testsuiten bestehen alle 819 Tests.

@@ -60,7 +60,7 @@
             {
               "id": "required-1",
               "passed": true,
-              "reason": "Pflichtmuster: Anmeldung"
+              "reason": "Pflichtmuster: (?:Anmeldung|Anmeldestand|Anmeldestatus)"
             },
             {
               "id": "case-present",
@@ -519,7 +519,7 @@
             {
               "id": "required-1",
               "passed": true,
-              "reason": "Pflichtmuster: Anmeldung"
+              "reason": "Pflichtmuster: (?:Anmeldung|Anmeldestand|Anmeldestatus)"
             },
             {
               "id": "case-present",
@@ -978,7 +978,7 @@
             {
               "id": "required-1",
               "passed": true,
-              "reason": "Pflichtmuster: Anmeldung"
+              "reason": "Pflichtmuster: (?:Anmeldung|Anmeldestand|Anmeldestatus)"
             },
             {
               "id": "case-present",
@@ -22934,5 +22934,8 @@
       }
     ]
   },
-  "criteriaCorrection": "Die unveränderten Referenzantworten wurden beim Risiko-Pflichtmuster erneut deterministisch geprüft: Das Pflichtmuster erfasst beide Wortformen Risiko und Risiken. Keine neuen Modellaufrufe, keine Änderung der Rubrik oder anderer Prüfungen."
+  "criteriaCorrection": "Die unveränderten Referenzantworten wurden beim Risiko-Pflichtmuster erneut deterministisch geprüft: Das Pflichtmuster erfasst beide Wortformen Risiko und Risiken. Keine neuen Modellaufrufe, keine Änderung der Rubrik oder anderer Prüfungen.",
+  "evaluationNotes": [
+    "Nur das Intake-Pflichtmuster wurde nachträglich auf Anmeldung/Anmeldestand/Anmeldestatus präzisiert und auf den unveränderten Originalantworten erneut geprüft. Keine weiteren Prüfungen oder Rubriken verändert; keine neuen Modellaufrufe."
+  ]
 }

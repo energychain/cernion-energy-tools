@@ -80,7 +80,7 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
         'intake',
         `Intake zu ${x}: Lieferant A fragt nach der offenen Anmeldung von MALO-A. Ordne den Stand ein.`,
         'Lage und offene fachliche Antwort, kein Datenanhang',
-        { require: ['Anmeldung'], casePresent: true }
+        { require: ['(?:Anmeldung|Anmeldestand|Anmeldestatus)'], casePresent: true }
       ),
       turn(
         'rejection',

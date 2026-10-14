@@ -198,7 +198,6 @@ async function classifyCodeTokens(
     });
   if (
     priorControl.conversationPreferences?.questions === 'requested' &&
-    !result.preferenceOnly &&
     !output.requested &&
     !require('./workbench-understanding').questionsFor(
       { ...result, conversationPreferences: priorControl.conversationPreferences },

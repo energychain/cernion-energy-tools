@@ -1563,3 +1563,57 @@ test('a positively classified technical code requires knowledge evidence even wh
   );
   expect(result.references).toContainEqual(expect.objectContaining({ value }));
 });
+
+test('a mode-only misclassification cannot suppress independently established requested questions', async () => {
+  const message = fixture.scenarios[5].turns[1].message;
+  const question = message.slice(message.indexOf('Was'));
+  const missing = {
+    key: 'synthetic-focused',
+    question,
+    reason: 'decisive',
+    decisive: true,
+    blocking: true,
+    answered: false,
+  };
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    const data = JSON.parse(prompt);
+    if (data.task === 'output_contract') return fixture.outputContract(message);
+    if (data.task === 'turn_controls') return { missingInformation: [], preferenceOnly: true };
+    if (data.task === 'requested_clarification')
+      return { mode: 'clarify_and_answer', questions: [missing] };
+    if (data.currentUserMessage)
+      return {
+        basis: '',
+        register: 'unchanged',
+        concise: 'unchanged',
+        questions: 'unchanged',
+        wording: [],
+        forbiddenTerms: [],
+        preferenceOnly: true,
+      };
+    if (data.candidates) return { tokens: [] };
+    return fixture.situation(message, { codeReferences: [] });
+  });
+  const result = await understand({
+    message,
+    tenantId: fixture.tenantId,
+    previous: fixture.situation(fixture.scenarios[5].turns[0].message, {
+      conversationPreferences: { questions: 'requested' },
+    }),
+  });
+  expect(result.preferenceOnly).toBe(false);
+  expect(questionsFor(result)).toEqual([expect.objectContaining({ key: missing.key })]);
+});
+
+test('the intake expectation accepts equivalent registration states but requires substantive content', () => {
+  const turn = require('../scripts/generate-practice-evaluation-fixtures')
+    .generatePracticeCatalog()
+    .scenarios.find((item) => item.id === 'mako-authorization').turns[0];
+  const check = (responseText) =>
+    require('../scripts/practice-evaluation-checks')
+      .checkTurn(turn, { responseText, cetCaseId: 'synthetic-case' })
+      .find((item) => item.id === 'required-1').passed;
+  for (const responseText of ['Anmeldung', 'Anmeldestand', 'Anmeldestatus'])
+    expect(check(responseText)).toBe(true);
+  expect(check('Bedeutung nicht belegt.')).toBe(false);
+});

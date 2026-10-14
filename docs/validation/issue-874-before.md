@@ -2086,4 +2086,4 @@ Frischer Anker: Prüfbezugcfdabdfefddc; Variante: memory-5-ba. Erwartete Ausgang
 
 Fixture-Prüfung: GRÜN.
 
-Die unveränderten Referenzantworten wurden beim Risiko-Pflichtmuster erneut deterministisch geprüft: Das Pflichtmuster erfasst beide Wortformen Risiko und Risiken. Keine neuen Modellaufrufe, keine Änderung der Rubrik oder anderer Prüfungen.
+Präzisierung: Das Intake-Pflichtmuster akzeptiert Anmeldung, Anmeldestand und Anmeldestatus. Nur diese deterministische Prüfung wurde auf unveränderten Originalantworten neu ausgeführt; keine neue Bewertung oder Modellaufrufe.
