@@ -47,6 +47,13 @@ Je Person: `externalUserId`, `cetActorId`, `cetTenantId`, `displayName` exakt
 `Sachbearbeitung A` bzw. `Sachbearbeitung B`, Rollen `ROLE_GRID_OPERATOR` und `ROLE_EDM`,
 aktivierte Zuordnung und passende Clearance. Beide Personen müssen die Testvorgänge lesen dürfen.
 Die Suite prüft diese Zuordnungen, statt fehlende Identitäten stillschweigend zu ersetzen.
+Vor jedem Lauf prüft `POST /api/tokens/verify` mit dem Admin-Token den Gateway-Token
+für `/v1/chat/completions`: gültig, Typ Gateway, richtiger Test-Tenant und richtige Organisation.
+Auch beide Autoren-Admin-Tokens müssen denselben Test-Tenant, ihre eigene Actor-ID und
+`ROLE_TENANT_ADMIN` nachweisen. Ungültige Token, Organisationen oder Rollen stoppen vor
+dem ersten Modellturn. Evaluationsturns verwenden `POST /v1/chat/completions`;
+dessen CET-Ergebnis und Tenant-Zuordnung werden geprüft. Deterministische Fallkorrekturen
+verwenden die direkte Workbench-Route mit dem jeweiligen Autoren-Admin-Token.
 
 Zusätzlich wird je Person ein **eigener Autoren-Admin-Token** benötigt: gleicher CET-Actor und
 Test-Tenant wie die Zuordnung, mit `ROLE_TENANT_ADMIN` und den genannten Leserechten.
@@ -99,7 +106,11 @@ kann ein anderer Vergleichsstand gewählt werden. Keine Modellbezeichnungen oder
 Ausreißer: Rubrik unter 8 oder mehr als zwei Punkte unter dem Szenariomittel. Vergleich:
 mehr deterministisch rote Wiederholungen, sinkendes Mittel oder verlorene Sicherheit sind
 Regressionen; die Gegenrichtungen sind Verbesserungen. Die Ausgangsmessung hat noch keinen
-Vorgänger. Erwartungen zu #873/#874 werden als erwartete Ausgangs-Rotpunkte ausgewiesen,
+Vorgänger. Der Katalog-Audit prüft zusätzlich ein festes, unabhängig vom
+Laufzeitgenerator geprüftes Vokabular. Neue Wörter einschließlich nicht freigegebener
+Personen- und Organisationsnamen werden abgewiesen, auch in Turn-Texten und unabhängig
+von Groß-/Kleinschreibung. Änderungen am Vokabular müssen ausdrücklich geprüft werden;
+der Generator erweitert diese Freigabe nicht automatisch. Erwartungen zu #873/#874 werden als erwartete Ausgangs-Rotpunkte ausgewiesen,
 bleiben aber voll wirksam für das Gate.
 
 Exit 0: vollständiges grünes Gate. Exit 1: vollständige Messung mit roten Kriterien oder

@@ -323,6 +323,7 @@ async function createLocalTransport({ budget }) {
 }
 
 async function createHttpTransport({ config, budget, fetchImpl = fetch }) {
+  const { GOVERNANCE_MODEL } = require('../src/openai-models');
   async function request(
     route,
     { method = 'GET', body, actor, admin = false, ownCleanup = false, budgeted = false } = {}
@@ -367,6 +368,54 @@ async function createHttpTransport({ config, budget, fetchImpl = fetch }) {
     if (settle) settle(raw);
     return data;
   }
+  const administrator = await request('/api/tokens/verify', {
+    method: 'POST',
+    admin: true,
+    body: {
+      token: config.adminToken,
+      method: 'DELETE',
+      path: '/api/tenant-memory-policy/statements/synthetic',
+    },
+  });
+  if (
+    !administrator.valid ||
+    administrator.type === 'gateway' ||
+    administrator.tenantId !== config.tenantId ||
+    !administrator.roles?.includes('ROLE_TENANT_ADMIN')
+  )
+    throw new Error('Test administration token verification failed');
+  const gateway = await request('/api/tokens/verify', {
+    method: 'POST',
+    admin: true,
+    body: { token: config.gatewayToken, method: 'POST', path: '/v1/chat/completions' },
+  });
+  if (
+    !gateway.valid ||
+    gateway.type !== 'gateway' ||
+    gateway.tenantId !== config.tenantId ||
+    gateway.client !== 'open-webui' ||
+    gateway.externalOrgId !== config.orgId
+  )
+    throw new Error('Gateway test tenant or organization verification failed');
+  for (const actor of config.actors) {
+    const verified = await request('/api/tokens/verify', {
+      method: 'POST',
+      admin: true,
+      body: {
+        token: actor.cleanupToken,
+        method: 'DELETE',
+        path: '/api/tenant-memory-policy/statements/synthetic',
+      },
+    });
+    if (
+      !verified.valid ||
+      verified.type === 'gateway' ||
+      verified.tenantId !== config.tenantId ||
+      (verified.userId || verified.tokenId) !== actor.actorId ||
+      !verified.roles?.includes('ROLE_TENANT_ADMIN')
+    )
+      throw new Error('Own-author test cleanup token verification failed');
+  }
   const mappings = await request(
     `/api/workbench/admin/mappings?tenantId=${encodeURIComponent(config.tenantId)}`,
     { admin: true }
@@ -380,6 +429,9 @@ async function createHttpTransport({ config, budget, fetchImpl = fetch }) {
           item.cetActorId === actor.actorId &&
           item.cetTenantId === config.tenantId &&
           item.displayName === actor.name &&
+          item.client === 'open-webui' &&
+          item.externalOrgId === config.orgId &&
+          ['ROLE_GRID_OPERATOR', 'ROLE_EDM'].every((role) => item.roles?.includes(role)) &&
           item.enabled !== false
       )
     )
@@ -433,21 +485,37 @@ async function createHttpTransport({ config, budget, fetchImpl = fetch }) {
       if (spec.kind === 'load') run.datasets.push({ actor, name: spec.name, chat });
     }
     if (turn.document) run.datasets.push({ actor, name: turn.document.name, chat });
-    return request('/api/workbench/chat', {
+    const data = await request('/v1/chat/completions', {
       method: 'POST',
       actor,
       budgeted: true,
       body: {
-        channel: 'open-webui',
-        openWebuiOrgId: config.orgId,
-        openWebuiUserId: actor.externalUserId,
-        conversationId: chat,
-        userRequest: documentMessage(turn),
-        ...(fileRefs ? { fileRefs } : {}),
-        requestId: randomUUID(),
+        model: GOVERNANCE_MODEL,
+        stream: false,
+        messages: [{ role: 'user', content: documentMessage(turn) }],
+        metadata: {
+          client: 'open-webui',
+          openWebuiOrgId: config.orgId,
+          openWebuiUserId: actor.externalUserId,
+          openWebuiConversationId: chat,
+          requestId: randomUUID(),
+        },
+        ...(fileRefs ? { cet_file_refs: fileRefs } : {}),
       },
     });
+    if (
+      data.cernion?.tenantId !== config.tenantId ||
+      !data.cernion?.result ||
+      typeof data.choices?.[0]?.message?.content !== 'string'
+    )
+      throw new Error('Mapped Workbench response or test tenant missing');
+    return {
+      ...data.cernion.result,
+      responseText: data.choices[0].message.content,
+      metadata: data.metadata || data.cernion.result.metadata,
+    };
   }
+
   async function cleanup(run) {
     const results = [];
     for (const actor of run.actors)
@@ -530,6 +598,7 @@ async function createHttpTransport({ config, budget, fetchImpl = fetch }) {
         await request('/api/workbench/chat', {
           method: 'POST',
           actor,
+          ownCleanup: true,
           body: {
             channel: 'open-webui',
             openWebuiOrgId: config.orgId,

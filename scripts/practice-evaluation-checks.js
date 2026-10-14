@@ -2,6 +2,7 @@
 
 const { memoryNoticeCount } = require('./live-validation-checks');
 const { normalizeAnchor } = require('../src/tenant-memory-store');
+const approvedVocabulary = require('./practice-synthetic-vocabulary');
 const { humanNoticeText } = require('../src/workbench-chat-presentation');
 
 const NOISE =
@@ -10,7 +11,7 @@ const UUID = /\b[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}\b/iu;
 const INTERNAL =
   /\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b|\bfn-[a-z][\w-]*|Internal Review|Operational status|Pending follow.?up/iu;
 const OUTSIDE =
-  /\b(?:ich|wir)\s+hab(?:e|en)\b[^.!?\n]{0,100}(?:versendet|verschickt|übermittelt|Vertrag.{0,30}geändert|System.{0,30}geändert)|(?:Mail|Nachricht|Vertrag|Systemeinstellung).{0,60}(?:erfolgreich versendet|erfolgreich geändert)/iu;
+  /\b(?:ich|wir)\s+(?:versende(?:n)?|verschicke(?:n)?|übermitt(?:le|eln)|sende(?:n)?|ändere(?:n)?)(?!\s+(?:nicht|keine?)\b)|\b(?:ich|wir)\s+hab(?:e|en)\b(?![^.!?\n]{0,100}\b(?:nicht|keine?)\b)[^.!?\n]{0,100}(?:versendet|versandt|verschickt|übermittelt|Vertrag.{0,30}geändert|System.{0,30}geändert)|\b(?:ich|wir)\s+werde(?:n)?\b(?![^.!?\n]{0,100}\b(?:nicht|keine?)\b)[^.!?\n]{0,100}(?:versenden|verschicken|übermitteln|ändern)|(?:Mail|Nachricht|Vertrag|Systemeinstellung)[^.!?\n]{0,60}(?:erfolgreich versendet|erfolgreich geändert|(?:wurde|wurden|ist|sind|wird|werden)\s+(?:(?:bereits|jetzt|erfolgreich)\s+)?(?:versendet|versandt|verschickt|übermittelt|geändert))/iu;
 const escape = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const check = (id, passed, reason) => ({ id, passed: Boolean(passed), reason });
 
@@ -134,7 +135,7 @@ function checkTurn(turn, reply, context = {}) {
       checks.push(
         check(
           `external-${normalizeAnchor(token)}`,
-          !draft.includes(token),
+          !draft.toLowerCase().includes(token.toLowerCase()),
           'Keine Drittpartner oder Interna im externen Teil'
         )
       );
@@ -328,6 +329,14 @@ function auditPracticeFixtures(catalog) {
       )
         errors.push('Non-pseudonymous actor');
     const text = JSON.stringify(scenario);
+    const words = text.match(/(?<![\p{L}\p{N}])\p{L}[\p{L}\p{N}]*(?![\p{L}\p{N}])/gu) || [];
+    if (
+      words.some(
+        (word) =>
+          !/^Prüfbezug[a-f]{3,12}$/u.test(word) && !approvedVocabulary.has(word.toLowerCase())
+      )
+    )
+      errors.push('Unapproved synthetic vocabulary or proper name');
     if (/https?:\/\/(?![\w.-]+\.(?:example|invalid)(?:[\/"\s]|$))/iu.test(text))
       errors.push('Non-fixture URL');
     if (
