@@ -143,7 +143,16 @@ function person(p, mapping, situation, ctx, message = '') {
   const auth = ctx.meta?.authUser || ctx.meta?.apiToken || {};
   return {
     actorId: p.actorId,
-    name: mapping?.displayName || (!mapping && (auth.name || auth.displayName)) || p.actorId,
+    name:
+      mapping?.displayName ||
+      auth.name ||
+      auth.displayName ||
+      (ctx.meta?.apiToken?.id === p.actorId
+        ? ctx.meta.apiToken.name || ctx.meta.apiToken.displayName
+        : '') ||
+      (/[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}/iu.test(p.actorId)
+        ? 'die Quelle'
+        : p.actorId),
     roles: p.roles,
     functionLabel: store.humanFunctionLabel(
       mapping?.functionLabel ||
@@ -295,6 +304,31 @@ function logObservation(ctx) {
     tenantId: ctx.meta?.tenantId || ctx.meta?.apiToken?.tenantId || ctx.meta?.authUser?.tenantId,
   });
 }
+function glossaryDefinition(assertion, basis) {
+  const entry = assertion.glossary;
+  if (
+    !entry ||
+    entry.kind === 'none' ||
+    typeof entry.term !== 'string' ||
+    typeof entry.meaning !== 'string' ||
+    !entry.term.trim() ||
+    !entry.meaning.trim()
+  )
+    return undefined;
+  const term = store.normalizeAnchor(entry.term);
+  const meaning = store.normalizeAnchor(entry.meaning);
+  const text = store.normalizeAnchor(basis || '');
+  if (
+    !term ||
+    !meaning ||
+    term === meaning ||
+    !require('./workbench-codes').exactToken(text, term) ||
+    !require('./workbench-codes').exactToken(text, meaning)
+  )
+    return undefined;
+  return { term: entry.term, meaning: entry.meaning, kind: entry.kind || 'other' };
+}
+
 async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags, documentSource }) {
   const message = envelope.userRequest;
   const stats = observation(ctx);
@@ -334,9 +368,11 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
       const prior = existing.find((item) => item.id === id);
       if (prior) continue;
       const at = new Date().toISOString();
+      const glossary = glossaryDefinition(assertion, basis);
       const fact = {
         id,
         type: 'tenant_memory_fact',
+        ...(glossary ? { statementKind: 'glossary', glossary } : {}),
         ...(documentSource ? { documentSource } : {}),
         tenantId: p.tenantId,
         sensitivityFlags: sensitivityFlags || ctx.params.sensitivityFlags || [],
@@ -1001,6 +1037,38 @@ async function preturn(ctx, p, envelope, pending) {
   const fn = question.match(/^was hat (?:die |der |das )?(.+?) festgehalten$/i);
   if (anchor || fn) {
     const reply = await queryResponse(ctx, p, message, { anchor, functionLabel: fn?.[1] });
+    if (anchor) {
+      if (ctx.meta[require('./workbench-case-search').SERVER_CASE_HINT]) return null;
+      const router = ctx.broker.getLocalService('domain-router');
+      const workbench = ctx.broker.getLocalService('workbench');
+      if (
+        router &&
+        workbench &&
+        (await router.visibleStates(p)).some(
+          (state) =>
+            require('./case-linking').rawContentAllowed(p, state) &&
+            state.knownContext?.situation?.concern
+        )
+      ) {
+        const found = await require('./workbench-self-knowledge').searchKnowledge(
+          workbench,
+          ctx,
+          p,
+          {
+            concern: message,
+            situation: '',
+            dataQuestion: { requested: false, basis: '' },
+            caseSearch: { requested: true, query: message },
+            selfKnowledge: { requested: true, query: message },
+          },
+          { conversationId: envelope.conversationId }
+        );
+        if (found.evidence.some((hit) => hit.source === 'cases')) {
+          ctx.meta[require('./workbench-case-search').SERVER_CASE_HINT] = found;
+          return null;
+        }
+      }
+    }
     return pending?.queryOnly && !reply?.statements?.length && !observation(ctx).rejected.ambiguous
       ? null
       : reply;
@@ -1075,6 +1143,7 @@ async function correctFacts(ctx, p, envelope, pending, correction) {
 module.exports = {
   serialized,
   acceptedAssertion,
+  glossaryDefinition,
   basisMatches,
   beforeTurn,
   afterTurn,

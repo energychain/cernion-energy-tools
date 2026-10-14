@@ -83,6 +83,7 @@ function filterAnswer(
     userFacts = [],
     requireCompleteDraft = false,
     artifact = false,
+    register = 'du',
   }
 ) {
   const ids = new Set(answerEvidence.map((entry) => entry.evidenceId));
@@ -95,6 +96,24 @@ function filterAnswer(
     const original = parsed[field] || [];
     const rejectedConditions = new Set();
     const filtered = original.filter((claim) => {
+      const unresolvedDependency = unresolved.some(
+        (code) =>
+          exactToken(claim.text, code.value) || (claim.codeDependencies || []).includes(code.value)
+      );
+      const reportedInput =
+        unresolvedDependency &&
+        claim.origin === 'input' &&
+        typeof claim.inputQuote === 'string' &&
+        claim.inputQuote.trim() &&
+        message.includes(claim.inputQuote);
+      if (reportedInput) {
+        const numbering = artifact ? /^\s*\d+\.\s+/u.exec(claim.text)?.[0] || '' : '';
+        claim.text = `${numbering}Berichtet: „${claim.inputQuote}“`;
+        claim.supported = 'model';
+        claim.evidenceIds = [];
+        claim.completedAction = false;
+        claim.specific = false;
+      }
       claim.text = require('./case-continuation').readableCaseText(claim.text);
       if (field !== 'draft') {
         const clean = require('./workbench-chat-presentation').withoutUnsolicitedAdvice(
@@ -117,11 +136,16 @@ function filterAnswer(
         require('./workbench-conversation-shape').imperativeQuestion(claim.text)
       )
         rules.push('imperative_question');
-      if (field !== 'draft' && /\b(?:Sie|Ihnen|Ihr(?:e|en|em|er|es)?)\b/u.test(claim.text))
+      if (
+        field !== 'draft' &&
+        register !== 'Sie' &&
+        /\b(?:Sie|Ihnen|Ihr(?:e|en|em|er|es)?)\b/u.test(claim.text)
+      )
         rules.push('chat_address');
       if (!artifact && require('./workbench-tool-answer').internalToolText(claim.text, evidence))
         rules.push('raw_tool_output');
       if (
+        !reportedInput &&
         unresolved.some(
           (code) =>
             exactToken(claim.text, code.value) ||

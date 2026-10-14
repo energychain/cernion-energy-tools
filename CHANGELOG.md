@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased – Workbench ToolRun-Inspector Phase A (#660)
+
+- Opt-in `view=inspector` für `GET /api/workbench/cases/:caseId/tool-runs` und `/tool-runs/:toolRunId`: geschlossene, skalare ToolRun-Zeilen (Status, Governance-Ergebnis, sichere Fehlerkennung, EvidenceRef-/ReceiptRef-IDs und -Anzahl, `auditRef`, `nextSafeGate`), höchstens 25 Zeilen, neueste zuerst.
+- Verschachtelte EvidenceRefs laufen vor der Reduktion durch `safeEvidenceRef` mit Tenant und Clearance des Aufrufers; Summaries, Rohpayloads, PouchDB-Metadaten und verschachtelte Objekte bleiben außen vor.
+- Ohne `view` bleibt der bisherige ToolRun-Vertrag unverändert; reine Lesepfade ohne Ausführung, Evidence-Attach oder Task-Erzeugung.
+
+## Unreleased – Fachliche Belastbarkeit und Kommunikation (#874)
+
+- Fachcodebedeutungen ausschließlich mit konkreter Fundstelle; unbelegte Bedeutungen ausdrücklich offenlassen.
+- Auditierter Tenant-Glossartyp für belegte Begriffsdefinitionen, auch über Chatwechsel nutzbar.
+- Eigene schemagebundene Offenlegungsprüfung nach externen Entwürfen, einschließlich Dokument-Reviews.
+- Gesprächspräferenzen dauerhaft im Vorgang, gezielte Rückfragen und getrennte Darstellung von Beobachtung und Nutzerhypothese.
+- Verbundene Vorgänge mit Owner-Rolle, Frist, nächster Befassung und Wiedervorlage; Anlage ausschließlich nach „Leg an“.
+- Neun generierte Abnahmeszenarien in der Praxis-Suite sowie reproduzierbare lokale Live-Abnahme.
+
 ## Unreleased – RC3 completion (#873)
 
 - Deliver explicitly requested artifacts with every ordered version, section and column; preserve internal work orders and their full length.

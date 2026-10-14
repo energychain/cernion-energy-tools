@@ -1,5 +1,24 @@
 # Tenant-Gedächtnis (#766)
 
+## Tenant-Glossar (#874)
+
+Ausdrückliche organisationsbezogene Begriffsdefinitionen werden als bestehende
+`tenant_memory_fact` mit `statementKind: glossary` und dem geschlossenen Feld
+`glossary: {term, meaning, kind}` gespeichert. Begriff und Bedeutung müssen im
+wörtlichen Beleg stehen. Es gibt keine eingebauten Systemnamen oder Bedeutungslisten.
+Die Klassifikation unterscheidet System, Abkürzung, Abteilung und sonstigen Begriff.
+Systeme in Arbeitsaufträgen bleiben Gegenstände, keine Empfänger.
+
+Das Verständnis liest aktive, sichtbare Glossareinträge für die aktuelle Nachricht
+auch in einem neuen Chat. Tenant und Clearance bleiben unverändert. Definitionen
+belegen den Sprachgebrauch des Tenants, keine fachliche Regel oder Codebedeutung.
+
+Administration: `GET /api/tenant-memory-policy/glossary` mit authentifizierter
+`ROLE_TENANT_ADMIN`; der vorhandene auditierte Listenpfad wird wiederverwendet.
+Widerruf und Löschen verwenden dieselben auditierten Aussagenrouten wie bisher.
+Löschen redigiert auch `glossary`, Beleg, Originalnachricht und Anker. Der Tombstone
+bleibt, ohne Glossarinhalt. Administrative Änderungen erzeugen keine Autorenhinweise.
+
 CET erkennt neue organisationsrelevante Aussagen beim Verstehen der aktuellen Nachricht.
 Ein kurzer Satz „Hab ich festgehalten: …“ bestätigt jede Aussage einmal. Reine Wissensfragen,
 Smalltalk, einzelne Vorgänge ohne Wirkung auf weitere Arbeiten, Hintergrundaufgaben und Dokument-/Tabellenablage erzeugen keine

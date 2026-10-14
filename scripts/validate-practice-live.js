@@ -47,6 +47,29 @@ function readProductRef(root = path.join(__dirname, '..')) {
   return packed.split(' ')[0];
 }
 
+function readProductTree(root = path.join(__dirname, '..')) {
+  const hash = require('node:crypto').createHash('sha256');
+  const visit = (relative) => {
+    const absolute = path.join(root, relative);
+    if (!fs.existsSync(absolute)) return;
+    if (fs.statSync(absolute).isDirectory()) {
+      for (const name of fs.readdirSync(absolute).sort()) visit(path.join(relative, name));
+    } else {
+      hash.update(relative);
+      hash.update(fs.readFileSync(absolute));
+    }
+  };
+  for (const relative of [
+    'src',
+    'services',
+    'function-model.json',
+    'signal-catalog.json',
+    'capability-catalog.json',
+  ])
+    visit(relative);
+  return hash.digest('hex');
+}
+
 async function runPracticeEvaluation({
   config,
   budget,
@@ -57,6 +80,7 @@ async function runPracticeEvaluation({
   previous,
   instantiate = instantiatePracticeScenario,
   injectResponse,
+  onTurn,
 } = {}) {
   const catalog = generatePracticeCatalog();
   const scenarios = catalog.scenarios.filter(
@@ -72,6 +96,7 @@ async function runPracticeEvaluation({
     schemaVersion: '1.0',
     startedAt: new Date(started).toISOString(),
     productRef: readProductRef(),
+    productTree: readProductTree(),
     mode: transport?.mode || config.mode,
     catalogVersion: catalog.schemaVersion,
     catalogCount: scenarios.length,
@@ -165,6 +190,7 @@ async function runPracticeEvaluation({
               reply = { responseText: '', evaluationError: error.type || error.name };
             }
             if (injectResponse) reply = injectResponse(turn, reply);
+            if (onTurn) await onTurn({ fixture, turn, reply, repeat });
             const checks = checkTurn(turn, reply, context);
             run.turns.push({
               id: turn.id,
@@ -226,7 +252,7 @@ async function runPracticeEvaluation({
   return report;
 }
 
-async function validatePracticeLive() {
+async function validatePracticeLive({ onTurn } = {}) {
   require('dotenv').config({ path: process.env.WORKBENCH_ENV_FILE || '.env', quiet: true });
   const config = evaluationConfig();
   process.env.LIVE_MAX_TOKENS = String(config.tokenLimit);
@@ -255,6 +281,7 @@ async function validatePracticeLive() {
     transportFactory,
     reportPath,
     previous,
+    onTurn,
   });
   process.stdout.write(
     JSON.stringify({
@@ -273,4 +300,4 @@ if (require.main === module)
     process.stderr.write(`Evaluation failed: ${error.type || error.name}\n`);
     process.exitCode = 2;
   });
-module.exports = { runPracticeEvaluation, validatePracticeLive, readProductRef };
+module.exports = { runPracticeEvaluation, validatePracticeLive, readProductRef, readProductTree };

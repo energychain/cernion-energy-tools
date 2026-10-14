@@ -80,7 +80,7 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
         'intake',
         `Intake zu ${x}: Lieferant A fragt nach der offenen Anmeldung von MALO-A. Ordne den Stand ein.`,
         'Lage und offene fachliche Antwort, kein Datenanhang',
-        { require: ['Anmeldung'], casePresent: true }
+        { require: ['(?:Anmeldung|Anmeldestand|Anmeldestatus)'], casePresent: true }
       ),
       turn(
         'rejection',
@@ -188,7 +188,7 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
         'intake',
         `RLM-Strang ${x}: Seit einer Netzübernahme fehlen wiederholt Lastgänge für MALO-A. Die einzelne Eskalation ist Teil eines strukturellen Übergabethemas. Ordne beides getrennt ein.`,
         'Einzelvorgang und Strukturthema unterscheiden',
-        { require: ['Lastgang'], casePresent: true }
+        { require: ['Lastgang|Lastgänge'], casePresent: true }
       ),
       turn(
         'rights',
@@ -290,7 +290,7 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
         'Vorgang im neuen Chat finden und inhaltlich zusammenfassen',
         {
           ...noDecision,
-          require: ['Mandat', 'Stand', 'Annahme', 'Risiko', 'Owner', 'Frist'],
+          require: ['Mandat', 'Stand', 'Annahme', 'Risiko|Risiken', 'Owner', 'Frist'],
           previousCaseMention: true,
         },
         { chat: 'fresh', dependencies: ['873', '874'] }
@@ -480,6 +480,12 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
         boundary: true,
       }),
     ])
+  );
+  catalog.push(
+    ...require('./generate-workbench-874-fixtures').generateCommunicationScenarios(catalog, {
+      anchor: x,
+      actors,
+    })
   );
   const patterns = generateMemoryMessageFixture().patterns.map((pair) =>
     pair.map((text) => text.replace(/Prüfbezug[a-f]*/gu, x))
