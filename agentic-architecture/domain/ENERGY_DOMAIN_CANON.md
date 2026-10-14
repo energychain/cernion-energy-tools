@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-14T14:32:22.077Z
+Generated: 2026-10-14T20:35:37.788Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
