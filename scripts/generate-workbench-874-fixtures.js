@@ -166,7 +166,51 @@ function generateCommunicationFixture(seed = 'unit874') {
   result.statusQueryMessage = catalog.scenarios
     .find((item) => item.id === 'governance')
     .turns.at(-1).message;
+  const correction = scenarios[4].turns.find((turn) => turn.id === 'correction');
+  result.matrix = {
+    message: correction.message,
+    columns: correction.expect.rules.tableColumns,
+    cells: [
+      result.term,
+      result.proposal.reference,
+      result.proposal.type,
+      result.proposal.reference,
+      result.proposal.ownerRole,
+      result.proposal.deadline,
+      result.proposal.nextConsideration,
+    ],
+  };
+  const caseMessage = scenarios[4].turns.find((turn) => turn.id === 'case').message;
+  const { glossary: _definition, ...assertion } = result.glossaryAssertion;
+  result.caseAssertion = {
+    ...assertion,
+    text: caseMessage,
+    basis: caseMessage,
+    anchors: [{ value: caseMessage.split(':')[0], qualifier: '', aliases: [] }],
+  };
+  result.outputContract = (message, requested = 'ordinary_answer', parts = []) => ({
+    requestedOutput: {
+      requested,
+      basis: requested === 'explicit_artifact' ? message : '',
+      kind: 'other',
+      parts,
+      subjects: [],
+      constraints: [],
+      forbiddenTerms: [],
+    },
+  });
   result.unsupportedObservation = 'Die Rolle verfolgt eigene Ziele.';
+  const pattern = catalog.scenarios
+    .find((item) => item.id === 'mako-authorization')
+    .turns.find((item) => item.id === 'pattern');
+  result.literalSections = {
+    message: pattern.message,
+    sections: pattern.expect.rules.sections,
+    altered: pattern.expect.rules.sections.map((heading) =>
+      heading.normalize('NFKD').replace(/\p{M}/gu, '')
+    ),
+  };
+
   result.codeSourceFixture.compoundCodes = ['Q42_OTHER', 'Q42-1', 'Q42.1'];
   return result;
 }

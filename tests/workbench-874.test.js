@@ -791,6 +791,8 @@ test('a requested reference meaning is not dropped when its family is still unkn
   const turn = fixture.scenarios[0].turns[0];
   llm.generateStructured.mockImplementation(async (schema, prompt) => {
     const data = JSON.parse(prompt);
+    if (data.task === 'output_contract') return fixture.outputContract(turn.message);
+    if (data.task === 'turn_controls') return { missingInformation: [] };
     return {
       ...(schema.properties?.missingInformation ? { missingInformation: [] } : {}),
       tokens: data.candidates.map(({ index }) => ({
@@ -811,7 +813,9 @@ test('a rejected refinement retains the validated current request instead of old
   const primary = fixture.situation(message, { codeReferences: [], codeMeaningQuestion: false });
   llm.generateStructured.mockImplementation(async (_schema, prompt) => {
     const data = JSON.parse(prompt);
-    if (data.candidates) throw new SyntaxError('Synthetic invalid refinement');
+    if (data.task === 'output_contract') return fixture.outputContract(message);
+    if (data.task === 'turn_controls' || data.candidates)
+      throw new SyntaxError('Synthetic invalid refinement');
     if (data.currentUserMessage)
       return {
         basis: '',
@@ -854,4 +858,337 @@ test('case tables render confirmed work fields directly from visible case memory
   for (const key of ['ownerRole', 'deadline', 'nextConsideration', 'reminder'])
     expect(text).toContain(fixture.proposal[key]);
   expect(text).toContain('| --- | --- | --- | --- |');
+});
+
+test('case summaries retain workflow fields when fewer headings are requested', () => {
+  const text = renderCaseMemory({ memory: fixture.queryCaseMemory }, 'F-1', {
+    title: fixture.proposal.title,
+    sections: ['Stand'],
+    columns: [],
+    layout: 'sections',
+  });
+  for (const label of ['Owner', 'Frist', 'Nächste Befassung', 'Wiedervorlage'])
+    expect(text).toContain(`${label}:`);
+});
+
+test('workflow metadata respects stored wording restrictions', () => {
+  const { caseWorkLines } = require('../src/workbench-case-search');
+  const term = fixture.scenarios[4].turns[2].expect.rules.forbid[0];
+  const memory = {
+    ...fixture.queryCaseMemory,
+    caseWork: { ...fixture.queryCaseMemory.caseWork, ownerRole: term },
+  };
+  expect(caseWorkLines(memory, [], { forbiddenTerms: [term] }).join('\n')).not.toContain(term);
+});
+
+test('new-chat case recall runs stored language preferences through the shared answer validator', async () => {
+  const term = fixture.scenarios[4].turns[2].expect.rules.forbid[0];
+  const part = {
+    title: fixture.proposal.title,
+    sections: ['Stand'],
+    columns: [],
+    layout: 'sections',
+  };
+  const message = fixture.statusQueryMessage;
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      artifact: [
+        {
+          title: part.title,
+          content: [fixture.claim(`### Stand\n\n${fixture.queryCaseMemory.situation}`)],
+        },
+      ],
+      interpretation: [],
+      expectation: [],
+      assumptions: [],
+      nextSteps: [],
+      draft: [],
+    })
+  );
+  const result = await answer({
+    tenantId: fixture.tenantId,
+    message,
+    situation: fixture.situation(message, {
+      caseSearch: { requested: true, query: message },
+      requestedOutput: {
+        requested: true,
+        basis: message,
+        kind: 'summary',
+        parts: [part],
+        subjects: [],
+        constraints: [],
+        forbiddenTerms: [],
+      },
+    }),
+    retrieval: {
+      evidence: [
+        {
+          source: 'cases',
+          id: fixture.tenantId,
+          value: fixture.queryCaseMemory.situation,
+          metadata: {
+            caseMemory: {
+              ...fixture.queryCaseMemory,
+              conversationPreferences: { forbiddenTerms: [term] },
+            },
+          },
+        },
+      ],
+    },
+  });
+  expect(llm.generateText).toHaveBeenCalled();
+  expect(result.responseText).toContain(fixture.queryCaseMemory.situation);
+  expect(result.responseText).toContain('Wiedervorlage:');
+  expect(result.responseText).not.toContain(term);
+});
+
+test('literal artifact section titles are repaired when original characters were changed', async () => {
+  const { classifyCodeTokens } = require('../src/workbench-code-classification');
+  const data = fixture.literalSections;
+  const output = (sections) => ({
+    requestedOutput: {
+      requested: true,
+      basis: data.message,
+      kind: 'summary',
+      parts: [{ title: '', sections, columns: [], layout: 'sections', sectionsExplicit: true }],
+      subjects: [],
+      constraints: [],
+      forbiddenTerms: [],
+    },
+  });
+  let attempts = 0;
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    const request = JSON.parse(prompt);
+    if (request.task === 'output_contract')
+      return output(attempts++ ? data.sections : data.altered);
+    return { missingInformation: [] };
+  });
+  const result = await classifyCodeTokens(data.message, [], { timeoutMs: 1000 });
+  expect(result.requestedOutput.parts[0].sections).toEqual(data.sections);
+  expect(attempts).toBe(2);
+});
+
+test('two internal non-letter versions cannot trigger an external disclosure rewrite', async () => {
+  const turn = fixture.scenarios[4].turns.find((item) => item.id === 'versions');
+  llm.generateStructured.mockResolvedValue(
+    fixture.situation(turn.message, {
+      disclosure: { external: true, recipient: '', restricted: [] },
+      requestedOutput: {
+        requested: true,
+        basis: turn.message,
+        kind: 'correspondence',
+        parts: turn.expect.rules.sections.map((title) => ({
+          title,
+          sections: [],
+          columns: [],
+          layout: 'paragraphs',
+          audience: 'internal',
+          letter: false,
+        })),
+        subjects: [],
+        constraints: [],
+        forbiddenTerms: [],
+      },
+    })
+  );
+  const result = await understand({ message: turn.message, tenantId: fixture.tenantId });
+  expect(result.requestedOutput.kind).toBe('internal');
+  expect(result.disclosure.external).toBe(false);
+});
+
+test('ordinary answers cannot retain an invented artifact from private extraction metadata', async () => {
+  const message = fixture.scenarios[0].turns[0].message;
+  llm.generateStructured.mockResolvedValue(
+    fixture.situation(message, {
+      requestedOutput: {
+        requested: 'ordinary_answer',
+        basis: fixture.proposal.title,
+        kind: 'other',
+        parts: [{ title: fixture.proposal.title, sections: [], columns: [], layout: 'paragraphs' }],
+        subjects: [],
+        constraints: [],
+        forbiddenTerms: [],
+      },
+    })
+  );
+  const result = await understand({ message, tenantId: fixture.tenantId });
+  expect(result.requestedOutput).toMatchObject({ requested: false, basis: '', parts: [] });
+  expect(SITUATION_SCHEMA.properties.requestedOutput.properties.requested.type).toBe('boolean');
+  expect(
+    llm.generateStructured.mock.calls[0][0].properties.requestedOutput.properties.requested.enum
+  ).toEqual(['ordinary_answer', 'explicit_artifact']);
+});
+
+test('a private explicit-artifact decision is bound to the actual current input', async () => {
+  const message = fixture.scenarios[2].turns[1].message;
+  llm.generateStructured.mockResolvedValue(
+    fixture.situation(message, {
+      requestedOutput: {
+        requested: 'explicit_artifact',
+        basis: fixture.proposal.title,
+        kind: 'internal',
+        parts: [
+          {
+            title: fixture.proposal.title,
+            sections: [],
+            columns: [],
+            layout: 'paragraphs',
+            audience: 'internal',
+            letter: false,
+          },
+        ],
+        subjects: [],
+        constraints: [],
+        forbiddenTerms: [],
+      },
+    })
+  );
+  const result = await understand({ message, tenantId: fixture.tenantId });
+  expect(result.requestedOutput).toMatchObject({ requested: true, basis: message });
+});
+
+test('structured table rows preserve requested columns and claim provenance', () => {
+  const {
+    materializeTables,
+    validateArtifact,
+    renderArtifact,
+  } = require('../src/workbench-artifact');
+  const { text: _text, ...metadata } = fixture.claim('');
+  const part = {
+    title: fixture.proposal.title,
+    sections: [],
+    columns: fixture.matrix.columns,
+    layout: 'table',
+  };
+  const request = {
+    requested: true,
+    kind: 'internal',
+    parts: [part],
+    subjects: [],
+    constraints: [],
+    forbiddenTerms: [],
+  };
+  const parsed = {
+    artifact: [
+      { title: part.title, content: [], tableRows: [{ ...metadata, cells: fixture.matrix.cells }] },
+    ],
+  };
+  materializeTables(parsed, request);
+  validateArtifact(parsed, request, {
+    evidence: [],
+    answerEvidence: [],
+    unresolved: [],
+    message: fixture.matrix.message,
+    counts: new Map(),
+    normalizeCondition: (value) => value || '',
+  });
+  const rendered = renderArtifact(parsed.artifact, request);
+  expect(rendered).toContain(`| ${fixture.matrix.columns.join(' | ')} |`);
+  expect(rendered).toContain(`| ${fixture.matrix.cells.join(' | ')} |`);
+  expect(parsed.artifact[0].content[2]).toMatchObject(metadata);
+  expect(parsed.artifact[0].tableRows).toBeUndefined();
+  expect(() =>
+    materializeTables(
+      { artifact: [{ tableRows: [{ ...metadata, cells: fixture.matrix.cells.slice(1) }] }] },
+      request
+    )
+  ).toThrow(expect.objectContaining({ fallbackReason: 'artifact_cell_count' }));
+});
+
+test('single-item status is not published as organizational knowledge', async () => {
+  const message = fixture.caseAssertion.basis;
+  const primary = fixture.situation(message, {
+    codeReferences: [],
+    tenantMemory: {
+      assertions: [fixture.caseAssertion],
+      correction: { kind: 'none', basis: '', factId: '' },
+      query: { requested: false, anchor: '', functionLabel: '' },
+      functionLabel: '',
+    },
+    caseMemory: {
+      applicable: false,
+      topic: fixture.proposal.title,
+      status: message,
+      openPoints: [],
+      assumptions: [],
+      risks: [],
+      nextSteps: [],
+      resolvedItems: [],
+    },
+  });
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    const data = JSON.parse(prompt);
+    if (data.task === 'output_contract') return fixture.outputContract(message);
+    if (data.task === 'turn_controls') return { missingInformation: [] };
+    if (data.currentUserMessage)
+      return {
+        basis: '',
+        register: 'unchanged',
+        concise: 'unchanged',
+        questions: 'unchanged',
+        wording: [],
+        forbiddenTerms: [],
+        preferenceOnly: false,
+        workContext: { concrete: true, basis: message, scope: 'single_item' },
+      };
+    if (data.candidates) return { tokens: [], missingInformation: [] };
+    return primary;
+  });
+  const result = await understand({ message, tenantId: fixture.tenantId });
+  expect(result.tenantMemory.assertions).toEqual([]);
+  expect(result.caseMemory.applicable).toBe(true);
+  expect(result.turnKind).toBe('work');
+});
+
+test('part audiences and addressed correspondence survive a global internal classification', async () => {
+  const message = fixture.scenarios[3].turns[1].message;
+  const output = fixture.outputContract(message).requestedOutput;
+  output.requested = true;
+  output.kind = 'internal';
+  output.basis = message;
+  output.parts = [
+    {
+      ...fixture.outputContract(message).requestedOutput.parts[0],
+      title: fixture.proposal.title,
+      sections: [],
+      columns: [],
+      layout: 'paragraphs',
+      audience: 'external',
+      recipient: fixture.proposal.ownerRole,
+      letter: true,
+      sectionsExplicit: false,
+      minimumSteps: 0,
+    },
+  ];
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    const data = JSON.parse(prompt);
+    if (data.task === 'output_contract') return { requestedOutput: output };
+    if (data.task === 'token_roles')
+      return {
+        tokens: data.candidates.map(({ index }) => ({
+          index,
+          category: 'reference',
+          family: '',
+          meaningRequested: false,
+        })),
+      };
+    if (data.task === 'turn_controls') return { missingInformation: [] };
+    if (data.currentUserMessage)
+      return {
+        basis: '',
+        register: 'unchanged',
+        concise: 'unchanged',
+        questions: 'unchanged',
+        wording: [],
+        forbiddenTerms: [],
+        preferenceOnly: false,
+      };
+    return fixture.situation(message, { codeReferences: [] });
+  });
+  const result = await understand({ message, tenantId: fixture.tenantId });
+  expect(result.requestedOutput.parts[0]).toMatchObject({
+    audience: 'external',
+    letter: true,
+    recipient: fixture.proposal.ownerRole,
+  });
 });

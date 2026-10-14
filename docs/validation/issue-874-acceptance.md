@@ -28,4 +28,3 @@
 | 9 | communication-9; bestehende Praxis-Suite | workbench-874.test.js + mindestens drei echte lokale Live-Läufe |
 
 Die endgültigen Live-Ergebnisse und der Vergleich mit der unveränderten Vorversion werden in den verlinkten Validierungsberichten dokumentiert. Eine reduzierte Szenarioauswahl setzt das vollständige Release-Gate nicht grün.
-

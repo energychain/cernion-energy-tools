@@ -101,3 +101,60 @@ Die zusätzlichen Prüfungen wurden über den GitNexus-CLI-Runner ausgeführt. D
 | understand | src/workbench-understanding.js | HIGH | 3 | 14 | 2 | 4 |
 | handler | services/workbench.service.js | LOW | 0 | 0 | 0 | 0 |
 | handler | services/workbench.service.js | LOW | 0 | 0 | 0 | 0 |
+
+## Erneute Prüfung der Falldarstellung
+
+Bei einer Zwischenkorrektur scheiterten CLI-Aufrufe wegen einer überlappenden Indizierung; die Shell führte die nachfolgenden Änderungen dennoch aus. Die betroffenen Dateien wurden auf den vorigen Commit zurückgenommen, der Index vollständig neu erzeugt und geschlossen und die Upstream-Analysen anschließend erfolgreich wiederholt. Erst danach wurden die überprüften Änderungen erneut angewendet. Verständnis, Antwortaufbereitung und Falldarstellung sind HIGH; neue Hilfsfunktionen vor Erstindizierung UNKNOWN. Die isolierte Normalisierung von negativem Nullwert im Vektorgenerator ist LOW; der vorhandene Reproduzierbarkeitstest prüft sie.
+
+## Abschließende Vertragskorrekturen
+
+Die erneuten erfolgreichen Analysen vor den Änderungen betreffen die wörtliche Übernahme bestellter Überschriften, die interne Zielgruppe, den privaten schemagebundenen Ausgabemodus, gespeicherte Gesprächsvorgaben in der Fallsuche und die reproduzierbare Vektorgenerierung. Fehlgeschlagene Zwischenaufrufe sind keine erfolgreiche Wirkungsanalyse und werden hier nicht als solche gewertet.
+
+| Symbol | Datei | Risiko | direkte Aufrufer | betroffen gesamt | Abläufe |
+| --- | --- | --- | ---: | ---: | ---: |
+| answer | src/workbench-understanding.js | LOW | 2 | 10 | 2 |
+| decorateAnswer | src/workbench-understanding.js | HIGH | 1 | 4 | 2 |
+| functionEmbedding | scripts/function-model-embeddings.js | LOW | 0 | 0 | 0 |
+| extractConversationPreferences | src/workbench-preference-extraction.js | LOW | 0 | 0 | 0 |
+| renderCaseMemory | src/workbench-case-search.js | LOW | 0 | 0 | 0 |
+| understand | src/workbench-understanding.js | HIGH | 3 | 14 | 2 |
+| caseWorkLines | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – |
+| answer | src/workbench-understanding.js | LOW | 2 | 10 | 2 |
+| decorateAnswer | src/workbench-understanding.js | HIGH | 1 | 4 | 2 |
+| caseWorkLines | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – |
+| renderCaseMemory | src/workbench-case-search.js | HIGH | 1 | 4 | 2 |
+| understand | src/workbench-understanding.js | HIGH | 3 | 14 | 2 |
+| caseWorkForAnswer | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – |
+| classifyCodeTokens | src/workbench-code-classification.js | LOW | 0 | 0 | 0 |
+| classifyCodeTokens | src/workbench-code-classification.js | LOW | 0 | 0 | 0 |
+| extractConversationPreferences | src/workbench-preference-extraction.js | LOW | 0 | 0 | 0 |
+| understand | src/workbench-understanding.js | HIGH | 3 | 14 | 2 |
+| generateCommunicationFixture | scripts/generate-workbench-874-fixtures.js | LOW | 0 | 0 | 0 |
+| classifyCodeTokens | src/workbench-code-classification.js | LOW | 0 | 0 | 0 |
+| artifactProviderSchema | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – |
+| restoreArtifactContract | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – |
+| understand | src/workbench-understanding.js | HIGH | 3 | 14 | 2 |
+| tests/workbench-874.test.js | neues/testbezogenes Symbol | UNKNOWN | – | 0 | – |
+
+## Getrennte Ausgabeform und abschließende Teilverträge
+
+Weitere erfolgreiche Upstream-Prüfungen vor den Korrekturen: `extractOutputContract`
+(bei Erstaufnahme UNKNOWN, nach Indizierung LOW, 0 direkte Aufrufer),
+`classifyCodeTokens` (LOW, 0 direkte Aufrufer), `artifactProviderSchema`
+(LOW, 2 direkte Aufrufer, 2 Abläufe), `materializeTables` (neues Symbol UNKNOWN),
+`generateAnswerResult` und `decorateAnswer` (HIGH, je 1 direkter Aufrufer,
+4 betroffene Symbole, 2 Abläufe), `understand` (HIGH, 3 direkte Aufrufer,
+14 betroffene Symbole, 2 Abläufe). Die HIGH-Risiken wurden vor den Änderungen
+benannt. Die getrennte Extraktion verwendet denselben geschlossenen
+Artefaktvertrag. Teil-Zielgruppen und adressierte Nachrichten werden nicht mehr
+von der globalen Einordnung überschrieben. Tabellenzeilen behalten ihre
+Quellenmetadaten und werden mit den bestellten Spalten deterministisch aufgebaut.
+Die Rollenprüfung erhält ausschließlich aktuelle Originalwerte; eine gemeinsame
+Bedeutungsfrage umfasst alle darin aufgezählten fachlichen Werte.
+
+Die zusätzliche Unterscheidung zwischen aktueller Arbeitsaufgabe und ausdrücklich
+angeforderter Suche nach gespeicherten CET-Vorgängen wurde ebenfalls vorab
+analysiert: `extractConversationPreferences` LOW (0 direkte Aufrufer),
+`understand` HIGH (3 direkte Aufrufer, 14 betroffene Symbole, 2 Abläufe).
+Die Unterscheidung ist ein geschlossenes semantisches Feld; sie verwendet keine
+Suchwort-, Systemnamen- oder Fachcodeliste.

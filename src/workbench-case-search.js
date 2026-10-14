@@ -90,6 +90,45 @@ function canRenderCaseRequest(request) {
   );
 }
 
+function caseWorkLines(memory, excluded = [], preferences = {}) {
+  if (!memory?.caseWork) return [];
+  const banned = preferences?.forbiddenTerms || [];
+  return Object.keys(require('./workbench-communication').CASE_WORK.properties).flatMap(
+    (key, i) => {
+      const label = CASE_FIELDS[i + 7];
+      if (excluded.some((heading) => caseFieldIndex(heading) === i + 7)) return [];
+      const raw = memory.caseWork[key] || 'nicht hinterlegt';
+      const unsafe = banned.some(
+        (term) =>
+          term.trim() &&
+          raw
+            .normalize('NFKC')
+            .toLocaleLowerCase()
+            .includes(term.normalize('NFKC').toLocaleLowerCase())
+      );
+      return [`${label}: ${unsafe ? 'nach Gesprächsvorgabe noch einzuordnen' : raw}`];
+    }
+  );
+}
+
+function caseWorkForAnswer(situation, hits) {
+  if (
+    !situation.caseSearch?.requested ||
+    situation.disclosure?.external ||
+    situation.requestedOutput?.parts.some((part) => part.audience === 'external')
+  )
+    return '';
+  const excluded = (situation.requestedOutput?.parts || []).flatMap((part) => [
+    ...part.sections,
+    ...part.columns,
+  ]);
+  return hits
+    .flatMap((hit) =>
+      caseWorkLines(hit.metadata?.caseMemory, excluded, situation.conversationPreferences)
+    )
+    .join('\n');
+}
+
 function renderCaseMemory(candidate, displayRef, part) {
   const m = safeTurnMemory(candidate.memory) || {};
   const list = (values) => (values?.length ? values.join('; ') : 'nicht hinterlegt');
@@ -126,6 +165,7 @@ function renderCaseMemory(candidate, displayRef, part) {
         const index = caseFieldIndex(heading);
         return `### ${heading}\n\n${values[index]}`;
       }),
+      ...caseWorkLines(m, part.sections),
     ]
       .filter(Boolean)
       .join('\n\n');
@@ -140,4 +180,11 @@ function renderCaseMemory(candidate, displayRef, part) {
     .join('\n');
 }
 
-module.exports = { SERVER_CASE_HINT, selectSemanticCases, renderCaseMemory, canRenderCaseRequest };
+module.exports = {
+  SERVER_CASE_HINT,
+  selectSemanticCases,
+  renderCaseMemory,
+  canRenderCaseRequest,
+  caseWorkLines,
+  caseWorkForAnswer,
+};

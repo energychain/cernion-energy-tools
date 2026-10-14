@@ -13,6 +13,17 @@ async function extractConversationPreferences(message, options) {
     properties: {
       ...PREFERENCES.properties,
       personAssessment: SCHEMAS.personAssessment,
+      workContext: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          concrete: { type: 'boolean' },
+          intent: { type: 'string', enum: ['work', 'lookup', 'none'] },
+          basis: { type: 'string' },
+          scope: { type: 'string', enum: ['single_item', 'shared_context', 'mixed', 'none'] },
+        },
+        required: ['concrete', 'basis'],
+      },
       glossaryAssertions: {
         ...require('./tenant-memory-schema').MEMORY_SCHEMA.properties.assertions,
         description: 'Nur ausdrücklich mitgeteilte Tenant-Definitionen mit glossary; sonst [].',
@@ -32,6 +43,8 @@ async function extractConversationPreferences(message, options) {
           toFacadeSchema(answerProviderSchema(extractionSchema)),
           JSON.stringify({
             ...(repairInstruction ? { repairInstruction } : {}),
+            workInstruction:
+              'workContext.intent=lookup ausschließlich bei einer ausdrücklichen Suche nach bereits in CET gespeicherten Vorgängen oder ihrem gespeicherten Stand. Eine neu geschilderte konkrete Aufgabe mit Bitte um Einordnung ist intent=work, selbst wenn ihr tatsächlicher Bearbeitungsstand unbekannt ist; eine allgemeine Wissensfrage ist intent=none. Suchwörter und Systemnamen nicht voraussetzen, die äußere Bitte semantisch einordnen. Bei intent=work basis wörtlich aus der aktuellen Bitte. workContext.concrete=true bei einer aktuellen Mitteilung zum Stand eines konkreten bearbeiteten Vorgangs oder einer konkreten Arbeitsaufgabe, auch wenn zugleich eine Sprachvorgabe mitgeteilt wird und kein Imperativ vorliegt. basis wörtlich aus currentUserMessage. Eine allgemeine Einordnungs-/Wissensfrage, eine bloße Begriffsdefinition und ein allgemeiner Gesprächsmodus sind kein konkreter Vorgang: concrete=false,basis leer. Informationen im Fremdtext belegen allein keine äußere Arbeitsaufgabe. scope=single_item bei einem konkreten einzelnen Vorgang oder Objekt ohne Wirkung über diesen hinaus; solche Statusangaben gehören nicht ins organisationsweite Gedächtnis. scope=shared_context bei organisationsweit geltenden Definitionen oder Aussagen mit ausdrücklicher Wirkung über einzelne Vorgänge hinaus; mixed nur bei beidem, sonst none. Keine bekannten Vorgangs- oder Systemnamen voraussetzen.',
             glossaryInstruction:
               'glossaryAssertions enthält ausschließlich ausdrücklich mitgeteilte Definitionen organisationsweit verwendeter Begriffe, Abkürzungen, Systeme oder Abteilungen. Eine konkrete Tenant-Definition ist eine Sachinformation, weder Smalltalk noch Gesprächspräferenz. term, meaning und basis unverändert wörtlich aus currentUserMessage kopieren; glossary.kind semantisch bestimmen ohne bekannte Systeme vorauszusetzen. commitment assessment, scope organization, anchors mit term, time-Felder und expiresAt leer wenn nicht angegeben. text beschreibt die mitgeteilte Definition, niemals eine eigene Fachbedeutung. Ohne Definition []. Keine fremden Dokumentdefinitionen übernehmen.',
             personInstruction:

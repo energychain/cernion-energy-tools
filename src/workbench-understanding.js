@@ -234,7 +234,26 @@ const ARTIFACT_ANSWER_SCHEMA = { ...ANSWER_SCHEMA, properties: { ...ANSWER_SCHEM
 ARTIFACT_ANSWER_SCHEMA.properties.artifact = {
   type: 'array',
   maxItems: 20,
-  items: object({ title: text, content: { type: 'array', maxItems: 100, items: CLAIM } }),
+  items: object(
+    {
+      title: text,
+      content: { type: 'array', maxItems: 100, items: CLAIM },
+      tableRows: {
+        type: 'array',
+        maxItems: 40,
+        items: object(
+          {
+            ...Object.fromEntries(
+              Object.entries(CLAIM.properties).filter(([key]) => key !== 'text')
+            ),
+            cells: { type: 'array', maxItems: 30, items: { type: 'string', maxLength: 4000 } },
+          },
+          ['cells', 'supported', 'completedAction', 'specific', 'evidenceIds']
+        ),
+      },
+    },
+    ['title', 'content']
+  ),
 };
 const ajv = new Ajv({ allErrors: true });
 Object.assign(SITUATION_SCHEMA.properties, require('./workbench-communication').SCHEMAS);
@@ -299,6 +318,40 @@ function toFacadeSchema(value) {
 }
 
 // Keep the provider grammar small; AJV still enforces the complete local schema.
+function artifactProviderSchema(schema) {
+  const output = schema.properties.requestedOutput;
+  return {
+    ...schema,
+    properties: {
+      ...schema.properties,
+      requestedOutput: {
+        ...output,
+        properties: {
+          ...output.properties,
+          requested: {
+            type: 'string',
+            enum: ['ordinary_answer', 'explicit_artifact'],
+            description:
+              'ordinary_answer: normale fachliche Antwort, auch bei ausdrücklich gestellter Frage. explicit_artifact: zusätzlich ausdrücklich bestelltes Arbeitsprodukt mit Ausgabeform oder Teilen. Eine Bedeutungsfrage allein bestellt kein Artefakt.',
+          },
+        },
+      },
+    },
+  };
+}
+
+function restoreArtifactContract(result, message) {
+  const output = result.requestedOutput;
+  if (!['ordinary_answer', 'explicit_artifact'].includes(output?.requested)) return result;
+  output.requested = output.requested === 'explicit_artifact';
+  // The private semantic decision is bound to its actual current input server-side.
+  // Legacy boolean contracts retain their original, strictly validated quote.
+  output.basis = output.requested ? message : '';
+  if (!output.requested)
+    Object.assign(output, { parts: [], subjects: [], constraints: [], forbiddenTerms: [] });
+  return result;
+}
+
 function answerProviderSchema(value) {
   if (Array.isArray(value)) return value.map(answerProviderSchema);
   if (!value || typeof value !== 'object') return value;
@@ -403,9 +456,9 @@ async function understand({
       phase: 'understanding',
       generate: async ({ attempt, repairInstruction, attemptOptions }) => {
         const rawResult = await llm.generateStructured(
-          toFacadeSchema(answerProviderSchema(situationSchema)),
+          toFacadeSchema(answerProviderSchema(artifactProviderSchema(situationSchema))),
           JSON.stringify({
-            schema: situationSchema,
+            schema: artifactProviderSchema(situationSchema),
             communicationInstruction: require('./workbench-communication').INSTRUCTION,
             tenantGlossary,
             ...(repairInstruction ? { repairInstruction } : {}),
@@ -432,7 +485,10 @@ async function understand({
           }),
           attemptOptions
         );
-        const restored = restoreContext(rawResult, safe.reidentMap);
+        const restored = restoreArtifactContract(
+          restoreContext(rawResult, safe.reidentMap),
+          message
+        );
         if (!validateSituation(restored)) throw schemaError(validateSituation.errors);
         if (!restored.concern.trim()) throw schemaError([], 'empty_concern');
         const memory = require('./tenant-memory');
@@ -451,10 +507,22 @@ async function understand({
               memory.acceptedAssertion({ ...item, basis: message }, message)
           );
         const invalidOutputRequest =
+          restored.codeReferences === undefined &&
           restored.requestedOutput?.requested &&
           (!restored.requestedOutput.basis?.trim() ||
             !message.includes(restored.requestedOutput.basis) ||
-            !restored.requestedOutput.parts.length);
+            !restored.requestedOutput.parts.length ||
+            restored.requestedOutput.parts.some(
+              (part) =>
+                part.sectionsExplicit &&
+                part.sections.some(
+                  (heading) =>
+                    !require('./workbench-codes').exactToken(
+                      message.normalize('NFKC').toLocaleLowerCase(),
+                      heading.normalize('NFKC').toLocaleLowerCase()
+                    )
+                )
+            ));
         const invalidTemporal = [
           restored.concern,
           restored.situation,
@@ -795,11 +863,6 @@ async function understand({
       )
         throw schemaError([], 'output_contract_unproven');
       for (const part of output.parts) {
-        if (output.kind !== 'correspondence') part.letter = false;
-        if (output.kind === 'internal') {
-          part.audience = 'internal';
-          part.recipient = '';
-        }
         if (part.sectionsExplicit === false) part.sections = [];
         if (part.minimumSteps > 0) part.layout = 'steps';
       }
@@ -866,6 +929,32 @@ async function understand({
     }
     result.codeMeaningQuestion = classified.meaningRequested;
     if (
+      preferences.workContext?.intent === 'work' &&
+      preferences.workContext.basis?.trim() &&
+      message.includes(preferences.workContext.basis)
+    ) {
+      result.caseSearch = { requested: false, query: '' };
+      result.selfKnowledge = { requested: false, query: '' };
+    }
+    if (
+      preferences.workContext?.concrete &&
+      preferences.workContext.basis?.trim() &&
+      message.includes(preferences.workContext.basis) &&
+      !result.preferenceOnly &&
+      !result.codeMeaningQuestion &&
+      !result.caseSearch?.requested &&
+      !['review', 'smalltalk'].includes(result.turnKind)
+    ) {
+      result.turnKind = 'work';
+      result.conversationShape = 'task';
+      if (result.caseMemory) result.caseMemory.applicable = true;
+      if (preferences.workContext.scope === 'single_item' && result.tenantMemory)
+        result.tenantMemory.assertions = result.tenantMemory.assertions.filter(
+          (item) => item.glossary?.term && item.glossary?.meaning
+        );
+    }
+
+    if (
       primaryWork &&
       !result.preferenceOnly &&
       !result.codeMeaningQuestion &&
@@ -876,6 +965,16 @@ async function understand({
       result.conversationShape = 'task';
     }
   }
+  if (
+    result.requestedOutput?.requested &&
+    result.requestedOutput.parts.length &&
+    result.requestedOutput.parts.every((part) => part.audience === 'internal' && !part.letter)
+  ) {
+    result.requestedOutput.kind = 'internal';
+    result.disclosure = { ...result.disclosure, external: false };
+  }
+  if (result.codeReferences !== undefined && result.linkedCaseProposal?.requested)
+    result.linkedCaseProposal.basis = message;
   if (
     result.linkedCaseProposal?.requested &&
     (!result.linkedCaseProposal.basis?.trim() ||
@@ -1234,6 +1333,8 @@ async function generateAnswerResult({
           safe.reidentMap
         );
         if (!validateAnswer(parsed)) throw schemaError(validateAnswer.errors);
+        if (situation.requestedOutput?.requested)
+          require('./workbench-artifact').materializeTables(parsed, situation.requestedOutput);
         require('./workbench-communication').validateCommunication(parsed, situation, evidence);
         if (situation.requestedOutput?.requested) {
           require('./workbench-artifact').validateArtifact(parsed, situation.requestedOutput, {
@@ -1407,7 +1508,17 @@ function boundaryLine(situation) {
 
 function decorateAnswer(
   lines,
-  { draft, answerStatus, followup, message, previousDraft, situation, unresolved, sources }
+  {
+    draft,
+    answerStatus,
+    followup,
+    message,
+    previousDraft,
+    situation,
+    unresolved,
+    sources,
+    caseEvidence = [],
+  }
 ) {
   if (
     draft &&
@@ -1431,10 +1542,16 @@ function decorateAnswer(
   if (situation.requestedAction.externalEffect && explicitlyRequestsSending(message))
     lines.push(
       draft
-        ? 'Hier ist der fertige Text – schick ihn bitte über euer System raus.'
-        : 'Schick die Antwort bitte über euer System raus.'
+        ? situation.conversationPreferences?.register === 'Sie'
+          ? 'Hier ist der fertige Text für Ihre weitere Befassung.'
+          : 'Hier ist der fertige Text – schick ihn bitte über euer System raus.'
+        : situation.conversationPreferences?.register === 'Sie'
+          ? 'Bitte nutzen Sie dafür Ihr eigenes System.'
+          : 'Schick die Antwort bitte über euer System raus.'
     );
   if (unresolved.length) lines.unshift(require('./workbench-code-sources').codeAnswer(unresolved));
+  const work = require('./workbench-case-search').caseWorkForAnswer(situation, caseEvidence);
+  if (work) lines.push(work);
   if (sources.length) lines.push(sourceLine(sources));
 }
 
@@ -1535,10 +1652,26 @@ async function answer({
       },
     };
   }
+  if (situation.requestedOutput?.requested)
+    situation = {
+      ...situation,
+      requestedOutput: {
+        ...situation.requestedOutput,
+        forbiddenTerms: [
+          ...new Set([
+            ...(situation.requestedOutput.forbiddenTerms || []),
+            ...(situation.conversationPreferences?.forbiddenTerms || []),
+          ]),
+        ],
+      },
+    };
   const casePresentation = require('./workbench-case-search');
   if (
     situation.caseSearch?.requested &&
     caseEvidence.length &&
+    !situation.conversationPreferences?.forbiddenTerms?.length &&
+    situation.conversationPreferences?.register !== 'Sie' &&
+    situation.conversationPreferences?.concise !== 'yes' &&
     casePresentation.canRenderCaseRequest(situation.requestedOutput)
   ) {
     const part = situation.requestedOutput?.requested ? situation.requestedOutput.parts[0] : null;
@@ -1730,6 +1863,7 @@ async function answer({
           .map((item) => item.question),
         unresolved.length ? require('./workbench-code-sources').codeAnswer(unresolved) : '',
         rendered,
+        require('./workbench-case-search').caseWorkForAnswer(situation, caseEvidence),
         sources.length ? sourceLine(sources) : '',
       ]
         .filter(Boolean)
@@ -1896,6 +2030,7 @@ async function answer({
     situation,
     unresolved,
     sources,
+    caseEvidence: evidence.filter((hit) => hit.source === 'cases'),
   });
   const toolEvidence = evidence.filter((hit) => hit.retrievalSource === 'capability-read');
   const toolAnswer = require('./workbench-tool-answer');
@@ -2014,6 +2149,8 @@ function routingRequest(situation) {
 
 module.exports = {
   answerProviderSchema,
+  artifactProviderSchema,
+  restoreArtifactContract,
   llmOptions,
   toFacadeSchema,
   fallbackAnswer,
