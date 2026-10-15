@@ -61883,6 +61883,637 @@
         "x-agentable": false
       }
     },
+    "/api/project-upload/start": {
+      "post": {
+        "operationId": "project-upload_start",
+        "summary": "Start or resume a project object upload",
+        "tags": [
+          "Project ingest"
+        ],
+        "responses": {
+          "200": {
+            "description": "Start or resume a project object upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "uploadId": {
+                      "type": "string"
+                    },
+                    "objectId": {
+                      "type": "string"
+                    },
+                    "chunkSize": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "receiving",
+                        "received",
+                        "failed",
+                        "extracted"
+                      ]
+                    },
+                    "chunks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "missing": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    },
+                    "job": {
+                      "type": "object",
+                      "properties": {
+                        "jobId": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient sensitivity clearance or authentication"
+          },
+          "404": {
+            "description": "Upload/project absent or invisible"
+          },
+          "409": {
+            "description": "Immutable project, failed upload or missing chunks"
+          },
+          "413": {
+            "description": "Project, file, chunk or archive limit exceeded"
+          },
+          "422": {
+            "description": "Invalid hash or unsafe archive"
+          },
+          "429": {
+            "description": "Tenant async job quota exhausted"
+          },
+          "507": {
+            "description": "Insufficient free disk space"
+          }
+        },
+        "description": "Tenant-scoped resumable project ingest. SHA-256 hashes are lowercase hex. Chunks use a raw octet stream; status lists received and missing indexes. Completed originals trigger project.object.received.v1. The async job is polled through /api/jobs/:jobId/status.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "projectId",
+                  "name",
+                  "size",
+                  "hash"
+                ],
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "example": "example-project"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "documents.zip"
+                  },
+                  "size": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1024
+                  },
+                  "hash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$",
+                    "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  "mimeType": {
+                    "type": "string",
+                    "example": "application/zip"
+                  },
+                  "sensitivityLevel": {
+                    "type": "string",
+                    "enum": [
+                      "public",
+                      "tenant_internal",
+                      "restricted",
+                      "highly_sensitive"
+                    ],
+                    "example": "tenant_internal"
+                  },
+                  "requiredClearance": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": []
+                  },
+                  "chunks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "hash": {
+                          "type": "string"
+                        },
+                        "size": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "example": [
+                      {
+                        "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "size": 1024
+                      }
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "projectId": "example-project",
+                "name": "documents.zip",
+                "size": 1024,
+                "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "mimeType": "application/zip"
+              },
+              "examples": {
+                "upload": {
+                  "summary": "Start a resumable bundle upload",
+                  "value": {
+                    "projectId": "example-project",
+                    "name": "documents.zip",
+                    "size": 1024,
+                    "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "mimeType": "application/zip"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-agentable": false
+      }
+    },
+    "/api/project-upload/uploads/:uploadId/chunks/:index": {
+      "put": {
+        "operationId": "project-upload_chunk",
+        "summary": "Store one bounded binary chunk with server-side SHA-256 verification",
+        "tags": [
+          "Project ingest"
+        ],
+        "responses": {
+          "200": {
+            "description": "Store one bounded binary chunk with server-side SHA-256 verification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "uploadId": {
+                      "type": "string"
+                    },
+                    "objectId": {
+                      "type": "string"
+                    },
+                    "chunkSize": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "receiving",
+                        "received",
+                        "failed",
+                        "extracted"
+                      ]
+                    },
+                    "chunks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "missing": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    },
+                    "job": {
+                      "type": "object",
+                      "properties": {
+                        "jobId": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient sensitivity clearance or authentication"
+          },
+          "404": {
+            "description": "Upload/project absent or invisible"
+          },
+          "409": {
+            "description": "Immutable project, failed upload or missing chunks"
+          },
+          "413": {
+            "description": "Project, file, chunk or archive limit exceeded"
+          },
+          "422": {
+            "description": "Invalid hash or unsafe archive"
+          },
+          "429": {
+            "description": "Tenant async job quota exhausted"
+          },
+          "507": {
+            "description": "Insufficient free disk space"
+          }
+        },
+        "description": "Tenant-scoped resumable project ingest. SHA-256 hashes are lowercase hex. Chunks use a raw octet stream; status lists received and missing indexes. Completed originals trigger project.object.received.v1. The async job is polled through /api/jobs/:jobId/status.",
+        "parameters": [
+          {
+            "name": "uploadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "example-id"
+            }
+          },
+          {
+            "name": "index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 0
+            }
+          },
+          {
+            "name": "hash",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$",
+              "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              },
+              "example": "raw chunk bytes"
+            }
+          }
+        },
+        "x-agentable": false
+      }
+    },
+    "/api/project-upload/uploads/:uploadId/complete": {
+      "post": {
+        "operationId": "project-upload_complete",
+        "summary": "Verify an upload and queue asynchronous bundle ingest",
+        "tags": [
+          "Project ingest"
+        ],
+        "responses": {
+          "200": {
+            "description": "Verify an upload and queue asynchronous bundle ingest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "uploadId": {
+                      "type": "string"
+                    },
+                    "objectId": {
+                      "type": "string"
+                    },
+                    "chunkSize": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "receiving",
+                        "received",
+                        "failed",
+                        "extracted"
+                      ]
+                    },
+                    "chunks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "missing": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    },
+                    "job": {
+                      "type": "object",
+                      "properties": {
+                        "jobId": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Ingest job queued; poll Location or upload status"
+          },
+          "403": {
+            "description": "Insufficient sensitivity clearance or authentication"
+          },
+          "404": {
+            "description": "Upload/project absent or invisible"
+          },
+          "409": {
+            "description": "Immutable project, failed upload or missing chunks"
+          },
+          "413": {
+            "description": "Project, file, chunk or archive limit exceeded"
+          },
+          "422": {
+            "description": "Invalid hash or unsafe archive"
+          },
+          "429": {
+            "description": "Tenant async job quota exhausted"
+          },
+          "507": {
+            "description": "Insufficient free disk space"
+          }
+        },
+        "description": "Tenant-scoped resumable project ingest. SHA-256 hashes are lowercase hex. Chunks use a raw octet stream; status lists received and missing indexes. Completed originals trigger project.object.received.v1. The async job is polled through /api/jobs/:jobId/status.",
+        "parameters": [
+          {
+            "name": "uploadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "example-id"
+            }
+          }
+        ],
+        "x-agentable": false
+      }
+    },
+    "/api/project-upload/uploads/:uploadId": {
+      "get": {
+        "operationId": "project-upload_status",
+        "summary": "Get received and missing chunks for a visible project upload",
+        "tags": [
+          "Project ingest"
+        ],
+        "responses": {
+          "200": {
+            "description": "Get received and missing chunks for a visible project upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "uploadId": {
+                      "type": "string"
+                    },
+                    "objectId": {
+                      "type": "string"
+                    },
+                    "chunkSize": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "receiving",
+                        "received",
+                        "failed",
+                        "extracted"
+                      ]
+                    },
+                    "chunks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "missing": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    },
+                    "job": {
+                      "type": "object",
+                      "properties": {
+                        "jobId": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient sensitivity clearance or authentication"
+          },
+          "404": {
+            "description": "Upload/project absent or invisible"
+          },
+          "409": {
+            "description": "Immutable project, failed upload or missing chunks"
+          },
+          "413": {
+            "description": "Project, file, chunk or archive limit exceeded"
+          },
+          "422": {
+            "description": "Invalid hash or unsafe archive"
+          },
+          "429": {
+            "description": "Tenant async job quota exhausted"
+          },
+          "507": {
+            "description": "Insufficient free disk space"
+          }
+        },
+        "description": "Tenant-scoped resumable project ingest. SHA-256 hashes are lowercase hex. Chunks use a raw octet stream; status lists received and missing indexes. Completed originals trigger project.object.received.v1. The async job is polled through /api/jobs/:jobId/status.",
+        "parameters": [
+          {
+            "name": "uploadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "example-id"
+            }
+          }
+        ],
+        "x-agentable": true
+      }
+    },
+    "/api/project-upload/:projectId/objects": {
+      "get": {
+        "operationId": "project-upload_objects",
+        "summary": "List project object metadata without embedding original bytes",
+        "tags": [
+          "Project ingest"
+        ],
+        "responses": {
+          "200": {
+            "description": "List project object metadata without embedding original bytes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "objectId": {
+                        "type": "string"
+                      },
+                      "projectId": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "mimeType": {
+                        "type": "string"
+                      },
+                      "size": {
+                        "type": "integer"
+                      },
+                      "hash": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "receiving",
+                          "received",
+                          "failed",
+                          "extracted"
+                        ]
+                      },
+                      "chunks": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "hash": {
+                              "type": "string"
+                            },
+                            "size": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      },
+                      "provenance": {
+                        "type": "object",
+                        "properties": {
+                          "actorId": {
+                            "type": "string"
+                          },
+                          "uploadId": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "receivedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "sensitivityLevel": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient sensitivity clearance or authentication"
+          },
+          "404": {
+            "description": "Upload/project absent or invisible"
+          },
+          "409": {
+            "description": "Immutable project, failed upload or missing chunks"
+          },
+          "413": {
+            "description": "Project, file, chunk or archive limit exceeded"
+          },
+          "422": {
+            "description": "Invalid hash or unsafe archive"
+          },
+          "429": {
+            "description": "Tenant async job quota exhausted"
+          },
+          "507": {
+            "description": "Insufficient free disk space"
+          }
+        },
+        "description": "Tenant-scoped resumable project ingest. SHA-256 hashes are lowercase hex. Chunks use a raw octet stream; status lists received and missing indexes. Completed originals trigger project.object.received.v1. The async job is polled through /api/jobs/:jobId/status.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "example-id"
+            }
+          }
+        ],
+        "x-agentable": true
+      }
+    },
     "/api/query/ask": {
       "post": {
         "operationId": "query_ask",
@@ -67112,6 +67743,30 @@
                   "quotas": {
                     "type": "object",
                     "properties": {
+                      "project_max_bytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 2147483648,
+                        "description": "Project byte limit; 0 inherits CET_PROJECT_MAX_BYTES."
+                      },
+                      "project_max_files": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 10000,
+                        "description": "Project object limit; 0 inherits CET_PROJECT_MAX_FILES."
+                      },
+                      "project_max_file_bytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 2147483648,
+                        "description": "Object byte limit; 0 inherits CET_PROJECT_MAX_FILE_BYTES."
+                      },
+                      "project_chunk_bytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 8388608,
+                        "description": "Upload chunk size; 0 inherits CET_PROJECT_CHUNK_BYTES."
+                      },
                       "llm_tokens_per_day": {
                         "type": "integer",
                         "minimum": 0,
@@ -78504,6 +79159,30 @@
                   "quotas": {
                     "type": "object",
                     "properties": {
+                      "project_max_bytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 2147483648,
+                        "description": "Project byte limit; 0 inherits CET_PROJECT_MAX_BYTES."
+                      },
+                      "project_max_files": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 10000,
+                        "description": "Project object limit; 0 inherits CET_PROJECT_MAX_FILES."
+                      },
+                      "project_max_file_bytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 2147483648,
+                        "description": "Object byte limit; 0 inherits CET_PROJECT_MAX_FILE_BYTES."
+                      },
+                      "project_chunk_bytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 8388608,
+                        "description": "Upload chunk size; 0 inherits CET_PROJECT_CHUNK_BYTES."
+                      },
                       "llm_tokens_per_day": {
                         "type": "integer",
                         "minimum": 0,

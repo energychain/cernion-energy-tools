@@ -57,6 +57,23 @@ module.exports = {
       .filter(Boolean),
   },
   actions: {
+    ingestMutation: {
+      visibility: 'protected',
+      params: { ...projectParams, work: { type: 'function' } },
+      handler(ctx) {
+        const { ingestCapability } = require('../src/project-file-ingest-policy');
+        if (ctx.meta.projectIngest !== ingestCapability) deny('Use project ingest');
+        return this.mutateProject(ctx, async (project) => {
+          this.assertMutable(project);
+          const lock = { project, active: true };
+          try {
+            return await ctx.params.work(lock);
+          } finally {
+            lock.active = false;
+          }
+        });
+      },
+    },
     create: {
       rest: 'POST /',
       params: { ...editableParams, title: { ...editableParams.title, optional: false } },
@@ -312,6 +329,15 @@ module.exports = {
     },
     async mutateProject(ctx, work) {
       const p = policy.projectPrincipal(ctx);
+      const { ingestCapability } = require('../src/project-file-ingest-policy');
+      const lock = ctx.meta.projectIngestLock;
+      if (
+        ctx.meta.projectIngest === ingestCapability &&
+        lock?.active &&
+        lock.project.tenantId === p.tenantId &&
+        lock.project.projectId === ctx.params.projectId
+      )
+        return work(lock.project, p);
       const key = `${policy.projectPrefix(p.tenantId)}${ctx.params.projectId}`;
       this.projectQueues ||= new Map();
       const previous = this.projectQueues.get(key) || Promise.resolve();

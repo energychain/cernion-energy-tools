@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "b78dddb0a590b0825b29712d3211e8afc1ebe5ff5da44091b360026ae31cb1e1",
+  "sourceHash": "c32d5369f386db0e90126a9823e556b213d06cf794d713193fc50f1c4e24a988",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -1121,7 +1121,7 @@
       "new": 1,
       "previousSourceHash": "133194217cd96e07c18cc0a8abe34ad1f4fb1256a00c0ad5aed86a16877cf7e7"
     },
-    "indexOperationCount": 1008,
+    "indexOperationCount": 1013,
     "indexOperationsWithoutAction": 19,
     "capabilityCount": 172,
     "functionCount": 107,
@@ -196848,6 +196848,10 @@
       {
         "service": "personal-agent",
         "ref": "src/llm-client.js:227: dynamic emission"
+      },
+      {
+        "service": "project-upload",
+        "ref": "src/job-store.js:67: dynamic emission"
       },
       {
         "service": "query",
