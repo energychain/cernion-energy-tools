@@ -1,0 +1,14 @@
+[
+  {
+    "id": "asset_effective_record",
+    "action": "assets.effective",
+    "graphLink": {
+      "catalogField": "grid-assets.assetId",
+      "keyFields": ["assetId", "mastrNummer"],
+      "parameter": "assetId",
+      "resultPath": "",
+      "resultField": "assetId"
+    },
+    "sourceProvenance": "semantic-domains:grid-assets.assetId;openapi:assets.effective"
+  }
+]

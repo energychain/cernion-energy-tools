@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Projektakte: Relationsgraph (#886)
+
+- Geschützter, tenant-/aktengetrennter Relationsgraph in der vorhandenen Object-Store-Datenbank, mit Mango-Indizes, Batch-Schreiben und festen Volumen-/Arbeitsbudgets.
+- Deterministische Ableitung aus Strukturierung, read-only SQLite-Sketches, Zeitintervallen und normalisierten Ankern; kataloggestützte externe Beobachtungen ausschließlich über verifizierte Leseoperationen.
+- Begrenzte REST-/MCP-Leseaktionen, dauerhafte Kantenkorrekturen über die bestehende Lernschleife, Neustart-Wiederaufnahme und bestätigte Löschkaskade. Sollgraph-Prüfung für zwei synthetische Fachdomänen dokumentiert unter `docs/validation/886-projektakte-graph.md`.
+
+
 ## Unreleased — Projektakte: Strukturierung im Datenstrom (#885)
 
 - Review-Korrektur: Gedächtnis-Extraktion auf 50 Abschnitte je Original und 500 je Akte begrenzt (konfigurierbar); dauerhafte Versuchsreservierungen und Objektstatus mit extrahierten/übersprungenen Abschnitten. Überschüssiger Text bleibt im Dokumentwissen/RAG suchbar; Rohdatenfreiheit von Tabellen-Prompts bleibt bestehen.

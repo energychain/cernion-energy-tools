@@ -1,0 +1,25 @@
+{
+  "description": "Three neutral tables and one description. Table 0 joins table 1 on Token; tables 1 and 2 have compatible overlapping periods. Section 0 describes tables 0 and 1 via Lumen-A7. Numeric sequence and time columns never join.",
+  "cases": [
+    {
+      "domain": "energy",
+      "tokens": ["Lumen-A7", "Lumen-B8"],
+      "titles": ["Unit directory", "Observed series", "Parallel series"],
+      "description": "Energy project: two generation units with hourly output observations.",
+      "measureField": "Output [kW]"
+    },
+    {
+      "domain": "library",
+      "tokens": ["Volume-A7", "Volume-B8"],
+      "titles": ["Item directory", "Observed series", "Parallel series"],
+      "description": "Library project: two volumes with hourly lending observations.",
+      "measureField": "Loans [count]"
+    }
+  ],
+  "expected": [
+    ["dataset:0", "dataset:1", "joinsOn"],
+    ["dataset:1", "dataset:2", "timeAligned"],
+    ["section:0", "dataset:0", "describes"],
+    ["section:0", "dataset:1", "describes"]
+  ]
+}

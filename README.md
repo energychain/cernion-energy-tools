@@ -23,6 +23,7 @@ It is not just a chat frontend for energy APIs. The current platform contains:
 - **304 JavaScript test files** under `tests/`
 - **curated Copilot, Sidecar, OpenWebUI, n8n and OpenClaw integration surfaces** that expose only governed subsets of the backend
 - **agentic runtime components** for routing, receipts, dossiers, HITL, evidence, revalidation and observability
+- **durable project files** with tenant-scoped ingestion, structured tables and an evidence-backed relation graph; see [Projektakte](docs/projektakte.md) for APIs, limits and cleanup
 
 Current package/OpenAPI version: **`0.99.0`**
 

@@ -1,6 +1,10 @@
 {
   "entries": [
     {
+      "term": "endpoint",
+      "reason": "Technical module name evidence-endpoint-catalog, reused for metadata-backed read-only graph observations (#886); no business vocabulary or source selection rules."
+    },
+    {
       "term": "connector",
       "reason": "Technical module path src/connectors/csv.connector.js: reuse of the existing delimiter and encoding helpers for streaming project tables (#885); no business terminology."
     },
