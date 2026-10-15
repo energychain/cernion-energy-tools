@@ -205,10 +205,14 @@ module.exports = {
         }
         db.prepare('DELETE FROM project_candidates WHERE object_id = ?').run(object.objectId);
         object.derivation.obsoleteDatasets = [];
+        // Only the first block is needed to classify the object; close the stream afterwards.
+        const head = disk.objectBytes(chunks, object.chunks)[Symbol.asyncIterator]();
         let prefix = '';
-        for await (const bytes of disk.objectBytes(chunks, object.chunks)) {
-          prefix = bytes.subarray(0, 4096).toString('utf8');
-          break;
+        try {
+          const first = await head.next();
+          if (!first.done) prefix = first.value.subarray(0, 4096).toString('utf8');
+        } finally {
+          await head.return?.();
         }
         const type = policy.objectType(object, prefix);
         object.derivation.type = type;
