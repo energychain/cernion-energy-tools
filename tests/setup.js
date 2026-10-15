@@ -9,7 +9,7 @@ const os = require('os');
 const path = require('path');
 
 // Load environment variables for tests
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 // Set test environment variables if not provided
 if (!process.env.CERNION_TOKEN) {
