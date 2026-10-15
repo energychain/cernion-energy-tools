@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "c32d5369f386db0e90126a9823e556b213d06cf794d713193fc50f1c4e24a988",
+  "sourceHash": "3be891b21a627281655adb927828eb83bab7ce48a857908f270628902d1da2d2",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -9339,6 +9339,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/rate-quota-store.js"
         },
         {
@@ -12621,6 +12629,14 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
         },
         {
           "kind": "service",
@@ -20596,6 +20612,14 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
         },
         {
           "kind": "service",
@@ -30933,6 +30957,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/rate-quota-store.js"
         },
         {
@@ -34565,6 +34597,14 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
         },
         {
           "kind": "service",
@@ -54201,6 +54241,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/source-license-map.js"
         },
         {
@@ -64165,6 +64213,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/rate-quota-store.js"
         },
         {
@@ -69400,6 +69456,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/archive-entry-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/async-job-poller.js"
         },
         {
@@ -69452,6 +69512,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-sqlite-pool.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/dataset-time.js"
         },
         {
@@ -69473,6 +69537,18 @@
         {
           "kind": "service",
           "ref": "src/edm-mscons-parser.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/edm-sqlite-pool.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/file-channel-extract.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/file-channel-policy.js"
         },
         {
           "kind": "service",
@@ -69569,6 +69645,30 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-pool.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-disk.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-ingest-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-structure-policy.js"
         },
         {
           "kind": "service",
@@ -74898,6 +74998,14 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
         },
         {
           "kind": "service",
@@ -80597,6 +80705,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/prompt-scrubber.js"
         },
         {
@@ -83241,6 +83357,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/prompt-scrubber.js"
         },
         {
@@ -85619,6 +85743,14 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
         },
         {
           "kind": "service",
@@ -94162,6 +94294,14 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
         },
         {
           "kind": "service",
@@ -104907,6 +105047,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/prompt-scrubber.js"
         },
         {
@@ -109825,6 +109973,14 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
         },
         {
           "kind": "service",
@@ -122108,6 +122264,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-sqlite-pool.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/dataset-time.js"
         },
         {
@@ -122133,6 +122293,10 @@
         {
           "kind": "service",
           "ref": "src/edm-mscons-parser.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/edm-sqlite-pool.js"
         },
         {
           "kind": "service",
@@ -122317,6 +122481,26 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-pool.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-disk.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-ingest-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
         },
         {
           "kind": "service",
@@ -125178,6 +125362,14 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
         },
         {
           "kind": "service",
@@ -129967,6 +130159,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/rate-quota-store.js"
         },
         {
@@ -134118,6 +134318,14 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
         },
         {
           "kind": "service",
@@ -138419,6 +138627,14 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
         },
         {
           "kind": "service",
@@ -142755,6 +142971,14 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
         },
         {
           "kind": "service",
@@ -165020,6 +165244,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/prompt-scrubber.js"
         },
         {
@@ -171896,6 +172128,14 @@
         {
           "kind": "service",
           "ref": "src/pouchdb-lifecycle-mixin.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-file-policy.js"
         },
         {
           "kind": "service",
@@ -196847,6 +197087,14 @@
       },
       {
         "service": "personal-agent",
+        "ref": "src/llm-client.js:227: dynamic emission"
+      },
+      {
+        "service": "project-structure",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "project-structure",
         "ref": "src/llm-client.js:227: dynamic emission"
       },
       {

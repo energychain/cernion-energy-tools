@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Projektakte: Strukturierung im Datenstrom (#885)
+
+- Dauerhafter interner Handoff nach Empfang mit Wiederaufnahme unvollständiger Ableitungen; idempotent je Objektinhalt und Parser-Version, Teilfehler ergeben `degraded`.
+- CSV/TSV und XLSX-Blätter werden mit begrenzten Profilen, Batches und Zeit-/Schlüsselindizes in eine akteneigene `project.sqlite` geschrieben; `dataset.query` verwendet den vorhandenen Executor über einen Pool-Adapter.
+- PDF/DOCX/PPTX/TXT/EML liefern Abschnitte mit Fundstellen ins bestehende Dokumentwissen und RAG; Gedächtnis-Prompts verwenden für Akten ausschließlich Abschnittstitel. Strukturierte Nachrichten verwenden vorhandene Adapter einschließlich MSCONS-Parser.
+- Entitäts-Kandidaten samt Herkunft liegen in der Akten-SQLite; aktuelle Aktenreferenzen binden den Workbench-Scope. Archivierung, Mitgliedschaft, Clearance und bestätigter Cleanup gelten für alle Ableitungen.
+- Streaming-, Isolations-, Neustart-, Dokument- und Regressionstests sowie generierter Million-Zeilen-Messlauf mit bekannten Aggregaten; getrennte Aktengrenzen lassen die Chat-Limits unverändert.
+
 ## Unreleased — Projektakte: Ingest bis 2 GB (#884)
 
 - Wiederaufnehmbarer Upload mit SHA-256-geprüften binären Chunks, tenantlokaler Deduplizierung und Originalmetadaten im bestehenden Object Store; keine Base64-Aktenobjekte und keine neue Datenbank.

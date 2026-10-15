@@ -219,7 +219,7 @@ CET_PROJECT_DATA_PATH/
       chunks/
         <sha256>                  # unveränderliche Chunkdatei
         pending-<uuid>            # kurzlebiger Schreib-/Archivspool
-      project.sqlite              # vorgesehener Speicherort für #885, noch nicht angelegt
+      project.sqlite              # akteneigene Tabellen und Kandidaten (#885)
 ```
 
 Für produktive Instanzen ist `CET_PROJECT_DATA_PATH` auf ein lokales Verzeichnis
@@ -350,3 +350,229 @@ Messung vom 15.10.2026 (Node 24.18.0): Archiv 1.073.743.248 Bytes, insgesamt
 RSS 72.843.264 → Spitze 243.339.264 Bytes (+170.496.000), HeapUsed
 13.718.672 → Spitze 58.408.392 Bytes (+44.689.720). Die Messwerte beschreiben
 diesen Lauf; das Prüfkriterium bleibt der feste Speicherzuwachs.
+
+## Strukturierung im Datenstrom (#885)
+
+`project-structure` ergänzt den bestehenden Objektvertrag, Object Store und
+Akten-Mutationslock. Der Ingest ruft nach dem **persistierten** Empfang und
+`project.object.received.v1` die geschützte Aktion
+`project-structure.run({ projectId, objectId })` mit Symbol-Capability auf.
+Dieser interne Handoff läuft noch unter demselben Aktenlock. Es gibt keine neue
+REST-Schreibroute oder Gateway-Rollenausnahme. Ein fehlender optionaler Strukturierer
+belässt Originale wie in #884 auf `pending`.
+
+Beim Dienststart liest ein capabilitygeschützter, paginierter Object-Store-Adapter
+dauerhafte `received`-Objekte und verarbeitet fehlende, unterbrochene, fehlgeschlagene
+oder veraltete Ableitungen erneut. Der interne Worker verwendet die persistierte
+Actor-/Tenant-Herkunft; Akten-Mitgliedschaft, Archivierung und Löschmarkierung werden
+erneut an der Akten-Mutationsgrenze geprüft. Nicht mehr sichtbare/änderbare Akten
+werden übersprungen, niemals reaktiviert. Dafür werden keine Zugangsdaten persistiert.
+Die interne Worker-Rolle dient nur dem vorhandenen Principal-Vertrag, nicht REST-RBAC.
+
+```js
+ProjectObject {
+  // unveränderter Empfangsvertrag aus #884
+  extraction: {
+    status: 'pending' | 'processing' | 'extracted' | 'failed',
+    reason?, cleanupReason?, at?
+  },
+  derivation: {
+    version: '1', hash, type,
+    datasets: ['ds_…'], documents: ['doc-…-v1'],
+    obsoleteDatasets: []
+  }
+}
+```
+
+Der Abschluss ist idempotent je `objectId`, Inhaltshash und `derivation.version`.
+Deterministische Dataset-IDs enthalten Inhaltshash, Objekt-ID, Blatt und Parser-Version;
+Tenant-IDs werden dafür nicht gehasht. Tabellen-IDs werden **vor** dem ersten Batch
+persistiert. Bei Wiederholung werden vorherige Ableitungen und verwaiste Tabellen
+dieses Objekts aufgeräumt; ein persistiertes `obsoleteDatasets` schützt auch das
+Absturzfenster beim Versionswechsel. Ein Parser-Update erhöht `VERSION` in
+`src/project-structure-policy.js`, danach verarbeitet der nächste Dienststart neu.
+Ein interner erneuter `run` kann fehlgeschlagene Objekte ohne Neustart wiederholen.
+
+Unbekannte Dateitypen behalten ausschließlich ihr Original und erhalten
+`extracted` mit Grund `Unsupported object type; original retained`. Erkannte, aber
+beschädigte/zu große Dateien erhalten `failed` mit Grund. Fehler eines Objekts
+entfernen dessen unvollständige Ableitungen und setzen die Akte auf `degraded`;
+andere Originale und fertige Datensätze werden weiter verarbeitet. Fortschritt nutzt
+`project.ingest.progress.v1`, Phase `structure`: `done` zählt verarbeitete Zeilen
+bzw. Dokumentabschnitte; `total: 0` bedeutet unbekannten Umfang, `1/1` Abschluss,
+`0/1` Fehlschlag. Der dauerhafte Objektstatus ist für Wiederaufnahme maßgeblich.
+
+### Akteneigene SQLite und Query-Adapter
+
+```text
+CET_PROJECT_DATA_PATH/id-<encodeURIComponent(tenantId)>/
+  id-<encodeURIComponent(projectId)>/project.sqlite
+```
+
+`ProjectDatasetPool extends DatasetSqlitePool` bindet einen Pool fest an genau einen
+Tenant und eine Akte. Verzeichnisprüfung und kodierte Segmente kommen aus
+`project-file-disk`; SQLite-Datei und etwaige WAL-/SHM-Dateien dürfen keine Symlinks
+sein. Neue Dateien entstehen mit 0600, Verzeichnisse mit 0700. Die geerbten
+Tabellen-/Query-Helfer und der vorhandene SQLite-Backend-Lifecycle werden wiederverwendet;
+`dataset.query` wählt den Adapter anhand autorisierter `provenance.projectId`.
+Gesundheits- und Zeitqualitätsprüfungen verwenden für Akten `COUNT(*)` und geordnete
+SQLite-Iteratoren, keine Materialisierung aller Rohzeilen. Chat-Datensätze bleiben
+im unveränderten tenantweiten Pool.
+
+Schema-Konventionen:
+
+- `ds_<32 hex>`: bestehendes Dataset-Schema mit `row_number INTEGER PRIMARY KEY`,
+  `utc TEXT`, `local_time TEXT`, `c0 … cn` (`REAL` oder `TEXT`). Die Zuordnung zu
+  Originalspalten bleibt im vorhandenen Dataset-Katalog der Datapoint-PouchDB.
+- Indizes auf `utc`, erkannten Zeitspalten und Schlüssel-/Kennungsspalten.
+- `project_candidates`: Kandidaten für #886, siehe unten. Keine Tabellen anderer Akten.
+
+Nach dem Schreiben werden Indizes erstellt und WAL gecheckpointet; geschlossene
+Writer hinterlassen eine mit `better-sqlite3({ readonly: true })` lesbare Datei.
+#888 muss genau diesen Pfad autorisieren und read-only öffnen. Tabellen anderer
+Akten sind physisch unerreichbar. Tabellen-/Spaltenreferenzen aus Skills bleiben
+gegen den autorisierten Katalog zu prüfen; eine beliebige Pfadangabe ist kein
+Zugriffsvertrag. Bei parallelen zukünftigen Interpretern gilt der bestehende
+SQLite-Snapshot-/WAL-Vertrag; der aktuelle Broker ist weiterhin ein einzelner Prozess.
+
+### Streaming und vorhandene Parser
+
+CSV/TSV liest `objectBytes` zeilenweise über Chunkgrenzen, einschließlich Quotes,
+mehrzeiliger Zellen und CRLF. `csv.connector` liefert Trennzeichenerkennung,
+Encoding-Normalisierung und den gemeinsamen `csv-text`-Feldparser. BOMs erkennen
+UTF-16; UTF-8 wird validiert, bei nicht gültigem UTF-8 im Anfangsblock wird
+Windows-1252 gewählt. Ein späterer Kodierungsfehler wird abgelehnt. Es gibt kein
+stilles Abschneiden. Zeilen-/Spaltengrenzen sind von #774 getrennt.
+
+XLSX verwendet `project-file-zip` für ZIP/ZIP64, Archivschutz und CRC32. Jeweils
+ein XML-Eintrag wird auf Platte gespult und mit dem SAX-Parser verarbeitet;
+der Arbeitsspeicher enthält höchstens eine Zeile sowie begrenzte Shared Strings
+und Metadaten. Es gibt kein `XLSX.read` und keine Gesamtentpackung im Speicher.
+Blattnamen und Beziehungen kommen aus Workbook-XML; jedes Blatt wird ein Dataset
+mit `provenance.sheet`. Shared Strings/Inline Strings, sparse Zellen, Datumstypen
+über das vorhandene `XLSX.SSF`, 1904-Kalender und gecachte Formelergebnisse werden
+unterstützt. Fehlende Formelergebnisse, Fehlerzellen, externe Beziehungen,
+Makros und XML-Entitätsdeklarationen werden abgelehnt.
+
+Profilierung verwendet `tabular-intelligence.profileRows` auf einer begrenzten
+Stichprobe. Nullzahlen und numerische Min/Max/Mittelwerte werden während der
+Batch-Verarbeitung fortgeschrieben; Distinktheitswerte bleiben Schätzungen aus der
+Stichprobe (`sampledRowCount`). Semantik und Query-Planung verwenden unverändert
+`dataset-semantics`; Prompts enthalten Profile/Statistik/Schema, niemals Rohzeilen
+oder Zellbeispiele. `dataset-time` normalisiert Batches mit fortgeführtem Zeitstatus,
+auch über die doppelte Ortszeit bei Zeitumstellungen hinweg. Transaktionen,
+Zeilen- und Bytebudgets begrenzen jeden Schreibbatch; Freiplatz wird erneut geprüft.
+
+Strukturierte Nachrichten verwenden den vorhandenen Adapterkatalog
+`structured-message-adapters.json` einschließlich des bestehenden
+EDIFACT-/MSCONS-Parsers, der Referenzauflösung und `queryStructured`. Diese vorhandenen
+Parser sind nicht streamingfähig und werden deshalb durch ein eigenes Bytebudget
+begrenzt; es gibt keinen zweiten Nachrichtenparser.
+
+### Dokumentwissen und Prompts
+
+PDF nutzt dieselbe `createPdfParser`-Factory wie der File-Channel, dateibasiert und
+seitenweise. DOCX/PPTX nutzt denselben Archivschutz und den SAX-Reader für
+Absätze/Folien; DOCX-Heading-Stile erhalten den Kapiteltitel. TXT/EML werden als
+Textabschnitte verarbeitet. `documentSections`, `knowledge-rag-chunker`,
+`tenant-document-knowledge` und `workbench-document-knowledge` bleiben zuständig für
+Passagen, Fundstellen, RAG und Teamgedächtnis. Beim Ingest wird die Duplikatprüfung
+für Akten auf den jeweiligen Originalabschnitt begrenzt; die Passagensuche arbeitet
+paginiert mit begrenzter Treffermenge.
+
+Jeder Abschnitt erhält `provenance.projectId`, `provenance.objectId` und
+`sourceLocation { page?, slide?, chapter? }`, auch in Such-/RAG-Herkunft.
+Die Prompt-Grenze gilt ebenfalls für das Teamgedächtnis: Der vorhandene untrusted
+Extractor sieht bei Akten nur Dokument-/Abschnittstitel und Fundstellen. Aussagen
+aus solchen Titeln werden über die vorhandene Schema-/Zitat-/Ankerprüfung gespeichert.
+`assessmentScope: section-titles` kennzeichnet den Abschluss ohne weitere
+LLM-Vergleichsprüfung gegen Dokumentkörper oder frühere Volltextquellen. Auch die
+gespeicherte Nachrichtenherkunft der Aussage enthält ausschließlich Titel/Fundstellen. Aussagen,
+die nur im Fließtext stehen, werden deshalb nicht per LLM ins Gedächtnis übernommen.
+Der vollständige Text bleibt lokal im Dokumentwissen/RAG. Das ist eine bewusste
+Folge der verbindlichen Vorgabe „Prompts nur Profile/Statistik/Schema/Abschnittstitel“.
+Vektor-Embeddings verwenden den vorhandenen RAG-Weg über `llm-client`, keine
+Generierungs-Prompts mit Dokumentkörpern. Leere Scan-PDFs scheitern mit OCR-Grund;
+OCR gehört nicht zu #885.
+
+### Entitäts-Kandidaten für #886
+
+Kandidaten liegen bewusst in derselben Akten-SQLite: begrenzte lokale Werte,
+gemeinsame Löschung und kein zweiter Metadatenspeicher. Es handelt sich um Rohmaterial,
+keine bestätigten Entitäten oder Relationen.
+
+```js
+// Tabelle project_candidates (Primärschlüssel über die ersten fünf Felder)
+{
+  object_id, version, kind, value,
+  location: JSON.stringify({ sheet?, row?, column?, page?, slide?, chapter?, line?, field?, offset? }),
+  catalog_field: null | 'catalog.field'
+}
+```
+
+`kind` ist `identifier`, `label`, `location`, `period` oder eine vorhandene semantische
+Rolle. Erkennung verwendet Spaltenprofile, `semantic-domains.fieldProfiles`,
+`workbench-identifier-kinds` und konfigurierte Muster aus `workbench-code-catalog`.
+Dokumente liefern Abschnittstitel, beschriftete Felder und katalogbasierte
+Kennungsmuster. Werte werden auf 1000 Zeichen und insgesamt auf das Kandidatenbudget
+je Original begrenzt. #886 muss diese Stichprobenherkunft und mögliche Begrenzung
+berücksichtigen; hier werden keine Beziehungen hergestellt.
+
+### Scope, Sensitivität und Löschung
+
+Dataset-Katalog und Dokumentwissen prüfen bei Abrufen die **aktuelle** Aktenliste:
+unsichtbare, archivierte oder in Löschung befindliche Akten liefern keine Inhalte.
+Der Katalog ergänzt aktuelle `projectRefs`; `workbench-data-scope.scopedDatasets`
+bindet Aktendatensätze ausschließlich über passende Gesprächs-/Fallreferenzen oder
+explizit übergebene strukturelle `projectIds`. Ein gleichlautender Dateiname allein
+eröffnet keinen Scope. Referenzänderungen wirken ohne erneutes Strukturieren.
+Bestehende Chat-Bindungen bleiben unverändert.
+
+Jedes Objekt registriert vor der ersten Ableitung die stabile Dokumentbestand-/Cleanup-
+Komponente `structure:<objectId>`; jeder fertige Datensatz registriert zusätzlich seine
+stabile Dataset-ID mit `stats.datasets: 1`. Alle Komponenten verwenden die tatsächliche
+Originalsensitivität, erforderliche Clearance und `project-structure.deleteProject`.
+Dokumentabschnitte werden in `derivation.documents` gezählt; der Original-Dateizähler
+wird nicht durch abgeleitete Passagen erhöht. Wiederholungen setzen veraltete
+Dataset-Komponenten auf null, ihre konservative Clearance bleibt bis zur Löschung bestehen. Die interne Löschbestätigung verlangt wie #883
+`{ version: 1, tenantId, projectId } → { deleted: true }`. Der Handler entfernt
+Dataset-Katalogeinträge, Dokumentpassagen/Vektoren und abgeleitete Gedächtniswerte,
+schließt gecachte Query-Pools und entfernt SQLite samt WAL/SHM und Kandidaten.
+Er funktioniert auch, wenn der Original-Cleanup die Objektmetadaten bereits entfernt
+hat. Bestehende Audit-/Dokumenttombstones enthalten keine Dokumentkörper mehr.
+Aktenlöschungen erzeugen keine Chat-Replay-Sperren. Wiederholte Aufrufe sind idempotent;
+fehlgeschlagene Handler blockieren weiterhin die endgültige Aktenlöschung.
+
+### Getrennte Strukturierungslimits
+
+| Variable unter `CET_PROJECT_` | Standard | Bedeutung |
+| --- | --- | --- |
+| `DATASET_MAX_ROWS` | 5000000 | je Blatt/Tabelle |
+| `DATASET_MAX_COLUMNS` | 512 | je Blatt/Tabelle |
+| `DATASET_BATCH_ROWS` / `DATASET_BATCH_BYTES` | 1000 / 4194304 | Schreibbatch; höchstens ein zusätzlicher begrenzter Datensatz |
+| `DATASET_SAMPLE_ROWS` / `DATASET_SAMPLE_BYTES` | 256 / 1048576 | Profilstichprobe |
+| `DATASET_MAX_RECORD_CHARS` | 1048576 | einzelne CSV-Zeile/XML-Einheit |
+| `XLSX_SHARED_STRING_BYTES` / `XLSX_SHARED_STRING_COUNT` | 16777216 / 100000 | Shared-String-XML und Einträge |
+| `OFFICE_MAX_EXPANDED_BYTES` | 2147483648 | gesamtes Office-Archiv; zusätzlich ZIP-Ratio aus #884 |
+| `DOCUMENT_SECTION_CHARS` | 12000 | Dokumentabschnitt, mindestens 256 |
+| `MESSAGE_MAX_BYTES` | 16777216 | vorhandene nicht streamende Nachrichtenparser |
+| `ENTITY_CANDIDATE_LIMIT` | 10000 | Kandidaten je Original |
+
+`WORKBENCH_DATASET_*` und `CET_FILE_*` bleiben für Chatdaten maßgeblich.
+
+### Reproduzierbare Strukturierungsprüfung
+
+```bash
+# Unit-/CI-Variante: generierte CSV, reduzierte Zeilenzahl
+npx jest --coverage=false tests/project-structure.test.js tests/project-structure-large.test.js
+# Voller Offline-Lauf über Chunkupload, Strukturierung, dataset.query und Cleanup
+node scripts/test-project-structure-large.js
+# Anpassbare Größe, ohne eingecheckte Großfixtures
+CET_PROJECT_LARGE_ROWS=1000000 node scripts/test-project-structure-large.js
+```
+
+Alle Eingaben und Datenbanken entstehen unter `/tmp`. Der Großtest misst alle 20 ms
+und an Schreibbatchgrenzen RSS/HeapUsed, prüft feste Budgets von +256/+128 MiB und
+die bekannte Summe `N*(N+1)/2`. Der Test enthält ein Zeitfeld, damit auch der
+große Zeitqualitäts-/Abfragepfad geprüft wird. Messwerte und Checks stehen in
+`docs/validation/885-projektakte-struktur.md`.

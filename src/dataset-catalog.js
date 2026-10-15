@@ -40,7 +40,7 @@ const datasetCatalogActions = {
         });
         return rows
           .map((row) => row.doc)
-          .filter((doc) => doc.hash && visibleDataset(doc, p))
+          .filter((doc) => doc.hash && !doc.projectId && visibleDataset(doc, p))
           .map((doc) => ({ hash: doc.hash, id: doc.datasetId }));
       }
       if (ctx.params.operation === 'list') {
@@ -49,10 +49,11 @@ const datasetCatalogActions = {
           endkey: `${prefix}\uffff`,
           include_docs: true,
         });
-        return rows
+        const records = rows
           .map((row) => row.doc)
           .filter((doc) => visibleDataset(doc, p))
           .map((doc) => doc.data.value);
+        return require('./project-dataset-catalog').visibleProjectDatasets(ctx, records);
       }
       const input = ctx.params.record;
       const id = ctx.params.id || input?.id;
@@ -73,6 +74,9 @@ const datasetCatalogActions = {
             datasetId: id,
             kind: 'deleted',
             hash: previous.provenanceHash,
+            ...(previous.data.value.provenance?.projectId
+              ? { projectId: previous.data.value.provenance.projectId }
+              : {}),
             sensitivityLevel: previous.sensitivityLevel,
             requiredClearance: previous.requiredClearance || [],
             actorId: p.actorId,

@@ -12,6 +12,7 @@ async function selectDatasetCandidates(
   {
     conversationId,
     caseId,
+    projectIds = [],
     scopeRequired = true,
     previousReads = [],
     previousSubject = '',
@@ -25,6 +26,7 @@ async function selectDatasetCandidates(
       ? require('./workbench-data-scope').scopedDatasets(records, question, {
           conversationId,
           caseId,
+          projectIds,
           previousReads,
           newDatasetIds,
         })

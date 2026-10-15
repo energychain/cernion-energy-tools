@@ -116,6 +116,10 @@ function xmlText(xml) {
     .replaceAll('&apos;', "'")
     .replaceAll('&amp;', '&');
 }
+function createPdfParser(options) {
+  const { PDFParse } = require('pdf-parse');
+  return new PDFParse(options);
+}
 async function extractOriginal(file) {
   const bytes = Buffer.from(file.contentBase64, 'base64');
   let text;
@@ -160,8 +164,7 @@ async function extractOriginal(file) {
       )
       .join('\n');
   } else if (file.extension === 'pdf') {
-    const { PDFParse } = require('pdf-parse');
-    const parser = new PDFParse({ data: bytes });
+    const parser = createPdfParser({ data: bytes });
     try {
       text = (await parser.getText()).text;
     } finally {
@@ -189,4 +192,4 @@ async function extractOriginal(file) {
     sensitivityLevel: file.sensitivityLevel,
   };
 }
-module.exports = { officeEntries, validateOffice, extractOriginal };
+module.exports = { officeEntries, validateOffice, extractOriginal, createPdfParser };

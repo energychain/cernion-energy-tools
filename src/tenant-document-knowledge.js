@@ -41,16 +41,32 @@ async function withDocumentSource(ctx, id, work) {
       )
     ).payload;
     if (row.status !== 'active' || !visible(p, row)) deny('Document not accessible');
+    if (!(await require('./project-dataset-catalog').visibleProjectDatasets(ctx, [row])).length)
+      deny('Document not accessible');
     return work();
   });
 }
-async function records(service, ctx, p) {
-  const rows = [];
+async function* recordPages(service, ctx, p, selector = {}) {
   for (let skip = 0; ; skip += 1000) {
-    const page = await service.objectQuery(ctx, documentNamespace(p.tenantId), {}, 1000, skip);
-    rows.push(...page.docs.map((doc) => doc.payload));
-    if (page.docs.length < 1000) return rows;
+    const page = await service.objectQuery(
+      ctx,
+      documentNamespace(p.tenantId),
+      selector,
+      1000,
+      skip
+    );
+    yield await require('./project-dataset-catalog').visibleProjectDatasets(
+      ctx,
+      page.docs.map((doc) => doc.payload)
+    );
+    if (page.docs.length < 1000) return;
   }
+}
+async function records(service, ctx, p, selector = {}, metadataOnly = false) {
+  const rows = [];
+  for await (const page of recordPages(service, ctx, p, selector))
+    rows.push(...page.map((row) => (metadataOnly ? publicRecord(row) : row)));
+  return rows;
 }
 function publicRecord(row) {
   const { text: _text, audit: _audit, ...rest } = row;
@@ -65,7 +81,13 @@ function sections(row) {
     (section.locations || [section]).flatMap((span) =>
       chunkText(row.text.slice(span.start, span.end), { mode: 'paragraph' }).map((text) => ({
         text,
-        location: `${span.chapter}${span.page ? `, Seite ${span.page}` : ''}, Abschnitt ${++ordinal}`,
+        location: `${
+          row.sourceLocation
+            ? Object.entries(row.sourceLocation)
+                .map(([key, value]) => `${key} ${value}`)
+                .join(', ') + ', '
+            : ''
+        }${span.chapter}${span.page ? `, Seite ${span.page}` : ''}, Abschnitt ${++ordinal}`,
         start: span.start,
       }))
     )
@@ -113,6 +135,13 @@ async function indexDocument(service, ctx, row) {
           provenance: row.person,
           sensitivityFlags: row.sensitivityFlags,
           sourceTitle: sourceText(row, part.location),
+          ...(row.provenance
+            ? {
+                provenance: row.provenance,
+                projectId: row.provenance.projectId,
+                objectId: row.provenance.objectId,
+              }
+            : {}),
         },
       });
     }
@@ -177,6 +206,11 @@ async function invalidateFacts(ctx, p, row, status) {
 }
 async function ingestDocument(service, ctx, input) {
   const { p, ctx: safe } = scoped(ctx);
+  if (
+    input.provenance &&
+    ctx.meta.projectStructure !== require('./project-structure-policy').capability
+  )
+    deny('Use project structure');
   if (!input.text.trim())
     throw new Errors.MoleculerClientError(
       'Das Dokument hat keinen lesbaren Text. Bitte aktiviere OCR in Open WebUI und lade es erneut hoch.',
@@ -193,9 +227,25 @@ async function ingestDocument(service, ctx, input) {
   if (!visible(p, { tenantId: p.tenantId, sensitivityFlags }))
     deny('Sensitivity clearance required');
   return serial(p.tenantId, async () => {
-    const rows = await records(service, safe, p);
+    const rows = await records(
+      service,
+      safe,
+      p,
+      input.provenance
+        ? {
+            'payload.name': input.name,
+            'payload.provenance.projectId': input.provenance.projectId,
+            'payload.provenance.objectId': input.provenance.objectId,
+          }
+        : {}
+    );
     const sha = hash(input.text);
-    const family = rows.filter((row) => normalizePhrase(row.name) === normalizePhrase(input.name));
+    const family = rows.filter(
+      (row) =>
+        normalizePhrase(row.name) === normalizePhrase(input.name) &&
+        row.provenance?.projectId === input.provenance?.projectId &&
+        row.provenance?.objectId === input.provenance?.objectId
+    );
     const documentId = family[0]?.documentId || `doc-${randomUUID()}`;
     // A same-name inaccessible source must not reveal itself or be superseded.
     if (family.some((row) => !visible(p, row))) deny('Document not accessible');
@@ -207,6 +257,9 @@ async function ingestDocument(service, ctx, input) {
       (row) =>
         visible(p, row) &&
         row.hash === sha &&
+        row.provenance?.projectId === input.provenance?.projectId &&
+        row.provenance?.objectId === input.provenance?.objectId &&
+        JSON.stringify(row.sourceLocation) === JSON.stringify(input.sourceLocation) &&
         (row.sensitivityFlags || []).length === sensitivityFlags.length &&
         (row.sensitivityFlags || []).every((flag) => sensitivityFlags.includes(flag)) &&
         !['deleted', 'deleting', 'obsolete'].includes(row.status)
@@ -235,7 +288,10 @@ async function ingestDocument(service, ctx, input) {
       type: 'tenant_document',
       tenantId: p.tenantId,
       name: input.name,
-      title: input.name,
+      title: input.title || input.name,
+      ...(input.provenance
+        ? { provenance: input.provenance, sourceLocation: input.sourceLocation }
+        : {}),
       hash: sha,
       version,
       status: 'active',
@@ -272,22 +328,23 @@ async function ingestDocument(service, ctx, input) {
 }
 async function searchDocuments(service, ctx, input = {}) {
   const { p, ctx: safe } = scoped(ctx);
-  const rows = (await records(service, safe, p)).filter(
-    (row) => visible(p, row) && row.status === 'active'
-  );
   const wanted = [...new Set(normalizePhrase(input.query || '').match(/[\p{L}\p{N}]{3,}/gu) || [])];
-  const results = rows
-    .flatMap((row) =>
-      sections(row).map((part) => ({
-        row,
-        part,
-        score: wanted.filter((term) => normalizePhrase(`${row.name} ${part.text}`).includes(term))
-          .length,
-      }))
-    )
-    .filter((entry) => !wanted.length || entry.score > 0)
-    .sort((a, b) => b.score - a.score || b.row.at.localeCompare(a.row.at))
-    .slice(0, input.limit || 5);
+  let results = [];
+  for await (const page of recordPages(service, safe, p)) {
+    for (const row of page.filter((row) => visible(p, row) && row.status === 'active')) {
+      const hits = sections(row)
+        .map((part) => ({
+          row,
+          part,
+          score: wanted.filter((term) => normalizePhrase(`${row.name} ${part.text}`).includes(term))
+            .length,
+        }))
+        .filter((entry) => !wanted.length || entry.score > 0);
+      results = [...results, ...hits]
+        .sort((a, b) => b.score - a.score || b.row.at.localeCompare(a.row.at))
+        .slice(0, input.limit || 5);
+    }
+  }
   return results.map(({ row, part }) => ({
     source: 'tenant-documents',
     retrievalSource: 'tenant-documents',
@@ -300,6 +357,13 @@ async function searchDocuments(service, ctx, input = {}) {
       documentName: row.name,
       location: part.location,
       version: row.version,
+      ...(row.provenance
+        ? {
+            provenance: row.provenance,
+            projectId: row.provenance.projectId,
+            objectId: row.provenance.objectId,
+          }
+        : {}),
     },
   }));
 }
@@ -339,7 +403,7 @@ async function visibleChunks(service, ctx, chunks) {
   } catch (_error) {
     return chunks.filter((row) => !row.metadata?.workbenchDocument);
   }
-  const rows = await records(service, scope.ctx, scope.p);
+  const rows = await records(service, scope.ctx, scope.p, {}, true);
   const permitted = new Set(
     rows.filter((row) => row.status === 'active' && visible(scope.p, row)).map((row) => row.id)
   );
@@ -363,6 +427,9 @@ const mixin = {
         standDate: { type: 'string', optional: true },
         deferIndex: { type: 'boolean', optional: true },
         refs: { type: 'array', items: 'object', optional: true },
+        provenance: { type: 'object', optional: true },
+        sourceLocation: { type: 'object', optional: true },
+        title: { type: 'string', optional: true },
       },
       handler(ctx) {
         return ingestDocument(this, ctx, ctx.params);
@@ -400,14 +467,23 @@ const mixin = {
     },
     documentList: {
       visibility: 'protected',
-      params: { query: { type: 'string', optional: true } },
+      params: {
+        query: { type: 'string', optional: true },
+        includeDeleting: { type: 'boolean', optional: true, default: false },
+      },
       async handler(ctx) {
         const { p, ctx: safe } = scoped(ctx);
-        return (await records(this, safe, p))
+        if (
+          ctx.params.includeDeleting &&
+          ctx.meta.projectFileOriginals !== require('./project-file-policy').fileCapability
+        )
+          deny('Use project deletion');
+        return (await records(this, safe, p, {}, !ctx.params.query))
           .filter(
             (row) =>
               visible(p, row) &&
-              !['deleted', 'deleting'].includes(row.status) &&
+              row.status !== 'deleted' &&
+              (row.status !== 'deleting' || ctx.params.includeDeleting) &&
               (!ctx.params.query ||
                 normalizePhrase(row.name + ' ' + row.text).includes(
                   normalizePhrase(ctx.params.query)
@@ -429,6 +505,8 @@ const mixin = {
           )
         ).payload;
         if (!visible(p, row) || ['deleted', 'deleting'].includes(row.status))
+          deny('Document not accessible');
+        if (!(await require('./project-dataset-catalog').visibleProjectDatasets(ctx, [row])).length)
           deny('Document not accessible');
         return row;
       },
