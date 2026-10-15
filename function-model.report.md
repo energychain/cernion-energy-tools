@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `ac38cc1b553f3d521b53538c1a321008c3e52318f4ac9f60cb6645a9557a9e1d`
+Source SHA-256: `b78dddb0a590b0825b29712d3211e8afc1ebe5ff5da44091b360026ae31cb1e1`
 
 Capabilities: 172; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
@@ -14,7 +14,7 @@ Maximum degree target: ≤ 0.25 × 107 = 26.75; met: yes.
 
 Candidate degree before mutual selection: {"minimum":0,"median":4,"maximum":37,"isolatedFraction":0.2616822429906542}; pruned directed edges: 92; peer limit: 26.
 
-Operation index entries without action: 19/1001.
+Operation index entries without action: 19/1008.
 
 All curated capabilities are assigned once, including entries without resolvable operations.
 Edges describe catalog evidence only; they grant no authorization.
@@ -164,7 +164,7 @@ Singletons and unavailable comparisons are N/A, never assigned an artificial coh
 ## ID-Änderungen gegenüber Vorversion
 
 same: 96; merged: 9; split: 5; retired: 4; new: 1.
-Previous source SHA-256: 54fb419e1fe2da1453c414e92c456297c106f075822948f9de9d4a496b0e6000.
+Previous source SHA-256: 133194217cd96e07c18cc0a8abe34ad1f4fb1256a00c0ad5aed86a16877cf7e7.
 Counts describe prior IDs in the last membership transition; retired counts IDs that lost their active identity, including merges. No-op generation preserves this provenance.
 Permanently reserved retired IDs: 35.
 

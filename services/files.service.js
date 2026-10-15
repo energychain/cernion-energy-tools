@@ -5,6 +5,7 @@ const { principal } = require('../src/domain-router-policy');
 const { normalizeEvidenceInput } = require('../src/workbench-evidence');
 const policy = require('../src/file-channel-policy');
 const { extractOriginal } = require('../src/file-channel-extract');
+const projectPolicy = require('../src/project-file-policy');
 
 function fileAction(summary, handler) {
   return {
@@ -16,6 +17,86 @@ function fileAction(summary, handler) {
 module.exports = {
   name: 'files',
   actions: {
+    projectDescribe: {
+      visibility: 'protected',
+      params: { fileId: { type: 'string', pattern: /^[a-f0-9]{64}$/ } },
+      async handler(ctx) {
+        if (ctx.meta.projectFileOriginals !== projectPolicy.fileCapability)
+          require('../src/domain-router-policy').deny('Use the project workflow');
+        const file = await this.readFile(ctx, principal(ctx), ctx.params.fileId);
+        return {
+          fileId: file.fileId,
+          size: file.size,
+          sensitivityLevel: file.sensitivityLevel,
+          requiredClearance: file.requiredClearance || [],
+        };
+      },
+    },
+    retainForProject: {
+      visibility: 'protected',
+      params: {
+        fileId: { type: 'string', pattern: /^[a-f0-9]{64}$/ },
+        projectId: projectPolicy.idParam,
+      },
+      async handler(ctx) {
+        if (ctx.meta.projectFileOriginals !== projectPolicy.fileCapability)
+          require('../src/domain-router-policy').deny('Use the project workflow');
+        const p = principal(ctx);
+        const file = await this.readFile(ctx, p, ctx.params.fileId);
+        file.projectIds = [
+          ...new Set([
+            ...(file.projectIds || []),
+            ...(file.projectId ? [file.projectId] : []),
+            ctx.params.projectId,
+          ]),
+        ];
+        file.projectId ||= ctx.params.projectId;
+        delete file.expiresAt;
+        await this.object(ctx, 'put', p.tenantId, file.fileId, { payload: file });
+        return { retained: true };
+      },
+    },
+    deleteProject: {
+      visibility: 'protected',
+      params: {
+        tenantId: projectPolicy.idParam,
+        projectId: projectPolicy.idParam,
+        version: { type: 'number', integer: true, equal: 1 },
+      },
+      async handler(ctx) {
+        if (ctx.meta.projectFileOriginals !== projectPolicy.fileCapability)
+          require('../src/domain-router-policy').deny('Use the project workflow');
+        const p = principal(ctx, ctx.params);
+        let removed = 0;
+        for (;;) {
+          const { docs } = await this.object(ctx, 'query', p.tenantId, null, {
+            limit: 1000,
+            selector: {
+              $or: [
+                { 'payload.projectId': ctx.params.projectId },
+                { 'payload.projectIds': { $in: [ctx.params.projectId] } },
+              ],
+            },
+          });
+          for (const { payload: file } of docs) {
+            const remaining = [
+              ...new Set([...(file.projectIds || []), ...(file.projectId ? [file.projectId] : [])]),
+            ].filter((id) => id !== ctx.params.projectId);
+            if (remaining.length) {
+              policy.authorizeFile(p, file);
+              await this.object(ctx, 'put', p.tenantId, file.fileId, {
+                payload: { ...file, projectIds: remaining, projectId: remaining[0] },
+              });
+            } else {
+              await this.removeFile(ctx, p, file.fileId, 'project.delete');
+              removed++;
+            }
+          }
+          if (docs.length < 1000) break;
+        }
+        return { deleted: true, removed };
+      },
+    },
     upload: fileAction('Store an original file in the authenticated tenant', async function (ctx) {
       const { p } = await this.identity(ctx);
       return this.storeFile(ctx, p, ctx.params);
@@ -95,9 +176,13 @@ module.exports = {
         });
         let removed = 0;
         for (const doc of docs)
-          if (doc.payload.expiresAt <= Date.now()) {
-            await this.removeFile(ctx, p, doc.key, 'retention');
-            removed++;
+          if (
+            !doc.payload.projectId &&
+            !doc.payload.projectIds?.length &&
+            doc.payload.expiresAt <= Date.now()
+          ) {
+            const result = await this.removeFile(ctx, p, doc.key, 'retention');
+            if (result.deleted) removed++;
           }
         return { removed };
       }
@@ -106,9 +191,11 @@ module.exports = {
   methods: {
     async removeFile(ctx, p, id, operation) {
       const { payload: file } = await this.object(ctx, 'get', p.tenantId, policy.fileId(id));
+      // Recheck current membership: a purge query may predate project attachment.
+      if (operation === 'retention' && (file.projectId || file.projectIds?.length))
+        return { deleted: false, fileId: file.fileId };
       policy.authorizeFile(p, { ...file, expiresAt: Number.MAX_SAFE_INTEGER });
       await this.audit(ctx, p, file.fileId, operation, 'allowed');
-      await this.object(ctx, 'delete', p.tenantId, file.fileId);
       if (this.broker.getLocalService('knowledge-rag')?.schema.actions.documentList) {
         const sources = await ctx.call('knowledge-rag.documentList', {});
         for (const source of sources.filter((row) =>
@@ -127,6 +214,8 @@ module.exports = {
         )
           await wb.evidenceDb.remove(doc);
       await wb.evidenceDb.compact();
+      // Keep the original until derived cleanup succeeds, so failed project cleanup is retryable.
+      await this.object(ctx, 'delete', p.tenantId, file.fileId);
       await this.broker.getLocalService('object-store').db.compact();
       return { deleted: true, fileId: file.fileId };
     },
@@ -317,3 +406,10 @@ for (const kind of ['upload', 'download', 'remove', 'link']) {
 module.exports.hooks.before.publish = module.exports.hooks.before.upload;
 module.exports.hooks.after.publish = module.exports.hooks.after.upload;
 module.exports.hooks.error.publish = module.exports.hooks.error.upload;
+
+// Project originals share the existing upload queue to preserve all deduplicated memberships.
+for (const name of ['retainForProject', 'deleteProject', 'purge', 'remove']) {
+  module.exports.hooks.before[name] = module.exports.hooks.before.upload;
+  module.exports.hooks.after[name] = module.exports.hooks.after.upload;
+  module.exports.hooks.error[name] = module.exports.hooks.error.upload;
+}

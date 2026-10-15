@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Projektakte: Datenmodell und Lebenszyklus (#883)
+
+- Dauerhafte, tenantweite Projektakten mit optionalen Mitgliedern, aggregierter Clearance und strukturellen Fall-/Gesprächsreferenzen; geschützte Erweiterungspunkte für Bestandteile und Lebenszyklus.
+- PouchDB-Persistenz über den bestehenden Object-Store-Lifecycle-Mixin, REST/OpenAPI und MCP-lesbare Aktionen ohne neue Datenbank.
+- Bestätigte, wiederholbare Löschkaskade mit dauerhaftem Fehlerzustand und vorhandenem Audit-Trail; zugeordnete Originale verfallen nicht durch die File-Retention.
+- Synthetische Tests für Tenant-/Clearance-Grenzen, Neustart, Events, Cleanup, Audit und verkürzte Retention.
+
 ## Unreleased – Workbench Vorgangs-/EvidenceRef-Inspector (#660)
 
 - Opt-in `view=inspector` mit `evidenceLimit` (Standard 25, höchstens 50) für `GET /api/workbench/cases/:caseId`: geschlossene, skalare Vorgangszeile, EvidenceRef-Zeilen (neueste zuerst, stabiler ID-Tiebreak) sowie begrenzte Zeilen für fehlende Nachweise, Rückfragen und No-Call-Grenzen mit deterministischem `nextSafeGate`.
