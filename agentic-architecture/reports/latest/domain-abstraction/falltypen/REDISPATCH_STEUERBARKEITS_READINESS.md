@@ -1,6 +1,6 @@
 # Redispatch-/Steuerbarkeits-Readiness
 
-Generated: 2026-10-14T20:35:37.788Z
+Generated: 2026-10-15T02:38:48.726Z
 
 Status: observed
 Priority: 6
@@ -104,8 +104,8 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `src/report-builder.js` (165 hits)
 - `services/dashboard-api/methods-part-03-of-14.js` (153 hits)
 - `docs/reviews/730-capability-routing-evaluation.json` (128 hits)
-- `function-model.report.md` (117 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (113 hits)
+- `function-model.report.md` (110 hits)
 - `docs/use-cases/redispatch-test-readiness-akte.md` (109 hits)
 - `src/vdmi-blueprint-pack-seeds.js` (102 hits)
 - `services/dashboard-api/methods-part-13-of-14.js` (98 hits)

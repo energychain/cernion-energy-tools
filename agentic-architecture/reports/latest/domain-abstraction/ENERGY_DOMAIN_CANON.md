@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-14T20:35:37.788Z
+Generated: 2026-10-15T02:38:48.726Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -33,22 +33,22 @@ Arbeitsmodell: CET soll unvollständige Vorgänge bearbeitbar machen: einordnen,
 
 Starke Code-/Doku-Signale:
 
+- `docs/validation/issue-874-before.md` (961 hits)
 - `docs/validation/practice-evaluation-baseline.json` (753 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.json` (723 hits)
 - `docs/validation/practice-evaluation-baseline.md` (688 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (658 hits)
 - `src/capability-catalog.js` (613 hits)
-- `services/workbench.service.js` (525 hits)
+- `services/workbench.service.js` (554 hits)
 - `docs/reviews/730-capability-routing-evaluation.json` (462 hits)
 - `src/answer-dossier-hydration-rules.json` (361 hits)
 - `services/personal-agent/actions-part-01-of-1.js` (360 hits)
 - `services/capability-broker.service.js` (329 hits)
 - `docs/validation/workbench-873-live.json` (320 hits)
-- `services/dashboard-api/methods-part-09-of-14.js` (265 hits)
 
 Zugeordnete Services nach Heuristik:
 
-- `domain-router` — services/domain-router.service.js (5 actions)
+- `domain-router` — services/domain-router.service.js (2 actions)
 - `personal-agent` — services/personal-agent.service.js
 
 ## Evidence, Nachweis und Vertrauen
@@ -105,12 +105,12 @@ Starke Code-/Doku-Signale:
 - `docs/validation/739-routing.json` (271 hits)
 - `docs/validation/813-live.json` (253 hits)
 - `src/evidence-registry.js` (144 hits)
+- `docs/validation/issue-874-before.md` (136 hits)
 - `services/api.service.js` (131 hits)
 - `services/capability-broker.service.js` (131 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (122 hits)
 - `src/answer-dossier-hydration-rules.json` (121 hits)
 - `services/dashboard-api/methods-part-05-of-14.js` (116 hits)
-- `services/dashboard-api/methods-part-07-of-14.js` (114 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -241,11 +241,11 @@ Starke Code-/Doku-Signale:
 - `services/capability-broker.service.js` (243 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.json` (192 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (191 hits)
+- `docs/validation/issue-874-before.md` (186 hits)
 - `docs/validation/practice-evaluation-baseline.json` (184 hits)
 - `docs/validation/practice-evaluation-baseline.md` (184 hits)
 - `src/answer-dossier-hydration-rules.json` (181 hits)
 - `docs/validation/tenant-memory-live.json` (175 hits)
-- `services/dashboard-api/methods-part-06-of-14.js` (165 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -259,7 +259,7 @@ Arbeitsmodell: Ein selbstlaufender EVU-Assistent muss bei erster Nutzung Kontext
 
 Starke Code-/Doku-Signale:
 
-- `services/workbench.service.js` (596 hits)
+- `services/workbench.service.js` (608 hits)
 - `docs/validation/workbench-873-live.json` (512 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (492 hits)
 - `services/api.service.js` (453 hits)
@@ -269,8 +269,8 @@ Starke Code-/Doku-Signale:
 - `services/agent-persona.service.js` (409 hits)
 - `services/personal-agent/actions-part-01-of-1.js` (393 hits)
 - `src/capability-catalog.js` (381 hits)
+- `docs/validation/issue-874-before.md` (379 hits)
 - `services/vdmi.service.js` (376 hits)
-- `src/answer-dossier-hydration-rules.json` (375 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -304,12 +304,12 @@ Starke Code-/Doku-Signale:
 - `services/capability-broker.service.js` (758 hits)
 - `services/chatgpt-sidecar.service.js` (335 hits)
 - `services/personal-agent/actions-part-01-of-1.js` (330 hits)
-- `function-model.report.md` (309 hits)
 - `src/capability-catalog.js` (292 hits)
+- `function-model.report.md` (284 hits)
 - `services/domain-routes-management.service.js` (275 hits)
+- `services/workbench.service.js` (253 hits)
 - `src/answer-dossier-hydration-rules.json` (235 hits)
 - `services/personal-agent/methods-part-03-of-11.js` (234 hits)
-- `services/workbench.service.js` (232 hits)
 - `services/api.service.js` (189 hits)
 - `src/personal-agent-routing.js` (168 hits)
 - `docs/sonarcloud-security-review.json` (155 hits)

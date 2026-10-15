@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-14T20:35:33.333Z
+Generated: 2026-10-15T02:38:44.222Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 1953
+- Files scanned: 1972
 - Services: 159
-- src/*.js files: 371
-- Tests: 486
+- src/*.js files: 381
+- Tests: 488
 - Integrations files: 31
-- Markdown/docs files: 517
+- Markdown/docs files: 522
 
 ## Existing validation summary
 
@@ -26,12 +26,12 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 555 files
-- `src`: 438 files
-- `docs`: 392 files
+- `tests`: 557 files
+- `src`: 448 files
+- `docs`: 397 files
 - `services`: 195 files
+- `scripts`: 85 files
 - `tools`: 85 files
-- `scripts`: 83 files
 - `agentic-architecture`: 61 files
 - `integrations`: 31 files
 - `.claude`: 26 files
@@ -138,7 +138,7 @@ Primary agentic files:
 - `datasource-registry` — services/datasource-registry.service.js (9 detected actions)
 - `datasource-watcher` — services/datasource-watcher.service.js (2 detected actions)
 - `decision-frame` — services/decision-frame.service.js (2 detected actions)
-- `domain-router` — services/domain-router.service.js (5 detected actions)
+- `domain-router` — services/domain-router.service.js (2 detected actions)
 - `domain-routes` — services/domain-routes-management.service.js (5 detected actions)
 - `dossier-hydration` — services/dossier-hydration-management.service.js (5 detected actions)
 - `e2e-connection-check` — services/e2e-connection-check.service.js (9 detected actions)

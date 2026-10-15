@@ -1,6 +1,6 @@
 # Evidence vs Practice
 
-Generated: 2026-10-14T20:35:37.788Z
+Generated: 2026-10-15T02:38:48.726Z
 
 ## Rule
 
@@ -36,15 +36,15 @@ Evidenz begrenzt Behauptungen. Sie darf nicht verhindern, dass CET einen Fall fa
 - `services/dashboard-api/methods-part-07-of-14.js` (636 hits)
 - `services/dashboard-api/methods-part-11-of-14.js` (550 hits)
 - `services/agent-receipts.service.js` (479 hits)
-- `function-model.report.md` (399 hits)
+- `function-model.report.md` (397 hits)
 - `services/personal-agent/shared.js` (355 hits)
 - `src/answer-dossier-builder.js` (335 hits)
 - `src/vdmi-blueprint-pack-seeds.js` (309 hits)
 - `services/capability-broker.service.js` (296 hits)
 - `services/dashboard-api/methods-part-09-of-14.js` (279 hits)
+- `docs/validation/issue-874-before.md` (266 hits)
 - `services/dashboard-api/actions-part-01-of-8.js` (263 hits)
 - `services/finance-agent.service.js` (256 hits)
 - `services/api.service.js` (255 hits)
 - `services/dashboard-api/actions-part-02-of-8.js` (236 hits)
 - `services/dashboard-api/actions-part-03-of-8.js` (223 hits)
-- `services/agent.service.js` (222 hits)
