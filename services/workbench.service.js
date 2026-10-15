@@ -26,7 +26,11 @@ const {
   normalizeTaskEnvelope,
   workbenchOpenApi,
 } = require('../src/workbench-contract');
-const { presentCase, presentCaseListItem } = require('../src/workbench-case-presenter');
+const {
+  presentCase,
+  presentCaseInspector,
+  presentCaseListItem,
+} = require('../src/workbench-case-presenter');
 const { presentEvent } = require('../src/workbench-event-presenter');
 const { normalizeEvidenceInput, safeEvidenceRef } = require('../src/workbench-evidence');
 const {
@@ -100,7 +104,7 @@ const action = (rest, summary, handler, params = {}) => ({
   handler,
 });
 const caseParams = { caseId: { type: 'string', min: 1 } };
-// Explicit opt-in to the closed scalar ToolRun inspector projection (#660).
+// Explicit opt-in to the closed scalar case/ToolRun inspector projections (#660).
 const toolRunViewParams = { view: { type: 'enum', values: [INSPECTOR_VIEW], optional: true } };
 const WORKBENCH_DATABASES = [
   ['conversationsDb', './data/cet_workbench_conversations', 'CET_WORKBENCH_CONVERSATIONS_DB_PATH'],
@@ -533,12 +537,34 @@ module.exports = {
       'Return a UI-safe CET case summary for Workbench clients',
       async function (ctx) {
         const p = principal(ctx, ctx.params);
+        const inspector = ctx.params.view === INSPECTOR_VIEW;
         const shared = await caseLinking.sharedCaseSummary(this, p, ctx.params.caseId);
+        if (shared && inspector) {
+          // A shared summary cannot meet the local EvidenceRef contract; fail closed.
+          workbenchError(
+            'Case inspector unavailable for shared case summaries',
+            'WORKBENCH_CASE_INSPECTOR_UNAVAILABLE'
+          );
+        }
         if (shared) return shared;
         const state = await ctx.call('domain-router.explain', {
           cetCaseId: ctx.params.caseId,
         });
         const full = await this.loadVisibleCase(ctx, p, ctx.params.caseId);
+        if (inspector) {
+          return presentCaseInspector(
+            { ...full, lastClassification: state },
+            {
+              evidenceRefs: await this.store.listEvidence({
+                tenantId: p.tenantId,
+                caseId: ctx.params.caseId,
+              }),
+              eventSummary: await this.eventSummary(p, ctx.params.caseId),
+              clearance: p.clearance,
+              limit: ctx.params.evidenceLimit,
+            }
+          );
+        }
         const evidenceRefs = ctx.params.includeEvidence
           ? await this.store.listEvidence({ tenantId: p.tenantId, caseId: ctx.params.caseId })
           : [];
@@ -561,7 +587,11 @@ module.exports = {
           ),
         };
       },
-      caseParams
+      {
+        ...caseParams,
+        ...toolRunViewParams,
+        evidenceLimit: { type: 'number', optional: true, convert: true, integer: true, min: 1 },
+      }
     ),
     'cases.list': action(
       'GET /cases',

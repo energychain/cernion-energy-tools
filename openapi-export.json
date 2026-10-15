@@ -71020,6 +71020,22 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceLimit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
           }
         ]
       }

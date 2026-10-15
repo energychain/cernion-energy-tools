@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – Workbench Vorgangs-/EvidenceRef-Inspector (#660)
+
+- Opt-in `view=inspector` mit `evidenceLimit` (Standard 25, höchstens 50) für `GET /api/workbench/cases/:caseId`: geschlossene, skalare Vorgangszeile, EvidenceRef-Zeilen (neueste zuerst, stabiler ID-Tiebreak) sowie begrenzte Zeilen für fehlende Nachweise, Rückfragen und No-Call-Grenzen mit deterministischem `nextSafeGate`.
+- EvidenceRefs laufen weiterhin über `presentCase`/`safeEvidenceRef` mit Tenant und Clearance des Aufrufers; `sourceRef`, `extracts`, `provenance`, Summaries, Entwürfe, Turn-Memory und URL-Zugangsdaten bleiben außen vor. Geteilte Vorgangszusammenfassungen schlagen mit `WORKBENCH_CASE_INSPECTOR_UNAVAILABLE` geschlossen fehl.
+- Ohne `view` bleibt der bisherige Vorgangsvertrag unverändert; reiner Lesepfad, Verweis auf den bestehenden ToolRun-Inspector statt Duplikat.
+
 ## Unreleased – Workbench ToolRun-Inspector Phase A (#660)
 
 - Opt-in `view=inspector` für `GET /api/workbench/cases/:caseId/tool-runs` und `/tool-runs/:toolRunId`: geschlossene, skalare ToolRun-Zeilen (Status, Governance-Ergebnis, sichere Fehlerkennung, EvidenceRef-/ReceiptRef-IDs und -Anzahl, `auditRef`, `nextSafeGate`), höchstens 25 Zeilen, neueste zuerst.
