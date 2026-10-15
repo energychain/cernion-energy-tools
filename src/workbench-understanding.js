@@ -2236,7 +2236,13 @@ async function answer({
     hasReadTool &&
     !available &&
     !toolEvidence.length &&
-    !claims.some((claim) => /\d/.test(claim.text)) &&
+    // Only cited evidence can stand in for the missing values; an ungrounded
+    // year or identifier in model text must not hide the source failure.
+    !claims.some(
+      (claim) =>
+        /\d/.test(claim.text) &&
+        (claim.evidenceIds || []).some((id) => evidence.some((hit) => hit.evidenceId === id))
+    ) &&
     !(retrieval.toolTrace || []).some((entry) => entry.status === 'available')
   ) {
     const failed = (retrieval.toolTrace || []).find((entry) =>

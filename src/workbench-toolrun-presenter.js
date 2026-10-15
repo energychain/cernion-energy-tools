@@ -140,4 +140,6 @@ module.exports = {
   inspectorLimit,
   presentToolRunInspector,
   presentToolRunInspectorList,
+  safeCode,
+  safeTimestamp,
 };

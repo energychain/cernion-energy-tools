@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "term": "security",
+      "reason": "Standard OpenAPI security field declaring bearer authentication; no business-domain policy or terminology."
+    },
+    {
+      "term": "projects",
+      "reason": "Generic durable project containers and CRUD identifiers (#883); no domain classification, terminology or business rules."
+    },
+    {
       "term": "presentation",
       "reason": "Generische Darstellungsschicht für Chatantworten, ohne Fachrouting oder branchenspezifische Regeln."
     },

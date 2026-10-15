@@ -18,6 +18,18 @@ function queryStructured(pool, record, input) {
   return adapterFor(record.structuredFormat).query(pool, record, input);
 }
 
+// Every punctuation-joined span of a whitespace chunk, matching exactToken boundaries.
+function referenceCandidates(question) {
+  const candidates = new Set();
+  for (const chunk of String(question).split(/\s+/u)) {
+    const tokens = [...chunk.matchAll(/[\p{L}\p{N}]+/gu)].slice(0, 8);
+    for (let start = 0; start < tokens.length; start++)
+      for (let end = start; end < tokens.length; end++)
+        candidates.add(chunk.slice(tokens[start].index, tokens[end].index + tokens[end][0].length));
+  }
+  return [...candidates];
+}
+
 async function structuredTurn(service, ctx, p) {
   const { question, documents, conversationId } = ctx.params;
   const candidates = documents.length
@@ -38,18 +50,26 @@ async function structuredTurn(service, ctx, p) {
       return null;
     }
     const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
+    const named = new Map();
     const explicitlyNamed = (record) => {
+      if (named.has(record.id)) return named.get(record.id);
       const references = [record.sourceName, ...(record.structured.references || [])];
+      // Legacy records lack a reference list; look up only the question's tokens.
       if (!record.structured.references && service.datasetPool)
         references.push(
-          ...service.datasetPool
-            .rows(record.tenantId, record.id, record.columns)
-            .map((row) => row.Nummer)
-            .filter(Boolean)
+          ...service.datasetPool.matchingValues(
+            record.tenantId,
+            record.id,
+            record.columns,
+            'Nummer',
+            referenceCandidates(question)
+          )
         );
-      return references
+      const result = references
         .filter(Boolean)
-        .some((reference) => require('./workbench-codes').exactToken(question, reference));
+        .some((reference) => require('./workbench-codes').exactToken(question, String(reference)));
+      named.set(record.id, result);
+      return result;
     };
     const associated = records.filter(
       (r) =>

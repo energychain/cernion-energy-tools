@@ -247,14 +247,34 @@ function parseTableText(text, name) {
   } else {
     if (!delimited) return [];
     const records = parseRecords(raw);
+    // Score every delimiter: a weak parse that turns the real header into a
+    // dropped row or a data row into the header must not win by list order.
+    let best = null;
+    let failure = null;
     for (const delimiter of [';', '\t', ',']) {
-      const candidate = matrixRows(records.map((line) => parseCsvLine(line, delimiter)));
+      let candidate;
+      try {
+        candidate = matrixRows(records.map((line) => parseCsvLine(line, delimiter)));
+      } catch (error) {
+        failure ||= error;
+        continue;
+      }
       if (!candidate) continue;
-      if (Buffer.byteLength(raw) > datasetSetting('MAX_BYTES', 8000000))
-        datasetLimit('Die Datei überschreitet das Bytebudget.');
-      return [{ ...candidate, name, sheet: 'Sheet1' }];
+      const score = [candidate.rows.length, candidate.profile.columns.length];
+      if (
+        !best ||
+        score[0] > best.score[0] ||
+        (score[0] === best.score[0] && score[1] > best.score[1])
+      )
+        best = { candidate, score };
     }
-    return [];
+    if (!best) {
+      if (failure) throw failure;
+      return [];
+    }
+    if (Buffer.byteLength(raw) > datasetSetting('MAX_BYTES', 8000000))
+      datasetLimit('Die Datei überschreitet das Bytebudget.');
+    return [{ ...best.candidate, name, sheet: 'Sheet1' }];
   }
   const parsed = matrixRows(matrix);
   // Uniform labelled prose alone does not prove a table. The established pair

@@ -448,6 +448,40 @@ test.each(fixtures.unsafeNotices)(
   }
 );
 
+test.each([
+  'Leistungsangaben fehlen.',
+  'Netzanschluss; Leistung; Zählpunkt',
+  'Fall F-3: Netzprozesse · Bereitschaft: Ein fachlicher Warnhinweis liegt vor.',
+  'Status der Netzanmeldung: Limit erreicht.',
+])('#855 finding 7: German notice text without allowlisted stopwords is delivered: %s', (text) => {
+  expect(presentation.humanNoticeText(text)).toBe(true);
+});
+
+test.each([
+  'Grid capacity limit exceeded.',
+  'The source has failed.',
+  'Prüfung von capacityBooking offen.',
+  '2026-10-14',
+])('#855 finding 7: known unsafe or English notice text is withheld: %s', (text) => {
+  expect(presentation.humanNoticeText(text)).toBe(false);
+});
+
+test('#855 finding 8: display-name safety keeps dotted names and rejects internal identities', () => {
+  expect(
+    presentation.completeDraft('Text.\n\nMit freundlichen Grüßen\n[Name]', 'max.mustermann')
+  ).toBe('Text.\n\nMit freundlichen Grüßen\nmax.mustermann');
+  for (const name of ['Dr. Anna Müller-Schmidt', 'ben'])
+    expect(presentation.safeDisplayName(name)).toBe(name);
+  for (const name of [
+    '3f2504e0-4f89-11d3-9a0c-0305e82c3301',
+    'fn-private-review',
+    'synthetic_person',
+    'a\nb',
+    '[Name]',
+  ])
+    expect(presentation.safeDisplayName(name)).toBe('');
+});
+
 test('850 requirement 4: a trailing filler sentence does not erase the preceding answer', async () => {
   textMock.mockResolvedValue(
     JSON.stringify(

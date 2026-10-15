@@ -12,9 +12,31 @@ function humanNoticeText(text) {
   )
     return false;
   if (/\b(?:Sie|Ihnen|Ihr(?:e|en|em|er|es)?)\b/u.test(text)) return false;
-  return /\b(?:der|die|das|ist|sind|wird|werden|dein\p{L}*|du|für|eine?\p{L}*|kein\p{L}*|bei|mit|bis|am|auf|hat|haben|offen)\b/iu.test(
-    text
-  );
+  // Reject known unsafe content: camelCase identifiers and English sentence structure.
+  if (/(?<![\p{L}\p{N}])[a-z]+[A-Z][A-Za-z\d]*(?![\p{L}\p{N}])/u.test(text)) return false;
+  if (
+    /(?<![\p{L}\p{N}])(?:the|is|are|were|been|and|of|to|with|has|have|this|that|from|please|should|must|needs?)(?![\p{L}\p{N}])/iu.test(
+      text
+    )
+  )
+    return false;
+  // Lowercase English status vocabulary; capitalized German nouns (Status, Limit) stay valid.
+  if (
+    /(?<![\p{L}\p{N}])(?:exceeded|overdue|missing|available|unavailable|required|error|warning|status|limit|check|update|data)(?![\p{L}\p{N}])/u.test(
+      text
+    )
+  )
+    return false;
+  return /\p{L}{2}/u.test(text);
+}
+
+// Display names are shown verbatim; dotted login-style names remain legitimate.
+function safeDisplayName(value) {
+  const name = typeof value === 'string' ? value.trim() : '';
+  if (!/^[\p{L}\p{N}][\p{L}\p{M}\p{N}' .-]{0,119}$/u.test(name)) return '';
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(name)) return '';
+  if (/^(?:fn|ds|case|agent|proc|operation|capability)[-.]/iu.test(name)) return '';
+  return name;
 }
 
 function needsFunctionChoices(message, reply = {}) {
@@ -55,8 +77,7 @@ function withoutUnsolicitedAdvice(text, message = '') {
 }
 
 function completeDraft(text, displayName = '') {
-  const name =
-    typeof displayName === 'string' && !internalToolText(displayName) ? displayName.trim() : '';
+  const name = safeDisplayName(displayName);
   return String(text || '')
     .replace(/\[([^\]\n]+)\]/gu, (_all, value) => {
       const label = value.replace(/^…\s*/, '').trim();
@@ -109,5 +130,6 @@ module.exports = {
   unsolicitedAdvice,
   withoutUnsolicitedAdvice,
   completeDraft,
+  safeDisplayName,
   mappedDisplayName,
 };
