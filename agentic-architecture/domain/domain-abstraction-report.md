@@ -1,23 +1,23 @@
 # Domain Abstraction Report
 
-Generated: 2026-10-14T20:35:37.788Z
+Generated: 2026-10-15T02:38:48.726Z
 
-- Candidate files scanned: 1156
+- Candidate files scanned: 1170
 - Services classified: 159
 - Unclassified services: 0
-- Fingerprint: b6c7bdf3d4adf57b49509b66eda063fe29e60682f8075e8e1039b0a31e6400d5
+- Fingerprint: b51ba07015e575ec5b7278c299ee329cc58be5d00df71dc064c47019d19996bf
 
 ## Cluster counts
 
-- `casework-and-assistance` — Fallarbeit und Assistenz: 2 services, 25 top files, 8673 top-file hits
-- `evidence-and-trust` — Evidence, Nachweis und Vertrauen: 23 services, 25 top files, 19072 top-file hits
-- `mako-and-edm` — MaKo / EDM / Stammdaten: 8 services, 25 top files, 3539 top-file hits
+- `casework-and-assistance` — Fallarbeit und Assistenz: 2 services, 25 top files, 9646 top-file hits
+- `evidence-and-trust` — Evidence, Nachweis und Vertrauen: 23 services, 25 top files, 19114 top-file hits
+- `mako-and-edm` — MaKo / EDM / Stammdaten: 8 services, 25 top files, 3606 top-file hits
 - `grid-and-connection` — Netz, Anschluss und Kapazität: 46 services, 25 top files, 11012 top-file hits
 - `forecast-and-market` — Prognose, Markt und Portfolio: 16 services, 25 top files, 4271 top-file hits
-- `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files, 4732 top-file hits
-- `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files, 3982 top-file hits
-- `tenant-and-operation` — Tenant, Rollen und Betrieb: 51 services, 25 top files, 9088 top-file hits
-- `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files, 5044 top-file hits
+- `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files, 4728 top-file hits
+- `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files, 4112 top-file hits
+- `tenant-and-operation` — Tenant, Rollen und Betrieb: 51 services, 25 top files, 9283 top-file hits
+- `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files, 5040 top-file hits
 
 ## Case type coverage
 

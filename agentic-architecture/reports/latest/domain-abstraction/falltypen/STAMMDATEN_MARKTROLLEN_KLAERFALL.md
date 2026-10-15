@@ -1,6 +1,6 @@
 # Stammdaten-/Marktrollen-Klärfall
 
-Generated: 2026-10-14T20:35:37.788Z
+Generated: 2026-10-15T02:38:48.726Z
 
 Status: observed
 Priority: 1
@@ -118,6 +118,7 @@ Die Datenlage reicht nicht für eine abschließende Stammdatenaussage. Fachlich 
 - `src/report-builder.js` (237 hits)
 - `src/capability-catalog.js` (231 hits)
 - `docs/validation/813-live.json` (207 hits)
+- `docs/validation/issue-874-before.md` (198 hits)
 - `services/grid-operations.service.js` (191 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.json` (169 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (165 hits)
@@ -137,4 +138,3 @@ Die Datenlage reicht nicht für eine abschließende Stammdatenaussage. Fachlich 
 - `src/validation-findings.js` (91 hits)
 - `services/dashboard-api/actions-part-01-of-8.js` (83 hits)
 - `services/bilanzkreis.service.js` (75 hits)
-- `services/energy-sharing.service.js` (74 hits)

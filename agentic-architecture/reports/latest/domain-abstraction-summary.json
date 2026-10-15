@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-14T20:35:37.788Z",
+  "generatedAt": "2026-10-15T02:38:48.726Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261014T203437Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261015T023748Z",
   "counts": {
-    "files": 1953,
-    "candidateFiles": 1156,
+    "files": 1972,
+    "candidateFiles": 1170,
     "services": 159,
-    "srcFiles": 436,
-    "docs": 517,
+    "srcFiles": 446,
+    "docs": 522,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -15,19 +15,19 @@
       "label": "Fallarbeit und Assistenz",
       "files": 25,
       "services": 2,
-      "hits": 8673
+      "hits": 9646
     },
     "evidence-and-trust": {
       "label": "Evidence, Nachweis und Vertrauen",
       "files": 25,
       "services": 23,
-      "hits": 19072
+      "hits": 19114
     },
     "mako-and-edm": {
       "label": "MaKo / EDM / Stammdaten",
       "files": 25,
       "services": 8,
-      "hits": 3539
+      "hits": 3606
     },
     "grid-and-connection": {
       "label": "Netz, Anschluss und Kapazität",
@@ -45,25 +45,25 @@
       "label": "Redispatch, Steuerbarkeit und Flexibilität",
       "files": 25,
       "services": 3,
-      "hits": 4732
+      "hits": 4728
     },
     "gas-heat-and-eog": {
       "label": "Gas, Wärme und EOG",
       "files": 25,
       "services": 3,
-      "hits": 3982
+      "hits": 4112
     },
     "tenant-and-operation": {
       "label": "Tenant, Rollen und Betrieb",
       "files": 25,
       "services": 51,
-      "hits": 9088
+      "hits": 9283
     },
     "openwebui-agentic-routing": {
       "label": "OpenWebUI und agentisches Routing",
       "files": 25,
       "services": 7,
-      "hits": 5044
+      "hits": 5040
     }
   },
   "ambiguousTerms": [
@@ -127,6 +127,10 @@
           "hits": 207
         },
         {
+          "path": "docs/validation/issue-874-before.md",
+          "hits": 198
+        },
+        {
           "path": "services/grid-operations.service.js",
           "hits": 191
         },
@@ -141,10 +145,6 @@
         {
           "path": "services/edm.service.js",
           "hits": 164
-        },
-        {
-          "path": "docs/validation/practice-evaluation-baseline.json",
-          "hits": 149
         }
       ]
     },
@@ -239,6 +239,10 @@
           "hits": 261
         },
         {
+          "path": "docs/validation/issue-874-before.md",
+          "hits": 214
+        },
+        {
           "path": "src/report-builder.js",
           "hits": 174
         },
@@ -249,10 +253,6 @@
         {
           "path": "docs/validation/practice-evaluation-baseline.json",
           "hits": 151
-        },
-        {
-          "path": "docs/validation/practice-evaluation-baseline-corrected.json",
-          "hits": 149
         }
       ]
     },
@@ -284,6 +284,10 @@
           "hits": 67
         },
         {
+          "path": "docs/validation/issue-874-before.md",
+          "hits": 53
+        },
+        {
           "path": "src/report-builder.js",
           "hits": 44
         },
@@ -302,10 +306,6 @@
         {
           "path": "services/personal-agent/shared.js",
           "hits": 30
-        },
-        {
-          "path": "docs/validation/tenant-memory-live.json",
-          "hits": 29
         }
       ]
     },
@@ -443,6 +443,10 @@
           "hits": 191
         },
         {
+          "path": "docs/validation/issue-874-before.md",
+          "hits": 184
+        },
+        {
           "path": "docs/validation/practice-evaluation-baseline.md",
           "hits": 184
         },
@@ -461,10 +465,6 @@
         {
           "path": "docs/validation/tenant-memory-live.json",
           "hits": 175
-        },
-        {
-          "path": "docs/validation/tenant-memory-863-live.json",
-          "hits": 138
         }
       ]
     }
@@ -525,7 +525,7 @@
     },
     {
       "path": "function-model.report.md",
-      "hits": 399
+      "hits": 397
     },
     {
       "path": "services/personal-agent/shared.js",
@@ -548,9 +548,9 @@
       "hits": 279
     },
     {
-      "path": "services/dashboard-api/actions-part-01-of-8.js",
-      "hits": 263
+      "path": "docs/validation/issue-874-before.md",
+      "hits": 266
     }
   ],
-  "fingerprint": "b6c7bdf3d4adf57b49509b66eda063fe29e60682f8075e8e1039b0a31e6400d5"
+  "fingerprint": "b51ba07015e575ec5b7278c299ee329cc58be5d00df71dc064c47019d19996bf"
 }
