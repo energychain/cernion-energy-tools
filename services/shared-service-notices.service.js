@@ -763,7 +763,13 @@ module.exports = {
         breach: 'Eine fachliche Grenze ist verletzt.',
         ok: 'Der zuvor gemeldete Befund ist wieder unauffällig.',
       };
-      item.text = stateText[item.state] || '';
+      // Ground the text in the function's localized label; a context-free
+      // standing signal without one stays out of chat (#846 D).
+      const { functionDisplayLabel } = require('../src/function-display-label');
+      const label = fn ? fn.displayLabel || functionDisplayLabel(fn) : '';
+      const subject = label && label !== functionDisplayLabel({}) ? label : '';
+      const state = stateText[item.state] || '';
+      item.text = state && subject ? `${subject}: ${state}` : item.context ? state : '';
       if (!item.context) return entry.classification === 'standing';
       if (item.context.kind !== 'case') return false;
       const journal = this.broker.getLocalService('journal');

@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `0f898f72bba6dfdbb0900cb18ca59e4ddb8c3d0fc9080413a762c8e6a6a30e91`
+Source SHA-256: `ac38cc1b553f3d521b53538c1a321008c3e52318f4ac9f60cb6645a9557a9e1d`
 
 Capabilities: 172; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
@@ -164,7 +164,7 @@ Singletons and unavailable comparisons are N/A, never assigned an artificial coh
 ## ID-Änderungen gegenüber Vorversion
 
 same: 96; merged: 9; split: 5; retired: 4; new: 1.
-Previous source SHA-256: e7be1ba5d77eeb6afd5d269ec3236e671a4c8eb8c352ec9a45b7aa615748715d.
+Previous source SHA-256: 54fb419e1fe2da1453c414e92c456297c106f075822948f9de9d4a496b0e6000.
 Counts describe prior IDs in the last membership transition; retired counts IDs that lost their active identity, including merges. No-op generation preserves this provenance.
 Permanently reserved retired IDs: 35.
 
