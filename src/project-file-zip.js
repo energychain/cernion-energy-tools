@@ -162,7 +162,7 @@ async function extractZipEntry(filename, entry, destination) {
     : Readable.from([]);
   let size = 0,
     crc = 0xffffffff;
-  const meter = new Transform({
+  const byteCounter = new Transform({
     transform(bytes, _encoding, cb) {
       size += bytes.length;
       if (size > entry.expanded) return cb(new Error('ZIP expanded size exceeded'));
@@ -180,7 +180,7 @@ async function extractZipEntry(filename, entry, destination) {
   await pipeline(
     source,
     ...(entry.method === 8 ? [createInflateRaw()] : []),
-    meter,
+    byteCounter,
     fs.createWriteStream(destination, { flags: 'wx', mode: 0o600 })
   );
 }

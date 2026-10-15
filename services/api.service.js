@@ -1008,17 +1008,11 @@ function enforceRbacForPath(roles, method, requestPath) {
     pathOnly === '/api/auth/logout' ||
     pathOnly === '/api/auth/saml/acs';
 
-  // RC3: every visible project member may archive/delete; service policy enforces scope.
-  const isProjectDisposition =
-    (m === 'DELETE' && /^\/api\/project-file\/[^/]+\/?$/.test(pathOnly)) ||
-    (m === 'POST' && /^\/api\/project-file\/[^/]+\/archive\/?$/.test(pathOnly));
-
   if (
     m !== 'GET' &&
     m !== 'HEAD' &&
     m !== 'OPTIONS' &&
     !isSessionSelfServiceEndpoint &&
-    !isProjectDisposition &&
     !isReadOnlySidecarInvocation(m, requestPath) &&
     !isChatgptSidecarTicketInvocation(m, requestPath) &&
     !isOperationsRunbookInvocation(m, requestPath) &&

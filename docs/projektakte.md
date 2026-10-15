@@ -29,9 +29,10 @@ in `get` und `list` sichtbar und kann mit `delete` wiederholt werden.
 
 Authentifizierung und Tenant stammen aus `domain-router-policy.principal`, nicht
 aus Request-Parametern. Die Gateway-RBAC bleibt für REST-Schreibzugriffe maßgeblich;
-Archivierung und Löschung verlangen seit #884 keine zusätzliche `full-access`-Rolle.
-Jeder authentifizierte Nutzer desselben Tenants mit aktueller Akten-Sichtbarkeit
-darf diese beiden Aktionen ausführen. Token-Schreibschutz bleibt wirksam; feinere Rechte folgen in RC4 #898.
+Archivierung und Löschung verlangen wie alle Schreibzugriffe die reguläre Schreibrolle
+(`full-access`), aber **keine zusätzliche** Rolle: Jeder schreibberechtigte Nutzer desselben
+Tenants mit aktueller Akten-Sichtbarkeit darf diese beiden Aktionen ausführen.
+Feinere Rechte (Verantwortliche, zweistufiges Löschen) folgen in RC4 #898.
 Tenant-Sichtbarkeit verwendet `visible`, Clearance verwendet `canViewEvidence` und
 `assertSensitivityAllowed`. Fehlende Akten, fremde Tenants, fehlende Clearance und
 fehlende Mitgliedschaft liefern bei Einzelzugriff **404**; Listen und Referenzabfragen

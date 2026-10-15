@@ -7,7 +7,7 @@ const { ServiceBroker } = require('moleculer');
 const Gateway = require('moleculer-web');
 const { hash } = require('./helpers/project-ingest');
 
-test('raw auto-alias streams octets with real gateway auth; visible tenant members may archive/delete without full-access role', async () => {
+test('raw auto-alias streams octets with real gateway auth; archive/delete require the regular gateway write role', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-ingest-http-'));
   const broker = new ServiceBroker({ logger: false, transporter: null });
   broker.createService({
@@ -29,8 +29,9 @@ test('raw auto-alias streams octets with real gateway auth; visible tenant membe
             sessionId: 'synthetic',
             userId: 'actor-a',
             tenantId: ctx.params.token === 'csess_other' ? 'tenant-b' : 'tenant-a',
-            roles:
-              ctx.params.token === 'csess_editor' ? ['ROLE_ALPHA', 'full-access'] : ['ROLE_ALPHA'],
+            roles: ['csess_editor', 'csess_other'].includes(ctx.params.token)
+              ? ['ROLE_ALPHA', 'full-access']
+              : ['ROLE_ALPHA'],
           };
         },
       },
@@ -143,9 +144,15 @@ test('raw auto-alias streams octets with real gateway auth; visible tenant membe
     ).toBe(404);
     expect(
       (await request(`/project-file/${projectId}/archive/`, 'POST', {}, 'csess_viewer')).status
-    ).toBe(200);
+    ).toBe(403);
     expect(
       (await request(`/project-file/${projectId}/`, 'DELETE', undefined, 'csess_viewer')).status
+    ).toBe(403);
+    expect(
+      (await request(`/project-file/${projectId}/archive/`, 'POST', {}, 'csess_editor')).status
+    ).toBe(200);
+    expect(
+      (await request(`/project-file/${projectId}/`, 'DELETE', undefined, 'csess_editor')).status
     ).toBe(200);
     expect((await request(`/project-file/${projectId}`, 'GET')).status).toBe(404);
     for (const action of ['ingestMutation', 'deleteProject', 'purge'])

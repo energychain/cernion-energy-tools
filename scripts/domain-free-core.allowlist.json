@@ -21,10 +21,6 @@
       "reason": "Generic bounded-memory byte processing for archive validation (#884)."
     },
     {
-      "term": "meter",
-      "reason": "Generic stream byte counter Transform (#884); no energy measurement semantics."
-    },
-    {
       "term": "growth",
       "reason": "Generic metadata memory size bound (#884), unrelated to business-domain models."
     },

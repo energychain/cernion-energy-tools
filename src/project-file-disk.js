@@ -52,7 +52,7 @@ async function writeChunk(directory, source, expected, expectedHash) {
   const temp = path.join(directory, `pending-${randomUUID()}`);
   const hash = createHash('sha256');
   let size = 0;
-  const meter = new Transform({
+  const byteCounter = new Transform({
     transform(bytes, _encoding, cb) {
       size += bytes.length;
       if (size > expected) return cb(Object.assign(new Error('Chunk too large'), { code: 413 }));
@@ -61,7 +61,7 @@ async function writeChunk(directory, source, expected, expectedHash) {
     },
   });
   try {
-    await pipeline(source, meter, fs.createWriteStream(temp, { flags: 'wx', mode: 0o600 }));
+    await pipeline(source, byteCounter, fs.createWriteStream(temp, { flags: 'wx', mode: 0o600 }));
     const actual = hash.digest('hex');
     if (size !== expected || actual !== expectedHash)
       ingestError('Chunk size or SHA-256 mismatch', 422, 'PROJECT_HASH_MISMATCH');
