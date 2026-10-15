@@ -241,7 +241,7 @@ function functionEmbedding(ids, entries) {
     provider: identity.provider,
     model: identity.model,
     dimension: identity.dimension,
-    vector: norm ? vector.map((value) => Number((value / norm).toFixed(10))) : null,
+    vector: norm ? vector.map((value) => Number((value / norm).toFixed(10)) || 0) : null,
     missingCapabilities,
   };
 }

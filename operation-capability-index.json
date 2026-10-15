@@ -2,14 +2,14 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "0e312ac2a33b959be214994f0c28157d3d29790c1d0425538b565f15dab00146",
+  "sourceOpenApiHash": "db01fb0b7bd5c4e801d2420b69674b451f29751b909549474bf3f1d552820c2d",
   "coverage": {
-    "rawOperationCount": 1263,
-    "operationCount": 1007,
-    "agentableCount": 1005,
+    "rawOperationCount": 1264,
+    "operationCount": 1008,
+    "agentableCount": 1006,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 434,
+      "data_read": 435,
       "admin": 24,
       "object_store_write": 272,
       "process_step": 26,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 988,
+    "resolvedActionCount": 989,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -81322,6 +81322,70 @@
       "aliases": []
     },
     {
+      "operationId": "tenant-memory-policy_glossary",
+      "method": "GET",
+      "path": "/api/tenant-memory-policy/glossary",
+      "service": "tenant-memory-policy",
+      "action": "tenant-memory-policy.glossary",
+      "summary": "List visible tenant glossary entries with an audit entry",
+      "tags": [
+        "Tenant Memory Policy"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tenant-memory-policy.glossary"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tenant-memory-policy:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tenant",
+          "memory",
+          "policy",
+          "glossary",
+          "list",
+          "visible",
+          "entries",
+          "with",
+          "an",
+          "audit",
+          "entry"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list visible tenant glossary entries with an audit entry"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
       "operationId": "tenant-memory-policy_migrateAnchors",
       "method": "POST",
       "path": "/api/tenant-memory-policy/migrate-anchors",
@@ -90065,7 +90129,22 @@
             "extractionHint": null
           }
         ],
-        "optional": []
+        "optional": [
+          {
+            "name": "view",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "evidenceLimit",
+            "in": "query",
+            "type": "number",
+            "description": null,
+            "extractionHint": "result_limit"
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
@@ -90531,7 +90610,22 @@
             "extractionHint": null
           }
         ],
-        "optional": []
+        "optional": [
+          {
+            "name": "view",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "number",
+            "description": null,
+            "extractionHint": "result_limit"
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
@@ -90609,7 +90703,15 @@
             "extractionHint": null
           }
         ],
-        "optional": []
+        "optional": [
+          {
+            "name": "view",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [

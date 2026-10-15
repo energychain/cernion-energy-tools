@@ -1,8 +1,8 @@
 {
  "version": 2,
  "generatedAt": "2026-01-01T00:00:00.000Z",
- "modelSourceHash": "133194217cd96e07c18cc0a8abe34ad1f4fb1256a00c0ad5aed86a16877cf7e7",
- "sourceHash": "ebd578075202c783ff9b7b3ce9bbdc1a37d4b6b2b9e9633e6f21d5b60c4db3fa",
+ "modelSourceHash": "dacba6989ea062a011ba9e96b9690364d813d0f10b37d1d87bab1209957afe60",
+ "sourceHash": "7df9499ca0c024d04ddf101e46e34f60f6774a3340bc7bc203d858df4a8a1188",
  "probeEnvironment": {
   "tenantId": "stadtwerk-mauer",
   "services": [
@@ -2285,7 +2285,7 @@
    "operationId": "dashboard-api_e2eControllabilityGovernanceStatus",
    "action": "dashboard-api.e2eControllabilityGovernanceStatus",
    "functionIds": [
-    "fn-e2e-controllability-check-governance-2"
+    "fn-controllability-submission-cockpit"
    ],
    "classification": "contextual",
    "contextKinds": [
@@ -4236,7 +4236,7 @@
    "operationId": "dashboard-api_gridConnectionTransformationGateStatus",
    "action": "dashboard-api.gridConnectionTransformationGateStatus",
    "functionIds": [
-    "fn-znp-portfolio-assessment"
+    "fn-anschlusskapazitaet-evidence-queue"
    ],
    "classification": "contextual",
    "contextKinds": [
@@ -5928,8 +5928,7 @@
    "functionIds": [
     "fn-cross-domain-special-topics-queue",
     "fn-evidence-freshness-guard",
-    "fn-leadership-delta-cockpit",
-    "fn-vnb-delta-signal-classifier-2"
+    "fn-leadership-delta-cockpit"
    ],
    "classification": "contextual",
    "contextKinds": [
@@ -6020,7 +6019,7 @@
    "operationId": "dashboard-api_legacyControlTechnologyTransitionStatus",
    "action": "dashboard-api.legacyControlTechnologyTransitionStatus",
    "functionIds": [
-    "fn-controllability-submission-cockpit"
+    "fn-legacy-control-technology-transition-2"
    ],
    "classification": "contextual",
    "contextKinds": [
@@ -7661,7 +7660,7 @@
    "action": "dashboard-api.ownerDeadlineEvidenceGateStatus",
    "functionIds": [
     "fn-communication-break-process-risk",
-    "fn-owner-deadline-evidence-gate-2"
+    "fn-leadership-delta-cockpit"
    ],
    "classification": "contextual",
    "contextKinds": [
@@ -8451,8 +8450,8 @@
    "action": "dashboard-api.rolePermissionAccessReadinessGateStatus",
    "functionIds": [
     "fn-communication-break-process-risk",
-    "fn-netzprozess-readiness-gate",
-    "fn-owner-deadline-evidence-gate-2"
+    "fn-leadership-delta-cockpit",
+    "fn-netzprozess-readiness-gate"
    ],
    "classification": "contextual",
    "contextKinds": [
@@ -8982,7 +8981,7 @@
    "operationId": "dashboard-api_specialGridUsageImpactMapStatus",
    "action": "dashboard-api.specialGridUsageImpactMapStatus",
    "functionIds": [
-    "fn-budget-waterfall-governance"
+    "fn-flex-forecast-bess-grid-operations-advisory-2"
    ],
    "classification": "contextual",
    "contextKinds": [
@@ -10897,7 +10896,7 @@
    "operationId": "dashboard-api_techCommercialOfferCockpitStatus",
    "action": "dashboard-api.techCommercialOfferCockpitStatus",
    "functionIds": [
-    "fn-anschlusskapazitaet-evidence-queue"
+    "fn-gas-transformation-dependency-map"
    ],
    "classification": "contextual",
    "contextKinds": [
@@ -11112,8 +11111,7 @@
    "operationId": "dashboard-api_vnbDeltaSignalClassifierStatus",
    "action": "dashboard-api.vnbDeltaSignalClassifierStatus",
    "functionIds": [
-    "fn-evidence-freshness-guard",
-    "fn-vnb-delta-signal-classifier-2"
+    "fn-evidence-freshness-guard"
    ],
    "classification": "contextual",
    "contextKinds": [

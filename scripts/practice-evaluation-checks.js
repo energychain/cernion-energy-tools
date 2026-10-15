@@ -46,6 +46,26 @@ function tableHeader(text) {
         .map((cell) => normalizeAnchor(cell.replace(/\*/g, '')));
   return [];
 }
+function externalDraftTexts(reply, text) {
+  const drafts = reply.draft ? [String(reply.draft)] : [];
+  const parts = reply.situation?.requestedOutput?.parts || [];
+  for (const part of parts.filter((item) => item.audience === 'external' && item.title)) {
+    const start = new RegExp(`^\\s*#{1,6}\\s+${escape(part.title)}\\s*\\n`, 'mu').exec(text);
+    if (!start) continue;
+    const rest = text.slice(start.index + start[0].length);
+    const endings = parts
+      .filter((item) => item !== part && item.title)
+      .map(
+        (item) => new RegExp(`^\\s*#{1,6}\\s+${escape(item.title)}\\s*\\n`, 'mu').exec(rest)?.index
+      )
+      .filter((index) => index != null);
+    drafts.push(rest.slice(0, endings.length ? Math.min(...endings) : rest.length));
+  }
+  const split = text.split(/(?:^|\n)(?:#{1,6}\s*)?(?:Externer\s+)?Entwurf[^\n]*\n/iu);
+  if (split.length > 1 || !drafts.length)
+    drafts.push(split.at(-1).split(/\n(?:#{1,6}\s*)?Interne[rs]?\s/iu)[0]);
+  return drafts.join('\n\n');
+}
 function checkTurn(turn, reply, context = {}) {
   const text = String(reply.responseText || reply.reply || '');
   const rules = turn.expect.rules || {};
@@ -120,10 +140,7 @@ function checkTurn(turn, reply, context = {}) {
       )
     );
   if (rules.externalDraft) {
-    const draft = text
-      .split(/(?:^|\n)(?:#{1,6}\s*)?(?:Externer\s+)?Entwurf[^\n]*\n/iu)
-      .at(-1)
-      .split(/\n(?:#{1,6}\s*)?Interne[rs]?\s/iu)[0];
+    const draft = externalDraftTexts(reply, text);
     checks.push(
       check(
         'external-recipient',

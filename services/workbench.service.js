@@ -26,10 +26,22 @@ const {
   normalizeTaskEnvelope,
   workbenchOpenApi,
 } = require('../src/workbench-contract');
-const { presentCase, presentCaseListItem } = require('../src/workbench-case-presenter');
+const {
+  presentCase,
+  presentCaseInspector,
+  presentCaseListItem,
+} = require('../src/workbench-case-presenter');
 const { presentEvent } = require('../src/workbench-event-presenter');
 const { normalizeEvidenceInput, safeEvidenceRef } = require('../src/workbench-evidence');
+const {
+  INSPECTOR_VIEW,
+  INSPECTOR_SCHEMA_VERSION,
+  evidenceIndex,
+  presentToolRunInspector,
+  presentToolRunInspectorList,
+} = require('../src/workbench-toolrun-presenter');
 const { buildTurnMemory, safeTurnMemory } = require('../src/workbench-turn-memory');
+const { hasConversationPreferences } = require('../src/workbench-communication');
 const {
   defaultPlaybooksForTenant,
   matchPlaybooks,
@@ -92,6 +104,8 @@ const action = (rest, summary, handler, params = {}) => ({
   handler,
 });
 const caseParams = { caseId: { type: 'string', min: 1 } };
+// Explicit opt-in to the closed scalar case/ToolRun inspector projections (#660).
+const toolRunViewParams = { view: { type: 'enum', values: [INSPECTOR_VIEW], optional: true } };
 const WORKBENCH_DATABASES = [
   ['conversationsDb', './data/cet_workbench_conversations', 'CET_WORKBENCH_CONVERSATIONS_DB_PATH'],
   ['identityDb', './data/cet_workbench_identity_mappings', 'CET_WORKBENCH_IDENTITY_DB_PATH'],
@@ -441,9 +455,18 @@ module.exports = {
           tenantId: p.tenantId,
           caseId: ctx.params.caseId,
         });
-        return { items };
+        if (ctx.params.view !== INSPECTOR_VIEW) return { items };
+        return presentToolRunInspectorList(items, {
+          caseId: ctx.params.caseId,
+          limit: ctx.params.limit,
+          ...(await this.toolRunInspectorOptions(p, ctx.params.caseId)),
+        });
       },
-      caseParams
+      {
+        ...caseParams,
+        ...toolRunViewParams,
+        limit: { type: 'number', optional: true, convert: true, integer: true, min: 1 },
+      }
     ),
     'tool-runs.get': action(
       'GET /cases/:caseId/tool-runs/:toolRunId',
@@ -458,9 +481,21 @@ module.exports = {
         if (toolRun.caseId !== ctx.params.caseId) {
           workbenchError('Tool run belongs to another case', 'WORKBENCH_TOOL_RUN_CASE_MISMATCH');
         }
-        return { toolRun };
+        if (ctx.params.view !== INSPECTOR_VIEW) return { toolRun };
+        return {
+          view: INSPECTOR_VIEW,
+          schemaVersion: INSPECTOR_SCHEMA_VERSION,
+          toolRun: presentToolRunInspector(
+            toolRun,
+            await this.toolRunInspectorOptions(p, ctx.params.caseId)
+          ),
+        };
       },
-      { caseId: { type: 'string', min: 1 }, toolRunId: { type: 'string', min: 1 } }
+      {
+        caseId: { type: 'string', min: 1 },
+        toolRunId: { type: 'string', min: 1 },
+        ...toolRunViewParams,
+      }
     ),
     'governance-map.get': action(
       'GET /governance-map/:domain',
@@ -502,12 +537,34 @@ module.exports = {
       'Return a UI-safe CET case summary for Workbench clients',
       async function (ctx) {
         const p = principal(ctx, ctx.params);
+        const inspector = ctx.params.view === INSPECTOR_VIEW;
         const shared = await caseLinking.sharedCaseSummary(this, p, ctx.params.caseId);
+        if (shared && inspector) {
+          // A shared summary cannot meet the local EvidenceRef contract; fail closed.
+          workbenchError(
+            'Case inspector unavailable for shared case summaries',
+            'WORKBENCH_CASE_INSPECTOR_UNAVAILABLE'
+          );
+        }
         if (shared) return shared;
         const state = await ctx.call('domain-router.explain', {
           cetCaseId: ctx.params.caseId,
         });
         const full = await this.loadVisibleCase(ctx, p, ctx.params.caseId);
+        if (inspector) {
+          return presentCaseInspector(
+            { ...full, lastClassification: state },
+            {
+              evidenceRefs: await this.store.listEvidence({
+                tenantId: p.tenantId,
+                caseId: ctx.params.caseId,
+              }),
+              eventSummary: await this.eventSummary(p, ctx.params.caseId),
+              clearance: p.clearance,
+              limit: ctx.params.evidenceLimit,
+            }
+          );
+        }
         const evidenceRefs = ctx.params.includeEvidence
           ? await this.store.listEvidence({ tenantId: p.tenantId, caseId: ctx.params.caseId })
           : [];
@@ -530,7 +587,11 @@ module.exports = {
           ),
         };
       },
-      caseParams
+      {
+        ...caseParams,
+        ...toolRunViewParams,
+        evidenceLimit: { type: 'number', optional: true, convert: true, integer: true, min: 1 },
+      }
     ),
     'cases.list': action(
       'GET /cases',
@@ -1473,13 +1534,93 @@ module.exports = {
             envelope.userRequest,
             meta
           );
-          return (
-            linkedStatus ||
-            conversationStatus || {
-              responseText:
-                'Ich kann den Vorgang noch nicht eindeutig zuordnen. Nenne mir eine Fallnummer oder eine Kennung, dann prüfe ich Bearbeitung und Stand.',
+          if (linkedStatus || conversationStatus) {
+            const router = this.broker.getLocalService('domain-router');
+            let rich = false;
+            for (const item of (linkedStatus || conversationStatus).items || []) {
+              const state = await router.loadCase(p, item.cetCaseId, { summaryOnly: true });
+              if (!require('../src/case-linking').rawContentAllowed(p, state)) continue;
+              const turnMemory = await this.loadTurnMemory(p, state.cetCaseId);
+              if (
+                hasConversationPreferences(
+                  state.knownContext?.situation?.conversationPreferences
+                ) ||
+                hasConversationPreferences(turnMemory?.conversationPreferences) ||
+                Object.values(state.caseWork || {}).some((value) => value?.trim()) ||
+                Object.values(turnMemory?.caseWork || {}).some((value) => value?.trim())
+              )
+                rich = true;
+            }
+            if (!rich) return linkedStatus || conversationStatus;
+          }
+          // Prefer the shared, schema-bound case presentation even for identifier hits.
+          // Exact status remains a fallback when no readable case memory is found.
+          const readContext = {
+            ...ctx,
+            call: (name, input, options) => ctx.call(name, input, { ...options, meta }),
+          };
+          const search = { requested: true, query: envelope.userRequest };
+          const found = await require('../src/workbench-self-knowledge').searchKnowledge(
+            this,
+            readContext,
+            p,
+            {
+              concern: envelope.userRequest,
+              situation: '',
+              selfKnowledge: search,
+              caseSearch: search,
+              dataQuestion: { requested: false, basis: '' },
             }
           );
+          if (found.evidence.some((hit) => hit.source === 'cases')) {
+            const understanding = require('../src/workbench-understanding');
+            const situation = await understanding.understand({
+              message: envelope.userRequest,
+              tenantId: p.tenantId,
+              logger: this.logger,
+            });
+            if (
+              (linkedStatus || conversationStatus) &&
+              !situation.requestedOutput?.requested &&
+              !found.evidence.some(
+                (hit) =>
+                  hasConversationPreferences(hit.metadata?.caseMemory?.conversationPreferences) ||
+                  Object.values(hit.metadata?.caseMemory?.caseWork || {}).some((value) =>
+                    value?.trim()
+                  )
+              )
+            )
+              return linkedStatus || conversationStatus;
+            const reply = await understanding.answer({
+              situation: {
+                ...situation,
+                turnKind: 'knowledge',
+                caseSearch: search,
+                selfKnowledge: search,
+                dataNeeds: '',
+                dataQuestion: { requested: false, basis: '' },
+              },
+              retrieval: found,
+              tenantId: p.tenantId,
+              message: envelope.userRequest,
+              logger: this.logger,
+            });
+            const hits = found.evidence.filter((hit) => hit.source === 'cases');
+            return {
+              ...reply,
+              ...(hits.length === 1
+                ? {
+                    cetCaseId: hits[0].metadata.caseId,
+                    caseDisplayRef: hits[0].metadata.displayRef,
+                  }
+                : {}),
+            };
+          }
+          if (linkedStatus || conversationStatus) return linkedStatus || conversationStatus;
+          return {
+            responseText:
+              'Ich kann den Vorgang noch nicht eindeutig zuordnen. Nenne mir eine Fallnummer oder eine Kennung, dann prüfe ich Bearbeitung und Stand.',
+          };
         }
         const message = envelope.userRequest.toLowerCase();
         if (/\b(tools)\b/.test(message)) return ctx.call('workbench.tools.list', {}, { meta });
@@ -2136,6 +2277,14 @@ module.exports = {
     async visibleDomainStates(p) {
       const service = this.broker.getLocalService('domain-router');
       return service ? await service.visibleStates(p) : [];
+    },
+    async toolRunInspectorOptions(p, caseId) {
+      const evidence = await this.store.listEvidence({ tenantId: p.tenantId, caseId });
+      return {
+        tenantId: p.tenantId,
+        clearance: p.clearance,
+        evidenceById: evidenceIndex(evidence),
+      };
     },
     async loadVisibleCase(ctx, p, caseId) {
       const service = this.broker.getLocalService('domain-router');

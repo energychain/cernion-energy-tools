@@ -13,6 +13,19 @@ async function admin(ctx) {
 module.exports = {
   name: 'tenant-memory-policy',
   actions: {
+    glossary: {
+      rest: 'GET /glossary',
+      openapi: {
+        summary: 'List visible tenant glossary entries with an audit entry',
+        tags: ['Tenant Memory Policy'],
+      },
+      async handler(ctx) {
+        const result = await policy.adminList(ctx, await admin(ctx));
+        return {
+          statements: result.statements.filter((fact) => fact.statementKind === 'glossary'),
+        };
+      },
+    },
     discardDeletionNotices: {
       rest: 'POST /discard-deletion-notices',
       openapi: {

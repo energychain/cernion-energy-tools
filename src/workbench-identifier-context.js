@@ -7,14 +7,19 @@ const { scrubForLLM, mapStringValues, scrubPromptValues } = require('./prompt-sc
 function opaqueContext(value) {
   const tokens = /[\p{L}\p{N}_-]{5,}/gu;
   const boundary = /[\p{L}\p{N}_@.]/u;
+  // A terminal sentence period is punctuation; embedded dots still protect
+  // decimal values, addresses and compound references from partial masking.
+  const bounded = (text, position) =>
+    boundary.test(text[position] || '') &&
+    !(text[position] === '.' && !/[\p{L}\p{N}_@]/u.test(text[position + 1] || ''));
   const candidates = new Set();
   mapStringValues(value, (text) => {
     for (const match of text.matchAll(tokens)) {
       if (
         /\d/.test(match[0]) &&
         !/^\d{4}-\d{2}-\d{2}$/.test(match[0]) &&
-        !boundary.test(text[match.index - 1] || '') &&
-        !boundary.test(text[match.index + match[0].length] || '')
+        !bounded(text, match.index - 1) &&
+        !bounded(text, match.index + match[0].length)
       )
         candidates.add(match[0]);
     }
@@ -33,8 +38,7 @@ function opaqueContext(value) {
   );
   const masked = mapStringValues(value, (text) =>
     text.replace(tokens, (token, offset) => {
-      if (boundary.test(text[offset - 1] || '') || boundary.test(text[offset + token.length] || ''))
-        return token;
+      if (bounded(text, offset - 1) || bounded(text, offset + token.length)) return token;
       return substitutions.get(token) || token;
     })
   );

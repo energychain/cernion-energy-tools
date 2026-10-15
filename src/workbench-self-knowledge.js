@@ -77,7 +77,11 @@ async function searchKnowledge(service, ctx, p, situation, scope = {}) {
           summary: summary.summary,
           topic: situation?.concern,
           situation: situation?.situation,
-          memory: turnMemory,
+          memory:
+            turnMemory ||
+            (Object.values(state.caseWork || {}).some((value) => value?.trim())
+              ? { caseWork: state.caseWork, situation: situation?.situation }
+              : null),
         });
       if (!semanticRequested && matches(JSON.stringify(summary), terms)) {
         const ref = await service.store.caseDisplayRef({
