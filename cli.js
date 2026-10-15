@@ -12,7 +12,7 @@
  */
 
 const axios = require('axios');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const API_URL = process.env.API_URL || 'http://localhost:3000/api';
 
