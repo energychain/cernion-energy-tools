@@ -250,7 +250,7 @@ function parseTableText(text, name) {
     // Score every delimiter: a weak parse that turns the real header into a
     // dropped row or a data row into the header must not win by list order.
     let best = null;
-    let failure = null;
+    const failure = null;
     for (const delimiter of [';', '\t', ',']) {
       let candidate;
       try {

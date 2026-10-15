@@ -1,10 +1,10 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-15T08:41:56.889Z
+Generated: 2026-10-15T14:46:20.578Z
 
 ## Observed adapter surface
 
-- OpenWebUI/ChatGPT adapter files detected: 33
+- OpenWebUI/ChatGPT adapter files detected: 37
 - verify:open-webui npm script: present
 - verify:agent-shapes npm script: present
 
@@ -27,8 +27,12 @@ Detected files:
 - `integrations/open-webui/cet_file_channel.py`
 - `integrations/open-webui/docker-compose.file-channel.yml`
 - `integrations/open-webui/docker-compose.yml`
+- `integrations/open-webui/examples/forecast-fit/sample-fit-matrix.json`
+- `integrations/open-webui/examples/forecast-fit/sample-load-profile.csv`
+- `integrations/open-webui/examples/forecast-fit/sample-report.md`
 - `integrations/open-webui/FILE_CHANNEL_TESTING.md`
 - `integrations/open-webui/file-channel-smoke.py`
+- `integrations/open-webui/forecast-data-review-self-service.md`
 - `integrations/open-webui/http-json.js`
 - `integrations/open-webui/http-json.test.js`
 - `integrations/open-webui/README.md`
@@ -263,10 +267,10 @@ Service names that should be capability-mapped:
 - `personal-agent`
 - `personal-agent-work-out-loud-listener`
 - `presentation`
+- `project-file`
 - `query`
 - `rcs-rule-catalog`
 - `rcs-simulation-run`
 - `re4de-variable-grid-fee`
 - `redispatch-asset-register`
 - `redispatch-data-governance`
-- `redispatch-expost`

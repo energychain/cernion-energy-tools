@@ -1,45 +1,45 @@
 # Agentic Core Findings
 
-Generated: 2026-10-15T08:41:56.889Z
+Generated: 2026-10-15T14:46:20.578Z
 
 ## Current measurable surface
 
-- Agentic files: 270
+- Agentic files: 274
 - Routing/capability files: 92
-- Evidence/HITL files: 74
+- Evidence/HITL files: 75
 - Operation capability index: present
 - OpenAPI export: present
 - llm.txt: present
 
 ## Domain term distribution
 
-- `evidence`: 24857 hits in 780 files
-- `tenant`: 17255 hits in 764 files
-- `broker`: 11178 hits in 627 files
-- `grid`: 9856 hits in 653 files
-- `agent`: 8384 hits in 755 files
-- `decision`: 6960 hits in 448 files
-- `capability`: 5852 hits in 492 files
-- `stadtwerk`: 5631 hits in 247 files
-- `forecast`: 4564 hits in 325 files
+- `evidence`: 25030 hits in 788 files
+- `tenant`: 17383 hits in 774 files
+- `broker`: 11247 hits in 632 files
+- `grid`: 9861 hits in 653 files
+- `agent`: 8390 hits in 760 files
+- `decision`: 6979 hits in 454 files
+- `capability`: 5870 hits in 498 files
+- `stadtwerk`: 5635 hits in 248 files
+- `forecast`: 4591 hits in 329 files
 - `vdmi`: 4530 hits in 295 files
 - `redispatch`: 4130 hits in 310 files
-- `market`: 3961 hits in 400 files
-- `hitl`: 3706 hits in 446 files
-- `edm`: 2917 hits in 364 files
-- `regulator`: 2643 hits in 337 files
-- `mako`: 2469 hits in 305 files
-- `receipt`: 2442 hits in 166 files
-- `routing`: 2196 hits in 346 files
-- `personal-agent`: 2023 hits in 306 files
-- `workflow`: 1594 hits in 239 files
+- `market`: 3966 hits in 403 files
+- `hitl`: 3707 hits in 447 files
+- `edm`: 2918 hits in 363 files
+- `regulator`: 2647 hits in 341 files
+- `mako`: 2470 hits in 306 files
+- `receipt`: 2445 hits in 167 files
+- `routing`: 2212 hits in 351 files
+- `personal-agent`: 2024 hits in 307 files
+- `workflow`: 1604 hits in 244 files
 - `willi`: 1536 hits in 113 files
 - `sidecar`: 1003 hits in 112 files
-- `eog`: 793 hits in 101 files
+- `eog`: 792 hits in 101 files
 - `utility`: 613 hits in 94 files
-- `openwebui`: 595 hits in 95 files
+- `openwebui`: 597 hits in 95 files
+- `open-webui`: 406 hits in 69 files
 - `chatgpt`: 403 hits in 39 files
-- `open-webui`: 402 hits in 68 files
 
 ## Evidence and HITL files
 
@@ -47,6 +47,7 @@ Generated: 2026-10-15T08:41:56.889Z
 - `agentic-architecture/reports/latest/domain-abstraction/EVIDENCE_VS_PRACTICE.md`
 - `docs/architecture/consultation-mode-evidence-hydration.md`
 - `docs/n8n-answer-dossier-test.md`
+- `docs/roadmap/issues/660-workbench-evidence-toolrun-inspector-product-cut.md`
 - `docs/roadmap/resolved/12-hitl-workflow.md`
 - `docs/roadmap/resolved/25-runtime-receipts-v054-big-picture.md`
 - `docs/roadmap/resolved/25-v0.54.0-receipt-foundation-plan-prompt.md`
