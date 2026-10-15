@@ -9,7 +9,7 @@
  * The seed is deterministic and only replaces documents for its stable demo run.
  */
 
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const crypto = require('crypto');
 const PouchDB = require('pouchdb');

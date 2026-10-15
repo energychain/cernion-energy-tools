@@ -1,7 +1,7 @@
 /**
  * Moleculer ServiceBroker configuration file
  */
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const observabilityStore = require('./src/observability-store');
 const metrics = require('./src/metrics');
