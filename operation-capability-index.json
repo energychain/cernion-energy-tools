@@ -2,25 +2,25 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "db01fb0b7bd5c4e801d2420b69674b451f29751b909549474bf3f1d552820c2d",
+  "sourceOpenApiHash": "ee0afc582d2e1951fb06723d8db6721d38215378df2997d223092c7204086be4",
   "coverage": {
-    "rawOperationCount": 1264,
-    "operationCount": 1008,
-    "agentableCount": 1006,
+    "rawOperationCount": 1269,
+    "operationCount": 1013,
+    "agentableCount": 1011,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 435,
+      "data_read": 437,
       "admin": 24,
       "object_store_write": 272,
       "process_step": 26,
-      "process_start": 50,
+      "process_start": 53,
       "advisory_plan": 48,
       "draft_write": 17,
       "external_effect": 4,
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 989,
+    "resolvedActionCount": 994,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -74359,6 +74359,445 @@
         "negativeCues": [],
         "examples": [
           "Show me list visible project refs for a case or conversation"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-upload_objects",
+      "method": "GET",
+      "path": "/api/project-upload/:projectId/objects",
+      "service": "project-upload",
+      "action": "project-upload.objects",
+      "summary": "List project object metadata without embedding original bytes",
+      "tags": [
+        "Project ingest"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-upload.objects"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Project"
+      ],
+      "requiredScopes": [
+        "project-upload:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "upload",
+          "objects",
+          "list",
+          "object",
+          "metadata",
+          "without",
+          "embedding",
+          "original",
+          "bytes",
+          "ingest"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list project object metadata without embedding original bytes"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-upload_start",
+      "method": "POST",
+      "path": "/api/project-upload/start",
+      "service": "project-upload",
+      "action": "project-upload.start",
+      "summary": "Start or resume a project object upload",
+      "tags": [
+        "Project ingest"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-upload.start"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "project-upload:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "project-upload"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [
+          {
+            "name": "projectId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "name",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "size",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "hash",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "mimeType",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "sensitivityLevel",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "requiredClearance",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "chunks",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "upload",
+          "start",
+          "or",
+          "resume",
+          "object",
+          "ingest"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please start or resume a project object upload"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-upload_status",
+      "method": "GET",
+      "path": "/api/project-upload/uploads/:uploadId",
+      "service": "project-upload",
+      "action": "project-upload.status",
+      "summary": "Get received and missing chunks for a visible project upload",
+      "tags": [
+        "Project ingest"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-upload.status"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Upload"
+      ],
+      "requiredScopes": [
+        "project-upload:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "uploadId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "upload",
+          "status",
+          "received",
+          "missing",
+          "chunks",
+          "visible",
+          "ingest"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me get received and missing chunks for a visible project upload"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-upload_chunk",
+      "method": "PUT",
+      "path": "/api/project-upload/uploads/:uploadId/chunks/:index",
+      "service": "project-upload",
+      "action": "project-upload.chunk",
+      "summary": "Store one bounded binary chunk with server-side SHA-256 verification",
+      "tags": [
+        "Project ingest"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-upload.chunk"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Upload",
+        "Index"
+      ],
+      "requiredScopes": [
+        "project-upload:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "project-upload"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "idempotent",
+      "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [
+          {
+            "name": "uploadId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "index",
+            "in": "path",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "hash",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "upload",
+          "chunk",
+          "store",
+          "one",
+          "bounded",
+          "binary",
+          "with",
+          "server",
+          "side",
+          "sha",
+          "256",
+          "verification",
+          "ingest"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please store one bounded binary chunk with server-side sha-256 verification"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-upload_complete",
+      "method": "POST",
+      "path": "/api/project-upload/uploads/:uploadId/complete",
+      "service": "project-upload",
+      "action": "project-upload.complete",
+      "summary": "Verify an upload and queue asynchronous bundle ingest",
+      "tags": [
+        "Project ingest"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-upload.complete"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Upload"
+      ],
+      "requiredScopes": [
+        "project-upload:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "project-upload"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [
+          {
+            "name": "uploadId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "upload",
+          "complete",
+          "verify",
+          "an",
+          "queue",
+          "asynchronous",
+          "bundle",
+          "ingest"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please verify an upload and queue asynchronous bundle ingest"
         ],
         "synonyms": [
           "agent infrastructure",

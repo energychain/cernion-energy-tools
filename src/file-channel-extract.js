@@ -2,6 +2,7 @@
 
 const { inflateRawSync } = require('node:zlib');
 const { fileError, fileSetting } = require('./file-channel-policy');
+const { assertArchiveEntry } = require('./archive-entry-policy');
 // Inspect the central directory before allocating expanded data. ZIP64, encrypted files,
 // macros, external relationships and traversal entries are deliberately rejected.
 function officeEntries(bytes) {
@@ -47,14 +48,8 @@ function officeEntry(bytes, offset, end, budget) {
     commentLength = bytes.readUInt16LE(offset + 32);
   const next = offset + 46 + nameLength + extraLength + commentLength;
   const name = bytes.subarray(offset + 46, offset + 46 + nameLength).toString('utf8');
-  if (
-    next > end ||
-    flags & 1 ||
-    ![0, 8].includes(method) ||
-    /(^\/|\\|(?:^|\/)\.\.(?:\/|$)|vbaProject|embeddings\/)/i.test(name) ||
-    name.includes(String.fromCharCode(0))
-  )
-    fileError('Unsicheres Office-Archiv.');
+  if (next > end) fileError('Unsicheres Office-Archiv.');
+  assertArchiveEntry({ name, flags, method }, { office: true });
   if (expanded > budget || compressed > bytes.length)
     fileError('Office-Datei überschreitet das Entpackbudget.', 413, 'FILE_CHANNEL_LIMIT');
   const local = bytes.readUInt32LE(offset + 42);

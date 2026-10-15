@@ -250,26 +250,12 @@ module.exports = {
         validated.sensitivityLevel,
         p.clearance
       );
-      // Hook must return an explicit clean verdict. Scanner errors never expose content.
       const scanner = this.settings.scanAction || process.env.CET_FILE_SCAN_ACTION;
-      if (scanner) {
-        let verdict;
-        try {
-          verdict = await ctx.call(
-            scanner,
-            { bytes: validated.bytes, mimeType: validated.mimeType, hash: validated.hash },
-            { timeout: policy.fileSetting('SCAN_TIMEOUT_MS', 30000) }
-          );
-        } catch (_error) {
-          policy.fileError(
-            'Virenscan nicht verfügbar. Datei nicht gespeichert.',
-            503,
-            'FILE_SCAN_UNAVAILABLE'
-          );
-        }
-        if (verdict?.clean !== true)
-          policy.fileError('Virenscan hat die Datei abgewiesen.', 422, 'FILE_SCAN_REJECTED');
-      }
+      await require('../src/file-channel-scan').scanOriginal(
+        ctx,
+        { bytes: validated.bytes, mimeType: validated.mimeType, hash: validated.hash },
+        scanner
+      );
       const requiredClearance = input.requiredClearance || [];
       if (
         !Array.isArray(requiredClearance) ||
