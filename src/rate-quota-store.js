@@ -12,6 +12,11 @@ const RATE_LIMIT_DEFAULTS = {
 };
 
 const QUOTA_DEFAULTS = {
+  // Zero inherits CET_PROJECT_* defaults; tenant-quota.setQuotas can override these.
+  project_max_bytes: 0,
+  project_max_files: 0,
+  project_max_file_bytes: 0,
+  project_chunk_bytes: 0,
   llm_tokens_per_day: Number(process.env.QUOTA_LLM_TOKENS_PER_DAY || 250000),
   llm_tokens_per_month: Number(process.env.QUOTA_LLM_TOKENS_PER_MONTH || 5000000),
   max_async_jobs_per_day: Number(process.env.QUOTA_MAX_ASYNC_JOBS_PER_DAY || 250),

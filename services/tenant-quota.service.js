@@ -88,6 +88,30 @@ module.exports = {
                   quotas: {
                     type: 'object',
                     properties: {
+                      project_max_bytes: {
+                        type: 'integer',
+                        minimum: 0,
+                        example: 2147483648,
+                        description: 'Project byte limit; 0 inherits CET_PROJECT_MAX_BYTES.',
+                      },
+                      project_max_files: {
+                        type: 'integer',
+                        minimum: 0,
+                        example: 10000,
+                        description: 'Project object limit; 0 inherits CET_PROJECT_MAX_FILES.',
+                      },
+                      project_max_file_bytes: {
+                        type: 'integer',
+                        minimum: 0,
+                        example: 2147483648,
+                        description: 'Object byte limit; 0 inherits CET_PROJECT_MAX_FILE_BYTES.',
+                      },
+                      project_chunk_bytes: {
+                        type: 'integer',
+                        minimum: 0,
+                        example: 8388608,
+                        description: 'Upload chunk size; 0 inherits CET_PROJECT_CHUNK_BYTES.',
+                      },
                       llm_tokens_per_day: { type: 'integer', minimum: 0, example: 250000 },
                       llm_tokens_per_month: { type: 'integer', minimum: 0, example: 5000000 },
                       max_async_jobs_per_day: { type: 'integer', minimum: 0, example: 250 },

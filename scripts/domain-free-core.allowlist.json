@@ -1,6 +1,34 @@
 {
   "entries": [
     {
+      "term": "file-ingest",
+      "reason": "Generic project upload module path (#884); byte transport and persistence have no business-domain rules."
+    },
+    {
+      "term": "manifest",
+      "reason": "Generic chunk hash/size list in resumable upload validation (#884), independent of any business domain."
+    },
+    {
+      "term": "gateway",
+      "reason": "Existing async-job-runner transport metadata flag $gateway (#884), not a business-domain concept."
+    },
+    {
+      "term": "office",
+      "reason": "Document format suite: shared archive entry security validation (#884), without content analysis or business rules."
+    },
+    {
+      "term": "streaming",
+      "reason": "Generic bounded-memory byte processing for archive validation (#884)."
+    },
+    {
+      "term": "meter",
+      "reason": "Generic stream byte counter Transform (#884); no energy measurement semantics."
+    },
+    {
+      "term": "growth",
+      "reason": "Generic metadata memory size bound (#884), unrelated to business-domain models."
+    },
+    {
       "term": "security",
       "reason": "Standard OpenAPI security field declaring bearer authentication; no business-domain policy or terminology."
     },
