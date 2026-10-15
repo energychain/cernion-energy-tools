@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Projektakte: Ingest bis 2 GB (#884)
+
+- Wiederaufnehmbarer Upload mit SHA-256-geprüften binären Chunks, tenantlokaler Deduplizierung und Originalmetadaten im bestehenden Object Store; keine Base64-Aktenobjekte und keine neue Datenbank.
+- Lokale Aktenverzeichnisse, konfigurierbare Tenant-Limits, Plattenprüfung, bestätigter Cleanup und Ablauf unvollständiger Uploads; der Chat-Dateikanal behält seine Limits und Retention.
+- Asynchrone Ingest-Jobs mit Fortschritts-/Objekt-Events; ZIP/ZIP64-Verarbeitung mit begrenztem Speicher, CRC32-Prüfung und gemeinsamen Archivschutzregeln.
+- Synthetischer 1-GiB-Mischformat-ZIP-Lauf: vier gespeicherte Objekte, 232,1 MiB RSS-Spitze, 55,7 MiB Heap-Spitze; reproduzierbarer Messlauf und HTTP-/Sicherheitstests.
+
 ## Unreleased — Projektakte: Datenmodell und Lebenszyklus (#883)
 
 - Dauerhafte, tenantweite Projektakten mit optionalen Mitgliedern, aggregierter Clearance und strukturellen Fall-/Gesprächsreferenzen; geschützte Erweiterungspunkte für Bestandteile und Lebenszyklus.
