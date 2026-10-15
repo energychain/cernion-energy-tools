@@ -306,6 +306,37 @@ module.exports = {
     async documents(ctx, object, filename, type, pool) {
       let ordinal = 0,
         candidateCount = 0;
+      const objectLimit = policy.setting('MEMORY_MAX_SECTIONS_PER_OBJECT', 50);
+      const projectLimit = policy.setting('MEMORY_MAX_SECTIONS_PER_PROJECT', 500);
+      // The existing project mutation lock serializes reservations across all objects.
+      const records = await this.record(ctx, 'list', object);
+      let projectAttempts = records.reduce(
+        (sum, record) => sum + (record.memory?.attemptedSections || 0),
+        0
+      );
+      object.memory = {
+        attemptedSections: object.memory?.attemptedSections || 0,
+        extractedSections: 0,
+        skippedSections: 0,
+      };
+      const budget = {
+        claimSection: async () => {
+          const allowed =
+            object.memory.attemptedSections < objectLimit && projectAttempts < projectLimit;
+          if (allowed) {
+            object.memory.attemptedSections++;
+            projectAttempts++;
+          } else object.memory.skippedSections++;
+          // Reserve before the LLM call. Failed attempts and restarts consume budget too.
+          await this.save(ctx, object);
+          return allowed;
+        },
+        onExtracted: async () => {
+          object.memory.extractedSections++;
+          await this.save(ctx, object);
+        },
+      };
+      await this.save(ctx, object);
       for await (const part of documentParts(filename, type)) {
         if (!part.text.trim()) continue;
         const row = await ctx.call('knowledge-rag.documentIngest', {
@@ -336,7 +367,8 @@ module.exports = {
           ctx,
           principal(ctx),
           full,
-          {}
+          {},
+          budget
         );
         await ctx.call('knowledge-rag.documentExtractionState', { id: row.id, state: 'complete' });
         if (candidateCount < policy.setting('ENTITY_CANDIDATE_LIMIT', 10000)) {

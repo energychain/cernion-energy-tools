@@ -482,18 +482,33 @@ paginiert mit begrenzter Treffermenge.
 
 Jeder Abschnitt erhält `provenance.projectId`, `provenance.objectId` und
 `sourceLocation { page?, slide?, chapter? }`, auch in Such-/RAG-Herkunft.
-Die Prompt-Grenze gilt ebenfalls für das Teamgedächtnis: Der vorhandene untrusted
-Extractor sieht bei Akten nur Dokument-/Abschnittstitel und Fundstellen. Aussagen
-aus solchen Titeln werden über die vorhandene Schema-/Zitat-/Ankerprüfung gespeichert.
-`assessmentScope: section-titles` kennzeichnet den Abschluss ohne weitere
-LLM-Vergleichsprüfung gegen Dokumentkörper oder frühere Volltextquellen. Auch die
-gespeicherte Nachrichtenherkunft der Aussage enthält ausschließlich Titel/Fundstellen. Aussagen,
-die nur im Fließtext stehen, werden deshalb nicht per LLM ins Gedächtnis übernommen.
-Der vollständige Text bleibt lokal im Dokumentwissen/RAG. Das ist eine bewusste
-Folge der verbindlichen Vorgabe „Prompts nur Profile/Statistik/Schema/Abschnittstitel“.
-Vektor-Embeddings verwenden den vorhandenen RAG-Weg über `llm-client`, keine
-Generierungs-Prompts mit Dokumentkörpern. Leere Scan-PDFs scheitern mit OCR-Grund;
-OCR gehört nicht zu #885.
+Die Rohdaten-Grenze gilt für Tabellen: Generierungs-Prompts erhalten Profile,
+Statistik und Schema, keine Rohzeilen oder Zellwerte. Dokumenttext wird dagegen
+wie bei Chat-Dokumenten als untrusted `document` abschnittsweise im bestehenden
+Extraktions-Prompt übergeben. Aussagen durchlaufen `memory.start` mit deferred
+Verarbeitung und regulärer Schema-/Zitat-/Anker- und Wechselwirkungsprüfung.
+`documentSource.projectId` und `objectId` bleiben als Herkunft erhalten.
+
+Die Gedächtnisextraktion ist standardmäßig auf 50 Abschnitte je Original und 500
+je Akte begrenzt (je tatsächlichem Extraktions-Prompt, auch bei weiteren Unterteilungen).
+Der Originaldatensatz speichert `memory: { attemptedSections, extractedSections,
+skippedSections }`: Versuche werden unter dem vorhandenen Aktenlock **vor** dem
+LLM-Aufruf reserviert; auch fehlgeschlagene Versuche verbrauchen das Budget.
+`attemptedSections` bleibt bei Wiederaufnahme/Neuverarbeitung erhalten, während
+`extractedSections` und `skippedSections` den letzten Verarbeitungslauf beschreiben.
+Die Aktengrenze summiert die dauerhaften Versuchszähler aller Originale derselben
+Akte. Für Altobjekte ohne Zähler beginnt die Zählung mit dieser Implementierung.
+Die Limits sind positive ganze Zahlen; eine Anhebung erlaubt zusätzliche Versuche
+bei einer expliziten Neuverarbeitung. Erfolgreich strukturierte Objekte werden
+nicht allein wegen geänderter Limits erneut verarbeitet.
+
+Abschnitte über dem Budget bleiben vollständig im Dokumentwissen und RAG suchbar;
+nur die Gedächtnisextraktion wird ausgelassen. `extractedSections` zählt abgeschlossene
+Extraktionsaufrufe, auch ohne Aussagen; der Prüfstatus einzelner Aussagen bleibt
+im normalen Gedächtnis gespeichert und kann weiterhin `pending` sein. Alle
+LLM-Aufrufe einschließlich Embeddings und Aussagenprüfung laufen über `llm-client`
+mit dessen regulären Quoten. Leere Scan-PDFs scheitern mit OCR-Grund; OCR gehört
+nicht zu #885.
 
 ### Entitäts-Kandidaten für #886
 
@@ -555,6 +570,7 @@ fehlgeschlagene Handler blockieren weiterhin die endgültige Aktenlöschung.
 | `XLSX_SHARED_STRING_BYTES` / `XLSX_SHARED_STRING_COUNT` | 16777216 / 100000 | Shared-String-XML und Einträge |
 | `OFFICE_MAX_EXPANDED_BYTES` | 2147483648 | gesamtes Office-Archiv; zusätzlich ZIP-Ratio aus #884 |
 | `DOCUMENT_SECTION_CHARS` | 12000 | Dokumentabschnitt, mindestens 256 |
+| `MEMORY_MAX_SECTIONS_PER_OBJECT` / `MEMORY_MAX_SECTIONS_PER_PROJECT` | 50 / 500 | dauerhafte Gedächtnis-Extraktionsversuche je Original/Akte |
 | `MESSAGE_MAX_BYTES` | 16777216 | vorhandene nicht streamende Nachrichtenparser |
 | `ENTITY_CANDIDATE_LIMIT` | 10000 | Kandidaten je Original |
 

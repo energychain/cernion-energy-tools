@@ -335,7 +335,13 @@ test('AC-03 PDF/DOCX/PPTX/TXT sections preserve original locations and project p
   expect(hits.some((hit) => hit.metadata.location.includes('page 2'))).toBe(true);
   expect(hits.every((hit) => hit.metadata.projectId === projectId)).toBe(true);
   expect(
-    llm.generateStructured.mock.calls.every((call) => !call[1].includes('private-document-value'))
+    llm.generateStructured.mock.calls.some((call) => {
+      const input = JSON.parse(call[1]);
+      return (
+        input.document?.includes('private-document-value') &&
+        input.instruction.includes('untrusted')
+      );
+    })
   ).toBe(true);
   await h.call('project-file.delete', { projectId });
   expect(await h.call('knowledge-rag.documentList', {})).toEqual([]);
@@ -528,10 +534,11 @@ test('membership, deletion-incomplete and changed references are checked at read
   expect(await h.call('project-file.delete', { projectId })).toMatchObject({ deleted: true });
 });
 
-test('title-derived team memory never stores or prompts with the document body, and cleanup invalidates it', async () => {
+test('project prose uses untrusted extraction and deferred regular memory checking, and cleanup invalidates it', async () => {
   h = await structureHarness(dir);
   const projectId = await h.create();
   const quote = 'Die gemeinsam genutzte Werkstatt Delta bleibt bis Januar gesperrt.';
+  const start = jest.spyOn(require('../src/tenant-memory'), 'start');
   llm.generateStructured.mockImplementation(async (_schema, prompt) => {
     const input = JSON.parse(prompt);
     if (!input.document) return undefined;
@@ -554,7 +561,7 @@ test('title-derived team memory never stores or prompts with the document body, 
   const object = await addObject(
     h,
     projectId,
-    Buffer.from(`Chapter 1 ${quote}\nprivate-body-only-885\n`),
+    Buffer.from(`Chapter 1 Overview\n${quote}\nprivate-body-only-885\n`),
     'notes.txt'
   );
   expect(object.extraction.status).toBe('extracted');
@@ -568,9 +575,43 @@ test('title-derived team memory never stores or prompts with the document body, 
     checking: 'complete',
     documentSource: { projectId, objectId: object.objectId },
   });
-  expect(JSON.stringify(facts)).not.toContain('private-body-only-885');
+  expect(facts[0].assessmentScope).toBeUndefined();
+  expect(JSON.stringify(facts)).toContain('private-body-only-885');
+  const input = JSON.parse(
+    llm.generateStructured.mock.calls.find((call) =>
+      JSON.parse(call[1]).document?.includes('private-body-only-885')
+    )[1]
+  );
+  expect(input.document).toContain(quote);
+  expect(input.instruction).toContain('untrusted');
+  expect(start).toHaveBeenCalled();
+  expect(start.mock.results[0].value).toMatchObject({ deferred: true, renderedConfirmation: true });
+  expect(start.mock.calls[0][3].envelope.userRequest).toContain('private-body-only-885');
+  const secondQuote = 'Die gemeinsam genutzte Werkstatt Delta öffnet im Februar.';
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    const value = JSON.parse(prompt);
+    if (!value.document) throw new Error('Assessment temporarily unavailable');
+    return {
+      assertions: [
+        {
+          text: secondQuote,
+          basis: secondQuote,
+          scope: 'organization',
+          commitment: 'decided',
+          anchors: [{ value: 'Werkstatt Delta', qualifier: '', aliases: [] }],
+          time: { from: '', until: '', latest: '', earliest: '', date: '' },
+          expiresAt: '',
+        },
+      ],
+      correction: { kind: 'none', basis: '', factId: '' },
+      query: { requested: false, anchor: '', functionLabel: '' },
+    };
+  });
+  await addObject(h, projectId, Buffer.from(secondQuote), 'further.txt');
+  const checked = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
+  expect(checked.find((fact) => fact.text === secondQuote)).toMatchObject({ checking: 'pending' });
   expect(
-    llm.generateStructured.mock.calls.every((call) => !call[1].includes('private-body-only-885'))
+    llm.generateStructured.mock.calls.some((call) => JSON.parse(call[1]).candidates?.length)
   ).toBe(true);
   jest
     .spyOn(h.broker.getLocalService('knowledge-rag'), 'objectDelete')
@@ -583,4 +624,66 @@ test('title-derived team memory never stores or prompts with the document body, 
     status: 'deleted',
     text: '',
   });
+});
+
+test('project memory caps actual extraction sections per object/project while all text stays searchable', async () => {
+  process.env.CET_PROJECT_DOCUMENT_SECTION_CHARS = '256';
+  process.env.CET_PROJECT_MEMORY_MAX_SECTIONS_PER_OBJECT = '2';
+  process.env.CET_PROJECT_MEMORY_MAX_SECTIONS_PER_PROJECT = '3';
+  h = await structureHarness(dir);
+  const projectId = await h.create();
+  const text = 'Searchable remaining document text. '.repeat(45);
+  const first = await addObject(h, projectId, Buffer.from(text), 'first.txt');
+  expect(first.memory).toMatchObject({ attemptedSections: 2, extractedSections: 2 });
+  expect(first.memory.skippedSections).toBeGreaterThan(0);
+  const second = await addObject(h, projectId, Buffer.from(text), 'second.txt');
+  expect(second.memory).toMatchObject({ attemptedSections: 1, extractedSections: 1 });
+  expect(second.memory.skippedSections).toBeGreaterThan(first.memory.skippedSections);
+  await h.broker.stop();
+  h = await structureHarness(dir);
+  const third = await addObject(
+    h,
+    projectId,
+    Buffer.from(text + ' DistinctiveThirdMarker'),
+    'third.txt'
+  );
+  expect(third.memory).toMatchObject({ attemptedSections: 0, extractedSections: 0 });
+  expect(third.memory.skippedSections).toBeGreaterThan(0);
+  const documents = await h.call('knowledge-rag.documentList', {});
+  const skipped = documents.filter((doc) => doc.provenance.objectId === third.objectId);
+  expect(skipped.length).toBeGreaterThan(2);
+  expect((await h.call('knowledge-rag.documentGet', { id: skipped.at(-1).id })).text).toContain(
+    'document text'
+  );
+  expect(
+    (
+      await h.call('knowledge-rag.documentSearch', { query: 'DistinctiveThirdMarker', limit: 20 })
+    ).some((hit) => hit.metadata.objectId === third.objectId)
+  ).toBe(true);
+  const otherProject = await h.create();
+  const other = await addObject(h, otherProject, Buffer.from(text), 'independent.txt');
+  expect(other.memory.extractedSections).toBe(2);
+  expect(
+    llm.generateStructured.mock.calls.filter((call) => JSON.parse(call[1]).document)
+  ).toHaveLength(5);
+});
+
+test('failed extraction reservations survive restart and consume the project budget', async () => {
+  process.env.CET_PROJECT_MEMORY_MAX_SECTIONS_PER_PROJECT = '1';
+  h = await structureHarness(dir);
+  const projectId = await h.create();
+  llm.generateStructured.mockRejectedValue(new Error('Extraction unavailable'));
+  const failed = await addObject(h, projectId, Buffer.from('A readable source.'), 'failed.txt');
+  expect(failed.extraction.status).toBe('failed');
+  expect(failed.memory).toMatchObject({ attemptedSections: 1, extractedSections: 0 });
+  await h.broker.stop();
+  h = await structureHarness(dir);
+  const next = await addObject(h, projectId, Buffer.from('Another readable source.'), 'next.txt');
+  expect(next.extraction.status).toBe('extracted');
+  expect(next.memory).toMatchObject({
+    attemptedSections: 0,
+    extractedSections: 0,
+    skippedSections: 1,
+  });
+  expect(llm.generateStructured).toHaveBeenCalledTimes(1);
 });

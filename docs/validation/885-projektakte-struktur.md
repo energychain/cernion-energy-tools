@@ -27,13 +27,20 @@ Stand: 15.10.2026, Node 24.18.0, Branch `feat/885-projektakte-struktur`.
   gelangen Aktendatensätze nicht in den Scope. Archivierung/Löschung/Mitgliedschaft
   werden bei Abrufen erneut geprüft.
 
-Die verbindliche Prompt-Grenze hat eine bewusste Folge: Teamgedächtnis-Extraktion
-aus Akten sieht nur Dokument-/Abschnittstitel und Fundstellen. Fließtextaussagen
-bleiben im lokalen Dokumentwissen und werden nicht als LLM-Prompt übertragen.
-Auch die gespeicherte Nachrichtenherkunft bleibt auf Titel/Fundstellen begrenzt;
-`assessmentScope: section-titles` beendet die vorhandene Schema-/Zitat-/Ankerprüfung
-ohne nachgeschalteten LLM-Vergleich mit Volltextquellen. RAG-Embeddings laufen
-weiterhin über die vorhandene LLM-Fassade.
+Review-Korrektur nach `1c8cf88e`: Die Rohdaten-Grenze gilt für Tabellen.
+Dokumentabschnittstext erreicht als untrusted `document` den regulären Extractor;
+`memory.start` läuft deferred einschließlich der normalen Aussagenprüfung.
+Eine nicht verfügbare Vergleichsprüfung lässt Aussagen `pending`; es gibt keinen
+Sonderabschluss per `assessmentScope`. Projekt-/Objektherkunft bleibt erhalten.
+
+`CET_PROJECT_MEMORY_MAX_SECTIONS_PER_OBJECT=50` und
+`CET_PROJECT_MEMORY_MAX_SECTIONS_PER_PROJECT=500` begrenzen tatsächliche
+Extraktions-Prompts. `object.memory` enthält `attemptedSections` (dauerhaft über
+Neustarts/Neuverarbeitung), `extractedSections` und `skippedSections` (letzter Lauf).
+Reservierung erfolgt vor dem Aufruf unter dem bestehenden Aktenlock; Fehler
+verbrauchen Budget. Übersprungener Text bleibt im Dokumentwissen/RAG suchbar.
+Quoten und reguläre Aussagenprüfung laufen weiterhin über `llm-client`.
+Für Altobjekte ohne Zähler beginnt die Budgetzählung mit der Korrektur.
 
 ## Akzeptanzkriterien
 
@@ -42,12 +49,12 @@ weiterhin über die vorhandene LLM-Fassade.
 | AC-01 | erfüllt | generierte 1.000.000-Zeilen-CSV mit Zeitfeld, Batchgrenzen, feste Speicherbudgets, Aggregate über `dataset.query` |
 | AC-02 | erfüllt | mehrere XLSX-Blätter, Shared Strings, große generierte Sheet-XML, verbotener Gesamtworkbook-Reader, eigene Datensätze mit Blattherkunft |
 | AC-03 | erfüllt | echte generierte PDF-Seiten, DOCX-Absätze und PPTX-Folien; Passagen/RAG mit Seite/Folie/Kapitel und Akten-/Objektherkunft |
-| AC-04 | erfüllt | spionierte/gesperrte LLM-Fassade; keine Rohzeilen, Zellbeispiele oder privaten Zell-/Dokumentkörperwerte in Generierungs-Prompts |
+| AC-04 | erfüllt | spionierte/gesperrte LLM-Fassade; Tabellen-Prompts ohne Rohzeilen, Zellbeispiele oder private Zellwerte |
 | AC-05 | erfüllt | Gesprächs-/Fallreferenz, fehlender Bezug, geänderte Referenz, Mitgliedschaft, Archivierung und unvollständige Löschung |
 | AC-06 | erfüllt | fehlerhafte Einzel-CSV erhält Grund; gültige Objekte bleiben erhalten, Akte `degraded`, Wiederaufnahme und idempotente Cleanup-Wiederholung |
 | AC-07 | erfüllt | Domänenprüfung ohne Befunde; vorhandene Parser, Profile, Semantik, Zeitnormalisierung, Query-Ausführung, Dokumentwissen und Archivschutz wiederverwendet |
 
-## Großlauf
+## Großlauf (Ausgangscommit; Tabellenpfad durch die Review-Korrektur unverändert)
 
 Reproduktion: `node scripts/test-project-structure-large.js`.
 Der Generator schreibt inkrementell unter `/tmp`, durchläuft das echte
@@ -90,14 +97,42 @@ Die lokale `grep -rn`-Aufruferanalyse ergänzt den veralteten Index:
 | `executeDatasetQuery`, `datasetSemantics`, `normalizeDatasetTimes` | Dataset-Abfragen, Semantikkorrektur und neue Aktenbatches | mittel bis hoch; Defaultpfade bleiben erhalten |
 | `markReceived`, `settleLifecycle` | Original-/ZIP-Ingest und Statusbereinigung | mittel; interner Handoff und Strukturierungsstatus ergänzt |
 | Dokument-`records`, `sections`, `ingestDocument`, `searchDocuments`, `visibleChunks`, `withDocumentSource` | Dokumentablage, Passagensuche, RAG-Sichtbarkeit und Gedächtnisextraktion | hoch; Aktenbindung und paginierte Suche |
-| `rememberDocument`, `extractOriginal` | Workbench-Dokumentfluss, File-Channel und neue Aktenabschnitte | mittel; gemeinsamer PDF-Factory-Pfad und titellimitierte Akten-Prompts |
+| `rememberDocument`, `extractOriginal` | Workbench-Dokumentfluss, File-Channel und neue Aktenabschnitte | mittel; gemeinsamer PDF-Factory-Pfad und reguläre Akten-Dokumentextraktion mit dauerhaft reservierten Abschnittsbudgets |
 | `DatasetSqlitePool`, `EdmSqlitePool` | bestehender Chat-/SQLite-Unterbau | Implementierungen unverändert; neue Unterklasse nutzt vorhandene Methoden |
 
 Die hohe manuelle Risikoeinstufung wurde vor den Routing-/Dataset-Eingriffen
 kommuniziert. Neue öffentliche OpenAPI-Tags gibt es nicht; bestehende Tags bleiben
 in der Taxonomie unverändert. Alle neuen Mutationen sind geschützte interne Aktionen.
 
-## Checks
+## Review-Korrektur: Checks
+
+Ergänzte Regressionen prüfen Dokumenttext im untrusted Prompt, deferred `memory.start`,
+regulär ausstehende Aussagenprüfung bei Vergleichsfehlern, Objekt-/Aktengrenzen,
+Neustart mit ausgeschöpftem Budget, Fehlerreservierungen und vollständige Suchbarkeit
+übersprungener Abschnitte. Tabellen-Prompts bleiben durch die bestehenden Zellwerttests
+abgesichert. Keine neuen Allowlist-Einträge.
+
+Der manuelle Blast Radius der Korrektur ist mittel: `rememberDocument` hat zwei
+Aufrufer (Chat-Ingest und Projektstrukturierung); `documents` wird nur intern von
+`structureObject` aufgerufen. GitNexus `impact` findet beide Symbole weiterhin
+nicht (`UNKNOWN`); die lokale `grep -rn`-Aufrufsuche wurde vor Änderungen ausgeführt.
+Dataset-/Routing-/Pool-Symbole werden durch die Korrektur nicht verändert.
+
+- Gezielte Projektstrukturierungs-/Dokumenttests: **39 Tests bestanden**.
+- `npm run test:unit:ci`: **10.173 Tests bestanden**, 54 konfiguriert
+  übersprungen; 466 Dateien, 24 serielle Pakete. Coverage: Statements **83,97 %**,
+  Branches **70,16 %**, Funktionen **88,21 %**, Zeilen **85,73 %**; alle Gates grün.
+- Lint, Domain-Free-Core, TDD-Matrix-Abdeckung (**66/66**, **100 %**), Function-Model,
+  Signal-Catalog, Operation-Capability-Index und LLM-Abgleich: **bestanden**.
+- Alle fünf Artefaktgeneratoren nach der letzten Testanpassung erneut in der
+  vorgeschriebenen Reihenfolge ausgeführt; Abgleich **bestanden**.
+- OpenAPI-Audit: **0 Issues**, 480 bestehende Warnungen. `git diff --check`: **bestanden**.
+- Dependency-Reihenfolge alphabetisch; Root-Dependencies in Manifest und Lockfile
+  stimmen überein. Keine Versionsänderung.
+- GitNexus-Scope-Prüfung vor dem Folgecommit: erwartete 14 Dateien; die Begrenzung
+  des veralteten Symbolindex gilt weiterhin.
+
+## Checks des Ausgangscommits
 
 - 25 neue Tests in zwei Strukturierungs-Suites — bestanden, einschließlich
   frühzeitigem Stream-Abschluss bei ungültiger Kopfzeile und Wiederholung eines

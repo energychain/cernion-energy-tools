@@ -2,9 +2,10 @@
 
 ## Unreleased — Projektakte: Strukturierung im Datenstrom (#885)
 
+- Review-Korrektur: Gedächtnis-Extraktion auf 50 Abschnitte je Original und 500 je Akte begrenzt (konfigurierbar); dauerhafte Versuchsreservierungen und Objektstatus mit extrahierten/übersprungenen Abschnitten. Überschüssiger Text bleibt im Dokumentwissen/RAG suchbar; Rohdatenfreiheit von Tabellen-Prompts bleibt bestehen.
 - Dauerhafter interner Handoff nach Empfang mit Wiederaufnahme unvollständiger Ableitungen; idempotent je Objektinhalt und Parser-Version, Teilfehler ergeben `degraded`.
 - CSV/TSV und XLSX-Blätter werden mit begrenzten Profilen, Batches und Zeit-/Schlüsselindizes in eine akteneigene `project.sqlite` geschrieben; `dataset.query` verwendet den vorhandenen Executor über einen Pool-Adapter.
-- PDF/DOCX/PPTX/TXT/EML liefern Abschnitte mit Fundstellen ins bestehende Dokumentwissen und RAG; Gedächtnis-Prompts verwenden für Akten ausschließlich Abschnittstitel. Strukturierte Nachrichten verwenden vorhandene Adapter einschließlich MSCONS-Parser.
+- PDF/DOCX/PPTX/TXT/EML liefern Abschnitte mit Fundstellen ins bestehende Dokumentwissen und RAG; Dokumenttext wird als untrusted Quelle über den regulären deferred Gedächtnispfad einschließlich Aussagenprüfung verarbeitet. Strukturierte Nachrichten verwenden vorhandene Adapter einschließlich MSCONS-Parser.
 - Entitäts-Kandidaten samt Herkunft liegen in der Akten-SQLite; aktuelle Aktenreferenzen binden den Workbench-Scope. Archivierung, Mitgliedschaft, Clearance und bestätigter Cleanup gelten für alle Ableitungen.
 - Streaming-, Isolations-, Neustart-, Dokument- und Regressionstests sowie generierter Million-Zeilen-Messlauf mit bekannten Aggregaten; getrennte Aktengrenzen lassen die Chat-Limits unverändert.
 
