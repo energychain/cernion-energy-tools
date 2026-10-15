@@ -175,6 +175,23 @@ test.each([...fixtures.ambiguousTexts, generateDatasetSafetyFixture('duplicateHe
   }
 );
 
+test('#847 finding 2: delimiter candidates are scored instead of accepting the first weak parse', () => {
+  const text = [
+    'id,description',
+    '1,Zähler A; geprüft',
+    '2,Zähler B; offen',
+    '3,Zähler C; geprüft',
+  ].join('\n');
+  const [table] = parseDatasetText(text);
+  expect(table.rows).toEqual([
+    { id: 1, description: 'Zähler A; geprüft' },
+    { id: 2, description: 'Zähler B; offen' },
+    { id: 3, description: 'Zähler C; geprüft' },
+  ]);
+  const semicolon = parseDatasetText('Zeit;Wert\n2025-01-01;1,5\n2025-01-02;2,5\n2025-01-03;3,5');
+  expect(semicolon[0].rows[0]).toEqual({ Zeit: '2025-01-01', Wert: 1.5 });
+});
+
 test.each([false, true, null])(
   '846 scenario 8 / C.1: source timeout is honest; misleading model output=%s',
   async (misleading) => {
@@ -208,6 +225,33 @@ test.each([false, true, null])(
     );
     expect(result.responseText).not.toMatch(
       /Modell.*nicht verfügbar|Deine Angaben im Lagebild|SYN-REF-001/
+    );
+  }
+);
+
+test.each(['Die Daten für 2024 liegen noch nicht vor.', 'Bezug SYN-REF-001 bleibt offen.'])(
+  '#847 finding 4: ungrounded digits do not suppress the source-timeout explanation: %s',
+  async (text) => {
+    llm.generateText.mockResolvedValue(
+      JSON.stringify({
+        interpretation: [claim(text)],
+        expectation: [],
+        nextSteps: [],
+        assumptions: [],
+        draft: [],
+      })
+    );
+    const result = await answer({
+      situation,
+      tenantId: 'synthetic',
+      message: 'Wie viele Anlagen im MaStR?',
+      retrieval: {
+        evidence: [],
+        toolTrace: [{ name: 'energy-market.installations', status: 'timeout', called: true }],
+      },
+    });
+    expect(result.responseText).toContain(
+      'Das Marktstammdatenregister hat gerade nicht rechtzeitig geantwortet'
     );
   }
 );
@@ -358,4 +402,81 @@ test('846 scenario 7: generated CSV, original XLSX and loader split retain #838 
     ['Lager', 2],
     ['Vertrieb', 2],
   ]);
+});
+
+test('#850 finding 9: mapped document-review drafts are completed before durable draft and history storage', async () => {
+  const { createCaseBroker } = require('./helpers/case-linking-broker');
+  const stub = require('./helpers/workbench-llm-stub');
+  const documentFlow = require('../src/workbench-document-flow');
+  const app = await createCaseBroker();
+  llm.generateStructured.mockImplementation(async (schema, raw) => {
+    const input = JSON.parse(raw);
+    if (!input.catalog) return null;
+    const result = await stub.generateStructured(schema, raw);
+    result.missingInformation = [];
+    result.requestedAction.draftRequested = false;
+    return result;
+  });
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      interpretation: [claim('Die fachliche Antwort auf die Netzanmeldung steht aus.')],
+      expectation: [],
+      nextSteps: [],
+      assumptions: [],
+      draft: [],
+    })
+  );
+  const meta = {
+    apiToken: {
+      id: 'synthetic-person',
+      tenantId: 'tenant-a',
+      displayName: 'max.mustermann',
+      roles: ['ROLE_GRID_OPERATOR'],
+      scope: 'agentos-session',
+    },
+  };
+  const rawDraft =
+    'Guten Tag,\nbitte prüfe den Bearbeitungsstand.\n\nMit freundlichen Grüßen\n[Name]';
+  const recorded = [];
+  const originalCall = app.broker.call.bind(app.broker);
+  app.broker.call = (name, params, options) => {
+    if (name === 'domain-router.recordWorkbenchTurn') recorded.push(params);
+    return originalCall(name, params, options);
+  };
+  try {
+    await app.broker.start();
+    const send = (message) =>
+      originalCall(
+        'workbench.chat',
+        { channel: 'open-webui', conversationId: 'synthetic-document-draft', message },
+        { meta: structuredClone(meta) }
+      );
+    const first = await send(fixtures.mail);
+    expect(first.cetCaseId).toBeTruthy();
+    const reply = jest.spyOn(documentFlow, 'documentReply').mockResolvedValue({
+      responseText: `Prüfung abgeschlossen.\n\n**Entwurf:**\n${rawDraft}`,
+      result: { review: { draft: rawDraft } },
+    });
+    recorded.length = 0;
+    const put = jest.spyOn(app.workbench.conversationsDb, 'put');
+    try {
+      const second = await send(fixtures.draftQuestion);
+      expect(second.cetCaseId).toBe(first.cetCaseId);
+      const drafts = put.mock.calls
+        .map(([doc]) => doc)
+        .filter((doc) => doc.type === 'workbench_internal_draft');
+      expect(drafts).toHaveLength(1);
+      expect(recorded).toHaveLength(1);
+      for (const text of [drafts[0].content, recorded[0].responseText, second.responseText]) {
+        expect(text).toMatch(/Mit freundlichen Grüßen\nmax\.mustermann/u);
+        expect(text).not.toMatch(/\[Name\]|Anzeigename/u);
+      }
+    } finally {
+      put.mockRestore();
+      reply.mockRestore();
+    }
+  } finally {
+    app.broker.call = originalCall;
+    await app.cleanup();
+  }
 });

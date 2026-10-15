@@ -10,8 +10,11 @@ const corpus = require('../tests/fixtures/workbench-813.generated.json');
 const { singlePoint, temporalGrounded, summaryPresent } = require('./live-validation-checks');
 const reportPath = path.join(__dirname, '../docs/validation/813-live.json');
 let quotaDirectory;
-function recheckReport() {
-  const existing = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+function failedChecks(run) {
+  return [run, ...run.turns].some((entry) => Object.values(entry.checks || {}).includes(false));
+}
+function recheckReport(file = reportPath) {
+  const existing = JSON.parse(fs.readFileSync(file, 'utf8'));
   const expected = corpus.flatMap((scenario) =>
     scenario.turns.map((_turn, index) => `${scenario.id}:${index + 1}`)
   );
@@ -39,13 +42,8 @@ function recheckReport() {
     }
   existing.guardValidation =
     'Summary, question grammar and temporal assertions rechecked on all complete unchanged responses; explicit question alternatives are not assertions; remaining checks retained; no model calls.';
-  fs.writeFileSync(reportPath, JSON.stringify(existing, null, 2) + '\n');
-  if (
-    existing.runs.some((run) =>
-      run.turns.some((turn) => Object.values(turn.checks).includes(false))
-    )
-  )
-    process.exitCode = 1;
+  fs.writeFileSync(file, JSON.stringify(existing, null, 2) + '\n');
+  if (existing.runs.some(failedChecks)) process.exitCode = 1;
 }
 const report = {
   sources:
@@ -91,9 +89,10 @@ async function validateConversation() {
     };
     workbench.logger.warn = (message, detail) => console.log(JSON.stringify({ message, detail }));
     const turns = [];
+    // Run-level #850 checks stay outside the corpus turn sequence for --recheck-report.
+    const polishReport = { checks: {} };
     try {
       await broker.start();
-      const polishReport = { checks: {} };
       await require('./workbench-850-live-scenarios').validatePolishContent({
         report: polishReport,
         minutes: fs.readFileSync(
@@ -119,7 +118,6 @@ async function validateConversation() {
             }
           ),
       });
-      turns.push({ scenario: 'polish850', checks: polishReport.checks });
       for (const scenario of corpus) {
         if (
           process.env.WORKBENCH_VALIDATION_SCENARIOS &&
@@ -238,7 +236,7 @@ async function validateConversation() {
     } finally {
       await broker.stop();
       fs.rmSync(directory, { recursive: true, force: true });
-      report.runs.push({ run, turns });
+      report.runs.push({ run, checks: polishReport.checks, turns });
       report.questionShare = report.totalTurns ? report.turnsWithQuestion / report.totalTurns : 0;
       fs.mkdirSync(path.join(__dirname, '../docs/validation'), { recursive: true });
       fs.writeFileSync(
@@ -247,10 +245,7 @@ async function validateConversation() {
       );
     }
   }
-  if (
-    report.runs.some((run) => run.turns.some((turn) => Object.values(turn.checks).includes(false)))
-  )
-    process.exitCode = 1;
+  if (report.runs.some(failedChecks)) process.exitCode = 1;
 }
 if (require.main === module)
   (process.argv.includes('--recheck-report')
@@ -264,4 +259,4 @@ if (require.main === module)
     .finally(() => {
       if (quotaDirectory) fs.rmSync(quotaDirectory, { recursive: true, force: true });
     });
-module.exports = { summaryPresent, temporalGrounded };
+module.exports = { summaryPresent, temporalGrounded, recheckReport, failedChecks };
