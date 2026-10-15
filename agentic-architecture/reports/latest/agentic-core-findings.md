@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-10-15T14:46:20.578Z
+Generated: 2026-10-15T20:50:06.888Z
 
 ## Current measurable surface
 
@@ -13,20 +13,20 @@ Generated: 2026-10-15T14:46:20.578Z
 
 ## Domain term distribution
 
-- `evidence`: 25030 hits in 788 files
-- `tenant`: 17383 hits in 774 files
-- `broker`: 11247 hits in 632 files
+- `evidence`: 25032 hits in 789 files
+- `tenant`: 17494 hits in 783 files
+- `broker`: 11289 hits in 638 files
 - `grid`: 9861 hits in 653 files
-- `agent`: 8390 hits in 760 files
+- `agent`: 8392 hits in 761 files
 - `decision`: 6979 hits in 454 files
-- `capability`: 5870 hits in 498 files
+- `capability`: 5891 hits in 502 files
 - `stadtwerk`: 5635 hits in 248 files
-- `forecast`: 4591 hits in 329 files
+- `forecast`: 4595 hits in 329 files
 - `vdmi`: 4530 hits in 295 files
-- `redispatch`: 4130 hits in 310 files
+- `redispatch`: 4129 hits in 310 files
 - `market`: 3966 hits in 403 files
 - `hitl`: 3707 hits in 447 files
-- `edm`: 2918 hits in 363 files
+- `edm`: 2919 hits in 364 files
 - `regulator`: 2647 hits in 341 files
 - `mako`: 2470 hits in 306 files
 - `receipt`: 2445 hits in 167 files
@@ -38,7 +38,7 @@ Generated: 2026-10-15T14:46:20.578Z
 - `eog`: 792 hits in 101 files
 - `utility`: 613 hits in 94 files
 - `openwebui`: 597 hits in 95 files
-- `open-webui`: 406 hits in 69 files
+- `open-webui`: 410 hits in 69 files
 - `chatgpt`: 403 hits in 39 files
 
 ## Evidence and HITL files

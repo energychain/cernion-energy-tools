@@ -1,15 +1,15 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-15T14:46:20.578Z
+Generated: 2026-10-15T20:50:06.888Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 1987
-- Services: 160
-- src/*.js files: 384
-- Tests: 493
+- Files scanned: 2001
+- Services: 161
+- src/*.js files: 391
+- Tests: 498
 - Integrations files: 35
 - Markdown/docs files: 526
 
@@ -26,11 +26,11 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 562 files
-- `src`: 451 files
+- `tests`: 567 files
+- `src`: 458 files
 - `docs`: 399 files
-- `services`: 196 files
-- `scripts`: 85 files
+- `services`: 197 files
+- `scripts`: 86 files
 - `tools`: 85 files
 - `agentic-architecture`: 61 files
 - `integrations`: 35 files
@@ -201,7 +201,7 @@ Potential duplicate or overlapping slugs:
 - `src/job-store/file-driver.js`, `src/rate-quota/file-driver.js`
 - `src/job-store/redis-compat-driver.js`, `src/rate-quota/redis-compat-driver.js`
 
-Services without obvious direct unit test by filename heuristic: 29
+Services without obvious direct unit test by filename heuristic: 30
 
 - `services/agnes-bottleneck.service.js`
 - `services/altdaten-assessment.service.js`
@@ -218,6 +218,7 @@ Services without obvious direct unit test by filename heuristic: 29
 - `services/ghost-asset-alert.service.js`
 - `services/netzkoppelvertrag-workflow.service.js`
 - `services/nkp-reporting.service.js`
+- `services/project-upload.service.js`
 - `services/rcs-rule-catalog.service.js`
 - `services/regulatorische-entgeltlogik.service.js`
 - `services/reinvest-signal.service.js`
