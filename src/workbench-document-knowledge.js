@@ -7,9 +7,10 @@ const { llmOptions, toFacadeSchema } = require('./workbench-understanding');
 const { sourceText, sections, withDocumentSource } = require('./tenant-document-knowledge');
 const validate = new (require('ajv'))({ allErrors: true }).compile(MEMORY_SCHEMA);
 
-async function rememberDocument(service, ctx, p, row, mapping) {
+async function rememberDocument(service, ctx, p, row, mapping, budget = {}) {
   if (!memory.available(ctx)) return;
   for (const part of sections(row)) {
+    if (budget.claimSection && !(await budget.claimSection())) continue;
     const result = await llm.generateStructured(
       toFacadeSchema(MEMORY_SCHEMA),
       JSON.stringify({
@@ -22,44 +23,45 @@ async function rememberDocument(service, ctx, p, row, mapping) {
     );
     if (!validate(result)) throw new Error('Invalid document assertion extraction');
     await withDocumentSource(ctx, row.id, async () => {
-      const state = memory.start(
-        service,
-        ctx,
-        { ...p, actorId: row.person.actorId },
-        {
-          situation: {
-            turnKind: 'work',
-            tenantMemory: {
-              ...result,
-              correction: { kind: 'none', basis: '', factId: '' },
-              query: { requested: false, anchor: '', functionLabel: '' },
-            },
+      const author = { ...p, actorId: row.person.actorId };
+      const input = {
+        situation: {
+          turnKind: 'work',
+          tenantMemory: {
+            ...result,
+            correction: { kind: 'none', basis: '', factId: '' },
+            query: { requested: false, anchor: '', functionLabel: '' },
           },
-          envelope: {
-            channel: 'document',
-            conversationId: row.id,
-            userRequest: part.text,
-            documents: [],
-          },
-          mapping: {
-            ...mapping,
-            displayName: row.person.name,
-            functionLabel: row.person.functionLabel,
-          },
-          sensitivityFlags: row.sensitivityFlags,
-          documentSource: {
-            id: row.id,
-            title: row.title,
-            version: row.version,
-            location: part.location,
-          },
-          retrieval: { evidence: [] },
-        }
-      );
+        },
+        envelope: {
+          channel: 'document',
+          conversationId: row.id,
+          userRequest: part.text,
+          documents: [],
+        },
+        mapping: {
+          ...mapping,
+          displayName: row.person.name,
+          functionLabel: row.person.functionLabel,
+        },
+        sensitivityFlags: row.sensitivityFlags,
+        documentSource: {
+          id: row.id,
+          title: row.title,
+          version: row.version,
+          location: part.location,
+          ...(row.provenance?.projectId
+            ? { projectId: row.provenance.projectId, objectId: row.provenance.objectId }
+            : {}),
+        },
+        retrieval: { evidence: [] },
+      };
+      const state = memory.start(service, ctx, author, input);
       state.deferred = true;
       state.renderedConfirmation = true;
       await state.job;
     });
+    await budget.onExtracted?.();
   }
 }
 async function ingestDocuments(
@@ -255,4 +257,11 @@ async function command(service, ctx, { p, envelope, situation }) {
         : `„${row.title}“ ist als veraltet markiert und wird nicht mehr für Antworten verwendet.`,
   };
 }
-module.exports = { ingestDocuments, filingReply, evidence, currentEvidence, command };
+module.exports = {
+  ingestDocuments,
+  filingReply,
+  evidence,
+  currentEvidence,
+  command,
+  rememberDocument,
+};

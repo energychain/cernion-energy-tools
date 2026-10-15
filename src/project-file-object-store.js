@@ -6,6 +6,48 @@ const { objectCapability, ingestError } = require('./project-file-ingest-policy'
 
 module.exports = {
   actions: {
+    projectStructurePending: {
+      visibility: 'protected',
+      params: {
+        after: { type: 'string', optional: true, default: '' },
+        limit: { type: 'number', integer: true, min: 1, max: 100, default: 50 },
+      },
+      async handler(ctx) {
+        if (ctx.meta.projectStructure !== require('./project-structure-policy').capability)
+          deny('Use project structure');
+        const { rows } = await this.db.allDocs({
+          startkey: ctx.params.after || 'project-object:',
+          endkey: 'project-object:\uffff',
+          include_docs: true,
+          limit: ctx.params.limit,
+          ...(ctx.params.after ? { skip: 1 } : {}),
+        });
+        const records = [];
+        for (const { doc: object } of rows) {
+          if (
+            object.status !== 'received' ||
+            (require('./project-structure-policy').completed(object) &&
+              !['queued', 'processing'].includes(object.ingestState))
+          )
+            continue;
+          let project;
+          try {
+            project = await this.db.get(
+              require('./project-file-policy').projectPrefix(object.tenantId) + object.projectId
+            );
+          } catch (error) {
+            if (error.status === 404) continue;
+            throw error;
+          }
+          if (project.lifecycle === 'archived' || project.deletion) continue;
+          records.push({ ...object, recoveryClearance: project.requiredClearance });
+        }
+        return {
+          after: rows.at(-1)?.id,
+          records,
+        };
+      },
+    },
     projectObjectRecord: {
       visibility: 'protected',
       params: {

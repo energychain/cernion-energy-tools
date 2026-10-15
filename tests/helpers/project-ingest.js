@@ -11,17 +11,22 @@ const auth = (tenantId = 'tenant-a', clearance = [], actorId = 'actor-a') => ({
   apiToken: { id: actorId, tenantId, roles: ['ROLE_ALPHA'], sensitivityFlags: clearance },
 });
 
-async function harness(dir, settings = {}) {
+async function harness(dir, settings = {}, prepare) {
   const broker = new ServiceBroker({ logger: false, transporter: null, requestTimeout: 0 });
   const store = broker.createService({
     ...require('../../services/object-store.service'),
     settings: { dbPath: path.join(dir, 'objects') },
   });
-  broker.createService(require('../../services/project-file.service'));
+  const Project = require('../../services/project-file.service');
+  broker.createService({
+    ...Project,
+    settings: { ...Project.settings, cleanupActions: [...Project.settings.cleanupActions] },
+  });
   const upload = broker.createService({
     ...require('../../services/project-upload.service'),
     settings: { dataPath: path.join(dir, 'originals'), ...settings },
   });
+  if (prepare) await prepare(broker);
   await broker.start();
   const call = (action, params, meta = auth(), options = {}) =>
     broker.call(action, params, { ...options, meta: structuredClone(meta) });
