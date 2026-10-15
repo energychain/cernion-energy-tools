@@ -1,6 +1,6 @@
 # Shepherd Refactoring Backlog
 
-Generated: 2026-10-15T14:46:20.578Z
+Generated: 2026-10-15T20:50:06.888Z
 
 ## Safe first work packages
 
@@ -17,7 +17,7 @@ Generated: 2026-10-15T14:46:20.578Z
    - Output: ADR naming rule and small rename/refactor proposals only after GitNexus impact analysis.
 
 4. Service-test map hardening
-   - Services without obvious direct tests: 29.
+   - Services without obvious direct tests: 30.
    - Output: decide whether each is covered indirectly, needs a smoke test, or should be marked experimental.
 
 ## Duplicate/overlap candidates
@@ -56,6 +56,7 @@ Generated: 2026-10-15T14:46:20.578Z
 - `services/ghost-asset-alert.service.js`
 - `services/netzkoppelvertrag-workflow.service.js`
 - `services/nkp-reporting.service.js`
+- `services/project-upload.service.js`
 - `services/rcs-rule-catalog.service.js`
 - `services/regulatorische-entgeltlogik.service.js`
 - `services/reinvest-signal.service.js`

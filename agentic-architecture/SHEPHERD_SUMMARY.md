@@ -1,21 +1,21 @@
 # Shepherd Summary
 
-Generated: 2026-10-15T14:46:26.079Z
-Run: 20261015T144513Z
-Branch: shepherd/runtime-refactor-20261015T144513Z
-Fingerprint: 4ab48b25ee98b204c0a862315fd3d70abc2d3bfcb3e84632074606be6dd6f79f
+Generated: 2026-10-15T20:50:11.871Z
+Run: 20261015T204910Z
+Branch: shepherd/runtime-refactor-20261015T204910Z
+Fingerprint: afe625811eadf970ceb3efe89e47c7e1518fc690703decb26dddf8ebda636a0e
 
 ## Current measurable surface
 
-- Files: 1987
-- Services: 160
-- src JS files: 384
-- Tests: 493
+- Files: 2001
+- Services: 161
+- src JS files: 391
+- Tests: 498
 - Agentic files: 274
 - OpenWebUI/ChatGPT files: 37
 - Evidence/HITL files: 75
 - Routing/capability files: 92
-- Services without obvious direct filename-mapped test: 29
+- Services without obvious direct filename-mapped test: 30
 
 ## Artifact state
 
@@ -27,11 +27,11 @@ Fingerprint: 4ab48b25ee98b204c0a862315fd3d70abc2d3bfcb3e84632074606be6dd6f79f
 
 ## Top directories
 
-- `tests`: 562 files
-- `src`: 451 files
+- `tests`: 567 files
+- `src`: 458 files
 - `docs`: 399 files
-- `services`: 196 files
-- `scripts`: 85 files
+- `services`: 197 files
+- `scripts`: 86 files
 - `tools`: 85 files
 - `agentic-architecture`: 61 files
 - `integrations`: 35 files
@@ -51,8 +51,8 @@ Fingerprint: 4ab48b25ee98b204c0a862315fd3d70abc2d3bfcb3e84632074606be6dd6f79f
 ## Domain abstraction
 
 - Domain abstraction: present
-- Domain fingerprint: 563e10623923298770da5b657dc3028d3a52d66646cd6fead62856c03ba33c20
-- Candidate files: 1179
+- Domain fingerprint: b8fcaa909755cb230ef58f80ae15624cac9bc66019747af558a81fb3533137e7
+- Candidate files: 1187
 - Unclassified services: 0
 
 Cluster counts:
@@ -61,7 +61,7 @@ Cluster counts:
 - `evidence-and-trust` — Evidence, Nachweis und Vertrauen: 23 services, 25 top files
 - `mako-and-edm` — MaKo / EDM / Stammdaten: 8 services, 25 top files
 - `grid-and-connection` — Netz, Anschluss und Kapazität: 47 services, 25 top files
-- `forecast-and-market` — Prognose, Markt und Portfolio: 16 services, 25 top files
+- `forecast-and-market` — Prognose, Markt und Portfolio: 17 services, 25 top files
 - `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files
 - `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files
 - `tenant-and-operation` — Tenant, Rollen und Betrieb: 51 services, 25 top files
@@ -94,6 +94,7 @@ Case types:
 - `services/ghost-asset-alert.service.js`
 - `services/netzkoppelvertrag-workflow.service.js`
 - `services/nkp-reporting.service.js`
+- `services/project-upload.service.js`
 - `services/rcs-rule-catalog.service.js`
 - `services/regulatorische-entgeltlogik.service.js`
 - `services/reinvest-signal.service.js`

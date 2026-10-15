@@ -1,24 +1,24 @@
 {
-  "generatedAt": "2026-10-15T14:46:20.578Z",
+  "generatedAt": "2026-10-15T20:50:06.888Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261015T144513Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261015T204910Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
     "version": "0.99.22"
   },
   "counts": {
-    "files": 1987,
-    "services": 160,
-    "srcJs": 384,
-    "tests": 493,
+    "files": 2001,
+    "services": 161,
+    "srcJs": 391,
+    "tests": 498,
     "integrations": 35,
     "docs": 526,
     "agentFiles": 274,
     "openWebUiFiles": 37,
     "evidenceFiles": 75,
     "routingFiles": 92,
-    "servicesWithoutTests": 29
+    "servicesWithoutTests": 30
   },
   "artifacts": {
     "hasOperationCapabilityIndex": true,
@@ -30,11 +30,11 @@
   "topDirectories": [
     {
       "dir": "tests",
-      "files": 562
+      "files": 567
     },
     {
       "dir": "src",
-      "files": 451
+      "files": 458
     },
     {
       "dir": "docs",
@@ -42,11 +42,11 @@
     },
     {
       "dir": "services",
-      "files": 196
+      "files": 197
     },
     {
       "dir": "scripts",
-      "files": 85
+      "files": 86
     },
     {
       "dir": "tools",
@@ -224,6 +224,7 @@
     "personal-agent-work-out-loud-listener",
     "presentation",
     "project-file",
+    "project-upload",
     "query",
     "rcs-rule-catalog",
     "rcs-simulation-run",
@@ -287,6 +288,7 @@
     "services/ghost-asset-alert.service.js",
     "services/netzkoppelvertrag-workflow.service.js",
     "services/nkp-reporting.service.js",
+    "services/project-upload.service.js",
     "services/rcs-rule-catalog.service.js",
     "services/regulatorische-entgeltlogik.service.js",
     "services/reinvest-signal.service.js",
@@ -370,8 +372,8 @@
   ],
   "domainTermCounts": {
     "agent": {
-      "files": 760,
-      "hits": 8390
+      "files": 761,
+      "hits": 8392
     },
     "personal-agent": {
       "files": 307,
@@ -382,12 +384,12 @@
       "hits": 1003
     },
     "capability": {
-      "files": 498,
-      "hits": 5870
+      "files": 502,
+      "hits": 5891
     },
     "broker": {
-      "files": 632,
-      "hits": 11247
+      "files": 638,
+      "hits": 11289
     },
     "openwebui": {
       "files": 95,
@@ -395,15 +397,15 @@
     },
     "open-webui": {
       "files": 69,
-      "hits": 406
+      "hits": 410
     },
     "chatgpt": {
       "files": 39,
       "hits": 403
     },
     "evidence": {
-      "files": 788,
-      "hits": 25030
+      "files": 789,
+      "hits": 25032
     },
     "receipt": {
       "files": 167,
@@ -422,8 +424,8 @@
       "hits": 1604
     },
     "tenant": {
-      "files": 774,
-      "hits": 17383
+      "files": 783,
+      "hits": 17494
     },
     "market": {
       "files": 403,
@@ -435,15 +437,15 @@
     },
     "redispatch": {
       "files": 310,
-      "hits": 4130
+      "hits": 4129
     },
     "forecast": {
       "files": 329,
-      "hits": 4591
+      "hits": 4595
     },
     "edm": {
-      "files": 363,
-      "hits": 2918
+      "files": 364,
+      "hits": 2919
     },
     "mako": {
       "files": 306,

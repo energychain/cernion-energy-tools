@@ -1,6 +1,6 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-15T14:46:20.578Z
+Generated: 2026-10-15T20:50:06.888Z
 
 ## Observed adapter surface
 
@@ -268,9 +268,9 @@ Service names that should be capability-mapped:
 - `personal-agent-work-out-loud-listener`
 - `presentation`
 - `project-file`
+- `project-upload`
 - `query`
 - `rcs-rule-catalog`
 - `rcs-simulation-run`
 - `re4de-variable-grid-fee`
 - `redispatch-asset-register`
-- `redispatch-data-governance`
