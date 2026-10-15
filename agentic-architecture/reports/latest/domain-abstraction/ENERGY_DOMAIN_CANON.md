@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-15T08:42:01.364Z
+Generated: 2026-10-15T14:46:25.980Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -39,7 +39,7 @@ Starke Code-/Doku-Signale:
 - `docs/validation/practice-evaluation-baseline.md` (688 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (658 hits)
 - `src/capability-catalog.js` (613 hits)
-- `services/workbench.service.js` (554 hits)
+- `services/workbench.service.js` (565 hits)
 - `docs/reviews/730-capability-routing-evaluation.json` (462 hits)
 - `src/answer-dossier-hydration-rules.json` (361 hits)
 - `services/personal-agent/actions-part-01-of-1.js` (360 hits)
@@ -189,7 +189,7 @@ Zugeordnete Services nach Heuristik:
 - `churn-prediction-${Date.now()}.csv` — services/business-intelligence.service.js (7 actions)
 - `energy-market` — services/energy-market.service.js (8 actions)
 - `entsoe` — services/entsoe.service.js (7 actions)
-- `files` — services/files.service.js
+- `files` — services/files.service.js (2 actions)
 - `flex` — services/flex.service.js (4 actions)
 - `forecast-engine` — services/forecast-engine.service.js (7 actions)
 - `forecast-sandbox` — services/forecast-sandbox.service.js (3 actions)
@@ -259,7 +259,7 @@ Arbeitsmodell: Ein selbstlaufender EVU-Assistent muss bei erster Nutzung Kontext
 
 Starke Code-/Doku-Signale:
 
-- `services/workbench.service.js` (608 hits)
+- `services/workbench.service.js` (610 hits)
 - `docs/validation/workbench-873-live.json` (512 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (492 hits)
 - `services/api.service.js` (453 hits)
@@ -307,7 +307,7 @@ Starke Code-/Doku-Signale:
 - `src/capability-catalog.js` (292 hits)
 - `function-model.report.md` (284 hits)
 - `services/domain-routes-management.service.js` (275 hits)
-- `services/workbench.service.js` (253 hits)
+- `services/workbench.service.js` (254 hits)
 - `src/answer-dossier-hydration-rules.json` (235 hits)
 - `services/personal-agent/methods-part-03-of-11.js` (234 hits)
 - `services/api.service.js` (189 hits)

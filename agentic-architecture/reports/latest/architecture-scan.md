@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-15T08:41:56.889Z
+Generated: 2026-10-15T14:46:20.578Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 1972
-- Services: 159
-- src/*.js files: 381
-- Tests: 488
-- Integrations files: 31
-- Markdown/docs files: 522
+- Files scanned: 1987
+- Services: 160
+- src/*.js files: 384
+- Tests: 493
+- Integrations files: 35
+- Markdown/docs files: 526
 
 ## Existing validation summary
 
@@ -26,14 +26,14 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 557 files
-- `src`: 448 files
-- `docs`: 397 files
-- `services`: 195 files
+- `tests`: 562 files
+- `src`: 451 files
+- `docs`: 399 files
+- `services`: 196 files
 - `scripts`: 85 files
 - `tools`: 85 files
 - `agentic-architecture`: 61 files
-- `integrations`: 31 files
+- `integrations`: 35 files
 - `.claude`: 26 files
 - `.github`: 11 files
 - `feedback`: 8 files
@@ -49,10 +49,10 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Agentic surface
 
-- Agent/capability/sidecar related files: 270
+- Agent/capability/sidecar related files: 274
 - Routing/capability/broker/manifest files: 92
-- Evidence/HITL/receipt/dossier files: 74
-- OpenWebUI/ChatGPT adapter files: 33
+- Evidence/HITL/receipt/dossier files: 75
+- OpenWebUI/ChatGPT adapter files: 37
 
 Primary agentic files:
 
@@ -159,7 +159,7 @@ Primary agentic files:
 - `evidence-router` — services/evidence-router.service.js (4 detected actions)
 - `ewk-monitoring` — services/ewk-monitoring.service.js (5 detected actions)
 - `file-ingest-monitor` — services/file-ingest-monitor.service.js (11 detected actions)
-- `files` — services/files.service.js (0 detected actions)
+- `files` — services/files.service.js (2 detected actions)
 - `finance-agent` — services/finance-agent.service.js (14 detected actions)
 - `flex` — services/flex.service.js (4 detected actions)
 - `flexibilitaetskosten-raster` — services/flexibilitaetskosten-raster.service.js (7 detected actions)
