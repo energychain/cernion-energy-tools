@@ -909,6 +909,66 @@
     {
       "term": "assumption",
       "reason": "Generischer lokaler Wert aus dem schemagebundenen Arbeitsannahmenfeld; verhindert, dass eine Annahme einen offenen Punkt als erledigt entfernt."
+    },
+    {
+      "term": "communication",
+      "reason": "Generische Gesprächsdisziplin und Präferenzspeicherung, keine fachliche Zuordnung."
+    },
+    {
+      "term": "meaning",
+      "reason": "Generisches Glossar-Schemafeld für eine belegte Begriffsdefinition, ohne eingebettete Bedeutungen."
+    },
+    {
+      "term": "regulatory",
+      "reason": "Semantisches Prüffeld für quellenpflichtige normative Aussagen; keine fachlichen Regeln im Kern."
+    },
+    {
+      "term": "frist",
+      "reason": "Generisches Termin- und Wiedervorlagefeld der Vorgangsübersicht, unabhängig vom Fachgebiet."
+    },
+    {
+      "term": "kontext",
+      "reason": "Generischer Gesprächs- und Quellenkontext ohne Fachrouting."
+    },
+    {
+      "term": "beleg",
+      "reason": "Generischer wörtlicher Quellenbeleg für eine Aussage."
+    },
+    {
+      "term": "entscheidung",
+      "reason": "Generische Grenze zwischen Vorschlag und tatsächlich getroffener Entscheidung; keine Entscheidungsregeln."
+    },
+    {
+      "term": "dienstleister",
+      "reason": "Generische Rolle eines beteiligten Dritten im Offenlegungsprüfschritt, keine Liste von Anbietern."
+    },
+    {
+      "term": "risiko",
+      "reason": "Generischer Unsicherheits- und Wirkungsbegriff, keine fachliche Risikoklassifikation."
+    },
+    {
+      "term": "abstimmung",
+      "reason": "Generischer offener Termin-/Zuständigkeitsstatus, ohne fachliche Vorgaben."
+    },
+    {
+      "term": "anlage",
+      "reason": "Generische bestätigungspflichtige Erstellung eines internen Vorgangs, keine Außenhandlung."
+    },
+    {
+      "term": "abgrenzung",
+      "reason": "Generische Trennung von berichteter Beobachtung, Verantwortung und Nutzerhypothese."
+    },
+    {
+      "term": "diagnose",
+      "reason": "Generische interne Auswertung als Artefaktteil, ohne fachliche Diagnose- oder Wortlisten."
+    },
+    {
+      "term": "artefakt",
+      "reason": "Generische bestellte Ausgabeform im schemaabhängigen Antwortvertrag."
+    },
+    {
+      "term": "vorgaben",
+      "reason": "Generische Gesprächs- und Sprachpräferenzen als belegte Nutzeranweisung, ohne Fachwortlisten."
     }
   ]
 }

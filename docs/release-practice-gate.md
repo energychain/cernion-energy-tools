@@ -9,8 +9,8 @@ npm run release:gate
 Das entspricht `release:check`, Fixture-Prüfung und `release:practice`. Die Praxis-Suite
 verwendet die vorhandene zentrale LLM-Fassade, den gemeinsamen Live-Harness und den Budgetschutz
 der bisherigen Live-Validierungen. Sie ersetzt keine Produktantworten durch Sollantworten.
-Standard: 18 Szenarien, drei Wiederholungen je Standardszenario und zehn Gedächtnisläufe
-(fünf Formulierungsmuster in beiden Reihenfolgen), insgesamt 61 Wiederholläufe.
+Standard: 27 Szenarien, drei Wiederholungen je Standardszenario und zehn Gedächtnisläufe
+(fünf Formulierungsmuster in beiden Reihenfolgen), insgesamt 88 Wiederholläufe.
 
 ## Lokale Instanz
 
@@ -133,7 +133,7 @@ Lokale temporäre Dateien werden erst nach Bereinigung und Broker-Stopp entfernt
 
 ## Laufzeit und Kosten
 
-Der Umfang beträgt 223 Turns plus 61 Rubrikbewertungen; reine Basisabfragen benötigen keinen
+Der Umfang beträgt 295 Turns plus 88 Rubrikbewertungen; reine Basisabfragen benötigen keinen
 Modellaufruf. Laufzeit hängt von Antwort-/Kontingentlimits ab. Für die erste Planung 30–60 Minuten
 vorsehen; der Bericht enthält anschließend die gemessene Laufzeit und Nutzung.
 Standardobergrenzen: 3000 Aufrufe und 20 Millionen Tokens. Sie sind Grenzen, keine Verbrauchsprognose.

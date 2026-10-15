@@ -106,7 +106,14 @@
     "src/workbench-document-knowledge.js",
     "src/workbench-artifact.js",
     "src/workbench-case-search.js",
-    "src/workbench-data-scope.js"
+    "src/workbench-data-scope.js",
+    "src/workbench-communication.js",
+    "src/workbench-disclosure-review.js",
+    "src/workbench-linked-proposal.js",
+    "src/workbench-tenant-glossary.js",
+    "src/workbench-code-sources.js",
+    "src/workbench-code-classification.js",
+    "src/workbench-preference-extraction.js"
   ],
   "optionalPaths": [
     "src/function-model.js",
