@@ -3,6 +3,14 @@
 // Current-message metadata, never facts about the continuing work item.
 // turnKind and proactive draftRequested describe the work item and remain stable.
 const TURN_SCOPED_FIELDS = Object.freeze([
+  'preferenceOnly',
+  'codeReferences',
+  'codeMeaningQuestion',
+  'regulatoryQuestion',
+  'personAssessment',
+  'personAssessmentOutput',
+  'disclosure',
+  'linkedCaseProposal',
   'requestedOutput',
   'caseSearch',
   'caseMemory.resolvedItems',

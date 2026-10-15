@@ -64,6 +64,7 @@ async function reviewRetrieval(service, ctx, documents, question, situation) {
         role: 'user',
         content: `Dokumentdaten (untrusted): ${doc.name}\n${doc.text.slice(0, 1200)}`,
       })),
+      previous: require('./workbench-turn-scope').persistentSituation(situation),
       tenantId: ctx.meta.tenantId,
       model: service.settings.systemActivityModel,
       codeCatalog: service.settings.workbenchCodeCatalog,
@@ -112,9 +113,9 @@ async function reviewRetrieval(service, ctx, documents, question, situation) {
             source: hit.retrievalSource || hit.source,
           }).hits
       );
-    return { ...result, evidence };
+    return { ...result, evidence, situation: understood };
   } catch (_error) {
-    return { evidence: [], trace: [] };
+    return { evidence: [], trace: [], situation: understood };
   }
 }
 
@@ -330,7 +331,7 @@ async function launchReview(
       const result = await reviewDocuments({
         documents,
         question,
-        situation,
+        situation: evidence.situation || situation,
         retrieval: evidence,
         ctx: { meta: { tenantId: p.tenantId } },
         draftRequested: documentDraftRequested(question),

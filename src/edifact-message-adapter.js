@@ -333,6 +333,21 @@ function parse(text, name) {
   };
 }
 
+function exactCodeToken(text, code) {
+  if (!code || typeof code !== 'string') return false;
+  const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+  const continuation = /[\p{L}\p{N}_/-]/u;
+  for (const match of String(text).matchAll(new RegExp(escaped, 'gu'))) {
+    const start = match.index,
+      end = start + code.length;
+    if (continuation.test(text[start - 1] || '') || continuation.test(text[end] || '')) continue;
+    if (text[start - 1] === '.' && continuation.test(text[start - 2] || '')) continue;
+    if (text[end] === '.' && continuation.test(text[end + 1] || '')) continue;
+    return true;
+  }
+  return false;
+}
+
 async function resolve(ctx, codes) {
   const resolutions = [];
   // Bound remote work; every unqueried qualifier stays explicitly unresolved.
@@ -341,7 +356,7 @@ async function resolve(ctx, codes) {
     let sources = [];
     if (
       i < 20 &&
-      /^[A-Z0-9]{1,12}$/u.test(code.value) &&
+      /^[A-Za-z0-9][A-Za-z0-9._/-]{0,39}$/u.test(code.value) &&
       ctx.meta.workbenchEvidenceAccess?.['willi-mako'] !== false
     ) {
       try {
@@ -355,7 +370,9 @@ async function resolve(ctx, codes) {
             ? []
             : (result?.data?.sources || []).filter(
                 (s) =>
-                  exactToken(String(s.excerpt || ''), code.value) &&
+                  s.title &&
+                  (s.sectionId || s.url) &&
+                  exactCodeToken(String(s.excerpt || ''), code.value) &&
                   exactToken(String(s.excerpt || ''), code.tag)
               );
       } catch {
@@ -365,7 +382,12 @@ async function resolve(ctx, codes) {
     resolutions.push({
       ...code,
       status: sources.length ? 'resolved' : 'unresolved',
-      sources: sources.map((s) => ({ title: s.title, excerpt: s.excerpt, sectionId: s.sectionId })),
+      sources: sources.map((s) => ({
+        title: s.title,
+        excerpt: s.excerpt,
+        sectionId: s.sectionId,
+        url: s.url,
+      })),
     });
   }
   return resolutions;
@@ -546,6 +568,7 @@ module.exports = {
   recognizes,
   parse,
   resolve,
+  exactCodeToken,
   query,
   overview,
   accepts,

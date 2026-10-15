@@ -65655,6 +65655,27 @@
         }
       }
     },
+    "/api/tenant-memory-policy/glossary": {
+      "get": {
+        "operationId": "tenant-memory-policy_glossary",
+        "summary": "List visible tenant glossary entries with an audit entry",
+        "tags": [
+          "Tenant Memory Policy"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/tenant-memory-policy/discard-deletion-notices": {
       "post": {
         "operationId": "tenant-memory-policy_discardDeletionNotices",
@@ -70230,6 +70251,22 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
           }
         ]
       }
@@ -70280,6 +70317,14 @@
             "name": "toolRunId",
             "in": "path",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -70974,6 +71019,22 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceLimit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
             }
           }
         ]

@@ -65,10 +65,10 @@ function schemaError(errors, reason = 'schema_validation') {
   return error;
 }
 
-async function repairOutput({ options, logger, phase, generate }) {
+async function repairOutput({ options, logger, phase, generate, maxAttempts = 2 }) {
   const deadline = performance.now() + options.timeoutMs;
   let repairInstruction;
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     let timer;
     try {
       const remaining = deadline - performance.now();
@@ -90,7 +90,8 @@ async function repairOutput({ options, logger, phase, generate }) {
       const repairable =
         error instanceof SyntaxError ||
         /LLM response failed schema validation/u.test(String(error.message));
-      if (attempt || !repairable) throw Object.assign(error, { workbenchLogged: true });
+      if (attempt + 1 >= maxAttempts || !repairable)
+        throw Object.assign(error, { workbenchLogged: true });
       repairInstruction =
         error.repairInstruction ||
         'Die vorherige Ausgabe war kein gültiges JSON gemäß Schema. Erzeuge sie neu: kurze Absätze, vollständige Pflichtfelder, keine Zusatzfelder oder Markdown-Zäune. Nicht die vorherige Ausgabe übernehmen.';
