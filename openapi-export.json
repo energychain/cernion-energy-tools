@@ -60775,6 +60775,1114 @@
         }
       }
     },
+    "/api/project-file/": {
+      "post": {
+        "operationId": "project-file_create",
+        "summary": "Create a durable tenant project file",
+        "tags": [
+          "Project files"
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-scoped project result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "projectId",
+                    "tenantId",
+                    "title",
+                    "lifecycle",
+                    "requiredClearance",
+                    "createdBy",
+                    "stats",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "lifecycle": {
+                      "type": "string",
+                      "enum": [
+                        "ingesting",
+                        "ready",
+                        "degraded",
+                        "archived"
+                      ]
+                    },
+                    "requiredClearance": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "projectRefs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "caseId": {
+                            "type": "string"
+                          },
+                          "conversationId": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "files": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "bytes": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "datasets": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "nodes": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "edges": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    "deletion": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "incomplete"
+                          ]
+                        },
+                        "failedHandlers": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project absent or invisible to the authenticated principal"
+          },
+          "409": {
+            "description": "Project archived or deletion in progress"
+          },
+          "503": {
+            "description": "Deletion incomplete; retry after cleanup recovery"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300,
+                    "example": "Example project"
+                  },
+                  "members": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": []
+                  },
+                  "projectRefs": {
+                    "type": "array",
+                    "example": [
+                      {
+                        "caseId": "example-case"
+                      }
+                    ],
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "caseId": {
+                          "type": "string"
+                        },
+                        "conversationId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "title"
+                ]
+              },
+              "examples": {
+                "project": {
+                  "summary": "Example project",
+                  "value": {
+                    "title": "Example project",
+                    "members": [],
+                    "projectRefs": [
+                      {
+                        "caseId": "example-case"
+                      }
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "title": "Example project",
+                "members": [],
+                "projectRefs": [
+                  {
+                    "caseId": "example-case"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "x-agentable": false
+      },
+      "get": {
+        "operationId": "project-file_list",
+        "summary": "List visible tenant project files",
+        "tags": [
+          "Project files"
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-scoped project result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "projectId",
+                      "tenantId",
+                      "title",
+                      "lifecycle",
+                      "requiredClearance",
+                      "createdBy",
+                      "stats",
+                      "createdAt",
+                      "updatedAt"
+                    ],
+                    "properties": {
+                      "projectId": {
+                        "type": "string"
+                      },
+                      "tenantId": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "lifecycle": {
+                        "type": "string",
+                        "enum": [
+                          "ingesting",
+                          "ready",
+                          "degraded",
+                          "archived"
+                        ]
+                      },
+                      "requiredClearance": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "createdBy": {
+                        "type": "string"
+                      },
+                      "members": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "projectRefs": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "caseId": {
+                              "type": "string"
+                            },
+                            "conversationId": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "stats": {
+                        "type": "object",
+                        "properties": {
+                          "files": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "bytes": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "datasets": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "nodes": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "edges": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        }
+                      },
+                      "deletion": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "incomplete"
+                            ]
+                          },
+                          "failedHandlers": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project absent or invisible to the authenticated principal"
+          },
+          "409": {
+            "description": "Project archived or deletion in progress"
+          },
+          "503": {
+            "description": "Deletion incomplete; retry after cleanup recovery"
+          }
+        },
+        "parameters": [
+          {
+            "name": "routingOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "example": false
+            },
+            "example": false
+          }
+        ],
+        "x-agentable": true
+      }
+    },
+    "/api/project-file/:projectId": {
+      "get": {
+        "operationId": "project-file_get",
+        "summary": "Get a visible tenant project file",
+        "tags": [
+          "Project files"
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-scoped project result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "projectId",
+                    "tenantId",
+                    "title",
+                    "lifecycle",
+                    "requiredClearance",
+                    "createdBy",
+                    "stats",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "lifecycle": {
+                      "type": "string",
+                      "enum": [
+                        "ingesting",
+                        "ready",
+                        "degraded",
+                        "archived"
+                      ]
+                    },
+                    "requiredClearance": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "projectRefs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "caseId": {
+                            "type": "string"
+                          },
+                          "conversationId": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "files": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "bytes": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "datasets": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "nodes": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "edges": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    "deletion": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "incomplete"
+                          ]
+                        },
+                        "failedHandlers": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project absent or invisible to the authenticated principal"
+          },
+          "409": {
+            "description": "Project archived or deletion in progress"
+          },
+          "503": {
+            "description": "Deletion incomplete; retry after cleanup recovery"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "7aa2b3f9-22dc-4fd2-8722-a94dc16cab79"
+            },
+            "example": "7aa2b3f9-22dc-4fd2-8722-a94dc16cab79"
+          }
+        ],
+        "x-agentable": true
+      },
+      "patch": {
+        "operationId": "project-file_update",
+        "summary": "Update project title, members and structural refs",
+        "tags": [
+          "Project files"
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-scoped project result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "projectId",
+                    "tenantId",
+                    "title",
+                    "lifecycle",
+                    "requiredClearance",
+                    "createdBy",
+                    "stats",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "lifecycle": {
+                      "type": "string",
+                      "enum": [
+                        "ingesting",
+                        "ready",
+                        "degraded",
+                        "archived"
+                      ]
+                    },
+                    "requiredClearance": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "projectRefs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "caseId": {
+                            "type": "string"
+                          },
+                          "conversationId": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "files": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "bytes": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "datasets": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "nodes": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "edges": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    "deletion": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "incomplete"
+                          ]
+                        },
+                        "failedHandlers": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project absent or invisible to the authenticated principal"
+          },
+          "409": {
+            "description": "Project archived or deletion in progress"
+          },
+          "503": {
+            "description": "Deletion incomplete; retry after cleanup recovery"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "7aa2b3f9-22dc-4fd2-8722-a94dc16cab79"
+            },
+            "example": "7aa2b3f9-22dc-4fd2-8722-a94dc16cab79"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300,
+                    "example": "Example project"
+                  },
+                  "members": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": []
+                  },
+                  "projectRefs": {
+                    "type": "array",
+                    "example": [
+                      {
+                        "caseId": "example-case"
+                      }
+                    ],
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "caseId": {
+                          "type": "string"
+                        },
+                        "conversationId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "project": {
+                  "summary": "Example project",
+                  "value": {
+                    "title": "Example project",
+                    "members": [],
+                    "projectRefs": [
+                      {
+                        "caseId": "example-case"
+                      }
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "title": "Example project",
+                "members": [],
+                "projectRefs": [
+                  {
+                    "caseId": "example-case"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "x-agentable": false
+      },
+      "delete": {
+        "operationId": "project-file_delete",
+        "summary": "Delete a project file through acknowledged audited cleanup",
+        "tags": [
+          "Project files"
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-scoped project result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    },
+                    "projectId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project absent or invisible to the authenticated principal"
+          },
+          "409": {
+            "description": "Project archived or deletion in progress"
+          },
+          "503": {
+            "description": "Deletion incomplete; retry after cleanup recovery"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "7aa2b3f9-22dc-4fd2-8722-a94dc16cab79"
+            },
+            "example": "7aa2b3f9-22dc-4fd2-8722-a94dc16cab79"
+          }
+        ],
+        "x-agentable": false
+      }
+    },
+    "/api/project-file/refs": {
+      "get": {
+        "operationId": "project-file_forReference",
+        "summary": "List visible project refs for a case or conversation",
+        "tags": [
+          "Project files"
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-scoped project result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "projectId",
+                      "tenantId",
+                      "title",
+                      "lifecycle",
+                      "requiredClearance",
+                      "createdBy",
+                      "stats",
+                      "createdAt",
+                      "updatedAt"
+                    ],
+                    "properties": {
+                      "projectId": {
+                        "type": "string"
+                      },
+                      "tenantId": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "lifecycle": {
+                        "type": "string",
+                        "enum": [
+                          "ingesting",
+                          "ready",
+                          "degraded",
+                          "archived"
+                        ]
+                      },
+                      "requiredClearance": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "createdBy": {
+                        "type": "string"
+                      },
+                      "members": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "projectRefs": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "caseId": {
+                              "type": "string"
+                            },
+                            "conversationId": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "stats": {
+                        "type": "object",
+                        "properties": {
+                          "files": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "bytes": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "datasets": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "nodes": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "edges": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        }
+                      },
+                      "deletion": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "incomplete"
+                            ]
+                          },
+                          "failedHandlers": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project absent or invisible to the authenticated principal"
+          },
+          "409": {
+            "description": "Project archived or deletion in progress"
+          },
+          "503": {
+            "description": "Deletion incomplete; retry after cleanup recovery"
+          }
+        },
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "caseId-example"
+            },
+            "example": "caseId-example"
+          },
+          {
+            "name": "conversationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "conversationId-example"
+            },
+            "example": "conversationId-example"
+          }
+        ],
+        "x-agentable": true
+      }
+    },
+    "/api/project-file/:projectId/archive": {
+      "post": {
+        "operationId": "project-file_archive",
+        "summary": "Archive a project file and exclude it from routing",
+        "tags": [
+          "Project files"
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-scoped project result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "projectId",
+                    "tenantId",
+                    "title",
+                    "lifecycle",
+                    "requiredClearance",
+                    "createdBy",
+                    "stats",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "lifecycle": {
+                      "type": "string",
+                      "enum": [
+                        "ingesting",
+                        "ready",
+                        "degraded",
+                        "archived"
+                      ]
+                    },
+                    "requiredClearance": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "projectRefs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "caseId": {
+                            "type": "string"
+                          },
+                          "conversationId": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "files": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "bytes": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "datasets": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "nodes": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "edges": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    "deletion": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "incomplete"
+                          ]
+                        },
+                        "failedHandlers": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project absent or invisible to the authenticated principal"
+          },
+          "409": {
+            "description": "Project archived or deletion in progress"
+          },
+          "503": {
+            "description": "Deletion incomplete; retry after cleanup recovery"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "7aa2b3f9-22dc-4fd2-8722-a94dc16cab79"
+            },
+            "example": "7aa2b3f9-22dc-4fd2-8722-a94dc16cab79"
+          }
+        ],
+        "x-agentable": false
+      }
+    },
     "/api/query/ask": {
       "post": {
         "operationId": "query_ask",
@@ -71019,6 +72127,22 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceLimit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
             }
           }
         ]

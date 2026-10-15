@@ -56,6 +56,19 @@ class DatasetSqlitePool extends EdmSqlitePool {
       .map((row) => Object.fromEntries(columns.map((column, i) => [column.name, row[`c${i}`]])));
   }
 
+  // Bounded existence lookup: one scan, no row materialization for routing decisions.
+  matchingValues(tenantId, id, columns, column, values) {
+    const index = columns.findIndex((entry) => entry.name === column);
+    const candidates = [...new Set(values.map(String))];
+    if (index < 0 || !candidates.length) return [];
+    return this.tenant(tenantId)
+      .prepare(
+        `SELECT DISTINCT c${index} AS value FROM ${this.table(id)} WHERE c${index} IN (SELECT value FROM json_each(?))`
+      )
+      .all(JSON.stringify(candidates))
+      .map((row) => row.value);
+  }
+
   removeRows(tenantId, id) {
     const db = this.tenant(tenantId);
     db.exec(`DROP TABLE IF EXISTS ${this.table(id)}`);

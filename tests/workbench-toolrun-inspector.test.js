@@ -11,6 +11,8 @@ const {
   presentToolRunInspector,
   presentToolRunInspectorList,
 } = require('../src/workbench-toolrun-presenter');
+const { MAX_EVIDENCE_ROWS, presentCaseInspector } = require('../src/workbench-case-presenter');
+const caseLinking = require('../src/workbench-case-linking');
 
 const SECRET = 'SENTINEL-SECRET-660';
 const userMeta = {
@@ -59,6 +61,86 @@ function expectScalarRow(row) {
       expect(value === null || ['string', 'number'].includes(typeof value)).toBe(true);
     }
   }
+}
+
+const CASE_TOP_KEYS = [
+  'view',
+  'schemaVersion',
+  'caseId',
+  'evidenceLimit',
+  'evidenceTotalCount',
+  'evidenceReturnedCount',
+  'evidenceTruncated',
+  'toolRunInspectorPath',
+  'case',
+  'evidenceItems',
+  'missingEvidenceItems',
+  'clarificationItems',
+  'noCallItems',
+].sort();
+const CASE_ROW_KEYS = [
+  'caseId',
+  'title',
+  'primaryDomain',
+  'readinessState',
+  'status',
+  'updatedAt',
+  'evidenceCount',
+  'redactedEvidenceCount',
+  'missingEvidenceCount',
+  'requiredClarificationCount',
+  'noCallGuardCount',
+  'pendingEventCount',
+  'attentionEventCount',
+  'nextSafeGate',
+  'nextSafeGateLabel',
+  'refreshAllowed',
+  'mutationAllowed',
+].sort();
+const EVIDENCE_ROW_KEYS = [
+  'evidenceId',
+  'caseId',
+  'evidenceType',
+  'label',
+  'status',
+  'sourceType',
+  'sensitivityLevel',
+  'redacted',
+  'sourceFingerprintStatus',
+  'fileHashStatus',
+  'provenanceLabel',
+  'evidenceRole',
+  'claimStrength',
+  'readinessReviewRequired',
+  'createdAt',
+].sort();
+const GUIDANCE_ROW_KEYS = ['position', 'code', 'label'].sort();
+const LIST_KEYS = ['evidenceItems', 'missingEvidenceItems', 'clarificationItems', 'noCallItems'];
+
+function expectScalarCells(row, keys) {
+  expect(Object.keys(row).sort()).toEqual(keys);
+  for (const value of Object.values(row)) {
+    expect(value === null || ['string', 'number', 'boolean'].includes(typeof value)).toBe(true);
+    if (typeof value === 'string') {
+      expect(value.length).toBeLessThanOrEqual(200);
+      expect(value).not.toContain('[object Object]');
+    }
+  }
+}
+
+function expectClosedCaseInspector(body) {
+  expect(Object.keys(body).sort()).toEqual(CASE_TOP_KEYS);
+  for (const [key, value] of Object.entries(body)) {
+    if (key === 'case' || LIST_KEYS.includes(key)) continue;
+    expect(value === null || ['string', 'number', 'boolean'].includes(typeof value)).toBe(true);
+  }
+  expectScalarCells(body.case, CASE_ROW_KEYS);
+  body.evidenceItems.forEach((row) => expectScalarCells(row, EVIDENCE_ROW_KEYS));
+  for (const key of LIST_KEYS.slice(1)) {
+    expect(body[key].length).toBeLessThanOrEqual(25);
+    body[key].forEach((row) => expectScalarCells(row, GUIDANCE_ROW_KEYS));
+  }
+  expect(body.evidenceItems.length).toBeLessThanOrEqual(MAX_EVIDENCE_ROWS);
 }
 
 const iso = (minute) => `2026-10-14T10:${String(minute).padStart(2, '0')}:00.000Z`;
@@ -128,7 +210,82 @@ describe('presentToolRunInspector (pure)', () => {
   });
 });
 
-describe('Workbench ToolRun inspector view (#660)', () => {
+describe('presentCaseInspector (pure)', () => {
+  const caseState = (extra = {}) => ({
+    cetCaseId: 'c1',
+    tenantId: 't',
+    updatedAt: iso(0),
+    lastClassification: { primaryDomain: 'grid', readinessState: 'ready' },
+    ...extra,
+  });
+  const evidence = Array.from({ length: 70 }, (_, i) => ({
+    evidenceId: `ev_${String(i).padStart(2, '0')}`,
+    caseId: 'c1',
+    tenantId: 't',
+    evidenceType: 'generic_document',
+    label: `Doc ${i}`,
+    status: 'attached',
+    sensitivityLevel: 'tenant_internal',
+    createdAt: iso(i % 30),
+  }));
+
+  test('EvidenceRef rows honour 1/default/max/over-max bounds with deterministic order', () => {
+    const opts = (limit) => ({ evidenceRefs: evidence, tenantId: 't', limit });
+    const byDefault = presentCaseInspector(caseState(), opts());
+    const shuffled = presentCaseInspector(caseState(), {
+      ...opts(),
+      evidenceRefs: [...evidence].reverse(),
+    });
+    expect(byDefault).toMatchObject({
+      evidenceLimit: 25,
+      evidenceTotalCount: 70,
+      evidenceReturnedCount: 25,
+      evidenceTruncated: true,
+    });
+    expect(shuffled.evidenceItems).toEqual(byDefault.evidenceItems);
+    // Same createdAt (minute 29) for ev_29 and ev_59: ID tie-breaker, newest first.
+    expect(byDefault.evidenceItems.slice(0, 3).map((r) => r.evidenceId)).toEqual([
+      'ev_59',
+      'ev_29',
+      'ev_58',
+    ]);
+    expect(presentCaseInspector(caseState(), opts(1)).evidenceItems).toHaveLength(1);
+    expect(presentCaseInspector(caseState(), opts(50)).evidenceItems).toHaveLength(50);
+    expect(presentCaseInspector(caseState(), opts(999)).evidenceLimit).toBe(MAX_EVIDENCE_ROWS);
+    expect(presentCaseInspector(caseState(), opts(0)).evidenceLimit).toBe(25);
+    expectClosedCaseInspector(byDefault);
+  });
+
+  test('guidance rows are bounded scalars and next gate is deterministic positive guidance', () => {
+    const many = Array.from({ length: 40 }, (_, i) => `guard_${i}`);
+    const out = presentCaseInspector(
+      caseState({
+        lastClassification: {
+          missingEvidence: [{ type: 'grid_doc', label: { nested: SECRET } }, 'meter_export'],
+          requiredClarifications: [`See https://u:${SECRET}@host/p?token=${SECRET}`],
+          noCallGuards: many,
+        },
+      })
+    );
+    expectClosedCaseInspector(out);
+    expect(out.noCallItems).toHaveLength(25);
+    expect(out.case).toMatchObject({
+      noCallGuardCount: 40,
+      missingEvidenceCount: 2,
+      nextSafeGate: 'evidence_required',
+      refreshAllowed: true,
+      mutationAllowed: false,
+    });
+    expect(out.clarificationItems[0].label).toBe('See https://host/p');
+    expect(JSON.stringify(out)).not.toContain(SECRET);
+    expect(presentCaseInspector(caseState()).case.nextSafeGate).toBe('refresh_case_projection');
+    expect(presentCaseInspector(caseState({ disposition: 'discarded' })).case.nextSafeGate).toBe(
+      'case_discarded'
+    );
+  });
+});
+
+describe('Workbench inspector views (#660)', () => {
   let broker, dir, workbench, routerService;
   const call = (action, params = {}, auth = userMeta) =>
     broker.call(`workbench.${action}`, params, { meta: JSON.parse(JSON.stringify(auth)) });
@@ -413,10 +570,206 @@ describe('Workbench ToolRun inspector view (#660)', () => {
     expect(detail.toolRun).toHaveProperty('_rev');
   });
 
+  async function plantCaseSecrets(caseId) {
+    const { rows } = await routerService.db.allDocs({ include_docs: true });
+    const doc = rows.map((r) => r.doc).find((d) => d.cetCaseId === caseId);
+    await routerService.db.put({
+      ...doc,
+      initialRequest: `initial ${SECRET}`,
+      lastClassification: {
+        ...doc.lastClassification,
+        missingEvidence: [{ type: 'grid_connection_document', label: 'Netzanschlussvertrag' }],
+        requiredClarifications: [`Welche Leistung? https://u:${SECRET}@h/x?token=${SECRET}`],
+        noCallGuards: ['no_external_effect'],
+      },
+    });
+    await workbench.store.saveTurnMemory({
+      tenantId: 'tenant-a',
+      actorId: 'user-a',
+      caseId,
+      caseStateVersion: doc.caseStateVersion,
+      memory: { workingAssumptions: [SECRET], openQuestions: [SECRET] },
+    });
+    await workbench.conversationsDb.put({
+      _id: `workbench-draft:tenant-a:${encodeURIComponent(caseId)}:d1`,
+      draftId: 'd1',
+      content: `draft ${SECRET}`,
+      createdAt: iso(9),
+    });
+    await workbench.store.saveEvidence({
+      tenantId: 'tenant-a',
+      actorId: 'user-a',
+      caseId,
+      evidenceId: 'ev_url',
+      evidenceType: 'public_web_page',
+      label: `Seite https://user:${SECRET}@example.org/a?key=${SECRET}`,
+      sourceType: 'web_url',
+      sourceRef: { url: `https://example.org/?token=${SECRET}` },
+      sensitivityLevel: 'public',
+      fileHash: 'sha256-abc',
+      sourceFingerprint: 'fp-1',
+      provenance: { system: 'workbench', retrievalMode: 'web_url', cookie: SECRET },
+    });
+  }
+
+  test('case inspector view returns a closed scalar contract without secrets', async () => {
+    const caseId = await seedCase();
+    await plantCaseSecrets(caseId);
+    const legacy = await call('cases.get', { caseId, includeEvidence: true });
+    // Sentinels really are reachable through the rich legacy projection...
+    expect(JSON.stringify(legacy)).toContain(SECRET);
+    const body = await call('cases.get', {
+      caseId,
+      includeEvidence: 'true',
+      view: 'inspector',
+      evidenceLimit: '25',
+    });
+    // ...but never through the inspector.
+    expect(JSON.stringify(body)).not.toContain(SECRET);
+    expectClosedCaseInspector(body);
+    expect(body).toMatchObject({
+      view: 'inspector',
+      schemaVersion: 'workbench-case-inspector.v1',
+      caseId,
+      evidenceTotalCount: 3,
+      toolRunInspectorPath: `/api/workbench/cases/${encodeURIComponent(caseId)}/tool-runs?view=inspector`,
+    });
+    expect(body.case).toMatchObject({
+      caseId,
+      evidenceCount: 3,
+      redactedEvidenceCount: 1,
+      missingEvidenceCount: 1,
+      requiredClarificationCount: 1,
+      noCallGuardCount: 1,
+      nextSafeGate: 'evidence_required',
+      refreshAllowed: true,
+      mutationAllowed: false,
+    });
+    const url = body.evidenceItems.find((r) => r.evidenceId === 'ev_url');
+    expect(url).toMatchObject({
+      label: 'Seite https://example.org/a',
+      sourceType: 'web_url',
+      fileHashStatus: 'provided',
+      sourceFingerprintStatus: 'present',
+      provenanceLabel: 'workbench/web_url',
+      redacted: false,
+    });
+    expect(body.clarificationItems[0].label).toBe('Welche Leistung? https://h/x');
+    for (const forbidden of [
+      'sourceRef',
+      'extracts',
+      'provenance',
+      'safeSummary',
+      'initialRequest',
+      'internalDrafts',
+      'turnMemory',
+      '_id',
+      '_rev',
+    ]) {
+      expect(JSON.stringify(body)).not.toContain(`"${forbidden}"`);
+    }
+    const one = await call('cases.get', { caseId, view: 'inspector', evidenceLimit: 1 });
+    expect(one).toMatchObject({
+      evidenceLimit: 1,
+      evidenceReturnedCount: 1,
+      evidenceTruncated: true,
+    });
+    const over = await call('cases.get', { caseId, view: 'inspector', evidenceLimit: 500 });
+    expect(over.evidenceLimit).toBe(MAX_EVIDENCE_ROWS);
+    await expect(
+      call('cases.get', { caseId, view: 'inspector', evidenceLimit: 0 })
+    ).rejects.toThrow(/validation/iu);
+    await expect(call('cases.get', { caseId, view: 'raw' })).rejects.toThrow(/validation/iu);
+  });
+
+  test('case inspector reduces restricted EvidenceRefs per authenticated clearance', async () => {
+    const caseId = await seedCase();
+    const plain = await call('cases.get', { caseId, view: 'inspector' });
+    const restricted = plain.evidenceItems.find((r) => r.evidenceId === 'ev_restricted');
+    expect(restricted).toEqual({
+      evidenceId: 'ev_restricted',
+      caseId,
+      evidenceType: 'generic_document',
+      label: 'Restricted evidence',
+      status: 'restricted',
+      sourceType: null,
+      sensitivityLevel: 'restricted',
+      redacted: true,
+      sourceFingerprintStatus: 'restricted',
+      fileHashStatus: 'restricted',
+      provenanceLabel: null,
+      evidenceRole: null,
+      claimStrength: null,
+      readinessReviewRequired: false,
+      createdAt: expect.any(String),
+    });
+    const cleared = await call('cases.get', { caseId, view: 'inspector' }, clearedMeta);
+    const visible = cleared.evidenceItems.find((r) => r.evidenceId === 'ev_restricted');
+    expect(visible).toMatchObject({ redacted: false, status: 'attached' });
+    expect(cleared.case.redactedEvidenceCount).toBe(0);
+    expectClosedCaseInspector(cleared);
+    // The restricted label carries a sentinel; only the cleared principal may read it.
+    expect(JSON.stringify(plain)).not.toContain(SECRET);
+  });
+
+  test('case inspector fails closed for foreign tenants, hidden and shared cases', async () => {
+    const caseId = await seedCase();
+    await expect(
+      call('cases.get', { caseId, view: 'inspector' }, otherTenantMeta)
+    ).rejects.toThrow();
+    const hidden = await classify('Netzanschluss vertraulicher Fall prüfen', clearedMeta);
+    const { rows } = await routerService.db.allDocs({ include_docs: true });
+    const doc = rows.map((r) => r.doc).find((d) => d.cetCaseId === hidden.cetCaseId);
+    await routerService.db.put({ ...doc, sensitivityFlags: ['restricted'] });
+    await expect(
+      call('cases.get', { caseId: hidden.cetCaseId, view: 'inspector' })
+    ).rejects.toThrow();
+    await expect(
+      call('cases.get', { caseId: 'cet_case_missing', view: 'inspector' })
+    ).rejects.toThrow();
+
+    const spy = jest
+      .spyOn(caseLinking, 'sharedCaseSummary')
+      .mockResolvedValue({ summary: `shared ${SECRET}` });
+    try {
+      await expect(call('cases.get', { caseId, view: 'inspector' })).rejects.toMatchObject({
+        type: 'WORKBENCH_CASE_INSPECTOR_UNAVAILABLE',
+        code: 403,
+      });
+      // Legacy behaviour for shared summaries is unchanged.
+      expect(await call('cases.get', { caseId })).toEqual({ summary: `shared ${SECRET}` });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test('repeated case inspector GETs are read-only and trigger no commands', async () => {
+    const caseId = await seedCase();
+    await plantCaseSecrets(caseId);
+    const callSpy = jest.spyOn(broker, 'call');
+    const before = await dbSnapshot();
+    const first = await call('cases.get', { caseId, view: 'inspector' });
+    for (let i = 0; i < 3; i++) {
+      expect(await call('cases.get', { caseId, view: 'inspector' })).toEqual(first);
+      await call('tool-runs.list', { caseId, view: 'inspector' });
+    }
+    expect(await dbSnapshot()).toEqual(before);
+    for (const [name] of callSpy.mock.calls) {
+      expect(name).not.toMatch(
+        /tools\.run|evidence\.attach|continue|acknowledge|ingestUpdate|inbox|classify/u
+      );
+    }
+    callSpy.mockRestore();
+  });
+
   test('case GET with includeEvidence keeps its presentCase redaction', async () => {
     const caseId = await seedCase();
     const summary = await call('cases.get', { caseId, includeEvidence: true });
     const restricted = summary.evidenceRefs.find((r) => r.evidenceId === 'ev_restricted');
     expect(restricted).toMatchObject({ redacted: true, label: 'Restricted evidence' });
+    expect(summary).not.toHaveProperty('view');
+    expect(summary).toHaveProperty('evidenceRefs');
+    expect(summary).toHaveProperty('initialRequest');
+    expect(summary).toHaveProperty('internalDrafts');
   });
 });

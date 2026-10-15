@@ -1,6 +1,8 @@
 {
   "minimumLength": 5,
   "corePaths": [
+    "src/project-file-*.js",
+    "services/project-file.service.js",
     "src/dataset-*.js",
     "src/structured-message.js",
     "services/shared-service-notices.service.js",

@@ -131,6 +131,7 @@ module.exports = {
   },
 
   mixins: [
+    require('../src/project-file-store'),
     createPouchDbLifecycleMixin({
       dbPathEnvVar: 'OBJECT_STORE_DB_PATH',
       defaultDbPath: './data/object-store',

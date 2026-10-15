@@ -17,7 +17,7 @@ const readline = require('readline');
 const https = require('https');
 const { spawnSync } = require('child_process');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const MAX_ATTEMPTS = 3;
 const TEST_FIX_ATTEMPTS = 2;
