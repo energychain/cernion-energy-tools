@@ -9340,4 +9340,748 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
   });
+
+  describe('MaKo/M2C Resolution Value selected-case Workbench (#251 / #761)', () => {
+    const makoResolutionValueSeed = require('../src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-mako-resolution-value-review-v1.json');
+
+    const makoQueryNames = [
+      'getMakoResolutionValueReviewSelectorRows',
+      'getMakoResolutionValueReviewCaseMessageRows',
+      'getMakoResolutionValueReviewGroundingRows',
+      'getMakoResolutionValueReviewPresentationRows',
+      'getMakoResolutionValueReviewResolutionValueRows',
+      'getMakoResolutionValueReviewOwnerDeadlineRows',
+      'getMakoResolutionValueReviewDecisionGateRows',
+      'getMakoResolutionValueReviewVerifyRows',
+      'getMakoResolutionValueReviewMatrixRows',
+      'getMakoResolutionValueReviewTransferRows',
+      'getMakoResolutionValueReviewIdentityGuardRows',
+      'getMakoResolutionValueReviewNoCallRows',
+    ];
+
+    const caseMessageFixture = {
+      status: 'needs_official_evidence',
+      requestContext: { caseId: 'mrv-case-mauer-002' },
+      officialEvidence: [],
+      hintsOnly: [
+        {
+          id: 'portal_screenshot',
+          label: 'Portal screenshot or portal view',
+          value: 'mako-clarification-message-hint',
+          sourceClass: 'hint_only',
+          bindingStrength: 'not_official_proof',
+        },
+        {
+          id: 'provider_view',
+          label: 'Service-provider view',
+          value: 'market-partner-portal-view-hint',
+          sourceClass: 'hint_only',
+          bindingStrength: 'not_official_proof',
+        },
+      ],
+      missingEvidence: [
+        {
+          missingDataPoint: 'utilmd_masterdata_path',
+          label: 'UTILMD/master-data path',
+          sourceClass: 'official_market_communication',
+          enablesDossierAddition: 'replace portal hints with official master-data provenance',
+        },
+      ],
+      positiveFollowUps: [
+        {
+          missingDataPoint: 'utilmd_masterdata_path',
+          enablesDossierAddition: 'replace portal hints with official master-data provenance',
+          category: 'official_market_communication_evidence',
+        },
+      ],
+      dossierFacts: ['Status: needs_official_evidence'],
+    };
+
+    const caseMessageEmptyFixture = {
+      status: 'needs_official_evidence',
+      requestContext: { caseId: null },
+      officialEvidence: [],
+      hintsOnly: [],
+      missingEvidence: [
+        {
+          missingDataPoint: 'malo_identity',
+          label: 'MaLo identity',
+          sourceClass: 'official_market_location',
+          enablesDossierAddition: 'bind the dossier to the official market location',
+        },
+      ],
+      positiveFollowUps: [],
+      dossierFacts: ['Status: needs_official_evidence'],
+    };
+
+    const groundingFixture = {
+      answerStatus: 'needs_evidence',
+      evidenceConfidence: { score: 0.4, level: 'medium', basis: [] },
+      missingEvidence: [
+        {
+          missingDataPoint: 'confirmedInvoiceAmountEvidence',
+          enablesDossierAddition:
+            'add the synthetic confirmed-invoice-amount band as review context',
+        },
+      ],
+      positiveFollowUps: [
+        {
+          missingDataPoint: 'confirmedInvoiceAmountEvidence',
+          enablesDossierAddition:
+            'add the synthetic confirmed-invoice-amount band as review context',
+          category: 'evidence_grounding_confidence_audit',
+        },
+      ],
+      scopeLimitations: [
+        {
+          scopeFilter: 'grid_or_datasource_scope',
+          reason: 'No gridOperatorId, scopeId, datasourceId or datapointId was supplied.',
+        },
+      ],
+      toolFailures: [],
+    };
+
+    const groundingReadyFixture = {
+      answerStatus: 'grounded',
+      evidenceConfidence: { score: 0.9, level: 'high', basis: [] },
+      missingEvidence: [],
+      positiveFollowUps: [],
+      scopeLimitations: [],
+      toolFailures: [],
+    };
+
+    const presentationFixture = {
+      selectedType: 'vdmi_matrix',
+      requestedType: null,
+      allowedTypes: ['vdmi_matrix', 'plain'],
+      blockedReason: null,
+      evidenceGapIds: ['mako-resolution-value-review-evidence-gap'],
+    };
+
+    const presentationBlockedFixture = {
+      selectedType: null,
+      requestedType: 'vdmi_matrix',
+      allowedTypes: [],
+      blockedReason: 'evidence_gap_present',
+      evidenceGapIds: ['mako-resolution-value-review-evidence-gap'],
+    };
+
+    const ownerFixture = {
+      status: 'needs_evidence_ref',
+      ownerContext: {
+        ownerRole: 'ROLE_MAKO_OWNER',
+        ownerContact: 'ROLE_MAKO_OWNER',
+        dueAt: '2026-11-15',
+      },
+      signalContext: { blockedDecision: 'Resolution Value Human Review' },
+      positiveFollowUps: [
+        {
+          missingDataPoint: 'evidence_ref',
+          enablesDossierAddition: 'attach the blocking evidence proof',
+          category: 'owner_deadline_evidence_gap',
+        },
+      ],
+    };
+
+    const ownerReadyFixture = {
+      status: 'ready_for_decision_followup',
+      ownerContext: {
+        ownerRole: 'ROLE_MAKO_OWNER',
+        ownerContact: 'ROLE_MAKO_OWNER',
+        dueAt: '2026-11-15',
+      },
+      signalContext: { blockedDecision: null },
+      positiveFollowUps: [],
+    };
+
+    const decisionFixture = {
+      status: 'evidence_gap',
+      rows: [
+        {
+          measureId: 'mrv-case-mauer-002',
+          measureName: 'MaKo M2C Resolution Value Review',
+          owner: 'ROLE_MAKO_OWNER',
+          nextDecisionPoint: 'human_review_gate',
+          readiness: 'evidence_gap',
+        },
+      ],
+      missingEvidence: [
+        {
+          missingDataPoint: 'evidence_source',
+          label: 'Evidence source',
+          enablesDossierAddition: 'add source traceability',
+        },
+      ],
+    };
+
+    const decisionReadyFixture = {
+      status: 'decision_ready',
+      rows: [
+        {
+          measureId: 'mrv-case-mauer-002',
+          measureName: 'MaKo M2C Resolution Value Review',
+          owner: 'ROLE_MAKO_OWNER',
+          nextDecisionPoint: 'human_review_gate',
+          readiness: 'decision_ready',
+        },
+      ],
+      missingEvidence: [],
+    };
+
+    const makoMatrixRowsFromSeed = makoResolutionValueSeed.demoProcessMatrix.rows.map((row) => ({
+      phase: row.phase,
+      roles: { V: row.v, D: row.d, M: row.m, I: row.i },
+      evidenceRequirements: row.evidenceRequirements,
+      status: row.status,
+      gateOutcome: row.gateOutcome,
+    }));
+
+    const verifyFixture = {
+      status: 'completed',
+      tenantId: 'stadtwerk-mauer',
+      summary: { counts: { requiredEvidence: 13, demoProcessMatrixRows: 4, forbiddenActions: 29 } },
+      nextActions: [
+        'Render the verify read model in Budibase',
+        'Use /api/governance/role-workbench for role-specific case projection',
+      ],
+      data: {
+        seedId: 'stadtwerk-mauer-mako-resolution-value-review-v1',
+        tenantId: 'stadtwerk-mauer',
+        processFamily: 'market_communication_resolution_value_governance',
+        controlCase: 'mako_m2c_resolution_value_review',
+        validation: { valid: true },
+        forbiddenActions: makoResolutionValueSeed.forbiddenActions,
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus'],
+          referenced: [],
+          notCalled: ['mako_write', 'budibase_table_write', 'rundeck_execute'],
+        },
+        missingEvidence: [
+          {
+            missingDataPoint: 'confirmedInvoiceAmountEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition:
+              'Adds the synthetic confirmed-invoice-amount band as review context.',
+          },
+          {
+            missingDataPoint: 'marketPartnerConfirmationEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition:
+              'Adds the synthetic market-partner confirmation marker without sending a message.',
+          },
+        ],
+        demoProcessMatrixSync: {
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          evidenceRequirements: ['caseScopeEvidence', 'messageAndProcessEvidence'],
+          downstreamHandoff: {
+            blueprintPack: 'complete',
+            landingRegistry: 'pending',
+            productiveDemoRoom: 'pending',
+          },
+          rows: makoMatrixRowsFromSeed,
+        },
+      },
+    };
+
+    const verifyNotValidFixture = {
+      status: 'completed',
+      nextActions: [],
+      data: {
+        seedId: 'stadtwerk-mauer-mako-resolution-value-review-v1',
+        validation: { valid: false },
+        forbiddenActions: makoResolutionValueSeed.forbiddenActions,
+        missingEvidence: [
+          { missingDataPoint: 'qualitativeResolutionValueEvidence', state: 'clarification' },
+        ],
+        demoProcessMatrixSync: { rows: [] },
+      },
+    };
+
+    // qualitative_review_ready_human_gate: all named evidence is present, so the
+    // qualitative Resolution Value statement is bounded (no evidence gap remains).
+    const verifyBoundedFixture = {
+      status: 'completed',
+      tenantId: 'stadtwerk-mauer',
+      summary: { counts: { requiredEvidence: 13, demoProcessMatrixRows: 4, forbiddenActions: 29 } },
+      nextActions: ['Render the verify read model in Budibase'],
+      data: {
+        seedId: 'stadtwerk-mauer-mako-resolution-value-review-v1',
+        tenantId: 'stadtwerk-mauer',
+        processFamily: 'market_communication_resolution_value_governance',
+        controlCase: 'mako_m2c_resolution_value_review',
+        validation: { valid: true },
+        forbiddenActions: makoResolutionValueSeed.forbiddenActions,
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus'],
+          referenced: [],
+          notCalled: ['mako_write', 'budibase_table_write', 'rundeck_execute'],
+        },
+        missingEvidence: [],
+        demoProcessMatrixSync: {
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          evidenceRequirements: ['caseScopeEvidence', 'messageAndProcessEvidence'],
+          downstreamHandoff: {
+            blueprintPack: 'complete',
+            landingRegistry: 'pending',
+            productiveDemoRoom: 'pending',
+          },
+          rows: makoMatrixRowsFromSeed,
+        },
+      },
+    };
+
+    const transferFixture = {
+      status: 'ready_for_onboarding_discussion',
+      transferSummaryRows: [
+        {
+          rowKey: 'transfer_readiness',
+          label: 'Transfer Readiness',
+          status: 'ready_for_onboarding_discussion',
+          sourceClass: 'transfer_readiness_summary',
+        },
+      ],
+      dataClassRows: [
+        {
+          rowKey: 'public_context_layer',
+          category: 'public_context',
+          transferState: 'reusable_read_only',
+          description: 'Public MaKo/M2C clarification-process and EDIFACT message-type context.',
+          examples: 'public MaKo/M2C clarification-process reference',
+          productionBlocked: false,
+          safeNextAction: 'inspect_public_context_baseline',
+          sourceClass: 'transfer_data_class',
+        },
+        {
+          rowKey: 'synthetic_tenant_seed',
+          category: 'synthetic_seed',
+          transferState: 'replace_for_real_tenant',
+          description:
+            'Invented MaKo/M2C case, message/process, amount band, partner and owner references.',
+          examples: 'synthetic MaKo/M2C case reference',
+          productionBlocked: false,
+          safeNextAction: 'replace_with_tenant_parameters_before_onboarding',
+          sourceClass: 'transfer_data_class',
+        },
+        {
+          rowKey: 'sandbox_runtime_artifacts',
+          category: 'sandbox_runtime',
+          transferState: 'do_not_transfer',
+          description: 'Resettable validator/render/smoke proof only.',
+          examples: 'matrix-sync render artifact',
+          productionBlocked: true,
+          safeNextAction: 'discard_or_regenerate_in_customer_sandbox',
+          sourceClass: 'transfer_data_class',
+        },
+      ],
+      safeNextGateRows: [
+        {
+          rowKey: 'inspect_blueprint_verify',
+          label: 'Inspect Blueprint verify panel',
+          safety: 'safe_read_only',
+          sourceClass: 'safe_next_gate',
+        },
+      ],
+      productionBoundaryRows: [
+        {
+          rowKey: 'send_market_partner_reply',
+          boundary: 'send_market_partner_reply',
+          status: 'blocked_in_transfer_readiness_slice',
+          disabled: true,
+          safeAlternative: 'read_or_verify_readiness_only',
+          sourceClass: 'blocked_production_boundary',
+        },
+      ],
+    };
+
+    it('composes exactly the seven named dashboard routes and no others, and registers the full section group', () => {
+      const queries = manifest.queries.filter((query) => makoQueryNames.includes(query.name));
+      expect(queries).toHaveLength(makoQueryNames.length);
+      expect(new Set(queries.map((query) => query.path))).toEqual(
+        new Set([
+          '/api/dashboard/market-communication-evidence-chain',
+          '/api/dashboard/evidence-grounding-confidence-audit',
+          '/api/dashboard/receipt-grounded-presentation-contract',
+          '/api/dashboard/owner-deadline-evidence-gate',
+          '/api/dashboard/decision-readiness-matrix',
+          '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+          '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+        ])
+      );
+      // #741: the protected role-workbench projection, any non-dashboard MaKo route,
+      // connector, Rundeck or write endpoint is never composed by this panel.
+      for (const query of queries) {
+        expect(query.path).not.toBe('/api/governance/role-workbench');
+        expect(query.path.startsWith('/api/dashboard/')).toBe(true);
+        expect(query.queryString).not.toContain('actorId');
+        expect(query.queryString).not.toContain('roles=');
+        expect(query.queryString).not.toContain('clearance');
+      }
+      // includeMakoKnowledge / includeFederatedKnowledge stay explicitly false everywhere used.
+      const caseMessageQueries = queries.filter((q) =>
+        q.queryString.includes('includeMakoKnowledge')
+      );
+      expect(caseMessageQueries.length).toBeGreaterThan(0);
+      expect(
+        caseMessageQueries.every((q) => q.queryString.includes('includeMakoKnowledge=false'))
+      ).toBe(true);
+      const groundingQuery = queries.find(
+        (q) => q.name === 'getMakoResolutionValueReviewGroundingRows'
+      );
+      expect(groundingQuery.queryString).toContain('includeFederatedKnowledge=false');
+
+      expect(
+        manifest.sections
+          .filter((section) => section.id.startsWith('mako_resolution_value_review'))
+          .map((section) => section.queryName)
+      ).toEqual(expect.arrayContaining(makoQueryNames));
+      expect(manifest.notes.join(' ')).toContain(
+        'MaKo/M2C Resolution Value selected-case Workbench panel (#251)'
+      );
+      expect(manifest.notes.join(' ')).toContain(
+        'GET /api/governance/role-workbench is never called'
+      );
+    });
+
+    it('renders exactly three explicitly synthetic selector states with one default-selected row', () => {
+      const rows = runTransformer('getMakoResolutionValueReviewSelectorRows', {});
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+      expect(rows).toHaveLength(3);
+      expect(new Set(rows.map((row) => row.selectorCase))).toEqual(
+        new Set([
+          'context_clarification',
+          'financial_partner_owner_evidence_gap',
+          'qualitative_review_ready_human_gate',
+        ])
+      );
+      expect(rows.every((row) => row.dataClass === 'synthetic_tenant_seed')).toBe(true);
+      expect(rows.every((row) => row.roleTarget === 'ROLE_MAKO_OWNER')).toBe(true);
+      expect(rows.filter((row) => row.selected === true)).toHaveLength(1);
+      expect(rows.find((row) => row.selected === true).selectorCase).toBe(
+        'financial_partner_owner_evidence_gap'
+      );
+    });
+
+    it('renders scalar/display-safe rows with no object-valued cells, [object Object] or unbounded arrays across all MaKo/M2C transformers', () => {
+      for (const [name, fixture] of [
+        ['getMakoResolutionValueReviewSelectorRows', {}],
+        ['getMakoResolutionValueReviewCaseMessageRows', caseMessageFixture],
+        ['getMakoResolutionValueReviewCaseMessageRows', caseMessageEmptyFixture],
+        ['getMakoResolutionValueReviewGroundingRows', groundingFixture],
+        ['getMakoResolutionValueReviewGroundingRows', groundingReadyFixture],
+        ['getMakoResolutionValueReviewPresentationRows', presentationFixture],
+        ['getMakoResolutionValueReviewPresentationRows', presentationBlockedFixture],
+        ['getMakoResolutionValueReviewResolutionValueRows', verifyFixture],
+        ['getMakoResolutionValueReviewResolutionValueRows', verifyNotValidFixture],
+        ['getMakoResolutionValueReviewOwnerDeadlineRows', ownerFixture],
+        ['getMakoResolutionValueReviewOwnerDeadlineRows', ownerReadyFixture],
+        ['getMakoResolutionValueReviewDecisionGateRows', decisionFixture],
+        ['getMakoResolutionValueReviewDecisionGateRows', decisionReadyFixture],
+        ['getMakoResolutionValueReviewVerifyRows', verifyFixture],
+        ['getMakoResolutionValueReviewMatrixRows', verifyFixture],
+        ['getMakoResolutionValueReviewTransferRows', transferFixture],
+        ['getMakoResolutionValueReviewIdentityGuardRows', {}],
+        ['getMakoResolutionValueReviewNoCallRows', verifyFixture],
+      ]) {
+        const rows = runTransformer(name, fixture);
+        expectScalarRows(rows);
+        expectNoRawObjectText(rows);
+      }
+    });
+
+    it('maps missing case/message/grounding/presentation evidence to clarification/evidence_gap with a non-empty positive follow-up, never a negative fact', () => {
+      const emptyRows = runTransformer(
+        'getMakoResolutionValueReviewCaseMessageRows',
+        caseMessageEmptyFixture
+      );
+      expect(emptyRows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            rowKey: 'mrv_case_scope',
+            value: 'missing-evidence',
+            evidenceStatus: 'clarification',
+          }),
+          expect.objectContaining({
+            rowKey: 'mrv_case_message_status',
+            evidenceStatus: 'evidence_gap',
+          }),
+        ])
+      );
+
+      const groundingRows = runTransformer(
+        'getMakoResolutionValueReviewGroundingRows',
+        groundingFixture
+      );
+      expect(groundingRows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            rowKey: 'mrv_grounding_missing_1',
+            evidenceStatus: 'evidence_gap',
+          }),
+          expect.objectContaining({
+            rowKey: 'mrv_grounding_scope_limitation_1',
+            evidenceStatus: 'clarification',
+          }),
+        ])
+      );
+      const followUpRow = groundingRows.find(
+        (row) => row.rowKey === 'mrv_grounding_positive_follow_up'
+      );
+      expect(typeof followUpRow.value).toBe('string');
+      expect(followUpRow.value.length).toBeGreaterThan(0);
+
+      const groundingReadyRows = runTransformer(
+        'getMakoResolutionValueReviewGroundingRows',
+        groundingReadyFixture
+      );
+      const readyFollowUpRow = groundingReadyRows.find(
+        (row) => row.rowKey === 'mrv_grounding_positive_follow_up'
+      );
+      expect(readyFollowUpRow.value).toBe('all named grounding evidence is present');
+      expect(readyFollowUpRow.evidenceStatus).toBe('review_ready');
+
+      const presentationRows = runTransformer(
+        'getMakoResolutionValueReviewPresentationRows',
+        presentationBlockedFixture
+      );
+      expect(presentationRows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            rowKey: 'mrv_presentation_blocked_reason',
+            evidenceStatus: 'clarification',
+          }),
+          expect.objectContaining({
+            rowKey: 'mrv_presentation_pointer',
+            evidenceStatus: 'evidence_gap',
+          }),
+        ])
+      );
+      // Receipt pointers only, never a raw receipt/payload object leaking into a cell.
+      for (const row of presentationRows) {
+        expect(String(row.value)).not.toContain('[object Object]');
+      }
+    });
+
+    it('keeps the Resolution Value qualitative only -- no EUR amount, score, rank, ROI, NPV, TOTEX or savings claim', () => {
+      const boundedRows = runTransformer(
+        'getMakoResolutionValueReviewResolutionValueRows',
+        verifyBoundedFixture
+      );
+      const gapRows = runTransformer(
+        'getMakoResolutionValueReviewResolutionValueRows',
+        verifyFixture
+      );
+      const notValidRows = runTransformer(
+        'getMakoResolutionValueReviewResolutionValueRows',
+        verifyNotValidFixture
+      );
+      const forbiddenPattern = /eur|€|\bscore\b|\brank\b|\broi\b|\bnpv\b|\btotex\b|saving/i;
+      for (const rows of [boundedRows, gapRows, notValidRows]) {
+        expectScalarRows(rows);
+        for (const row of rows) {
+          for (const value of Object.values(row)) {
+            expect(forbiddenPattern.test(String(value))).toBe(false);
+          }
+        }
+      }
+      expect(boundedRows.find((row) => row.rowKey === 'mrv_resolution_value_statement').value).toBe(
+        'qualitative_resolution_value_bounded'
+      );
+      // The default-selected financial/partner/owner evidence-gap case still has open
+      // missingEvidence, so the statement stays a clarification -- never a bounded claim.
+      expect(gapRows.find((row) => row.rowKey === 'mrv_resolution_value_statement').value).toBe(
+        'clarification'
+      );
+      expect(
+        notValidRows.find((row) => row.rowKey === 'mrv_resolution_value_statement').value
+      ).toBe('clarification');
+      expect(
+        boundedRows.find((row) => row.rowKey === 'mrv_resolution_value_forbidden_claims').value
+      ).toBe(String(makoResolutionValueSeed.forbiddenActions.length));
+    });
+
+    it('never implies partner confirmation, invoice approval, final revenue or automatic readiness in owner/deadline or decision-gate rows', () => {
+      const forbiddenClaimPattern = /partner.?confirm|invoice.?approv|final.?revenue|auto.?approv/i;
+      const ownerRows = runTransformer(
+        'getMakoResolutionValueReviewOwnerDeadlineRows',
+        ownerFixture
+      );
+      const ownerReadyRows = runTransformer(
+        'getMakoResolutionValueReviewOwnerDeadlineRows',
+        ownerReadyFixture
+      );
+      const decisionRows = runTransformer(
+        'getMakoResolutionValueReviewDecisionGateRows',
+        decisionFixture
+      );
+      const decisionReadyRows = runTransformer(
+        'getMakoResolutionValueReviewDecisionGateRows',
+        decisionReadyFixture
+      );
+      for (const rows of [ownerRows, ownerReadyRows, decisionRows, decisionReadyRows]) {
+        for (const row of rows) {
+          for (const value of Object.values(row)) {
+            expect(forbiddenClaimPattern.test(String(value))).toBe(false);
+          }
+        }
+      }
+      // Decision-gate readiness stays descriptive; no score/rank or automatic decision is produced.
+      expect(
+        decisionReadyRows.find((row) => row.rowKey === 'mrv_decision_gate_no_auto_decision').value
+      ).toBe('descriptive_readiness_only_no_automatic_decision');
+      expect(
+        decisionRows.find((row) => row.rowKey === 'mrv_decision_gate_summary').evidenceStatus
+      ).toBe('evidence_gap');
+      expect(
+        decisionReadyRows.find((row) => row.rowKey === 'mrv_decision_gate_summary').evidenceStatus
+      ).toBe('review_ready');
+    });
+
+    it('renders the canonical four-row V/D/M/I matrix with the six #591 headers and roleLegend.M = Mitwirkend, role cells as role ids only', () => {
+      expect(makoResolutionValueSeed.demoProcessMatrix.headers).toEqual([
+        'Phase',
+        'V = Verantwortlich',
+        'D = Durchfuehrend',
+        'M = Mitwirkend',
+        'I = Informiert',
+        'Nachweise',
+      ]);
+      expect(makoResolutionValueSeed.demoProcessMatrix.roleLegend.M).toBe('Mitwirkend');
+      expect(makoResolutionValueSeed.demoProcessMatrix.rows).toHaveLength(4);
+
+      const matrixRows = runTransformer('getMakoResolutionValueReviewMatrixRows', verifyFixture);
+      expect(matrixRows).toHaveLength(5);
+      const canonicalRows = matrixRows.filter((row) => row.rowKey !== 'mrv_matrix_sync');
+      expect(canonicalRows).toHaveLength(4);
+      expect(canonicalRows.map((row) => row.phase)).toEqual(['1', '2', '3', '4']);
+      for (const row of canonicalRows) {
+        for (const cell of [row.v, row.d, row.m, row.i]) {
+          expect(cell).toMatch(/^ROLE_/);
+        }
+        // Row keys match the canonical six-column shape: phase, v, d, m, i, nachweise.
+        expect(typeof row.nachweise).toBe('string');
+      }
+      expect(matrixRows[0]).toEqual(
+        expect.objectContaining({ roleLegendM: 'Mitwirkend', m: 'Mitwirkend' })
+      );
+      expect(matrixRows[0].downstreamHandoff).toBe('complete -> pending -> pending');
+    });
+
+    it('preserves the three MaKo/M2C transfer data classes and the complete -> pending -> pending sync', () => {
+      const transferRows = runTransformer(
+        'getMakoResolutionValueReviewTransferRows',
+        transferFixture
+      );
+      expectScalarRows(transferRows);
+      expectNoRawObjectText(transferRows);
+      expect(new Set(transferRows.map((row) => row.dataClass))).toEqual(
+        new Set([
+          'transfer_readiness_summary',
+          'public_context',
+          'synthetic_seed',
+          'sandbox_runtime',
+          'safe_next_gate',
+          'blocked_production_boundary',
+        ])
+      );
+      expect(
+        transferRows.some(
+          (row) => row.rowKey === 'send_market_partner_reply' && row.productionBlocked === true
+        )
+      ).toBe(true);
+
+      const matrixRows = runTransformer('getMakoResolutionValueReviewMatrixRows', verifyFixture);
+      expect(matrixRows[0].downstreamHandoff).toBe('complete -> pending -> pending');
+      const verifyRows = runTransformer('getMakoResolutionValueReviewVerifyRows', verifyFixture);
+      expect(verifyRows.find((row) => row.rowKey === 'mrv_verify').status).toBe('completed');
+    });
+
+    it('keeps the identity guard row identity_forwarding_required / protectedReadCalled=false until #741 is delivered', () => {
+      const rows = runTransformer('getMakoResolutionValueReviewIdentityGuardRows', {});
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toEqual(
+        expect.objectContaining({
+          operationPath: '/api/governance/role-workbench',
+          invocation: 'source_hint_only',
+          authorizationStatus: 'identity_forwarding_required',
+          protectedReadCalled: false,
+          status: 'not_called',
+        })
+      );
+      expect(typeof rows[0].positiveFollowUp).toBe('string');
+      expect(rows[0].positiveFollowUp.length).toBeGreaterThan(0);
+      expect(rows[0].positiveFollowUp).toContain('#741');
+      // The guard row never carries an actor identity, role list or clearance value.
+      expect(rows[0].actorId).toBeUndefined();
+      expect(rows[0].roles).toBeUndefined();
+      expect(rows[0].clearance).toBeUndefined();
+    });
+
+    it('covers every consequential no-call boundary for the MaKo/M2C Resolution Value panel', () => {
+      const rows = runTransformer('getMakoResolutionValueReviewNoCallRows', verifyFixture);
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+      expect(rows.every((row) => row.status === 'not_called')).toBe(true);
+      expect(rows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ boundary: 'send_market_partner_reply' }),
+          expect.objectContaining({ boundary: 'edifact_api_retry' }),
+          expect.objectContaining({ boundary: 'mako_creation' }),
+          expect.objectContaining({ boundary: 'a96_creation' }),
+          expect.objectContaining({ boundary: 'mscons_creation' }),
+          expect.objectContaining({ boundary: 'mako_dispatch' }),
+          expect.objectContaining({ boundary: 'approve_invoice' }),
+          expect.objectContaining({ boundary: 'state_final_cashflow_amount' }),
+          expect.objectContaining({ boundary: 'sap_erp_write' }),
+          expect.objectContaining({ boundary: 'billing' }),
+          expect.objectContaining({ boundary: 'settlement' }),
+          expect.objectContaining({ boundary: 'tariff_mutation' }),
+          expect.objectContaining({ boundary: 'hitl_create' }),
+          expect.objectContaining({ boundary: 'mail_send' }),
+          expect.objectContaining({ boundary: 'webhook_call' }),
+          expect.objectContaining({ boundary: 'external_connector_call' }),
+          expect.objectContaining({ boundary: 'budibase_table_write' }),
+          expect.objectContaining({ boundary: 'rundeck_execute' }),
+          expect.objectContaining({ boundary: 'smgw_cls_device_control' }),
+          expect.objectContaining({ boundary: 'landing_registry_publication' }),
+          expect.objectContaining({ boundary: 'public_context_mutation' }),
+          expect.objectContaining({ boundary: 'production_mutation' }),
+          expect.objectContaining({ boundary: 'secret_key_handling' }),
+          expect.objectContaining({ boundary: 'wallet_operation' }),
+          expect.objectContaining({ boundary: 'personal_agent_hardcoding' }),
+        ])
+      );
+    });
+
+    it('runs every MaKo/M2C transformer purely, without mutating selector or response fixtures', () => {
+      const selectorFixture = {};
+      const selectorBefore = JSON.stringify(selectorFixture);
+      runTransformer('getMakoResolutionValueReviewSelectorRows', selectorFixture);
+      runTransformer('getMakoResolutionValueReviewSelectorRows', selectorFixture);
+      expect(JSON.stringify(selectorFixture)).toBe(selectorBefore);
+
+      const verifyBefore = JSON.stringify(verifyFixture);
+      runTransformer('getMakoResolutionValueReviewVerifyRows', verifyFixture);
+      runTransformer('getMakoResolutionValueReviewMatrixRows', verifyFixture);
+      runTransformer('getMakoResolutionValueReviewResolutionValueRows', verifyFixture);
+      runTransformer('getMakoResolutionValueReviewNoCallRows', verifyFixture);
+      expect(JSON.stringify(verifyFixture)).toBe(verifyBefore);
+
+      const first = runTransformer('getMakoResolutionValueReviewMatrixRows', verifyFixture);
+      const second = runTransformer('getMakoResolutionValueReviewMatrixRows', verifyFixture);
+      expect(first).toEqual(second);
+
+      const ownerBefore = JSON.stringify(ownerFixture);
+      runTransformer('getMakoResolutionValueReviewOwnerDeadlineRows', ownerFixture);
+      expect(JSON.stringify(ownerFixture)).toBe(ownerBefore);
+    });
+  });
 });

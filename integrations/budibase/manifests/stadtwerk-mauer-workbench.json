@@ -14250,6 +14250,262 @@
         "dataClass": { "type": "string" },
         "sourceClass": { "type": "string" }
       }
+    },
+    {
+      "name": "getMakoResolutionValueReviewSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/market-communication-evidence-chain",
+      "queryString": "caseId=mrv-case-mauer-002&includeHints=false&includeMakoKnowledge=false",
+      "parameters": [],
+      "transformer": "const states=[{selectorCase:'context_clarification',label:'Case/Message/Provenance Klaerung (synthetic)',caseId:'mrv-case-mauer-001',caseScopeStatus:'clarification',messageProcessStatus:'clarification',selected:false},{selectorCase:'financial_partner_owner_evidence_gap',label:'Finanz-/Partner-/Owner-Evidenz-Luecke (synthetic)',caseId:'mrv-case-mauer-002',caseScopeStatus:'available',messageProcessStatus:'available',selected:true},{selectorCase:'qualitative_review_ready_human_gate',label:'Qualitative Review bereit, Human-Gate (synthetic)',caseId:'mrv-case-mauer-003',caseScopeStatus:'available',messageProcessStatus:'available',selected:false}]; return states.map((s,index)=>({rowKey:'mrv_selector_'+(index+1)+'_'+s.selectorCase,renderTarget:'budibase:stadtwerk-mauer-workbench:mako-resolution-value-review-panel',roleTarget:'ROLE_MAKO_OWNER',selectorCase:s.selectorCase,label:s.label,caseId:s.caseId,caseScopeStatus:s.caseScopeStatus,messageProcessStatus:s.messageProcessStatus,selected:s.selected,selectedSelectorCase:'financial_partner_owner_evidence_gap',roleQuestion:'Welche Fall-/Nachrichten-/Provenienz-Evidenz liegt vor oder fehlt, ist die finanzielle/Marktpartner-/Owner-Evidenz vollstaendig, welche qualitative Resolution-Value-Aussage ist belastbar, welcher Anspruch/welche Handlung bleibt verboten, und wer klaert als Naechstes in welchem Human-Review-Gate?',dataClass:'synthetic_tenant_seed',sourceClass:'mako_resolution_value_review_selector'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "selectorCase": { "type": "string" },
+        "label": { "type": "string" },
+        "caseId": { "type": "string" },
+        "caseScopeStatus": { "type": "string" },
+        "messageProcessStatus": { "type": "string" },
+        "selected": { "type": "boolean" },
+        "selectedSelectorCase": { "type": "string" },
+        "roleQuestion": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMakoResolutionValueReviewCaseMessageRows",
+      "method": "GET",
+      "path": "/api/dashboard/market-communication-evidence-chain",
+      "queryString": "caseId=mrv-case-mauer-002&portalHint=mako-clarification-message-hint&providerView=market-partner-portal-view-hint&customerStatement=customer-service-note-hint&includeHints=true&includeMakoKnowledge=false",
+      "parameters": [],
+      "transformer": "const rc=data.requestContext||{}; const hints=data.hintsOnly||[]; const missing=data.missingEvidence||[]; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:mako-resolution-value-review-panel',roleTarget:'ROLE_MAKO_OWNER',caseId:String(rc.caseId||'mrv-case-mauer-002'),sourceClass:'mako_resolution_value_review_case_message'}; const caseRow={rowKey:'mrv_case_scope',label:'MaKo/M2C Case Scope',value:String(rc.caseId||'missing-evidence'),dataClass:'syntheticTenantSeed',evidenceStatus:rc.caseId?'available':'clarification',...base}; const hintRows=hints.map((h,index)=>({rowKey:'mrv_case_message_hint_'+(index+1),label:String(h.label||'Case/Message hint'),value:String(h.value||''),dataClass:'syntheticTenantSeed',evidenceCaveat:'caller_supplied_not_verified_fact',evidenceStatus:'hint_only',...base})); const statusRow={rowKey:'mrv_case_message_status',label:'Case/Message/Provenance Status',value:String(data.status||'unknown'),dataClass:'syntheticTenantSeed',evidenceStatus:missing.length?'evidence_gap':'review_ready',...base}; return [caseRow].concat(hintRows).concat([statusRow])",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "evidenceCaveat": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "caseId": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMakoResolutionValueReviewGroundingRows",
+      "method": "GET",
+      "path": "/api/dashboard/evidence-grounding-confidence-audit",
+      "queryString": "requestId=mrv-case-mauer-002-egca&domain=mako_resolution_value_review&sourceAction=dashboard-api.marketCommunicationEvidenceChainStatus&includeFederatedKnowledge=false",
+      "parameters": [],
+      "transformer": "const ec=data.evidenceConfidence||{}; const missing=data.missingEvidence||[]; const followUps=data.positiveFollowUps||[]; const scopeLim=data.scopeLimitations||[]; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:mako-resolution-value-review-panel',roleTarget:'ROLE_MAKO_OWNER',sourceClass:'mako_resolution_value_review_grounding'}; const summary={rowKey:'mrv_grounding_summary',label:'Evidence Grounding Confidence',value:String(data.answerStatus||'unknown')+' / '+String(ec.level||'unknown'),dataClass:'sandboxRuntimeArtifact',evidenceStatus:missing.length?'evidence_gap':'review_ready',...base}; const missingRows=missing.map((m,index)=>({rowKey:'mrv_grounding_missing_'+(index+1),label:'Missing: '+String(m.missingDataPoint||''),value:String(m.enablesDossierAddition||''),dataClass:'syntheticTenantSeed',evidenceStatus:'evidence_gap',...base})); const scopeRows=scopeLim.map((s,index)=>({rowKey:'mrv_grounding_scope_limitation_'+(index+1),label:'Scope limitation',value:String(s.reason||''),dataClass:'syntheticTenantSeed',evidenceStatus:'clarification',...base})); const followUp={rowKey:'mrv_grounding_positive_follow_up',label:'Positive follow-up',value:followUps[0]?String(followUps[0].enablesDossierAddition||'add grounding evidence'):'all named grounding evidence is present',dataClass:'sandboxRuntimeArtifact',evidenceStatus:followUps.length?'evidence_gap':'review_ready',...base}; return [summary].concat(missingRows).concat(scopeRows).concat([followUp])",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMakoResolutionValueReviewPresentationRows",
+      "method": "GET",
+      "path": "/api/dashboard/receipt-grounded-presentation-contract",
+      "queryString": "preferredFormat=auto&domainShape=vdmi_matrix&sourceAction=dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus&evidenceGapId=mako-resolution-value-review-evidence-gap",
+      "parameters": [],
+      "transformer": "const base={renderTarget:'budibase:stadtwerk-mauer-workbench:mako-resolution-value-review-panel',roleTarget:'ROLE_MAKO_OWNER',sourceClass:'mako_resolution_value_review_presentation'}; const allowed=(data.allowedTypes||[]).map(String); const gaps=(data.evidenceGapIds||[]).map(String); return [{rowKey:'mrv_presentation_contract',label:'Receipt-grounded presentation contract',value:String(data.selectedType||data.requestedType||'blocked'),dataClass:'sandboxRuntimeArtifact',evidenceStatus:data.blockedReason?'clarification':'review_ready',...base},{rowKey:'mrv_presentation_allowed_types',label:'Allowed presentation types',value:allowed.length?allowed.join(', '):'none',dataClass:'sandboxRuntimeArtifact',evidenceStatus:'review_ready',...base},{rowKey:'mrv_presentation_blocked_reason',label:'Blocked reason',value:String(data.blockedReason||'none'),dataClass:'sandboxRuntimeArtifact',evidenceStatus:data.blockedReason?'clarification':'review_ready',...base},{rowKey:'mrv_presentation_pointer',label:'Receipt pointer (never raw payload)',value:gaps.length?gaps.join(', '):'none',dataClass:'syntheticTenantSeed',evidenceStatus:gaps.length?'evidence_gap':'review_ready',...base}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMakoResolutionValueReviewResolutionValueRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-mako-resolution-value-review-v1",
+      "parameters": [
+        { "name": "tenantId", "default": "stadtwerk-mauer" }
+      ],
+      "transformer": "const d=data.data||{}; const v=d.validation||{}; const missing=Array.isArray(d.missingEvidence)?d.missingEvidence:[]; const forbidden=Array.isArray(d.forbiddenActions)?d.forbiddenActions:[]; const base={seedId:d.seedId||'stadtwerk-mauer-mako-resolution-value-review-v1',renderTarget:'budibase:stadtwerk-mauer-workbench:mako-resolution-value-review-panel',roleTarget:'ROLE_MAKO_OWNER',sourceClass:'mako_resolution_value_review_resolution_value'}; const bounded=Boolean(v.valid)&&missing.length===0; const statement={rowKey:'mrv_resolution_value_statement',label:'Qualitative Resolution Value',value:bounded?'qualitative_resolution_value_bounded':'clarification',dataClass:'syntheticTenantSeed',evidenceStatus:bounded?'qualitative_resolution_value_bounded':'clarification',...base}; const forbiddenRow={rowKey:'mrv_resolution_value_forbidden_claims',label:'Forbidden claims/actions count',value:String(forbidden.length),dataClass:'syntheticTenantSeed',evidenceStatus:'forbidden_until_human_review',...base}; const boundaryRow={rowKey:'mrv_resolution_value_no_quantitative_claim',label:'Qualitative-only boundary',value:'qualitative_statement_only_no_quantitative_or_financial_metric',dataClass:'sandboxRuntimeArtifact',evidenceStatus:'enforced',...base}; return [statement,forbiddenRow,boundaryRow]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "seedId": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMakoResolutionValueReviewOwnerDeadlineRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "signalId=mrv-case-mauer-002&sourceType=mako-clarification-message&sourceRef=mrv-demo-002&processType=mako_resolution_value_review&riskLevel=medium&ownerRole=ROLE_MAKO_OWNER&ownerContact=ROLE_MAKO_OWNER&dueAt=2026-11-15&evidenceStatus=evidence_gap&blockedDecision=Resolution+Value+Human+Review&linkedEntity=mako-m2c-case&missingEvidence=financial-partner-owner-evidence&caseId=mrv-case-mauer-002",
+      "parameters": [],
+      "transformer": "const ownerCtx=data.ownerContext||{}; const signalCtx=data.signalContext||{}; const followUps=data.positiveFollowUps||[]; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:mako-resolution-value-review-panel',roleTarget:'ROLE_MAKO_OWNER',sourceClass:'mako_resolution_value_review_owner_deadline'}; return [{rowKey:'mrv_owner_deadline_summary',label:'Owner / Deadline',value:[String(ownerCtx.ownerRole||'missing-evidence'),String(ownerCtx.dueAt||'missing-evidence')].join(' / '),dataClass:'syntheticTenantSeed',evidenceStatus:(ownerCtx.ownerRole&&ownerCtx.dueAt)?'available':'clarification',...base},{rowKey:'mrv_owner_deadline_status',label:'Owner/Deadline Evidence Status',value:String(data.status||'unknown'),dataClass:'syntheticTenantSeed',evidenceStatus:data.status==='ready_for_decision_followup'?'review_ready':'evidence_gap',...base},{rowKey:'mrv_owner_deadline_blocked_decision',label:'Blocked Decision',value:String(signalCtx.blockedDecision||'none'),dataClass:'syntheticTenantSeed',evidenceStatus:signalCtx.blockedDecision?'clarification':'review_ready',...base},{rowKey:'mrv_owner_deadline_follow_up',label:'Positive follow-up',value:followUps[0]?String(followUps[0].enablesDossierAddition||'add owner/deadline evidence'):'owner and deadline evidence already present',dataClass:'sandboxRuntimeArtifact',evidenceStatus:followUps.length?'evidence_gap':'review_ready',...base}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMakoResolutionValueReviewDecisionGateRows",
+      "method": "GET",
+      "path": "/api/dashboard/decision-readiness-matrix",
+      "queryString": "caseId=mrv-case-mauer-002&measureId=mrv-case-mauer-002&measureName=MaKo+M2C+Resolution+Value+Review&category=mako_m2c_resolution_value&owner=ROLE_MAKO_OWNER&nextDecisionPoint=human_review_gate&openEvidence=financial-partner-owner-evidence",
+      "parameters": [],
+      "transformer": "const row=(data.rows||[])[0]||{}; const missing=data.missingEvidence||[]; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:mako-resolution-value-review-panel',roleTarget:'ROLE_MAKO_OWNER',sourceClass:'mako_resolution_value_review_decision_gate'}; return [{rowKey:'mrv_decision_gate_summary',label:'Human Review Readiness',value:String(row.readiness||data.status||'unknown'),dataClass:'syntheticTenantSeed',evidenceStatus:row.readiness==='decision_ready'?'review_ready':'evidence_gap',...base},{rowKey:'mrv_decision_gate_owner',label:'Decision Owner / Next Gate',value:[String(row.owner||'missing-evidence'),String(row.nextDecisionPoint||'missing-evidence')].join(' / '),dataClass:'syntheticTenantSeed',evidenceStatus:(row.owner&&row.nextDecisionPoint)?'available':'clarification',...base},{rowKey:'mrv_decision_gate_missing_count',label:'Open Decision Evidence',value:String(missing.length),dataClass:'syntheticTenantSeed',evidenceStatus:missing.length?'evidence_gap':'review_ready',...base},{rowKey:'mrv_decision_gate_no_auto_decision',label:'No automatic decision boundary',value:'descriptive_readiness_only_no_automatic_decision',dataClass:'sandboxRuntimeArtifact',evidenceStatus:'enforced',...base}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMakoResolutionValueReviewVerifyRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-mako-resolution-value-review-v1",
+      "parameters": [
+        { "name": "tenantId", "default": "stadtwerk-mauer" }
+      ],
+      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; const base={seedId:d.seedId||'stadtwerk-mauer-mako-resolution-value-review-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',caseId:'mrv-case-mauer-002',renderTarget:'budibase:stadtwerk-mauer-workbench:mako-resolution-value-review-panel',roleTarget:'ROLE_MAKO_OWNER',sourceClass:'mako_resolution_value_review_verify'}; const selection={rowKey:'mrv_selection',label:'Selected MaKo/M2C case scope and role question',value:'ROLE_MAKO_OWNER: which case/message/provenance evidence is present or missing, whether financial/market-partner/owner evidence is still a gap, which qualitative Resolution-Value statement is supportable, which claim/action remains forbidden, and who clarifies next?',status:String(data.status||'unknown'),safeNextGate:'refresh_read_only_verify_rows',...base}; const verify={rowKey:'mrv_verify',label:'Blueprint-Pack verification',value:[d.processFamily||'market_communication_resolution_value_governance',d.controlCase||'mako_m2c_resolution_value_review'].join(' / '),status:String(data.status||'unknown'),valid:Boolean(v.valid),requiredEvidenceCount:Number(counts.requiredEvidence||0),matrixRowCount:Number(counts.demoProcessMatrixRows||0),forbiddenActionCount:Number(counts.forbiddenActions||0),safeNextGate:String((data.nextActions||[])[0]||'refresh_read_only_verify_rows'),...base}; return [selection,verify];",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "status": { "type": "string" },
+        "valid": { "type": "boolean" },
+        "requiredEvidenceCount": { "type": "number" },
+        "matrixRowCount": { "type": "number" },
+        "forbiddenActionCount": { "type": "number" },
+        "safeNextGate": { "type": "string" },
+        "seedId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "caseId": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMakoResolutionValueReviewMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-mako-resolution-value-review-v1",
+      "parameters": [
+        { "name": "tenantId", "default": "stadtwerk-mauer" }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-mako-resolution-value-review-v1',roleLegendM:String(m.roleLegendM||'Mitwirkend'),rowCount:Number(m.rowCount||0),rowCountValid:Boolean(m.rowCountValid),syncChainLabel:'Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite',renderTarget:'budibase:stadtwerk-mauer-workbench:mako-resolution-value-review-panel',roleTarget:'ROLE_CERNION_GOVERNANCE',sourceClass:'mako_resolution_value_review_matrix'}; const summary={rowKey:'mrv_matrix_sync',phase:'sync',v:'ROLE_MAKO_OWNER',d:'ROLE_CERNION_GOVERNANCE',m:base.roleLegendM,i:'ROLE_COMPLIANCE',nachweise:(m.evidenceRequirements||[]).map(String).join(', '),status:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> '),safeNextGate:'keep_landing_registry_and_productive_demo_room_blocked_until_sync_proof',...base}; const rows=(m.rows||[]).map((row,index)=>{const roles=row.roles||{}; return {rowKey:'mrv_matrix_'+String(row.phase||index+1),phase:String(row.phase||index+1),v:String(roles.V||row.v||''),d:String(roles.D||row.d||''),m:String(roles.M||row.m||''),i:String(roles.I||row.i||''),nachweise:(row.evidenceRequirements||[]).map(String).join(', '),status:String(row.status||''),safeNextGate:String(row.gateOutcome||row.enablesDossierAddition||'refresh_read_only_matrix'),...base};}); return [summary].concat(rows);",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "phase": { "type": "string" },
+        "v": { "type": "string" },
+        "d": { "type": "string" },
+        "m": { "type": "string" },
+        "i": { "type": "string" },
+        "nachweise": { "type": "string" },
+        "status": { "type": "string" },
+        "downstreamHandoff": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "seedId": { "type": "string" },
+        "roleLegendM": { "type": "string" },
+        "rowCount": { "type": "number" },
+        "rowCountValid": { "type": "boolean" },
+        "syncChainLabel": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMakoResolutionValueReviewTransferRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-mako-resolution-value-review-v1&caseId=mrv-case-mauer-002",
+      "parameters": [
+        { "name": "tenantId", "default": "stadtwerk-mauer" }
+      ],
+      "transformer": "const rows=[...(data.transferSummaryRows||[]),...(data.dataClassRows||[]),...(data.safeNextGateRows||[]),...(data.productionBoundaryRows||[])]; const source=rows.length?rows:[{rowKey:'mrv_transfer_pending',label:'Transfer readiness',status:data.status||'pending',description:'Blueprint-Pack canonical; Landing-Registry and Produktivseite sync pending'}]; return source.map((row,index)=>({rowKey:String(row.rowKey||'mrv_transfer_'+(index+1)),label:String(row.label||row.category||'Transfer readiness'),status:String(row.status||row.transferState||data.status||'pending'),value:String(row.value||row.description||row.examples||row.boundary||row.safeNextGate||row.safety||''),dataClass:String(row.category||row.sourceClass||'transfer_readiness'),productionBlocked:Boolean(row.productionBlocked||row.disabled),safeNextGate:String(row.safeNextAction||row.safeNextGate||row.nextGate||'refresh_transfer_readiness'),renderTarget:'budibase:stadtwerk-mauer-workbench:mako-resolution-value-review-panel',roleTarget:'ROLE_MAKO_OWNER',sourceClass:String(row.sourceClass||'mako_resolution_value_review_transfer')}));",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "productionBlocked": { "type": "boolean" },
+        "safeNextGate": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMakoResolutionValueReviewIdentityGuardRows",
+      "method": "GET",
+      "path": "/api/dashboard/decision-readiness-matrix",
+      "queryString": "caseId=mrv-case-mauer-002&measureId=mrv-case-mauer-002&measureName=MaKo+M2C+Resolution+Value+Review&category=mako_m2c_resolution_value&owner=ROLE_MAKO_OWNER&nextDecisionPoint=human_review_gate&openEvidence=financial-partner-owner-evidence",
+      "parameters": [],
+      "transformer": "return [{rowKey:'mrv_identity_guard_role_workbench',renderTarget:'budibase:stadtwerk-mauer-workbench:mako-resolution-value-review-panel',roleTarget:'ROLE_MAKO_OWNER',operationId:'governance.roleWorkbenchProjection',operationPath:'/api/governance/role-workbench',invocation:'source_hint_only',authorizationStatus:'identity_forwarding_required',protectedReadCalled:false,status:'not_called',safeAlternative:'render_existing_read_only_dashboard_rows_until_741_user_bound_delegation_is_delivered',positiveFollowUp:'establish #741 user-bound delegation before any protected role-workbench read is attempted',sourceClass:'mako_resolution_value_review_identity_guard'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "operationId": { "type": "string" },
+        "operationPath": { "type": "string" },
+        "invocation": { "type": "string" },
+        "authorizationStatus": { "type": "string" },
+        "protectedReadCalled": { "type": "boolean" },
+        "status": { "type": "string" },
+        "safeAlternative": { "type": "string" },
+        "positiveFollowUp": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMakoResolutionValueReviewNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-mako-resolution-value-review-v1",
+      "parameters": [
+        { "name": "tenantId", "default": "stadtwerk-mauer" }
+      ],
+      "transformer": "const d=data.data||{}; const forbidden=Array.isArray(d.forbiddenActions)?d.forbiddenActions:[]; const notCalled=Array.isArray((d.sourceActions||{}).notCalled)?d.sourceActions.notCalled:[]; const staticBoundaries=['send_market_partner_reply','edifact_api_retry','mako_creation','a96_creation','mscons_creation','mako_dispatch','mako_write','approve_invoice','state_final_cashflow_amount','claim_final_revenue_without_evidence','change_master_data','sap_erp_write','billing','settlement','tariff_mutation','workflow_create','hitl_create','mail_send','webhook_call','external_connector_call','budibase_table_write','rundeck_execute','smgw_cls_device_control','landing_registry_publication','cernion_de_publication','public_context_mutation','production_mutation','secret_key_handling','wallet_operation','personal_agent_hardcoding']; const unique=[...new Set(forbidden.concat(notCalled).concat(staticBoundaries).map(String))]; return unique.map((action,index)=>({rowKey:'mrv_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:mako-resolution-value-review-panel',roleTarget:'ROLE_MAKO_OWNER',boundary:String(action),status:'not_called',safeAlternative:'render_existing_read_only_mako_resolution_value_review_rows_only',sourceClass:'mako_resolution_value_review_no_call_guard'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "boundary": { "type": "string" },
+        "status": { "type": "string" },
+        "safeAlternative": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
     }
   ],
   "sections": [
@@ -16166,6 +16422,78 @@
       "title": "Domain Case Routing Attention No-Call Guards",
       "queryName": "getDomainCaseRoutingAttentionNoCallRows",
       "tableTitle": "Event-not-polled boundary plus disabled continue/ack/link guards"
+    },
+    {
+      "id": "mako_resolution_value_review_selector",
+      "title": "MaKo/M2C Resolution Value Fallauswahl",
+      "queryName": "getMakoResolutionValueReviewSelectorRows",
+      "tableTitle": "Drei synthetische Faelle: Case-Klaerung, Finanz-/Partner-/Owner-Evidenz-Luecke (Standard), Qualitative Review/Human-Gate"
+    },
+    {
+      "id": "mako_resolution_value_review_case_message",
+      "title": "MaKo/M2C Case/Nachricht/Provenienz",
+      "queryName": "getMakoResolutionValueReviewCaseMessageRows",
+      "tableTitle": "Case-Scope sowie Nachrichten-/Prozess-Hinweise (caller-supplied, keine verifizierte Tatsache)"
+    },
+    {
+      "id": "mako_resolution_value_review_grounding",
+      "title": "MaKo/M2C Evidence Grounding",
+      "queryName": "getMakoResolutionValueReviewGroundingRows",
+      "tableTitle": "Vorhandene/angenommene/fehlende Provenienz und positive Klaerung"
+    },
+    {
+      "id": "mako_resolution_value_review_presentation",
+      "title": "MaKo/M2C Receipt-Grounded Presentation",
+      "queryName": "getMakoResolutionValueReviewPresentationRows",
+      "tableTitle": "Renderer-Status und Evidence-Pointer, niemals Rohdaten"
+    },
+    {
+      "id": "mako_resolution_value_review_resolution_value",
+      "title": "MaKo/M2C Qualitative Resolution Value",
+      "queryName": "getMakoResolutionValueReviewResolutionValueRows",
+      "tableTitle": "Qualitative Aussage und Forbidden-Claim-Grenze (kein Betrag, Score, Rang oder Kennzahl)"
+    },
+    {
+      "id": "mako_resolution_value_review_owner_deadline",
+      "title": "MaKo/M2C Owner/Frist-Evidenz",
+      "queryName": "getMakoResolutionValueReviewOwnerDeadlineRows",
+      "tableTitle": "Owner-Rolle, Faellig-/Evidenzstatus, blockierte Entscheidung und positive Klaerung"
+    },
+    {
+      "id": "mako_resolution_value_review_decision_gate",
+      "title": "MaKo/M2C Human-Review-Gate",
+      "queryName": "getMakoResolutionValueReviewDecisionGateRows",
+      "tableTitle": "Beschreibende Review-Bereitschaft ohne Score/Rang oder automatische Entscheidung"
+    },
+    {
+      "id": "mako_resolution_value_review_verify",
+      "title": "MaKo/M2C Blueprint Verify",
+      "queryName": "getMakoResolutionValueReviewVerifyRows",
+      "tableTitle": "Ausgewaehlter Fall und Blueprint-Pack Verifikation"
+    },
+    {
+      "id": "mako_resolution_value_review_matrix",
+      "title": "MaKo/M2C Resolution Value Matrix",
+      "queryName": "getMakoResolutionValueReviewMatrixRows",
+      "tableTitle": "Phase, V/D/M/I, Nachweise und Downstream Sync"
+    },
+    {
+      "id": "mako_resolution_value_review_transfer",
+      "title": "MaKo/M2C Transfer Readiness",
+      "queryName": "getMakoResolutionValueReviewTransferRows",
+      "tableTitle": "Public Context, synthetischer Seed, Sandbox-Artefakt und Sync-Kette"
+    },
+    {
+      "id": "mako_resolution_value_review_identity_guard",
+      "title": "MaKo/M2C Identity Guard (#741)",
+      "queryName": "getMakoResolutionValueReviewIdentityGuardRows",
+      "tableTitle": "Protected role-workbench read bleibt deaktiviert bis #741 geliefert ist"
+    },
+    {
+      "id": "mako_resolution_value_review_no_call",
+      "title": "MaKo/M2C No-Call Guards",
+      "queryName": "getMakoResolutionValueReviewNoCallRows",
+      "tableTitle": "Verbotene/Nicht aufgerufene Operationen"
     }
   ],
   "notes": [
@@ -16248,6 +16576,8 @@
     "Versandbatch Completion-Evidence Review panel (#517) is generated manifest composition, not a new Cernion endpoint, Versand-, Billing- or Workflow-Engine. It composes only the existing cross-channel-vnb-signal-queue, owner-deadline-evidence-gate, evidence-freshness-guard and automation-risk-gate read models for exactly three explicitly synthetic selector cases (release_ready_receipt_missing, manual_handover_owner_due_gap — default-selected, return_or_completion_evidence_stale); no new endpoint, alias, dashboard action/builder, service, persistence model, connector, import path, process command, scheduler, notification or second generic signal queue is introduced.",
     "Versandbatch Completion-Evidence Review rows stay scalar/generated and synthetic: Budibase renders batch/case-group id and explicitly synthetic source class, document version and release-evidence status, channel and shipment-status reference always as caller-supplied evidence rather than a verified delivery fact, manual handover state/owner role/due date, return/response freshness and snapshot-delta comparison, exception/missing-evidence/blocked-decision rows, a completion/receipt evidence pointer, an automation-risk summary rendered only as context, and positive human follow-up/next safe review gate rows. Missing or stale evidence always maps to clarification/human_review_required, never to automatic rejection, successful delivery, legal completion, billing correctness or settlement completion; no email/document sending, resend, delivery confirmation, billing, invoicing, posting, payment, settlement, MaKo, Redispatch dispatch, tariff/legal determination, mailbox/portal/ERP/CRM connector, customer contact, webhook, workflow/HITL/task creation, escalation, arbitrary Budibase table write, production data or Personal-Agent hardcoding is introduced.",
     "Domain Case Routing Attention panel (#599) is generated manifest composition, not a new Cernion endpoint or generic case service. It composes only the four named dashboard bricks (stadtwerk-mauer-workbench-selected-target, stadtwerk-mauer-case-detail, stadtwerk-mauer-case-actions, stadtwerk-mauer-role-workbench-catalog) plus the existing protected Domain Router explain and related-sessions.discover actions for exactly one explicitly synthetic case (cetCaseId cet-case-smm-budibase-workbench-001, linked Workbench case smm-budibase-workbench); no new backend endpoint, Capability Broker route or Hydration Registry rule is introduced.",
-    "Domain Case Routing Attention rows stay scalar/generated: Budibase renders the selected case identity, caseStateVersion, active domain, last routing decision (continue/reclassify/branch/clarify/handoff/fallback) and reason as advisory_reasoning, positively framed evidence/owner-gap rows (clarification or human_review_required, never an automatic negative conclusion), authorized related-case/session rows as evidence pointers only (never auto-linked from this panel), the responsible role family from the existing Role Workbench catalog, and an explicit event_attention_not_polled boundary row stating that GET /api/domain-router/events is never called from this panel because polling reconciles the case-event outbox and mutates pending events to delivered. continue, events.list, events.ack and related-sessions.link render only as disabled not_called guard rows with a safe alternative; no Budibase table write, workflow/HITL creation, external connector, MaKo/billing/settlement/tariff/device-control action, Personal-Agent hardcoding or production mutation is introduced."
+    "Domain Case Routing Attention rows stay scalar/generated: Budibase renders the selected case identity, caseStateVersion, active domain, last routing decision (continue/reclassify/branch/clarify/handoff/fallback) and reason as advisory_reasoning, positively framed evidence/owner-gap rows (clarification or human_review_required, never an automatic negative conclusion), authorized related-case/session rows as evidence pointers only (never auto-linked from this panel), the responsible role family from the existing Role Workbench catalog, and an explicit event_attention_not_polled boundary row stating that GET /api/domain-router/events is never called from this panel because polling reconciles the case-event outbox and mutates pending events to delivered. continue, events.list, events.ack and related-sessions.link render only as disabled not_called guard rows with a safe alternative; no Budibase table write, workflow/HITL creation, external connector, MaKo/billing/settlement/tariff/device-control action, Personal-Agent hardcoding or production mutation is introduced.",
+    "MaKo/M2C Resolution Value selected-case Workbench panel (#251) is generated manifest composition, not a new Cernion endpoint, MaKo engine, Capability Broker route, Hydration Registry rule, Sidecar formatter, Personal Agent, credential or identity workaround. It composes only the existing market-communication-evidence-chain, evidence-grounding-confidence-audit, receipt-grounded-presentation-contract, owner-deadline-evidence-gate, decision-readiness-matrix, stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the canonical stadtwerk-mauer-mako-resolution-value-review-v1 Blueprint-Pack seed and exactly three explicitly synthetic selector cases (context_clarification, financial_partner_owner_evidence_gap -- default-selected, qualitative_review_ready_human_gate); GET /api/governance/role-workbench is never called, includeMakoKnowledge and includeFederatedKnowledge stay false, and no #252, wallet/key material or production/Budibase-apply scope is introduced.",
+    "MaKo/M2C Resolution Value Review rows stay scalar/generated and synthetic: Budibase renders case/message/provenance evidence present-or-missing with hints labelled caller-supplied, financial/market-partner/owner evidence-gap status, a qualitative-only Resolution Value statement and forbidden-claim boundary with no EUR amount, score, rank or other quantitative/financial metric claim, owner/deadline evidence and descriptive human-review-gate readiness with no automatic decision, the reused canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend for stadtwerk-mauer-mako-resolution-value-review-v1, the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending, an identity guard row fixed to authorizationStatus=identity_forwarding_required/protectedReadCalled=false with a positive follow-up pending #741's user-bound delegation, and no-call guards covering market-partner messaging, EDIFACT/A96/MSCONS creation or dispatch, invoice approval, final cashflow/revenue claims, master-data/SAP/ERP writes, billing/settlement/tariff mutation, workflow/HITL/task creation, mail/webhook/connector calls, Rundeck execution, Budibase table writes, SMGW/CLS/device control, Landing-Registry/cernion.de publication, public-context/production mutation, secrets/wallet handling and Personal-Agent hardcoding. Missing evidence always maps to clarification or evidence_gap with a positive follow-up, never a negative business fact."
   ]
 }
