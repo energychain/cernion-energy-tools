@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — Dokumentfragen: Kontingentmeldung und begrenzte Gedächtnis-Extraktion
+
+- Ist das Tenant-Kontingent erschöpft, nennen Dokumentfragen das jetzt ausdrücklich (gleiche Meldung wie andere Pfade) statt der irreführenden Rückfallantwort „…lässt sich gerade nicht zuverlässig beantworten“.
+- Die Extraktion von Aussagen ins Teamgedächtnis aus Chat-Dokumenten ist auf `CET_DOCUMENT_MEMORY_MAX_SECTIONS` Abschnitte je Dokument begrenzt (Standard 50, `0` = unbegrenzt). Weitere Abschnitte bleiben im Dokumentwissen suchbar. Verhindert, dass große Dokumente das Tageskontingent aufbrauchen.
+
 ## Unreleased — Gemini: Antwortschema ohne `additionalProperties`
 
 - Der Gemini-Adapter entfernt `additionalProperties` aus der an den Provider gesendeten Kopie des `responseSchema`. Gemini lehnte solche Schemas mit HTTP 400 ab („Unknown name additionalProperties“), wodurch u. a. Dokumentfragen in Open WebUI stets mit „Aus den verfügbaren Dokumentabschnitten lässt sich diese Frage gerade nicht zuverlässig beantworten“ endeten. Die lokale Ajv-Validierung prüft weiterhin das vollständige Schema.
