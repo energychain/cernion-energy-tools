@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Projektakte: Relationsgraph (#886)
+
+- Review-Korrektur: Graph erst nach Abschluss aller empfangenden/strukturierenden Objekte, ohne erzwungene Neuberechnung; pro Akte koaleszierte Anforderungen mit höchstens einem laufenden Auftrag und einer Dirty-Markierung. Dokument-/Katalogzugriffe außerhalb der Mutationsgrenze, konsistenter SQL-Snapshot und erneute Versions-/Berechtigungsprüfung vor dem Schreiben.
+- Dokumenttexte werden nacheinander auf begrenzte beobachtete Anker reduziert; konfigurierbare Zeichen-/Ankerbudgets je Dokument und Lauf, Kürzungen im Checkpoint und Laufergebnis. Tests messen einen Lauf für 20 ZIP-Einträge bzw. reservierte Uploads und zwei Läufe bei 20 Anforderungen während einer laufenden Ableitung.
+
+- Geschützter, tenant-/aktengetrennter Relationsgraph in der vorhandenen Object-Store-Datenbank, mit Mango-Indizes, Batch-Schreiben und festen Volumen-/Arbeitsbudgets.
+- Deterministische Ableitung aus Strukturierung, read-only SQLite-Sketches, Zeitintervallen und normalisierten Ankern; kataloggestützte externe Beobachtungen ausschließlich über verifizierte Leseoperationen.
+- Begrenzte REST-/MCP-Leseaktionen, dauerhafte Kantenkorrekturen über die bestehende Lernschleife, Neustart-Wiederaufnahme und bestätigte Löschkaskade. Sollgraph-Prüfung für zwei synthetische Fachdomänen dokumentiert unter `docs/validation/886-projektakte-graph.md`.
+
 ## Unreleased — Kontingente: Env-Werte als Untergrenze
 
 - `QUOTA_LLM_TOKENS_PER_DAY`, `QUOTA_LLM_TOKENS_PER_MONTH`, `QUOTA_MAX_ASYNC_JOBS_PER_DAY` und `QUOTA_MAX_RAG_CHUNKS_PER_MONTH` gelten als Mindestwert je Tenant. Tenant-Konfiguration (`PUT /api/tenant-quota/tenants/:id/quotas`) kann ein Kontingent nur anheben, nicht senken.

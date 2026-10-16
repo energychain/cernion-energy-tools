@@ -61883,6 +61883,619 @@
         "x-agentable": false
       }
     },
+    "/api/project-graph/:projectId/nodes": {
+      "get": {
+        "operationId": "project-graph_nodes",
+        "summary": "Find visible project nodes by kind and label",
+        "tags": [
+          "Project graph"
+        ],
+        "responses": {
+          "200": {
+            "description": "Visible project graph; bounded traversal and provenance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "nodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "nodeId",
+                          "projectId",
+                          "kind",
+                          "ref",
+                          "labels",
+                          "attributes",
+                          "provenance",
+                          "derivation"
+                        ],
+                        "properties": {
+                          "nodeId": {
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "object",
+                              "dataset",
+                              "section",
+                              "entity",
+                              "skill",
+                              "external"
+                            ]
+                          },
+                          "ref": {},
+                          "labels": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "attributes": {
+                            "type": "object",
+                            "additionalProperties": true
+                          },
+                          "provenance": {
+                            "type": "object",
+                            "additionalProperties": true
+                          },
+                          "derivation": {
+                            "type": "object",
+                            "properties": {
+                              "version": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "edges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "edgeId",
+                          "projectId",
+                          "from",
+                          "to",
+                          "relation",
+                          "weight",
+                          "evidence",
+                          "origin",
+                          "derivation"
+                        ],
+                        "properties": {
+                          "edgeId": {
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "type": "string"
+                          },
+                          "from": {
+                            "type": "string"
+                          },
+                          "to": {
+                            "type": "string"
+                          },
+                          "relation": {
+                            "type": "string",
+                            "enum": [
+                              "contains",
+                              "derivedFrom",
+                              "describes",
+                              "sameEntity",
+                              "joinsOn",
+                              "timeAligned",
+                              "references",
+                              "answeredBy"
+                            ]
+                          },
+                          "weight": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": true
+                            }
+                          },
+                          "origin": {
+                            "type": "string",
+                            "enum": [
+                              "derived",
+                              "observed",
+                              "corrected"
+                            ]
+                          },
+                          "derivation": {
+                            "type": "object",
+                            "properties": {
+                              "version": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project or node absent or invisible"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "project-example"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "dataset"
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "node-example"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "example": 1
+            }
+          }
+        ],
+        "x-agentable": true
+      }
+    },
+    "/api/project-graph/:projectId/neighbors": {
+      "get": {
+        "operationId": "project-graph_neighbors",
+        "summary": "Read project neighbors with bounded depth",
+        "tags": [
+          "Project graph"
+        ],
+        "responses": {
+          "200": {
+            "description": "Visible project graph; bounded traversal and provenance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "nodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "nodeId",
+                          "projectId",
+                          "kind",
+                          "ref",
+                          "labels",
+                          "attributes",
+                          "provenance",
+                          "derivation"
+                        ],
+                        "properties": {
+                          "nodeId": {
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "object",
+                              "dataset",
+                              "section",
+                              "entity",
+                              "skill",
+                              "external"
+                            ]
+                          },
+                          "ref": {},
+                          "labels": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "attributes": {
+                            "type": "object",
+                            "additionalProperties": true
+                          },
+                          "provenance": {
+                            "type": "object",
+                            "additionalProperties": true
+                          },
+                          "derivation": {
+                            "type": "object",
+                            "properties": {
+                              "version": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "edges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "edgeId",
+                          "projectId",
+                          "from",
+                          "to",
+                          "relation",
+                          "weight",
+                          "evidence",
+                          "origin",
+                          "derivation"
+                        ],
+                        "properties": {
+                          "edgeId": {
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "type": "string"
+                          },
+                          "from": {
+                            "type": "string"
+                          },
+                          "to": {
+                            "type": "string"
+                          },
+                          "relation": {
+                            "type": "string",
+                            "enum": [
+                              "contains",
+                              "derivedFrom",
+                              "describes",
+                              "sameEntity",
+                              "joinsOn",
+                              "timeAligned",
+                              "references",
+                              "answeredBy"
+                            ]
+                          },
+                          "weight": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": true
+                            }
+                          },
+                          "origin": {
+                            "type": "string",
+                            "enum": [
+                              "derived",
+                              "observed",
+                              "corrected"
+                            ]
+                          },
+                          "derivation": {
+                            "type": "object",
+                            "properties": {
+                              "version": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project or node absent or invisible"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "project-example"
+            }
+          },
+          {
+            "name": "nodeId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "node-example"
+            }
+          },
+          {
+            "name": "relation",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "joinsOn"
+            }
+          },
+          {
+            "name": "depth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3,
+              "example": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "example": 1
+            }
+          }
+        ],
+        "x-agentable": true
+      }
+    },
+    "/api/project-graph/:projectId/resolve": {
+      "get": {
+        "operationId": "project-graph_resolve",
+        "summary": "Resolve project attributes through sameEntity and joinsOn",
+        "tags": [
+          "Project graph"
+        ],
+        "responses": {
+          "200": {
+            "description": "Visible project graph; bounded traversal and provenance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "nodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "nodeId",
+                          "projectId",
+                          "kind",
+                          "ref",
+                          "labels",
+                          "attributes",
+                          "provenance",
+                          "derivation"
+                        ],
+                        "properties": {
+                          "nodeId": {
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "object",
+                              "dataset",
+                              "section",
+                              "entity",
+                              "skill",
+                              "external"
+                            ]
+                          },
+                          "ref": {},
+                          "labels": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "attributes": {
+                            "type": "object",
+                            "additionalProperties": true
+                          },
+                          "provenance": {
+                            "type": "object",
+                            "additionalProperties": true
+                          },
+                          "derivation": {
+                            "type": "object",
+                            "properties": {
+                              "version": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "edges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "edgeId",
+                          "projectId",
+                          "from",
+                          "to",
+                          "relation",
+                          "weight",
+                          "evidence",
+                          "origin",
+                          "derivation"
+                        ],
+                        "properties": {
+                          "edgeId": {
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "type": "string"
+                          },
+                          "from": {
+                            "type": "string"
+                          },
+                          "to": {
+                            "type": "string"
+                          },
+                          "relation": {
+                            "type": "string",
+                            "enum": [
+                              "contains",
+                              "derivedFrom",
+                              "describes",
+                              "sameEntity",
+                              "joinsOn",
+                              "timeAligned",
+                              "references",
+                              "answeredBy"
+                            ]
+                          },
+                          "weight": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": true
+                            }
+                          },
+                          "origin": {
+                            "type": "string",
+                            "enum": [
+                              "derived",
+                              "observed",
+                              "corrected"
+                            ]
+                          },
+                          "derivation": {
+                            "type": "object",
+                            "properties": {
+                              "version": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project or node absent or invisible"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "project-example"
+            }
+          },
+          {
+            "name": "nodeId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "node-example"
+            }
+          },
+          {
+            "name": "depth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3,
+              "example": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "example": 1
+            }
+          }
+        ],
+        "x-agentable": true
+      }
+    },
     "/api/project-upload/start": {
       "post": {
         "operationId": "project-upload_start",

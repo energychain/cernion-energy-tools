@@ -592,3 +592,289 @@ und an Schreibbatchgrenzen RSS/HeapUsed, prüft feste Budgets von +256/+128 MiB 
 die bekannte Summe `N*(N+1)/2`. Der Test enthält ein Zeitfeld, damit auch der
 große Zeitqualitäts-/Abfragepfad geprüft wird. Messwerte und Checks stehen in
 `docs/validation/885-projektakte-struktur.md`.
+
+## Relationsgraph (#886)
+
+`project-graph` speichert Graphdokumente in **derselben** Object-Store-Datenbank.
+Es gibt keinen zusätzlichen PouchDB-Handle und keine Graphdatenbank. Die logische
+Akte bleibt `tenant:<t>:project_<id>`; die physische Ablage verwendet wie die
+vorangehenden geschützten Aktenadapter das nicht generisch adressierbare Präfix
+`project-graph:<encodeURIComponent(tenantId)>:<encodeURIComponent(projectId)>:`.
+Tenant-IDs werden nicht gehasht. `object-store.projectGraphRecord` ist geschützt,
+verlangt eine interne Symbol-Capability und erzwingt Tenant, Akte und `_id`-Bereich
+in **jeder** Mango-Abfrage. Zulässige Filter sind ausschließlich skalare Gleichheiten
+auf `kind`, `from`, `to`, `relation` und `recordType`; freie Mango-Selektoren werden
+nicht angenommen. Compound-Mango-Indizes bestehen auf Tenant/Akte plus jeweils
+`from`, `to`, `relation`, `kind`. Änderungen erfolgen über `bulkDocs` mit geprüftem
+Batch-Ergebnis. Generische Object-Store-Aktionen können den Präfix nicht adressieren.
+
+### Datenvertrag
+
+```js
+ProjectNode {
+  nodeId, projectId,
+  kind: 'object' | 'dataset' | 'section' | 'entity' | 'skill' | 'external',
+  ref, labels: [], attributes: {},
+  provenance: { objectId?, hash?, location? },
+  derivation: { version: '2' }
+}
+ProjectEdge {
+  edgeId, projectId, from, to,
+  relation: 'contains' | 'derivedFrom' | 'describes' | 'sameEntity' |
+            'joinsOn' | 'timeAligned' | 'references' | 'answeredBy',
+  weight, evidence: [], origin: 'derived' | 'observed' | 'corrected',
+  derivation: { version: '2' },
+  correctionId?, correctionRefs?, correction?: { kind, actorId, at, ... }
+}
+```
+
+Interne Dokumente tragen außerdem `tenantId`, `recordType` und PouchDB-Metadaten;
+diese Felder entfernt die Lese-API. IDs sind deterministisch aus Inhalts-/Referenz-
+und Relationsidentität, unabhängig von einer Tenant-Hashbildung. Datensatzknoten
+enthalten Schemaattribute, Zeitraum und Intervall; Entitätsknoten sind weiterhin
+belegte **Kandidaten**, keine nachträglich erfundenen Stammsätze. Ihre Referenz und
+Herkunft halten Objekt, Wert und Fundstelle einschließlich Blatt/Zeile/Spalte fest.
+Wiederholte Werte derselben Objekt-/Spalten- bzw. Abschnittsidentität bilden einen
+Entitätsknoten mit `occurrences` und höchstens 16 `sampleLocations`
+(gezählt innerhalb des Kandidatenbudgets, keine vollständige Tabellenhäufigkeit); eine wiederholte
+Messung erzeugt keine quadratische Menge gleichartiger Entitätskanten. Zeitkandidaten
+werden bereits in der SQL-Auswahl ausgelassen, da Zeitrelationen auf Datensatzsemantik beruhen.
+`skill` und `answeredBy` sind als Vertrag für spätere Ausbaustufen reserviert.
+Externe Knoten verwenden `references` und `origin: observed` an der Kante;
+`external` ist ein Knotentyp, keine zusätzliche fachliche Relation.
+
+### Ableitungsregeln und Gewichtung
+
+- `contains` vom Original zu Datensatz, Abschnitt und Kandidat sowie `derivedFrom`
+  in Gegenrichtung beruhen auf tatsächlicher Strukturierungsherkunft (Gewicht 1).
+- `joinsOn` verbindet unterschiedliche Datensätze anhand normalisierter Spaltenwerte,
+  gleicher Typen und Kardinalität. `tenant-memory-store.normalizeAnchor` normalisiert
+  auch diese Werte. Die SQL-Abfragen führen `COUNT(DISTINCT …)`, Gruppierung und
+  deterministische Bottom-k-Selektion nach SHA-256 **von Werten** in der
+  akteneigenen SQLite aus. Maximal 128 verschiedene Werte je Spalte gelangen als
+  Sketch in den Prozess; nicht alle Tabellenzeilen. Externe Stichproben behalten
+  zusätzlich den zugehörigen Originalwert. Herkunft nennt Spalten, Stichprobengrößen,
+  gemeinsame Anzahl, Kardinalitäten und ob die Stichprobe begrenzt wurde.
+- `timeAligned` verlangt einen tatsächlichen gemeinsamen Zeitraum und positive,
+  kompatible Intervalle: größeres/kleineres Intervall ist eine ganze Zahl ≤ 24.
+  Zeitüberdeckung zählt relativ zum kürzeren Zeitraum; Zeitspalten allein liefern
+  keine Join-Evidenz.
+- `describes` verbindet einen Abschnitt mit einem Datensatz nur bei übereinstimmendem
+  normalisiertem Kandidaten-/Sketchwert, passender Abschnittsfundstelle und
+  tatsächlichem Vorkommen des Ankers im separat autorisierten Abschnittstext.
+  `sameEntity` verbindet wertgleiche Kandidaten, wenn mindestens einer durch eine
+  tatsächliche Datensatzspalte belegt ist. Veraltete Kandidatenversionen werden ignoriert.
+
+Überlappung zählt höchstens 0,65, Typgleichheit 0,15, Kardinalitätskompatibilität
+0,15, Anker 0,9, Zeitüberdeckung 0,7, Intervall 0,2, Herkunft 1, Katalogmetadaten
+0,35 und beobachteter externer Treffer 0,6. Je Evidenzart zählt nur der stärkste
+Beitrag; wiederholte gleiche Evidenz kann das Gewicht nicht erhöhen. Summe ≤ 1.
+Die Schwelle ist standardmäßig **0,6**. Seltene gemeinsame Werte werden nach
+`log(1 + Spaltenzahl/Häufigkeit)` gewichtet, auf seltene paarweise Übereinstimmung
+normalisiert und auf 1 gedeckelt. Ab zehn Spalten liefern Werte in mindestens
+25 % der Spalten keine Überlappungsevidenz. Sind beide verglichenen Spalten
+zu höchstens 10 % verschieden (Distinktheit/Zeilenanzahl), wird die Überlappung
+zusätzlich mit 0,1 multipliziert; reine wiederholte Kategorien bleiben so unter
+der Schwelle, während der Join zu einem eindeutigen Verzeichnis möglich bleibt.
+Ankerbeiträge aus einer solchen wiederholten Spalte werden ebenfalls mit 0,1
+abgewertet, damit sie nicht über `sameEntity`/`describes` den Hubschutz umgehen. Das entspricht dem Prinzip aus dem
+Funktionsmodell (inverse Häufigkeit, Hub-Abwertung, Evidenzdeckel), nicht dessen
+fachlich unabhängigen absoluten Gewichten. Numerische und erkannte Zeitspalten
+sowie rein numerische oder sehr kurze Werte liefern keine Join-/Ankerkanten.
+Damit bleiben laufende Nummern und generische Zeit-/Statusspalten unter der Schwelle.
+
+Diese bewusste konservative Regel kann kurze oder rein numerische echte Schlüssel
+übersehen. Bottom-k und das Kandidatenbudget begrenzen ebenfalls Recall bei großen
+Akten. Das Sketch-Verfahren liefert deterministische Stichprobenevidenz, keinen
+Beweis einer vollständigen Fremdschlüsselbeziehung. Die Validierungswerte unten
+beziehen sich auf die eingecheckten kleinen Sollgraphen; keine universelle Qualitätszusage.
+
+Der Graph ruft **kein LLM** auf. Dadurch kann auch ein LLM-Ergebnis mit frei
+erfundenen Kanten keine Relation belegen. Die vorhandene Kandidatenbenennung darf
+weiter nur über `llm-client` mit Schema-/Profilmetadaten erfolgen. Graphstichproben
+und Zellwerte werden niemals in Prompts übergeben.
+
+### Katalogquellen und externe Stichproben
+
+`evidence-endpoint-catalog` stellt neben dem bestehenden Evidenzkatalog den additiven
+Metadatenkatalog `PROJECT_GRAPH_ENDPOINTS` aus `project-graph-endpoints.json` bereit.
+Vorhandene Evidenzeinträge ohne expliziten `graphLink` lösen keinen Aufruf aus.
+Die neutral arbeitende Verarbeitung kombiniert diese Daten mit `semantic-domains`
+und dem generierten Operation-Capability-Index. Ein Katalogeintrag kann angeben:
+
+```js
+{
+  id, action,
+  graphLink: {
+    catalogField?, // verweist auf semantic-domains.<domain>.fieldProfiles.<field>
+    keyFields: [], formats?: [], pattern?, oeoClasses?: [],
+    parameter, defaults?: {}, resultPath, resultField
+  }
+}
+```
+
+Feldaliase/Schlüsselfeldname, Format, katalogdefiniertes Muster oder eine gemeinsame
+OEO-Klasse der Spalte müssen passen. OEMetadata-/OEO-Klassifikationen können über
+`format` und `oeoClasses` an Spalten sowie `formats`/`oeoClasses` an Katalogeinträgen
+angegeben werden; der Kern kennt keine fachlichen Klassen, Muster oder Quellennamen.
+Die vorhandenen Katalogmetadaten enthalten noch nicht für jede Quelle solche Angaben.
+Neue Quellen brauchen geeignete Metadaten, keine Änderung der Ableitungslogik.
+Der initiale produktive Metadateneintrag verweist auf `assets.effective` und den
+vorhandenen semantischen Schlüsselprofilvertrag; zwei voneinander unabhängige
+Fixture-Endpunkte prüfen denselben generischen Pfad mit anderen Parametern/Antwortformen.
+
+Vor **jedem** Aufruf muss die Operation im Index `consequenceLevel: 'none'`,
+`sideEffects: []` und `writesTo: []` deklarieren. Ein HTTP-GET allein genügt nicht.
+Aufrufe prüfen zusätzlich die vorhandene `assertReadObservation`-Policy (Scopes,
+Rollen und katalogbasierte Governance) sowie vorgegebene `domainsAllowed`. Sie führen
+den authentifizierten Principal weiter, entfernen interne
+Symbol-Capabilities und setzen `tenantId` abschließend auf den autorisierten Tenant.
+Je Lauf sind höchstens 12 Aufrufe mit höchstens drei unterschiedlichen Sketchwerten
+je Spalten-/Quellenpaar erlaubt, jeweils 1500 ms Timeout. Nur eine Antwort mit
+exakt normalisiert passendem `resultField` in höchstens 100 geprüften Antwortzeilen
+zählt als Treffer. Fehler, fehlende Berechtigung, Timeout, leere oder fachfremde
+Antworten erzeugen keine Kante. Weder ein Trefferzähler noch LLM-Ausgaben genügen.
+Das Budget zählt auch fehlgeschlagene Versuche. Eine externe Kante hat beide
+Evidenzarten (Metadaten + beobachteter Treffer). Fehlende Quellenberechtigung wird
+nicht durch eine interne Worker-Rolle erweitert.
+
+### Auslöser, Wiederaufnahme und Korrekturen
+
+Nach Abschluss von Ingest/Strukturierung prüft `project-upload.settleLifecycle`
+alle Aktenobjekte. Solange ein Objekt noch empfangen wird, queued/processing ist
+oder seine Strukturierung pending/processing ist, wird keine Ableitung angefordert.
+Das gilt auch für den noch laufenden ZIP-Elternjob. Erst das letzte abgeschlossene
+Objekt fordert einen Lauf ohne `force` an. Reservierte Mehrfachuploads sollten vor
+dem Abschluss des ersten Uploads angelegt werden; später neu begonnene, unabhängige
+Uploads bilden einen neuen Abschluss. Die Strukturierung ruft den Graph nicht pro
+Objekt auf. Graphfehler beschädigen keine Originale oder erfolgreichen Strukturierungen.
+
+`project-graph.request` quittiert nur das Einreihen; Uploadjobs warten nicht auf die
+Graphberechnung. Je Tenant/Akte gibt es höchstens einen laufenden Auftrag und eine
+Dirty-Markierung für einen Folgelauf. Beliebig viele Anforderungen während eines
+Laufs belegen damit keinen weiteren Warteschlangenplatz. Ein unveränderter Checkpoint
+überspringt die vollständige Berechnung. Es gibt keinen zusätzlichen Timer.
+
+Die Akten-Mutationsgrenze schützt zwei Phasen: Zuerst werden Metadaten und begrenzte
+SQL-Sketches/Kandidaten konsistent übernommen, Cleanup registriert und ein dauerhafter
+Pending-Checkpoint geschrieben. Der read-only SQLite-Handle wird anschließend
+geschlossen. Dokumenttexte werden **nacheinander außerhalb der Mutationsgrenze**
+autorisiert gelesen; nur beobachtete, zur Fundstelle und Quellversion passende
+Kandidatenanker bleiben erhalten. Volltext und normalisierte Textkopie werden nach
+jedem Dokument verworfen. Ankerzahl und Summe ihrer normalisierten Zeichen sind pro
+Dokument/Abschnitt und pro Lauf begrenzt. Überschüssige Anker werden ausgelassen;
+Herkunftsrelationen und Originaltexte im Dokumentwissen bleiben erhalten.
+
+Gewichtung und externe Beobachtungen laufen ebenfalls außerhalb der Mutationsgrenze.
+Vor dem Schreiben werden unter einer neuen Grenze Sichtbarkeit, Mitgliedschaft,
+Clearance, Archivierung/Löschung und die vollständige Quell-/Konfigurationsversion
+erneut geprüft. Ein inzwischen veränderter Snapshot wird verworfen und koalesziert
+neu berechnet; bei noch laufenden Quellen wartet die Ableitung auf deren Abschluss.
+Eine inzwischen gelöschte Akte kann nicht wiederangelegt werden. Aktuelle
+Kantenkorrekturen werden erst in dieser Schreibphase übernommen. Dadurch blockieren
+Dokumentzugriffe und externe Timeouts keine Uploads; nur der konsistente SQL-Snapshot
+und die atomar serialisierte Veröffentlichung benötigen die Aktenqueue. Synchrone
+SQLite-Scans bleiben Arbeit des einzelnen Brokerprozesses, ohne Thread-Auslagerung.
+
+Die Strukturierungs-Wiederaufnahme wartet nicht auf den noch startenden Graphdienst;
+dessen eigener Startup-Scan übernimmt anschließend die fertigen Quellen.
+Beim Dienststart scannt `projectGraphSources` dauerhafte abgeschlossene Originale,
+übernimmt Actor-/Tenant-Herkunft und aktuelle Clearance und prüft die Berechtigung
+erneut. Der Worker besitzt keine persistierten Credentials. Die flüchtige Dirty-Queue
+muss nicht persistiert werden: Quellen und Pending-Checkpoint liegen dauerhaft vor.
+Der Checkpoint vergleicht Quellenstatus, Hashes/-versionen, Ableitungsversion, Budgets
+und Katalog-/Operationsmetadaten. Ein interner `run({ projectId, force: true })`
+kann externe Beobachtungen ausdrücklich wiederholen; der Ingest setzt dieses Flag nie.
+
+Ein vollständiger Checkpoint entsteht erst nach allen Graphbatches und aktualisierten
+Aktenstatistiken. `bulkDocs` ist keine verteilte Transaktion; teilweise geschriebene
+Batches können bis zur Wiederholung existieren. Die Lese-API liefert während Pending
+503 statt Teiltreffern. `project.graph.changed.v1` meldet nach Erfolg
+`{ tenantId, projectId, nodes, edges, version: '2' }` mit Bestandszählern.
+Der abgeschlossene State und das interne Laufergebnis enthalten `anchors` mit
+`documents`, `retained`, `chars`, `skipped`, `truncatedDocuments`, `truncated`.
+`skipped` zählt tatsächlich beobachtete, wegen Budgets ausgelassene Anker je Dokument;
+Mehrfachnennungen desselben normalisierten Werts im Dokument zählen einmal.
+
+Die bestehende Lernschleife akzeptiert `target: 'projectEdge'`:
+
+```js
+ctx.call('shared-service-learning.apply', {
+  target: 'projectEdge',
+  correction: { projectId, edgeId, kind: 'confirm' | 'reject' | 'weight', weight? }
+})
+```
+
+Der tatsächliche Brokername ist `shared-service-learning.apply`; dessen bestehende
+Adminprüfung und reguläre Gateway-Schreibrolle bleiben unverändert. `confirm`
+setzt Gewicht 1, `reject` Gewicht 0, `weight` einen Wert im Bereich 0…1. Die bestätigte
+Änderung wird im vorhandenen Korrekturaudit und auf der Kante mit `origin: corrected`
+persistiert; danach folgt `shared-service.correction.v1`. Die geschützte Graphaktion
+prüft Tenant, Actor und aktuelle Aktenmutierbarkeit. Direkte Eventzustellung ist
+idempotent; ältere Zeitstempel und die letzten 64 Korrektur-IDs schützen vor Replay.
+Neuberechnung erhält korrigierte Kanten samt referenzierten Knoten, auch verworfene
+Kanten als dauerhafte Sperre. Diese konservativ erhaltenen Referenzen sind kein
+Nachweis, dass eine alte Quelle noch für aktuelle Tabellenabfragen geeignet ist.
+Eine weitere explizite Korrektur kann die Entscheidung ändern. Undo verlangt für
+Graphkanten eine neue Korrektur; die vorhandene Funktions-Undo-Logik wird nicht verwendet.
+Das Funktionsjournal ignoriert den neuen Zieltyp; dessen Audit bleibt in der Lernschleife.
+
+### Lese-API und Löschung
+
+| Aktion | REST unter `/api/project-graph` | Filter/Ergebnis |
+| --- | --- | --- |
+| `nodes` | `GET /:projectId/nodes` | `kind?`, `label?` (normalisierte Teilzeichenfolge), `limit?` |
+| `neighbors` | `GET /:projectId/neighbors` | `nodeId`, `relation?`, `depth?` ≤ 3, `limit?` |
+| `resolve` | `GET /:projectId/resolve` | `nodeId`, `depth?` ≤ 3, `limit?`; nur `sameEntity`/`joinsOn` |
+
+Alle liefern `{ nodes, edges, truncated }`, Standardlimit 100, maximal 1000.
+Traversierung behandelt Kanten in beiden Richtungen, behält die ursprüngliche
+Kantenrichtung im Ergebnis und besucht Knoten höchstens einmal. Verworfene bzw.
+unter der aktuellen Schwelle liegende Kanten werden nicht traversiert. `resolve`
+liefert belegte Schema-/Kandidatenattribute und Join-Evidenz; es führt keine Tabellen-
+abfrage aus. #887/#888 können daraus geprüfte Referenzen übernehmen und müssen
+Objekt-/Datasetversion sowie Tabelle/Spalte vor jeder SQLite-Abfrage erneut autorisieren.
+
+Die drei Aktionen sind `x-agentable` und über die regulären MCP-Meta-Lesewerkzeuge
+erreichbar. Alle Mutationen und Speicheraktionen bleiben geschützt, ohne REST-Alias.
+Es gibt **keine** Ausnahme in `api.service.js` für Schreibrollen. Jede Leseaktion
+prüft aktuelle Mitgliedschaft, Tenant und vereinigte Clearance. Archivierte Akten
+und Akten mit Löschmarkierung liefern **keine Graph-Lesetreffer** und keine Ableitung;
+die generelle Aktenmetadaten-API aus #883 bleibt davon unabhängig.
+
+Die Komponente `graph` registriert konservativ die aktuelle Akten-Clearance sowie
+`stats { nodes, edges }` und `project-graph.deleteProject`. Der bestätigte Handler
+akzeptiert `{ version: 1, tenantId, projectId }`, entfernt alle Dokumente des
+Graphpräfixes in Batches und bestätigt `{ deleted: true }`. Er benötigt weder
+Originalmetadaten noch SQLite, funktioniert unabhängig von der Handlerreihenfolge
+und bleibt auch bei Wiederholung sowie nach nachträglich gesenkten Limits vollständig.
+
+### Graphlimits
+
+Alle Ganzzahllimits sind positiv; Schwelle ist > 0 und ≤ 1. Die Überschreitung
+von Graph-/SQL-Volumenlimits bricht die Ableitung mit wiederholbarem Fehler ab.
+Ankerbudgets begrenzen dagegen die Evidenzmenge und werden im abgeschlossenen
+State/Laufergebnis ausdrücklich als Kürzung ausgewiesen. Ein Lauf rekonstruiert die Akte und hält deshalb
+dieselben Standardbudgets wie der gesamte Graph. Laufbudgets können niedriger sein;
+entsprechend größere Akten benötigen eine bewusste Anhebung für Neuberechnung.
+
+| Variable unter `CET_PROJECT_GRAPH_` | Standard | Bedeutung |
+| --- | --- | --- |
+| `MAX_NODES` / `MAX_EDGES` | 10000 / 30000 | persistierter Bestand je Akte einschließlich Korrekturen |
+| `RUN_MAX_NODES` / `RUN_MAX_EDGES` | 10000 / 30000 | maximale Ausgabe einer Neuberechnung |
+| `THRESHOLD` | 0.6 | Mindestgewicht automatisch gespeicherter/traversierter Kanten |
+| `SKETCH_VALUES` | 128 | verschiedene Werte je Spalte, SQLite Bottom-k |
+| `MAX_COLUMNS` | 512 | gesamte geprüfte Spalten je Akte/Lauf |
+| `MAX_PAIRS` | 20000 | Spalten-, Zeit-, Anker-/Kandidatenvergleiche |
+| `MAX_CANDIDATES` | 10000 | gelesene Kandidaten je Akte/Lauf |
+| `DOCUMENT_MAX_ANCHORS` / `RUN_MAX_ANCHORS` | 256 / 10000 | gespeicherte Anker je Dokument bzw. insgesamt im Lauf |
+| `DOCUMENT_MAX_ANCHOR_CHARS` / `RUN_MAX_ANCHOR_CHARS` | 16000 / 640000 | Summe normalisierter Ankerzeichen je Dokument bzw. Lauf |
+| `EXTERNAL_CALLS` / `EXTERNAL_SAMPLES` | 12 / 3 | Aufrufbudget je Lauf / Werte je Paar |
+| `EXTERNAL_TIMEOUT_MS` | 1500 | Timeout je beobachtendem Aufruf |
+| `BATCH_DOCS` | 500 | Dokumente pro Object-Store-Batch |
+
+Die SQL-Arbeit ist hinsichtlich geladener Zeilen begrenzt, kann bei großen Tabellen
+aber Scans und temporäre SQLite-Sortierung erfordern. Ein einzelner Brokerprozess
+serialisiert Snapshot und Veröffentlichung mit Aktenmutationen; die übrige Ableitung
+läuft außerhalb dieser Grenze. Multi-Prozess-Locks folgen nicht hier.
+Qualitäts- und Sicherheitsprüfungen stehen in `docs/validation/886-projektakte-graph.md`.

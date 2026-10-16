@@ -15,6 +15,20 @@ function correctionPrincipal(event, meta) {
   return p;
 }
 function validateCorrection(input, model) {
+  if (input.target === 'projectEdge') {
+    const c = input.correction;
+    if (
+      !c ||
+      Object.keys(c).some((key) => !['projectId', 'edgeId', 'kind', 'weight'].includes(key)) ||
+      !['projectId', 'edgeId'].every(
+        (key) => typeof c[key] === 'string' && c[key].length > 0 && c[key].length <= 200
+      ) ||
+      !['confirm', 'reject', 'weight'].includes(c.kind) ||
+      (c.kind === 'weight' && (!Number.isFinite(c.weight) || c.weight < 0 || c.weight > 1))
+    )
+      deny('Invalid project edge correction');
+    return { ...c };
+  }
   const allowed = {
     coverage: ['functionId', 'score'],
     activation: ['functionId', 'cet'],
