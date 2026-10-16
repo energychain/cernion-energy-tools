@@ -2,7 +2,7 @@
 
 ## Unreleased — Tabellen: durchgehend leere Spalten nicht als Beschädigung werten
 
-- Spalten, die in keiner Zeile einen Wert haben (typisch für breite Stammdaten-Exporte), werden beim Einlesen entfernt und zählen nicht mehr gegen `WORKBENCH_DATASET_MAX_EMPTY_RATIO`. Bisher wurde z. B. ein Anlagen-Export mit 7.301 Zeilen und 26 leeren von 46 Spalten als „beschädigt oder unplausibel“ abgewiesen. Die Ablagebestätigung nennt die Anzahl nicht übernommener leerer Spalten. Tatsächlich lückenhafte, befüllte Spalten werden weiterhin abgewiesen.
+- Ab `WORKBENCH_DATASET_EMPTY_COLUMN_MIN_ROWS` Zeilen (Standard 10) zählen Spalten, die in keiner Zeile einen Wert haben (typisch für breite Exporte), nicht mehr gegen `WORKBENCH_DATASET_MAX_EMPTY_RATIO`. Bisher wurde z. B. ein Anlagen-Export mit 7.301 Zeilen und 26 leeren von 46 Spalten als „beschädigt oder unplausibel“ abgewiesen. Die Spalten bleiben erhalten (Fragen danach nennen weiterhin die konkrete Ursache), die Ablagebestätigung nennt ihre Anzahl. Kleine Tabellen, lückenhafte befüllte Spalten und Tabellen mit nur einer befüllten Spalte werden weiterhin abgewiesen.
 
 ## Unreleased — Gemini: Antwortschema ohne `additionalProperties`
 

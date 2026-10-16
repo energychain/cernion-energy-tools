@@ -326,7 +326,7 @@ module.exports = {
         records.push(record);
         ids.push(id);
         confirmations.push(
-          `Hab ich abgelegt: ${record.title}, Version ${record.version}, ${record.period.from || 'Zeitraum ungeklärt'} bis ${record.period.to || 'ungeklärt'}, ${record.rowCount.toLocaleString('de-DE')} Werte, ${record.quality.missingValues} leere Werte und ${times.gaps} fehlende Intervalle, ${times.intervalMinutes || 'ungeklärtes'}-min-Raster${Object.values(semantic.units).filter(Boolean).length ? ' in ' + [...new Set(Object.values(semantic.units).filter(Boolean))].join(', ') : '; Einheit ungeklärt'}. ${semantic.assumptions.join(' ')}${table.droppedEmptyColumns?.length ? ` ${table.droppedEmptyColumns.length} durchgehend leere Spalten habe ich nicht übernommen.` : ''}`
+          `Hab ich abgelegt: ${record.title}, Version ${record.version}, ${record.period.from || 'Zeitraum ungeklärt'} bis ${record.period.to || 'ungeklärt'}, ${record.rowCount.toLocaleString('de-DE')} Werte, ${record.quality.missingValues} leere Werte und ${times.gaps} fehlende Intervalle, ${times.intervalMinutes || 'ungeklärtes'}-min-Raster${Object.values(semantic.units).filter(Boolean).length ? ' in ' + [...new Set(Object.values(semantic.units).filter(Boolean))].join(', ') : '; Einheit ungeklärt'}. ${semantic.assumptions.join(' ')}${table.emptyColumns?.length ? ` ${table.emptyColumns.length} Spalten sind durchgehend leer und für Auswertungen nicht nutzbar.` : ''}`
         );
       }
       const deletedReference = replayed.find(

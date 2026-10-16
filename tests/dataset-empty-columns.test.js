@@ -2,7 +2,7 @@
 
 const { parseDatasetText, datasetPlausibility } = require('../src/dataset-input');
 
-// Synthetic wide export: three filled columns and five columns that are empty in every row.
+// Synthetic wide export: three filled columns, four columns empty in every row, one sparse column.
 function wideExport(rows = 40) {
   const header = [
     'Kennung',
@@ -24,18 +24,20 @@ function wideExport(rows = 40) {
   return lines.join('\n');
 }
 
-test('columns empty in every row are dropped instead of rejecting the table as damaged', () => {
+test('larger tables with columns empty in every row are accepted, not rejected as damaged', () => {
   const [table] = parseDatasetText(wideExport(), 'Export');
   expect(table).toBeDefined();
-  expect(table.droppedEmptyColumns).toEqual(['Leer A', 'Leer B', 'Leer C', 'Leer D']);
-  expect(table.profile.columns.map((column) => column.name).sort()).toEqual(
-    ['Kennung', 'Leistung kW', 'Teilweise', 'Typ'].sort()
-  );
-  expect(Object.keys(table.rows[0])).not.toContain('Leer A');
+  expect(table.emptyColumns).toEqual(['Leer A', 'Leer B', 'Leer C', 'Leer D']);
+  // Columns are kept so a question about an empty column still gets its concrete cause.
+  expect(table.profile.columns).toHaveLength(8);
   expect(datasetPlausibility(table, table.rows)).toBeNull();
 });
 
-test('genuinely sparse filled columns are still rejected above the empty-value threshold', () => {
+test('tiny tables keep the strict empty-value rule', () => {
+  expect(() => parseDatasetText(wideExport(3), 'Klein')).toThrow(/beschädigt oder unplausibel/);
+});
+
+test('genuinely sparse filled columns are still rejected above the threshold', () => {
   const header = ['Kennung', 'A', 'B', 'C'];
   const lines = [header.join(';')];
   for (let i = 0; i < 40; i += 1)
@@ -43,10 +45,15 @@ test('genuinely sparse filled columns are still rejected above the empty-value t
   expect(() => parseDatasetText(lines.join('\n'), 'Sparse')).toThrow(/beschädigt oder unplausibel/);
 });
 
-test('tables without empty columns are unchanged and carry no drop note', () => {
+test('a table whose only filled column is the identifier stays rejected', () => {
+  const lines = ['Kennung;A;B'];
+  for (let i = 0; i < 40; i += 1) lines.push(`ID${i};;`);
+  expect(() => parseDatasetText(lines.join('\n'), 'Leer')).toThrow(/beschädigt oder unplausibel/);
+});
+
+test('tables without empty columns carry no empty-column note', () => {
   const lines = ['Kennung;Wert'];
   for (let i = 0; i < 10; i += 1) lines.push(`ID${i};${i}`);
   const [table] = parseDatasetText(lines.join('\n'), 'Klein');
-  expect(table.droppedEmptyColumns).toBeUndefined();
-  expect(table.profile.columns).toHaveLength(2);
+  expect(table.emptyColumns).toBeUndefined();
 });
