@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-16T02:52:48.507Z",
+  "generatedAt": "2026-10-16T08:56:43.848Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261016T025135Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261016T085531Z",
   "counts": {
-    "files": 2001,
-    "candidateFiles": 1187,
-    "services": 161,
-    "srcFiles": 456,
-    "docs": 526,
+    "files": 2030,
+    "candidateFiles": 1205,
+    "services": 163,
+    "srcFiles": 470,
+    "docs": 528,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -32,7 +32,7 @@
     "grid-and-connection": {
       "label": "Netz, Anschluss und Kapazität",
       "files": 25,
-      "services": 47,
+      "services": 48,
       "hits": 11012
     },
     "forecast-and-market": {
@@ -56,7 +56,7 @@
     "tenant-and-operation": {
       "label": "Tenant, Rollen und Betrieb",
       "files": 25,
-      "services": 51,
+      "services": 52,
       "hits": 9285
     },
     "openwebui-agentic-routing": {
@@ -552,5 +552,5 @@
       "hits": 266
     }
   ],
-  "fingerprint": "35150fd8566ebc3a6afdb3adfd690e5f2bad75dc8400854ecbcab971ba2b0b2a"
+  "fingerprint": "c4cacd95ac1b0f61bb8a7d46e171623a73d62f13c947c3e077aaecdb662e4f4f"
 }

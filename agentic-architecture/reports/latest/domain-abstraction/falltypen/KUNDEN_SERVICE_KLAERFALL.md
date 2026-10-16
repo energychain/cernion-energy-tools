@@ -1,6 +1,6 @@
 # Kunden-/Service-Klärfall
 
-Generated: 2026-10-16T02:52:48.507Z
+Generated: 2026-10-16T08:56:43.848Z
 
 Status: routable
 Priority: 3
@@ -143,7 +143,7 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 - `docs/validation/practice-evaluation-baseline-corrected.json` (149 hits)
 - `docs/validation/practice-evaluation-baseline.md` (147 hits)
 - `feedback/HYGIENE_SPRINT.md` (145 hits)
-- `function-model.report.md` (143 hits)
+- `function-model.report.md` (145 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (142 hits)
 - `docs/v0.58-architecture/lagebild/tranche_c.md` (136 hits)
 - `src/cookbook-recipes.js` (129 hits)
