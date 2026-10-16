@@ -1,16 +1,16 @@
 # Shepherd Summary
 
-Generated: 2026-10-16T15:00:22.926Z
-Run: 20261016T145903Z
-Branch: shepherd/runtime-refactor-20261016T145903Z
-Fingerprint: 38635635b68c991b020bdb119f3655410d4117d5a2a194c509850850eb56d94f
+Generated: 2026-10-16T21:04:46.321Z
+Run: 20261016T210347Z
+Branch: shepherd/runtime-refactor-20261016T210347Z
+Fingerprint: 3ca9a766273440867325198c758fb47014d9571ec647584244bb99e3b962dada
 
 ## Current measurable surface
 
-- Files: 2030
+- Files: 2032
 - Services: 163
 - src JS files: 404
-- Tests: 506
+- Tests: 508
 - Agentic files: 274
 - OpenWebUI/ChatGPT files: 37
 - Evidence/HITL files: 75
@@ -27,7 +27,7 @@ Fingerprint: 38635635b68c991b020bdb119f3655410d4117d5a2a194c509850850eb56d94f
 
 ## Top directories
 
-- `tests`: 577 files
+- `tests`: 579 files
 - `src`: 472 files
 - `docs`: 401 files
 - `services`: 199 files
@@ -51,7 +51,7 @@ Fingerprint: 38635635b68c991b020bdb119f3655410d4117d5a2a194c509850850eb56d94f
 ## Domain abstraction
 
 - Domain abstraction: present
-- Domain fingerprint: c4cacd95ac1b0f61bb8a7d46e171623a73d62f13c947c3e077aaecdb662e4f4f
+- Domain fingerprint: 5dbba12db93a82cc54f9a85b661e256a6a0a77281f3b2ff794259bf37eb79611
 - Candidate files: 1205
 - Unclassified services: 0
 

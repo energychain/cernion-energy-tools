@@ -1,11 +1,11 @@
 # Domain Abstraction Report
 
-Generated: 2026-10-16T15:00:22.849Z
+Generated: 2026-10-16T21:04:46.264Z
 
 - Candidate files scanned: 1205
 - Services classified: 163
 - Unclassified services: 0
-- Fingerprint: c4cacd95ac1b0f61bb8a7d46e171623a73d62f13c947c3e077aaecdb662e4f4f
+- Fingerprint: 5dbba12db93a82cc54f9a85b661e256a6a0a77281f3b2ff794259bf37eb79611
 
 ## Cluster counts
 

@@ -1,6 +1,6 @@
 # Redispatch-/Steuerbarkeits-Readiness
 
-Generated: 2026-10-16T15:00:22.849Z
+Generated: 2026-10-16T21:04:46.264Z
 
 Status: observed
 Priority: 6
