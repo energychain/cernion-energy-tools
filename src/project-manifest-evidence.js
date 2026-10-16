@@ -346,7 +346,11 @@ async function projectManifestAnswer(ctx, question, options = {}) {
   const settings = ctx.broker.getLocalService('project-manifest').settings;
   options = { catalog: settings.catalog, operations: settings.operations, ...options };
   const candidates = await require('./evidence-endpoint-catalog').projectEvidenceCandidates(ctx);
-  const selected = require('./dataset-routing').selectProjectCandidates(candidates, question)[0];
+  const selected = require('./dataset-routing').selectProjectCandidates(candidates, question, {
+    ...settings.routing,
+    ...options.routing,
+    onAssessment: options.onAssessment,
+  })[0];
   if (!selected) return null;
   const result = await readProjectEvidence(ctx, selected, question, options);
   if (!result) return null;

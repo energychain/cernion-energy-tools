@@ -197,6 +197,16 @@ async function runPracticeEvaluation({
               expectation: turn.expect.description,
               checks,
               responseExcerpt: excerpt(reply.responseText),
+              ...(fixture.projectFixtures?.length
+                ? {
+                    projectRouting: reply.metadata?.projectRouting || {
+                      bestProjectId: null,
+                      score: 0,
+                      margin: 0,
+                      reason: 'not_evaluated',
+                    },
+                  }
+                : {}),
               evaluationError: reply.evaluationError || null,
               elapsedMs: Date.now() - start,
             });

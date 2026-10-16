@@ -42,7 +42,11 @@ const openapi = (summary, list = false) => ({
 module.exports = {
   name: 'project-manifest',
   dependencies: ['object-store', 'project-file', 'project-graph'],
-  settings: { catalog: null, operations: null },
+  settings: {
+    catalog: null,
+    operations: null,
+    routing: { minScore: 0.75, minMargin: 0.15, minSubjectCoverage: 1, minContentCoverage: 0.5 },
+  },
   actions: {
     get: {
       rest: 'GET /:projectId',
@@ -61,6 +65,7 @@ module.exports = {
       async handler(ctx) {
         const projects = await ctx.call('project-file.list', { routingOnly: true });
         const candidates = [];
+        let datasets;
         for (const record of projects.filter((entry) =>
           ['ready', 'degraded'].includes(entry.lifecycle)
         )) {
@@ -69,14 +74,23 @@ module.exports = {
           });
           try {
             const current = await this.current(safe);
-            if (current)
+            if (current) {
+              datasets ||= ctx.broker.getLocalService('datapoint')
+                ? await ctx.call('datapoint.datasetCatalog', { operation: 'list' })
+                : [];
               candidates.push({
                 id: `project:${record.projectId}`,
                 title: record.title,
                 projectId: record.projectId,
                 manifest: publicManifest(current.manifest),
                 corrections: current.corrections,
+                routingSources: require('../src/project-manifest-metadata').projectRoutingSources(
+                  current.graph,
+                  datasets,
+                  record.projectId
+                ),
               });
+            }
           } catch (error) {
             if (![404, 503].includes(error.code)) throw error;
           }
@@ -208,7 +222,8 @@ module.exports = {
     },
     async current(ctx) {
       await this.active(ctx);
-      const version = manifest.graphVersion(await this.graphRecords(ctx));
+      const graph = await this.graphRecords(ctx);
+      const version = manifest.graphVersion(graph);
       if (!version) return null;
       const records = await this.record(ctx, 'list');
       const current = records
@@ -217,6 +232,7 @@ module.exports = {
       if (!current) return null;
       return {
         manifest: current,
+        graph: graph.filter((row) => row.recordType === 'node'),
         corrections: records
           .filter(
             (row) => row.key.startsWith('correction:') && row.actorId === principal(ctx).actorId

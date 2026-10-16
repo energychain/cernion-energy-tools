@@ -3,6 +3,115 @@
 Stand: 16.10.2026. Branch: `feat/887-projektakte-manifest`.
 Keine Live-Modellaufrufe, kein `release:practice`, kein Push oder PR.
 Alle neuen Modelltests verwenden einen Stub für `src/llm-client.js`.
+Der von der aufrufenden Session bereitgestellte
+[Live-Bericht](practice-evaluation-887-live-1.md) wird unverändert mitgeführt;
+dieser Live-Lauf wurde nicht vom implementierenden Agenten ausgeführt.
+
+## Fix nach Live-Praxislauf auf `c1fcebfc`
+
+### Diagnose (a): Reihenfolge im vollständigen Turn
+
+Reproduktion vor der Korrektur über die echte `workbench.chat`-Action mit Upload,
+Strukturierung, Graph, Manifestdienst, Datasetdienst, Gedächtnis, Domain Router und
+Workbench. Stub ausschließlich an der zentralen LLM-Fassade, nicht an Chat-Action,
+Verstehen, Auswahl oder Lesepfad. Das Verstehen liefert `knowledge` bzw. `work`
+und eine blockierende Rückfrage nach Datenquelle/Zeitraum. Die Manifestbeschreibung
+lautet sinngemäß „größter dokumentierter Messwert einer archivierten Reihe“, die
+Entität „Nördliche Niederlassung“ statt „Standort Nord“.
+
+Aufgezeichnet vor dem Fix:
+`workbench.chat → dataset.turn → project-manifest.candidates → understanding`.
+Die generische Verstehen-/Rückfrageantwort kommt in diesen Praxisfragen **nicht**
+vor dem Aktenversuch; sie folgt auf die erfolglose Auswahl. Dateibefehle,
+Hintergrundaufgaben, der priorisierte Gedächtnisaufruf und `dataset.turn` konnten
+allerdings schon vorher antworten. Ein zusätzlicher Test mit einer tatsächlich
+gespeicherten Gedächtnisaussage belegt diesen früheren Rückgabeweg. Sichere
+Aktenantworten werden jetzt vor diesen generischen Gedächtnis-/Datasetpfaden
+geprüft; explizite Datei-/Tabelleneingaben bleiben vorrangig.
+
+### Diagnose (b): Manifestparaphrasen
+
+Die Fixture ist vorhanden und das Manifest schema-valide. Die bisherige vollständige
+Bezugsphrase kommt in der paraphrasierten Entität nicht vor; auch die erforderliche
+lexikalische Deckung der Fragetypbeschreibung fehlt. Damit wird kein Kandidat
+gewählt. Der Baseline-Lauf über den vollständigen Chat reproduzierte sechs rote
+Auswahlfälle (zwei Domänen, Wissens-/Arbeitsklassifikation und gemischte Fragen)
+bei einer grünen Unrelated-/Leer-Tenant-Kontrolle: **6 fehlgeschlagen / 1 bestanden**.
+Die spätere generische Rückfrage ist eine Folge dieser Nichtwahl.
+
+### Umsetzung und Schutzregeln
+
+- Kandidaten erhalten eine explizite Metadatenprojektion aus aktuellem Graph und
+  berechtigtem Dataset-Katalog: Originaldatei, Datensatztitel, Schema/Einheiten,
+  Zeitraum und aus `project_candidates` abgeleitete Graphanker. Keine Rohzeilen,
+  Profilbeispiele oder neuen Manifestmodellaufrufe; Anker bleiben Kandidaten.
+- Wiederverwendung von `normalizePhrase` und `createCompoundTokenizer`; zusätzliche
+  Umlaut-/ASCII-Normalisierung und einfache sprachliche Endungen. Bezugsanker und
+  Feldinhalt müssen derselben Quelle gehören. Manifestparaphrasen ersetzen diese
+  Prüfung nicht. Objekt-/Entitätsreferenzen können die dazugehörige tatsächliche
+  Lesequelle binden; alle Antwortwerte kommen weiterhin aus frischem autorisiertem
+  Lesen, nicht aus der Projektion oder dem Manifest.
+- `settings.routing`: Standards 0,75 Mindestscore, 0,15 Mindestabstand, 100 %
+  Bezugsdeckung bei mindestens zwei relevanten Wörtern, 50 % Feld-/Inhaltsdeckung.
+  Scoreanteile 0,45 Bezug, 0,45 Inhalt, 0,10 belegter Zeitraum. Fehlender Zeitraum
+  ergibt nach Auswahl eine echte Querylücke. Reine Einheit/Jahreszahl reicht nicht.
+  Plausible Alternativen unter der Mindestscoregrenze zählen für den Abstand mit.
+- Ohne Treffer läuft die bisherige Turnreihenfolge weiter; Antworttext und
+  Verstehen bleiben unverändert. Die optionale Diagnose ist die bewusst additive
+  Antwortvertragserweiterung. Anhänge/eingefügte Tabellen, persönliche Korrekturen,
+  Tenant-/Clearance-/Mitgliedschaftsprüfung und Archiv-/Löschfilter bleiben erhalten.
+- Kompakte `metadata.projectRouting`-Diagnose ohne Frage, Namen oder Tenant-ID;
+  ausgewählte Akten zusätzlich im gespeicherten Retrieval-Trace. Der Praxistransport
+  bewahrt sie in JSON, rote Akten-Turns zeigen beste ID, Score, Abstand und Grund
+  im Markdownbericht. Fehlende Erreichbarkeit ist als `not_evaluated` erkennbar.
+
+GitNexus-Impact wurde vor den Eingriffen für Chat, Manifest-Action/`current`,
+Auswahl-/Lesefassade, Workbench-Aktenhelfer und Praxisrunner/-bericht aufgerufen.
+Der ältere Index kennt diese Symbole noch nicht (UNKNOWN); Aufrufsuche mit
+`grep -rn`/`rg` ergänzt die Analyse. Das hohe Risiko des zentralen Chatpfads wurde
+vor den Änderungen benannt. Blast Radius: früher Aktenversuch und Diagnose-Hook im
+Workbench-Chat, gemeinsame Kandidatenbewertung für Workbench/Dossier, zusätzliche
+Kandidatenmetadaten und Praxisbericht. Die Dossier-Antwortgenerierung, statischen
+Kataloge, Berechtigungsregeln und vorhandene Ausformulierung bleiben unverändert.
+
+Der bereitgestellte Live-Bericht dokumentiert **ROT**, 116/118 Läufe und Abbruch
+durch ausgeschöpftes Kontingent. Einzelne bereits gewählte Akten enthalten andere
+Rotpunkte, etwa UUID in der deterministischen Herkunft; diese sind kein Nachweis
+einer gescheiterten Auswahl. Ein neuer grüner Live-Lauf wird hier nicht behauptet.
+Die ursprünglichen zehn Akten-Praxisszenarien bleiben erhalten. Für den nächsten
+autorisierten Lauf sind die erweiterten Diagnosen vorbereitet. Keine Allowlist-
+Änderung, keine neuen Env-Variablen, kein Live-Modellaufruf, kein Push oder PR.
+
+### Ausgeführte Checks für den Auswahlfix
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Neue Regressionen | 37 Tests grün: 13 vollständige Chat-Turns, 22 Auswahl-/Metadatenfälle, zwei Offline-Praxisberichtfälle |
+| Gezielt berührte Pfade | acht Suites / 151 Tests grün; nach zusätzlichem Diagnoserandfall gezielter Nachlauf: drei Suites / 36 Tests grün; alle Fälle anschließend in der vollständigen CI |
+| Lint / Build | grün; regulärer Build-No-op |
+| `test:unit:ci` | 24 Blöcke, 471 Suites / 10327 Tests bestanden; 7 Suites / 54 Tests regulär übersprungen |
+| Coverage | Statements 84,13 %, Branches 70,38 %, Functions 88,39 %, Lines 85,90 %; alle Grenzen bestanden |
+| `test:shared-service:ci` | 86 Tests grün; Harness 20,44 s unter 60 s |
+| `check:practice-fixtures` | grün; bestehende zehn Akten-Szenarien synchron und ausschließlich synthetisch |
+| Domain-Free | Core und Äquivalenz grün; 150 Dateien / 25170 äquivalente Treffer; zusätzliche Prüfung aller neuen Kernmodule im Manifesttest |
+| TDD-Matrix | 82 Tests grün, vier optionale Tests übersprungen; `check:tdd-matrix-coverage`: 66/66 erforderliche IDs, 100 %; zwölf optionale Live-Blackbox-IDs nicht ausgeführt |
+| Funktionsmodell / Kataloge / LLM | `check:function-model`, `check:signal-catalog`, `check:operation-capability-index`, `check:llm` grün |
+| `audit:openapi` | 0 Issues, unverändert 480 Warnungen |
+| GitNexus / Diff | vorgemerkter Diff: 20 erwartete Dateien, keine dem älteren Index bekannten geänderten Symbole; normaler und vorgemerkter `diff --check` grün |
+
+Alle sechs Generatoren wurden nach der letzten Codeänderung ausgeführt. Produktcode,
+Tests und generierte Artefakte blieben während der finalen vollständigen CI per
+Prüfsummen unverändert. Ein Zwischenlauf wurde für den zusätzlich gefundenen
+Diagnoserandfall „keine Fragetypen“ kontrolliert beendet; nach Korrektur und erneuter
+Generierung war der frische vollständige Lauf grün. Es wurden keine bestehenden
+Tests abgeschwächt. Danach wurde nur dieser Ergebnisbericht ergänzt.
+
+Der zusätzliche GitNexus-Vergleich gegen `main` lieferte im auf 20 Sekunden
+begrenzten Fenster keine Auswertung. Der lokale Diff gegen die Folgeauftragsbasis
+`c1fcebfc` umfasst ausschließlich die erwarteten 20 Dateien; die lokale Aufrufsuche
+bestätigt die oben beschriebenen Pfade. Der bereitgestellte Live-Bericht wurde
+per SHA-256 unverändert bestätigt und vollständig aufgenommen. Ein vorbestehender
+unversionierter Python-Cache bleibt unberührt und wird nicht mitcommittet.
 
 ## Folgeauftrag: ausformulierte Aktenantworten
 

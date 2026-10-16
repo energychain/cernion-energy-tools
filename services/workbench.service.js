@@ -146,7 +146,11 @@ module.exports = {
       query: [coverageTurn.before, require('../src/tenant-memory').beforeTurn],
     },
     after: {
-      chat: [coverageTurn.after, require('../src/tenant-memory').afterTurn],
+      chat: [
+        coverageTurn.after,
+        require('../src/tenant-memory').afterTurn,
+        require('../src/workbench-project-manifest').projectManifestTrace,
+      ],
       query: [coverageTurn.after, require('../src/tenant-memory').afterTurn],
     },
     error: { chat: coverageTurn.error, query: coverageTurn.error },
@@ -1665,6 +1669,12 @@ module.exports = {
           call: (name, params, options) =>
             ctx.call(name, params, { meta: { ...correctionMeta, ...options?.meta } }),
         };
+        const projectReply = await require('../src/workbench-project-manifest').projectManifestTurn(
+          this,
+          ctx,
+          { p, envelope, pending, meta: correctionMeta }
+        );
+        if (projectReply) return projectReply;
         if (pending?.tenantMemoryFactIds?.length || !envelope.documents?.length) {
           const priorityReply = await require('../src/tenant-memory').preturn(
             memoryContext,
@@ -1713,12 +1723,6 @@ module.exports = {
           envelope.datasetConfirmations = datasetTurn.confirmations || [];
           envelope.datasetIds = datasetTurn.datasetIds || [];
         }
-        const projectReply = await require('../src/workbench-project-manifest').projectManifestTurn(
-          this,
-          ctx,
-          { p, envelope, pending, meta: correctionMeta }
-        );
-        if (projectReply) return projectReply;
         const memoryReply = await require('../src/tenant-memory').preturn(
           memoryContext,
           p,

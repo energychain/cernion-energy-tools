@@ -2,6 +2,11 @@
 
 ## Unreleased — Projektakte: Manifest im Routing (#887)
 
+- Fix nach Live-Praxislauf: Aktenwahl zusätzlich aus aktuellen Datei-/Datensatznamen,
+  Schemas, Einheiten und Graphankern; quellgebundener Inhaltsabgleich, konfigurierbare
+  Schwellen und Abstand zu Alternativen. Sichere Treffer haben vor generischen
+  Gedächtnis-/Dataset-/Rückfragepfaden Vorrang. Kompakte Auswahldiagnosen in Turn
+  und Praxisbericht; vollständige Chat-Regression mit paraphrasierten Manifesten.
 - RC3-Ausformulierung: ein strukturierter LLM-Aufruf je belegter Aktenfrage im
   Workbench-Turn, mit unveränderter strukturierter Herkunft und festem Aktenwahlsatz.
   Exakte Zahlenprüfung und Schema-/Codeprüfung sichern den deterministischen Rückfall;

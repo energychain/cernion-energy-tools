@@ -1,12 +1,22 @@
 'use strict';
 
 const conversation = require('./workbench-conversation');
+const assessments = new WeakMap();
+
+function projectManifestTrace(ctx, reply) {
+  const assessment = assessments.get(ctx);
+  assessments.delete(ctx);
+  return assessment
+    ? { ...reply, metadata: { ...reply.metadata, projectRouting: assessment } }
+    : reply;
+}
 
 async function projectManifestTurn(service, ctx, { p, envelope, pending, meta }) {
   if (
     !ctx.broker.getLocalService('project-manifest') ||
     envelope.documents?.length ||
-    envelope.datasetIds?.length
+    envelope.datasetIds?.length ||
+    require('./workbench-thread').isDocumentInput(envelope.userRequest)
   )
     return null;
   const safe = Object.assign(Object.create(ctx), {
@@ -42,7 +52,8 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
   }
   const result = await require('./project-manifest-evidence').projectManifestAnswer(
     safe,
-    envelope.userRequest
+    envelope.userRequest,
+    { onAssessment: (assessment) => assessments.set(ctx, assessment) }
   );
   if (!result) return null;
   const answer = await require('./project-manifest-prose').projectManifestProse(
@@ -53,7 +64,16 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
   await conversation.saveTurn(service.conversationsDb, p, envelope, {
     tenantMemoryFactIds: [],
     projectSelection: { projectId: result.projectId, questionTypeId: result.questionTypeId },
-    retrieval: { evidence: result.evidence, trace: result.trace, toolTrace: [] },
+    retrieval: {
+      evidence: result.evidence,
+      trace: [
+        ...(assessments.has(ctx)
+          ? [{ source: 'project-manifest.routing', ...assessments.get(ctx) }]
+          : []),
+        ...result.trace,
+      ],
+      toolTrace: [],
+    },
     evidenceRetrievedAt: Date.now(),
     lastAnswer: answer.responseText.slice(0, 600),
     lastConversationShape: 'knowledge',
@@ -73,4 +93,4 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
   };
 }
 
-module.exports = { projectManifestTurn };
+module.exports = { projectManifestTurn, projectManifestTrace };

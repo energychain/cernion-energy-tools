@@ -178,6 +178,20 @@ function renderPracticeReport(report, previous) {
       lines.push(
         `| ${cell(turn.id)} | ${cell(turn.expectation)} | ${turn.checks.map((check) => `${check.passed ? '✓' : '✗'} ${cell(check.id)}`).join('; ')} | ${cell(excerpt(turn.responseExcerpt))} |`
       );
+    const routing = run.turns.filter(
+      (turn) => turn.projectRouting && turn.checks.some((check) => !check.passed)
+    );
+    if (routing.length) {
+      lines.push(
+        '',
+        '| Turn | Aktenbewertung: beste Akte | Score | Abstand | Grund |',
+        '| --- | --- | --- | --- | --- |'
+      );
+      for (const turn of routing)
+        lines.push(
+          `| ${cell(turn.id)} | ${cell(turn.projectRouting.bestProjectId || '–')} | ${cell(turn.projectRouting.score)} | ${cell(turn.projectRouting.margin)} | ${cell(turn.projectRouting.reason)} |`
+        );
+    }
     lines.push('', '| Rubrik | Punkte | Begründung |', '| --- | --- | --- |');
     for (const key of Object.keys(CRITERIA))
       lines.push(

@@ -948,21 +948,55 @@ Die beiden APIs sind lesend und `x-agentable`; Mutationen bleiben geschützt.
 
 Der additive Kandidatenanbieter hängt am bestehenden Evidenzendpunktkatalog;
 `dataset-routing.selectProjectCandidates` bewertet die gespeicherten Beschreibungen.
-Der neue Workbench-Pfad läuft nach dem bestehenden Upload-/Dataset-Turn und vor der
-gewöhnlichen Inhaltsbeantwortung. Anhänge und frisch abgelegte Chat-Datensätze
-behalten ihren bisherigen Vorrang. Der Answer-Dossier-Pfad verwendet denselben
+Der Workbench-Pfad prüft passende Akten nach Dateibefehlen/Hintergrundaufgaben und
+dem Laden des Gesprächsstands, vor generischen Gedächtnis-/Dataset-/Rückfragepfaden.
+Explizite Dokument-/Tabelleneingaben und Anhänge behalten ihren bisherigen Vorrang;
+sie werden vor der Prüfung erkannt. Ohne passende Akte läuft die bisherige
+Reihenfolge weiter. Der Answer-Dossier-Pfad verwendet denselben
 Kandidaten-/Lesepfad und gibt Auswahlhinweise an beide Dossierformate weiter.
 Die statischen Katalogeinträge und `workbench-data-scope` bleiben unverändert.
 
-Ohne ausdrückliche Aktennennung braucht die Auswahl eine vollständig vorkommende
-Bezugsphrase mit mindestens zwei relevanten Wörtern aus Titel oder Entitätsmetadaten
-**und** einen passenden Fragetyp: mindestens zwei übereinstimmende relevante Wörter,
-mindestens eines außerhalb der Bezugsphrase und mindestens 50 % seiner Beschreibung.
-Jahreszahlen und Einheiten allein reichen nicht. Zwischen den besten Akten müssen
-mindestens 0,15 Scorepunkte liegen; sonst bleibt die Auswahl offen und der bestehende
-Pfad läuft weiter. Ein ausdrücklich vorkommender Aktentitel erlaubt eine konkrete
-Lückenantwort, wenn kein Fragetyp passt. Die Auswahl selbst benötigt keine
+Die Kandidaten enthalten zusätzlich `routingSources`: aktuelle Originaldateinamen,
+Datensatztitel, Spaltennamen/-typen, Einheiten aus der Datensatzsemantik, Zeiträume
+und Graphanker aus den Entitäts-Kandidaten. Der bestehende aktuelle Graph wird
+wiederverwendet; der tenant-/rechtegeprüfte Dataset-Katalog wird höchstens einmal
+je Kandidatenliste gelesen. Keine Rohzeilen oder Zellbeispiele in dieser Projektion.
+Diese Metadaten bleiben Kandidaten und werden nicht zu Antwortbelegen.
+
+Ohne ausdrückliche Aktennennung braucht die Auswahl einen Bezugsanker mit mindestens
+zwei relevanten Wörtern und passenden Inhalt **in derselben Quelle**. Identität aus
+Datei A und eine passende Spalte aus Datei B reichen nicht. Kleinschreibung,
+Umlaut-/ASCII-Varianten, einfache Wortformen und der vorhandene korpusbasierte
+Teilwort-Tokenizer erlauben abweichende Manifestformulierungen. Bei Tabellen muss
+ein von Identität und Einheit unabhängiger Spaltenbezug passen; bei Passagen können
+Abschnittstitel und quellgebundene Fragetypbeschreibungen beitragen. Nur an diese
+Quelle gebundene, nicht verworfene Fragetypen sind zulässig. Verweist ein Fragetyp
+auf Original-/Entitätsknoten, wird seine Lesebindung um die zugehörige passende
+Tabelle/Passage ergänzt; das gespeicherte Manifest bleibt unverändert.
+
+Standardschwellen in `project-manifest.settings.routing` (ohne neue Env-Variablen):
+
+```js
+{ minScore: 0.75, minMargin: 0.15, minSubjectCoverage: 1, minContentCoverage: 0.5 }
+```
+
+Der Score gewichtet Bezugsdeckung mit 0,45, Inhaltsdeckung mit 0,45 und einen
+belegten passenden Zeitraum mit 0,10. Ein fehlender Zeitraum verbietet die Aktenwahl
+nicht: der anschließende echte Lesezugriff liefert dafür eine konkrete Lücke.
+Jahreszahlen/Einheiten allein und bekannte leere Quellenprojektionen reichen nie.
+Mindestens 0,15 Abstand ist auch zu plausiblen Alternativen knapp unter der
+Scoregrenze erforderlich. Sonst bleibt die Auswahl offen. Ein ausdrücklich genannter
+Aktentitel erlaubt weiterhin eine konkrete Lückenantwort. Persönliche Akten-/Fragetyp-
+Korrekturen gelten auch bei Metadatenübereinstimmung. Die Auswahl braucht keine
 Modellaufrufe, Embeddings oder externen Suchen pro Turn.
+
+`metadata.projectRouting` ergänzt die Turn-Diagnose: Kandidatenzahl, beste Akten-ID,
+Score, Abstand, Deckungen, Zeitraumtreffer, Schwellen und fester Grundcode, etwa
+`no_subject`, `no_content`, `no_question_type`, `below_threshold`, `ambiguous` oder `corrected`. Frage,
+Aktentitel, Dateiname, Person und Tenant-ID werden nicht in die Diagnose übernommen.
+Bei gewählten Akten wird sie zusätzlich im gespeicherten Retrieval-Trace abgelegt.
+Der Praxisbericht übernimmt sie bei Akten-Szenarien in JSON und zeigt sie bei roten
+Turns in Markdown; ein fehlender Diagnosepfad wird ausdrücklich `not_evaluated`.
 
 Jede gewählte Akte wird sichtbar gemacht:
 **„Ich habe dafür die Projektakte ‚…‘ herangezogen.“**
