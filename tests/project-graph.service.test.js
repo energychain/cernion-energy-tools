@@ -16,7 +16,7 @@ jest.mock('../src/llm-client', () => ({
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { harness, auth } = require('./helpers/project-ingest');
+const { harness, auth, zip } = require('./helpers/project-ingest');
 const { addObject } = require('./helpers/project-structure');
 const policy = require('../src/project-graph-policy');
 const { fileCapability } = require('../src/project-file-policy');
@@ -58,8 +58,14 @@ afterEach(async () => {
 });
 const internal = (action, params, meta = auth()) =>
   h.broker.call(action, params, { meta: { ...meta, projectGraph: policy.capability }, timeout: 0 });
-const records = (projectId) =>
-  internal('object-store.projectGraphRecord', { operation: 'list', projectId });
+async function waitGraph() {
+  const graph = h.broker.getLocalService('project-graph');
+  await Promise.all([...(graph.graphRuns?.values() || [])].map((run) => run.promise));
+}
+const records = async (projectId) => {
+  await waitGraph();
+  return internal('object-store.projectGraphRecord', { operation: 'list', projectId });
+};
 async function populate(projectId, meta = auth()) {
   const a = await addObject(
     h,
@@ -75,6 +81,7 @@ async function populate(projectId, meta = auth()) {
     'b.csv',
     meta
   );
+  await waitGraph();
   return { a, b };
 }
 test('incremental ingest, idempotent recovery, bounded reading and acknowledged cleanup', async () => {
@@ -252,6 +259,7 @@ test('archive/deletion and clearance exclude all graph reading and derivation', 
   );
   await h.send(start, bytes, meta);
   await h.complete(start.uploadId, meta);
+  await waitGraph();
   await expect(h.call('project-graph.nodes', { projectId })).rejects.toMatchObject({ code: 404 });
   expect((await h.call('project-graph.nodes', { projectId }, meta)).nodes.length).toBeGreaterThan(
     0
@@ -385,3 +393,159 @@ async function sourceState(projectId, objectId, status) {
     options
   );
 }
+
+test('twenty archived entries trigger one full derivation equal to a single final run', async () => {
+  const projectId = await h.create();
+  const graph = h.broker.getLocalService('project-graph');
+  const runs = jest.spyOn(graph, 'derive');
+  const entries = Array.from({ length: 20 }, (_, i) => ({
+    name: `source-${i}.csv`,
+    bytes: Buffer.from(`Token,Value\nGroup-${i}-A7,7\nGroup-${i}-B8,8\n`),
+  }));
+  await addObject(h, projectId, zip(entries), 'sources.zip');
+  const combined = await records(projectId);
+  expect(runs).toHaveBeenCalledTimes(1);
+  expect((await h.call('project-upload.objects', { projectId })).length).toBe(21);
+  await internal('project-graph.run', { projectId, force: true });
+  const payload = (rows) => rows.map(({ _rev, ...row }) => row);
+  expect(payload(await records(projectId))).toEqual(payload(combined));
+  expect(runs.mock.calls[0][0].params.force).not.toBe(true);
+});
+
+test('twenty reserved uploads wait for the last object and unchanged completion skips derivation', async () => {
+  const projectId = await h.create();
+  const graph = h.broker.getLocalService('project-graph');
+  const runs = jest.spyOn(graph, 'derive');
+  const bytes = Buffer.from('Token,Value\nLumen-A7,7\nLumen-B8,8\n');
+  const uploads = [];
+  for (let i = 0; i < 20; i++) {
+    const started = await h.start(projectId, bytes, { name: `part-${i}.csv` });
+    await h.send(started, bytes);
+    uploads.push(started);
+  }
+  for (const [index, upload] of uploads.entries()) {
+    await h.complete(upload.uploadId);
+    if (index < 19) expect(runs).not.toHaveBeenCalled();
+  }
+  const combined = await records(projectId);
+  expect(runs).toHaveBeenCalledTimes(1);
+  const commits = jest.spyOn(graph, 'commitGraph');
+  expect(await internal('project-graph.run', { projectId })).toMatchObject({ unchanged: true });
+  expect(commits).not.toHaveBeenCalled();
+  await internal('project-graph.run', { projectId, force: true });
+  const payload = (rows) => rows.map(({ _rev, ...row }) => row);
+  expect(payload(await records(projectId))).toEqual(payload(combined));
+});
+
+test('document work releases the mutation lock, dirty requests coalesce and stale snapshots never publish', async () => {
+  const projectId = await h.create();
+  await populate(projectId);
+  await addObject(h, projectId, Buffer.from('Token: Lumen-A7\n'), 'description.txt');
+  const initial = await records(projectId);
+  const edge = initial.find((doc) => doc.relation === 'joinsOn');
+  const graph = h.broker.getLocalService('project-graph');
+  const runs = jest.spyOn(graph, 'derive');
+  const emit = jest.spyOn(h.broker, 'emit');
+  let release, started;
+  const gate = new Promise((resolve) => (release = resolve));
+  const reading = new Promise((resolve) => (started = resolve));
+  const original = h.broker.call.bind(h.broker);
+  jest.spyOn(h.broker, 'call').mockImplementation(async (action, ...args) => {
+    if (action === 'knowledge-rag.documentGet') {
+      started();
+      await gate;
+    }
+    return original(action, ...args);
+  });
+  const running = internal('project-graph.run', { projectId, force: true });
+  try {
+    await reading;
+    await expect(h.call('project-graph.nodes', { projectId })).rejects.toMatchObject({ code: 503 });
+    // These writes must finish while the document read is deliberately suspended.
+    await addObject(h, projectId, Buffer.from('Token\nNew-A7\n'), 'new.csv');
+    for (let i = 0; i < 20; i++) await internal('project-graph.request', { projectId });
+    const meta = auth();
+    meta.apiToken.roles = ['ROLE_ADMIN'];
+    await h.call(
+      'shared-service-learning.apply',
+      {
+        target: 'projectEdge',
+        correction: { projectId, edgeId: edge.edgeId, kind: 'reject' },
+      },
+      meta
+    );
+  } finally {
+    release();
+    await running;
+  }
+  expect(runs).toHaveBeenCalledTimes(2);
+  expect(emit.mock.calls.filter(([name]) => name === 'project.graph.changed.v1')).toHaveLength(2);
+  const final = await records(projectId);
+  expect(final.some((doc) => doc.kind === 'object' && doc.labels.includes('new.csv'))).toBe(true);
+  expect(final.find((doc) => doc.edgeId === edge.edgeId)).toMatchObject({
+    origin: 'corrected',
+    weight: 0,
+  });
+  await internal('project-graph.run', { projectId, force: true });
+  expect((await records(projectId)).map(({ _rev, ...row }) => row)).toEqual(
+    final.map(({ _rev, ...row }) => row)
+  );
+});
+
+test('anchor truncation persists in the checkpoint and run report while source text stays searchable', async () => {
+  const projectId = await h.create();
+  await populate(projectId);
+  await addObject(
+    h,
+    projectId,
+    Buffer.from('Token: Lumen-A7\nToken: Lumen-B8\n'),
+    'description.txt'
+  );
+  await waitGraph();
+  process.env.CET_PROJECT_GRAPH_DOCUMENT_MAX_ANCHORS = '1';
+  process.env.CET_PROJECT_GRAPH_RUN_MAX_ANCHORS = '1';
+  const result = await internal('project-graph.run', { projectId });
+  expect(result.anchors).toMatchObject({ retained: 1, truncated: true });
+  expect(result.anchors.skipped).toBeGreaterThan(0);
+  expect((await records(projectId)).find((doc) => doc.recordType === 'state').anchors).toEqual(
+    result.anchors
+  );
+  process.env.CET_PROJECT_GRAPH_DOCUMENT_MAX_ANCHOR_CHARS = '1';
+  const limited = await internal('project-graph.run', { projectId });
+  expect(limited.anchors).toMatchObject({ retained: 0, chars: 0, truncated: true });
+  expect(
+    (await h.call('project-graph.nodes', { projectId, kind: 'section' })).nodes.length
+  ).toBeGreaterThan(0);
+  const docs = await h.call('knowledge-rag.documentList', {});
+  expect((await h.call('knowledge-rag.documentGet', { id: docs[0].id })).text).toContain(
+    'Lumen-B8'
+  );
+});
+
+test('deletion can finish during a document read and an old snapshot cannot recreate the graph', async () => {
+  const projectId = await h.create();
+  await addObject(h, projectId, Buffer.from('Token: Lumen-A7\n'), 'description.txt');
+  await waitGraph();
+  let release, started;
+  const gate = new Promise((resolve) => (release = resolve));
+  const reading = new Promise((resolve) => (started = resolve));
+  const original = h.broker.call.bind(h.broker);
+  jest.spyOn(h.broker, 'call').mockImplementation(async (action, ...args) => {
+    if (action === 'knowledge-rag.documentGet') {
+      started();
+      await gate;
+    }
+    return original(action, ...args);
+  });
+  const failed = expect(
+    internal('project-graph.run', { projectId, force: true })
+  ).rejects.toMatchObject({ code: 404 });
+  try {
+    await reading;
+    await h.call('project-file.delete', { projectId });
+  } finally {
+    release();
+    await failed;
+  }
+  expect(await records(projectId)).toEqual([]);
+});

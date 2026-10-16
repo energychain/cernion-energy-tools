@@ -616,14 +616,14 @@ ProjectNode {
   kind: 'object' | 'dataset' | 'section' | 'entity' | 'skill' | 'external',
   ref, labels: [], attributes: {},
   provenance: { objectId?, hash?, location? },
-  derivation: { version: '1' }
+  derivation: { version: '2' }
 }
 ProjectEdge {
   edgeId, projectId, from, to,
   relation: 'contains' | 'derivedFrom' | 'describes' | 'sameEntity' |
             'joinsOn' | 'timeAligned' | 'references' | 'answeredBy',
   weight, evidence: [], origin: 'derived' | 'observed' | 'corrected',
-  derivation: { version: '1' },
+  derivation: { version: '2' },
   correctionId?, correctionRefs?, correction?: { kind, actorId, at, ... }
 }
 ```
@@ -740,27 +740,61 @@ nicht durch eine interne Worker-Rolle erweitert.
 
 ### Auslöser, Wiederaufnahme und Korrekturen
 
-Nach abgeschlossener Objektstrukturierung ruft #885 den Graph innerhalb derselben
-Akten-Mutationsgrenze auf. Neue Objekte lösen eine vollständige **begrenzte**
-Neuberechnung der betroffenen Akte aus; deterministische IDs verhindern Duplikate.
-Graphfehler beschädigen keine Originale und keine erfolgreichen Strukturierungen.
+Nach Abschluss von Ingest/Strukturierung prüft `project-upload.settleLifecycle`
+alle Aktenobjekte. Solange ein Objekt noch empfangen wird, queued/processing ist
+oder seine Strukturierung pending/processing ist, wird keine Ableitung angefordert.
+Das gilt auch für den noch laufenden ZIP-Elternjob. Erst das letzte abgeschlossene
+Objekt fordert einen Lauf ohne `force` an. Reservierte Mehrfachuploads sollten vor
+dem Abschluss des ersten Uploads angelegt werden; später neu begonnene, unabhängige
+Uploads bilden einen neuen Abschluss. Die Strukturierung ruft den Graph nicht pro
+Objekt auf. Graphfehler beschädigen keine Originale oder erfolgreichen Strukturierungen.
+
+`project-graph.request` quittiert nur das Einreihen; Uploadjobs warten nicht auf die
+Graphberechnung. Je Tenant/Akte gibt es höchstens einen laufenden Auftrag und eine
+Dirty-Markierung für einen Folgelauf. Beliebig viele Anforderungen während eines
+Laufs belegen damit keinen weiteren Warteschlangenplatz. Ein unveränderter Checkpoint
+überspringt die vollständige Berechnung. Es gibt keinen zusätzlichen Timer.
+
+Die Akten-Mutationsgrenze schützt zwei Phasen: Zuerst werden Metadaten und begrenzte
+SQL-Sketches/Kandidaten konsistent übernommen, Cleanup registriert und ein dauerhafter
+Pending-Checkpoint geschrieben. Der read-only SQLite-Handle wird anschließend
+geschlossen. Dokumenttexte werden **nacheinander außerhalb der Mutationsgrenze**
+autorisiert gelesen; nur beobachtete, zur Fundstelle und Quellversion passende
+Kandidatenanker bleiben erhalten. Volltext und normalisierte Textkopie werden nach
+jedem Dokument verworfen. Ankerzahl und Summe ihrer normalisierten Zeichen sind pro
+Dokument/Abschnitt und pro Lauf begrenzt. Überschüssige Anker werden ausgelassen;
+Herkunftsrelationen und Originaltexte im Dokumentwissen bleiben erhalten.
+
+Gewichtung und externe Beobachtungen laufen ebenfalls außerhalb der Mutationsgrenze.
+Vor dem Schreiben werden unter einer neuen Grenze Sichtbarkeit, Mitgliedschaft,
+Clearance, Archivierung/Löschung und die vollständige Quell-/Konfigurationsversion
+erneut geprüft. Ein inzwischen veränderter Snapshot wird verworfen und koalesziert
+neu berechnet; bei noch laufenden Quellen wartet die Ableitung auf deren Abschluss.
+Eine inzwischen gelöschte Akte kann nicht wiederangelegt werden. Aktuelle
+Kantenkorrekturen werden erst in dieser Schreibphase übernommen. Dadurch blockieren
+Dokumentzugriffe und externe Timeouts keine Uploads; nur der konsistente SQL-Snapshot
+und die atomar serialisierte Veröffentlichung benötigen die Aktenqueue. Synchrone
+SQLite-Scans bleiben Arbeit des einzelnen Brokerprozesses, ohne Thread-Auslagerung.
+
 Die Strukturierungs-Wiederaufnahme wartet nicht auf den noch startenden Graphdienst;
 dessen eigener Startup-Scan übernimmt anschließend die fertigen Quellen.
 Beim Dienststart scannt `projectGraphSources` dauerhafte abgeschlossene Originale,
-übernimmt Actor-/Tenant-Herkunft und aktuelle Clearance und prüft Sichtbarkeit,
-Mitgliedschaft, Archivierung und Löschmarkierung erneut. Der Worker besitzt keine
-persistierten Credentials. Der Checkpoint vergleicht Quellenhashes/-versionen,
-Ableitungsversion, Budgets und Katalog-/Operationsmetadaten. Gleicher Checkpoint
-überspringt die Ableitung; ein interner `run({ projectId, force: true })` wiederholt
-auch externe Beobachtungen. Es gibt keinen zusätzlichen Timer.
+übernimmt Actor-/Tenant-Herkunft und aktuelle Clearance und prüft die Berechtigung
+erneut. Der Worker besitzt keine persistierten Credentials. Die flüchtige Dirty-Queue
+muss nicht persistiert werden: Quellen und Pending-Checkpoint liegen dauerhaft vor.
+Der Checkpoint vergleicht Quellenstatus, Hashes/-versionen, Ableitungsversion, Budgets
+und Katalog-/Operationsmetadaten. Ein interner `run({ projectId, force: true })`
+kann externe Beobachtungen ausdrücklich wiederholen; der Ingest setzt dieses Flag nie.
 
-Vor der ersten Graphschreibphase wird Cleanup registriert. Vor dem ersten
-Graphersetzungsbatch wird ein dauerhafter Pending-Checkpoint geschrieben.
 Ein vollständiger Checkpoint entsteht erst nach allen Graphbatches und aktualisierten
-Aktenstatistiken. Ein Absturz lässt damit eine wiederholbare Ableitung zurück.
-`bulkDocs` ist keine verteilte Transaktion; teilweise geschriebene Batches können
-bis zur Wiederholung existieren; die Lese-API liefert währenddessen 503 statt Teiltreffern. `project.graph.changed.v1` meldet nach Erfolg
-`{ tenantId, projectId, nodes, edges, version: '1' }` mit Bestandszählern.
+Aktenstatistiken. `bulkDocs` ist keine verteilte Transaktion; teilweise geschriebene
+Batches können bis zur Wiederholung existieren. Die Lese-API liefert während Pending
+503 statt Teiltreffern. `project.graph.changed.v1` meldet nach Erfolg
+`{ tenantId, projectId, nodes, edges, version: '2' }` mit Bestandszählern.
+Der abgeschlossene State und das interne Laufergebnis enthalten `anchors` mit
+`documents`, `retained`, `chars`, `skipped`, `truncatedDocuments`, `truncated`.
+`skipped` zählt tatsächlich beobachtete, wegen Budgets ausgelassene Anker je Dokument;
+Mehrfachnennungen desselben normalisierten Werts im Dokument zählen einmal.
 
 Die bestehende Lernschleife akzeptiert `target: 'projectEdge'`:
 
@@ -817,9 +851,10 @@ und bleibt auch bei Wiederholung sowie nach nachträglich gesenkten Limits volls
 
 ### Graphlimits
 
-Alle Ganzzahllimits sind positiv; Schwelle ist > 0 und ≤ 1. Eine Überschreitung
-bricht die Ableitung mit wiederholbarem Fehler ab, statt einen still gekürzten
-Graph als vollständig zu markieren. Ein Lauf rekonstruiert die Akte und hält deshalb
+Alle Ganzzahllimits sind positiv; Schwelle ist > 0 und ≤ 1. Die Überschreitung
+von Graph-/SQL-Volumenlimits bricht die Ableitung mit wiederholbarem Fehler ab.
+Ankerbudgets begrenzen dagegen die Evidenzmenge und werden im abgeschlossenen
+State/Laufergebnis ausdrücklich als Kürzung ausgewiesen. Ein Lauf rekonstruiert die Akte und hält deshalb
 dieselben Standardbudgets wie der gesamte Graph. Laufbudgets können niedriger sein;
 entsprechend größere Akten benötigen eine bewusste Anhebung für Neuberechnung.
 
@@ -832,11 +867,14 @@ entsprechend größere Akten benötigen eine bewusste Anhebung für Neuberechnun
 | `MAX_COLUMNS` | 512 | gesamte geprüfte Spalten je Akte/Lauf |
 | `MAX_PAIRS` | 20000 | Spalten-, Zeit-, Anker-/Kandidatenvergleiche |
 | `MAX_CANDIDATES` | 10000 | gelesene Kandidaten je Akte/Lauf |
+| `DOCUMENT_MAX_ANCHORS` / `RUN_MAX_ANCHORS` | 256 / 10000 | gespeicherte Anker je Dokument bzw. insgesamt im Lauf |
+| `DOCUMENT_MAX_ANCHOR_CHARS` / `RUN_MAX_ANCHOR_CHARS` | 16000 / 640000 | Summe normalisierter Ankerzeichen je Dokument bzw. Lauf |
 | `EXTERNAL_CALLS` / `EXTERNAL_SAMPLES` | 12 / 3 | Aufrufbudget je Lauf / Werte je Paar |
 | `EXTERNAL_TIMEOUT_MS` | 1500 | Timeout je beobachtendem Aufruf |
 | `BATCH_DOCS` | 500 | Dokumente pro Object-Store-Batch |
 
 Die SQL-Arbeit ist hinsichtlich geladener Zeilen begrenzt, kann bei großen Tabellen
 aber Scans und temporäre SQLite-Sortierung erfordern. Ein einzelner Brokerprozess
-serialisiert Graph und übrige Aktenmutationen; Multi-Prozess-Locks folgen nicht hier.
+serialisiert Snapshot und Veröffentlichung mit Aktenmutationen; die übrige Ableitung
+läuft außerhalb dieser Grenze. Multi-Prozess-Locks folgen nicht hier.
 Qualitäts- und Sicherheitsprüfungen stehen in `docs/validation/886-projektakte-graph.md`.

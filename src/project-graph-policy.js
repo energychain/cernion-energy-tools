@@ -3,7 +3,7 @@
 const { createHash } = require('node:crypto');
 const { setting } = require('./project-structure-policy');
 const capability = Symbol('project-graph');
-const VERSION = '1';
+const VERSION = '2';
 const relations = [
   'contains',
   'derivedFrom',
@@ -31,6 +31,10 @@ function limits() {
     columns: setting('GRAPH_MAX_COLUMNS', 512),
     pairs: setting('GRAPH_MAX_PAIRS', 20000),
     candidates: setting('GRAPH_MAX_CANDIDATES', 10000),
+    documentAnchors: setting('GRAPH_DOCUMENT_MAX_ANCHORS', 256),
+    documentAnchorChars: setting('GRAPH_DOCUMENT_MAX_ANCHOR_CHARS', 16000),
+    runAnchors: setting('GRAPH_RUN_MAX_ANCHORS', 10000),
+    runAnchorChars: setting('GRAPH_RUN_MAX_ANCHOR_CHARS', 640000),
     calls: setting('GRAPH_EXTERNAL_CALLS', 12),
     samples: setting('GRAPH_EXTERNAL_SAMPLES', 3),
     timeout: setting('GRAPH_EXTERNAL_TIMEOUT_MS', 1500),
@@ -38,7 +42,14 @@ function limits() {
     threshold,
   };
 }
+function sourcePending(object) {
+  return (
+    object.status === 'receiving' ||
+    ['queued', 'processing'].includes(object.ingestState) ||
+    (object.status === 'received' && ['pending', 'processing'].includes(object.extraction?.status))
+  );
+}
 function prefix(tenantId, projectId) {
   return `project-graph:${encodeURIComponent(tenantId)}:${encodeURIComponent(projectId)}:`;
 }
-module.exports = { capability, VERSION, relations, kinds, identity, limits, prefix };
+module.exports = { capability, VERSION, relations, kinds, identity, limits, prefix, sourcePending };

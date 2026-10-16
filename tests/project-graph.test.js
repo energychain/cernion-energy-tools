@@ -79,7 +79,7 @@ function source(tokens = fixture.cases[0].tokens) {
     {
       id: 'section-0',
       title: 'Description',
-      anchorText: normalizeAnchor(`Token: ${tokens[0]}`),
+      anchors: [normalizeAnchor(tokens[0])],
       provenance: { objectId: 'object-3' },
       sourceLocation: { chapter: 'Section A' },
     },
@@ -468,7 +468,7 @@ test('metadata matching reuses semantic aliases, formats, patterns and ontology 
 test('candidate location alone cannot attribute a value to an unrelated passage', () => {
   const input = source();
   try {
-    input.documents[0].anchorText = 'unrelated passage';
+    input.documents[0].anchors = [];
     const graph = deriveGraph(input);
     expect([...graph.edges.values()].filter((edge) => edge.relation === 'describes')).toEqual([]);
   } finally {

@@ -49,4 +49,16 @@ function candidateRows(db, limit) {
     )
     .all(limit);
 }
-module.exports = { openGraphSource, sketch, candidateRows };
+function graphSource(db, datasets, limits) {
+  const columns = [];
+  for (const record of datasets) {
+    record.columns.forEach((column, index) => {
+      if (columns.length >= limits.columns) throw new Error('Graph column limit exceeded');
+      columns.push({ record, column, index, ...sketch(db, record, index, limits.sketch) });
+    });
+  }
+  const candidates = candidateRows(db, limits.candidates + 1);
+  if (candidates.length > limits.candidates) throw new Error('Graph candidate limit exceeded');
+  return { columns, candidates };
+}
+module.exports = { openGraphSource, sketch, candidateRows, graphSource };

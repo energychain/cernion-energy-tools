@@ -278,24 +278,6 @@ module.exports = {
         await this.save(ctx, object);
         await this.broker.getLocalService('project-upload')?.settleLifecycle(ctx, object.projectId);
       }
-      const graph = this.broker.getLocalService('project-graph');
-      if (graph?.graphReady) {
-        try {
-          await ctx.call(
-            'project-graph.run',
-            { projectId: object.projectId, force: true },
-            {
-              meta: {
-                ...ctx.meta,
-                projectGraph: require('../src/project-graph-policy').capability,
-              },
-              timeout: 0,
-            }
-          );
-        } catch (error) {
-          this.logger.warn('Project graph retry pending', { errorClass: error.type || error.name });
-        }
-      }
       return object;
     },
     async structured(ctx, object, filename, table) {

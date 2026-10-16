@@ -68,8 +68,8 @@ verwendet `parentCtx: null`, damit Moleculer keine internen Fähigkeiten vererbt
   20.000 Vergleiche. Überschreitung bricht wiederholbar ab. Korrigierte Kanten zählen mit.
 - Extern maximal 12 Aufrufe pro Lauf, drei Stichproben pro Spalten-/Quellenpaar,
   jeweils 1.500 ms; Fehler verbrauchen Budget und erzeugen keine Kante.
-- Auslöser ist die abgeschlossene Strukturierung; inkrementell wird die betroffene
-  Akte begrenzt rekonstruiert. Startup-Recovery und Quellen-/Versionscheckpoint
+- Auslöser ist der Abschluss aller empfangenden/strukturierenden Objekte der Akte;
+  `settleLifecycle` fordert ohne `force` eine koaleszierte Neuberechnung an. Startup-Recovery und Quellen-/Versionscheckpoint
   sorgen für Wiederaufnahme. Pending-Checkpoint verhindert falschen Abschluss
   nach Teilschreiben; Leseaktionen liefern währenddessen 503.
 - Die reguläre Gateway-RBAC bleibt unverändert. Nur drei Leseaktionen sind REST-/
@@ -78,6 +78,52 @@ verwendet `parentCtx: null`, damit Moleculer keine internen Fähigkeiten vererbt
 - Bestätigter Cleanup ist idempotent, unabhängig von SQLite/Originalen und auch
   nach gesenkten Volumenlimits vollständig. Ein echter Brokerneustart prüft
   die Reparatur eines persistierten Pending-Checkpoints.
+
+## Review-Korrektur: Laufbündelung und Speicher
+
+Die Offline-Brokertests zählen wirkliche Aufrufe der Ableitung, vergleichen den
+vollständigen persistierten Graphen (einschließlich Checkpoint, ohne `_rev`) mit
+einer einzelnen abschließenden Neuberechnung und prüfen:
+
+| Szenario | Vollständige Läufe vor Vergleichslauf | Ergebnis |
+| --- | ---: | --- |
+| ZIP mit 20 CSV-Einträgen plus Archivobjekt | 1 | identischer vollständiger Graph |
+| 20 reservierte Uploads, Abschluss nacheinander | 1 | bis Objekt 19 kein Lauf; identischer vollständiger Graph |
+| Dokumentzugriff angehalten, neuer Upload und 20 weitere Anforderungen | 2 | alter Snapshot verworfen, nur neuer Snapshot publiziert; identischer Graph zum finalen Einzellauf |
+| unveränderter Checkpoint | 0 | keine Veröffentlichung/Ableitung nach Snapshot-Prüfung |
+
+Der dritte Test lässt den neuen Upload und eine Kantenkorrektur **vor Freigabe**
+des blockierten Dokumentzugriffs abschließen. Damit ist nachgewiesen, dass die
+Graphberechnung den Aktenlock nicht hält. Die Korrektur überlebt; es gibt genau
+ein Korrektur- und ein Graphabschluss-Event, kein Event für den veralteten Snapshot.
+Ein weiterer Test löscht die Akte während eines blockierten Dokumentzugriffs:
+Cleanup endet, der alte Lauf scheitert an der erneuten Autorisierung, der Graph
+bleibt gelöscht. Der bestehende echte Brokerneustart repariert weiterhin einen
+persistierten Pending-Checkpoint.
+
+Die Mutationsgrenze schützt den konsistenten, begrenzten SQL-/Metadatensnapshot
+und die abschließende Versions-/Berechtigungsprüfung samt Veröffentlichung. Der
+SQLite-Handle ist vor dem langsamen Teil bereits geschlossen. Dokumentzugriffe,
+Gewichtung und externe Beobachtungen halten keinen Aktenlock. Die Ableitungsversion
+ist jetzt `2`; Quellenstatus und alle neuen Budgets gehen in den Checkpoint ein.
+Flüchtige Anforderungen koaleszieren pro Tenant/Akte; die bestehende Wiederaufnahme
+verwendet weiterhin persistierte Quellen und Checkpoints statt der Warteschlange.
+
+Volltexte werden einzeln autorisiert gelesen und nach dem Abgleich verworfen;
+pro Dokument bleiben ausschließlich tatsächlich beobachtete Kandidatenanker erhalten.
+Separate Tests prüfen Zeichen-/Ankergrenzen je Dokument und Lauf, sequenzielle
+Abfragen, Quellversion/Fundstelle und das Fehlen von Textfeldern im weitergereichten
+Material. Standard: **256 Anker / 16.000 normalisierte Ankerzeichen je Dokument**,
+**10.000 Anker / 640.000 Zeichen je Lauf**. Die Zeichenbudgets zählen die Summe der
+behaltenen normalisierten Werte, nicht die Größe des Originaltexts. Ein Dokument
+entspricht einem bereits begrenzten Abschnitt der Strukturierung.
+
+Ankerkürzung bricht den Lauf nicht ab. State und internes Laufergebnis berichten
+`documents`, `retained`, `chars`, `skipped`, `truncatedDocuments`, `truncated`.
+Ein Broker-Test prüft persistierte Kürzung sowie weiter lesbare Originaltexte und
+Abschnittsknoten bei vollständig ausgeschöpftem Zeichenbudget. Die vorhandenen
+Graph-/SQL-Volumenlimits bleiben harte Fehler. Die Sollgraphen bleiben innerhalb
+der Standardbudgets: Precision und Recall weiterhin jeweils **1,00**.
 
 ## Impact und Änderungsumfang
 
@@ -88,40 +134,49 @@ Lernschleifen-Symbole nicht und meldet dort `UNKNOWN`; daraus wird kein Nullrisi
 abgeleitet. Object-Store-Datei und `buildCatalog` meldeten LOW, jeweils keine
 indexierten direkten Caller/Prozesse. Tatsächlich geändert werden additiv:
 
-- `structureObject`: ein geschützter Graphaufruf nach persistierter Strukturierung;
-  nur wenn der Graphdienst bereit ist, damit Startup-Abhängigkeiten nicht zyklisch warten.
+- Review: Graphaufruf aus `structureObject` entfernt; `settleLifecycle` fordert erst
+  nach Aktenabschluss einen Auftrag an. Graphdienst trennt Snapshot/Berechnung/Commit;
+  die SQLite-Helfer liefern begrenzte Sketches und Kandidaten. Keine Änderung an
+  bestehenden SQLite-Schreibern oder am Uploadprotokoll.
 - Object Store: ein zusätzliches geschütztes Mixin und vier Indizes im vorhandenen Lifecycle.
 - Lernschleife: ein weiterer Zieltyp mit eigenem Graphconsumer; vorhandene Ziele
   behalten ihr Verhalten. Das Funktionsjournal ignoriert Graphkorrekturen gezielt.
 - Katalogexport/Tag-Taxonomie: additive Metadaten und drei Leseoperationen.
 
+Review-Impact zusätzlich auf `settleLifecycle`, `derive`, `deriveGraph`, `limits`,
+`sketch`, `candidateRows` und neue Hilfsmethoden angewendet; ergänzend `grep -rn`.
+Der Index meldet für diese Symbole weiterhin UNKNOWN. Die tatsächlichen direkten
+Caller sind Akten-Ingest/-Recovery, geschütztes `run` und die Graphtests.
 Manuell eingeschätzter Blast Radius: **MEDIUM** (Graphqualität und zusätzliche
 Object-Store-Dokumente); keine Änderung an Gateway-Autorisierung, bestehenden
 SQLite-Schreibern, Originalformaten oder öffentlichen Altverträgen.
-Die abschließenden GitNexus-Diffchecks der gestagten Änderungen und im Vergleich
-gegen `origin/main` melden LOW, zwei indexierte Codesymbole und keine betroffenen
-Prozesse. Die zusätzliche Zuordnung gleichnamiger README-Abschnitte ist ungenau:
+Die GitNexus-Diffchecks der gestagten Review-Korrektur melden LOW bei 19 Dateien
+und mangels aktueller Indexierung null zugeordneten Codesymbolen. Der Vergleich
+gegen `origin/main` einschließlich des ursprünglichen #886-Commits meldet ebenfalls
+LOW, zwei indexierte Codesymbole und keine betroffenen Prozesse. Die zusätzliche Zuordnung gleichnamiger README-Abschnitte ist ungenau:
 Die genannten weiteren README-Dateien sind laut Git-Diff unverändert. Der vollständige
 Datei-/Symbolumfang wurde deshalb ergänzend anhand des Git-Diffs geprüft; neue
 Graphsymbole bleiben wegen des älteren Indexes nur eingeschränkt erfasst.
 
 ## Allowlist
 
-Einziger neuer Eintrag: **`endpoint`**, ausschließlich als technischer Begriff
+Einziger Eintrag aus dem ursprünglichen Commit (Review: **keine Allowlist-Änderung**): **`endpoint`**, ausschließlich als technischer Begriff
 für den vorhandenen Modulnamen `evidence-endpoint-catalog`. Kein Fachbegriff,
 Kennungsformat oder Quellennamen wird der globalen Allowlist hinzugefügt.
 Fachliche Metadaten bleiben im eigenen JSON-Katalog außerhalb des domänenfreien Kerns.
 
 ## Prüfprotokoll
 
-Ergebnisse auf dem finalen Stand vor dem Commit. Der vollständige Unit-Lauf
-umfasst 469 Testdateien: 462 Suites bestanden, 7 regulär übersprungen;
-10.198 Tests bestanden und 54 übersprungen. Coverage: Statements 84,03 %,
-Branches 70,22 %, Funktionen 88,27 %, Zeilen 85,80 %; alle Gates erfüllt.
+Ergebnisse auf dem finalen Stand der Review-Korrektur vor dem neuen Commit.
+Der vollständige Unit-Lauf umfasst 470 Testdateien: 463 Suites bestanden,
+7 regulär übersprungen; 10.208 Tests bestanden und 54 übersprungen.
+Coverage: Statements 84,04 %, Branches 70,23 %, Funktionen 88,27 %,
+Zeilen 85,81 %; alle Gates erfüllt.
 
 | Prüfung | Ergebnis |
 | --- | --- |
-| Neue Regel-/Broker-/HTTP-Tests | grün: 24 Tests in 3 Suites, finaler Stand einschließlich 1.001 wiederholter Kandidaten |
+| Graph-Regel-/Broker-/HTTP-/Ankertests | grün: 34 Tests in 4 Suites einschließlich Review-Korrektur |
+| Betroffene Tests einschließlich Ingest/Strukturierung/HTTP | grün: 87 Tests in 8 Suites mit `NODE_OPTIONS=--experimental-vm-modules` |
 | `npm run lint -- --quiet` | grün |
 | `npm run test:unit:ci` | grün auf finalem Stand, einschließlich zusammengeführter Coverage-Gates |
 | `npm run test:tdd-matrix` + `check:tdd-matrix-coverage` | grün: 82 Tests, 66/66 verpflichtende IDs, Hard Gate 100 %; 12 optionale Blackbox-IDs nicht aktiviert |

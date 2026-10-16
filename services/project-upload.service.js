@@ -652,6 +652,19 @@ module.exports = {
           ? 'degraded'
           : 'ready';
       await ctx.call('project-file.setLifecycle', { projectId, lifecycle });
+      const graph = this.broker.getLocalService('project-graph');
+      const graphPolicy = require('../src/project-graph-policy');
+      if (graph?.graphReady && !records.some(graphPolicy.sourcePending)) {
+        try {
+          await ctx.call(
+            'project-graph.request',
+            { projectId },
+            { meta: { ...ctx.meta, projectGraph: graphPolicy.capability }, timeout: 0 }
+          );
+        } catch (error) {
+          this.logger.warn('Project graph retry pending', { errorClass: error.type || error.name });
+        }
+      }
     },
     async purgeProject(ctx, projectId) {
       const records = await this.records(ctx, projectId);

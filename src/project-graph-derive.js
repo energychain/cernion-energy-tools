@@ -1,7 +1,7 @@
 'use strict';
 const { normalizeAnchor } = require('./tenant-memory-store');
 const { identity, VERSION } = require('./project-graph-policy');
-const { sketch, candidateRows } = require('./project-graph-sqlite');
+const { graphSource } = require('./project-graph-sqlite');
 
 // Each independent evidence kind contributes at most its cap, regardless of duplicates.
 const caps = {
@@ -27,7 +27,7 @@ function weight(evidence) {
     [...totals.values()].reduce((sum, value) => sum + value, 0)
   );
 }
-function deriveGraph({ projectId, tenantId, objects, datasets, documents, db, limits }) {
+function deriveGraph({ projectId, tenantId, objects, datasets, documents, db, limits, source }) {
   const nodes = new Map(),
     edges = new Map();
   const maxNodes = Math.min(limits.nodes, limits.runNodes),
@@ -119,13 +119,11 @@ function deriveGraph({ projectId, tenantId, objects, datasets, documents, db, li
     sourceEdges(id, record.provenance.objectId);
     return { ...record, nodeId: id };
   });
-  const columns = [];
-  for (const record of data) {
-    record.columns.forEach((column, index) => {
-      if (columns.length >= limits.columns) throw new Error('Graph column limit exceeded');
-      columns.push({ record, column, index, ...sketch(db, record, index, limits.sketch) });
-    });
-  }
+  const material = source || graphSource(db, datasets, limits);
+  const columns = material.columns.map((column) => ({
+    ...column,
+    record: data.find((record) => record.id === column.record.id),
+  }));
   const usable = (column) =>
     column.column.type === 'string' &&
     column.values.length &&
@@ -213,8 +211,7 @@ function deriveGraph({ projectId, tenantId, objects, datasets, documents, db, li
       ]);
     }
   }
-  const candidates = candidateRows(db, limits.candidates + 1);
-  if (candidates.length > limits.candidates) throw new Error('Graph candidate limit exceeded');
+  const candidates = material.candidates;
   const sourceObjects = new Map(objects.map((object) => [object.objectId, object]));
   const entityRows = [];
   for (const candidate of candidates) {
@@ -237,7 +234,7 @@ function deriveGraph({ projectId, tenantId, objects, datasets, documents, db, li
       : sections.filter(
           (section) =>
             section.provenance.objectId === candidate.object_id &&
-            ` ${section.anchorText || ''} `.includes(` ${value} `) &&
+            section.anchors?.includes(value) &&
             ['page', 'slide', 'chapter'].every(
               (key) => !location[key] || section.sourceLocation?.[key] === location[key]
             )

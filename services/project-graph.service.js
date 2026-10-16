@@ -5,7 +5,8 @@ const project = require('../src/project-file-policy');
 const ingest = require('../src/project-file-ingest-policy');
 const policy = require('../src/project-graph-policy');
 const { deriveGraph } = require('../src/project-graph-derive');
-const { openGraphSource } = require('../src/project-graph-sqlite');
+const { openGraphSource, graphSource } = require('../src/project-graph-sqlite');
+const { documentAnchors } = require('../src/project-graph-anchors');
 const { catalogLinks } = require('../src/project-graph-catalog');
 const { graphOpenApi } = require('../src/project-graph-openapi');
 const { correctionPrincipal, validateCorrection } = require('../src/shared-service-learning');
@@ -88,7 +89,18 @@ module.exports = {
       params: { ...params, force: { type: 'boolean', default: false } },
       handler(ctx) {
         if (ctx.meta.projectGraph !== policy.capability) deny('Use project workflow');
-        return this.mutation(ctx, (safe) => this.derive(safe));
+        return this.enqueue(ctx);
+      },
+    },
+    request: {
+      visibility: 'protected',
+      params,
+      handler(ctx) {
+        if (ctx.meta.projectGraph !== policy.capability) deny('Use project workflow');
+        this.enqueue(ctx).catch((error) =>
+          this.logger.warn('Project graph retry pending', { errorClass: error.type || error.name })
+        );
+        return { queued: true };
       },
     },
     correct: {
@@ -141,7 +153,41 @@ module.exports = {
     );
     await this.recovery;
   },
+  async stopped() {
+    this.graphReady = false;
+    await Promise.allSettled([...(this.graphRuns?.values() || [])].map((run) => run.promise));
+  },
   methods: {
+    enqueue(ctx) {
+      this.graphRuns ||= new Map();
+      const key = JSON.stringify([principal(ctx).tenantId, ctx.params.projectId]);
+      const safe = Object.assign(Object.create(ctx), {
+        meta: { ...ctx.meta, projectIngestLock: null },
+        params: { ...ctx.params },
+      });
+      const current = this.graphRuns.get(key);
+      if (current) {
+        current.dirty = true;
+        safe.params.force ||= current.ctx.params.force;
+        current.ctx = safe;
+        return current.promise;
+      }
+      const run = { ctx: safe, dirty: false };
+      // Do not inherit or await an upload's active mutation lock.
+      run.promise = new Promise((resolve) => setImmediate(resolve))
+        .then(async () => {
+          let result;
+          do {
+            run.dirty = false;
+            result = await this.derive(run.ctx);
+            run.dirty ||= result.retry === true;
+          } while (run.dirty);
+          return result;
+        })
+        .finally(() => this.graphRuns.delete(key));
+      this.graphRuns.set(key, run);
+      return run.promise;
+    },
     record(ctx, operation, extra = {}) {
       return ctx.call(
         'object-store.projectGraphRecord',
@@ -180,16 +226,14 @@ module.exports = {
         { timeout: 0, meta: { ...ctx.meta, projectIngest: ingest.ingestCapability } }
       );
     },
-    async derive(ctx) {
-      const p = principal(ctx),
-        bounds = policy.limits();
-      const objects = (
-        await ctx.call(
-          'object-store.projectObjectRecord',
-          { operation: 'list', projectId: ctx.params.projectId },
-          { meta: { ...ctx.meta, projectObjectStore: ingest.objectCapability } }
-        )
-      ).filter((object) => object.extraction?.status === 'extracted');
+    async sources(ctx) {
+      return ctx.call(
+        'object-store.projectObjectRecord',
+        { operation: 'list', projectId: ctx.params.projectId },
+        { meta: { ...ctx.meta, projectObjectStore: ingest.objectCapability } }
+      );
+    },
+    configuration() {
       const catalog = this.settings.catalog || [
         ...require('../src/evidence-endpoint-catalog').EVIDENCE_ENDPOINT_CATALOG,
         ...require('../src/evidence-endpoint-catalog').PROJECT_GRAPH_ENDPOINTS,
@@ -198,73 +242,134 @@ module.exports = {
         this.settings.operations ||
         require('../src/operation-capability-index').loadOperationCapabilityIndex().operations;
       const domains = this.settings.domains || require('../src/semantic-domains').semanticDomains;
-      const version = policy.identity(
+      return { catalog, operations, domains, bounds: policy.limits() };
+    },
+    sourceVersion(objects, { catalog, operations, domains, bounds }) {
+      return policy.identity(
         policy.VERSION,
-        objects.map((object) => [object.objectId, object.hash, object.derivation]),
+        objects.map((object) => [
+          object.objectId,
+          object.hash,
+          object.status,
+          object.ingestState,
+          object.extraction?.status,
+          object.derivation,
+        ]),
         bounds,
         catalog,
         domains,
         operations.filter((op) => catalog.some((entry) => entry.action === op.action))
       );
-      const previous = await this.record(ctx, 'list');
-      const component = {
+    },
+    component(ctx, stats) {
+      return ctx.call('project-file.registerComponent', {
         projectId: ctx.params.projectId,
         componentId: 'graph',
         sensitivityLevel: 'tenant_internal',
         requiredClearance: ctx.meta.projectIngestLock.project.requiredClearance,
         cleanupAction: 'project-graph.deleteProject',
-      };
-      // Register acknowledged cleanup before the first possible graph batch.
-      await ctx.call('project-file.registerComponent', {
-        ...component,
-        stats: {
-          nodes: previous.filter((doc) => doc.recordType === 'node').length,
-          edges: previous.filter((doc) => doc.recordType === 'edge').length,
-        },
+        stats,
       });
+    },
+    async snapshot(ctx) {
+      const all = await this.sources(ctx);
+      const configuration = this.configuration();
+      const version = this.sourceVersion(all, configuration);
+      const { bounds } = configuration;
+      const previous = await this.record(ctx, 'list');
+      // Register acknowledged cleanup before the first possible graph batch.
+      await this.component(ctx, {
+        nodes: previous.filter((doc) => doc.recordType === 'node').length,
+        edges: previous.filter((doc) => doc.recordType === 'edge').length,
+      });
+      const state = {
+        recordType: 'state',
+        projectId: ctx.params.projectId,
+        tenantId: principal(ctx).tenantId,
+        version: null,
+        pending: true,
+        derivation: { version: policy.VERSION },
+      };
+      if (all.some(policy.sourcePending)) {
+        await this.record(ctx, 'write', { documents: [state] });
+        return { pending: true };
+      }
       if (
         !ctx.params.force &&
-        previous.some((doc) => doc.recordType === 'state' && doc.version === version)
+        previous.some(
+          (doc) => doc.recordType === 'state' && !doc.pending && doc.version === version
+        )
       )
         return { unchanged: true, version };
-      let graph = { nodes: new Map(), edges: new Map() };
+      await this.record(ctx, 'write', { documents: [state] });
+      const objects = all.filter((object) => object.extraction?.status === 'extracted');
+      let datasets = [],
+        documents = [],
+        source = { columns: [], candidates: [] };
       if (objects.length) {
-        const datasets = (await ctx.call('datapoint.datasetCatalog', { operation: 'list' })).filter(
+        datasets = (await ctx.call('datapoint.datasetCatalog', { operation: 'list' })).filter(
           (record) =>
             record.provenance?.projectId === ctx.params.projectId &&
             objects.some((object) => object.objectId === record.provenance.objectId)
         );
-        const documents = (await ctx.call('knowledge-rag.documentList', {})).filter(
+        documents = (await ctx.call('knowledge-rag.documentList', {})).filter(
           (record) =>
             record.provenance?.projectId === ctx.params.projectId &&
             objects.some((object) => object.objectId === record.provenance.objectId)
         );
         if (documents.length > Math.min(bounds.nodes, bounds.runNodes))
           throw new Error('Graph section limit exceeded');
-        for (const document of documents) {
-          const full = await ctx.call('knowledge-rag.documentGet', { id: document.id });
-          document.anchorText = require('../src/tenant-memory-store').normalizeAnchor(full.text);
-        }
         const basePath =
           this.broker.getLocalService('project-upload')?.basePath() ||
           process.env.CET_PROJECT_DATA_PATH ||
           './data/project-objects';
-        const db = await openGraphSource(basePath, p.tenantId, ctx.params.projectId);
+        const db = await openGraphSource(basePath, principal(ctx).tenantId, ctx.params.projectId);
         try {
-          graph = deriveGraph({
-            tenantId: p.tenantId,
-            projectId: ctx.params.projectId,
-            objects,
-            datasets,
-            documents,
-            db,
-            limits: bounds,
-          });
-          await catalogLinks(ctx, graph, { entries: catalog, operations, domains, limits: bounds });
+          source = graphSource(db, datasets, bounds);
         } finally {
           db.close();
         }
       }
+      return { ...configuration, version, state, objects, datasets, documents, source };
+    },
+    async derive(ctx) {
+      const snapshot = await this.mutation(ctx, (safe) => this.snapshot(safe));
+      if (snapshot.unchanged || snapshot.pending) return snapshot;
+      const { objects, datasets, documents, source, bounds, catalog, operations, domains } =
+        snapshot;
+      let graph, anchors;
+      try {
+        anchors = await documentAnchors(ctx, documents, objects, source.candidates, bounds);
+        graph = deriveGraph({
+          tenantId: principal(ctx).tenantId,
+          projectId: ctx.params.projectId,
+          objects,
+          datasets,
+          documents,
+          source,
+          limits: bounds,
+        });
+        await catalogLinks(ctx, graph, { entries: catalog, operations, domains, limits: bounds });
+      } catch (error) {
+        // Source replacement can remove a document while its text is being read.
+        const changed = await this.mutation(ctx, (safe) => this.snapshotStatus(safe, snapshot));
+        if (changed) return changed;
+        throw error;
+      }
+      return this.mutation(ctx, (safe) => this.commitGraph(safe, snapshot, graph, anchors));
+    },
+    async snapshotStatus(ctx, snapshot) {
+      const all = await this.sources(ctx);
+      if (all.some(policy.sourcePending)) return { pending: true };
+      if (this.sourceVersion(all, this.configuration()) !== snapshot.version)
+        return { retry: true };
+      return null;
+    },
+    async commitGraph(ctx, snapshot, graph, anchors) {
+      const changed = await this.snapshotStatus(ctx, snapshot);
+      if (changed) return changed;
+      // Corrections made while the snapshot was being evaluated take precedence.
+      const previous = await this.record(ctx, 'list');
       for (const old of previous.filter((doc) => doc.origin === 'corrected')) {
         graph.edges.set(old.edgeId, old);
         for (const id of [old.from, old.to]) {
@@ -275,16 +380,15 @@ module.exports = {
         }
       }
       if (
-        graph.nodes.size > Math.min(bounds.nodes, bounds.runNodes) ||
-        graph.edges.size > Math.min(bounds.edges, bounds.runEdges)
+        graph.nodes.size > Math.min(snapshot.bounds.nodes, snapshot.bounds.runNodes) ||
+        graph.edges.size > Math.min(snapshot.bounds.edges, snapshot.bounds.runEdges)
       )
         throw new Error('Graph corrected volume limit exceeded');
       const state = {
-        recordType: 'state',
-        projectId: ctx.params.projectId,
-        tenantId: p.tenantId,
-        version,
-        derivation: { version: policy.VERSION },
+        ...snapshot.state,
+        pending: false,
+        version: snapshot.version,
+        anchors,
       };
       const pendingState = { ...state, version: null, pending: true };
       await this.record(ctx, 'write', { documents: [pendingState] });
@@ -292,20 +396,17 @@ module.exports = {
         replace: true,
         documents: [...graph.nodes.values(), ...graph.edges.values(), pendingState],
       });
-      await ctx.call('project-file.registerComponent', {
-        ...component,
-        stats: { nodes: graph.nodes.size, edges: graph.edges.size },
-      });
+      await this.component(ctx, { nodes: graph.nodes.size, edges: graph.edges.size });
       await this.record(ctx, 'write', { documents: [state] });
       const event = {
-        tenantId: p.tenantId,
+        tenantId: principal(ctx).tenantId,
         projectId: ctx.params.projectId,
         nodes: graph.nodes.size,
         edges: graph.edges.size,
         version: policy.VERSION,
       };
       await this.broker.emit('project.graph.changed.v1', event);
-      return event;
+      return { ...event, anchors };
     },
     async correctEdge(ctx, correction) {
       const docs = await this.record(ctx, 'list');
