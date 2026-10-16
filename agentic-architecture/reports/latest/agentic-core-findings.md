@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-10-15T20:50:06.888Z
+Generated: 2026-10-16T02:52:43.389Z
 
 ## Current measurable surface
 
@@ -23,7 +23,7 @@ Generated: 2026-10-15T20:50:06.888Z
 - `stadtwerk`: 5635 hits in 248 files
 - `forecast`: 4595 hits in 329 files
 - `vdmi`: 4530 hits in 295 files
-- `redispatch`: 4129 hits in 310 files
+- `redispatch`: 4128 hits in 310 files
 - `market`: 3966 hits in 403 files
 - `hitl`: 3707 hits in 447 files
 - `edm`: 2919 hits in 364 files
