@@ -1,6 +1,11 @@
 {
   "minimumLength": 5,
   "corePaths": [
+    "services/project-graph.service.js",
+    "src/project-graph-*.js",
+    "services/project-structure.service.js",
+    "src/project-structure-*.js",
+    "src/project-dataset-*.js",
     "services/project-upload.service.js",
     "src/archive-entry-policy.js",
     "src/project-file-*.js",
@@ -128,7 +133,11 @@
   "genericPackageShare": 0.05,
   "referenceCorpus": {
     "maxFilesPerPackage": 40,
-    "extensions": [".js", ".cjs", ".mjs"],
+    "extensions": [
+      ".js",
+      ".cjs",
+      ".mjs"
+    ],
     "generatedAt": "2026-10-03T00:00:00.000Z"
   }
 }

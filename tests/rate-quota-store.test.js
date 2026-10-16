@@ -25,6 +25,7 @@ afterEach(() => {
   delete process.env.RATE_QUOTA_DRIVER;
   delete process.env.RESET_LLM_TOKENS_PER_DAY_ON_RESTART;
   delete process.env.RESET_LLM_TOKENS_PER_DAY_VALUE;
+  delete process.env.QUOTA_LLM_TOKENS_PER_DAY;
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
 
@@ -140,5 +141,47 @@ describe('rate-quota-store', () => {
 
     const afterRestart = rateQuotaStore.buildQuotaSnapshot('tenant-reset-value');
     expect(afterRestart.usage.llm_tokens_per_day.used).toBe(123);
+  });
+
+  it('treats environment limits as a floor over stored tenant snapshots', () => {
+    // An older process persisted its default (250000) with the tenant state.
+    rateQuotaStore.recordLlmUsage({
+      tenantId: 'tenant-floor',
+      provider: 'gemini',
+      model: 'default',
+      operation: 'generate_text',
+      prompt: 'hello',
+      completion: 'done',
+    });
+    const stored = rateQuotaStore.getTenantState('tenant-floor');
+    expect(stored.config.quotas.llm_tokens_per_day).toBe(250000);
+    rateQuotaStore.saveTenantState('tenant-floor', stored);
+
+    process.env.QUOTA_LLM_TOKENS_PER_DAY = '30000000';
+    loadFreshModule();
+
+    const raised = rateQuotaStore.buildQuotaSnapshot('tenant-floor');
+    expect(raised.config.quotas.llm_tokens_per_day).toBe(30000000);
+    expect(raised.usage.llm_tokens_per_day.limit).toBe(30000000);
+    expect(
+      rateQuotaStore.checkLlmQuota({ tenantId: 'tenant-floor', requiredTokens: 1000000 }).allowed
+    ).toBe(true);
+  });
+
+  it('lets tenant configuration raise but never lower a quota', () => {
+    process.env.QUOTA_LLM_TOKENS_PER_DAY = '1000';
+    loadFreshModule();
+    const state = rateQuotaStore.getTenantState('tenant-override');
+    state.config.quotas = {
+      ...state.config.quotas,
+      llm_tokens_per_day: 10,
+      llm_tokens_per_month: 9e9,
+    };
+    rateQuotaStore.saveTenantState('tenant-override', state);
+    loadFreshModule();
+
+    const effective = rateQuotaStore.getTenantState('tenant-override').config;
+    expect(effective.quotas.llm_tokens_per_day).toBe(1000);
+    expect(effective.quotas.llm_tokens_per_month).toBe(9e9);
   });
 });

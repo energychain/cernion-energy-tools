@@ -133,10 +133,15 @@ module.exports = {
   mixins: [
     require('../src/project-file-store'),
     require('../src/project-file-object-store'),
+    require('../src/project-graph-store'),
     createPouchDbLifecycleMixin({
       dbPathEnvVar: 'OBJECT_STORE_DB_PATH',
       defaultDbPath: './data/object-store',
-      indexes: [['ns'], ['ns', 'updatedAt']],
+      indexes: [
+        ['ns'],
+        ['ns', 'updatedAt'],
+        ...['from', 'to', 'relation', 'kind'].map((field) => ['tenantId', 'projectId', field]),
+      ],
     }),
   ],
 

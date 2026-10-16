@@ -1,0 +1,18 @@
+[
+  {
+    "id": "alpha",
+    "domain": "metering",
+    "table": "timestamp,consumption\n2025-01-01T00:00:00Z,12\n2025-01-01T00:15:00Z,18\n",
+    "document": "Chapter 1 Summary\nDie Messreihe umfasst zwei Intervalle.\nlocation: Alpha\n",
+    "total": 30,
+    "field": "consumption"
+  },
+  {
+    "id": "beta",
+    "domain": "receivables",
+    "table": "reference,amount\nREF-A,23\nREF-B,17\n",
+    "document": "Chapter 1 Summary\nDie offenen Forderungen werden monatlich geprüft.\ncity: Beta\n",
+    "total": 40,
+    "field": "amount"
+  }
+]

@@ -145,3 +145,5 @@ module.exports = {
 // Shared lossless CSV primitives for shape detection and connector imports.
 module.exports.parseRecords = parseRecords;
 module.exports.parseCsvLine = parseCsvLine;
+module.exports.detectDelimiter = detectDelimiter;
+module.exports.normalizeEncoding = normalizeEncoding;

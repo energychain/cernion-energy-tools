@@ -260,5 +260,6 @@ module.exports = {
   RESULT_KINDS,
   EVIDENCE_ENDPOINT_CATALOG: buildCatalog(),
   buildCatalog,
+  PROJECT_GRAPH_ENDPOINTS: require('./project-graph-endpoints.json'),
   validateEvidenceEndpointCatalog,
 };
