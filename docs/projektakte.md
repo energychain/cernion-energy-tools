@@ -974,6 +974,36 @@ Die Antwort erhält getrennte Herkunft mit Dateiname, Fundstelle und Originalhas
 Fehlende Spalten, Zeiträume, Originalversionen oder Leserechte werden konkret als
 Datenlücke genannt; es gibt keine Manifestzahl oder geschätzte Ersatzgröße.
 
+Im Workbench-Turn wird eine belegte Aktenantwort anschließend durch genau einen
+`llm-client.generateStructured`-Aufruf mit dem Schema `{ answer }` in deutsche Sätze
+ausformuliert („hilfreicher Kollege“). Frage, Aktentitel, abgefragte Werte mit
+Herkunft und Lücken bilden den Kontext. Evidenz und Lücken sind ausdrücklich
+**untrusted Daten**, niemals Anweisungen; Ergänzungen, Schätzungen und Berechnungen
+sind untersagt. Die vorhandenen Helfer `opaqueContext`/`restoreContext` und
+`llmOptions` schützen Referenzen und verwenden die Antwortmodell-Einstellungen.
+Der Aktenwahlsatz wird immer deterministisch vorangestellt. Strukturierte
+`evidence`/`sources` bleiben unverändert, Lücken werden zusätzlich deterministisch
+gesichert. Akte und angefragte Katalogquellen müssen getrennt genannt werden.
+
+Jede Zahl des Modelltexts muss nach Normalisierung exakt in den belegten Werten
+vorkommen: deutsche/englische Tausender- und Dezimaltrennzeichen, geschützte
+Leerzeichen, Apostrophe, Vorzeichen und Exponentialschreibweise werden unterstützt.
+Einheitensuffixe beeinflussen den Zahlenvergleich nicht; Einheiten dürfen laut
+Prompt nicht geändert werden. Es gibt keine Umrechnung, Rundung oder Toleranz;
+auch große Ganzzahlen werden ohne Gleitkomma-Präzisionsverlust verglichen.
+Ein einzelner Punkt mit drei Nachkommastellen gilt wie bei der Praxisbewertung
+als Tausendertrennung, ein einzelnes Komma als Dezimaltrennung. Zahlen aus der
+Frage allein werden nicht als Belege freigegeben.
+
+Unbelegte Zahlen, Schemafehler, Code-/JSON-Ausgaben und Modellfehler führen zum
+bisherigen deterministischen Antwortformat; Fehler werden mit `logLlmError`
+protokolliert. `LLM_QUOTA_EXCEEDED` zeigt stattdessen die gemeinsame `quotaMessage`
+mit Rücksetzmetadaten und sichtbarer Aktenwahl. Kosten: **ein zusätzlicher
+Modellaufruf je beantworteter Aktenfrage**, ohne Modellretries, Recovery oder
+strukturierten Ersatzaufruf. Ohne gewählte Akte und bei reinen Lückenantworten
+entsteht kein Ausformulierungsaufruf. Personal Agent und Answer Dossier nutzen
+weiter ihre vorhandene Antwortgenerierung; dort gibt es keine zweite Ausformulierung.
+
 Eine ausdrücklich angefragte Katalogquelle kann über `externalLinks` einen eigenen
 Antwortteil liefern. Die aktuelle Graphkante muss weiterhin lesbar sein. Der
 Join-Schlüssel wird durch eine zusätzliche, begrenzte `dataset.query`-Aggregation

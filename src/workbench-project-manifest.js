@@ -45,18 +45,23 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
     envelope.userRequest
   );
   if (!result) return null;
+  const answer = await require('./project-manifest-prose').projectManifestProse(
+    result,
+    envelope.userRequest,
+    { tenantId: p.tenantId, logger: service.logger }
+  );
   await conversation.saveTurn(service.conversationsDb, p, envelope, {
     tenantMemoryFactIds: [],
     projectSelection: { projectId: result.projectId, questionTypeId: result.questionTypeId },
     retrieval: { evidence: result.evidence, trace: result.trace, toolTrace: [] },
     evidenceRetrievedAt: Date.now(),
-    lastAnswer: result.responseText.slice(0, 600),
+    lastAnswer: answer.responseText.slice(0, 600),
     lastConversationShape: 'knowledge',
   });
   return {
     state: 'assistance',
     nonBinding: true,
-    responseText: result.responseText,
+    ...answer,
     evidence: result.evidence,
     gaps: result.gaps,
     projectSelection: { projectId: result.projectId, questionTypeId: result.questionTypeId },

@@ -4,6 +4,77 @@ Stand: 16.10.2026. Branch: `feat/887-projektakte-manifest`.
 Keine Live-Modellaufrufe, kein `release:practice`, kein Push oder PR.
 Alle neuen Modelltests verwenden einen Stub für `src/llm-client.js`.
 
+## Folgeauftrag: ausformulierte Aktenantworten
+
+Aufbauend auf Commit `33ecdb62` ergänzt ausschließlich `projectManifestTurn` einen
+Aufruf von `project-manifest-prose`. Der gemeinsame Akten-Lesepfad bleibt
+deterministisch; Personal Agent und Dossier erhalten keinen zusätzlichen Aufruf.
+Wiederverwendet werden die zentrale LLM-Fassade, `llmOptions`,
+`opaqueContext`/`restoreContext`, `parseNumber`, `logLlmError` und `quotaMessage`.
+Frage, Titel, belegte Werte samt Herkunft und Lücken gehen als untrusted Kontext
+an ein Ajv-geprüftes `{ answer }`-Schema. Auswahl und strukturierte Quellen bleiben
+deterministisch; Lücken werden auch bei Auslassung durch das Modell angefügt.
+
+Zahlenvergleich: exakte normalisierte Ziffern plus Dezimalexponent, ohne
+Gleitkomma-Rundungsverlust. Deutsche/englische Trennzeichen, geschützte Leerzeichen,
+Apostrophe, Vorzeichen und Exponenten sind abgedeckt; Einheiten werden beim
+Zahlenvergleich abgetrennt, nicht umgerechnet. Keine Toleranz oder Berechnung.
+Ein einzelner Punkt mit Dreiergruppe zählt als Tausendertrennung, ein einzelnes
+Komma als Dezimaltrennung. Freigabe ausschließlich gegen `evidence[].value`, nie
+gegen Frage oder Manifest. Schemafehler, Code/JSON, unbelegte Zahlen und andere
+Modellfehler werden protokolliert und ergeben den bisherigen Text.
+Kontingentfehler ergeben die gemeinsame Kontingentmeldung samt `resetAt`, mit
+vorangestellter Aktenwahl und unveränderten strukturierten Belegen.
+
+Kosten: genau ein Ausformulierungsaufruf je belegter Workbench-Aktenfrage, ohne
+Retry/Recovery/strukturierten Ersatzaufruf. Keine Akte oder keine Evidenz bedeutet
+keinen zusätzlichen Modellaufruf. Manifest-Erzeugung und Auswahlkosten ändern sich
+nicht. Kein neuer Parameter und keine Allowlist-Erweiterung.
+
+GitNexus-Impact wurde für `projectManifestTurn`, `projectManifestProse`,
+`answerNumbers` und die Praxisbewertung aufgerufen; der ältere Index liefert
+UNKNOWN. Ergänzende lokale Aufrufsuche zeigt einen Workbench-Chat-Aufrufer und
+einen Praxisbewertungs-Aufrufer. Routingauswahl, Berechtigungen und Dossier bleiben
+unberührt; der Blast Radius umfasst die Workbench-Antwortdarstellung und den
+Praxisprüfer. Die zehn vorhandenen Akten-Praxisszenarien bleiben erhalten. Ihre
+Bewertung akzeptiert nun ausformulierte Quellenangaben; Datei muss sichtbar sein,
+Hash/Fundstelle bleiben in der tatsächlichen strukturierten Evidenz verpflichtend.
+Zusätzliche Tests verhindern, dass fehlende Provenienz dadurch akzeptiert wird.
+
+Stubtests decken gute Ausformulierung, unveränderte Quellen, genau einen Aufruf,
+untrusted Prompt, reversible Referenzen, falsche Zahlen einschließlich großer
+Ganzzahlen, Schema-/Code-/JSON-/Modellfehler, Kontingentfehler, gemischte Herkunft,
+gesicherte Lücken sowie keinen Aufruf ohne gewählte Akte oder Belege ab.
+Der Live-Praxislauf bleibt vorbereitet und wird hier nicht ausgeführt.
+
+### Checks für den Folgeauftrag
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Neue Tests | 43 Stub-/Praxisprüfer-Tests bestanden; finaler gezielter Nachlauf mit Manifestregression: 55 Tests grün |
+| Berührte Integrations-/Praxispfade | acht Suites / 117 Tests grün; anschließend finale Zahlenlogik gezielt und in der vollständigen Unit-CI geprüft |
+| Lint / Build | grün; Build regulärer No-op |
+| `test:unit:ci` | 24 Blöcke, 468 Suites / 10290 Tests bestanden; 7 Suites / 54 Tests regulär übersprungen |
+| Coverage | Statements 84,11 %, Branches 70,33 %, Functions 88,36 %, Lines 85,87 %; alle Grenzen bestanden |
+| `test:shared-service:ci` | 86 Tests grün, Harness 19,24 s unter 60 s |
+| Praxis-Fixtures | generiert, synchron und synthetisches Vokabular grün; bestehende zehn Akten-Szenarien unverändert |
+| Domain-Free | `check:domain-free-core` und `check:domain-free-equivalence` grün; Äquivalenz über 150 Dateien / 25170 Treffer; neue Kernmodule zusätzlich im Manifesttest geprüft |
+| TDD-Matrix | 82 Tests bestanden, vier optionale Tests übersprungen; Pflichtabdeckung 66/66 = 100 %, zwölf optionale Live-Blackbox-IDs nicht ausgeführt |
+| Artefaktprüfungen | `check:function-model`, `check:signal-catalog`, `check:operation-capability-index`, `check:llm` grün |
+| OpenAPI | `audit:openapi`: 0 Issues, unverändert 480 Warnungen |
+| Git-Diff | normaler und vorgemerkter `diff --check` grün; ausschließlich 13 erwartete Dateien im Folgeauftrag |
+
+Alle sechs geforderten Generatoren wurden nach der letzten Codeänderung ausgeführt.
+Produktcode, Tests und Artefakte blieben während der vollständigen Unit-CI per
+Prüfsummen kontrolliert unverändert. Danach wurde nur dieser Ergebnisbericht ergänzt.
+GitNexus `detect_changes` für den vorgemerkten Folgeauftrag meldet 13 Dateien und
+keine im älteren Index bekannten geänderten Symbole. Der zusätzliche Vergleich
+gegen `main` wurde ohne zeitnahe Rückmeldung beendet; der lokale Vergleich umfasst
+dort 384 Dateien. Der kontrollierte Diff gegen die Folgeauftragsbasis `33ecdb62`
+enthält die erwarteten 13 Dateien; Routing-/Dossier-/Evidenzleselogik ist unverändert.
+Ein bereits vorhandener unversionierter Python-Cache wird nicht aufgenommen.
+Neuer Commit ohne Amend; kein Push, kein PR und kein Live-Modelllauf.
+
 ## Implementierung und Entscheidungen
 
 - Neuer `project-manifest`-Dienst und capabilitygeschützter Adapter im vorhandenen

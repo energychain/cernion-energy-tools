@@ -232,10 +232,10 @@ function projectEvidenceChecks(rule, reply, text) {
             entry.metadata?.filename === rule.file &&
             /^[a-f0-9]{64}$/u.test(entry.metadata?.hash) &&
             entry.metadata?.nodeId &&
-            entry.metadata?.location
-        ) &&
-        text.includes('Fundstelle:') &&
-        text.includes('Hash:'),
+            entry.metadata?.location &&
+            entry.value.includes('Fundstelle:') &&
+            entry.value.includes('Hash:')
+        ) && text.includes(rule.file),
       reason: 'Zahl aus Query mit Datei Fundstelle und Hash',
     });
   if (rule.catalog)
@@ -243,8 +243,8 @@ function projectEvidenceChecks(rule, reply, text) {
       id: 'project-separated-catalog',
       passed:
         evidence.some((entry) => entry.source === 'practice-reference.read') &&
-        text.includes(`Aus ${rule.catalog}:`) &&
-        text.includes('Aus Projektakte'),
+        text.toLocaleLowerCase().includes(rule.catalog.toLocaleLowerCase()) &&
+        /Projektakte/iu.test(text),
       reason: 'Katalogteil aus wirklichem lesenden Endpunkt getrennt',
     });
   if (rule.gap)

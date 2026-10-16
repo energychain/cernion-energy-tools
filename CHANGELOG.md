@@ -2,6 +2,11 @@
 
 ## Unreleased — Projektakte: Manifest im Routing (#887)
 
+- RC3-Ausformulierung: ein strukturierter LLM-Aufruf je belegter Aktenfrage im
+  Workbench-Turn, mit unveränderter strukturierter Herkunft und festem Aktenwahlsatz.
+  Exakte Zahlenprüfung und Schema-/Codeprüfung sichern den deterministischen Rückfall;
+  Kontingentfehler zeigen die reguläre Kontingentmeldung. Keine doppelte
+  Ausformulierung im Personal-Agent-/Dossier-Pfad und kein Aufruf ohne Aktenevidenz.
 - Versionierte, schema-validierte Projektmanifeste aus Graph- und Schemametadaten;
   koaleszierte Erzeugung über die zentrale LLM-Fassade, bestätigte Löschkaskade.
 - Additive dynamische Evidenzkandidaten für Workbench und Answer Dossier, auch ohne
