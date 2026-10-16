@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Workbench: MaKo/M2C Resolution Value Fallansicht (#761)
+
+- Additive, read-only `mako_resolution_value_review_*` Sektionsgruppe in `integrations/budibase/manifests/stadtwerk-mauer-workbench.json` für `ROLE_MAKO_OWNER`: zwölf skalare Queries (`getMakoResolutionValueReview{SelectorRows,CaseMessageRows,GroundingRows,PresentationRows,ResolutionValueRows,OwnerDeadlineRows,DecisionGateRows,VerifyRows,MatrixRows,TransferRows,IdentityGuardRows,NoCallRows}`) über genau drei synthetische Fälle (`context_clarification`, `financial_partner_owner_evidence_gap` als Standard, `qualitative_review_ready_human_gate`).
+- Komponiert ausschließlich die sieben bestehenden `/api/dashboard/*`-Lesemodelle (Evidence-Chain, Grounding-Audit, Receipt-Presentation, Owner-Deadline-Gate, Decision-Readiness, Blueprint-Pack-Verify, Transfer-Readiness); kein neuer Endpoint, Service oder Persistenzpfad. Matrix-/Verify-Zeilen nutzen die kanonische vierzeilige #591-`demoProcessMatrix` (`roleLegend.M = Mitwirkend`), Sync bleibt `complete -> pending -> pending`.
+- Resolution Value nur qualitativ (kein Betrag, Score, Rang, ROI/NPV/TOTEX); fehlende Evidenz wird `clarification`/`evidence_gap` mit positiver Folgeaktion. `GET /api/governance/role-workbench` wird nicht aufgerufen — skalarer Guard `identity_forwarding_required`/`protectedReadCalled=false` bis #741. No-Call-Zeilen für MaKo-Versand, EDIFACT/A96/MSCONS, Rechnungsfreigabe, Billing/Settlement, Workflow/HITL, Connectoren, Rundeck, Budibase-Schreibzugriffe, Geräte-, Secret-/Wallet- und Produktionsaktionen. Sichtbare Fertigstellung bleibt an #572 gebunden.
+- `tests/budibase-workbench.test.js`: elf fokussierte Tests (Routen-Komposition, No-Call, Selektor, skalare Zeilen, qualitative Resolution Value, Matrix/Sync, Identity-Guard, Reinheit bei wiederholter Ausführung).
+
 ## Unreleased — Projektakte: Relationsgraph (#886)
 
 - Review-Korrektur: Graph erst nach Abschluss aller empfangenden/strukturierenden Objekte, ohne erzwungene Neuberechnung; pro Akte koaleszierte Anforderungen mit höchstens einem laufenden Auftrag und einer Dirty-Markierung. Dokument-/Katalogzugriffe außerhalb der Mutationsgrenze, konsistenter SQL-Snapshot und erneute Versions-/Berechtigungsprüfung vor dem Schreiben.
