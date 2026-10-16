@@ -878,3 +878,242 @@ aber Scans und temporäre SQLite-Sortierung erfordern. Ein einzelner Brokerproze
 serialisiert Snapshot und Veröffentlichung mit Aktenmutationen; die übrige Ableitung
 läuft außerhalb dieser Grenze. Multi-Prozess-Locks folgen nicht hier.
 Qualitäts- und Sicherheitsprüfungen stehen in `docs/validation/886-projektakte-graph.md`.
+
+## Manifest als dynamischer Evidenzendpunkt (#887)
+
+`project-manifest` erzeugt aus dem abgeschlossenen Graphen eine zusätzliche,
+versionierte Beschreibung der beantwortbaren Fragen. Das Manifest ist ein
+**Routingkandidat, niemals ein Beleg für Antwortzahlen**. Ein Manifest enthält:
+
+```js
+{
+  projectId, version, generatedAt,
+  summary: { text, sources: [nodeId] },
+  entities: [{ name, kind, sources: [nodeId] }],
+  timeRanges: [{ from, to, sources: [nodeId] }],
+  questionTypes: [{ id, description, inputs: [], skillRefs: [], sources: [nodeId] }],
+  externalLinks: [{ endpointId, joinKeys: [], confidence, sources: [nodeId] }]
+}
+```
+
+Auch die Zusammenfassung und jede Entitäts-/Zeitaussage besitzen mindestens eine
+gültige Graphreferenz. Ajv prüft die vollständige Struktur; anschließend werden alle
+Knotenreferenzen gegen den Snapshot geprüft. `skillRefs` bleiben bis #889 leer.
+Externe Verknüpfungen werden ausschließlich aus vorhandenen, ausreichend gewichteten
+`references`-Kanten zu bekannten Katalogoperationen übernommen. Das Modell darf sie
+nicht selbst erzeugen. Korrigierte Graphkanten wirken auch auf die Manifestversion.
+
+### Erzeugung, Persistenz und Kosten
+
+`project.graph.changed.v1` führt die authentifizierten Metadaten des Graphlaufs weiter.
+Der Manifestdienst fasst Anforderungen je Tenant/Akte zu einem laufenden Auftrag und
+einer Dirty-Markierung zusammen. Ein Inhaltscheckpoint aus abgeschlossener
+Graphquellversion und Kantenkorrekturen verhindert weitere Modellaufrufe für einen
+unveränderten Stand. Startup-Recovery verwendet den vorhandenen paginierten
+Graphquellscan und prüft wiederum Sichtbarkeit und aktuelle Clearance.
+
+Der Prompt verwendet eine explizite Feldprojektion: Akten-/Datei-/Abschnittstitel,
+Spaltennamen und -typen, Einheiten, Zeitraum sowie Knoten-/Kantenstruktur. Entitätswerte,
+Tabellenzeilen, Zellbeispiele, SQL-Sketches, Passagevolltexte und beliebige zusätzliche
+Profilattribute sind ausgeschlossen. Die Metadaten sind auf 128000 Bytes begrenzt;
+Überschreitungen führen ohne Modellaufruf zum unten beschriebenen Minimal-Manifest.
+Alle Modellaufrufe gehen durch `src/llm-client.js`, ohne zusätzliche Provideranbindung.
+Je neuem Graphstand erfolgt normalerweise ein Erzeugungsaufruf, mit zehn Sekunden
+Timeout und ohne automatische Providerwiederholungen. Ungültige `sources` werden
+entfernt; Aussagen ohne verbleibende gültige Quelle werden verworfen. Eine verworfene
+Zusammenfassung wird durch den quellengebundenen Aktentitel ersetzt. Ajv und die
+strikte Knotenprüfung validieren auch das bereinigte Ergebnis vollständig.
+
+Bleibt kein gültiger Fragetyp, wird **genau einmal** mit einer kurzen Korrektur und
+den erlaubten Knoten aus `nodes` neu erzeugt; bis 128 Knoten werden deren IDs
+zusätzlich ausdrücklich aufgelistet. Auch nicht parsebare strukturierte Ausgaben
+erhalten höchstens diesen einen zweiten Versuch. Bei Provider-/Kontingentfehlern
+entsteht kein weiterer Modellaufruf. Scheitert die Erzeugung erneut, entsteht ein
+deterministisches Minimal-Manifest aus Titel, aktuellen Datensatznamen, Spalten,
+Einheiten, Zeiträumen, Dokumentabschnittstiteln und beobachteten Graphentitäten.
+Alle Aussagen behalten gültige Quellen; es werden keine Ergebniswerte ergänzt.
+Maximal zwei Erzeugungsaufrufe pro neuem Graphstand, weiterhin koalesziert und
+versioniert. Recovery erzeugt auch ein bereits gespeichertes Minimal-Manifest
+für denselben Stand nicht nochmals.
+
+Der persistierte Manifest-State `generation` an jedem Versionsdatensatz enthält
+`status: ready | degraded`, `attempts`, `discardedReferences`, `discardedClaims`,
+`fallback` und einen festen `reason`-Code. Bereinigung, Wiederholung und Minimal-
+Rückfall werden als `degraded` protokolliert. Erzeugungsfehler erreichen den Aufrufer
+nicht; Rechte-, Archivierungs- und Speichergrenzen bleiben wirksam.
+`project-manifest.get` behält den reinen Manifestvertrag. Die sichtbaren Kandidaten
+enthalten `generation` separat; die Diagnose der besten Akte übernimmt diesen State.
+Auch ein degradiertes Manifest bleibt nach den unveränderten Auswahlregeln wählbar.
+
+Snapshot und Veröffentlichung verwenden die vorhandene Akten-Mutationsgrenze;
+der Modellaufruf läuft außerhalb dieser Grenze. Vor der Veröffentlichung werden
+Graphversion und Berechtigung erneut geprüft. Archivierung/Löschung während eines
+Aufrufs verhindert die Veröffentlichung. Ein Manifest zum alten Graphstand wird
+bei verändertem oder pending Graph nicht mehr als Kandidat geliefert.
+
+Versionen und akteursbezogene Korrekturen liegen im vorhandenen Object Store unter
+`project-manifest:<kodierter Tenant>:<kodierte Akte>:`. Tenantidentitäten werden nicht
+gehasht. Die registrierte Komponente `manifest` verwendet
+`project-manifest.deleteProject` als bestätigten, idempotenten Cleanup-Handler.
+Erfolgreiche Veröffentlichung emittiert
+`project.manifest.changed.v1 { tenantId, projectId, version }`.
+Es gibt weder neue Umgebungsvariablen noch einen zusätzlichen Datenbank-Lifecycle.
+
+### Sichtbarkeit, Auswahl und Antwort
+
+`GET /api/project-manifest/` (`project-manifest.candidates`) liefert ausschließlich
+aktuelle Manifeste sichtbarer Akten in `ready` oder `degraded`.
+`GET /api/project-manifest/:projectId` liefert das aktuelle Manifest einzeln.
+Tenant, Mitgliedschaft und sämtliche Clearanceanforderungen werden über
+`project-file` vor jedem Zugriff geprüft. Leere Akten ohne abgeschlossenen Graph,
+`ingesting`, archivierte Akten und jede Löschmarkierung liefern keine Kandidaten.
+Die beiden APIs sind lesend und `x-agentable`; Mutationen bleiben geschützt.
+
+Der additive Kandidatenanbieter hängt am bestehenden Evidenzendpunktkatalog;
+`dataset-routing.selectProjectCandidates` bewertet die gespeicherten Beschreibungen.
+Der Workbench-Pfad prüft passende Akten nach Dateibefehlen/Hintergrundaufgaben und
+dem Laden des Gesprächsstands, vor generischen Gedächtnis-/Dataset-/Rückfragepfaden.
+Explizite Dokument-/Tabelleneingaben und Anhänge behalten ihren bisherigen Vorrang;
+sie werden vor der Prüfung erkannt. Ohne passende Akte läuft die bisherige
+Reihenfolge weiter. Der Answer-Dossier-Pfad verwendet denselben
+Kandidaten-/Lesepfad und gibt Auswahlhinweise an beide Dossierformate weiter.
+Die statischen Katalogeinträge und `workbench-data-scope` bleiben unverändert.
+
+Die Kandidaten enthalten zusätzlich `routingSources`: aktuelle Originaldateinamen,
+Datensatztitel, Spaltennamen/-typen, Einheiten aus der Datensatzsemantik, Zeiträume
+und Graphanker aus den Entitäts-Kandidaten. Der bestehende aktuelle Graph wird
+wiederverwendet; der tenant-/rechtegeprüfte Dataset-Katalog wird höchstens einmal
+je Kandidatenliste gelesen. Keine Rohzeilen oder Zellbeispiele in dieser Projektion.
+Diese Metadaten bleiben Kandidaten und werden nicht zu Antwortbelegen.
+
+Ohne ausdrückliche Aktennennung braucht die Auswahl einen Bezugsanker mit mindestens
+zwei relevanten Wörtern und passenden Inhalt **in derselben Quelle**. Identität aus
+Datei A und eine passende Spalte aus Datei B reichen nicht. Kleinschreibung,
+Umlaut-/ASCII-Varianten, einfache Wortformen und der vorhandene korpusbasierte
+Teilwort-Tokenizer erlauben abweichende Manifestformulierungen. Bei Tabellen muss
+ein von Identität und Einheit unabhängiger Spaltenbezug passen; bei Passagen können
+Abschnittstitel und quellgebundene Fragetypbeschreibungen beitragen. Nur an diese
+Quelle gebundene, nicht verworfene Fragetypen sind zulässig. Verweist ein Fragetyp
+auf Original-/Entitätsknoten, wird seine Lesebindung um die zugehörige passende
+Tabelle/Passage ergänzt; das gespeicherte Manifest bleibt unverändert.
+
+Standardschwellen in `project-manifest.settings.routing` (ohne neue Env-Variablen):
+
+```js
+{ minScore: 0.75, minMargin: 0.15, minSubjectCoverage: 1, minContentCoverage: 0.5 }
+```
+
+Der Score gewichtet Bezugsdeckung mit 0,45, Inhaltsdeckung mit 0,45 und einen
+belegten passenden Zeitraum mit 0,10. Ein fehlender Zeitraum verbietet die Aktenwahl
+nicht: der anschließende echte Lesezugriff liefert dafür eine konkrete Lücke.
+Jahreszahlen/Einheiten allein und bekannte leere Quellenprojektionen reichen nie.
+Mindestens 0,15 Abstand ist auch zu plausiblen Alternativen knapp unter der
+Scoregrenze erforderlich. Sonst bleibt die Auswahl offen. Ein ausdrücklich genannter
+Aktentitel erlaubt weiterhin eine konkrete Lückenantwort. Persönliche Akten-/Fragetyp-
+Korrekturen gelten auch bei Metadatenübereinstimmung. Die Auswahl braucht keine
+Modellaufrufe, Embeddings oder externen Suchen pro Turn.
+
+`metadata.projectRouting` ergänzt die Turn-Diagnose: Kandidatenzahl, beste Akten-ID,
+Score, Abstand, Deckungen, Zeitraumtreffer, Schwellen und fester Grundcode, etwa
+`no_subject`, `no_content`, `no_question_type`, `below_threshold`, `ambiguous` oder `corrected`. Frage,
+Aktentitel, Dateiname, Person und Tenant-ID werden nicht in die Diagnose übernommen.
+Bei gewählten Akten wird sie zusätzlich im gespeicherten Retrieval-Trace abgelegt.
+Der Praxisbericht übernimmt sie bei Akten-Szenarien in JSON und zeigt sie bei roten
+Turns in Markdown; ein fehlender Diagnosepfad wird ausdrücklich `not_evaluated`.
+
+Jede gewählte Akte wird sichtbar gemacht:
+**„Ich habe dafür die Projektakte ‚…‘ herangezogen.“**
+Tabellenwerte stammen anschließend ausschließlich aus `dataset.query` auf der
+akteneigenen SQLite. Vorher werden Originalhash, Objekt-/Datasetzuordnung,
+Ableitungsversion und Spaltenschema erneut geprüft. Dokumentbelege werden über
+`knowledge-rag.documentGet` mit aktueller Original-/Abschnittszuordnung gelesen.
+Die Antwort erhält getrennte Herkunft mit Dateiname, Fundstelle und Originalhash.
+Fehlende Spalten, Zeiträume, Originalversionen oder Leserechte werden konkret als
+Datenlücke genannt; es gibt keine Manifestzahl oder geschätzte Ersatzgröße.
+
+Im Workbench-Turn wird eine belegte Aktenantwort anschließend durch genau einen
+`llm-client.generateStructured`-Aufruf mit dem Schema `{ answer }` in deutsche Sätze
+ausformuliert („hilfreicher Kollege“). Frage, Aktentitel, abgefragte Werte mit
+Herkunft und Lücken bilden den Kontext. Evidenz und Lücken sind ausdrücklich
+**untrusted Daten**, niemals Anweisungen; Ergänzungen, Schätzungen und Berechnungen
+sind untersagt. Die vorhandenen Helfer `opaqueContext`/`restoreContext` und
+`llmOptions` schützen Referenzen und verwenden die Antwortmodell-Einstellungen.
+Der Aktenwahlsatz wird immer deterministisch vorangestellt. Strukturierte
+`evidence`/`sources` bleiben unverändert, Lücken werden zusätzlich deterministisch
+gesichert. Akte und angefragte Katalogquellen müssen getrennt genannt werden.
+
+Jede Zahl des Modelltexts muss nach Normalisierung exakt in den belegten Werten
+vorkommen: deutsche/englische Tausender- und Dezimaltrennzeichen, geschützte
+Leerzeichen, Apostrophe, Vorzeichen und Exponentialschreibweise werden unterstützt.
+Einheitensuffixe beeinflussen den Zahlenvergleich nicht; Einheiten dürfen laut
+Prompt nicht geändert werden. Es gibt keine Umrechnung, Rundung oder Toleranz;
+auch große Ganzzahlen werden ohne Gleitkomma-Präzisionsverlust verglichen.
+Ein einzelner Punkt mit drei Nachkommastellen gilt wie bei der Praxisbewertung
+als Tausendertrennung, ein einzelnes Komma als Dezimaltrennung. Zahlen aus der
+Frage allein werden nicht als Belege freigegeben.
+
+Unbelegte Zahlen, Schemafehler, Code-/JSON-Ausgaben und Modellfehler führen zum
+bisherigen deterministischen Antwortformat; Fehler werden mit `logLlmError`
+protokolliert. `LLM_QUOTA_EXCEEDED` zeigt stattdessen die gemeinsame `quotaMessage`
+mit Rücksetzmetadaten und sichtbarer Aktenwahl. Kosten: **ein zusätzlicher
+Modellaufruf je beantworteter Aktenfrage**, ohne Modellretries, Recovery oder
+strukturierten Ersatzaufruf. Ohne gewählte Akte und bei reinen Lückenantworten
+entsteht kein Ausformulierungsaufruf. Personal Agent und Answer Dossier nutzen
+weiter ihre vorhandene Antwortgenerierung; dort gibt es keine zweite Ausformulierung.
+
+Eine ausdrücklich angefragte Katalogquelle kann über `externalLinks` einen eigenen
+Antwortteil liefern. Die aktuelle Graphkante muss weiterhin lesbar sein. Der
+Join-Schlüssel wird durch eine zusätzliche, begrenzte `dataset.query`-Aggregation
+aus der aktuellen Tabelle gelesen; mehrdeutige Schlüssel ergeben eine Lücke.
+Nur Operationen mit `consequenceLevel: none`, leeren `sideEffects`/`writesTo` und
+bestandener `assertReadObservation`-Prüfung werden aufgerufen. Tenant, Scopes, Rollen
+und `domainsAllowed` bleiben erhalten; interne Symbol-Capabilities werden entfernt.
+Die Antwort muss den abgefragten Schlüssel bestätigen. Fremde Tenants und geschützte
+Ergebnisfelder werden mit dem bestehenden Workbench-Ergebnisfilter behandelt.
+Je Antwort sind höchstens acht Aktenlesequellen und vier externe Leseaufrufe mit
+je drei Sekunden Timeout vorgesehen; Katalogantworten sind auf 32000 Bytes begrenzt.
+Herkunft bleibt sichtbar getrennt: **„Aus Projektakte …“ / „Aus Katalogquelle …“**.
+
+### Korrekturen und Folgearbeiten
+
+Die vorhandene Lernschleife verarbeitet `target: 'projectManifest'`:
+
+```js
+ctx.call('shared-service-learning.apply', {
+  target: 'projectManifest',
+  correction: {
+    projectId,
+    kind: 'reject' | 'confirm' | 'entity',
+    questionTypeId?, // reject/confirm nur für diesen Fragetyp
+    nodeId?, name?  // entity: korrigierte Bezeichnung des referenzierten Knotens
+  }
+})
+```
+
+Korrekturen gelten nur für den authentifizierten Akteur und Tenant; aktuelle
+Mitgliedschaft/Clearance und Aktenmutierbarkeit bleiben Pflicht. Dafür ist keine
+zusätzliche Adminrolle erforderlich, weil keine gemeinsame Routingentscheidung
+anderer Personen verändert wird. Andere Korrekturziele behalten ihre Adminprüfung;
+es gibt keine Gateway-Rollenausnahme. Audit, Replay-Prüfung und
+`shared-service.correction.v1` bleiben Teil des vorhandenen Ablaufs. Undo verlangt
+eine neue bestätigende Korrektur. Die Workbench erkennt **„falsche Akte“** und
+**„Fragetyp falsch“** nach einer sichtbaren Aktenwahl; der nächste Turn beachtet die
+persistierte Ablehnung. Entitätskorrekturen ändern Auswahlmetadaten, keine Evidenzwerte.
+
+#888 ergänzt weitere begrenzte Auswertungen und komplexere/mengenwertige Joins;
+gegenwärtig bleibt ein nicht eindeutiger Join eine explizite Lücke. #889 befüllt
+`skillRefs` und erzeugt ausführbare Skills. Beides wird hier nicht vorweggenommen.
+Stub-Validierung und der vorbereitete, noch nicht ausgeführte Live-Praxislauf sind
+in `docs/validation/887-projektakte-manifest.md` beschrieben.
+
+
+### Praxisdiagnose bei degradierter Erzeugung
+
+Die Praxisvorbereitung verwendet ausschließlich das Manifest des Produktdienstes.
+Ein degradiertes Manifest bricht die Szenarienfolge nicht ab: Der Bericht protokolliert
+Status, Grundcode, Anzahl verworfener Verweise und Minimal-Rückfall; der deterministische
+Prüfpunkt `project-manifest-generation` wird rot. Antwort- und Herkunftsprüfungen laufen
+weiter. Bei einem echten Abbruch enthält JSON/Markdown zusätzlich `abortMessage`.
+Bekannte feste Betriebsfehlermeldungen werden erhalten; beliebige Providertexte
+werden über die gemeinsame sichere LLM-Fehlerdiagnose ersetzt, damit keine Prompts,
+Tabellenzeilen oder Geheimnisse im Bericht landen.

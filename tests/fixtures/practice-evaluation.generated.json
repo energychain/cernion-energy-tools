@@ -3851,6 +3851,662 @@
           "reverse": true
         }
       ]
+    },
+    {
+      "id": "project-a-implicit",
+      "group": "B.4",
+      "title": "Projektakte ohne Nennung",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "question",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Leistung am Standort Nord 2025?",
+          "expect": {
+            "description": "Abfrage mit sichtbarer Aktenwahl und Datei Fundstelle Hash",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "title": "Projekt A",
+                "file": "Standort Nord.csv"
+              },
+              "numeric": [
+                {
+                  "value": 23,
+                  "tolerance": 0
+                }
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        }
+      ],
+      "projectFixtures": [
+        {
+          "id": "a",
+          "subject": "Standort Nord",
+          "title": "Projekt A",
+          "column": "Leistung",
+          "unit": "kW",
+          "value": 23,
+          "reference": 41,
+          "key": "Bezug-A"
+        }
+      ]
+    },
+    {
+      "id": "project-a-mixed",
+      "group": "B.4",
+      "title": "Projektakte und Katalog getrennt",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "question",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Leistung am Standort Nord 2025? Ergänze den aktuellen Referenzwert aus Katalog A.",
+          "expect": {
+            "description": "Teilantworten aus zwei getrennten abgefragten Quellen",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "title": "Projekt A",
+                "file": "Standort Nord.csv",
+                "catalog": "Katalog A"
+              },
+              "numeric": [
+                {
+                  "value": 23,
+                  "tolerance": 0
+                },
+                {
+                  "value": 41,
+                  "tolerance": 0
+                }
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        }
+      ],
+      "projectFixtures": [
+        {
+          "id": "a",
+          "subject": "Standort Nord",
+          "title": "Projekt A",
+          "column": "Leistung",
+          "unit": "kW",
+          "value": 23,
+          "reference": 41,
+          "key": "Bezug-A"
+        }
+      ]
+    },
+    {
+      "id": "project-a-gap",
+      "group": "B.4",
+      "title": "Projektakte mit konkreter Lücke",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "question",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Leistung am Standort Nord 2030?",
+          "expect": {
+            "description": "Fehlender Zeitraum ohne geschätzte Zahl",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "gap": true
+              },
+              "require": [
+                "2030",
+                "fehlt"
+              ],
+              "forbid": [
+                "Maximum[^.]*: 23 "
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        }
+      ],
+      "projectFixtures": [
+        {
+          "id": "a",
+          "subject": "Standort Nord",
+          "title": "Projekt A",
+          "column": "Leistung",
+          "unit": "kW",
+          "value": 23,
+          "reference": 41,
+          "key": "Bezug-A"
+        }
+      ]
+    },
+    {
+      "id": "project-a-unrelated",
+      "group": "B.4",
+      "title": "Keine passende Projektakte",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "question",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie ist die Temperatur am Standort C?",
+          "expect": {
+            "description": "Keine Akte und keine Aktenzahl bei fehlendem Bezug",
+            "rules": {
+              "projectEvidence": {
+                "selected": false
+              },
+              "forbid": [
+                "Ich habe dafür die Projektakte"
+              ]
+            },
+            "dependencies": []
+          }
+        }
+      ],
+      "projectFixtures": [
+        {
+          "id": "a",
+          "subject": "Standort Nord",
+          "title": "Projekt A",
+          "column": "Leistung",
+          "unit": "kW",
+          "value": 23,
+          "reference": 41,
+          "key": "Bezug-A"
+        }
+      ]
+    },
+    {
+      "id": "project-a-correction",
+      "group": "B.4",
+      "title": "Falsche Akte korrigieren",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "question",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Leistung am Standort Nord 2025?",
+          "expect": {
+            "description": "Erste Aktenwahl sichtbar",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "title": "Projekt A",
+                "file": "Standort Nord.csv"
+              },
+              "numeric": [
+                {
+                  "value": 23,
+                  "tolerance": 0
+                }
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        },
+        {
+          "id": "correction",
+          "actor": "a",
+          "chat": "main",
+          "message": "falsche Akte",
+          "expect": {
+            "description": "Korrektur in bestehender Lernschleife gespeichert",
+            "rules": {
+              "require": [
+                "Korrektur ist gespeichert"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "next",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Leistung am Standort Nord 2025?",
+          "expect": {
+            "description": "Nächster Turn verwendet die verworfene Akte nicht",
+            "rules": {
+              "projectEvidence": {
+                "selected": false
+              },
+              "forbid": [
+                "Ich habe dafür die Projektakte"
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        }
+      ],
+      "projectFixtures": [
+        {
+          "id": "a",
+          "subject": "Standort Nord",
+          "title": "Projekt A",
+          "column": "Leistung",
+          "unit": "kW",
+          "value": 23,
+          "reference": 41,
+          "key": "Bezug-A"
+        }
+      ]
+    },
+    {
+      "id": "project-b-implicit",
+      "group": "B.4",
+      "title": "Projektakte ohne Nennung",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "question",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Bestand am Depot West 2025?",
+          "expect": {
+            "description": "Abfrage mit sichtbarer Aktenwahl und Datei Fundstelle Hash",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "title": "Projekt B",
+                "file": "Depot West.csv"
+              },
+              "numeric": [
+                {
+                  "value": 29,
+                  "tolerance": 0
+                }
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        }
+      ],
+      "projectFixtures": [
+        {
+          "id": "b",
+          "subject": "Depot West",
+          "title": "Projekt B",
+          "column": "Bestand",
+          "unit": "kg",
+          "value": 29,
+          "reference": 43,
+          "key": "Bezug-B"
+        }
+      ]
+    },
+    {
+      "id": "project-b-mixed",
+      "group": "B.4",
+      "title": "Projektakte und Katalog getrennt",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "question",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Bestand am Depot West 2025? Ergänze den aktuellen Referenzwert aus Katalog B.",
+          "expect": {
+            "description": "Teilantworten aus zwei getrennten abgefragten Quellen",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "title": "Projekt B",
+                "file": "Depot West.csv",
+                "catalog": "Katalog B"
+              },
+              "numeric": [
+                {
+                  "value": 29,
+                  "tolerance": 0
+                },
+                {
+                  "value": 43,
+                  "tolerance": 0
+                }
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        }
+      ],
+      "projectFixtures": [
+        {
+          "id": "b",
+          "subject": "Depot West",
+          "title": "Projekt B",
+          "column": "Bestand",
+          "unit": "kg",
+          "value": 29,
+          "reference": 43,
+          "key": "Bezug-B"
+        }
+      ]
+    },
+    {
+      "id": "project-b-gap",
+      "group": "B.4",
+      "title": "Projektakte mit konkreter Lücke",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "question",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Bestand am Depot West 2030?",
+          "expect": {
+            "description": "Fehlender Zeitraum ohne geschätzte Zahl",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "gap": true
+              },
+              "require": [
+                "2030",
+                "fehlt"
+              ],
+              "forbid": [
+                "Maximum[^.]*: 29 "
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        }
+      ],
+      "projectFixtures": [
+        {
+          "id": "b",
+          "subject": "Depot West",
+          "title": "Projekt B",
+          "column": "Bestand",
+          "unit": "kg",
+          "value": 29,
+          "reference": 43,
+          "key": "Bezug-B"
+        }
+      ]
+    },
+    {
+      "id": "project-b-unrelated",
+      "group": "B.4",
+      "title": "Keine passende Projektakte",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "question",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie ist die Temperatur am Standort C?",
+          "expect": {
+            "description": "Keine Akte und keine Aktenzahl bei fehlendem Bezug",
+            "rules": {
+              "projectEvidence": {
+                "selected": false
+              },
+              "forbid": [
+                "Ich habe dafür die Projektakte"
+              ]
+            },
+            "dependencies": []
+          }
+        }
+      ],
+      "projectFixtures": [
+        {
+          "id": "b",
+          "subject": "Depot West",
+          "title": "Projekt B",
+          "column": "Bestand",
+          "unit": "kg",
+          "value": 29,
+          "reference": 43,
+          "key": "Bezug-B"
+        }
+      ]
+    },
+    {
+      "id": "project-b-correction",
+      "group": "B.4",
+      "title": "Falsche Akte korrigieren",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "question",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Bestand am Depot West 2025?",
+          "expect": {
+            "description": "Erste Aktenwahl sichtbar",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "title": "Projekt B",
+                "file": "Depot West.csv"
+              },
+              "numeric": [
+                {
+                  "value": 29,
+                  "tolerance": 0
+                }
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        },
+        {
+          "id": "correction",
+          "actor": "a",
+          "chat": "main",
+          "message": "falsche Akte",
+          "expect": {
+            "description": "Korrektur in bestehender Lernschleife gespeichert",
+            "rules": {
+              "require": [
+                "Korrektur ist gespeichert"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "next",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Bestand am Depot West 2025?",
+          "expect": {
+            "description": "Nächster Turn verwendet die verworfene Akte nicht",
+            "rules": {
+              "projectEvidence": {
+                "selected": false
+              },
+              "forbid": [
+                "Ich habe dafür die Projektakte"
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        }
+      ],
+      "projectFixtures": [
+        {
+          "id": "b",
+          "subject": "Depot West",
+          "title": "Projekt B",
+          "column": "Bestand",
+          "unit": "kg",
+          "value": 29,
+          "reference": 43,
+          "key": "Bezug-B"
+        }
+      ]
     }
   ]
 }

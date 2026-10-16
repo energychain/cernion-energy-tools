@@ -257,6 +257,7 @@ function validateEvidenceEndpointCatalog(catalog) {
 }
 
 module.exports = {
+  projectEvidenceCandidates: require('./project-manifest-catalog').projectEvidenceCandidates,
   RESULT_KINDS,
   EVIDENCE_ENDPOINT_CATALOG: buildCatalog(),
   buildCatalog,

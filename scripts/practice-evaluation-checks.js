@@ -70,6 +70,13 @@ function checkTurn(turn, reply, context = {}) {
   const text = String(reply.responseText || reply.reply || '');
   const rules = turn.expect.rules || {};
   const checks = [
+    ...(rules.projectEvidence
+      ? require('./generate-project-manifest-fixtures').projectEvidenceChecks(
+          rules.projectEvidence,
+          reply,
+          text
+        )
+      : []),
     check('answer', Boolean(text.trim()), 'Antwort ist nicht leer'),
     check('outside-action', !OUTSIDE.test(text), 'Keine behauptete Außenhandlung'),
     check('uuid', !UUID.test(text), 'Keine UUID im sichtbaren Text'),

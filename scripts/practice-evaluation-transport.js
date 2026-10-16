@@ -108,11 +108,13 @@ function documentMessage(turn) {
 async function createLocalTransport({ budget }) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-practice-'));
   process.env.WORKBENCH_DATASET_DB_PATH = path.join(directory, 'rows');
+  process.env.JOB_STORE_DIR = path.join(directory, 'jobs');
   process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
   process.env.TENANT_MEMORY_RECOVERY = 'off';
   process.env.CET_FILE_SIGNING_KEY = randomBytes(32).toString('hex');
   process.env.WORKBENCH_LLM_TIMEOUT_MS ||= '15000,45000';
   const { createLiveHarness, isolatedSettings } = require('./workbench-live-harness');
+  const projectFixtures = require('./generate-project-manifest-fixtures');
   const schemas = [
     'object-store',
     'shared-service-notices',
@@ -121,12 +123,35 @@ async function createLocalTransport({ budget }) {
     'dataset',
     'files',
     'shared-service-journal',
+    'shared-service-learning',
+    'project-file',
+    'project-upload',
+    'project-structure',
+    'project-graph',
+    'project-manifest',
   ].map((name) => require(`../services/${name}.service`));
   const app = createLiveHarness(directory, [
-    ...schemas.map((schema) => ({ ...schema, settings: isolatedSettings(schema, directory) })),
+    ...schemas.map((schema) => ({
+      ...schema,
+      settings: isolatedSettings(schema, directory, {
+        ...(schema.name === 'project-upload' ? { dataPath: path.join(directory, 'projects') } : {}),
+        ...(['project-graph', 'project-manifest'].includes(schema.name)
+          ? {
+              catalog: projectFixtures.referenceCatalog,
+              operations: [projectFixtures.referenceOperation],
+              domains: [],
+            }
+          : {}),
+      }),
+    })),
+    projectFixtures.referenceService,
     {
       name: 'knowledge-rag',
-      actions: { query: () => ({ results: [] }), federatedSearch: () => ({ results: [] }) },
+      actions: {
+        query: () => ({ results: [] }),
+        federatedSearch: () => ({ results: [] }),
+        documentList: () => [],
+      },
     },
     {
       name: 'capability-broker',
@@ -156,6 +181,7 @@ async function createLocalTransport({ budget }) {
         functionLabel: actor.functionLabel,
         roleFamilies: [actor.functionLabel],
       });
+    await projectFixtures.prepareProjectFixtures(app, run, scenario, actorMeta(run, run.actors[0]));
     return run;
   }
   async function send(run, turn) {
@@ -225,6 +251,26 @@ async function createLocalTransport({ budget }) {
   }
   async function cleanup(run) {
     const results = [];
+    for (const projectId of run.projects || []) {
+      try {
+        await app.cleanupCall(
+          'project-file.delete',
+          { projectId },
+          { meta: actorMeta(run, run.actors[0]) }
+        );
+        results.push({
+          action: 'project-file.delete',
+          passed: true,
+          reason: 'Generierte Akte mit bestätigter Kaskade entfernt',
+        });
+      } catch (error) {
+        results.push({
+          action: 'project-file.delete',
+          passed: false,
+          reason: error.type || error.name,
+        });
+      }
+    }
     for (const actor of run.actors) {
       try {
         const meta = actorMeta(run, actor, { admin: true });
@@ -437,6 +483,10 @@ async function createHttpTransport({ config, budget, fetchImpl = fetch }) {
     )
       throw new Error('Synthetic actor mapping missing');
   async function startRun(scenario) {
+    if (scenario.projectFixtures?.length)
+      throw new Error(
+        'Project manifest practice scenarios require the isolated local transport with synthetic read endpoints'
+      );
     return {
       tenantId: config.tenantId,
       prefix: randomUUID(),

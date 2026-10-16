@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "4f63e851dc02734b25ecdda4b850a54e7d6ed0cfdf5a0282127c5c5355fe1315",
+  "sourceHash": "4d701768883751e3e166b370133ac18c1daf17d6f7d00320456088fae2030f62",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -1121,7 +1121,7 @@
       "new": 1,
       "previousSourceHash": "bcf8ed1411439e3e14a22c3e17d90e5523dc1c71ba591e5af5e241c2cc7e8133"
     },
-    "indexOperationCount": 1016,
+    "indexOperationCount": 1018,
     "indexOperationsWithoutAction": 19,
     "capabilityCount": 172,
     "functionCount": 107,
@@ -122260,6 +122260,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-routing.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/dataset-semantics.js"
         },
         {
@@ -122301,6 +122305,10 @@
         {
           "kind": "service",
           "ref": "src/ev-co2-synthesis.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/evidence-endpoint-catalog.js"
         },
         {
           "kind": "service",
@@ -122501,6 +122509,22 @@
         {
           "kind": "service",
           "ref": "src/project-file-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-manifest-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-manifest-dossier.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-manifest-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-manifest-routing.js"
         },
         {
           "kind": "service",
@@ -197054,6 +197078,14 @@
         "ref": "src/job-store.js:67: dynamic emission"
       },
       {
+        "service": "object-store",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "object-store",
+        "ref": "src/llm-client.js:227: dynamic emission"
+      },
+      {
         "service": "oep",
         "ref": "src/job-store.js:67: dynamic emission"
       },
@@ -197087,6 +197119,14 @@
       },
       {
         "service": "personal-agent",
+        "ref": "src/llm-client.js:227: dynamic emission"
+      },
+      {
+        "service": "project-manifest",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "project-manifest",
         "ref": "src/llm-client.js:227: dynamic emission"
       },
       {

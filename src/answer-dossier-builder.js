@@ -497,9 +497,15 @@ function buildDossierMarkdown({
   knowledgeSpace = {},
   preliminaryAnswerRequested = false,
   capabilityRouting = null,
+  projectSelection = null,
   priorConversationContext = null,
   finalMode = false,
 }) {
+  evidence = evidence.filter((entry) => !entry?.metadata?.candidateOnly);
+  const projectSources = require('./project-manifest-dossier').projectSourceInstructions(
+    evidence,
+    projectSelection
+  );
   const { userContext, processStage, answerMode, confidence } = dossierState;
   const normalizedKnowledgeSpace = normalizeKnowledgeSpaceContext({
     ...knowledgeSpace,
@@ -607,6 +613,7 @@ function buildDossierMarkdown({
     '',
     '## Required Answer Behavior',
     ...requiredBehavior.map((r) => `- ${r}`),
+    ...projectSources,
     '',
     '## Known Evidence',
     evidence.length > 0
@@ -895,7 +902,13 @@ function buildSlimDossierMarkdown({
   domain,
   possibleFollowUp = [],
   blockingConstraints = [],
+  projectSelection = null,
 }) {
+  evidence = evidence.filter((entry) => !entry?.metadata?.candidateOnly);
+  const projectSources = require('./project-manifest-dossier').projectSourceInstructions(
+    evidence,
+    projectSelection
+  );
   const { userContext, answerMode, confidence } = dossierState;
   const lines = [
     '# CERNION ANSWER DOSSIER (SLIM)',
@@ -913,6 +926,7 @@ function buildSlimDossierMarkdown({
     reasoningSummary || '_Keine Zusammenfassung verfügbar._',
     '',
     ...buildSlimEvidenceSection(evidence),
+    ...projectSources,
     '',
     ...buildSlimAnswerConstraintsSection({ domain, blockingConstraints }),
     '',

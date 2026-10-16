@@ -1010,6 +1010,7 @@ module.exports = {
   loopDiagnostics,
   candidatesFor,
   safeRead,
+  safeOutput,
   parameterSchema,
   summarizeResult,
   boundedJson,
