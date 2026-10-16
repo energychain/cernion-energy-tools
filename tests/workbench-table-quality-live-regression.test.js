@@ -1,0 +1,216 @@
+'use strict';
+
+jest.mock('../src/llm-client', () => ({
+  generateStructured: jest.fn(),
+  generateText: jest.fn(),
+  generateChat: jest.fn(),
+}));
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const llm = require('../src/llm-client');
+const structuredMock = llm.generateStructured;
+const textMock = llm.generateText;
+const chatMock = llm.generateChat;
+const { createLiveHarness } = require('../scripts/workbench-live-harness');
+const {
+  generatePracticeCatalog,
+  practiceDocument,
+} = require('../scripts/generate-practice-evaluation-fixtures');
+const Datapoint = require('../services/datapoint.service');
+const scenarios = generatePracticeCatalog().scenarios;
+let broker,
+  dir,
+  meta,
+  serial = 0;
+const env = { ...process.env };
+const call = (action, params) => broker.call(action, params, { meta });
+const catalog = () => call('datapoint.datasetCatalog', { operation: 'list' });
+const chat = (message) =>
+  call('workbench.chat', {
+    channel: 'open-webui',
+    conversationId: 'regression',
+    message,
+  });
+const ingest = (turn) => {
+  const spec = turn.document || turn.upload;
+  return chat(
+    `<context><source name="${spec.name}">${practiceDocument(spec)}</source></context><user_query>${turn.message}</user_query>`
+  );
+};
+
+// Return semantic classifications and plausible imperfect metadata, rather than echoing input.
+async function modelStub(schema, raw) {
+  const input = JSON.parse(raw);
+  if (schema.properties?.kind && schema.properties?.basis) {
+    const result = {
+      kind: 'none',
+      basis: input.question,
+      datasetId: '',
+      rowNumbers: [],
+      units: [],
+    };
+    if (/\?|vergleiche|auswerten|nennen|berechne/i.test(input.question))
+      return { ...result, kind: 'question' };
+    if (/verwenden/i.test(input.question))
+      return {
+        ...result,
+        kind: 'select-sheet',
+        datasetId: input.datasets.find((entry) => input.question.includes(entry.sheet)).id,
+      };
+    if (/\bkg\b/.test(input.question)) {
+      if (input.datasets.length !== 1) return { ...result, kind: 'metadata' };
+      return {
+        ...result,
+        kind: 'unit-answer',
+        units: [{ field: '', unit: 'kg' }],
+      };
+    }
+    return result;
+  }
+  if (input.datasets)
+    return {
+      datasetIds: input.datasets.map((entry) => entry.id),
+      comparison: /vergleich/i.test(input.question),
+    };
+  if (input.profile && input.filename) {
+    const profile = JSON.parse(input.profile).profiles[0];
+    return {
+      title: 'CET tabular query planning',
+      timezone: 'Europe/Berlin',
+      assumptions: [],
+      timeField: profile.columns.find((column) => column.type === 'timestamp')?.name || '',
+      units: Object.fromEntries(
+        profile.columns.map((column) => [column.name, column.type === 'number' ? 'number' : ''])
+      ),
+    };
+  }
+  if (input.sourceId)
+    return {
+      sources: [{ alias: 'table', sourceId: input.sourceId }],
+      operations: [{ op: 'aggregate', metrics: [{ fn: 'sum', field: 'Amount', as: 'total' }] }],
+    };
+  return null;
+}
+
+beforeAll(async () => {
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-926-regression-'));
+  process.env.WORKBENCH_DATASET_DB_PATH = path.join(dir, 'rows');
+  process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
+  process.env.LIVE_MAX_MODEL_CALLS = '200';
+  ({ broker } = createLiveHarness(dir, [
+    { ...Datapoint, settings: { ...Datapoint.settings, dbPath: path.join(dir, 'catalog') } },
+    require('../services/dataset.service'),
+    { name: 'object-store', actions: { query: () => ({ docs: [] }) } },
+    {
+      name: 'knowledge-rag',
+      actions: { query: () => ({ results: [] }), federatedSearch: () => ({ results: [] }) },
+    },
+  ]));
+  await broker.start();
+});
+beforeEach(() => {
+  meta = {
+    authUser: {
+      tenantId: `regression-${++serial}`,
+      userId: 'synthetic-person',
+      roles: ['ROLE_EDM'],
+      scope: 'full-access',
+    },
+  };
+  structuredMock.mockReset().mockImplementation(modelStub);
+  textMock.mockRejectedValue(new Error('Unexpected answer call'));
+  chatMock.mockRejectedValue(new Error('Unexpected answer call'));
+});
+afterAll(async () => {
+  await broker.stop();
+  process.env = env;
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('live load-values fixture retains data questions and header units through complete turns', async () => {
+  const scenario = scenarios.find((entry) => entry.id === 'load-values');
+  const first = await ingest(scenario.turns[0]);
+  expect(first.responseText).toContain('1.243,7 kW am 14.01.2025 18:15');
+  expect(first.responseText).toContain('Lastprofil-A.csv');
+  const energy = await chat(scenario.turns[1].message);
+  expect(energy.responseText).toContain('3.478,874 MWh');
+  expect(energy.responseText.match(/Herkunft:/g)).toHaveLength(1);
+  const missing = await chat(scenario.turns[2].message);
+  expect(missing.responseText).toMatch(/4.*(?:leer|fehl|ausgelass)/);
+  for (const reply of [first, energy, missing])
+    expect(reply.responseText).not.toMatch(
+      /Semantik.*korrigiert|Welche Einheit|\bnumber\b|CET tabular/
+    );
+  const [record] = await catalog();
+  expect(record.semantic.units['Wirkleistung Bezug [kW]']).toBe('kW');
+  expect(record.semantic.unitQuestion).toBeUndefined();
+  expect(record.audit.some((entry) => entry.kind === 'semantic-correction')).toBe(false);
+  const outputs = await Promise.all(structuredMock.mock.results.map((entry) => entry.value));
+  expect(outputs.filter((result) => result?.kind === 'question')).toHaveLength(2);
+});
+
+test.each(['Einheit ist kg.', 'kg'])(
+  'live table-quality turns bind %s to the selected sheet and pending field',
+  async (answer) => {
+    const scenario = scenarios.find((entry) => entry.id === 'table-quality');
+    const first = await ingest(scenario.turns[0]);
+    expect(first.responseText).toContain('Export-A.xlsx – Blatt Basis');
+    expect(first.responseText).toContain('Export-A.xlsx – Blatt Variant');
+    expect(first.responseText).not.toMatch(/CET tabular|\bnumber\b|ds_[a-f0-9]+/);
+    const compare = await chat(scenario.turns[1].message);
+    expect(compare.responseText).toMatch(
+      /Datensummen 40 \(Basis\) und 44 \(Variant\); Differenz 4/
+    );
+    expect(compare.responseText).not.toMatch(/\bnumber\b|ds_[a-f0-9]+/);
+    const selection = await chat(scenario.turns[2].message);
+    expect(selection.responseText).toContain('Bitte wähle den Datensatz');
+    expect(selection.responseText).toContain('Export-A.xlsx – Blatt Basis (Version 1)');
+    expect(selection.responseText).not.toMatch(/ds_[a-f0-9]+/);
+    expect((await chat(scenario.turns[3].message)).responseText).toContain('Blatt Basis');
+    const corrected = await chat(answer);
+    expect(corrected.responseText).toContain('Amount: kg');
+    const sum = await chat(scenario.turns[5].message);
+    expect(sum.responseText).toContain('40 kg');
+    expect(sum.responseText).not.toMatch(/Variant|Welche Einheit|Einheit ungeklärt|\bnumber\b/);
+    const basis = (await catalog()).find((record) => record.sheet === 'Basis');
+    expect(basis.semantic.unitQuestion).toEqual(
+      expect.objectContaining({
+        fields: ['Amount'],
+        conversationId: 'regression',
+        answeredAt: expect.any(String),
+      })
+    );
+    expect(basis.audit.filter((entry) => entry.kind === 'semantic-correction')).toHaveLength(1);
+    const question = await chat('Welche Einheit ist für Amount gespeichert?');
+    expect(question.responseText).not.toMatch(/Semantik.*korrigiert/);
+    expect((await catalog()).find((record) => record.id === basis.id).audit).toEqual(basis.audit);
+  }
+);
+
+test('unbound unit replies and metadata copied from column names cannot mutate a dataset', async () => {
+  await ingest(scenarios.find((entry) => entry.id === 'load-values').turns[0]);
+  const [before] = await catalog();
+  expect(
+    (
+      await call('dataset.turn', {
+        question: 'kg',
+        conversationId: 'regression',
+      })
+    ).handled
+  ).toBe(false);
+  structuredMock.mockImplementation(async (schema, raw) => {
+    if (schema.properties?.kind && schema.properties?.basis)
+      return {
+        kind: 'metadata',
+        basis: 'Wirkleistung Bezug [kW]',
+        datasetId: before.id,
+        rowNumbers: [],
+        units: [{ field: 'Wirkleistung Bezug [kW]', unit: 'kW' }],
+      };
+    return modelStub(schema, raw);
+  });
+  const reply = await chat('Wie hoch war die Jahresenergie 2025 im abgelegten Lastprofil?');
+  expect(reply.responseText).toContain('3.478,874 MWh');
+  expect((await catalog())[0].audit).toEqual(before.audit);
+});

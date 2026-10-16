@@ -161,7 +161,10 @@ function executeDatasetQuery(pool, record, input) {
   const db = pool.tenant(record.tenantId),
     table = pool.table(record.id);
   const columns = record.columns,
-    semantic = record.semantic;
+    semantic = {
+      ...record.semantic,
+      units: require('./dataset-unit-question').datasetUnits(record),
+    };
   const timeIndex = columns.findIndex((column) => column.name === semantic.timeField);
   const select = columns.map((column, i) => `c${i} AS ${quoteDatasetField(column.name)}`).join(',');
   const occupied = new Set(columns.map((column) => column.name.toLowerCase()));
@@ -453,7 +456,7 @@ function executeDatasetQuery(pool, record, input) {
   lines.push(...semantic.assumptions);
   const question = input.question || '';
   const overview =
-    /welche daten haben wir|auffäll|auffaell|überblick|ueberblick|zusammenfassung|overview|leere|lücken|luecken|fehlende|zeitumstellung|ausreißer|ausreisser/i.test(
+    /welche daten haben wir|auffäll|auffaell|überblick|ueberblick|zusammenfassung|overview|leere|lücken|luecken|fehl|zeitumstellung|ausreißer|ausreisser/i.test(
       question
     );
   const aggregate = plan.operations.find((operation) => operation.op === 'aggregate');

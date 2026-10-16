@@ -72,12 +72,19 @@ die gesamten Blätter. Unterschiedliche Schemas werden nicht still vereinigt.
 Erst wenn eine veröffentlichte Wert-Aggregation oder ein numerischer Überblick eine
 Spalte ohne Einheit benötigt, fragt die Abfrage gezielt nach deren Einheit. Reine
 Zeilenanzahlen lösen keine Einheitenfrage aus. `semantic.unitQuestion` speichert die
-Frage einmal je Datensatz; bestätigte Einheiten gelten in Folgeturns.
+Frage einmal je Datensatz mit Gespräch und betroffenen Spalten. Eine passende,
+auch knappe Einheitenantwort wird diesen Spalten zugeordnet, auditiert gespeichert
+und mit `answeredAt` abgeschlossen. Einheiten in eckigen/runden Klammern des
+Spaltennamens gelten als bekannt; Datentypen wie `number` sind keine Einheiten.
 
 Der vorhandene auditierte Datensatz-Korrekturpfad nimmt semantische Korrekturen,
 Blattwahl und die Bestätigung echter Datenzeilen entgegen. Die Klassifikation ist
 schema-gebunden und nutzt ausschließlich Metadaten, keine Zeilen oder Zellwerte.
-Mehrdeutige Korrekturen fragen nach dem Datensatz. Eine Blattwahl gilt für das
+Eine Änderung braucht einen wörtlichen Beleg aus der aktuellen Nutzernachricht;
+Fragen und Berechnungsbitten bleiben Abfragen. Eine Einheitenantwort setzt eine
+offene Frage im selben Gespräch voraus. Mehrdeutige Korrekturen fragen mit
+Datei-/Blattnamen und Version, ohne interne IDs, nach dem Datensatz. Titel stammen
+aus dem Quelldateinamen. Eine Blattwahl gilt für das
 jeweilige Gespräch; explizite Blattnennung bzw. Vergleich können andere Blätter
 wieder berücksichtigen. Wiederhergestellte Kontrollzeilen sind regulär abfragbare
 Daten, die Korrektur bleibt im Audit nachvollziehbar. Der normale Löschpfad

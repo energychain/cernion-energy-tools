@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — Tabellenqualität: Korrekturen nach Live-Praxisbefund (#926)
+
+- Normale Datenfragen bleiben Abfragen; Metadatenänderungen benötigen eine belegte
+  Korrekturabsicht oder eine Antwort auf eine offene Einheitenfrage.
+- Offene Einheitenfragen speichern Gespräch und Spalte; knappe Antworten werden
+  auditiert zugeordnet und schließen die Rückfrage. Einheiten aus Spaltennamen
+  bleiben bekannt, Datentypen werden nicht als Einheit ausgegeben.
+- Titel verwenden den Quelldateinamen mit Blatt, Auswahldialoge zeigen Namen und
+  Versionen ohne interne IDs. Vollständige Workbench-Turns prüfen die generierten
+  Praxisfälle mit kontrollierten LLM-Stubs; Live-Bericht mit aufgenommen.
+
 ## Unreleased — Tabellenqualität: Kontrollsummen, Varianten und Einheiten (#926)
 
 - Gemeinsame strukturelle/numerische Kontrollsummenerkennung für Chat- und

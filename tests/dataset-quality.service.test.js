@@ -66,7 +66,13 @@ beforeEach(() => {
   structuredMock.mockReset().mockImplementation(async (_schema, raw) => {
     const input = JSON.parse(raw);
     if (input.instruction?.startsWith('Ordne ausschließlich'))
-      return { kind: 'none', datasetId: '', rowNumbers: [] };
+      return {
+        kind: input.question.includes('kg') ? 'metadata' : 'question',
+        basis: input.question,
+        datasetId: '',
+        rowNumbers: [],
+        units: input.question.includes('kg') ? [{ field: 'Amount', unit: 'kg' }] : [],
+      };
     if (input.datasets) return { datasetIds: input.datasets.map((entry) => entry.id) };
     if (input.previous && input.question.includes('kg'))
       return {
@@ -197,6 +203,8 @@ test('control-row correction uses existing audited turn and restores only confir
     if (input.instruction?.startsWith('Ordne ausschließlich'))
       return {
         kind: 'restore-rows',
+        basis: input.question,
+        units: [],
         datasetId: record.id,
         rowNumbers: [record.quality.controls[0].rowNumber],
       };
@@ -223,7 +231,13 @@ test('sheet correction persists a conversation-scoped selection', async () => {
   structuredMock.mockImplementation(async (schema, raw) => {
     const input = JSON.parse(raw);
     if (input.instruction?.startsWith('Ordne ausschließlich'))
-      return { kind: 'select-sheet', datasetId: record.id, rowNumbers: [] };
+      return {
+        kind: 'select-sheet',
+        basis: input.question,
+        units: [],
+        datasetId: record.id,
+        rowNumbers: [],
+      };
     return defaultMock(schema, raw);
   });
   const selected = await call('dataset.turn', {

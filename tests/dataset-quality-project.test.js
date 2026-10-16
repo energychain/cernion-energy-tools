@@ -168,6 +168,8 @@ test('project control correction uses the audited dataset path and preserves que
     if (input.instruction?.startsWith('Ordne ausschließlich'))
       return {
         kind: 'restore-rows',
+        basis: input.question,
+        units: [],
         datasetId: record.id,
         rowNumbers: [record.quality.controls[0].rowNumber],
       };

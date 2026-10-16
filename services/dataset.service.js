@@ -145,7 +145,7 @@ module.exports = {
         }
         if (matches.length > 1)
           return {
-            responseText: `Mehrere Datensätze passen: ${matches.map((record) => `${record.title} (Version ${record.version}, ${record.id})`).join('; ')}. Bitte wähle den Datensatz.`,
+            responseText: `Mehrere Datensätze passen: ${matches.map((record) => `${record.title} (Version ${record.version})`).join('; ')}. Bitte wähle den Datensatz.`,
             datasets: matches.map((record) => ({
               id: record.id,
               title: record.title,
@@ -199,7 +199,11 @@ module.exports = {
           answer
         );
         if (fields.length && !record.semantic.unitQuestion) {
-          record.semantic.unitQuestion = { fields, at: new Date().toISOString() };
+          record.semantic.unitQuestion = {
+            fields,
+            at: new Date().toISOString(),
+            conversationId: ctx.params.conversationId,
+          };
           await ctx.call('datapoint.datasetCatalog', { operation: 'put', record });
           answer.responseText += `\n\nWelche Einheit gilt in ${record.title} für ${fields.join(', ')}?`;
         }
@@ -341,7 +345,7 @@ module.exports = {
           hash: table.hash,
           sourceName: table.name,
           sheet: table.sheet,
-          title: datasetSheetTitle(semantic.title, table.sheet, table.explicitSheet),
+          title: datasetSheetTitle(table.name, table.sheet, table.explicitSheet),
           sensitivityLevel: table.sensitivityLevel || ctx.params.sensitivityLevel,
           semantic,
           columns,
@@ -428,16 +432,17 @@ module.exports = {
       const legacyCorrection =
         /(?:datensatz|tabelle|dataset|werte|einheit)/i.test(question) &&
         /lösch|loesch|delete|korrigier|werte sind|einheit.*(?:ist|sind)/i.test(question);
+      const deleting = legacyCorrection && /lösch|loesch|delete/i.test(question);
       const correction =
-        !confirmations.length && (!documents.length || tables.length) && !legacyCorrection
+        !confirmations.length && (!documents.length || tables.length) && !deleting
           ? await require('../src/dataset-correction').datasetCorrection(
               correctionRecords,
               question,
-              p.tenantId
+              p.tenantId,
+              conversationId
             )
           : null;
-      if (!confirmations.length && (legacyCorrection || correction)) {
-        const deleting = /lösch|loesch|delete/i.test(question);
+      if (!confirmations.length && (deleting || correction)) {
         const candidates = correction
           ? correctionRecords.filter(
               (record) => !correction.datasetId || record.id === correction.datasetId
@@ -447,11 +452,11 @@ module.exports = {
               question,
               conversationId
             );
-        const mutating = Boolean(correction) || legacyCorrection;
+        const mutating = Boolean(correction) || deleting;
         if (mutating && candidates.length > 1)
           return {
             handled: true,
-            responseText: `Bitte wähle den Datensatz: ${candidates.map((record) => `${record.title} (${record.id})`).join('; ')}.`,
+            responseText: `Bitte wähle den Datensatz: ${candidates.map((record) => `${record.title} (Version ${record.version})`).join('; ')}.`,
           };
         if (mutating && candidates.length === 1) {
           const record = candidates[0];
@@ -486,18 +491,38 @@ module.exports = {
             this,
             record
           );
-          const semantic = await datasetSemantics(
-            { profile: record.profile, name: record.title, hash: record.hash },
-            p.tenantId,
-            question,
-            record.semantic
-          );
+          const semantic = correction?.units.length
+            ? {
+                ...record.semantic,
+                units: {
+                  ...record.semantic.units,
+                  ...Object.fromEntries(correction.units.map(({ field, unit }) => [field, unit])),
+                },
+                interpretationStatus: 'interpreted',
+              }
+            : await datasetSemantics(
+                { profile: record.profile, name: record.sourceName, hash: record.hash },
+                p.tenantId,
+                question,
+                record.semantic
+              );
           // No new row version; metadata correction is audited independently.
           if (semantic.interpretationStatus !== 'interpreted')
             return {
               handled: true,
               responseText:
                 'Die Semantikkorrektur konnte ich noch nicht sicher zuordnen. Die bisherige Semantik bleibt erhalten. Bitte nenne Spalte, Einheit, Raster und gegebenenfalls Zeitzone ausdrücklich.',
+            };
+          if (
+            semantic.unitQuestion &&
+            semantic.unitQuestion.fields.every(
+              (field) =>
+                require('../src/dataset-unit-question').datasetUnits({ ...record, semantic })[field]
+            )
+          )
+            semantic.unitQuestion = {
+              ...semantic.unitQuestion,
+              answeredAt: new Date().toISOString(),
             };
           const updated = {
             ...record,

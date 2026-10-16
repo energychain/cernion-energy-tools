@@ -345,6 +345,13 @@ describe('datasets through authenticated Open WebUI HTTP', () => {
   });
   test('reattached file does not prevent semantic correction or deletion', async () => {
     llm.generateStructured.mockResolvedValueOnce({
+      kind: 'metadata',
+      basis: 'Die Werte sind kWh je Viertelstunde.',
+      datasetId: '',
+      rowNumbers: [],
+      units: [],
+    });
+    llm.generateStructured.mockResolvedValueOnce({
       title: 'Synthetic.csv',
       timezone: 'Europe/Berlin',
       units: { 'Wirkleistung Bezug [kW]': 'kWh' },

@@ -293,7 +293,7 @@ async function structureTable(ctx, object, sheet, source, pool, progress) {
       hash: object.hash,
       sourceName: object.name,
       sheet,
-      title: datasetSheetTitle(semantic.title, sheet),
+      title: datasetSheetTitle(object.name, sheet),
       sensitivityLevel: object.sensitivityLevel,
       requiredClearance: object.requiredClearance,
       semantic,
