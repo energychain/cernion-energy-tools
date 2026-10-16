@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — Tabellen: durchgehend leere Spalten nicht als Beschädigung werten
+
+- Ab `WORKBENCH_DATASET_EMPTY_COLUMN_MIN_ROWS` Zeilen (Standard 10) zählen Spalten, die in keiner Zeile einen Wert haben (typisch für breite Exporte), nicht mehr gegen `WORKBENCH_DATASET_MAX_EMPTY_RATIO`. Bisher wurde z. B. ein Anlagen-Export mit 7.301 Zeilen und 26 leeren von 46 Spalten als „beschädigt oder unplausibel“ abgewiesen. Die Spalten bleiben erhalten (Fragen danach nennen weiterhin die konkrete Ursache), die Ablagebestätigung nennt ihre Anzahl. Kleine Tabellen, lückenhafte befüllte Spalten und Tabellen mit nur einer befüllten Spalte werden weiterhin abgewiesen.
+
 ## Unreleased — Dokumentfragen: Kontingentmeldung und begrenzte Gedächtnis-Extraktion
 
 - Ist das Tenant-Kontingent erschöpft, nennen Dokumentfragen das jetzt ausdrücklich (gleiche Meldung wie andere Pfade) statt der irreführenden Rückfallantwort „…lässt sich gerade nicht zuverlässig beantworten“.
