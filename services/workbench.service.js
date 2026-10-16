@@ -1713,6 +1713,12 @@ module.exports = {
           envelope.datasetConfirmations = datasetTurn.confirmations || [];
           envelope.datasetIds = datasetTurn.datasetIds || [];
         }
+        const projectReply = await require('../src/workbench-project-manifest').projectManifestTurn(
+          this,
+          ctx,
+          { p, envelope, pending, meta: correctionMeta }
+        );
+        if (projectReply) return projectReply;
         const memoryReply = await require('../src/tenant-memory').preturn(
           memoryContext,
           p,

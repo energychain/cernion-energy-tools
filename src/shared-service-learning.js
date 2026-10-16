@@ -15,6 +15,8 @@ function correctionPrincipal(event, meta) {
   return p;
 }
 function validateCorrection(input, model) {
+  if (input.target === 'projectManifest')
+    return require('./project-manifest-correction').validateManifestCorrection(input.correction);
   if (input.target === 'projectEdge') {
     const c = input.correction;
     if (

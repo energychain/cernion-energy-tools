@@ -878,3 +878,143 @@ aber Scans und temporäre SQLite-Sortierung erfordern. Ein einzelner Brokerproze
 serialisiert Snapshot und Veröffentlichung mit Aktenmutationen; die übrige Ableitung
 läuft außerhalb dieser Grenze. Multi-Prozess-Locks folgen nicht hier.
 Qualitäts- und Sicherheitsprüfungen stehen in `docs/validation/886-projektakte-graph.md`.
+
+## Manifest als dynamischer Evidenzendpunkt (#887)
+
+`project-manifest` erzeugt aus dem abgeschlossenen Graphen eine zusätzliche,
+versionierte Beschreibung der beantwortbaren Fragen. Das Manifest ist ein
+**Routingkandidat, niemals ein Beleg für Antwortzahlen**. Ein Manifest enthält:
+
+```js
+{
+  projectId, version, generatedAt,
+  summary: { text, sources: [nodeId] },
+  entities: [{ name, kind, sources: [nodeId] }],
+  timeRanges: [{ from, to, sources: [nodeId] }],
+  questionTypes: [{ id, description, inputs: [], skillRefs: [], sources: [nodeId] }],
+  externalLinks: [{ endpointId, joinKeys: [], confidence, sources: [nodeId] }]
+}
+```
+
+Auch die Zusammenfassung und jede Entitäts-/Zeitaussage besitzen mindestens eine
+gültige Graphreferenz. Ajv prüft die vollständige Struktur; anschließend werden alle
+Knotenreferenzen gegen den Snapshot geprüft. `skillRefs` bleiben bis #889 leer.
+Externe Verknüpfungen werden ausschließlich aus vorhandenen, ausreichend gewichteten
+`references`-Kanten zu bekannten Katalogoperationen übernommen. Das Modell darf sie
+nicht selbst erzeugen. Korrigierte Graphkanten wirken auch auf die Manifestversion.
+
+### Erzeugung, Persistenz und Kosten
+
+`project.graph.changed.v1` führt die authentifizierten Metadaten des Graphlaufs weiter.
+Der Manifestdienst fasst Anforderungen je Tenant/Akte zu einem laufenden Auftrag und
+einer Dirty-Markierung zusammen. Ein Inhaltscheckpoint aus abgeschlossener
+Graphquellversion und Kantenkorrekturen verhindert weitere Modellaufrufe für einen
+unveränderten Stand. Startup-Recovery verwendet den vorhandenen paginierten
+Graphquellscan und prüft wiederum Sichtbarkeit und aktuelle Clearance.
+
+Der Prompt verwendet eine explizite Feldprojektion: Akten-/Datei-/Abschnittstitel,
+Spaltennamen und -typen, Einheiten, Zeitraum sowie Knoten-/Kantenstruktur. Entitätswerte,
+Tabellenzeilen, Zellbeispiele, SQL-Sketches, Passagevolltexte und beliebige zusätzliche
+Profilattribute sind ausgeschlossen. Die Metadaten sind auf 128000 Bytes begrenzt;
+Überschreitungen werden sichtbar wiederholbar abgewiesen und nicht still abgeschnitten.
+Alle Modellaufrufe gehen durch `src/llm-client.js`, ohne zusätzliche Provideranbindung.
+Je neuem Graphstand erfolgt höchstens ein erfolgreicher Erzeugungsaufruf, mit zehn
+Sekunden Timeout und ohne automatische Modellwiederholungen. Fehlgeschlagene Läufe
+können durch Recovery oder einen internen erneuten Lauf wiederholt werden.
+
+Snapshot und Veröffentlichung verwenden die vorhandene Akten-Mutationsgrenze;
+der Modellaufruf läuft außerhalb dieser Grenze. Vor der Veröffentlichung werden
+Graphversion und Berechtigung erneut geprüft. Archivierung/Löschung während eines
+Aufrufs verhindert die Veröffentlichung. Ein Manifest zum alten Graphstand wird
+bei verändertem oder pending Graph nicht mehr als Kandidat geliefert.
+
+Versionen und akteursbezogene Korrekturen liegen im vorhandenen Object Store unter
+`project-manifest:<kodierter Tenant>:<kodierte Akte>:`. Tenantidentitäten werden nicht
+gehasht. Die registrierte Komponente `manifest` verwendet
+`project-manifest.deleteProject` als bestätigten, idempotenten Cleanup-Handler.
+Erfolgreiche Veröffentlichung emittiert
+`project.manifest.changed.v1 { tenantId, projectId, version }`.
+Es gibt weder neue Umgebungsvariablen noch einen zusätzlichen Datenbank-Lifecycle.
+
+### Sichtbarkeit, Auswahl und Antwort
+
+`GET /api/project-manifest/` (`project-manifest.candidates`) liefert ausschließlich
+aktuelle Manifeste sichtbarer Akten in `ready` oder `degraded`.
+`GET /api/project-manifest/:projectId` liefert das aktuelle Manifest einzeln.
+Tenant, Mitgliedschaft und sämtliche Clearanceanforderungen werden über
+`project-file` vor jedem Zugriff geprüft. Leere Akten ohne abgeschlossenen Graph,
+`ingesting`, archivierte Akten und jede Löschmarkierung liefern keine Kandidaten.
+Die beiden APIs sind lesend und `x-agentable`; Mutationen bleiben geschützt.
+
+Der additive Kandidatenanbieter hängt am bestehenden Evidenzendpunktkatalog;
+`dataset-routing.selectProjectCandidates` bewertet die gespeicherten Beschreibungen.
+Der neue Workbench-Pfad läuft nach dem bestehenden Upload-/Dataset-Turn und vor der
+gewöhnlichen Inhaltsbeantwortung. Anhänge und frisch abgelegte Chat-Datensätze
+behalten ihren bisherigen Vorrang. Der Answer-Dossier-Pfad verwendet denselben
+Kandidaten-/Lesepfad und gibt Auswahlhinweise an beide Dossierformate weiter.
+Die statischen Katalogeinträge und `workbench-data-scope` bleiben unverändert.
+
+Ohne ausdrückliche Aktennennung braucht die Auswahl eine vollständig vorkommende
+Bezugsphrase mit mindestens zwei relevanten Wörtern aus Titel oder Entitätsmetadaten
+**und** einen passenden Fragetyp: mindestens zwei übereinstimmende relevante Wörter,
+mindestens eines außerhalb der Bezugsphrase und mindestens 50 % seiner Beschreibung.
+Jahreszahlen und Einheiten allein reichen nicht. Zwischen den besten Akten müssen
+mindestens 0,15 Scorepunkte liegen; sonst bleibt die Auswahl offen und der bestehende
+Pfad läuft weiter. Ein ausdrücklich vorkommender Aktentitel erlaubt eine konkrete
+Lückenantwort, wenn kein Fragetyp passt. Die Auswahl selbst benötigt keine
+Modellaufrufe, Embeddings oder externen Suchen pro Turn.
+
+Jede gewählte Akte wird sichtbar gemacht:
+**„Ich habe dafür die Projektakte ‚…‘ herangezogen.“**
+Tabellenwerte stammen anschließend ausschließlich aus `dataset.query` auf der
+akteneigenen SQLite. Vorher werden Originalhash, Objekt-/Datasetzuordnung,
+Ableitungsversion und Spaltenschema erneut geprüft. Dokumentbelege werden über
+`knowledge-rag.documentGet` mit aktueller Original-/Abschnittszuordnung gelesen.
+Die Antwort erhält getrennte Herkunft mit Dateiname, Fundstelle und Originalhash.
+Fehlende Spalten, Zeiträume, Originalversionen oder Leserechte werden konkret als
+Datenlücke genannt; es gibt keine Manifestzahl oder geschätzte Ersatzgröße.
+
+Eine ausdrücklich angefragte Katalogquelle kann über `externalLinks` einen eigenen
+Antwortteil liefern. Die aktuelle Graphkante muss weiterhin lesbar sein. Der
+Join-Schlüssel wird durch eine zusätzliche, begrenzte `dataset.query`-Aggregation
+aus der aktuellen Tabelle gelesen; mehrdeutige Schlüssel ergeben eine Lücke.
+Nur Operationen mit `consequenceLevel: none`, leeren `sideEffects`/`writesTo` und
+bestandener `assertReadObservation`-Prüfung werden aufgerufen. Tenant, Scopes, Rollen
+und `domainsAllowed` bleiben erhalten; interne Symbol-Capabilities werden entfernt.
+Die Antwort muss den abgefragten Schlüssel bestätigen. Fremde Tenants und geschützte
+Ergebnisfelder werden mit dem bestehenden Workbench-Ergebnisfilter behandelt.
+Je Antwort sind höchstens acht Aktenlesequellen und vier externe Leseaufrufe mit
+je drei Sekunden Timeout vorgesehen; Katalogantworten sind auf 32000 Bytes begrenzt.
+Herkunft bleibt sichtbar getrennt: **„Aus Projektakte …“ / „Aus Katalogquelle …“**.
+
+### Korrekturen und Folgearbeiten
+
+Die vorhandene Lernschleife verarbeitet `target: 'projectManifest'`:
+
+```js
+ctx.call('shared-service-learning.apply', {
+  target: 'projectManifest',
+  correction: {
+    projectId,
+    kind: 'reject' | 'confirm' | 'entity',
+    questionTypeId?, // reject/confirm nur für diesen Fragetyp
+    nodeId?, name?  // entity: korrigierte Bezeichnung des referenzierten Knotens
+  }
+})
+```
+
+Korrekturen gelten nur für den authentifizierten Akteur und Tenant; aktuelle
+Mitgliedschaft/Clearance und Aktenmutierbarkeit bleiben Pflicht. Dafür ist keine
+zusätzliche Adminrolle erforderlich, weil keine gemeinsame Routingentscheidung
+anderer Personen verändert wird. Andere Korrekturziele behalten ihre Adminprüfung;
+es gibt keine Gateway-Rollenausnahme. Audit, Replay-Prüfung und
+`shared-service.correction.v1` bleiben Teil des vorhandenen Ablaufs. Undo verlangt
+eine neue bestätigende Korrektur. Die Workbench erkennt **„falsche Akte“** und
+**„Fragetyp falsch“** nach einer sichtbaren Aktenwahl; der nächste Turn beachtet die
+persistierte Ablehnung. Entitätskorrekturen ändern Auswahlmetadaten, keine Evidenzwerte.
+
+#888 ergänzt weitere begrenzte Auswertungen und komplexere/mengenwertige Joins;
+gegenwärtig bleibt ein nicht eindeutiger Join eine explizite Lücke. #889 befüllt
+`skillRefs` und erzeugt ausführbare Skills. Beides wird hier nicht vorweggenommen.
+Stub-Validierung und der vorbereitete, noch nicht ausgeführte Live-Praxislauf sind
+in `docs/validation/887-projektakte-manifest.md` beschrieben.

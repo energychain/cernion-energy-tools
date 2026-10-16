@@ -576,6 +576,9 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
       { memory: true, variants }
     )
   );
+  catalog.push(
+    ...require('./generate-project-manifest-fixtures').generateProjectScenarios(scenario, turn)
+  );
   return { schemaVersion: VERSION, scenarios: catalog };
 }
 

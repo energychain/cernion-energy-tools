@@ -405,7 +405,7 @@ module.exports = {
         edges: graph.edges.size,
         version: policy.VERSION,
       };
-      await this.broker.emit('project.graph.changed.v1', event);
+      await this.broker.emit('project.graph.changed.v1', event, { meta: ctx.meta });
       return { ...event, anchors };
     },
     async correctEdge(ctx, correction) {
@@ -433,13 +433,17 @@ module.exports = {
         },
       };
       await this.record(ctx, 'write', { documents: [corrected] });
-      await this.broker.emit('project.graph.changed.v1', {
-        tenantId: principal(ctx).tenantId,
-        projectId: ctx.params.projectId,
-        nodes: docs.filter((doc) => doc.recordType === 'node').length,
-        edges: docs.filter((doc) => doc.recordType === 'edge').length,
-        version: policy.VERSION,
-      });
+      await this.broker.emit(
+        'project.graph.changed.v1',
+        {
+          tenantId: principal(ctx).tenantId,
+          projectId: ctx.params.projectId,
+          nodes: docs.filter((doc) => doc.recordType === 'node').length,
+          edges: docs.filter((doc) => doc.recordType === 'edge').length,
+          version: policy.VERSION,
+        },
+        { meta: ctx.meta }
+      );
       return clean(corrected);
     },
     async traverse(ctx, relations) {

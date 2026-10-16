@@ -324,7 +324,7 @@ module.exports = {
       );
     },
     async recordCorrection(input, meta = {}) {
-      if (input.target === 'projectEdge') return;
+      if (['projectEdge', 'projectManifest'].includes(input.target)) return;
       if (input.target === 'gap') {
         correctionPrincipal(input, meta);
         validateCorrection(input, this.model());

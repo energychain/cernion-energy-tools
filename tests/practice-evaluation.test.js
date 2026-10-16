@@ -86,7 +86,7 @@ describe('versioned generated practice catalog', () => {
     expect(c.scenarios.some((s) => s.turns.some((t) => t.document?.format === 'openwebui'))).toBe(
       true
     );
-    expect(c.scenarios.reduce((n, s) => n + (s.memory ? 10 : 3), 0)).toBe(88);
+    expect(c.scenarios.reduce((n, s) => n + (s.memory ? 10 : 3), 0)).toBe(118);
   });
   test('A.2/acceptance 6: fixture audit and generator check are green; role names, organizations, emails and provenance cannot be imported', () => {
     const c = generatePracticeCatalog();

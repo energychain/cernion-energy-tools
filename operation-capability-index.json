@@ -2,14 +2,14 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "624afa51278a104f5090fadff9c69cb1086ca06d88a9e8baa84ad66507554c13",
+  "sourceOpenApiHash": "8370434cd410374ba91e73f4771d5d1e63e260aa5c7a78db5e22999bdd67bf89",
   "coverage": {
-    "rawOperationCount": 1272,
-    "operationCount": 1016,
-    "agentableCount": 1014,
+    "rawOperationCount": 1274,
+    "operationCount": 1018,
+    "agentableCount": 1016,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 440,
+      "data_read": 442,
       "admin": 24,
       "object_store_write": 272,
       "process_step": 26,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 997,
+    "resolvedActionCount": 999,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -74645,6 +74645,137 @@
         "negativeCues": [],
         "examples": [
           "Show me resolve project attributes through sameentity and joinson"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-manifest_candidates",
+      "method": "GET",
+      "path": "/api/project-manifest/",
+      "service": "project-manifest",
+      "action": "project-manifest.candidates",
+      "summary": "List tenant-visible dynamic evidence endpoint candidates",
+      "tags": [
+        "Project manifest"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-manifest.candidates"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "project-manifest:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "manifest",
+          "candidates",
+          "list",
+          "tenant",
+          "visible",
+          "dynamic",
+          "evidence",
+          "endpoint"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list tenant-visible dynamic evidence endpoint candidates"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-manifest_get",
+      "method": "GET",
+      "path": "/api/project-manifest/:projectId",
+      "service": "project-manifest",
+      "action": "project-manifest.get",
+      "summary": "Read a visible, current project manifest candidate",
+      "tags": [
+        "Project manifest"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-manifest.get"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Project"
+      ],
+      "requiredScopes": [
+        "project-manifest:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "manifest",
+          "read",
+          "visible,",
+          "current",
+          "candidate"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me read a visible, current project manifest candidate"
         ],
         "synonyms": [
           "agent infrastructure",

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — Projektakte: Manifest im Routing (#887)
+
+- Versionierte, schema-validierte Projektmanifeste aus Graph- und Schemametadaten;
+  koaleszierte Erzeugung über die zentrale LLM-Fassade, bestätigte Löschkaskade.
+- Additive dynamische Evidenzkandidaten für Workbench und Answer Dossier, auch ohne
+  Aktennennung; aktuelle Tenant-/Clearance-/Mitgliedschaftsprüfung, sichtbare Aktenwahl.
+- Antworten aus Akten-SQLite oder gelesenen Passagen; getrennte Katalogteilantworten
+  ausschließlich aus autorisierten Leseoperationen, konkrete Datenlücken statt Schätzungen.
+- Akteursbezogene Korrekturen über `projectManifest` in der bestehenden Lernschleife;
+  zehn generierte Praxis-Szenarien für zwei unabhängige Fachdomänen, ohne Live-Lauf.
+
 ## Unreleased — Projektakte: Relationsgraph (#886)
 
 - Review-Korrektur: Graph erst nach Abschluss aller empfangenden/strukturierenden Objekte, ohne erzwungene Neuberechnung; pro Akte koaleszierte Anforderungen mit höchstens einem laufenden Auftrag und einer Dirty-Markierung. Dokument-/Katalogzugriffe außerhalb der Mutationsgrenze, konsistenter SQL-Snapshot und erneute Versions-/Berechtigungsprüfung vor dem Schreiben.

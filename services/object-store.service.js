@@ -134,6 +134,7 @@ module.exports = {
     require('../src/project-file-store'),
     require('../src/project-file-object-store'),
     require('../src/project-graph-store'),
+    require('../src/project-manifest-store'),
     createPouchDbLifecycleMixin({
       dbPathEnvVar: 'OBJECT_STORE_DB_PATH',
       defaultDbPath: './data/object-store',

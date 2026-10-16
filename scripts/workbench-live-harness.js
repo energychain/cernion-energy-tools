@@ -55,6 +55,7 @@ function createLiveHarness(directory, sourceServices) {
         'tenant-memory-policy.list',
         'tenant-memory-policy.delete',
         'files.remove',
+        'project-file.delete',
         'dataset.turn',
         'datapoint.datasetCatalog',
         'workbench.chat',

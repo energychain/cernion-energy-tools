@@ -15,7 +15,15 @@ const id = { type: 'string', min: 1, max: 256 };
 const correctionParams = {
   target: {
     type: 'enum',
-    values: ['coverage', 'activation', 'agent', 'neighbor', 'gap', 'projectEdge'],
+    values: [
+      'coverage',
+      'activation',
+      'agent',
+      'neighbor',
+      'gap',
+      'projectEdge',
+      'projectManifest',
+    ],
   },
   correction: 'object',
   correctionId: { ...id, optional: true },
@@ -47,7 +55,8 @@ module.exports = {
       'POST /corrections',
       'Apply an authenticated admin correction',
       function (ctx) {
-        admin(principal(ctx, ctx.params));
+        const p = principal(ctx, ctx.params);
+        if (ctx.params.target !== 'projectManifest') admin(p);
         return this.enqueue(() => this.apply(ctx));
       },
       correctionParams
@@ -171,7 +180,9 @@ module.exports = {
       if (doc.pending) {
         const consumer =
           doc.target === 'coverage' ? 'function-coverage.correct' : 'activation.correct';
-        if (doc.target === 'projectEdge')
+        if (doc.target === 'projectManifest')
+          await ctx.call('project-manifest.correct', { ...event, at: doc.at });
+        else if (doc.target === 'projectEdge')
           await ctx.call('project-graph.correct', { ...event, at: doc.at });
         else if (doc.target === 'gap')
           await ctx.call('shared-service-agent.correctGap', {
@@ -190,6 +201,7 @@ module.exports = {
       const doc = await this.db.get(
         `correction:${encodeURIComponent(p.tenantId)}:${encodeURIComponent(ctx.params.correctionId)}`
       );
+      if (doc.target === 'projectManifest') deny('Use a new project manifest correction');
       if (doc.target === 'projectEdge') deny('Use a new project edge correction');
       if (doc.target === 'gap')
         deny('Gap reactions require a new confirmed observation; no undo outcome');
