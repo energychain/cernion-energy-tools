@@ -94,6 +94,17 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+// Environment quota limits are a floor: stored tenant values (including snapshots of older
+// defaults persisted with every state save) may raise a quota, never lower it.
+function atLeastDefaults(defaults, configured = {}) {
+  const merged = { ...defaults, ...configured };
+  for (const [key, floor] of Object.entries(defaults)) {
+    const value = Number(configured?.[key]);
+    merged[key] = Number.isFinite(value) ? Math.max(floor, value) : floor;
+  }
+  return merged;
+}
+
 function getTenantState(tenantId) {
   const normalizedTenantId = normalizeTenantId(tenantId);
   const existing = getDriver().getTenantState(normalizedTenantId);
@@ -113,10 +124,7 @@ function getTenantState(tenantId) {
         ...RATE_LIMIT_DEFAULTS,
         ...(existing.config?.rateLimits || {}),
       },
-      quotas: {
-        ...QUOTA_DEFAULTS,
-        ...(existing.config?.quotas || {}),
-      },
+      quotas: atLeastDefaults(QUOTA_DEFAULTS, existing.config?.quotas),
     },
     usage: existing.usage || {},
     rateBuckets: existing.rateBuckets || {},

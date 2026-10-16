@@ -2282,15 +2282,18 @@ describe('API Gateway Service', () => {
         'tenant-quota.setQuotas',
         {
           id: 'tenant-a',
-          quotas: { llm_tokens_per_day: 1234, max_async_jobs_per_day: 9 },
+          quotas: { llm_tokens_per_day: 99999999, max_async_jobs_per_day: 9 },
           rateLimits: { read: 42 },
         },
         { meta: { tenantId: 'tenant-a' } }
       );
 
       expect(updated.success).toBe(true);
-      expect(updated.data.config.quotas.llm_tokens_per_day).toBe(1234);
-      expect(updated.data.config.quotas.max_async_jobs_per_day).toBe(9);
+      expect(updated.data.config.quotas.llm_tokens_per_day).toBe(99999999);
+      // Tenant configuration can raise but never lower the environment floor.
+      expect(updated.data.config.quotas.max_async_jobs_per_day).toBe(
+        require('../src/rate-quota-store').QUOTA_DEFAULTS.max_async_jobs_per_day
+      );
       expect(updated.data.config.rateLimits.read).toBe(42);
     });
 

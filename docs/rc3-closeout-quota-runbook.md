@@ -11,9 +11,10 @@ Ersten des nächsten Monats um 00:00 UTC.
 ## Konfiguration je Tenant
 
 `QUOTA_LLM_TOKENS_PER_DAY` (Standard 250.000) und
-`QUOTA_LLM_TOKENS_PER_MONTH` (Standard 5.000.000) sind Vorgaben für neue
-Tenant-Konfigurationen. Bestehende Overrides werden über die vorhandene
-`tenant-quota.setQuotas`-API gepflegt. Die administrativen REST-Routen erfordern
+`QUOTA_LLM_TOKENS_PER_MONTH` (Standard 5.000.000) sind die **Untergrenze** für
+jeden Tenant und wirken nach einem Neustart auch für bestehende Tenants.
+Tenant-Overrides über die vorhandene `tenant-quota.setQuotas`-API können ein
+Kontingent nur anheben; niedrigere gespeicherte Werte werden ignoriert. Die administrativen REST-Routen erfordern
 die bestehenden Gateway-Rechte und die passende Tenant-Identität:
 
 - `GET /api/tenants/<tenant>/quotas`: Nutzung, Grenze, Rest und Resetzeit.

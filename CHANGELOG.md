@@ -9,6 +9,11 @@
 - Deterministische Ableitung aus Strukturierung, read-only SQLite-Sketches, Zeitintervallen und normalisierten Ankern; kataloggestützte externe Beobachtungen ausschließlich über verifizierte Leseoperationen.
 - Begrenzte REST-/MCP-Leseaktionen, dauerhafte Kantenkorrekturen über die bestehende Lernschleife, Neustart-Wiederaufnahme und bestätigte Löschkaskade. Sollgraph-Prüfung für zwei synthetische Fachdomänen dokumentiert unter `docs/validation/886-projektakte-graph.md`.
 
+## Unreleased — Kontingente: Env-Werte als Untergrenze
+
+- `QUOTA_LLM_TOKENS_PER_DAY`, `QUOTA_LLM_TOKENS_PER_MONTH`, `QUOTA_MAX_ASYNC_JOBS_PER_DAY` und `QUOTA_MAX_RAG_CHUNKS_PER_MONTH` gelten als Mindestwert je Tenant. Tenant-Konfiguration (`PUT /api/tenant-quota/tenants/:id/quotas`) kann ein Kontingent nur anheben, nicht senken.
+- Behebt, dass bei jeder Speicherung des Tenant-Zustands die damaligen Defaults mitgeschrieben wurden und spätere Env-Erhöhungen (z. B. von 250.000 auf 30 Mio. Tokens/Tag) für bestehende Tenants nie wirksam wurden.
+- Endpoint-Rate-Limits pro Minute bleiben unverändert per Tenant überschreibbar.
 
 ## Unreleased — Projektakte: Strukturierung im Datenstrom (#885)
 
