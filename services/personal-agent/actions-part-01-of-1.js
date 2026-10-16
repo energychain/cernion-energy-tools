@@ -1368,6 +1368,11 @@ module.exports = {
         }
       }
 
+      const projectAnswer = await require('../../src/project-manifest-evidence')
+        .projectManifestAnswer(ctx, question)
+        .catch(() => null);
+      if (projectAnswer) evidence = [...evidence, ...projectAnswer.evidence];
+
       const confidenceEvidenceCount = evidence.filter(
         (entry) => entry?.metadata?.evidenceQuality !== 'low'
       ).length;
@@ -1434,7 +1439,10 @@ module.exports = {
           question: null,
         });
       }
-      const missingEvidence = evidenceGaps.map((gap) => gap.statement);
+      const missingEvidence = [
+        ...evidenceGaps.map((gap) => gap.statement),
+        ...(projectAnswer?.gaps || []),
+      ];
       const clarificationQuestions = finalDossierRequested
         ? []
         : evidenceGaps.map((gap) => gap.question).filter(Boolean);
@@ -1508,6 +1516,7 @@ module.exports = {
         knowledgeSpace,
         preliminaryAnswerRequested,
         capabilityRouting,
+        ...(projectAnswer ? { projectSelection: { title: projectAnswer.title } } : {}),
         priorConversationContext,
       };
       const dossierMarkdown =
@@ -1519,6 +1528,7 @@ module.exports = {
               reasoningSummary,
               domain,
               possibleFollowUp,
+              ...(projectAnswer ? { projectSelection: { title: projectAnswer.title } } : {}),
             })
           : buildDossierMarkdown({ ...dossierMarkdownArgs, reasoningSummary });
 

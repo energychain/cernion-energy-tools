@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `9d55c31e5c9fd424758633c02ee6131192d1e27813b13f9d0b6bab07f724c0ad`
+Source SHA-256: `529f11eaa179a200bee9de4bde709e4683e5a515bc5247fd6359e9562b12b613`
 
 Capabilities: 172; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
@@ -14,7 +14,7 @@ Maximum degree target: ≤ 0.25 × 107 = 26.75; met: yes.
 
 Candidate degree before mutual selection: {"minimum":0,"median":4,"maximum":37,"isolatedFraction":0.2616822429906542}; pruned directed edges: 92; peer limit: 26.
 
-Operation index entries without action: 19/1016.
+Operation index entries without action: 19/1018.
 
 All curated capabilities are assigned once, including entries without resolvable operations.
 Edges describe catalog evidence only; they grant no authorization.
@@ -481,7 +481,7 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (83)
+## unresolvedStaticEvents (87)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:227: dynamic emission"}
@@ -529,6 +529,8 @@ None.
 - {"service":"mastr-quality","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"nova","ref":"services/nova.service.js:1079: dynamic emission"}
 - {"service":"nova","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"object-store","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"object-store","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"oep","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"openai-compatible","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"openai-compatible","ref":"src/llm-client.js:227: dynamic emission"}
@@ -538,6 +540,8 @@ None.
 - {"service":"personal-agent","ref":"services/personal-agent/methods-part-08-of-11.js:31: dynamic emission"}
 - {"service":"personal-agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"personal-agent","ref":"src/llm-client.js:227: dynamic emission"}
+- {"service":"project-manifest","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"project-manifest","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"project-structure","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"project-structure","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"project-upload","ref":"src/job-store.js:67: dynamic emission"}

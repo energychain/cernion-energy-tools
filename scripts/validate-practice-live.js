@@ -8,7 +8,11 @@ const {
 } = require('./generate-practice-evaluation-fixtures');
 const { checkTurn, auditPracticeFixtures } = require('./practice-evaluation-checks');
 const { evaluateRubric } = require('./practice-evaluation-rubric');
-const { excerpt, writePracticeReport } = require('./practice-evaluation-report');
+const {
+  excerpt,
+  writePracticeReport,
+  practiceErrorMessage,
+} = require('./practice-evaluation-report');
 const {
   evaluationConfig,
   createLocalTransport,
@@ -157,6 +161,7 @@ async function runPracticeEvaluation({
           dependencies: [
             ...new Set(fixture.turns.flatMap((turn) => turn.expect.dependencies || [])),
           ],
+          projectPreparation: state.projectPreparation || [],
           turns: [],
           rubric: null,
           interaction: false,
@@ -192,11 +197,29 @@ async function runPracticeEvaluation({
             if (injectResponse) reply = injectResponse(turn, reply);
             if (onTurn) await onTurn({ fixture, turn, reply, repeat });
             const checks = checkTurn(turn, reply, context);
+            for (const preparation of run.projectPreparation.filter(
+              (item) => item.status !== 'ready'
+            ))
+              checks.push({
+                id: 'project-manifest-generation',
+                passed: false,
+                reason: `Manifest degraded: ${preparation.reason}; discardedReferences=${preparation.discardedReferences || 0}; fallback=${Boolean(preparation.fallback)}`,
+              });
             run.turns.push({
               id: turn.id,
               expectation: turn.expect.description,
               checks,
               responseExcerpt: excerpt(reply.responseText),
+              ...(fixture.projectFixtures?.length
+                ? {
+                    projectRouting: reply.metadata?.projectRouting || {
+                      bestProjectId: null,
+                      score: 0,
+                      margin: 0,
+                      reason: 'not_evaluated',
+                    },
+                  }
+                : {}),
               evaluationError: reply.evaluationError || null,
               elapsedMs: Date.now() - start,
             });
@@ -241,6 +264,7 @@ async function runPracticeEvaluation({
     }
   } catch (error) {
     report.aborted = budget.state.stopped || error.type || error.name;
+    report.abortMessage = practiceErrorMessage(error);
   } finally {
     try {
       if (transport) await transport.close();
