@@ -1,6 +1,6 @@
 # Kunden-/Service-Klärfall
 
-Generated: 2026-10-16T15:00:22.849Z
+Generated: 2026-10-16T21:04:46.264Z
 
 Status: routable
 Priority: 3
