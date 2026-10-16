@@ -144,8 +144,15 @@ function matrixRows(matrix) {
     )
   )
     throw new Error('Die Zeilen haben mehr Felder als die Kopfzeile.');
+  // Wide exports often include columns that are empty in every row. They hold no
+  // information and must not count as damage; they are dropped and reported instead.
+  const blank = (cell) => cell == null || String(cell).trim() === '';
+  const droppedEmptyColumns = names.filter((_, i) => body.every((row) => blank(row[i])));
+  const kept = names.filter((name) => !droppedEmptyColumns.includes(name));
   const rows = body.map((row) =>
-    Object.fromEntries(names.map((name, i) => [name, row[i] ?? null]))
+    Object.fromEntries(
+      names.map((name, i) => [name, row[i] ?? null]).filter(([name]) => kept.includes(name))
+    )
   );
   const profile = profileRows(rows);
   const damage = datasetPlausibility({ profile }, rows);
@@ -162,7 +169,12 @@ function matrixRows(matrix) {
             ? parseNumber(value)
             : String(value).trim();
     }
-  return { rows, profile: profileRows(rows), hash: hashValue(rows) };
+  return {
+    rows,
+    profile: profileRows(rows),
+    hash: hashValue(rows),
+    ...(droppedEmptyColumns.length ? { droppedEmptyColumns } : {}),
+  };
 }
 
 function parseDatasetText(text, name = 'Tabelle') {

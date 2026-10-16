@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — Tabellen: durchgehend leere Spalten nicht als Beschädigung werten
+
+- Spalten, die in keiner Zeile einen Wert haben (typisch für breite Stammdaten-Exporte), werden beim Einlesen entfernt und zählen nicht mehr gegen `WORKBENCH_DATASET_MAX_EMPTY_RATIO`. Bisher wurde z. B. ein Anlagen-Export mit 7.301 Zeilen und 26 leeren von 46 Spalten als „beschädigt oder unplausibel“ abgewiesen. Die Ablagebestätigung nennt die Anzahl nicht übernommener leerer Spalten. Tatsächlich lückenhafte, befüllte Spalten werden weiterhin abgewiesen.
+
 ## Unreleased — Gemini: Antwortschema ohne `additionalProperties`
 
 - Der Gemini-Adapter entfernt `additionalProperties` aus der an den Provider gesendeten Kopie des `responseSchema`. Gemini lehnte solche Schemas mit HTTP 400 ab („Unknown name additionalProperties“), wodurch u. a. Dokumentfragen in Open WebUI stets mit „Aus den verfügbaren Dokumentabschnitten lässt sich diese Frage gerade nicht zuverlässig beantworten“ endeten. Die lokale Ajv-Validierung prüft weiterhin das vollständige Schema.
