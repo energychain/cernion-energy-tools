@@ -1,5 +1,41 @@
 # Changelog
 
+## Unreleased — Projektakte: Manifest im Routing (#887)
+
+- E2E-Regression ohne Akten behoben: Kandidatenabfragen isolieren interne
+  Symbol-Capabilities im eigenen Kontext. Der anschließende Evidenzsammler kann
+  Turn-Metadaten wieder serialisieren; der Abschnitt „Quellen:“ bleibt erhalten.
+
+- Robuste Manifest-Erzeugung nach Live-Befund: ungültige Knotenverweise und unbelegte
+  Aussagen bereinigen, bei fehlenden Fragetypen einmal gezielt neu erzeugen, danach
+  ein quellengebundenes Minimal-Manifest aus Metadaten verwenden. Persistierter
+  `ready`-/`degraded`-State samt Bereinigungszählern und Rückfall-Diagnose; kein Abbruch
+  der Aufrufer durch Modellfehler. Praxisläufe werten degradierte Erzeugung gesondert
+  und laufen weiter; Abbruchberichte enthalten eine sichere Fehlermeldung.
+
+- Fix nach Live-Praxislauf: Aktenwahl zusätzlich aus aktuellen Datei-/Datensatznamen,
+  Schemas, Einheiten und Graphankern; quellgebundener Inhaltsabgleich, konfigurierbare
+  Schwellen und Abstand zu Alternativen. Sichere Treffer haben vor generischen
+  Gedächtnis-/Dataset-/Rückfragepfaden Vorrang. Kompakte Auswahldiagnosen in Turn
+  und Praxisbericht; vollständige Chat-Regression mit paraphrasierten Manifesten.
+- RC3-Ausformulierung: ein strukturierter LLM-Aufruf je belegter Aktenfrage im
+  Workbench-Turn, mit unveränderter strukturierter Herkunft und festem Aktenwahlsatz.
+  Exakte Zahlenprüfung und Schema-/Codeprüfung sichern den deterministischen Rückfall;
+  Kontingentfehler zeigen die reguläre Kontingentmeldung. Keine doppelte
+  Ausformulierung im Personal-Agent-/Dossier-Pfad und kein Aufruf ohne Aktenevidenz.
+- Versionierte, schema-validierte Projektmanifeste aus Graph- und Schemametadaten;
+  koaleszierte Erzeugung über die zentrale LLM-Fassade, bestätigte Löschkaskade.
+- Additive dynamische Evidenzkandidaten für Workbench und Answer Dossier, auch ohne
+  Aktennennung; aktuelle Tenant-/Clearance-/Mitgliedschaftsprüfung, sichtbare Aktenwahl.
+- Antworten aus Akten-SQLite oder gelesenen Passagen; getrennte Katalogteilantworten
+  ausschließlich aus autorisierten Leseoperationen, konkrete Datenlücken statt Schätzungen.
+- Akteursbezogene Korrekturen über `projectManifest` in der bestehenden Lernschleife;
+  zehn generierte Praxis-Szenarien für zwei unabhängige Fachdomänen, ohne Live-Lauf.
+
+## Unreleased — Tabellen: durchgehend leere Spalten nicht als Beschädigung werten
+
+- Ab `WORKBENCH_DATASET_EMPTY_COLUMN_MIN_ROWS` Zeilen (Standard 10) zählen Spalten, die in keiner Zeile einen Wert haben (typisch für breite Exporte), nicht mehr gegen `WORKBENCH_DATASET_MAX_EMPTY_RATIO`. Bisher wurde z. B. ein Anlagen-Export mit 7.301 Zeilen und 26 leeren von 46 Spalten als „beschädigt oder unplausibel“ abgewiesen. Die Spalten bleiben erhalten (Fragen danach nennen weiterhin die konkrete Ursache), die Ablagebestätigung nennt ihre Anzahl. Kleine Tabellen, lückenhafte befüllte Spalten und Tabellen mit nur einer befüllten Spalte werden weiterhin abgewiesen.
+
 ## Unreleased — Dokumentfragen: Kontingentmeldung und begrenzte Gedächtnis-Extraktion
 
 - Ist das Tenant-Kontingent erschöpft, nennen Dokumentfragen das jetzt ausdrücklich (gleiche Meldung wie andere Pfade) statt der irreführenden Rückfallantwort „…lässt sich gerade nicht zuverlässig beantworten“.

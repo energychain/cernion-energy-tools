@@ -9,8 +9,23 @@ npm run release:gate
 Das entspricht `release:check`, Fixture-Prüfung und `release:practice`. Die Praxis-Suite
 verwendet die vorhandene zentrale LLM-Fassade, den gemeinsamen Live-Harness und den Budgetschutz
 der bisherigen Live-Validierungen. Sie ersetzt keine Produktantworten durch Sollantworten.
-Standard: 27 Szenarien, drei Wiederholungen je Standardszenario und zehn Gedächtnisläufe
-(fünf Formulierungsmuster in beiden Reihenfolgen), insgesamt 88 Wiederholläufe.
+Standard: 37 Szenarien, drei Wiederholungen je Standardszenario und zehn Gedächtnisläufe
+(fünf Formulierungsmuster in beiden Reihenfolgen), insgesamt 118 Wiederholläufe.
+
+Die zehn Szenarien `project-a-*`/`project-b-*` prüfen #887 mit neutral benannten
+synthetischen Akten aus Messreihen und Bestandsführung: Auswahl ohne Aktennennung,
+gemischte Frage, konkreter fehlender Zeitraum, unpassende Frage und mehrturnige
+Korrektur „falsche Akte“. Der lokale Transport durchläuft den wirklichen Chunk-Ingest,
+Strukturierung, Graph und Manifest-Erzeugung; ausschließlich der externe Lesekatalog
+ist eine kontrollierte synthetische Quelle. Die Bewertung verlangt berechnete Zahlen,
+sichtbare Aktenwahl und Datei/Fundstelle/Hash sowie separat beobachtete Katalogwerte.
+Ein fehlendes Manifest wird als Fehler behandelt, nicht durch eine Sollantwort ersetzt.
+Die Bereinigung verwendet die bestätigte Akten-Löschkaskade.
+
+Diese neuen Szenarien benötigen den isolierten lokalen Transport. Der HTTP-Transport
+weist ihre Ausführung ausdrücklich ab, weil ihm der kontrollierte synthetische
+Lesekatalog fehlt; vorhandene HTTP-Diagnoseszenarien bleiben verwendbar. Ein solcher
+gefilterter Lauf ist wie bisher kein vollständiges Release-Gate.
 
 ## Lokale Instanz
 
@@ -133,10 +148,14 @@ Lokale temporäre Dateien werden erst nach Bereinigung und Broker-Stopp entfernt
 
 ## Laufzeit und Kosten
 
-Der Umfang beträgt 295 Turns plus 88 Rubrikbewertungen; reine Basisabfragen benötigen keinen
+Der Umfang beträgt 337 Turns plus 118 Rubrikbewertungen; reine Basisabfragen benötigen keinen
 Modellaufruf. Laufzeit hängt von Antwort-/Kontingentlimits ab. Für die erste Planung 30–60 Minuten
 vorsehen; der Bericht enthält anschließend die gemessene Laufzeit und Nutzung.
 Standardobergrenzen: 3000 Aufrufe und 20 Millionen Tokens. Sie sind Grenzen, keine Verbrauchsprognose.
+Die Aktenvorbereitung benötigt zusätzlich Modellaufrufe für Datensatzsemantik und
+Manifest je generierter Akte. Manifestauswahl pro Turn arbeitet ohne Modellaufruf;
+ungenaue oder komplexere Abfragepläne können weiterhin die vorhandene Fassade nutzen.
+Für #887 ist der Live-Lauf vorbereitet, aber nicht als ausgeführt oder grün belegt.
 
 Ohne konfigurierten Tarif werden keine Geldkosten erfunden. Optional
 `PRACTICE_COST_PER_MILLION_TOKENS=<eigener gemischter Tarif>` und

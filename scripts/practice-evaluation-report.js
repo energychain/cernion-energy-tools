@@ -126,6 +126,18 @@ function compareMetrics(current, previous = []) {
     };
   });
 }
+// Only fixed operational messages are safe to retain verbatim: provider messages
+// may contain entire prompts, rows, URLs or credentials, even without key names.
+function practiceErrorMessage(error) {
+  const message = String(error?.message || '');
+  if (
+    /^(Unknown project manifest source node|Invalid project manifest schema|Duplicate project manifest question type|Project manifest metadata budget exceeded|Practice project ingest (timed out|failed)|Fixture privacy check failed)$/u.test(
+      message
+    )
+  )
+    return message;
+  return require('../src/workbench-llm-errors').llmErrorDetails(error || {}).message;
+}
 function renderPracticeReport(report, previous) {
   const gate = gateResult(report);
   const comparisons = compareMetrics(gate.metrics, previous?.metrics || previous?.gate?.metrics);
@@ -138,7 +150,9 @@ function renderPracticeReport(report, previous) {
     `Aufrufe: ${report.budget?.calls ?? 0}/${report.budget?.limit ?? '–'}; externe Gateway-Anfragen: ${report.budget?.externalRequests ?? 0}; Tokens: ${report.budget?.tokens.used ?? 0} (inklusive konservativer Remote-Schätzung).`,
     `Laufzeit: ${Math.round((report.elapsedMs || 0) / 1000)} Sekunden. Kosten: ${report.cost == null ? 'Tarif nicht konfiguriert; Tokenverbrauch oben' : `${report.cost.toFixed(4)} ${report.currency}`}.`,
     ...(report.aborted
-      ? [`**Abbruch:** ${report.aborted}. Teilbericht, keine weiteren Modellaufrufe.`]
+      ? [
+          `**Abbruch:** ${cell(report.aborted)}${report.abortMessage ? `: ${cell(report.abortMessage)}` : ''}. Teilbericht, keine weiteren Modellaufrufe.`,
+        ]
       : []),
     '',
     '## Gate und Vergleich zum letzten Lauf',
@@ -178,6 +192,25 @@ function renderPracticeReport(report, previous) {
       lines.push(
         `| ${cell(turn.id)} | ${cell(turn.expectation)} | ${turn.checks.map((check) => `${check.passed ? '✓' : '✗'} ${cell(check.id)}`).join('; ')} | ${cell(excerpt(turn.responseExcerpt))} |`
       );
+    for (const preparation of run.projectPreparation || [])
+      lines.push(
+        '',
+        `Manifest-Erzeugung: ${cell(preparation.status)}; Grund: ${cell(preparation.reason)}; verworfene Verweise: ${preparation.discardedReferences || 0}; Minimal-Manifest: ${Boolean(preparation.fallback)}.`
+      );
+    const routing = run.turns.filter(
+      (turn) => turn.projectRouting && turn.checks.some((check) => !check.passed)
+    );
+    if (routing.length) {
+      lines.push(
+        '',
+        '| Turn | Aktenbewertung: beste Akte | Score | Abstand | Grund |',
+        '| --- | --- | --- | --- | --- |'
+      );
+      for (const turn of routing)
+        lines.push(
+          `| ${cell(turn.id)} | ${cell(turn.projectRouting.bestProjectId || '–')} | ${cell(turn.projectRouting.score)} | ${cell(turn.projectRouting.margin)} | ${cell(turn.projectRouting.reason)} |`
+        );
+    }
     lines.push('', '| Rubrik | Punkte | Begründung |', '| --- | --- | --- |');
     for (const key of Object.keys(CRITERIA))
       lines.push(
@@ -212,6 +245,7 @@ function writePracticeReport(report, target, previous) {
   return gate;
 }
 module.exports = {
+  practiceErrorMessage,
   scenarioMetrics,
   gateResult,
   excerpt,

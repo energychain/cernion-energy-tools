@@ -64,10 +64,32 @@ function datasetPlausibility(record, rows) {
         0
       )
     : columns.reduce((sum, column) => sum + (column.nullCount || 0), 0);
-  if (missing / (count * columns.length) > threshold) return 'Der Anteil leerer Werte ist zu hoch.';
+  if (missing / (count * columns.length) > threshold) {
+    // Larger exports often include columns that are empty in every row. They hold no
+    // information and must not count as damage; tiny tables keep the strict rule.
+    const empty = emptyColumnNames(columns, rows, count);
+    const filled = columns.length - empty.length;
+    const minRows = datasetSetting('EMPTY_COLUMN_MIN_ROWS', 10);
+    if (
+      count < minRows ||
+      filled < 2 ||
+      (missing - empty.length * count) / (count * filled) > threshold
+    )
+      return 'Der Anteil leerer Werte ist zu hoch.';
+  }
   if (rows?.some((row) => Object.values(row).some(truncatedDatasetValue)))
     return 'Zahlen oder Restfelder sind abgeschnitten.';
   return null;
+}
+
+function emptyColumnNames(columns, rows, count) {
+  return columns
+    .filter((column) =>
+      rows
+        ? rows.every((row) => row[column.name] == null || String(row[column.name]).trim() === '')
+        : (column.nullCount || 0) >= count
+    )
+    .map((column) => column.name);
 }
 
 function truncatedDatasetValue(value) {
@@ -162,7 +184,14 @@ function matrixRows(matrix) {
             ? parseNumber(value)
             : String(value).trim();
     }
-  return { rows, profile: profileRows(rows), hash: hashValue(rows) };
+  const finalProfile = profileRows(rows);
+  const emptyColumns = emptyColumnNames(finalProfile.columns, rows, rows.length);
+  return {
+    rows,
+    profile: finalProfile,
+    hash: hashValue(rows),
+    ...(emptyColumns.length ? { emptyColumns } : {}),
+  };
 }
 
 function parseDatasetText(text, name = 'Tabelle') {

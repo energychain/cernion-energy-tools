@@ -170,6 +170,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'Project ingest': 'platform',
   'Project files': 'platform',
   'Project graph': 'platform',
+  'Project manifest': 'platform',
   Files: 'platform',
   'shared-service-learning': 'platform',
   'Shared Service Notices': 'platform',

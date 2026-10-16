@@ -138,4 +138,7 @@ async function selectDatasetCandidates(
   }
 }
 
-module.exports = { selectDatasetCandidates };
+module.exports = {
+  selectDatasetCandidates,
+  selectProjectCandidates: require('./project-manifest-routing').selectProjectCandidates,
+};
