@@ -71,6 +71,9 @@ module.exports = {
       params: {},
       openapi: openapi('List tenant-visible dynamic evidence endpoint candidates', true),
       async handler(ctx) {
+        // Nested reads merge internal capabilities back into their parent context.
+        // Keep those capabilities local, including when the candidate list is empty.
+        ctx = Object.assign(Object.create(ctx), { meta: { ...ctx.meta } });
         const projects = await ctx.call('project-file.list', { routingOnly: true });
         const candidates = [];
         let datasets;

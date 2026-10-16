@@ -477,3 +477,24 @@ test('practice preparation continues after invalid LLM references and records de
     (await h.call('project-manifest.get', { projectId: state.projects[0] })).questionTypes.length
   ).toBeGreaterThan(0);
 });
+
+test.each([false, true])(
+  'candidate reads preserve parent metadata (populated: %s)',
+  async (populated) => {
+    if (populated) await populate();
+    h.broker.createService({
+      name: 'candidate-parent',
+      actions: {
+        async read(ctx) {
+          const before = structuredClone(ctx.meta);
+          const candidates = await ctx.call('project-manifest.candidates', {});
+          expect(candidates).toHaveLength(populated ? 1 : 0);
+          expect(ctx.meta).toEqual(before);
+          return structuredClone(ctx.meta);
+        },
+      },
+    });
+    await h.broker.waitForServices('candidate-parent');
+    expect(await h.call('candidate-parent.read', {})).toEqual(auth());
+  }
+);

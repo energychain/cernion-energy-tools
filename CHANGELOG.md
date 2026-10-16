@@ -2,6 +2,10 @@
 
 ## Unreleased — Projektakte: Manifest im Routing (#887)
 
+- E2E-Regression ohne Akten behoben: Kandidatenabfragen isolieren interne
+  Symbol-Capabilities im eigenen Kontext. Der anschließende Evidenzsammler kann
+  Turn-Metadaten wieder serialisieren; der Abschnitt „Quellen:“ bleibt erhalten.
+
 - Robuste Manifest-Erzeugung nach Live-Befund: ungültige Knotenverweise und unbelegte
   Aussagen bereinigen, bei fehlenden Fragetypen einmal gezielt neu erzeugen, danach
   ein quellengebundenes Minimal-Manifest aus Metadaten verwenden. Persistierter

@@ -311,3 +311,72 @@ test.each(['a', 'b'])(
     expect(phases).not.toContain('understanding');
   }
 );
+
+test('forwarded document without projects preserves source citations and the original answer', async () => {
+  const collected = [];
+  h.broker.createService({
+    name: 'personal-agent',
+    actions: {
+      collectWorkbenchEvidence: {
+        visibility: 'protected',
+        handler(ctx) {
+          // Same serialization boundary as the shared-service HTTP e2e collector.
+          collected.push(structuredClone({ params: ctx.params, meta: ctx.meta }));
+          return {
+            evidence: [
+              {
+                source: 'document-reference',
+                value: `${ctx.params.situation.concern}: Referenzen und Eingangsbestätigung prüfen.`,
+                metadata: { score: 0.92, documentTitle: 'Synthetischer Ablaufleitfaden' },
+              },
+            ],
+            trace: [],
+          };
+        },
+      },
+    },
+  });
+  await h.broker.waitForServices('personal-agent');
+  llm.generateStructured.mockImplementation(facade.generateStructured);
+  const row = require('./fixtures/capability-routing-eval.json').cases.find(
+    (entry) => entry.source === 'independent-regression'
+  );
+  const message = `Weitergeleitetes Dokument:\n${row.query}\nKannst du mir helfen?`;
+  const actual = await chat(message, 'document-with-candidates');
+  expect(actual.responseText).toContain('Quellen: Synthetischer Ablaufleitfaden');
+  expect(actual.projectSelection).toBeUndefined();
+  const getLocalService = h.broker.getLocalService.bind(h.broker);
+  const lookup = jest
+    .spyOn(h.broker, 'getLocalService')
+    .mockImplementation((name) =>
+      name === 'project-manifest' ? undefined : getLocalService(name)
+    );
+  let baseline;
+  try {
+    const baselineMeta = meta();
+    baselineMeta.apiToken.tenantId = 'tenant-baseline';
+    baseline = await h.call(
+      'workbench.chat',
+      {
+        channel: 'api',
+        conversationId: 'document-without-candidates',
+        userRequest: message,
+      },
+      baselineMeta
+    );
+  } finally {
+    lookup.mockRestore();
+  }
+  expect(actual.caseDisplayRef).toBe(baseline.caseDisplayRef);
+  expect(actual.responseText).toBe(baseline.responseText);
+  const sourceDetails = (sources) => sources.map(({ ms: _ms, ...source }) => source);
+  expect(sourceDetails(actual.sources)).toEqual(sourceDetails(baseline.sources));
+  expect(new Set(collected.map(({ meta: metadata }) => metadata.apiToken.tenantId))).toEqual(
+    new Set(['tenant-a', 'tenant-baseline'])
+  );
+  for (const { meta: metadata } of collected) {
+    expect(metadata).not.toHaveProperty('projectFileStore');
+    expect(metadata).not.toHaveProperty('projectGraph');
+    expect(metadata).not.toHaveProperty('projectManifest');
+  }
+});

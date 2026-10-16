@@ -419,3 +419,79 @@ maßgeblich. Der Vergleich mit `main` wurde nach 20 Sekunden begrenzt, weil die
 Indexabfrage keinen Abschluss lieferte. Der vorgemerkte Diff wird zusätzlich vor
 dem Commit geprüft. Unverändert: keine Live-LLM-Aufrufe, keine Allowlist-Erweiterung,
 keine Änderungen an Env-/Credentialdateien, kein Push.
+
+
+## CI-Folgekorrektur: Quellen ohne Akten (Basis 5ff45105)
+
+`npm run test:e2e:shared-service` reproduzierte den gemeldeten Fehler an der
+unveränderten Assertion `initial.responseText.includes('Quellen:')`.
+Die Diagnose mit ausschließlich synthetischen E2E-Daten zeigte den Retrieval-Trace
+`pipeline / unavailable / DataCloneError` und eine leere Evidenzliste.
+
+Ursache ist die neue frühe Kandidatenabfrage: `projectManifestTurn` ruft über
+`projectManifestAnswer` den Endpunkt `project-manifest.candidates` auf. Schon dessen
+`project-file.list` liest mit der internen Symbol-Capability `projectFileStore`.
+Moleculer mischt die Metadaten von Unteraufrufen in ihre Eltern zurück. Dadurch
+landet dieses Symbol auch ohne eine einzige Akte im ursprünglichen Chat-Kontext.
+Der Offline-Evidenzsammler an der Personal-Agent-Grenze klont Parameter und Metadaten
+mit `structuredClone`; dabei entsteht `DataCloneError`. Der bestehende Retrieval-
+Fallback liefert daraufhin keine Evidenz und folglich keinen Quellenabschnitt.
+Bei vorhandenen Akten gelangen auch `projectGraph` und `projectManifest` zurück.
+Es handelt sich weder um ein Entfernen durch `candidateOnly` noch um eine Änderung
+von `projectSourceInstructions`, Quellenrendering oder Ausformulierung.
+
+Fix: Der Kandidaten-Handler erhält einen eigenen, vom ursprünglichen Context
+abgeleiteten Kontext mit einer separaten flachen Kopie von `meta`. Alle vorhandenen
+Unteraufrufe, Tracing-/Timeout-Einstellungen sowie Tenant-/Clearance-/Mitgliedschafts-
+prüfungen bleiben bestehen; intern zurückgemischte Capabilities bleiben im lokalen
+Kontext. Es wird nichts global entfernt oder freigegeben. Der Produktdiff umfasst
+nur drei Zeilen einschließlich der erläuternden Kommentare im Kandidaten-Handler.
+Der gemeinsame Endpunkt schützt sowohl Workbench als auch Personal-Agent-/Dossier-
+Kandidatenleser; Auswahlkriterien und Antwortgenerierung bleiben unverändert.
+
+GitNexus-Impact für den neuen Handler ist `UNKNOWN` (Symbol nicht im alten Index).
+Die ergänzende lokale Aufrufsuche zeigt den Kandidatenanbieter und darüber die beiden
+Antwortpfade als direkte/indirekte Verbraucher. Risiko: klein und additiv, begrenzt
+auf die Metadaten der Kandidatenabfrage. Keine Änderung der globalen Allowlist.
+
+Neue Regressionen wurden zunächst rot ausgeführt: Elternmetadaten bleiben bei leerem
+und befülltem Tenant unverändert und serialisierbar; ein vollständiger Workbench-Turn
+mit „Weitergeleitetes Dokument: … Kannst du mir helfen?“ behält die Quellen. Der
+Antwortvergleich verwendet zwei frisch leere Tenants mit identischem Fallzähler;
+im Kontrollturn ist nur der Manifestdienst ausgeblendet. Antworttext einschließlich
+Quellen und Fallhinweis wird direkt und ohne Normalisierung oder Entfernen von
+Antwortbestandteilen verglichen. Bei den strukturierten Quellen wird ausschließlich
+die naturgemäß schwankende Laufzeit `ms` aus dem Vergleich ausgenommen. Der ursprüngliche
+HTTP-E2E-Test wird unverändert ausgeführt und ist nach dem Fix grün.
+
+Die frühere leere-Tenant-Probe verwendete einen direkten `broker.call`-Wrapper ohne
+echten Elternkontext und prüfte die Metadaten nicht auf Serialisierbarkeit. Die neuen
+Tests verwenden einen echten Service-Unteraufruf und dieselbe Clone-Grenze wie der
+HTTP-E2E-Sammler.
+
+### Prüfergebnisse der CI-Folgekorrektur
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `lint -- --quiet`, `build` | grün |
+| `test:e2e:shared-service` | grün, 15,53 s; ursprüngliche Quellen-Assertion unverändert |
+| Berührte Projekt-/Workbench-Tests | vollständig grün in der Unit-CI; 14 vollständige Chat-Tests zusätzlich separat grün; beide neuen Metadatenfälle grün |
+| `test:unit:ci` | 25 Blöcke; 475 Suites / 10354 Tests grün; 7 Suites / 54 Tests regulär übersprungen |
+| Coverage | Statements 84,16 %, Branches 70,40 %, Functions 88,42 %, Lines 85,92 %; sämtliche Grenzen erfüllt |
+| `test:shared-service:ci` | 86 Tests grün; 21,37 s unter 60 s |
+| `check:practice-fixtures` | grün und synchron; keine neuen Szenarien nötig |
+| `check:function-model`, `check:signal-catalog`, `check:operation-capability-index`, `check:llm` | alle grün |
+| `check:domain-free-core`, `check:domain-free-equivalence` | grün, unveränderte Allowlist; 150 Dateien / 25192 äquivalente Treffer |
+| `test:tdd-matrix`, `check:tdd-matrix-coverage` | 82 Tests grün, 4 optional übersprungen; 66/66 erforderliche IDs = 100 %; zwölf optionale Live-Blackbox-IDs nicht ausgeführt |
+| `audit:openapi` | 0 Issues, 480 bestehende Warnungen |
+| `git diff --check` | grün |
+
+Alle sechs Artefaktgeneratoren wurden nach der letzten Code-/Teständerung ausgeführt.
+Die vollständige Unit-CI lief bei eingefrorenen Quellen und Artefakten; die Prüfsummen
+aller 1362 kontrollierten Dateien waren anschließend unverändert. Nach Ergänzung
+dieses Ergebnisabschnitts wird die Artefakterzeugung abschließend erneut geprüft.
+GitNexus `detect_changes(all)` erfasste die erwarteten zehn Dateien mit geringem Risiko,
+aber ohne Symbolzuordnung im veralteten Index. Die lokale Aufruf-/Diff-Prüfung bleibt
+maßgeblich; der Vergleich mit `main` lieferte innerhalb von 20 Sekunden kein Ergebnis.
+Der vorgemerkte Diff wird vor dem Commit nochmals geprüft.
+Keine Live-LLM-Aufrufe, keine Env-/Credentialdateien und kein Push.
