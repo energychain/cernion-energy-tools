@@ -7,6 +7,12 @@ const { llmOptions, toFacadeSchema } = require('./workbench-understanding');
 const { sourceText, sections, withDocumentSource } = require('./tenant-document-knowledge');
 const validate = new (require('ajv'))({ allErrors: true }).compile(MEMORY_SCHEMA);
 
+// Bound team-memory extraction per chat document; remaining sections stay searchable.
+function chatMemoryBudget(limit = Number(process.env.CET_DOCUMENT_MEMORY_MAX_SECTIONS || 50)) {
+  let claimed = 0;
+  return { claimSection: async () => !(limit > 0) || ++claimed <= limit };
+}
+
 async function rememberDocument(service, ctx, p, row, mapping, budget = {}) {
   if (!memory.available(ctx)) return;
   for (const part of sections(row)) {
@@ -106,7 +112,7 @@ async function ingestDocuments(
       const full = await ctx.call('knowledge-rag.documentGet', { id: row.id });
       const extract = async () => {
         try {
-          await rememberDocument(service, ctx, p, full, mapping);
+          await rememberDocument(service, ctx, p, full, mapping, chatMemoryBudget());
           await ctx.call('knowledge-rag.documentExtractionState', {
             id: row.id,
             state: 'complete',
@@ -258,6 +264,7 @@ async function command(service, ctx, { p, envelope, situation }) {
   };
 }
 module.exports = {
+  chatMemoryBudget,
   ingestDocuments,
   filingReply,
   evidence,

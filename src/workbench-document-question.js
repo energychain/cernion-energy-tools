@@ -96,7 +96,11 @@ async function documentQuestion(documents, question, { tenantId, logger } = {}) 
     if (answer && !/```|\{\s*"/u.test(answer))
       return { responseText: restoreContext(answer, safe.reidentMap) };
   } catch (error) {
-    require('./workbench-llm-errors').logLlmError(logger, 'document_answer', error);
+    const errors = require('./workbench-llm-errors');
+    errors.logLlmError(logger, 'document_answer', error);
+    // A spent tenant quota is not a document problem; say so instead of the generic fallback.
+    const notice = errors.quotaMessage(error);
+    if (notice) return { responseText: notice };
   }
   return {
     responseText:
