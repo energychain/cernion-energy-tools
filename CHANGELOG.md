@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — Gemini: Antwortschema ohne `additionalProperties`
+
+- Der Gemini-Adapter entfernt `additionalProperties` aus der an den Provider gesendeten Kopie des `responseSchema`. Gemini lehnte solche Schemas mit HTTP 400 ab („Unknown name additionalProperties“), wodurch u. a. Dokumentfragen in Open WebUI stets mit „Aus den verfügbaren Dokumentabschnitten lässt sich diese Frage gerade nicht zuverlässig beantworten“ endeten. Die lokale Ajv-Validierung prüft weiterhin das vollständige Schema.
+
 ## Unreleased — Projektakte: Relationsgraph (#886)
 
 - Review-Korrektur: Graph erst nach Abschluss aller empfangenden/strukturierenden Objekte, ohne erzwungene Neuberechnung; pro Akte koaleszierte Anforderungen mit höchstens einem laufenden Auftrag und einer Dirty-Markierung. Dokument-/Katalogzugriffe außerhalb der Mutationsgrenze, konsistenter SQL-Snapshot und erneute Versions-/Berechtigungsprüfung vor dem Schreiben.
