@@ -477,21 +477,24 @@ describe('startJob', () => {
     });
 
     it('rejects when tenant async-job quota is exhausted', async () => {
-      const rateQuotaStore = require('../src/rate-quota-store');
-      const ctx = {
-        meta: { $gateway: true, tenantId: 'tenant-job-limit' },
-        broker: { emit: jest.fn(async () => {}) },
-      };
-      const state = rateQuotaStore.getTenantState('tenant-job-limit');
-      state.config.quotas.max_async_jobs_per_day = 0;
-      rateQuotaStore.saveTenantState('tenant-job-limit', state);
+      // Tenant configuration can only raise quotas; the environment floor sets the limit.
+      process.env.QUOTA_MAX_ASYNC_JOBS_PER_DAY = '0';
+      try {
+        loadFreshModule();
+        const ctx = {
+          meta: { $gateway: true, tenantId: 'tenant-job-limit' },
+          broker: { emit: jest.fn(async () => {}) },
+        };
 
-      await expect(
-        jobStore.startJob(ctx, { service: 's', action: 'a' }, async () => ({}))
-      ).rejects.toMatchObject({
-        code: 429,
-        type: 'ASYNC_JOB_QUOTA_EXCEEDED',
-      });
+        await expect(
+          jobStore.startJob(ctx, { service: 's', action: 'a' }, async () => ({}))
+        ).rejects.toMatchObject({
+          code: 429,
+          type: 'ASYNC_JOB_QUOTA_EXCEEDED',
+        });
+      } finally {
+        delete process.env.QUOTA_MAX_ASYNC_JOBS_PER_DAY;
+      }
     });
 
     it('enforces per-tenant concurrency cap and starts queued job after slot release', async () => {

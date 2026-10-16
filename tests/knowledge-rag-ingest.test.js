@@ -238,7 +238,20 @@ describe('Knowledge RAG ingest extension', () => {
   test('rejects ingest when rag chunk quota is exhausted', async () => {
     const rateQuotaStore = require('../src/rate-quota-store');
     const state = rateQuotaStore.getTenantState('acme');
-    state.config.quotas.max_rag_chunks_per_month = 0;
+    // Tenant configuration cannot lower the environment floor; exhaust the window instead.
+    const limit = state.config.quotas.max_rag_chunks_per_month;
+    state.usage.max_rag_chunks_per_month = {
+      resource: 'max_rag_chunks_per_month',
+      period: 'month',
+      window: new Date().toISOString().slice(0, 7),
+      limit,
+      used: limit,
+      estimatedUsed: 0,
+      actualUsed: limit,
+      remaining: 0,
+      updatedAt: new Date().toISOString(),
+      lastMeta: null,
+    };
     rateQuotaStore.saveTenantState('acme', state);
 
     await expect(

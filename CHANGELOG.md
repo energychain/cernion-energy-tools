@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Kontingente: Env-Werte als Untergrenze
+
+- `QUOTA_LLM_TOKENS_PER_DAY`, `QUOTA_LLM_TOKENS_PER_MONTH`, `QUOTA_MAX_ASYNC_JOBS_PER_DAY` und `QUOTA_MAX_RAG_CHUNKS_PER_MONTH` gelten als Mindestwert je Tenant. Tenant-Konfiguration (`PUT /api/tenant-quota/tenants/:id/quotas`) kann ein Kontingent nur anheben, nicht senken.
+- Behebt, dass bei jeder Speicherung des Tenant-Zustands die damaligen Defaults mitgeschrieben wurden und spätere Env-Erhöhungen (z. B. von 250.000 auf 30 Mio. Tokens/Tag) für bestehende Tenants nie wirksam wurden.
+- Endpoint-Rate-Limits pro Minute bleiben unverändert per Tenant überschreibbar.
+
 ## Unreleased — Projektakte: Strukturierung im Datenstrom (#885)
 
 - Review-Korrektur: Gedächtnis-Extraktion auf 50 Abschnitte je Original und 500 je Akte begrenzt (konfigurierbar); dauerhafte Versuchsreservierungen und Objektstatus mit extrahierten/übersprungenen Abschnitten. Überschüssiger Text bleibt im Dokumentwissen/RAG suchbar; Rohdatenfreiheit von Tabellen-Prompts bleibt bestehen.
