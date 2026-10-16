@@ -130,6 +130,10 @@ These defaults are visible via the new quota snapshot endpoint.
 - `QUOTA_MAX_ASYNC_JOBS_PER_DAY`
 - `QUOTA_MAX_RAG_CHUNKS_PER_MONTH`
 
+These values are a **floor** for every tenant: tenant overrides can raise a quota but
+never lower it, and stored tenant state cannot pin an older, lower default. Endpoint
+rate limits (`RATE_LIMIT_*`) remain freely overridable per tenant.
+
 ### Async dispatch defaults
 
 - `JOB_STORE_MAX_CONCURRENT_PER_TENANT` (default: `2`)

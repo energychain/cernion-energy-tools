@@ -237,7 +237,7 @@ function executeDatasetQuery(pool, record, input) {
       'Die angefragte Spalte enthält im gewählten Bereich keine ausgefüllten Werte.'
     );
   const scopedTimes =
-    timeIndex >= 0
+    timeIndex >= 0 && !record.provenance?.projectId
       ? db
           .prepare(
             `SELECT ${quoteDatasetField(utcAlias)} AS time FROM (${sql}) ORDER BY ${quoteDatasetField(utcAlias)}`
@@ -245,14 +245,24 @@ function executeDatasetQuery(pool, record, input) {
           .all(...params)
       : [];
   const quality =
-    timeIndex >= 0
-      ? require('./dataset-time').normalizeDatasetTimes(
-          scopedTimes,
-          'time',
+    timeIndex >= 0 && record.provenance?.projectId
+      ? require('./project-dataset-pool').queryTimeQuality(
+          db,
+          sql,
+          params,
+          quoteDatasetField(utcAlias),
           semantic.timezone,
-          record.quality.intervalMinutes
+          record.quality.intervalMinutes,
+          quoteDatasetField(localAlias)
         )
-      : record.quality;
+      : timeIndex >= 0
+        ? require('./dataset-time').normalizeDatasetTimes(
+            scopedTimes,
+            'time',
+            semantic.timezone,
+            record.quality.intervalMinutes
+          )
+        : record.quality;
   delete quality.utc;
   delete quality.local;
   const summaries = [];

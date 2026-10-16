@@ -462,6 +462,23 @@ module.exports = {
         projectId: record.projectId,
         objectId: record.objectId,
       });
+      if (this.broker.getLocalService('project-structure')) {
+        const updated = await ctx.call(
+          'project-structure.run',
+          {
+            projectId: record.projectId,
+            objectId: record.objectId,
+          },
+          {
+            timeout: 0,
+            meta: {
+              ...ctx.meta,
+              projectStructure: require('../src/project-structure-policy').capability,
+            },
+          }
+        );
+        Object.assign(record, updated);
+      }
     },
     async ingestObject(ctx, objectId, projectId, jobId) {
       const record = await this.record(ctx, 'get', projectId, objectId);
@@ -618,12 +635,36 @@ module.exports = {
     },
     async settleLifecycle(ctx, projectId) {
       const records = await this.records(ctx, projectId);
-      const lifecycle = records.some((r) => ['queued', 'processing'].includes(r.ingestState))
+      const lifecycle = records.some(
+        (r) =>
+          ['queued', 'processing'].includes(r.ingestState) ||
+          (this.broker.getLocalService('project-structure') &&
+            r.status === 'received' &&
+            ['pending', 'processing'].includes(r.extraction?.status))
+      )
         ? 'ingesting'
-        : records.some((r) => r.status === 'failed' || r.ingestState === 'failed')
+        : records.some(
+              (r) =>
+                r.status === 'failed' ||
+                r.ingestState === 'failed' ||
+                r.extraction?.status === 'failed'
+            )
           ? 'degraded'
           : 'ready';
       await ctx.call('project-file.setLifecycle', { projectId, lifecycle });
+      const graph = this.broker.getLocalService('project-graph');
+      const graphPolicy = require('../src/project-graph-policy');
+      if (graph?.graphReady && !records.some(graphPolicy.sourcePending)) {
+        try {
+          await ctx.call(
+            'project-graph.request',
+            { projectId },
+            { meta: { ...ctx.meta, projectGraph: graphPolicy.capability }, timeout: 0 }
+          );
+        } catch (error) {
+          this.logger.warn('Project graph retry pending', { errorClass: error.type || error.name });
+        }
+      }
     },
     async purgeProject(ctx, projectId) {
       const records = await this.records(ctx, projectId);

@@ -8,7 +8,9 @@ const { llmOptions } = require('./workbench-understanding');
 const { facadeSchema } = require('./workbench-review');
 
 async function datasetSemantics(table, tenantId, question, previous) {
-  const profile = profileRows(table.rows, { sourceId: table.hash });
+  const profile = table.profile
+    ? JSON.parse(JSON.stringify(table.profile))
+    : profileRows(table.rows, { sourceId: table.hash });
   // Statistics/schema only; no raw rows or individual cell samples in prompts.
   profile.columns.forEach((column) => delete column.examples);
   const fields = profile.columns.map((column) => column.name);

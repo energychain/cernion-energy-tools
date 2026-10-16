@@ -4,9 +4,19 @@
 function scopedDatasets(
   records,
   message,
-  { conversationId, caseId, previousReads = [], newDatasetIds = [] } = {}
+  { conversationId, caseId, projectIds = [], previousReads = [], newDatasetIds = [] } = {}
 ) {
   return records.filter((record) => {
+    if (record.provenance?.projectId)
+      return (
+        record.projectActive === true &&
+        (projectIds.includes(record.provenance.projectId) ||
+          (record.projectRefs || []).some(
+            (ref) =>
+              (conversationId && ref.conversationId === conversationId) ||
+              (caseId && ref.caseId === caseId)
+          ))
+      );
     const explicit = [record.id, record.sourceName].some(
       (value) => value && String(message).includes(value)
     );

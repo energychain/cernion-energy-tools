@@ -13,7 +13,10 @@ const admin = (p) => {
 };
 const id = { type: 'string', min: 1, max: 256 };
 const correctionParams = {
-  target: { type: 'enum', values: ['coverage', 'activation', 'agent', 'neighbor', 'gap'] },
+  target: {
+    type: 'enum',
+    values: ['coverage', 'activation', 'agent', 'neighbor', 'gap', 'projectEdge'],
+  },
   correction: 'object',
   correctionId: { ...id, optional: true },
   tenantId: { ...id, optional: true },
@@ -168,7 +171,9 @@ module.exports = {
       if (doc.pending) {
         const consumer =
           doc.target === 'coverage' ? 'function-coverage.correct' : 'activation.correct';
-        if (doc.target === 'gap')
+        if (doc.target === 'projectEdge')
+          await ctx.call('project-graph.correct', { ...event, at: doc.at });
+        else if (doc.target === 'gap')
           await ctx.call('shared-service-agent.correctGap', {
             tenantId: p.tenantId,
             ...correction,
@@ -185,6 +190,7 @@ module.exports = {
       const doc = await this.db.get(
         `correction:${encodeURIComponent(p.tenantId)}:${encodeURIComponent(ctx.params.correctionId)}`
       );
+      if (doc.target === 'projectEdge') deny('Use a new project edge correction');
       if (doc.target === 'gap')
         deny('Gap reactions require a new confirmed observation; no undo outcome');
       if (doc.actorId !== p.actorId) admin(p);

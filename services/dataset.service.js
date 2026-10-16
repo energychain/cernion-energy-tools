@@ -47,6 +47,7 @@ module.exports = {
   async stopped() {
     await Promise.allSettled([...this.datasetQueues.values()]);
     this.datasetPool.closeAll();
+    for (const pending of this.projectDatasetPools?.values() || []) (await pending).closeAll();
   },
   actions: {
     query: {
@@ -106,6 +107,7 @@ module.exports = {
           };
         const record = matches[0];
         if (record.tenantId !== p.tenantId) deny('Tenant mismatch');
+        const pool = await require('../src/project-dataset-pool').datasetPoolFor(this, record);
         const unusable = await this.datasetHealth(ctx, p, record);
         if (unusable)
           return {
@@ -122,11 +124,7 @@ module.exports = {
             rowCount: record.rowCount,
           };
         if (record.structuredFormat)
-          return require('../src/structured-message').queryStructured(
-            this.datasetPool,
-            record,
-            ctx.params
-          );
+          return require('../src/structured-message').queryStructured(pool, record, ctx.params);
         if (
           require('../src/dataset-query').requestedDatasetField(record, ctx.params.question) ===
           false
@@ -137,7 +135,7 @@ module.exports = {
             status: 'unavailable',
           };
         const plan = ctx.params.plan || (await datasetQueryPlan(record, ctx.params.question));
-        return executeDatasetQuery(this.datasetPool, record, { ...ctx.params, plan });
+        return executeDatasetQuery(pool, record, { ...ctx.params, plan });
       },
     },
     // Internal ingestion/mutation entrypoint; never offered to the read capability loop.
@@ -165,6 +163,14 @@ module.exports = {
   methods: {
     async datasetHealth(ctx, p, record) {
       if (record.structuredFormat) return null;
+      if (record.provenance?.projectId) {
+        const pool = await require('../src/project-dataset-pool').datasetPoolFor(this, record);
+        const count = pool
+          .tenant(p.tenantId)
+          .prepare(`SELECT COUNT(*) AS n FROM ${pool.table(record.id)}`)
+          .get().n;
+        return count === record.rowCount ? null : 'Stored project row count mismatch';
+      }
       if (record.quality?.unusable) return record.quality.reason;
       let reason = datasetPlausibility(record);
       if (!reason) {
@@ -212,7 +218,9 @@ module.exports = {
         return { handled: true, responseText: error.message, documents: [], datasetIds: [] };
       }
       const pasted = !documents.length ? tables : [];
-      const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
+      const records = (await ctx.call('datapoint.datasetCatalog', { operation: 'list' })).filter(
+        (record) => !record.provenance?.projectId
+      );
       if (tables.length) for (const record of records) await this.datasetHealth(ctx, p, record);
       const deleted = tables.length
         ? await ctx.call('datapoint.datasetCatalog', { operation: 'deleted' })

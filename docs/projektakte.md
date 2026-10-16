@@ -219,7 +219,7 @@ CET_PROJECT_DATA_PATH/
       chunks/
         <sha256>                  # unveränderliche Chunkdatei
         pending-<uuid>            # kurzlebiger Schreib-/Archivspool
-      project.sqlite              # vorgesehener Speicherort für #885, noch nicht angelegt
+      project.sqlite              # akteneigene Tabellen und Kandidaten (#885)
 ```
 
 Für produktive Instanzen ist `CET_PROJECT_DATA_PATH` auf ein lokales Verzeichnis
@@ -350,3 +350,531 @@ Messung vom 15.10.2026 (Node 24.18.0): Archiv 1.073.743.248 Bytes, insgesamt
 RSS 72.843.264 → Spitze 243.339.264 Bytes (+170.496.000), HeapUsed
 13.718.672 → Spitze 58.408.392 Bytes (+44.689.720). Die Messwerte beschreiben
 diesen Lauf; das Prüfkriterium bleibt der feste Speicherzuwachs.
+
+## Strukturierung im Datenstrom (#885)
+
+`project-structure` ergänzt den bestehenden Objektvertrag, Object Store und
+Akten-Mutationslock. Der Ingest ruft nach dem **persistierten** Empfang und
+`project.object.received.v1` die geschützte Aktion
+`project-structure.run({ projectId, objectId })` mit Symbol-Capability auf.
+Dieser interne Handoff läuft noch unter demselben Aktenlock. Es gibt keine neue
+REST-Schreibroute oder Gateway-Rollenausnahme. Ein fehlender optionaler Strukturierer
+belässt Originale wie in #884 auf `pending`.
+
+Beim Dienststart liest ein capabilitygeschützter, paginierter Object-Store-Adapter
+dauerhafte `received`-Objekte und verarbeitet fehlende, unterbrochene, fehlgeschlagene
+oder veraltete Ableitungen erneut. Der interne Worker verwendet die persistierte
+Actor-/Tenant-Herkunft; Akten-Mitgliedschaft, Archivierung und Löschmarkierung werden
+erneut an der Akten-Mutationsgrenze geprüft. Nicht mehr sichtbare/änderbare Akten
+werden übersprungen, niemals reaktiviert. Dafür werden keine Zugangsdaten persistiert.
+Die interne Worker-Rolle dient nur dem vorhandenen Principal-Vertrag, nicht REST-RBAC.
+
+```js
+ProjectObject {
+  // unveränderter Empfangsvertrag aus #884
+  extraction: {
+    status: 'pending' | 'processing' | 'extracted' | 'failed',
+    reason?, cleanupReason?, at?
+  },
+  derivation: {
+    version: '1', hash, type,
+    datasets: ['ds_…'], documents: ['doc-…-v1'],
+    obsoleteDatasets: []
+  }
+}
+```
+
+Der Abschluss ist idempotent je `objectId`, Inhaltshash und `derivation.version`.
+Deterministische Dataset-IDs enthalten Inhaltshash, Objekt-ID, Blatt und Parser-Version;
+Tenant-IDs werden dafür nicht gehasht. Tabellen-IDs werden **vor** dem ersten Batch
+persistiert. Bei Wiederholung werden vorherige Ableitungen und verwaiste Tabellen
+dieses Objekts aufgeräumt; ein persistiertes `obsoleteDatasets` schützt auch das
+Absturzfenster beim Versionswechsel. Ein Parser-Update erhöht `VERSION` in
+`src/project-structure-policy.js`, danach verarbeitet der nächste Dienststart neu.
+Ein interner erneuter `run` kann fehlgeschlagene Objekte ohne Neustart wiederholen.
+
+Unbekannte Dateitypen behalten ausschließlich ihr Original und erhalten
+`extracted` mit Grund `Unsupported object type; original retained`. Erkannte, aber
+beschädigte/zu große Dateien erhalten `failed` mit Grund. Fehler eines Objekts
+entfernen dessen unvollständige Ableitungen und setzen die Akte auf `degraded`;
+andere Originale und fertige Datensätze werden weiter verarbeitet. Fortschritt nutzt
+`project.ingest.progress.v1`, Phase `structure`: `done` zählt verarbeitete Zeilen
+bzw. Dokumentabschnitte; `total: 0` bedeutet unbekannten Umfang, `1/1` Abschluss,
+`0/1` Fehlschlag. Der dauerhafte Objektstatus ist für Wiederaufnahme maßgeblich.
+
+### Akteneigene SQLite und Query-Adapter
+
+```text
+CET_PROJECT_DATA_PATH/id-<encodeURIComponent(tenantId)>/
+  id-<encodeURIComponent(projectId)>/project.sqlite
+```
+
+`ProjectDatasetPool extends DatasetSqlitePool` bindet einen Pool fest an genau einen
+Tenant und eine Akte. Verzeichnisprüfung und kodierte Segmente kommen aus
+`project-file-disk`; SQLite-Datei und etwaige WAL-/SHM-Dateien dürfen keine Symlinks
+sein. Neue Dateien entstehen mit 0600, Verzeichnisse mit 0700. Die geerbten
+Tabellen-/Query-Helfer und der vorhandene SQLite-Backend-Lifecycle werden wiederverwendet;
+`dataset.query` wählt den Adapter anhand autorisierter `provenance.projectId`.
+Gesundheits- und Zeitqualitätsprüfungen verwenden für Akten `COUNT(*)` und geordnete
+SQLite-Iteratoren, keine Materialisierung aller Rohzeilen. Chat-Datensätze bleiben
+im unveränderten tenantweiten Pool.
+
+Schema-Konventionen:
+
+- `ds_<32 hex>`: bestehendes Dataset-Schema mit `row_number INTEGER PRIMARY KEY`,
+  `utc TEXT`, `local_time TEXT`, `c0 … cn` (`REAL` oder `TEXT`). Die Zuordnung zu
+  Originalspalten bleibt im vorhandenen Dataset-Katalog der Datapoint-PouchDB.
+- Indizes auf `utc`, erkannten Zeitspalten und Schlüssel-/Kennungsspalten.
+- `project_candidates`: Kandidaten für #886, siehe unten. Keine Tabellen anderer Akten.
+
+Nach dem Schreiben werden Indizes erstellt und WAL gecheckpointet; geschlossene
+Writer hinterlassen eine mit `better-sqlite3({ readonly: true })` lesbare Datei.
+#888 muss genau diesen Pfad autorisieren und read-only öffnen. Tabellen anderer
+Akten sind physisch unerreichbar. Tabellen-/Spaltenreferenzen aus Skills bleiben
+gegen den autorisierten Katalog zu prüfen; eine beliebige Pfadangabe ist kein
+Zugriffsvertrag. Bei parallelen zukünftigen Interpretern gilt der bestehende
+SQLite-Snapshot-/WAL-Vertrag; der aktuelle Broker ist weiterhin ein einzelner Prozess.
+
+### Streaming und vorhandene Parser
+
+CSV/TSV liest `objectBytes` zeilenweise über Chunkgrenzen, einschließlich Quotes,
+mehrzeiliger Zellen und CRLF. `csv.connector` liefert Trennzeichenerkennung,
+Encoding-Normalisierung und den gemeinsamen `csv-text`-Feldparser. BOMs erkennen
+UTF-16; UTF-8 wird validiert, bei nicht gültigem UTF-8 im Anfangsblock wird
+Windows-1252 gewählt. Ein späterer Kodierungsfehler wird abgelehnt. Es gibt kein
+stilles Abschneiden. Zeilen-/Spaltengrenzen sind von #774 getrennt.
+
+XLSX verwendet `project-file-zip` für ZIP/ZIP64, Archivschutz und CRC32. Jeweils
+ein XML-Eintrag wird auf Platte gespult und mit dem SAX-Parser verarbeitet;
+der Arbeitsspeicher enthält höchstens eine Zeile sowie begrenzte Shared Strings
+und Metadaten. Es gibt kein `XLSX.read` und keine Gesamtentpackung im Speicher.
+Blattnamen und Beziehungen kommen aus Workbook-XML; jedes Blatt wird ein Dataset
+mit `provenance.sheet`. Shared Strings/Inline Strings, sparse Zellen, Datumstypen
+über das vorhandene `XLSX.SSF`, 1904-Kalender und gecachte Formelergebnisse werden
+unterstützt. Fehlende Formelergebnisse, Fehlerzellen, externe Beziehungen,
+Makros und XML-Entitätsdeklarationen werden abgelehnt.
+
+Profilierung verwendet `tabular-intelligence.profileRows` auf einer begrenzten
+Stichprobe. Nullzahlen und numerische Min/Max/Mittelwerte werden während der
+Batch-Verarbeitung fortgeschrieben; Distinktheitswerte bleiben Schätzungen aus der
+Stichprobe (`sampledRowCount`). Semantik und Query-Planung verwenden unverändert
+`dataset-semantics`; Prompts enthalten Profile/Statistik/Schema, niemals Rohzeilen
+oder Zellbeispiele. `dataset-time` normalisiert Batches mit fortgeführtem Zeitstatus,
+auch über die doppelte Ortszeit bei Zeitumstellungen hinweg. Transaktionen,
+Zeilen- und Bytebudgets begrenzen jeden Schreibbatch; Freiplatz wird erneut geprüft.
+
+Strukturierte Nachrichten verwenden den vorhandenen Adapterkatalog
+`structured-message-adapters.json` einschließlich des bestehenden
+EDIFACT-/MSCONS-Parsers, der Referenzauflösung und `queryStructured`. Diese vorhandenen
+Parser sind nicht streamingfähig und werden deshalb durch ein eigenes Bytebudget
+begrenzt; es gibt keinen zweiten Nachrichtenparser.
+
+### Dokumentwissen und Prompts
+
+PDF nutzt dieselbe `createPdfParser`-Factory wie der File-Channel, dateibasiert und
+seitenweise. DOCX/PPTX nutzt denselben Archivschutz und den SAX-Reader für
+Absätze/Folien; DOCX-Heading-Stile erhalten den Kapiteltitel. TXT/EML werden als
+Textabschnitte verarbeitet. `documentSections`, `knowledge-rag-chunker`,
+`tenant-document-knowledge` und `workbench-document-knowledge` bleiben zuständig für
+Passagen, Fundstellen, RAG und Teamgedächtnis. Beim Ingest wird die Duplikatprüfung
+für Akten auf den jeweiligen Originalabschnitt begrenzt; die Passagensuche arbeitet
+paginiert mit begrenzter Treffermenge.
+
+Jeder Abschnitt erhält `provenance.projectId`, `provenance.objectId` und
+`sourceLocation { page?, slide?, chapter? }`, auch in Such-/RAG-Herkunft.
+Die Rohdaten-Grenze gilt für Tabellen: Generierungs-Prompts erhalten Profile,
+Statistik und Schema, keine Rohzeilen oder Zellwerte. Dokumenttext wird dagegen
+wie bei Chat-Dokumenten als untrusted `document` abschnittsweise im bestehenden
+Extraktions-Prompt übergeben. Aussagen durchlaufen `memory.start` mit deferred
+Verarbeitung und regulärer Schema-/Zitat-/Anker- und Wechselwirkungsprüfung.
+`documentSource.projectId` und `objectId` bleiben als Herkunft erhalten.
+
+Die Gedächtnisextraktion ist standardmäßig auf 50 Abschnitte je Original und 500
+je Akte begrenzt (je tatsächlichem Extraktions-Prompt, auch bei weiteren Unterteilungen).
+Der Originaldatensatz speichert `memory: { attemptedSections, extractedSections,
+skippedSections }`: Versuche werden unter dem vorhandenen Aktenlock **vor** dem
+LLM-Aufruf reserviert; auch fehlgeschlagene Versuche verbrauchen das Budget.
+`attemptedSections` bleibt bei Wiederaufnahme/Neuverarbeitung erhalten, während
+`extractedSections` und `skippedSections` den letzten Verarbeitungslauf beschreiben.
+Die Aktengrenze summiert die dauerhaften Versuchszähler aller Originale derselben
+Akte. Für Altobjekte ohne Zähler beginnt die Zählung mit dieser Implementierung.
+Die Limits sind positive ganze Zahlen; eine Anhebung erlaubt zusätzliche Versuche
+bei einer expliziten Neuverarbeitung. Erfolgreich strukturierte Objekte werden
+nicht allein wegen geänderter Limits erneut verarbeitet.
+
+Abschnitte über dem Budget bleiben vollständig im Dokumentwissen und RAG suchbar;
+nur die Gedächtnisextraktion wird ausgelassen. `extractedSections` zählt abgeschlossene
+Extraktionsaufrufe, auch ohne Aussagen; der Prüfstatus einzelner Aussagen bleibt
+im normalen Gedächtnis gespeichert und kann weiterhin `pending` sein. Alle
+LLM-Aufrufe einschließlich Embeddings und Aussagenprüfung laufen über `llm-client`
+mit dessen regulären Quoten. Leere Scan-PDFs scheitern mit OCR-Grund; OCR gehört
+nicht zu #885.
+
+### Entitäts-Kandidaten für #886
+
+Kandidaten liegen bewusst in derselben Akten-SQLite: begrenzte lokale Werte,
+gemeinsame Löschung und kein zweiter Metadatenspeicher. Es handelt sich um Rohmaterial,
+keine bestätigten Entitäten oder Relationen.
+
+```js
+// Tabelle project_candidates (Primärschlüssel über die ersten fünf Felder)
+{
+  object_id, version, kind, value,
+  location: JSON.stringify({ sheet?, row?, column?, page?, slide?, chapter?, line?, field?, offset? }),
+  catalog_field: null | 'catalog.field'
+}
+```
+
+`kind` ist `identifier`, `label`, `location`, `period` oder eine vorhandene semantische
+Rolle. Erkennung verwendet Spaltenprofile, `semantic-domains.fieldProfiles`,
+`workbench-identifier-kinds` und konfigurierte Muster aus `workbench-code-catalog`.
+Dokumente liefern Abschnittstitel, beschriftete Felder und katalogbasierte
+Kennungsmuster. Werte werden auf 1000 Zeichen und insgesamt auf das Kandidatenbudget
+je Original begrenzt. #886 muss diese Stichprobenherkunft und mögliche Begrenzung
+berücksichtigen; hier werden keine Beziehungen hergestellt.
+
+### Scope, Sensitivität und Löschung
+
+Dataset-Katalog und Dokumentwissen prüfen bei Abrufen die **aktuelle** Aktenliste:
+unsichtbare, archivierte oder in Löschung befindliche Akten liefern keine Inhalte.
+Der Katalog ergänzt aktuelle `projectRefs`; `workbench-data-scope.scopedDatasets`
+bindet Aktendatensätze ausschließlich über passende Gesprächs-/Fallreferenzen oder
+explizit übergebene strukturelle `projectIds`. Ein gleichlautender Dateiname allein
+eröffnet keinen Scope. Referenzänderungen wirken ohne erneutes Strukturieren.
+Bestehende Chat-Bindungen bleiben unverändert.
+
+Jedes Objekt registriert vor der ersten Ableitung die stabile Dokumentbestand-/Cleanup-
+Komponente `structure:<objectId>`; jeder fertige Datensatz registriert zusätzlich seine
+stabile Dataset-ID mit `stats.datasets: 1`. Alle Komponenten verwenden die tatsächliche
+Originalsensitivität, erforderliche Clearance und `project-structure.deleteProject`.
+Dokumentabschnitte werden in `derivation.documents` gezählt; der Original-Dateizähler
+wird nicht durch abgeleitete Passagen erhöht. Wiederholungen setzen veraltete
+Dataset-Komponenten auf null, ihre konservative Clearance bleibt bis zur Löschung bestehen. Die interne Löschbestätigung verlangt wie #883
+`{ version: 1, tenantId, projectId } → { deleted: true }`. Der Handler entfernt
+Dataset-Katalogeinträge, Dokumentpassagen/Vektoren und abgeleitete Gedächtniswerte,
+schließt gecachte Query-Pools und entfernt SQLite samt WAL/SHM und Kandidaten.
+Er funktioniert auch, wenn der Original-Cleanup die Objektmetadaten bereits entfernt
+hat. Bestehende Audit-/Dokumenttombstones enthalten keine Dokumentkörper mehr.
+Aktenlöschungen erzeugen keine Chat-Replay-Sperren. Wiederholte Aufrufe sind idempotent;
+fehlgeschlagene Handler blockieren weiterhin die endgültige Aktenlöschung.
+
+### Getrennte Strukturierungslimits
+
+| Variable unter `CET_PROJECT_` | Standard | Bedeutung |
+| --- | --- | --- |
+| `DATASET_MAX_ROWS` | 5000000 | je Blatt/Tabelle |
+| `DATASET_MAX_COLUMNS` | 512 | je Blatt/Tabelle |
+| `DATASET_BATCH_ROWS` / `DATASET_BATCH_BYTES` | 1000 / 4194304 | Schreibbatch; höchstens ein zusätzlicher begrenzter Datensatz |
+| `DATASET_SAMPLE_ROWS` / `DATASET_SAMPLE_BYTES` | 256 / 1048576 | Profilstichprobe |
+| `DATASET_MAX_RECORD_CHARS` | 1048576 | einzelne CSV-Zeile/XML-Einheit |
+| `XLSX_SHARED_STRING_BYTES` / `XLSX_SHARED_STRING_COUNT` | 16777216 / 100000 | Shared-String-XML und Einträge |
+| `OFFICE_MAX_EXPANDED_BYTES` | 2147483648 | gesamtes Office-Archiv; zusätzlich ZIP-Ratio aus #884 |
+| `DOCUMENT_SECTION_CHARS` | 12000 | Dokumentabschnitt, mindestens 256 |
+| `MEMORY_MAX_SECTIONS_PER_OBJECT` / `MEMORY_MAX_SECTIONS_PER_PROJECT` | 50 / 500 | dauerhafte Gedächtnis-Extraktionsversuche je Original/Akte |
+| `MESSAGE_MAX_BYTES` | 16777216 | vorhandene nicht streamende Nachrichtenparser |
+| `ENTITY_CANDIDATE_LIMIT` | 10000 | Kandidaten je Original |
+
+`WORKBENCH_DATASET_*` und `CET_FILE_*` bleiben für Chatdaten maßgeblich.
+
+### Reproduzierbare Strukturierungsprüfung
+
+```bash
+# Unit-/CI-Variante: generierte CSV, reduzierte Zeilenzahl
+npx jest --coverage=false tests/project-structure.test.js tests/project-structure-large.test.js
+# Voller Offline-Lauf über Chunkupload, Strukturierung, dataset.query und Cleanup
+node scripts/test-project-structure-large.js
+# Anpassbare Größe, ohne eingecheckte Großfixtures
+CET_PROJECT_LARGE_ROWS=1000000 node scripts/test-project-structure-large.js
+```
+
+Alle Eingaben und Datenbanken entstehen unter `/tmp`. Der Großtest misst alle 20 ms
+und an Schreibbatchgrenzen RSS/HeapUsed, prüft feste Budgets von +256/+128 MiB und
+die bekannte Summe `N*(N+1)/2`. Der Test enthält ein Zeitfeld, damit auch der
+große Zeitqualitäts-/Abfragepfad geprüft wird. Messwerte und Checks stehen in
+`docs/validation/885-projektakte-struktur.md`.
+
+## Relationsgraph (#886)
+
+`project-graph` speichert Graphdokumente in **derselben** Object-Store-Datenbank.
+Es gibt keinen zusätzlichen PouchDB-Handle und keine Graphdatenbank. Die logische
+Akte bleibt `tenant:<t>:project_<id>`; die physische Ablage verwendet wie die
+vorangehenden geschützten Aktenadapter das nicht generisch adressierbare Präfix
+`project-graph:<encodeURIComponent(tenantId)>:<encodeURIComponent(projectId)>:`.
+Tenant-IDs werden nicht gehasht. `object-store.projectGraphRecord` ist geschützt,
+verlangt eine interne Symbol-Capability und erzwingt Tenant, Akte und `_id`-Bereich
+in **jeder** Mango-Abfrage. Zulässige Filter sind ausschließlich skalare Gleichheiten
+auf `kind`, `from`, `to`, `relation` und `recordType`; freie Mango-Selektoren werden
+nicht angenommen. Compound-Mango-Indizes bestehen auf Tenant/Akte plus jeweils
+`from`, `to`, `relation`, `kind`. Änderungen erfolgen über `bulkDocs` mit geprüftem
+Batch-Ergebnis. Generische Object-Store-Aktionen können den Präfix nicht adressieren.
+
+### Datenvertrag
+
+```js
+ProjectNode {
+  nodeId, projectId,
+  kind: 'object' | 'dataset' | 'section' | 'entity' | 'skill' | 'external',
+  ref, labels: [], attributes: {},
+  provenance: { objectId?, hash?, location? },
+  derivation: { version: '2' }
+}
+ProjectEdge {
+  edgeId, projectId, from, to,
+  relation: 'contains' | 'derivedFrom' | 'describes' | 'sameEntity' |
+            'joinsOn' | 'timeAligned' | 'references' | 'answeredBy',
+  weight, evidence: [], origin: 'derived' | 'observed' | 'corrected',
+  derivation: { version: '2' },
+  correctionId?, correctionRefs?, correction?: { kind, actorId, at, ... }
+}
+```
+
+Interne Dokumente tragen außerdem `tenantId`, `recordType` und PouchDB-Metadaten;
+diese Felder entfernt die Lese-API. IDs sind deterministisch aus Inhalts-/Referenz-
+und Relationsidentität, unabhängig von einer Tenant-Hashbildung. Datensatzknoten
+enthalten Schemaattribute, Zeitraum und Intervall; Entitätsknoten sind weiterhin
+belegte **Kandidaten**, keine nachträglich erfundenen Stammsätze. Ihre Referenz und
+Herkunft halten Objekt, Wert und Fundstelle einschließlich Blatt/Zeile/Spalte fest.
+Wiederholte Werte derselben Objekt-/Spalten- bzw. Abschnittsidentität bilden einen
+Entitätsknoten mit `occurrences` und höchstens 16 `sampleLocations`
+(gezählt innerhalb des Kandidatenbudgets, keine vollständige Tabellenhäufigkeit); eine wiederholte
+Messung erzeugt keine quadratische Menge gleichartiger Entitätskanten. Zeitkandidaten
+werden bereits in der SQL-Auswahl ausgelassen, da Zeitrelationen auf Datensatzsemantik beruhen.
+`skill` und `answeredBy` sind als Vertrag für spätere Ausbaustufen reserviert.
+Externe Knoten verwenden `references` und `origin: observed` an der Kante;
+`external` ist ein Knotentyp, keine zusätzliche fachliche Relation.
+
+### Ableitungsregeln und Gewichtung
+
+- `contains` vom Original zu Datensatz, Abschnitt und Kandidat sowie `derivedFrom`
+  in Gegenrichtung beruhen auf tatsächlicher Strukturierungsherkunft (Gewicht 1).
+- `joinsOn` verbindet unterschiedliche Datensätze anhand normalisierter Spaltenwerte,
+  gleicher Typen und Kardinalität. `tenant-memory-store.normalizeAnchor` normalisiert
+  auch diese Werte. Die SQL-Abfragen führen `COUNT(DISTINCT …)`, Gruppierung und
+  deterministische Bottom-k-Selektion nach SHA-256 **von Werten** in der
+  akteneigenen SQLite aus. Maximal 128 verschiedene Werte je Spalte gelangen als
+  Sketch in den Prozess; nicht alle Tabellenzeilen. Externe Stichproben behalten
+  zusätzlich den zugehörigen Originalwert. Herkunft nennt Spalten, Stichprobengrößen,
+  gemeinsame Anzahl, Kardinalitäten und ob die Stichprobe begrenzt wurde.
+- `timeAligned` verlangt einen tatsächlichen gemeinsamen Zeitraum und positive,
+  kompatible Intervalle: größeres/kleineres Intervall ist eine ganze Zahl ≤ 24.
+  Zeitüberdeckung zählt relativ zum kürzeren Zeitraum; Zeitspalten allein liefern
+  keine Join-Evidenz.
+- `describes` verbindet einen Abschnitt mit einem Datensatz nur bei übereinstimmendem
+  normalisiertem Kandidaten-/Sketchwert, passender Abschnittsfundstelle und
+  tatsächlichem Vorkommen des Ankers im separat autorisierten Abschnittstext.
+  `sameEntity` verbindet wertgleiche Kandidaten, wenn mindestens einer durch eine
+  tatsächliche Datensatzspalte belegt ist. Veraltete Kandidatenversionen werden ignoriert.
+
+Überlappung zählt höchstens 0,65, Typgleichheit 0,15, Kardinalitätskompatibilität
+0,15, Anker 0,9, Zeitüberdeckung 0,7, Intervall 0,2, Herkunft 1, Katalogmetadaten
+0,35 und beobachteter externer Treffer 0,6. Je Evidenzart zählt nur der stärkste
+Beitrag; wiederholte gleiche Evidenz kann das Gewicht nicht erhöhen. Summe ≤ 1.
+Die Schwelle ist standardmäßig **0,6**. Seltene gemeinsame Werte werden nach
+`log(1 + Spaltenzahl/Häufigkeit)` gewichtet, auf seltene paarweise Übereinstimmung
+normalisiert und auf 1 gedeckelt. Ab zehn Spalten liefern Werte in mindestens
+25 % der Spalten keine Überlappungsevidenz. Sind beide verglichenen Spalten
+zu höchstens 10 % verschieden (Distinktheit/Zeilenanzahl), wird die Überlappung
+zusätzlich mit 0,1 multipliziert; reine wiederholte Kategorien bleiben so unter
+der Schwelle, während der Join zu einem eindeutigen Verzeichnis möglich bleibt.
+Ankerbeiträge aus einer solchen wiederholten Spalte werden ebenfalls mit 0,1
+abgewertet, damit sie nicht über `sameEntity`/`describes` den Hubschutz umgehen. Das entspricht dem Prinzip aus dem
+Funktionsmodell (inverse Häufigkeit, Hub-Abwertung, Evidenzdeckel), nicht dessen
+fachlich unabhängigen absoluten Gewichten. Numerische und erkannte Zeitspalten
+sowie rein numerische oder sehr kurze Werte liefern keine Join-/Ankerkanten.
+Damit bleiben laufende Nummern und generische Zeit-/Statusspalten unter der Schwelle.
+
+Diese bewusste konservative Regel kann kurze oder rein numerische echte Schlüssel
+übersehen. Bottom-k und das Kandidatenbudget begrenzen ebenfalls Recall bei großen
+Akten. Das Sketch-Verfahren liefert deterministische Stichprobenevidenz, keinen
+Beweis einer vollständigen Fremdschlüsselbeziehung. Die Validierungswerte unten
+beziehen sich auf die eingecheckten kleinen Sollgraphen; keine universelle Qualitätszusage.
+
+Der Graph ruft **kein LLM** auf. Dadurch kann auch ein LLM-Ergebnis mit frei
+erfundenen Kanten keine Relation belegen. Die vorhandene Kandidatenbenennung darf
+weiter nur über `llm-client` mit Schema-/Profilmetadaten erfolgen. Graphstichproben
+und Zellwerte werden niemals in Prompts übergeben.
+
+### Katalogquellen und externe Stichproben
+
+`evidence-endpoint-catalog` stellt neben dem bestehenden Evidenzkatalog den additiven
+Metadatenkatalog `PROJECT_GRAPH_ENDPOINTS` aus `project-graph-endpoints.json` bereit.
+Vorhandene Evidenzeinträge ohne expliziten `graphLink` lösen keinen Aufruf aus.
+Die neutral arbeitende Verarbeitung kombiniert diese Daten mit `semantic-domains`
+und dem generierten Operation-Capability-Index. Ein Katalogeintrag kann angeben:
+
+```js
+{
+  id, action,
+  graphLink: {
+    catalogField?, // verweist auf semantic-domains.<domain>.fieldProfiles.<field>
+    keyFields: [], formats?: [], pattern?, oeoClasses?: [],
+    parameter, defaults?: {}, resultPath, resultField
+  }
+}
+```
+
+Feldaliase/Schlüsselfeldname, Format, katalogdefiniertes Muster oder eine gemeinsame
+OEO-Klasse der Spalte müssen passen. OEMetadata-/OEO-Klassifikationen können über
+`format` und `oeoClasses` an Spalten sowie `formats`/`oeoClasses` an Katalogeinträgen
+angegeben werden; der Kern kennt keine fachlichen Klassen, Muster oder Quellennamen.
+Die vorhandenen Katalogmetadaten enthalten noch nicht für jede Quelle solche Angaben.
+Neue Quellen brauchen geeignete Metadaten, keine Änderung der Ableitungslogik.
+Der initiale produktive Metadateneintrag verweist auf `assets.effective` und den
+vorhandenen semantischen Schlüsselprofilvertrag; zwei voneinander unabhängige
+Fixture-Endpunkte prüfen denselben generischen Pfad mit anderen Parametern/Antwortformen.
+
+Vor **jedem** Aufruf muss die Operation im Index `consequenceLevel: 'none'`,
+`sideEffects: []` und `writesTo: []` deklarieren. Ein HTTP-GET allein genügt nicht.
+Aufrufe prüfen zusätzlich die vorhandene `assertReadObservation`-Policy (Scopes,
+Rollen und katalogbasierte Governance) sowie vorgegebene `domainsAllowed`. Sie führen
+den authentifizierten Principal weiter, entfernen interne
+Symbol-Capabilities und setzen `tenantId` abschließend auf den autorisierten Tenant.
+Je Lauf sind höchstens 12 Aufrufe mit höchstens drei unterschiedlichen Sketchwerten
+je Spalten-/Quellenpaar erlaubt, jeweils 1500 ms Timeout. Nur eine Antwort mit
+exakt normalisiert passendem `resultField` in höchstens 100 geprüften Antwortzeilen
+zählt als Treffer. Fehler, fehlende Berechtigung, Timeout, leere oder fachfremde
+Antworten erzeugen keine Kante. Weder ein Trefferzähler noch LLM-Ausgaben genügen.
+Das Budget zählt auch fehlgeschlagene Versuche. Eine externe Kante hat beide
+Evidenzarten (Metadaten + beobachteter Treffer). Fehlende Quellenberechtigung wird
+nicht durch eine interne Worker-Rolle erweitert.
+
+### Auslöser, Wiederaufnahme und Korrekturen
+
+Nach Abschluss von Ingest/Strukturierung prüft `project-upload.settleLifecycle`
+alle Aktenobjekte. Solange ein Objekt noch empfangen wird, queued/processing ist
+oder seine Strukturierung pending/processing ist, wird keine Ableitung angefordert.
+Das gilt auch für den noch laufenden ZIP-Elternjob. Erst das letzte abgeschlossene
+Objekt fordert einen Lauf ohne `force` an. Reservierte Mehrfachuploads sollten vor
+dem Abschluss des ersten Uploads angelegt werden; später neu begonnene, unabhängige
+Uploads bilden einen neuen Abschluss. Die Strukturierung ruft den Graph nicht pro
+Objekt auf. Graphfehler beschädigen keine Originale oder erfolgreichen Strukturierungen.
+
+`project-graph.request` quittiert nur das Einreihen; Uploadjobs warten nicht auf die
+Graphberechnung. Je Tenant/Akte gibt es höchstens einen laufenden Auftrag und eine
+Dirty-Markierung für einen Folgelauf. Beliebig viele Anforderungen während eines
+Laufs belegen damit keinen weiteren Warteschlangenplatz. Ein unveränderter Checkpoint
+überspringt die vollständige Berechnung. Es gibt keinen zusätzlichen Timer.
+
+Die Akten-Mutationsgrenze schützt zwei Phasen: Zuerst werden Metadaten und begrenzte
+SQL-Sketches/Kandidaten konsistent übernommen, Cleanup registriert und ein dauerhafter
+Pending-Checkpoint geschrieben. Der read-only SQLite-Handle wird anschließend
+geschlossen. Dokumenttexte werden **nacheinander außerhalb der Mutationsgrenze**
+autorisiert gelesen; nur beobachtete, zur Fundstelle und Quellversion passende
+Kandidatenanker bleiben erhalten. Volltext und normalisierte Textkopie werden nach
+jedem Dokument verworfen. Ankerzahl und Summe ihrer normalisierten Zeichen sind pro
+Dokument/Abschnitt und pro Lauf begrenzt. Überschüssige Anker werden ausgelassen;
+Herkunftsrelationen und Originaltexte im Dokumentwissen bleiben erhalten.
+
+Gewichtung und externe Beobachtungen laufen ebenfalls außerhalb der Mutationsgrenze.
+Vor dem Schreiben werden unter einer neuen Grenze Sichtbarkeit, Mitgliedschaft,
+Clearance, Archivierung/Löschung und die vollständige Quell-/Konfigurationsversion
+erneut geprüft. Ein inzwischen veränderter Snapshot wird verworfen und koalesziert
+neu berechnet; bei noch laufenden Quellen wartet die Ableitung auf deren Abschluss.
+Eine inzwischen gelöschte Akte kann nicht wiederangelegt werden. Aktuelle
+Kantenkorrekturen werden erst in dieser Schreibphase übernommen. Dadurch blockieren
+Dokumentzugriffe und externe Timeouts keine Uploads; nur der konsistente SQL-Snapshot
+und die atomar serialisierte Veröffentlichung benötigen die Aktenqueue. Synchrone
+SQLite-Scans bleiben Arbeit des einzelnen Brokerprozesses, ohne Thread-Auslagerung.
+
+Die Strukturierungs-Wiederaufnahme wartet nicht auf den noch startenden Graphdienst;
+dessen eigener Startup-Scan übernimmt anschließend die fertigen Quellen.
+Beim Dienststart scannt `projectGraphSources` dauerhafte abgeschlossene Originale,
+übernimmt Actor-/Tenant-Herkunft und aktuelle Clearance und prüft die Berechtigung
+erneut. Der Worker besitzt keine persistierten Credentials. Die flüchtige Dirty-Queue
+muss nicht persistiert werden: Quellen und Pending-Checkpoint liegen dauerhaft vor.
+Der Checkpoint vergleicht Quellenstatus, Hashes/-versionen, Ableitungsversion, Budgets
+und Katalog-/Operationsmetadaten. Ein interner `run({ projectId, force: true })`
+kann externe Beobachtungen ausdrücklich wiederholen; der Ingest setzt dieses Flag nie.
+
+Ein vollständiger Checkpoint entsteht erst nach allen Graphbatches und aktualisierten
+Aktenstatistiken. `bulkDocs` ist keine verteilte Transaktion; teilweise geschriebene
+Batches können bis zur Wiederholung existieren. Die Lese-API liefert während Pending
+503 statt Teiltreffern. `project.graph.changed.v1` meldet nach Erfolg
+`{ tenantId, projectId, nodes, edges, version: '2' }` mit Bestandszählern.
+Der abgeschlossene State und das interne Laufergebnis enthalten `anchors` mit
+`documents`, `retained`, `chars`, `skipped`, `truncatedDocuments`, `truncated`.
+`skipped` zählt tatsächlich beobachtete, wegen Budgets ausgelassene Anker je Dokument;
+Mehrfachnennungen desselben normalisierten Werts im Dokument zählen einmal.
+
+Die bestehende Lernschleife akzeptiert `target: 'projectEdge'`:
+
+```js
+ctx.call('shared-service-learning.apply', {
+  target: 'projectEdge',
+  correction: { projectId, edgeId, kind: 'confirm' | 'reject' | 'weight', weight? }
+})
+```
+
+Der tatsächliche Brokername ist `shared-service-learning.apply`; dessen bestehende
+Adminprüfung und reguläre Gateway-Schreibrolle bleiben unverändert. `confirm`
+setzt Gewicht 1, `reject` Gewicht 0, `weight` einen Wert im Bereich 0…1. Die bestätigte
+Änderung wird im vorhandenen Korrekturaudit und auf der Kante mit `origin: corrected`
+persistiert; danach folgt `shared-service.correction.v1`. Die geschützte Graphaktion
+prüft Tenant, Actor und aktuelle Aktenmutierbarkeit. Direkte Eventzustellung ist
+idempotent; ältere Zeitstempel und die letzten 64 Korrektur-IDs schützen vor Replay.
+Neuberechnung erhält korrigierte Kanten samt referenzierten Knoten, auch verworfene
+Kanten als dauerhafte Sperre. Diese konservativ erhaltenen Referenzen sind kein
+Nachweis, dass eine alte Quelle noch für aktuelle Tabellenabfragen geeignet ist.
+Eine weitere explizite Korrektur kann die Entscheidung ändern. Undo verlangt für
+Graphkanten eine neue Korrektur; die vorhandene Funktions-Undo-Logik wird nicht verwendet.
+Das Funktionsjournal ignoriert den neuen Zieltyp; dessen Audit bleibt in der Lernschleife.
+
+### Lese-API und Löschung
+
+| Aktion | REST unter `/api/project-graph` | Filter/Ergebnis |
+| --- | --- | --- |
+| `nodes` | `GET /:projectId/nodes` | `kind?`, `label?` (normalisierte Teilzeichenfolge), `limit?` |
+| `neighbors` | `GET /:projectId/neighbors` | `nodeId`, `relation?`, `depth?` ≤ 3, `limit?` |
+| `resolve` | `GET /:projectId/resolve` | `nodeId`, `depth?` ≤ 3, `limit?`; nur `sameEntity`/`joinsOn` |
+
+Alle liefern `{ nodes, edges, truncated }`, Standardlimit 100, maximal 1000.
+Traversierung behandelt Kanten in beiden Richtungen, behält die ursprüngliche
+Kantenrichtung im Ergebnis und besucht Knoten höchstens einmal. Verworfene bzw.
+unter der aktuellen Schwelle liegende Kanten werden nicht traversiert. `resolve`
+liefert belegte Schema-/Kandidatenattribute und Join-Evidenz; es führt keine Tabellen-
+abfrage aus. #887/#888 können daraus geprüfte Referenzen übernehmen und müssen
+Objekt-/Datasetversion sowie Tabelle/Spalte vor jeder SQLite-Abfrage erneut autorisieren.
+
+Die drei Aktionen sind `x-agentable` und über die regulären MCP-Meta-Lesewerkzeuge
+erreichbar. Alle Mutationen und Speicheraktionen bleiben geschützt, ohne REST-Alias.
+Es gibt **keine** Ausnahme in `api.service.js` für Schreibrollen. Jede Leseaktion
+prüft aktuelle Mitgliedschaft, Tenant und vereinigte Clearance. Archivierte Akten
+und Akten mit Löschmarkierung liefern **keine Graph-Lesetreffer** und keine Ableitung;
+die generelle Aktenmetadaten-API aus #883 bleibt davon unabhängig.
+
+Die Komponente `graph` registriert konservativ die aktuelle Akten-Clearance sowie
+`stats { nodes, edges }` und `project-graph.deleteProject`. Der bestätigte Handler
+akzeptiert `{ version: 1, tenantId, projectId }`, entfernt alle Dokumente des
+Graphpräfixes in Batches und bestätigt `{ deleted: true }`. Er benötigt weder
+Originalmetadaten noch SQLite, funktioniert unabhängig von der Handlerreihenfolge
+und bleibt auch bei Wiederholung sowie nach nachträglich gesenkten Limits vollständig.
+
+### Graphlimits
+
+Alle Ganzzahllimits sind positiv; Schwelle ist > 0 und ≤ 1. Die Überschreitung
+von Graph-/SQL-Volumenlimits bricht die Ableitung mit wiederholbarem Fehler ab.
+Ankerbudgets begrenzen dagegen die Evidenzmenge und werden im abgeschlossenen
+State/Laufergebnis ausdrücklich als Kürzung ausgewiesen. Ein Lauf rekonstruiert die Akte und hält deshalb
+dieselben Standardbudgets wie der gesamte Graph. Laufbudgets können niedriger sein;
+entsprechend größere Akten benötigen eine bewusste Anhebung für Neuberechnung.
+
+| Variable unter `CET_PROJECT_GRAPH_` | Standard | Bedeutung |
+| --- | --- | --- |
+| `MAX_NODES` / `MAX_EDGES` | 10000 / 30000 | persistierter Bestand je Akte einschließlich Korrekturen |
+| `RUN_MAX_NODES` / `RUN_MAX_EDGES` | 10000 / 30000 | maximale Ausgabe einer Neuberechnung |
+| `THRESHOLD` | 0.6 | Mindestgewicht automatisch gespeicherter/traversierter Kanten |
+| `SKETCH_VALUES` | 128 | verschiedene Werte je Spalte, SQLite Bottom-k |
+| `MAX_COLUMNS` | 512 | gesamte geprüfte Spalten je Akte/Lauf |
+| `MAX_PAIRS` | 20000 | Spalten-, Zeit-, Anker-/Kandidatenvergleiche |
+| `MAX_CANDIDATES` | 10000 | gelesene Kandidaten je Akte/Lauf |
+| `DOCUMENT_MAX_ANCHORS` / `RUN_MAX_ANCHORS` | 256 / 10000 | gespeicherte Anker je Dokument bzw. insgesamt im Lauf |
+| `DOCUMENT_MAX_ANCHOR_CHARS` / `RUN_MAX_ANCHOR_CHARS` | 16000 / 640000 | Summe normalisierter Ankerzeichen je Dokument bzw. Lauf |
+| `EXTERNAL_CALLS` / `EXTERNAL_SAMPLES` | 12 / 3 | Aufrufbudget je Lauf / Werte je Paar |
+| `EXTERNAL_TIMEOUT_MS` | 1500 | Timeout je beobachtendem Aufruf |
+| `BATCH_DOCS` | 500 | Dokumente pro Object-Store-Batch |
+
+Die SQL-Arbeit ist hinsichtlich geladener Zeilen begrenzt, kann bei großen Tabellen
+aber Scans und temporäre SQLite-Sortierung erfordern. Ein einzelner Brokerprozess
+serialisiert Snapshot und Veröffentlichung mit Aktenmutationen; die übrige Ableitung
+läuft außerhalb dieser Grenze. Multi-Prozess-Locks folgen nicht hier.
+Qualitäts- und Sicherheitsprüfungen stehen in `docs/validation/886-projektakte-graph.md`.

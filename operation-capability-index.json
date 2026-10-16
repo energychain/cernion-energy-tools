@@ -2,14 +2,14 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "ee0afc582d2e1951fb06723d8db6721d38215378df2997d223092c7204086be4",
+  "sourceOpenApiHash": "624afa51278a104f5090fadff9c69cb1086ca06d88a9e8baa84ad66507554c13",
   "coverage": {
-    "rawOperationCount": 1269,
-    "operationCount": 1013,
-    "agentableCount": 1011,
+    "rawOperationCount": 1272,
+    "operationCount": 1016,
+    "agentableCount": 1014,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 437,
+      "data_read": 440,
       "admin": 24,
       "object_store_write": 272,
       "process_step": 26,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 994,
+    "resolvedActionCount": 997,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -74359,6 +74359,292 @@
         "negativeCues": [],
         "examples": [
           "Show me list visible project refs for a case or conversation"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-graph_neighbors",
+      "method": "GET",
+      "path": "/api/project-graph/:projectId/neighbors",
+      "service": "project-graph",
+      "action": "project-graph.neighbors",
+      "summary": "Read project neighbors with bounded depth",
+      "tags": [
+        "Project graph"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-graph.neighbors"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Project"
+      ],
+      "requiredScopes": [
+        "project-graph:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "nodeId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "relation",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "geo_coordinate"
+          },
+          {
+            "name": "depth",
+            "in": "query",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "integer",
+            "description": null,
+            "extractionHint": "result_limit"
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "graph",
+          "neighbors",
+          "read",
+          "with",
+          "bounded",
+          "depth"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me read project neighbors with bounded depth"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-graph_nodes",
+      "method": "GET",
+      "path": "/api/project-graph/:projectId/nodes",
+      "service": "project-graph",
+      "action": "project-graph.nodes",
+      "summary": "Find visible project nodes by kind and label",
+      "tags": [
+        "Project graph"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-graph.nodes"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Project"
+      ],
+      "requiredScopes": [
+        "project-graph:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "kind",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "integer",
+            "description": null,
+            "extractionHint": "result_limit"
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "graph",
+          "nodes",
+          "find",
+          "visible",
+          "by",
+          "kind",
+          "label"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me find visible project nodes by kind and label"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-graph_resolve",
+      "method": "GET",
+      "path": "/api/project-graph/:projectId/resolve",
+      "service": "project-graph",
+      "action": "project-graph.resolve",
+      "summary": "Resolve project attributes through sameEntity and joinsOn",
+      "tags": [
+        "Project graph"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-graph.resolve"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Project"
+      ],
+      "requiredScopes": [
+        "project-graph:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "nodeId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "depth",
+            "in": "query",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "integer",
+            "description": null,
+            "extractionHint": "result_limit"
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "graph",
+          "resolve",
+          "attributes",
+          "through",
+          "same",
+          "entity",
+          "joins",
+          "on"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me resolve project attributes through sameentity and joinson"
         ],
         "synonyms": [
           "agent infrastructure",

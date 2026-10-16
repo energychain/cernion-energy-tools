@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased — Projektakte: Relationsgraph (#886)
+
+- Review-Korrektur: Graph erst nach Abschluss aller empfangenden/strukturierenden Objekte, ohne erzwungene Neuberechnung; pro Akte koaleszierte Anforderungen mit höchstens einem laufenden Auftrag und einer Dirty-Markierung. Dokument-/Katalogzugriffe außerhalb der Mutationsgrenze, konsistenter SQL-Snapshot und erneute Versions-/Berechtigungsprüfung vor dem Schreiben.
+- Dokumenttexte werden nacheinander auf begrenzte beobachtete Anker reduziert; konfigurierbare Zeichen-/Ankerbudgets je Dokument und Lauf, Kürzungen im Checkpoint und Laufergebnis. Tests messen einen Lauf für 20 ZIP-Einträge bzw. reservierte Uploads und zwei Läufe bei 20 Anforderungen während einer laufenden Ableitung.
+
+- Geschützter, tenant-/aktengetrennter Relationsgraph in der vorhandenen Object-Store-Datenbank, mit Mango-Indizes, Batch-Schreiben und festen Volumen-/Arbeitsbudgets.
+- Deterministische Ableitung aus Strukturierung, read-only SQLite-Sketches, Zeitintervallen und normalisierten Ankern; kataloggestützte externe Beobachtungen ausschließlich über verifizierte Leseoperationen.
+- Begrenzte REST-/MCP-Leseaktionen, dauerhafte Kantenkorrekturen über die bestehende Lernschleife, Neustart-Wiederaufnahme und bestätigte Löschkaskade. Sollgraph-Prüfung für zwei synthetische Fachdomänen dokumentiert unter `docs/validation/886-projektakte-graph.md`.
+
+## Unreleased — Kontingente: Env-Werte als Untergrenze
+
+- `QUOTA_LLM_TOKENS_PER_DAY`, `QUOTA_LLM_TOKENS_PER_MONTH`, `QUOTA_MAX_ASYNC_JOBS_PER_DAY` und `QUOTA_MAX_RAG_CHUNKS_PER_MONTH` gelten als Mindestwert je Tenant. Tenant-Konfiguration (`PUT /api/tenant-quota/tenants/:id/quotas`) kann ein Kontingent nur anheben, nicht senken.
+- Behebt, dass bei jeder Speicherung des Tenant-Zustands die damaligen Defaults mitgeschrieben wurden und spätere Env-Erhöhungen (z. B. von 250.000 auf 30 Mio. Tokens/Tag) für bestehende Tenants nie wirksam wurden.
+- Endpoint-Rate-Limits pro Minute bleiben unverändert per Tenant überschreibbar.
+
+## Unreleased — Projektakte: Strukturierung im Datenstrom (#885)
+
+- Review-Korrektur: Gedächtnis-Extraktion auf 50 Abschnitte je Original und 500 je Akte begrenzt (konfigurierbar); dauerhafte Versuchsreservierungen und Objektstatus mit extrahierten/übersprungenen Abschnitten. Überschüssiger Text bleibt im Dokumentwissen/RAG suchbar; Rohdatenfreiheit von Tabellen-Prompts bleibt bestehen.
+- Dauerhafter interner Handoff nach Empfang mit Wiederaufnahme unvollständiger Ableitungen; idempotent je Objektinhalt und Parser-Version, Teilfehler ergeben `degraded`.
+- CSV/TSV und XLSX-Blätter werden mit begrenzten Profilen, Batches und Zeit-/Schlüsselindizes in eine akteneigene `project.sqlite` geschrieben; `dataset.query` verwendet den vorhandenen Executor über einen Pool-Adapter.
+- PDF/DOCX/PPTX/TXT/EML liefern Abschnitte mit Fundstellen ins bestehende Dokumentwissen und RAG; Dokumenttext wird als untrusted Quelle über den regulären deferred Gedächtnispfad einschließlich Aussagenprüfung verarbeitet. Strukturierte Nachrichten verwenden vorhandene Adapter einschließlich MSCONS-Parser.
+- Entitäts-Kandidaten samt Herkunft liegen in der Akten-SQLite; aktuelle Aktenreferenzen binden den Workbench-Scope. Archivierung, Mitgliedschaft, Clearance und bestätigter Cleanup gelten für alle Ableitungen.
+- Streaming-, Isolations-, Neustart-, Dokument- und Regressionstests sowie generierter Million-Zeilen-Messlauf mit bekannten Aggregaten; getrennte Aktengrenzen lassen die Chat-Limits unverändert.
+
 ## Unreleased — Projektakte: Ingest bis 2 GB (#884)
 
 - Wiederaufnehmbarer Upload mit SHA-256-geprüften binären Chunks, tenantlokaler Deduplizierung und Originalmetadaten im bestehenden Object Store; keine Base64-Aktenobjekte und keine neue Datenbank.

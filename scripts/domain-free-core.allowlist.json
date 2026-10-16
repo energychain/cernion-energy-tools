@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "term": "endpoint",
+      "reason": "Technical module name evidence-endpoint-catalog, reused for metadata-backed read-only graph observations (#886); no business vocabulary or source selection rules."
+    },
+    {
+      "term": "connector",
+      "reason": "Technical module path src/connectors/csv.connector.js: reuse of the existing delimiter and encoding helpers for streaming project tables (#885); no business terminology."
+    },
+    {
+      "term": "slide",
+      "reason": "PPTX presentation format unit and XML member name, required to preserve source locations in project documents (#885); no business-domain meaning."
+    },
+    {
       "term": "file-ingest",
       "reason": "Generic project upload module path (#884); byte transport and persistence have no business-domain rules."
     },

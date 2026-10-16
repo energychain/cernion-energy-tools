@@ -49,7 +49,9 @@ async function structuredTurn(service, ctx, p) {
       if (error.type === 'WORKBENCH_DATASET_DAMAGED') throw error;
       return null;
     }
-    const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
+    const records = (await ctx.call('datapoint.datasetCatalog', { operation: 'list' })).filter(
+      (record) => !record.provenance?.projectId
+    );
     const named = new Map();
     const explicitlyNamed = (record) => {
       if (named.has(record.id)) return named.get(record.id);
@@ -122,7 +124,9 @@ async function structuredTurn(service, ctx, p) {
       documents,
     };
   }
-  const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
+  const records = (await ctx.call('datapoint.datasetCatalog', { operation: 'list' })).filter(
+    (record) => !record.provenance?.projectId
+  );
   const deleted = await ctx.call('datapoint.datasetCatalog', { operation: 'deleted' });
   const answers = [];
   const askPurpose = false;
