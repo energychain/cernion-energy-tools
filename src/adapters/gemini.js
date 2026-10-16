@@ -38,12 +38,24 @@ function getClient() {
   return new GoogleGenerativeAI(apiKey);
 }
 
+// Gemini's response_schema (OpenAPI subset) rejects `additionalProperties` with HTTP 400.
+// Callers keep their full JSON Schema for local Ajv validation; only the provider copy is reduced.
+function providerSchema(value) {
+  if (Array.isArray(value)) return value.map(providerSchema);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => key !== 'additionalProperties')
+      .map(([key, entry]) => [key, providerSchema(entry)])
+  );
+}
+
 function generationOptions(options) {
   const config = options.temperature != null ? { temperature: options.temperature } : {};
   if (options.responseMimeType) config.responseMimeType = options.responseMimeType;
   if (options.responseSchema) {
     config.responseMimeType = 'application/json';
-    config.responseSchema = options.responseSchema;
+    config.responseSchema = providerSchema(options.responseSchema);
   }
   if (options.thinkingConfig) config.thinkingConfig = options.thinkingConfig;
   else if (options.thinking != null) {
@@ -110,7 +122,7 @@ async function generateStructured(schema, prompt, options = {}) {
       generationConfig: {
         ...generationOptions(options),
         responseMimeType: 'application/json',
-        responseSchema: schema,
+        responseSchema: providerSchema(schema),
       },
     },
     prompt,
