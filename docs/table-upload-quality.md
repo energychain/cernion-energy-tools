@@ -91,6 +91,15 @@ Daten, die Korrektur bleibt im Audit nachvollziehbar. Der normale Löschpfad
 für Chat-Datensätze wird dadurch nicht auf Aktendatensätze erweitert; deren
 Quelle wird weiterhin über die Projektakte entfernt. Keine neue Umgebungsvariable.
 
+Der Workbench-Gesprächszustand hält Tabellenbezug, offene Datensatzauswahl und das
+zuletzt verwendete Einzelobjekt getrennt vom austauschbaren Retrieval-Verlauf.
+Eine eindeutige Blattantwort auf eine offene Auswahl wird anhand der gespeicherten
+Kandidaten zugeordnet. Nackte Korrekturen bleiben beim zuletzt genannten Objekt;
+eine neue Aussage hat weiterhin Vorrang vor einem früheren Datensatz.
+Varianten werden nach der Quellenauswahl mit festen IDs abgefragt und gemeinsam
+verglichen, ohne einen zweiten Selektor. Auch bei Zählplänen löst eine im Vergleich
+veröffentlichte Datensumme die relevante Einheitenrückfrage aus.
+
 Das generierte Praxis-Szenario „Export mit Summenzeilen und Variantenblatt“ enthält
 zwei Blätter, drei Kontrollzeilen, eine echte Datenzeile ohne Gruppenzuordnung,
 einen Vergleich sowie Einheiten- und Blattkorrektur. Der Live-Praxislauf ist ein

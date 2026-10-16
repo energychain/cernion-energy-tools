@@ -214,3 +214,114 @@ test('unbound unit replies and metadata copied from column names cannot mutate a
   expect(reply.responseText).toContain('3.478,874 MWh');
   expect((await catalog())[0].audit).toEqual(before.audit);
 });
+
+test.each(['metadata', 'question'])(
+  'stored selection survives %s classification, lost retrieval and an empty selector',
+  async (kind) => {
+    const scenario = scenarios.find((entry) => entry.id === 'table-quality');
+    structuredMock.mockImplementation(async (schema, raw) => {
+      const input = JSON.parse(raw);
+      if (schema.properties?.kind && schema.properties?.basis && /verwenden/.test(input.question))
+        return {
+          kind,
+          basis: input.question,
+          datasetId: input.datasets[0].id,
+          rowNumbers: [],
+          units: [],
+        };
+      if (schema.properties?.datasetIds) return { datasetIds: [], comparison: false };
+      if (input.sourceId)
+        return {
+          sources: [{ alias: 'table', sourceId: input.sourceId }],
+          operations: [{ op: 'aggregate', metrics: [{ fn: 'count', as: 'rows' }] }],
+        };
+      return modelStub(schema, raw);
+    });
+    textMock.mockResolvedValue(
+      JSON.stringify({
+        interpretation: [
+          {
+            text: 'Der Benutzer möchte den Abgleich durchführen.',
+            supported: 'model',
+            evidenceIds: [],
+            codeDependencies: [],
+            specific: false,
+            completedAction: false,
+          },
+        ],
+        expectation: [],
+        nextSteps: [],
+        assumptions: [],
+        draft: [],
+      })
+    );
+    const first = await ingest(scenario.turns[0]);
+    expect(first.responseText).not.toContain('kein zugänglicher Datensatz');
+    const comparison = await chat(scenario.turns[1].message);
+    expect(comparison.responseText).toMatch(
+      /Datensummen 40 \(Basis\) und 44 \(Variant\); Differenz 4/
+    );
+    const selection = await chat(scenario.turns[2].message);
+    expect(selection.responseText).toContain('Bitte wähle den Datensatz');
+    expect((await chat(scenario.turns[3].message)).responseText).toContain(
+      'Für dieses Gespräch verwende ich Export-A.xlsx – Blatt Basis'
+    );
+    expect(
+      (await catalog()).find((record) => record.sheet === 'Basis').selectedInConversations
+    ).toContain('regression');
+    const workbench = broker.getLocalService('workbench');
+    const rows = await workbench.conversationsDb.allDocs({ include_docs: true });
+    const pending = rows.rows
+      .map(({ doc }) => doc)
+      .find(
+        (doc) =>
+          doc.type === 'workbench_conversation_assistance' &&
+          doc.tenantId === meta.authUser.tenantId
+      );
+    await workbench.conversationsDb.put({
+      ...pending,
+      retrieval: { evidence: [] },
+      situation: {
+        turnKind: 'knowledge',
+        conversationShape: 'knowledge',
+        concern: 'Interne Beschreibung',
+        situation: 'Interne Beschreibung',
+        timeline: [{ text: 'Früherer Kontext' }],
+      },
+    });
+    expect((await chat('kg')).responseText).toContain('Amount: kg');
+    const answer = await chat(scenario.turns[5].message);
+    expect(answer.responseText).toContain('40 kg');
+    expect(answer.responseText).not.toMatch(/Variant|Welche|Benutzer|Interne Beschreibung/);
+    expect(textMock).not.toHaveBeenCalled();
+  }
+);
+
+test('answer filter rejects internal situation copies while retaining sourced facts', () => {
+  const { filterAnswer } = require('../src/workbench-answer-filter');
+  const internal = 'Der Benutzer möchte den Abgleich durchführen.';
+  const parsed = {
+    interpretation: [
+      { text: internal, supported: 'model', evidenceIds: [], codeDependencies: [] },
+      {
+        text: 'Die geprüfte Differenz beträgt vier.',
+        supported: 'evidence',
+        evidenceIds: ['E1'],
+        codeDependencies: [],
+      },
+    ],
+  };
+  const evidence = [{ evidenceId: 'E1', value: 'Die geprüfte Differenz beträgt vier.' }];
+  filterAnswer(parsed, {
+    evidence,
+    answerEvidence: evidence,
+    unresolved: [],
+    message: 'Vergleiche die Blätter.',
+    counts: new Map(),
+    normalizeCondition: (value) => value,
+    internalContext: [internal],
+  });
+  expect(parsed.interpretation.map((claim) => claim.text)).toEqual([
+    'Die geprüfte Differenz beträgt vier.',
+  ]);
+});

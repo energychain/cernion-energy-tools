@@ -11,9 +11,12 @@ const { datasetUnits, columnUnit } = require('./dataset-unit-question');
 
 // Extends the existing audited metadata-correction path with schema-bound intent.
 // Only metadata is supplied; control cell values never enter a prompt.
-async function datasetCorrection(records, question, tenantId, conversationId) {
+async function datasetCorrection(records, question, tenantId, conversationId, selectionIds = []) {
   if (!records.length) return null;
   const named = require('./dataset-variants').namedSheetCandidates(records, question);
+  const selected = named.filter((record) => selectionIds.includes(record.id));
+  if (selected.length === 1 && !require('./dataset-routing').datasetQuestion(question))
+    return { kind: 'select-sheet', datasetId: selected[0].id, rowNumbers: [], units: [] };
   const preferred = records.filter((record) =>
     record.selectedInConversations?.includes(conversationId)
   );
@@ -204,7 +207,12 @@ async function selectDatasetSheet(ctx, p, records, record, conversationId) {
       },
     });
   }
-  return { handled: true, responseText: `Für dieses Gespräch verwende ich ${record.title}.` };
+  return {
+    handled: true,
+    datasetIds: [record.id],
+    selectionDatasetIds: [],
+    responseText: `Für dieses Gespräch verwende ich ${record.title}.`,
+  };
 }
 
 module.exports = { datasetCorrection, restoreDatasetControls, selectDatasetSheet };

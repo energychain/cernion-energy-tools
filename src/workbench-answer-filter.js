@@ -81,6 +81,7 @@ function filterAnswer(
     normalizeCondition,
     counts,
     userFacts = [],
+    internalContext = [],
     requireCompleteDraft = false,
     artifact = false,
     register = 'du',
@@ -124,6 +125,15 @@ function filterAnswer(
         claim.text = clean;
       }
       const rules = [];
+      if (
+        field !== 'draft' &&
+        [...internalContext, internalContext.join(' ')].some(
+          (value) => normalizePhrase(value) === normalizePhrase(claim.text)
+        ) &&
+        !message.includes(claim.text) &&
+        !evidence.some((hit) => String(hit.value || '').includes(claim.text))
+      )
+        rules.push('meta_text');
       if (
         field !== 'draft' &&
         require('./workbench-chat-presentation').unsolicitedAdvice(claim.text, message)

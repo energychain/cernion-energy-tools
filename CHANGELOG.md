@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — Tabellenqualität: Gesprächszustand und Vergleich stabilisieren (#926)
+
+- Varianten mit den bereits aufgelösten Quellen über einen gemeinsamen Abfrage-
+  und Vergleichshelfer lesen; keine zweite Modellwahl verwirft die erste Auswahl.
+- Datensatzbezug, offene Auswahl und zuletzt verwendetes Objekt im Gespräch
+  speichern. Blattantworten auf offene Auswahlen brauchen keine erneute
+  Absichtsklassifikation; bestätigte Einheiten wirken auch nach Retrieval-Wechseln.
+- Nackte Korrekturen bleiben beim zuletzt genannten Objekt. Interne
+  Situationskopien werden ohne zusätzliche Formulierungslisten aus Antworten gefiltert.
+- Vollständige Turn-Regressionen mit abweichenden Klassifikationen, leeren
+  Selektoren und Zählplänen; zweiten Live-Bericht als Ausgangsbefund aufgenommen.
+
 ## Unreleased — Tabellenqualität: Korrekturen nach Live-Praxisbefund (#926)
 
 - Normale Datenfragen bleiben Abfragen; Metadatenänderungen benötigen eine belegte

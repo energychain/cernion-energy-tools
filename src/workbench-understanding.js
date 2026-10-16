@@ -1435,6 +1435,7 @@ async function generateAnswerResult({
         if (conversationMode) parsed.nextSteps = [];
         if (decisive || conversationMode) parsed.assumptions = [];
         const filterOptions = {
+          internalContext: [situation.concern, situation.situation].filter(Boolean),
           evidence,
           answerEvidence,
           unresolved,

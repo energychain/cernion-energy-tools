@@ -226,7 +226,57 @@ function expandVariantCandidates(selected, current, question, conversationId, co
   return related;
 }
 
+async function queryDatasetVariants(ctx, records, params) {
+  records = [...records].sort((a, b) =>
+    require('./canonical-order').compareCanonicalStrings(a.sheet, b.sheet)
+  );
+  const answers = [];
+  for (const record of records)
+    answers.push(await ctx.call('dataset.query', { ...params, id: record.id }));
+  const measured = (answers[0].filtered ? [] : answers[0].summaries || [])
+    .filter(
+      (left) =>
+        left.sum != null &&
+        answers
+          .slice(1)
+          .some((answer) =>
+            answer.summaries?.some((right) => right.field === left.field && right.sum != null)
+          )
+    )
+    .map((entry) => entry.field);
+  if (measured.length) {
+    const current = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
+    for (const answer of answers) {
+      const record = current.find((entry) => entry.id === answer.datasetId);
+      if (record)
+        answer.responseText += await require('./dataset-unit-question').answerUnitQuestion(
+          ctx,
+          record,
+          { ...answer, unitFields: [...(answer.unitFields || []), ...measured] },
+          params.conversationId
+        );
+    }
+  }
+  const differences = records.slice(1).map((record) => {
+    const found = answers[0].variantDifferences?.find((entry) => entry.datasetId === record.id);
+    if (!found) return null;
+    const difference = { ...found };
+    delete difference.datasetId;
+    return difference;
+  });
+  return {
+    responseText: [
+      ...answers.map((answer) => answer.responseText),
+      compareDatasetResults(records, answers, differences),
+    ].join('\n\n'),
+    datasets: records.map(({ id, title, version }) => ({ id, title, version })),
+    comparisons: differences,
+    answers,
+  };
+}
+
 module.exports = {
+  queryDatasetVariants,
   namedSheetCandidates,
   sameSheetStructure,
   variantKeys,

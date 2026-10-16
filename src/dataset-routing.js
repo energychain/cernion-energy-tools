@@ -5,6 +5,17 @@ const { llmOptions } = require('./workbench-understanding');
 const { facadeSchema } = require('./workbench-review');
 const { opaqueContext, restoreContext } = require('./workbench-identifier-context');
 
+const DATASET_QUESTION =
+  /\?|\b(?:wie\w*|wann|welch\w*|berechn\w*|auswert\w*|analys\w*|(?<comparison>vergleich\w*)|zeig\w*)\b|\b(?:maximum|minimum|summe|mittelwert|spitzenlast)\b/i;
+function datasetQuestion(question) {
+  return DATASET_QUESTION.test(question);
+}
+function datasetComparison(question) {
+  return [...String(question).matchAll(new RegExp(DATASET_QUESTION.source, 'gi'))].some(
+    (match) => match.groups?.comparison
+  );
+}
+
 // Katalogmetadaten sind Kandidaten, niemals Evidenz für eine berechnete Antwort.
 async function selectDatasetCandidates(
   records,
@@ -17,6 +28,7 @@ async function selectDatasetCandidates(
     previousReads = [],
     previousSubject = '',
     newDatasetIds = [],
+    contextDatasetIds = [],
   } = {}
 ) {
   if (!records.length || !String(question || '').trim()) return [];
@@ -77,8 +89,23 @@ async function selectDatasetCandidates(
           hit.metadata?.tenantId === record.tenantId &&
           hit.metadata?.datasetId === record.id
       ) ||
-        newDatasetIds.includes(record.id))
+        newDatasetIds.includes(record.id) ||
+        contextDatasetIds.includes(record.id))
   );
+  if (
+    datasetComparison(question) &&
+    contextual.length > 1 &&
+    contextual.every((record) =>
+      require('./dataset-variants').sameSheetStructure(contextual[0], record)
+    )
+  )
+    return require('./dataset-variants').expandVariantCandidates(
+      contextual,
+      current,
+      question,
+      conversationId,
+      true
+    );
   if (
     (elliptical || require('./workbench-chat-presentation').queryDetailsOnly(question)) &&
     contextual.length
@@ -161,6 +188,7 @@ async function selectDatasetCandidates(
 }
 
 module.exports = {
+  datasetQuestion,
   selectDatasetCandidates,
   selectProjectCandidates: require('./project-manifest-routing').selectProjectCandidates,
 };

@@ -35,4 +35,12 @@ function unresolvedAnswerUnits(record, answer) {
   );
 }
 
-module.exports = { columnUnit, datasetUnits, unresolvedAnswerUnits };
+async function answerUnitQuestion(ctx, record, answer, conversationId) {
+  const fields = unresolvedAnswerUnits(record, answer);
+  if (!fields.length || record.semantic.unitQuestion) return '';
+  record.semantic.unitQuestion = { fields, at: new Date().toISOString(), conversationId };
+  await ctx.call('datapoint.datasetCatalog', { operation: 'put', record });
+  return `\n\nWelche Einheit gilt in ${record.title} für ${fields.join(', ')}?`;
+}
+
+module.exports = { columnUnit, datasetUnits, unresolvedAnswerUnits, answerUnitQuestion };

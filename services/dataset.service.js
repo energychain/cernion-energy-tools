@@ -14,7 +14,7 @@ const { controlConfirmation, datasetSheetTitle } = require('../src/dataset-table
 const {
   registerDatasetVariants,
   variantDifference,
-  compareDatasetResults,
+  queryDatasetVariants,
 } = require('../src/dataset-variants');
 const DatasetSqlitePool = require('../src/dataset-sqlite-pool');
 
@@ -118,30 +118,7 @@ module.exports = {
             (record) => record.id === matches[0].id || matches[0].variants?.includes(record.id)
           )
         ) {
-          matches.sort((a, b) =>
-            require('../src/canonical-order').compareCanonicalStrings(a.sheet, b.sheet)
-          );
-          const answers = [];
-          const differences = [];
-          for (const record of matches) {
-            answers.push(await ctx.call('dataset.query', { ...ctx.params, id: record.id }));
-            if (record.id !== matches[0].id) {
-              const pool = await require('../src/project-dataset-pool').datasetPoolFor(
-                this,
-                record
-              );
-              differences.push(variantDifference(pool, matches[0], record));
-            }
-          }
-          return {
-            responseText: [
-              ...answers.map((answer) => answer.responseText),
-              compareDatasetResults(matches, answers, differences),
-            ].join('\n\n'),
-            datasets: matches.map(({ id, title, version }) => ({ id, title, version })),
-            comparisons: differences,
-            answers,
-          };
+          return queryDatasetVariants(ctx, matches, ctx.params);
         }
         if (matches.length > 1)
           return {
@@ -194,19 +171,12 @@ module.exports = {
         answer.filtered = plan.operations.some(
           (operation) => operation.op === 'filter' && operation.field !== record.semantic.timeField
         );
-        const fields = require('../src/dataset-unit-question').unresolvedAnswerUnits(
+        answer.responseText += await require('../src/dataset-unit-question').answerUnitQuestion(
+          ctx,
           record,
-          answer
+          answer,
+          ctx.params.conversationId
         );
-        if (fields.length && !record.semantic.unitQuestion) {
-          record.semantic.unitQuestion = {
-            fields,
-            at: new Date().toISOString(),
-            conversationId: ctx.params.conversationId,
-          };
-          await ctx.call('datapoint.datasetCatalog', { operation: 'put', record });
-          answer.responseText += `\n\nWelche Einheit gilt in ${record.title} für ${fields.join(', ')}?`;
-        }
         return answer;
       },
     },
@@ -217,6 +187,8 @@ module.exports = {
         question: 'string',
         documents: { type: 'array', optional: true, default: [] },
         conversationId: 'string',
+        correctionDatasetId: { type: 'string', optional: true },
+        selectionDatasetIds: { type: 'array', items: 'string', optional: true, default: [] },
         sensitivityLevel: { type: 'string', optional: true, default: 'tenant_internal' },
       },
       async handler(ctx) {
@@ -429,6 +401,18 @@ module.exports = {
         question,
         { conversationId }
       );
+      if (ctx.params.correctionDatasetId) {
+        const target = correctionRecords.find(
+          (record) => record.id === ctx.params.correctionDatasetId
+        );
+        return {
+          handled: true,
+          datasetIds: target ? [target.id] : [],
+          responseText: target
+            ? `Welche Semantikkorrektur gilt für ${target.title}? Bitte nenne die zu ändernde Spalte und die richtige Angabe.`
+            : 'Dazu ist kein zugänglicher Datensatz im Tenant-Katalog vorhanden.',
+        };
+      }
       const legacyCorrection =
         /(?:datensatz|tabelle|dataset|werte|einheit)/i.test(question) &&
         /lösch|loesch|delete|korrigier|werte sind|einheit.*(?:ist|sind)/i.test(question);
@@ -439,7 +423,8 @@ module.exports = {
               correctionRecords,
               question,
               p.tenantId,
-              conversationId
+              conversationId,
+              ctx.params.selectionDatasetIds
             )
           : null;
       if (!confirmations.length && (deleting || correction)) {
@@ -456,6 +441,8 @@ module.exports = {
         if (mutating && candidates.length > 1)
           return {
             handled: true,
+            datasetIds: candidates.map((record) => record.id),
+            selectionDatasetIds: candidates.map((record) => record.id),
             responseText: `Bitte wähle den Datensatz: ${candidates.map((record) => `${record.title} (Version ${record.version})`).join('; ')}.`,
           };
         if (mutating && candidates.length === 1) {
@@ -572,6 +559,7 @@ module.exports = {
           await ctx.call('datapoint.datasetCatalog', { operation: 'put', record: updated });
           return {
             handled: true,
+            datasetIds: [record.id],
             responseText: `Die Semantik von ${record.title} ist korrigiert: ${Object.entries(
               semantic.units
             )
