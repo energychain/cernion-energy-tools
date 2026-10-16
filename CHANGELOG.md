@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — Tabellenqualität: Kontrollsummen, Varianten und Einheiten (#926)
+
+- Gemeinsame strukturelle/numerische Kontrollsummenerkennung für Chat- und
+  Aktentabellen: Zwischen-, führende und wiederholte Gesamtsummen ausschließen,
+  Originalzeilen und Abgleich zur Korrektur erhalten; leere Gruppen bleiben Daten.
+- Blattbezogene Titel, Wiederholungserkennung und Versionen; Varianten über
+  Schemavergleich und Kennungsüberdeckung. Gemeinsame Abfragen und deterministische
+  Differenzen auch im Projektmanifest verhindern die stille Auswahl eines Blatts.
+- Gezielte Einheitenfrage einmal je Datensatz; auditierte Metadatenkorrektur,
+  gesprächsbezogene Blattwahl und Wiederherstellung bestätigter Datenzeilen.
+- Synthetische XLSX-/Streaming-Regressionen und generiertes Praxis-Szenario;
+  Regeln und Schwellen unter `docs/table-upload-quality.md`. Live-Praxislauf separat.
+
 ## Unreleased — Projektakte: Manifest im Routing (#887)
 
 - E2E-Regression ohne Akten behoben: Kandidatenabfragen isolieren interne

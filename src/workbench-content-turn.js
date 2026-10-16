@@ -106,8 +106,9 @@ async function evidenceAccess(service, p) {
 // Table input has already completed. Read the actual rows before routing the rest of the turn.
 function datasetQuestion(question) {
   return (
-    /\?|\b(?:wie\w*|wann|welch\w*|berechn\w*|auswert\w*|analys\w*|zeig\w*)\b/i.test(question) ||
-    /\b(?:maximum|minimum|summe|mittelwert|spitzenlast)\b/i.test(question)
+    /\?|\b(?:wie\w*|wann|welch\w*|berechn\w*|auswert\w*|analys\w*|vergleich\w*|zeig\w*)\b/i.test(
+      question
+    ) || /\b(?:maximum|minimum|summe|mittelwert|spitzenlast)\b/i.test(question)
   );
 }
 
@@ -116,7 +117,8 @@ function turnDatasetIds(p, envelope, pending) {
   if (
     envelope.documents?.length ||
     (!/^(?:und\b|wie (?:hoch|viel)|wann\b)/i.test(envelope.userRequest) &&
-      !require('./workbench-chat-presentation').queryDetailsOnly(envelope.userRequest))
+      !require('./workbench-chat-presentation').queryDetailsOnly(envelope.userRequest) &&
+      !datasetQuestion(envelope.userRequest))
   )
     return [];
   return (pending?.retrieval?.evidence || [])
@@ -125,6 +127,35 @@ function turnDatasetIds(p, envelope, pending) {
 }
 
 async function readTurnDataset(ctx, p, envelope, candidates, meta) {
+  if (
+    candidates.length > 1 &&
+    candidates.every(
+      (record) => record.id === candidates[0].id || candidates[0].variants?.includes(record.id)
+    )
+  ) {
+    const result = await ctx.call(
+      'dataset.query',
+      {
+        question: envelope.userRequest,
+        conversationId: envelope.conversationId,
+      },
+      { meta }
+    );
+    return {
+      answer: result.responseText,
+      evidence: (result.answers || []).map((answer) => ({
+        source: 'dataset.query',
+        retrievalSource: 'capability-read',
+        value: answer.responseText,
+        metadata: {
+          tenantId: p.tenantId,
+          datasetId: answer.datasetId,
+          version: answer.version,
+          parameters: { id: answer.datasetId },
+        },
+      })),
+    };
+  }
   if (candidates.length !== 1)
     return {
       answer: `Mehrere Tabellenblätter passen: ${candidates.map((record) => record.sheet || record.title).join(', ')}. Welches meinst du?`,
@@ -205,12 +236,14 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
       previousReads: pending?.retrieval?.evidence || [],
     }
   );
-  if (!candidates.length || (!fresh.length && candidates.length !== 1)) return null;
+  if (!candidates.length) return null;
   const { answer, evidence } = await readTurnDataset(ctx, p, envelope, candidates, meta);
   const receipts = envelope.datasetConfirmations?.length
     ? records
         .filter((record) => fresh.includes(record.id))
-        .map((record) => `Hab ich abgelegt: ${record.title}, Version ${record.version}.`)
+        .map((record) =>
+          `Hab ich abgelegt: ${record.title}, Version ${record.version}. ${require('./dataset-table-quality').controlConfirmation(record.quality?.controls)}`.trim()
+        )
     : [];
   const responseText = [answer, ...receipts].filter(Boolean).join('\n\n');
   await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {

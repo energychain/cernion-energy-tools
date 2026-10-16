@@ -462,7 +462,8 @@ test('ingest cleanup preserves future components in the shared project directory
 });
 
 test('a background ingest outlives the broker request timeout and retains its job result', async () => {
-  h.broker.options.requestTimeout = 50;
+  // Leave durable setup writes enough headroom while the scan still exceeds the request limit.
+  h.broker.options.requestTimeout = 1000;
   h.upload.settings.scanAction = 'slow.scan';
   h.broker.createService({
     name: 'slow',
@@ -472,7 +473,7 @@ test('a background ingest outlives the broker request timeout and retains its jo
           for await (const _bytes of ctx.stream) {
             /* consume */
           }
-          await new Promise((resolve) => setTimeout(resolve, 150));
+          await new Promise((resolve) => setTimeout(resolve, 3000));
           return { clean: true };
         },
       },

@@ -462,6 +462,14 @@ function executeDatasetQuery(pool, record, input) {
     (entry) => entry.present && (!requestedFields.size || requestedFields.has(entry.field))
   );
   const standard = require('./dataset-semantics').standardDatasetPlan(record, question);
+  const unitFields = new Set(
+    aggregate.metrics
+      .filter((metric) => metric.fn !== 'count')
+      .map((metric) => metric.field)
+      .filter(Boolean)
+  );
+  if (overview)
+    summaries.filter((entry) => entry.present).forEach((entry) => unitFields.add(entry.field));
   const groups = aggregate.groupBy || [];
   const labels = {
     count: 'Anzahl',
@@ -528,6 +536,7 @@ function executeDatasetQuery(pool, record, input) {
       (/summe|gesamt/i.test(question) &&
         ['power', 'energy'].includes(units[summary.unit]?.dimension))
     ) {
+      unitFields.add(summary.field);
       answer =
         summary.integral == null
           ? 'Eine Energierechnung ist ohne bestätigte Einheit und Zeitraster nicht möglich.'
@@ -556,11 +565,14 @@ function executeDatasetQuery(pool, record, input) {
         )))
   )
     answer = metricAnswer;
-  if (require('./workbench-chat-presentation').requestsQueryDetails(question))
+  if (require('./workbench-chat-presentation').requestsQueryDetails(question)) {
     answer = lines.slice(1).join('\n\n');
+    summaries.filter((entry) => entry.present).forEach((entry) => unitFields.add(entry.field));
+  }
   return {
     responseText: `${answer}\n\n${origin}`.replace(/\bSpalte\s+\d+\b/gi, 'Messwert'),
     rowCount: db.prepare(`SELECT COUNT(*) AS n FROM (${sql})`).get(...params).n,
+    unitFields: [...unitFields],
     datasetId: record.id,
     version: record.version,
     summaries,

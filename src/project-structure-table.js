@@ -4,6 +4,9 @@ const { createHash } = require('node:crypto');
 const { profileRows, parseNumber, hashValue } = require('./tabular-intelligence');
 const { datasetSemantics } = require('./dataset-semantics');
 const { normalizeDatasetTimes } = require('./dataset-time');
+const { storedTableQuality, excludeStoredControls } = require('./dataset-stored-quality');
+const { datasetSheetTitle, MAX_CONTROL_ROWS } = require('./dataset-table-quality');
+const { registerDatasetVariants } = require('./dataset-variants');
 const { setting, VERSION, ROW_SOURCE } = require('./project-structure-policy');
 
 function derivedId(object, sheet) {
@@ -114,6 +117,11 @@ async function structureTable(ctx, object, sheet, source, pool, progress) {
       min: Infinity,
       max: -Infinity,
     }));
+    const sourceRows = new Map();
+    const numericColumns = new Set(
+      columns.filter((column) => column.type === 'number').map((column) => column.name)
+    );
+    const numericTextRows = new Set();
     let count = 0,
       candidateCount = pool
         .tenant(object.tenantId)
@@ -139,7 +147,8 @@ async function structureTable(ctx, object, sheet, source, pool, progress) {
         pool.basePath,
         Buffer.byteLength(JSON.stringify(rows)) * 2
       );
-      for (const row of rows)
+      let position = count;
+      for (const row of rows) {
         columns.forEach((column, index) => {
           const value = row[column.name];
           if (value == null || String(value).trim() === '') {
@@ -147,9 +156,17 @@ async function structureTable(ctx, object, sheet, source, pool, progress) {
             stats[index].nulls++;
             return;
           }
-          if (column.type === 'number') {
+          if (numericColumns.has(column.name)) {
             const number = parseNumber(value);
-            if (number == null) throw new Error(`Inconsistent numeric column ${column.name}`);
+            if (number == null) {
+              // Late labels are provisional until the shared numerical detector proves them.
+              column.type = 'string';
+              row[column.name] = String(value).trim();
+              numericTextRows.add(position);
+              if (numericTextRows.size > MAX_CONTROL_ROWS)
+                throw new Error('Unproven numeric labels exceed control budget');
+              return;
+            }
             row[column.name] = number;
             stats[index].count++;
             stats[index].sum += number;
@@ -157,6 +174,18 @@ async function structureTable(ctx, object, sheet, source, pool, progress) {
             stats[index].max = Math.max(stats[index].max, number);
           } else row[column.name] = String(value).trim();
         });
+        position++;
+      }
+      rows.forEach((row, index) => {
+        const descriptors = columns.filter(
+          (column) => column.type !== 'number' || column.sensitive
+        );
+        if (
+          sourceRows.size < 1000 &&
+          descriptors.filter((column) => row[column.name] != null).length <= 1
+        )
+          sourceRows.set(count + index, row[ROW_SOURCE] || count + index + 2);
+      });
       // Keep the time state across batches, including repeated wall times at transitions.
       const normalized = normalizeDatasetTimes(
         rows,
@@ -234,6 +263,23 @@ async function structureTable(ctx, object, sheet, source, pool, progress) {
         };
       quality.missingValues += stats[index].nulls;
     });
+    const controls = storedTableQuality(pool, object.tenantId, id, columns);
+    const controlled = new Set(controls.map((entry) => entry.index));
+    if ([...numericTextRows].some((index) => !controlled.has(index)))
+      throw new Error('Inconsistent numeric column outside verified controls');
+    for (const column of columns) if (numericColumns.has(column.name)) column.type = 'number';
+    if (controls.length) {
+      const cleaned = excludeStoredControls(pool, object.tenantId, id, columns, controls);
+      count = cleaned.count;
+      quality.missingValues = cleaned.missingValues;
+      for (const entry of controls)
+        entry.rowNumber = sourceRows.get(entry.index) || entry.rowNumber;
+      const db = pool.tenant(object.tenantId);
+      db.prepare(
+        `DELETE FROM project_candidates WHERE object_id = ? AND json_extract(location, '$.sheet') = ? AND json_extract(location, '$.row') IN (SELECT value FROM json_each(?))`
+      ).run(object.objectId, sheet, JSON.stringify(controls.map((entry) => entry.rowNumber)));
+    }
+    quality.controls = controls;
     profile.totalRows = count;
     profile.hashes.profile = hashValue({ ...profile, hashes: undefined });
     pool.indexes(id, columns);
@@ -247,7 +293,7 @@ async function structureTable(ctx, object, sheet, source, pool, progress) {
       hash: object.hash,
       sourceName: object.name,
       sheet,
-      title: semantic.title,
+      title: datasetSheetTitle(semantic.title, sheet),
       sensitivityLevel: object.sensitivityLevel,
       requiredClearance: object.requiredClearance,
       semantic,
@@ -267,7 +313,8 @@ async function structureTable(ctx, object, sheet, source, pool, progress) {
       derivation: { version: VERSION, hash: object.hash },
       audit: [{ kind: 'created', actorId: object.provenance.actorId, at }],
     };
-    await ctx.call('datapoint.datasetCatalog', { operation: 'put', record });
+    const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
+    await registerDatasetVariants(ctx, pool, record, records);
     return record;
   } finally {
     await iterator.return?.();
