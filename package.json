@@ -97,7 +97,7 @@
     "@modelcontextprotocol/sdk": "^1.31.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.221.0",
-    "@opentelemetry/sdk-trace-base": "^2.11.0",
+    "@opentelemetry/sdk-trace-base": "^2.12.0",
     "@opentelemetry/sdk-trace-node": "^2.11.0",
     "@rubensworks/saxes": "^6.0.1",
     "@turf/boolean-point-in-polygon": "^7.4.0",
