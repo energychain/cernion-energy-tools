@@ -4,6 +4,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { ServiceBroker } = require('moleculer');
+// Tenant configuration can only raise quotas; the environment floor sets the test limit.
+process.env.QUOTA_LLM_TOKENS_PER_DAY = '1000';
 const Notices = require('../services/shared-service-notices.service');
 const quota = require('../src/rate-quota-store');
 let broker, directory, env;
@@ -23,9 +25,6 @@ beforeEach(async () => {
   process.env.RATE_QUOTA_DRIVER = 'file';
   process.env.RESET_LLM_TOKENS_PER_DAY_ON_RESTART = 'false';
   quota.resetForTests();
-  const state = quota.getTenantState('synthetic');
-  state.config.quotas.llm_tokens_per_day = 1000;
-  quota.saveTenantState('synthetic', state);
   broker = new ServiceBroker({ logger: false, transporter: null });
   broker.createService({
     ...Notices,
