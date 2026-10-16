@@ -4,6 +4,11 @@
 
 - Ab `WORKBENCH_DATASET_EMPTY_COLUMN_MIN_ROWS` Zeilen (Standard 10) zählen Spalten, die in keiner Zeile einen Wert haben (typisch für breite Exporte), nicht mehr gegen `WORKBENCH_DATASET_MAX_EMPTY_RATIO`. Bisher wurde z. B. ein Anlagen-Export mit 7.301 Zeilen und 26 leeren von 46 Spalten als „beschädigt oder unplausibel“ abgewiesen. Die Spalten bleiben erhalten (Fragen danach nennen weiterhin die konkrete Ursache), die Ablagebestätigung nennt ihre Anzahl. Kleine Tabellen, lückenhafte befüllte Spalten und Tabellen mit nur einer befüllten Spalte werden weiterhin abgewiesen.
 
+## Unreleased — Dokumentfragen: Kontingentmeldung und begrenzte Gedächtnis-Extraktion
+
+- Ist das Tenant-Kontingent erschöpft, nennen Dokumentfragen das jetzt ausdrücklich (gleiche Meldung wie andere Pfade) statt der irreführenden Rückfallantwort „…lässt sich gerade nicht zuverlässig beantworten“.
+- Die Extraktion von Aussagen ins Teamgedächtnis aus Chat-Dokumenten ist auf `CET_DOCUMENT_MEMORY_MAX_SECTIONS` Abschnitte je Dokument begrenzt (Standard 50, `0` = unbegrenzt). Weitere Abschnitte bleiben im Dokumentwissen suchbar. Verhindert, dass große Dokumente das Tageskontingent aufbrauchen.
+
 ## Unreleased — Gemini: Antwortschema ohne `additionalProperties`
 
 - Der Gemini-Adapter entfernt `additionalProperties` aus der an den Provider gesendeten Kopie des `responseSchema`. Gemini lehnte solche Schemas mit HTTP 400 ab („Unknown name additionalProperties“), wodurch u. a. Dokumentfragen in Open WebUI stets mit „Aus den verfügbaren Dokumentabschnitten lässt sich diese Frage gerade nicht zuverlässig beantworten“ endeten. Die lokale Ajv-Validierung prüft weiterhin das vollständige Schema.
