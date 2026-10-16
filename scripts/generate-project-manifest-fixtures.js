@@ -161,6 +161,7 @@ function generateProjectScenarios(scenario, turn) {
 async function prepareProjectFixtures(app, run, scenario, meta) {
   const call = (name, params) => app.broker.call(name, params, { meta: structuredClone(meta) });
   run.projects = [];
+  run.projectPreparation = [];
   for (const fixture of scenario.projectFixtures || []) {
     const project = await call('project-file.create', { title: fixture.title });
     run.projects.push(project.projectId);
@@ -193,8 +194,19 @@ async function prepareProjectFixtures(app, run, scenario, meta) {
         )
       );
     }
-    // A failed generation is an evaluation failure, never a fabricated fixture manifest.
+    // Production owns fallback generation; fixtures only record its quality status.
     await call('project-manifest.get', { projectId: project.projectId });
+    const candidate = (await call('project-manifest.candidates', {})).find(
+      (entry) => entry.projectId === project.projectId
+    );
+    run.projectPreparation.push({
+      projectId: project.projectId,
+      ...(candidate?.generation || {
+        status: 'degraded',
+        reason: 'missing_candidate',
+        fallback: false,
+      }),
+    });
   }
 }
 

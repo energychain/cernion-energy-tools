@@ -2,6 +2,13 @@
 
 ## Unreleased — Projektakte: Manifest im Routing (#887)
 
+- Robuste Manifest-Erzeugung nach Live-Befund: ungültige Knotenverweise und unbelegte
+  Aussagen bereinigen, bei fehlenden Fragetypen einmal gezielt neu erzeugen, danach
+  ein quellengebundenes Minimal-Manifest aus Metadaten verwenden. Persistierter
+  `ready`-/`degraded`-State samt Bereinigungszählern und Rückfall-Diagnose; kein Abbruch
+  der Aufrufer durch Modellfehler. Praxisläufe werten degradierte Erzeugung gesondert
+  und laufen weiter; Abbruchberichte enthalten eine sichere Fehlermeldung.
+
 - Fix nach Live-Praxislauf: Aktenwahl zusätzlich aus aktuellen Datei-/Datensatznamen,
   Schemas, Einheiten und Graphankern; quellgebundener Inhaltsabgleich, konfigurierbare
   Schwellen und Abstand zu Alternativen. Sichere Treffer haben vor generischen

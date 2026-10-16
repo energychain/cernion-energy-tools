@@ -328,7 +328,7 @@ test.each(['a', 'b'])(
   }
 );
 
-test('failed generation never exposes an old manifest for changed data; retry and recovery avoid duplicate generation', async () => {
+test('failed generation publishes a current degraded minimum; recovery avoids duplicate generation', async () => {
   const projectId = await populate();
   llm.generateStructured.mockImplementation((schema, prompt) =>
     prompt.includes('Projektmanifest-Kandidaten') ? {} : manifestStub(schema, prompt)
@@ -339,8 +339,15 @@ test('failed generation never exposes an old manifest for changed data; retry an
     Buffer.from('Zeit,Leistung [kW]\n2025-01-01T00:00:00,37\n'),
     'replacement.csv'
   );
-  await settled().catch(() => {});
-  await expect(h.call('project-manifest.get', { projectId })).rejects.toMatchObject({ code: 404 });
+  await settled();
+  const minimum = await h.call('project-manifest.get', { projectId });
+  expect(minimum.version).toBe(2);
+  expect(minimum.questionTypes.length).toBeGreaterThan(0);
+  const candidate = (await h.call('project-manifest.candidates', {})).find(
+    (item) => item.projectId === projectId
+  );
+  expect(candidate.generation).toMatchObject({ status: 'degraded', fallback: true, attempts: 2 });
+  expect(minimum).not.toHaveProperty('generation');
   llm.generateStructured.mockImplementation(manifestStub);
   await run(projectId);
   expect((await h.call('project-manifest.get', { projectId })).version).toBe(2);
@@ -423,4 +430,50 @@ test('deletion-incomplete and empty projects are not routing candidates; cleanup
       },
     }
   );
+});
+
+test('unexpected generation exception is contained by the service and persists a selectable minimum', async () => {
+  jest
+    .spyOn(manifestPolicy, 'generateManifest')
+    .mockRejectedValue(new Error('Unknown project manifest source node'));
+  const projectId = await populate();
+  const candidate = (await h.call('project-manifest.candidates', {})).find(
+    (item) => item.projectId === projectId
+  );
+  expect(candidate.generation).toMatchObject({
+    status: 'degraded',
+    fallback: true,
+    reason: 'generation_failed',
+  });
+  expect(
+    (await h.call('project-manifest.get', { projectId })).questionTypes.length
+  ).toBeGreaterThan(0);
+  expect(await run(projectId)).toEqual({ unchanged: true });
+});
+
+test('practice preparation continues after invalid LLM references and records degraded cause', async () => {
+  llm.generateStructured.mockImplementation((schema, prompt) => {
+    const result = manifestStub(schema, prompt);
+    if (result)
+      for (const item of [result.summary, ...result.entities, ...result.questionTypes])
+        item.sources = ['invented'];
+    return result;
+  });
+  const fixtures = require('../scripts/generate-project-manifest-fixtures');
+  const scenario = require('../scripts/generate-practice-evaluation-fixtures')
+    .generatePracticeCatalog()
+    .scenarios.find((item) => item.id === 'project-a-implicit');
+  const state = {};
+  await fixtures.prepareProjectFixtures({ broker: h.broker }, state, scenario, auth());
+  expect(state.projectPreparation).toEqual([
+    expect.objectContaining({
+      status: 'degraded',
+      fallback: true,
+      reason: 'insufficient_claims',
+      discardedReferences: expect.any(Number),
+    }),
+  ]);
+  expect(
+    (await h.call('project-manifest.get', { projectId: state.projects[0] })).questionTypes.length
+  ).toBeGreaterThan(0);
 });

@@ -916,11 +916,34 @@ Der Prompt verwendet eine explizite Feldprojektion: Akten-/Datei-/Abschnittstite
 Spaltennamen und -typen, Einheiten, Zeitraum sowie Knoten-/Kantenstruktur. Entitätswerte,
 Tabellenzeilen, Zellbeispiele, SQL-Sketches, Passagevolltexte und beliebige zusätzliche
 Profilattribute sind ausgeschlossen. Die Metadaten sind auf 128000 Bytes begrenzt;
-Überschreitungen werden sichtbar wiederholbar abgewiesen und nicht still abgeschnitten.
+Überschreitungen führen ohne Modellaufruf zum unten beschriebenen Minimal-Manifest.
 Alle Modellaufrufe gehen durch `src/llm-client.js`, ohne zusätzliche Provideranbindung.
-Je neuem Graphstand erfolgt höchstens ein erfolgreicher Erzeugungsaufruf, mit zehn
-Sekunden Timeout und ohne automatische Modellwiederholungen. Fehlgeschlagene Läufe
-können durch Recovery oder einen internen erneuten Lauf wiederholt werden.
+Je neuem Graphstand erfolgt normalerweise ein Erzeugungsaufruf, mit zehn Sekunden
+Timeout und ohne automatische Providerwiederholungen. Ungültige `sources` werden
+entfernt; Aussagen ohne verbleibende gültige Quelle werden verworfen. Eine verworfene
+Zusammenfassung wird durch den quellengebundenen Aktentitel ersetzt. Ajv und die
+strikte Knotenprüfung validieren auch das bereinigte Ergebnis vollständig.
+
+Bleibt kein gültiger Fragetyp, wird **genau einmal** mit einer kurzen Korrektur und
+den erlaubten Knoten aus `nodes` neu erzeugt; bis 128 Knoten werden deren IDs
+zusätzlich ausdrücklich aufgelistet. Auch nicht parsebare strukturierte Ausgaben
+erhalten höchstens diesen einen zweiten Versuch. Bei Provider-/Kontingentfehlern
+entsteht kein weiterer Modellaufruf. Scheitert die Erzeugung erneut, entsteht ein
+deterministisches Minimal-Manifest aus Titel, aktuellen Datensatznamen, Spalten,
+Einheiten, Zeiträumen, Dokumentabschnittstiteln und beobachteten Graphentitäten.
+Alle Aussagen behalten gültige Quellen; es werden keine Ergebniswerte ergänzt.
+Maximal zwei Erzeugungsaufrufe pro neuem Graphstand, weiterhin koalesziert und
+versioniert. Recovery erzeugt auch ein bereits gespeichertes Minimal-Manifest
+für denselben Stand nicht nochmals.
+
+Der persistierte Manifest-State `generation` an jedem Versionsdatensatz enthält
+`status: ready | degraded`, `attempts`, `discardedReferences`, `discardedClaims`,
+`fallback` und einen festen `reason`-Code. Bereinigung, Wiederholung und Minimal-
+Rückfall werden als `degraded` protokolliert. Erzeugungsfehler erreichen den Aufrufer
+nicht; Rechte-, Archivierungs- und Speichergrenzen bleiben wirksam.
+`project-manifest.get` behält den reinen Manifestvertrag. Die sichtbaren Kandidaten
+enthalten `generation` separat; die Diagnose der besten Akte übernimmt diesen State.
+Auch ein degradiertes Manifest bleibt nach den unveränderten Auswahlregeln wählbar.
 
 Snapshot und Veröffentlichung verwenden die vorhandene Akten-Mutationsgrenze;
 der Modellaufruf läuft außerhalb dieser Grenze. Vor der Veröffentlichung werden
@@ -1082,3 +1105,15 @@ gegenwärtig bleibt ein nicht eindeutiger Join eine explizite Lücke. #889 befü
 `skillRefs` und erzeugt ausführbare Skills. Beides wird hier nicht vorweggenommen.
 Stub-Validierung und der vorbereitete, noch nicht ausgeführte Live-Praxislauf sind
 in `docs/validation/887-projektakte-manifest.md` beschrieben.
+
+
+### Praxisdiagnose bei degradierter Erzeugung
+
+Die Praxisvorbereitung verwendet ausschließlich das Manifest des Produktdienstes.
+Ein degradiertes Manifest bricht die Szenarienfolge nicht ab: Der Bericht protokolliert
+Status, Grundcode, Anzahl verworfener Verweise und Minimal-Rückfall; der deterministische
+Prüfpunkt `project-manifest-generation` wird rot. Antwort- und Herkunftsprüfungen laufen
+weiter. Bei einem echten Abbruch enthält JSON/Markdown zusätzlich `abortMessage`.
+Bekannte feste Betriebsfehlermeldungen werden erhalten; beliebige Providertexte
+werden über die gemeinsame sichere LLM-Fehlerdiagnose ersetzt, damit keine Prompts,
+Tabellenzeilen oder Geheimnisse im Bericht landen.

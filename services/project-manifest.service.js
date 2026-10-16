@@ -7,8 +7,16 @@ const graph = require('../src/project-graph-policy');
 const manifest = require('../src/project-manifest');
 const { validateCorrection, correctionPrincipal } = require('../src/shared-service-learning');
 const params = { projectId: project.idParam };
-const publicManifest = ({ _id, _rev, key, tenantId, graphVersion, corrections, ...record }) =>
-  record;
+const publicManifest = ({
+  _id,
+  _rev,
+  key,
+  tenantId,
+  graphVersion,
+  corrections,
+  generation,
+  ...record
+}) => record;
 const openapi = (summary, list = false) => ({
   summary,
   tags: ['Project manifest'],
@@ -84,6 +92,11 @@ module.exports = {
                 projectId: record.projectId,
                 manifest: publicManifest(current.manifest),
                 corrections: current.corrections,
+                generation: current.manifest.generation || {
+                  status: 'ready',
+                  fallback: false,
+                  discardedReferences: 0,
+                },
                 routingSources: require('../src/project-manifest-metadata').projectRoutingSources(
                   current.graph,
                   datasets,
@@ -310,14 +323,49 @@ module.exports = {
         ...require('../src/evidence-endpoint-catalog').EVIDENCE_ENDPOINT_CATALOG,
         ...require('../src/evidence-endpoint-catalog').PROJECT_GRAPH_ENDPOINTS,
       ];
-      const generated = await manifest.generateManifest(
-        snapshot.project,
-        snapshot.graph,
-        snapshot.datasets,
-        snapshot.version,
-        { broker: this.broker, catalog }
-      );
-      if (!generated) return { empty: true };
+      let generation;
+      let generated;
+      try {
+        generated = await manifest.generateManifest(
+          snapshot.project,
+          snapshot.graph,
+          snapshot.datasets,
+          snapshot.version,
+          {
+            broker: this.broker,
+            catalog,
+            logger: this.logger,
+            onDiagnostics: (value) => {
+              generation = value;
+            },
+          }
+        );
+      } catch (error) {
+        require('../src/workbench-llm-errors').logLlmError(this.logger, 'project manifest', error);
+        const { minimalContent, assembleManifest } = require('../src/project-manifest-generation');
+        generation = {
+          status: 'degraded',
+          reason: 'generation_failed',
+          fallback: true,
+          attempts: generation?.attempts || 0,
+          discardedReferences: generation?.discardedReferences || 0,
+          discardedClaims: generation?.discardedClaims || 0,
+        };
+        generated = assembleManifest(
+          minimalContent(
+            snapshot.project,
+            snapshot.graph.filter((row) => row.recordType === 'node'),
+            snapshot.datasets
+          ),
+          snapshot.project,
+          snapshot.graph,
+          snapshot.version,
+          catalog
+        );
+      }
+      if (generation?.status === 'degraded')
+        this.logger.warn('Project manifest generation degraded', generation);
+      if (!generated) return { empty: true, generation };
       return this.mutation(ctx, async (locked) => {
         const current = await this.active(locked);
         if (manifest.graphVersion(await this.graphRecords(locked)) !== snapshot.graphVersion)
@@ -339,6 +387,7 @@ module.exports = {
             tenantId: current.tenantId,
             key: `version:${generated.version}`,
             graphVersion: snapshot.graphVersion,
+            generation,
           },
         });
         await this.broker.emit(

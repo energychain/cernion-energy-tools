@@ -239,6 +239,7 @@ function selectProjectCandidates(candidates, question, options = {}) {
     periodMatch: best?.periodMatch || false,
     reason,
     thresholds: bounds,
+    ...(best?.candidate.generation ? { generation: best.candidate.generation } : {}),
   });
   return reason === 'selected'
     ? [

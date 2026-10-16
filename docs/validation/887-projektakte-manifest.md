@@ -337,3 +337,85 @@ generierte Artefakte blieben per Prüfsummen unverändert.
 Branch und getrennte Git-/Common-Verzeichnisse des Worktrees sind geprüft.
 Der lokale Commit enthält ausschließlich die Umsetzung, Tests, Dokumentation und
 generierten Artefakte. Kein Push, kein PR und kein Live-Praxislauf.
+
+
+## Folgekorrektur: erfundene Knotenverweise (Basis def4e269)
+
+Der neue Live-Befund betrifft die Erzeugung, nicht die inzwischen erfolgreiche
+Aktenwahl: `validateManifest` prüfte einen einzigen erfundenen Verweis als Fehler des
+gesamten Manifests. Das Generator-Promise erreichte über `project-manifest.run` bzw.
+Event/Recovery die Praxisvorbereitung; deren `Promise.all` ließ den Lauf abbrechen.
+Dieser Befund wurde ausschließlich offline mit LLM-Stubs reproduziert.
+
+Die strikte Ajv-/Referenzvalidierung bleibt unverändert. Davor stehen jetzt drei
+Stufen: ungültige Verweise entfernen und unbelegte Aussagen verwerfen; ohne gültigen
+Fragetyp einmal mit erlaubten Knoten neu erzeugen; anschließend ein deterministisches
+Minimal-Manifest aus aktuellen Graph-/Datensatzmetadaten. Eine ungültige Zusammenfassung
+wird durch den belegten Aktentitel ersetzt. Auch der Rückfall wird strikt validiert.
+Provider-/Kontingentfehler verursachen sofort den Minimal-Rückfall und keinen weiteren
+Versuch. Ein separater Catch im Dienst schützt zusätzlich vor unerwarteten
+Generatorfehlern, ohne Autorisierungs-, Archivierungs- oder Schreibfehler zu verdecken.
+Ein Graph ohne Knoten bleibt ohne Manifest; es werden keine Quellen erfunden.
+
+`generation` ist als interner State am Versionsdatensatz unter dem bestehenden
+Aktenpräfix gespeichert und wird separat in sichtbaren Kandidaten sowie der Diagnose
+der besten Akte ausgegeben. Status, Versuche, verworfene Quellen/Aussagen, Rückfall und
+fester Grundcode enthalten keine Modelltexte oder Personen-/Tenantdaten.
+`get` liefert weiterhin ausschließlich das schema-valide Manifest. Es gibt keine
+neue Route, Env-Variable oder Allowlist-Erweiterung. Kosten: normalerweise ein,
+bei unbrauchbarer Modellantwort höchstens zwei Aufrufe je geändertem Graphstand;
+der bestehende eine Ausformulierungsaufruf je belegter Aktenantwort bleibt unverändert.
+
+Der Harness legt kein Ersatzmanifest an. Er liest den Produkt-State und markiert
+`project-manifest-generation` bei `degraded` rot, arbeitet aber sämtliche weiteren
+Turns/Szenarien ab. Der Bericht zeigt Ursache, verworfene Verweise und Rückfall in
+JSON/Markdown. Bei echten Abbrüchen wird eine sichere Meldung zusätzlich zum Fehlertyp
+aufgenommen. Nur feste bekannte Betriebsfehlermeldungen werden unverändert übernommen;
+unbekannte Providertexte werden durch die vorhandene sichere LLM-Fehlerdiagnose ersetzt.
+
+Neue Stub-Prüfungen decken Teilbereinigung bei weiter möglicher Auswahl, ausschließlich
+erfundene Verweise, erfolgreiche Neuerzeugung, Schema-/Parsefehler, Providerfehler,
+Metadatenbudget, Dienst-Rückfall, reale Praxisvorbereitung und die fortlaufende
+Bewertung einschließlich sicherem Abbruchbericht ab. Der bestehende Test mit
+404 nach Erzeugungsfehler wurde bewusst auf den neuen Vertrag geändert: aktuelles
+Minimal-Manifest statt nicht vorhandenes oder veraltetes Manifest. Bestehende
+Negativtests für Sichtbarkeit, Archivierung und unpassende Fragen bleiben bestehen.
+
+Impact: GitNexus `impact` wurde für Generator, Dienst-Publikation/Kandidaten und
+Praxisvorbereitung/-lauf/-bericht sowie `selectProjectCandidates` ausgeführt. Der
+veraltete Index kennt diese Symbole nicht (`UNKNOWN`); lokale Aufrufsuche ergänzt
+die Analyse. Direkte Aufrufer: Manifestdienst und Praxis-Transport; indirekt bestehende
+Workbench-/Dossier-Kandidatenleser. Im Routing wird ausschließlich der State der
+besten Akte an die bestehende Diagnose angehängt; Auswahlkriterien, Schwellen,
+Antworten, statische Quellen und Rechteprüfungen bleiben unverändert. Risiko: mittel
+für Verfügbarkeit/Erzeugung, geringe additive Diagnoseänderung im zentralen Routing.
+Keine Live-LLM-Aufrufe, keine Veröffentlichung und kein Push.
+
+### Prüfergebnisse der Folgekorrektur
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Lint (`--quiet`), Build | grün |
+| Gezielt berührte Projekt-/Workbench-/Praxisdateien | 170 Tests in zehn Dateien grün, mit `NODE_OPTIONS=--experimental-vm-modules` |
+| `test:unit:ci` | 24 Blöcke; 473 Suites / 10342 Tests grün, 7 Suites / 54 Tests regulär übersprungen |
+| Coverage | Statements 84,15 %, Branches 70,39 %, Functions 88,41 %, Lines 85,91 %; alle Grenzen erfüllt |
+| `test:shared-service:ci` | 86 Tests grün; 21,12 s unter 60 s |
+| `test:tdd-matrix` / `check:tdd-matrix-coverage` | 82 Tests grün, 4 optional übersprungen; 66/66 erforderliche IDs = 100 %; zwölf optionale Live-Blackbox-IDs nicht ausgeführt |
+| `check:practice-fixtures` | grün, generierte Fixtures synchron |
+| `check:domain-free-core` / `check:domain-free-equivalence` | grün, unveränderte Allowlist; 150 Dateien / 25170 äquivalente Treffer |
+| `check:function-model` / `check:signal-catalog` | grün |
+| `check:operation-capability-index` / `check:llm` | grün |
+| `audit:openapi` | 0 Issues; 480 bestehende Warnungen |
+| `git diff --check` | grün |
+
+OpenAPI, Capability-Index, LLM-Manifest, Funktionsmodell, Signalkatalog und Praxis-
+Fixtures wurden nach sämtlichen Codeänderungen erzeugt. Die vollständige Unit-CI
+lief anschließend bei eingefrorenen Quellen/Artefakten; Prüfsummen aller 1360
+kontrollierten Dateien waren danach unverändert. Danach wurde ausschließlich dieser
+Ergebnisabschnitt ergänzt und die Artefakterzeugung abschließend erneut ausgeführt.
+GitNexus `detect_changes(all)` meldete geringe Risiken bei 16 erkannten Dateien,
+aber keine Symbole im veralteten Index; die lokale Aufruf-/Diff-Prüfung bleibt
+maßgeblich. Der Vergleich mit `main` wurde nach 20 Sekunden begrenzt, weil die
+Indexabfrage keinen Abschluss lieferte. Der vorgemerkte Diff wird zusätzlich vor
+dem Commit geprüft. Unverändert: keine Live-LLM-Aufrufe, keine Allowlist-Erweiterung,
+keine Änderungen an Env-/Credentialdateien, kein Push.
