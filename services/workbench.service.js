@@ -1664,11 +1664,61 @@ module.exports = {
         if (background.backgroundTask(envelope.userRequest))
           return background.answerBackgroundTask(envelope.userRequest, p.tenantId, this.logger);
         const pending = await conversationAssistance.readTurn(this.conversationsDb, p, envelope);
+        let roleUpdate;
+        try {
+          roleUpdate = await require('../src/workbench-role-context').readRoleUpdate(
+            p,
+            envelope,
+            pending
+          );
+        } catch (error) {
+          this.logger.warn(
+            'Workbench role routing unavailable',
+            require('../src/workbench-llm-errors').llmErrorDetails(error)
+          );
+        }
+        if (roleUpdate?.updated)
+          return contentTurn.runContentTurn(this, ctx, {
+            p,
+            mapping,
+            envelope,
+            pending,
+            meta: correctionMeta,
+            preferenceExtraction: roleUpdate.preferences,
+          });
         const memoryContext = {
           ...ctx,
           call: (name, params, options) =>
             ctx.call(name, params, { meta: { ...correctionMeta, ...options?.meta } }),
         };
+        if (
+          !envelope.documents?.length &&
+          pending?.datasetContext?.datasetIds?.length &&
+          this.broker.getLocalService('dataset') &&
+          (await require('../src/dataset-clarification').hasOpenDatasetClarification(
+            memoryContext,
+            envelope.conversationId
+          ))
+        ) {
+          const resolved = await ctx.call(
+            'dataset.turn',
+            {
+              question: envelope.userRequest,
+              conversationId: envelope.conversationId,
+              documents: [],
+              clarificationOnly: true,
+            },
+            { meta: correctionMeta }
+          );
+          if (resolved.handled)
+            return require('../src/workbench-dataset-reply').datasetTurnReply(
+              this,
+              p,
+              envelope,
+              pending,
+              resolved
+            );
+        }
         const projectReply = await require('../src/workbench-project-manifest').projectManifestTurn(
           this,
           ctx,
@@ -1709,37 +1759,14 @@ module.exports = {
             },
             { meta: correctionMeta }
           );
-          if (datasetTurn.handled) {
-            this.logger.info('Workbench turn phases and sources', {
-              phaseTimes: { answerMs: datasetTurn.answerMs || 0 },
-              sources: datasetTurn.sources || [],
-            });
-            await conversationAssistance.saveTurn(this.conversationsDb, p, envelope, {
-              tenantMemoryFactIds: [],
-              ...(datasetTurn.datasetIds?.length
-                ? {
-                    datasetContext: {
-                      datasetIds: [
-                        ...new Set([
-                          ...(pending?.datasetContext?.datasetIds || []),
-                          ...datasetTurn.datasetIds,
-                        ]),
-                      ],
-                      selectionDatasetIds: datasetTurn.selectionDatasetIds || [],
-                      lastDatasetId:
-                        datasetTurn.datasetIds.length === 1 ? datasetTurn.datasetIds[0] : undefined,
-                    },
-                  }
-                : {}),
-            });
-            return {
-              state: 'assistance',
-              nonBinding: true,
-              responseText: datasetTurn.responseText,
-              sources: datasetTurn.sources || [],
-              phaseTimes: { answerMs: datasetTurn.answerMs || 0 },
-            };
-          }
+          if (datasetTurn.handled)
+            return require('../src/workbench-dataset-reply').datasetTurnReply(
+              this,
+              p,
+              envelope,
+              pending,
+              datasetTurn
+            );
           if (datasetTurn.documents) envelope.documents = datasetTurn.documents;
           envelope.datasetConfirmations = datasetTurn.confirmations || [];
           envelope.datasetIds = datasetTurn.datasetIds || [];
@@ -1777,6 +1804,7 @@ module.exports = {
             pending,
             conversation,
             meta: correctionMeta,
+            preferenceExtraction: roleUpdate?.preferences,
           });
         if (/^(?:kein fall|no case)[.!\s]*$/i.test(envelope.userRequest.trim())) {
           return contentTurn.discard(this, ctx, p, envelope, pending, correctionMeta);
@@ -1857,6 +1885,7 @@ module.exports = {
           pending,
           conversation,
           meta: correctionMeta,
+          preferenceExtraction: roleUpdate?.preferences,
         });
       }
     ),

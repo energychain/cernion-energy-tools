@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "ea354db3974506dc4ed8d91cc0235eeeb989cc1016dfdcdf3999f222ab635f66",
+  "sourceHash": "4228f4178f28f8ccd732286bfd89a82504b1e4d52e7e806115088adf4bcac378",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -69500,11 +69500,23 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-clarification.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-correction.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/dataset-input.js"
         },
         {
           "kind": "service",
           "ref": "src/dataset-query.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-routing.js"
         },
         {
           "kind": "service",
@@ -69525,6 +69537,10 @@
         {
           "kind": "service",
           "ref": "src/dataset-unit-question.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-variants.js"
         },
         {
           "kind": "service",
@@ -69673,6 +69689,10 @@
         {
           "kind": "service",
           "ref": "src/project-file-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-manifest-routing.js"
         },
         {
           "kind": "service",
@@ -69889,6 +69909,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-review.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-role-context.js"
         },
         {
           "kind": "service",
@@ -122260,6 +122284,14 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-clarification.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-correction.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/dataset-input.js"
         },
         {
@@ -122773,6 +122805,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-review.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-role-context.js"
         },
         {
           "kind": "service",

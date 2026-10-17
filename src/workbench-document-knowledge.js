@@ -196,10 +196,28 @@ async function purgeCaseCopies(service, p, row) {
       await service.store.evidenceDb.remove(doc);
   }
 }
+async function conversationDocument(service, p, envelope, query) {
+  const conversation = await service.store.resolveConversation(
+    { tenantId: p.tenantId, client: envelope.channel, conversationId: envelope.conversationId },
+    { optional: true }
+  );
+  if (!conversation?.cetCaseId) return false;
+  const documents = await require('./workbench-document').loadDocuments(
+    service.store,
+    { ...p, caseId: conversation.cetCaseId },
+    { broker: service.broker, roles: p.roles }
+  );
+  const { normalizePhrase } = require('./function-resolver');
+  const name = normalizePhrase(query);
+  return documents.some((document) => !name || normalizePhrase(document.name).includes(name));
+}
+
 async function command(service, ctx, { p, envelope, situation }) {
   const request = situation.documentKnowledge;
   if (!request || request.action === 'none' || !ctx.broker.getLocalService('knowledge-rag'))
     return null;
+  // Attached sources are available directly; catalog lookup describes stored sources only.
+  if (envelope.documents?.length && ['read', 'list'].includes(request.action)) return null;
   if (
     ['delete', 'obsolete'].includes(request.action) &&
     (!request.basis?.trim() ||
@@ -221,6 +239,14 @@ async function command(service, ctx, { p, envelope, situation }) {
         : 'Dazu liegen keine sichtbaren Unterlagen vor.',
     };
   const current = request.version ? matches : matches.filter((row) => row.status === 'active');
+  if (
+    request.action === 'read' &&
+    !request.id &&
+    !request.version &&
+    !current.length &&
+    (await conversationDocument(service, p, envelope, request.query))
+  )
+    return null;
   if (current.length !== 1)
     return {
       state: 'document_selection',
