@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — VDMI Blueprint Pack: Formatwechsel Readiness Review (#577)
+
+- Neuer statischer `read_only_blueprint_seed`
+  `stadtwerk-mauer-formatwechsel-readiness-review-v1` für
+  `market_communication_format_change_governance` /
+  `selected_format_change_readiness_review` mit kanonischer vierzeiliger
+  VDMI-`demoProcessMatrix` (V = `ROLE_MARKTKOMMUNIKATION`), getrennten
+  Datenklassen und positiven Folgeschritten für das nächste menschliche
+  Go-live-Review. Die fünf bestehenden `/api/dashboard/*`-GET-Bricks sind nur
+  `source_hint_only`; kein Endpoint, keine Persistenz, kein Budibase-Apply.
+  Landing-Registry und Produktivseite bleiben `pending`.
+- Die Workbench-Rollenhinweise der Seeds kommen aus einer deklarativen
+  Zuordnung statt einer verschachtelten Bedingung; bestehende Ergebnisse
+  unverändert.
+
 ## Unreleased — Akten-Routing und Dokument-Folgefragen (#926)
 
 - Der frühe Datensatz-Turn läuft nur bei einer gespeicherten offenen Rückfrage
