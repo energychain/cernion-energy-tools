@@ -9,6 +9,8 @@ const {
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_EVIDENCE,
   REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_EVIDENCE,
+  REQUIRED_FORMATWECHSEL_READINESS_REVIEW_EVIDENCE,
+  REQUIRED_FORMATWECHSEL_READINESS_REVIEW_ROLE_IDS,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
   REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE,
   REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
@@ -33,6 +35,7 @@ const {
   stadtwerkMauerDirectMarketerRiskGate,
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerFlexibleGridConnectionReleaseFile,
+  stadtwerkMauerFormatwechselReadinessReview,
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerGridConnectionTransformationGate,
@@ -3219,6 +3222,341 @@ describe('VDMI Blueprint Pack seeds', () => {
       expect(result.errors).toContainEqual(
         expect.stringContaining('missing forbidden action: mako_write')
       );
+    });
+  });
+  describe('Formatwechsel Readiness Review seed (#577)', () => {
+    const seed = stadtwerkMauerFormatwechselReadinessReview;
+    const seedId = 'stadtwerk-mauer-formatwechsel-readiness-review-v1';
+    const expectedSourceHintPaths = [
+      '/api/dashboard/evu-api-migration-diagnostics',
+      '/api/dashboard/market-communication-evidence-chain',
+      '/api/dashboard/automation-risk-gate',
+      '/api/dashboard/owner-deadline-evidence-gate',
+      '/api/dashboard/decision-readiness-matrix',
+    ];
+    const expectedRows = [
+      {
+        phase: '1',
+        v: 'ROLE_MARKTKOMMUNIKATION',
+        d: 'ROLE_IT_OPERATIONS',
+        m: 'ROLE_PROCESS_OWNER',
+        i: 'ROLE_MANAGEMENT_REVIEW',
+        evidenceRequirements: [
+          'systemLandscapeEvidence',
+          'patchLevelEvidence',
+          'formatVersionEvidence',
+          'scopeBoundaryEvidence',
+        ],
+        status: 'clarification',
+        gateOutcome: 'scope_and_version_review_pending',
+      },
+      {
+        phase: '2',
+        v: 'ROLE_MARKTKOMMUNIKATION',
+        d: 'ROLE_IT_OPERATIONS',
+        m: 'ROLE_BILLING_GOVERNANCE',
+        i: 'ROLE_MANAGEMENT_REVIEW',
+        evidenceRequirements: [
+          'affectedProcessChainEvidence',
+          'fachtestCaseEvidence',
+          'validationResultEvidence',
+          'sourceSnapshotEvidence',
+        ],
+        status: 'evidence_gap',
+        gateOutcome: 'fachtest_and_process_chain_evidence_pending',
+      },
+      {
+        phase: '3',
+        v: 'ROLE_MARKTKOMMUNIKATION',
+        d: 'ROLE_CERNION_GOVERNANCE',
+        m: 'ROLE_IT_OPERATIONS',
+        i: 'ROLE_MANAGEMENT_REVIEW',
+        evidenceRequirements: [
+          'automationRiskEvidence',
+          'monitoringEvidence',
+          'stopCriterionEvidence',
+          'rollbackEvidence',
+          'ownerDeadlineEvidence',
+        ],
+        status: 'evidence_gap',
+        gateOutcome: 'operational_safety_evidence_pending',
+      },
+      {
+        phase: '4',
+        v: 'ROLE_MARKTKOMMUNIKATION',
+        d: 'ROLE_CERNION_GOVERNANCE',
+        m: 'ROLE_BILLING_GOVERNANCE',
+        i: 'ROLE_MANAGEMENT_REVIEW',
+        evidenceRequirements: [
+          'decisionReadinessEvidence',
+          'positiveFollowUpEvidence',
+          'nextHumanGateEvidence',
+          'noCallGuardEvidence',
+        ],
+        status: 'clarification',
+        gateOutcome: 'human_go_live_review_ready_or_evidence_gap',
+      },
+    ];
+    const requiredNoCallGuards = [
+      'format_conversion_execute',
+      'edifact_api_retry',
+      'oauth_secret_handling',
+      'json_patch_apply',
+      'sap_erp_write',
+      'a96_creation_dispatch',
+      'mscons_creation_dispatch',
+      'mako_message_creation_dispatch',
+      'billing',
+      'settlement',
+      'tariff_mutation',
+      'fach_approval_automatic',
+      'go_live_approval_automatic',
+      'workflow_create',
+      'task_create',
+      'hitl_create',
+      'mail_send',
+      'webhook_send',
+      'external_connector_call',
+      'budibase_table_write',
+      'rundeck_execute',
+      'public_context_mutation',
+      'tenant_mutation',
+      'production_mutation',
+      'landing_registry_publication',
+      'cernion_de_publication',
+      'wallet_key_material_handling',
+      'personal_agent_hardcoding',
+      'personal_agent_execution',
+    ];
+
+    test('exposes the seed as versioned, tenant-parametrizable read-only metadata', () => {
+      expect(seed).toMatchObject({
+        id: seedId,
+        kind: 'vdmi_blueprint_pack_seed',
+        version: '1.0.0',
+        safetyClassification: 'read_only_blueprint_seed',
+        processFamily: 'market_communication_format_change_governance',
+        controlCase: 'selected_format_change_readiness_review',
+        sideEffects: 'none',
+        budibaseRenderTarget: 'budibase:stadtwerk-mauer-workbench:formatwechsel-readiness-panel',
+        operationsBoundary: {
+          verificationWrapper: '/api/operations-runbook/**',
+          directRundeckExecution: false,
+        },
+        demoTenant: { tenantId: 'stadtwerk-mauer', classification: 'synthetic_demo_tenant' },
+      });
+      expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+        expect.objectContaining({
+          id: seedId,
+          processFamily: 'market_communication_format_change_governance',
+          demoTenantId: 'stadtwerk-mauer',
+        })
+      );
+      expect(getVdmiBlueprintPackSeed(seedId)).toBe(seed);
+      expect(validateVdmiBlueprintPackSeed(seed)).toEqual({ valid: true, errors: [] });
+    });
+
+    test('references exactly the five existing GET bricks as source_hint_only, never executed', () => {
+      expect(seed.sourceHints.map((hint) => hint.path)).toEqual(expectedSourceHintPaths);
+      for (const hint of seed.sourceHints) {
+        expect(hint).toMatchObject({
+          method: 'GET',
+          operation: `GET ${hint.path}`,
+          readOnly: true,
+          invocation: 'source_hint_only',
+        });
+      }
+      expect(seed.allowedCommandHints).toHaveLength(expectedSourceHintPaths.length);
+      for (const hint of seed.allowedCommandHints) {
+        expect(hint.execution).toBe('metadata_only');
+      }
+    });
+
+    test('carries the required roles and evidence with positive synthetic follow-ups', () => {
+      expect(seed.roles.map((role) => role.roleId)).toEqual(
+        expect.arrayContaining(REQUIRED_FORMATWECHSEL_READINESS_REVIEW_ROLE_IDS)
+      );
+      expect(seed.roles).toContainEqual(
+        expect.objectContaining({ roleId: 'ROLE_MARKTKOMMUNIKATION', relation: 'verantwortlich' })
+      );
+      expect(seed.roles).toContainEqual(
+        expect.objectContaining({ roleId: 'ROLE_MANAGEMENT_REVIEW', relation: 'information' })
+      );
+      expect(seed.evidenceRequirements.map((item) => item.id)).toEqual(
+        REQUIRED_FORMATWECHSEL_READINESS_REVIEW_EVIDENCE
+      );
+      for (const item of seed.evidenceRequirements) {
+        expect(item.dataClass).toBe('syntheticTenantSeed');
+        expect(['clarification', 'evidence_gap']).toContain(item.missingState);
+        expect(item.enablesDossierAddition).toEqual(expect.stringContaining('Adds'));
+      }
+      expect(seed.positiveFollowUps.map((item) => item.missingDataPoint)).toEqual([
+        'scope_and_version_evidence',
+        'process_chain_and_fachtest_evidence',
+        'operational_safety_evidence',
+        'decision_readiness_and_next_gate_evidence',
+      ]);
+      expect(seed.positiveFollowUps[3].enablesDossierAddition).toMatch(
+        /human Go-live review status.*never the Go-live action/
+      );
+    });
+
+    test('exposes the canonical four-row VDMI matrix with role-only cells', () => {
+      const matrix = seed.demoProcessMatrix;
+      expect(matrix.slug).toBe('formatwechsel-readiness-review');
+      expect(matrix.headers).toEqual([
+        'Phase',
+        'V = Verantwortlich',
+        'D = Durchfuehrend',
+        'M = Mitwirkend',
+        'I = Informiert',
+        'Nachweise',
+      ]);
+      expect(matrix.roleLegend).toEqual({
+        V: 'Verantwortlich',
+        D: 'Durchfuehrend',
+        M: 'Mitwirkend',
+        I: 'Informiert',
+      });
+      expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+      expect(matrix.rows).toHaveLength(expectedRows.length);
+      expect(matrix.rows).toMatchObject(expectedRows);
+
+      const evidenceIds = new Set(seed.evidenceRequirements.map((item) => item.id));
+      for (const row of matrix.rows) {
+        for (const roleCell of [row.v, row.d, row.m, row.i]) {
+          expect(roleCell).toMatch(/^ROLE_[A-Z_]+$/);
+          expect(evidenceIds.has(roleCell)).toBe(false);
+        }
+        expect(row.evidenceRequirements.every((id) => evidenceIds.has(id))).toBe(true);
+        for (const dataClass of row.dataClassRefs) {
+          expect(REQUIRED_DATA_CLASSES).toContain(dataClass);
+        }
+        expect(row.enablesDossierAddition).toEqual(expect.any(String));
+      }
+    });
+
+    test('keeps the three data classes separate with an immutable public context', () => {
+      expect(Object.keys(seed.dataClasses)).toEqual(REQUIRED_DATA_CLASSES);
+      expect(seed.dataClasses.publicContextLayer).toMatchObject({
+        mutable: false,
+        resettable: false,
+      });
+      expect(seed.dataClasses.syntheticTenantSeed).toMatchObject({ mutable: false });
+      expect(seed.dataClasses.sandboxRuntimeArtifact).toMatchObject({ resettable: true });
+      expect(seed.publicContextMutationAllowed).toBe(false);
+      expect(seed.tenantProvisioningAllowed).toBe(false);
+      expect(seed.realWorldClaim).toBe('synthetic_demo_only');
+
+      const serialized = JSON.stringify(seed);
+      expect(serialized).not.toMatch(/\b(DE\d{9}|\d{11}|DE[0-9A-Z]{31})\b/);
+      expect(serialized).not.toMatch(/-----BEGIN|api[_-]?key"\s*:|password"\s*:|0x[0-9a-fA-F]{40}/);
+    });
+
+    test('keeps full no-call guards in forbiddenActions and decisionPolicy.mustNotTrigger', () => {
+      expect(seed.forbiddenActions).toEqual(expect.arrayContaining(requiredNoCallGuards));
+      expect(seed.decisionPolicy.mustNotTrigger).toEqual(
+        expect.arrayContaining(requiredNoCallGuards)
+      );
+      expect(seed.decisionPolicy.allowedStates).not.toContain('approved');
+      expect(seed.decisionPolicy.onMissingEvidence).toBe('evidence_gap');
+    });
+
+    test('maps missing evidence to non-executing ROLE_MARKTKOMMUNIKATION clarification items', () => {
+      const items = buildWorkbenchClarificationItems(seed);
+      expect(items).toHaveLength(REQUIRED_FORMATWECHSEL_READINESS_REVIEW_EVIDENCE.length);
+      for (const item of items) {
+        expect(item).toMatchObject({
+          execution: 'none',
+          sourceSeedId: seedId,
+          roleHint: 'ROLE_MARKTKOMMUNIKATION',
+          controlCase: 'selected_format_change_readiness_review',
+        });
+      }
+    });
+
+    test('syncs the matrix while Landing-Registry and Produktivseite stay pending', () => {
+      const sync = buildDemoProcessMatrixSync(seed);
+      const draft = buildLandingRegistryDraftFromBlueprintSeed(seed);
+      expect(sync).toMatchObject({
+        slug: 'formatwechsel-readiness-review',
+        synced: true,
+        roleLegendM: 'Mitwirkend',
+        rowCount: 4,
+        rowCountValid: true,
+        roleCellsClean: true,
+        dataClassesLimited: true,
+        forbiddenActionsStatus: 'not_introduced',
+        downstreamHandoff: {
+          blueprintPack: 'complete',
+          landingRegistry: 'pending',
+          productiveDemoRoom: 'pending',
+        },
+      });
+      expect(draft).toMatchObject({
+        seedId,
+        canonicalSource: `src/vdmi-blueprint-pack-seeds/${seedId}.json`,
+        syncProof: {
+          blueprintPack: { status: 'complete' },
+          productiveDemoRoom: { status: 'pending' },
+        },
+      });
+      expect(draft.sourceActions.notCalled).toEqual(
+        expect.arrayContaining(['cernion.de.publish', 'landing-registry.write', 'rundeck_execute'])
+      );
+    });
+
+    test.each([
+      [
+        'a required evidence requirement',
+        (clone) => {
+          clone.evidenceRequirements = clone.evidenceRequirements.filter(
+            (item) => item.id !== 'rollbackEvidence'
+          );
+        },
+        'missing evidence requirement: rollbackEvidence',
+      ],
+      [
+        'a required role',
+        (clone) => {
+          clone.roles = clone.roles.filter((role) => role.roleId !== 'ROLE_IT_OPERATIONS');
+        },
+        'missing role: ROLE_IT_OPERATIONS',
+      ],
+      [
+        'a data class in a role cell',
+        (clone) => {
+          clone.demoProcessMatrix.rows[2].m = 'sandboxRuntimeArtifact';
+        },
+        'role m must not be a data class',
+      ],
+      [
+        'roleLegend.M other than Mitwirkend',
+        (clone) => {
+          clone.demoProcessMatrix.roleLegend.M = 'Mitwirkende';
+        },
+        'demoProcessMatrix.roleLegend.M must be Mitwirkend',
+      ],
+      [
+        'an executable command hint',
+        (clone) => {
+          clone.allowedCommandHints[0].execution = 'live_call';
+        },
+        'must be metadata_only',
+      ],
+      [
+        'an unsupported row data class',
+        (clone) => {
+          clone.demoProcessMatrix.rows[0].dataClassRefs.push('productionData');
+        },
+        'uses unsupported data class: productionData',
+      ],
+    ])('rejects a clone with %s', (_label, mutate, expectedError) => {
+      const clone = JSON.parse(JSON.stringify(seed));
+      mutate(clone);
+      const result = validateVdmiBlueprintPackSeed(clone);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(expect.stringContaining(expectedError));
     });
   });
 });
