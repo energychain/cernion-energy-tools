@@ -1,6 +1,6 @@
 # Shepherd Refactoring Backlog
 
-Generated: 2026-10-16T21:04:41.960Z
+Generated: 2026-10-17T03:09:01.987Z
 
 ## Safe first work packages
 
@@ -28,6 +28,7 @@ Generated: 2026-10-16T21:04:41.960Z
 - `services/evidence-router.service.js`, `src/evidence-router.js`
 - `services/function-coverage.service.js`, `src/function-coverage.js`
 - `services/governance-cards.service.js`, `src/governance-cards.js`
+- `services/project-manifest.service.js`, `src/project-manifest.js`
 - `services/shared-service-journal.service.js`, `src/shared-service-journal.js`
 - `services/shared-service-learning.service.js`, `src/shared-service-learning.js`
 - `services/shared-service-notices.service.js`, `src/shared-service-notices.js`

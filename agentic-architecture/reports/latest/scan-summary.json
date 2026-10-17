@@ -1,23 +1,23 @@
 {
-  "generatedAt": "2026-10-16T21:04:41.960Z",
+  "generatedAt": "2026-10-17T03:09:01.987Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261016T210347Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261017T030753Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
     "version": "0.99.22"
   },
   "counts": {
-    "files": 2032,
-    "services": 163,
-    "srcJs": 404,
-    "tests": 508,
+    "files": 2058,
+    "services": 164,
+    "srcJs": 415,
+    "tests": 518,
     "integrations": 35,
-    "docs": 528,
+    "docs": 531,
     "agentFiles": 274,
     "openWebUiFiles": 37,
-    "evidenceFiles": 75,
-    "routingFiles": 92,
+    "evidenceFiles": 78,
+    "routingFiles": 114,
     "servicesWithoutTests": 30
   },
   "artifacts": {
@@ -30,23 +30,23 @@
   "topDirectories": [
     {
       "dir": "tests",
-      "files": 579
+      "files": 589
     },
     {
       "dir": "src",
-      "files": 472
+      "files": 483
     },
     {
       "dir": "docs",
-      "files": 401
+      "files": 404
     },
     {
       "dir": "services",
-      "files": 199
+      "files": 200
     },
     {
       "dir": "scripts",
-      "files": 87
+      "files": 88
     },
     {
       "dir": "tools",
@@ -225,6 +225,7 @@
     "presentation",
     "project-file",
     "project-graph",
+    "project-manifest",
     "project-structure",
     "project-upload",
     "query",
@@ -332,6 +333,10 @@
       "src/governance-cards.js"
     ],
     [
+      "services/project-manifest.service.js",
+      "src/project-manifest.js"
+    ],
+    [
       "services/shared-service-journal.service.js",
       "src/shared-service-journal.js"
     ],
@@ -374,24 +379,24 @@
   ],
   "domainTermCounts": {
     "agent": {
-      "files": 764,
-      "hits": 8398
+      "files": 770,
+      "hits": 8412
     },
     "personal-agent": {
-      "files": 307,
-      "hits": 2024
+      "files": 309,
+      "hits": 2029
     },
     "sidecar": {
       "files": 112,
       "hits": 1003
     },
     "capability": {
-      "files": 514,
-      "hits": 5949
+      "files": 522,
+      "hits": 5982
     },
     "broker": {
-      "files": 650,
-      "hits": 11387
+      "files": 661,
+      "hits": 11450
     },
     "openwebui": {
       "files": 95,
@@ -406,8 +411,8 @@
       "hits": 403
     },
     "evidence": {
-      "files": 794,
-      "hits": 25053
+      "files": 815,
+      "hits": 25262
     },
     "receipt": {
       "files": 167,
@@ -418,16 +423,16 @@
       "hits": 3707
     },
     "routing": {
-      "files": 353,
-      "hits": 2216
+      "files": 369,
+      "hits": 2302
     },
     "workflow": {
-      "files": 245,
-      "hits": 1606
+      "files": 248,
+      "hits": 1609
     },
     "tenant": {
-      "files": 801,
-      "hits": 17698
+      "files": 818,
+      "hits": 18113
     },
     "market": {
       "files": 403,
@@ -450,8 +455,8 @@
       "hits": 2920
     },
     "mako": {
-      "files": 306,
-      "hits": 2470
+      "files": 307,
+      "hits": 2493
     },
     "willi": {
       "files": 113,
@@ -474,8 +479,8 @@
       "hits": 613
     },
     "regulator": {
-      "files": 341,
-      "hits": 2647
+      "files": 342,
+      "hits": 2694
     },
     "decision": {
       "files": 454,

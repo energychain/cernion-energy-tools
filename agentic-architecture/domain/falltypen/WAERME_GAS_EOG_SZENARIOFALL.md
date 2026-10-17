@@ -1,6 +1,6 @@
 # Wärme-/Gas-/EOG-Szenariofall
 
-Generated: 2026-10-16T21:04:46.264Z
+Generated: 2026-10-17T03:09:07.450Z
 
 Status: observed
 Priority: 7
@@ -91,6 +91,7 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 
 - `docs/validation/tenant-memory-868-live.json` (497 hits)
 - `src/capability-catalog.js` (338 hits)
+- `docs/validation/practice-evaluation-887-live-1.md` (239 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.json` (191 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (191 hits)
 - `docs/validation/issue-874-before.md` (184 hits)
@@ -113,4 +114,3 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `services/dashboard-api/methods-part-07-of-14.js` (48 hits)
 - `services/api.service.js` (47 hits)
 - `services/gas-storage.service.js` (41 hits)
-- `src/report-builder.js` (41 hits)

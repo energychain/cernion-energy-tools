@@ -1,6 +1,6 @@
 # Netzanschluss-/Kapazitäts-Klärfall
 
-Generated: 2026-10-16T21:04:46.264Z
+Generated: 2026-10-17T03:09:07.450Z
 
 Status: observed
 Priority: 4
@@ -94,6 +94,7 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `docs/validation/tenant-memory-868-live.json` (71 hits)
 - `services/capability-broker.service.js` (67 hits)
 - `docs/validation/issue-874-before.md` (53 hits)
+- `docs/validation/practice-evaluation-887-live-1.md` (45 hits)
 - `src/report-builder.js` (44 hits)
 - `docs/validation/813-live.json` (36 hits)
 - `src/answer-dossier-hydration-rules.json` (35 hits)
@@ -113,4 +114,3 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `docs/v0.52-implementation-plans/v0.52.8-conversational-onboarding.md` (17 hits)
 - `docs/v0.52-implementation-plans/v0.52.x-agentic-redteam-uat-bank-dd.md` (17 hits)
 - `src/semantic-domains.js` (17 hits)
-- `services/dashboard-api/methods-part-13-of-14.js` (16 hits)

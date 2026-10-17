@@ -1,6 +1,6 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-16T21:04:41.960Z
+Generated: 2026-10-17T03:09:01.987Z
 
 ## Observed adapter surface
 
@@ -75,6 +75,7 @@ Routing/capability/broker/manifest files:
 - `docs/v0.52-implementation-plans/v0.52.1-capability-broker.md`
 - `docs/v0.58-architecture/DECLARATIVE_BLUEPRINT_AND_CASCADING_BROKER_SPEC.md`
 - `docs/validation/739-routing.json`
+- `docs/validation/887-projektakte-manifest.md`
 - `docs/validation/dataset-routing-live.json`
 - `docs/VNB_LOOKUP_ROUTING.md`
 - `integrations/budibase/manifests/case-view-manifest-stadtwerk-mauer-pv-missing-nap.json`
@@ -85,6 +86,7 @@ Routing/capability/broker/manifest files:
 - `scripts/check-capability-keywords.js`
 - `scripts/eval-capability-routing.js`
 - `scripts/generate-operation-capability-index.js`
+- `scripts/generate-project-manifest-fixtures.js`
 - `scripts/validate-workbench-dataset-routing-live.js`
 - `scripts/verify-capability-routing-baseline.js`
 - `services/agent-manifest.service.js`
@@ -93,6 +95,7 @@ Routing/capability/broker/manifest files:
 - `services/domain-routes-management.service.js`
 - `services/evidence-router.service.js`
 - `services/mqtt-broker.service.js`
+- `services/project-manifest.service.js`
 - `src/agent-sidecar-tool-manifest.js`
 - `src/answer-dossier-domain-routes.json`
 - `src/capability-catalog.js`
@@ -116,8 +119,19 @@ Routing/capability/broker/manifest files:
 - `src/operation-capability-index.js`
 - `src/personal-agent-routing-graph.js`
 - `src/personal-agent-routing.js`
+- `src/project-manifest-catalog.js`
+- `src/project-manifest-correction.js`
+- `src/project-manifest-dossier.js`
+- `src/project-manifest-evidence.js`
+- `src/project-manifest-generation.js`
+- `src/project-manifest-metadata.js`
+- `src/project-manifest-prose.js`
+- `src/project-manifest-routing.js`
+- `src/project-manifest-store.js`
+- `src/project-manifest.js`
 - `src/workbench-capability-loop.js`
 - `src/workbench-intent-router.js`
+- `src/workbench-project-manifest.js`
 - `tests/agent-manifest.service.test.js`
 - `tests/agent-sidecar-willi-mako-routing.test.js`
 - `tests/capability-broker.service.test.js`
@@ -149,8 +163,16 @@ Routing/capability/broker/manifest files:
 - `tests/personal-agent-routing-graph.test.js`
 - `tests/personal-agent-routing-policy.regression.test.js`
 - `tests/personal-agent-routing.test.js`
+- `tests/practice-project-routing-diagnostics.test.js`
+- `tests/project-manifest-evidence.test.js`
+- `tests/project-manifest-generation.test.js`
+- `tests/project-manifest-routing-chat.test.js`
+- `tests/project-manifest-routing.test.js`
+- `tests/project-manifest.service.test.js`
+- `tests/project-manifest.test.js`
 - `tests/workbench-capability-loop.test.js`
 - `tests/workbench-intent-router.test.js`
+- `tests/workbench-project-manifest.test.js`
 
 Service names that should be capability-mapped:
 
@@ -269,8 +291,8 @@ Service names that should be capability-mapped:
 - `presentation`
 - `project-file`
 - `project-graph`
+- `project-manifest`
 - `project-structure`
 - `project-upload`
 - `query`
 - `rcs-rule-catalog`
-- `rcs-simulation-run`

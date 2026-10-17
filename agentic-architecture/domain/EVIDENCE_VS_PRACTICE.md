@@ -1,6 +1,6 @@
 # Evidence vs Practice
 
-Generated: 2026-10-16T21:04:46.264Z
+Generated: 2026-10-17T03:09:07.450Z
 
 ## Rule
 
@@ -26,7 +26,7 @@ Evidenz begrenzt Behauptungen. Sie darf nicht verhindern, dass CET einen Fall fa
 - `src/answer-dossier-hydration-rules.json` (4049 hits)
 - `services/dashboard-api/methods-part-05-of-14.js` (1574 hits)
 - `services/dashboard-api/methods-part-04-of-14.js` (1416 hits)
-- `services/personal-agent/actions-part-01-of-1.js` (1200 hits)
+- `services/personal-agent/actions-part-01-of-1.js` (1204 hits)
 - `services/dashboard-api/methods-part-06-of-14.js` (1195 hits)
 - `services/dashboard-api/methods-part-03-of-14.js` (1119 hits)
 - `src/evidence-registry.js` (1100 hits)
@@ -38,7 +38,8 @@ Evidenz begrenzt Behauptungen. Sie darf nicht verhindern, dass CET einen Fall fa
 - `services/agent-receipts.service.js` (479 hits)
 - `function-model.report.md` (397 hits)
 - `services/personal-agent/shared.js` (355 hits)
-- `src/answer-dossier-builder.js` (335 hits)
+- `src/answer-dossier-builder.js` (349 hits)
+- `docs/validation/practice-evaluation-887-live-1.md` (325 hits)
 - `src/vdmi-blueprint-pack-seeds.js` (309 hits)
 - `services/capability-broker.service.js` (296 hits)
 - `services/dashboard-api/methods-part-09-of-14.js` (279 hits)
@@ -47,4 +48,3 @@ Evidenz begrenzt Behauptungen. Sie darf nicht verhindern, dass CET einen Fall fa
 - `services/finance-agent.service.js` (256 hits)
 - `services/api.service.js` (255 hits)
 - `services/dashboard-api/actions-part-02-of-8.js` (236 hits)
-- `services/dashboard-api/actions-part-03-of-8.js` (223 hits)

@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-16T21:04:41.960Z
+Generated: 2026-10-17T03:09:01.987Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 2032
-- Services: 163
-- src/*.js files: 404
-- Tests: 508
+- Files scanned: 2058
+- Services: 164
+- src/*.js files: 415
+- Tests: 518
 - Integrations files: 35
-- Markdown/docs files: 528
+- Markdown/docs files: 531
 
 ## Existing validation summary
 
@@ -26,11 +26,11 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 579 files
-- `src`: 472 files
-- `docs`: 401 files
-- `services`: 199 files
-- `scripts`: 87 files
+- `tests`: 589 files
+- `src`: 483 files
+- `docs`: 404 files
+- `services`: 200 files
+- `scripts`: 88 files
 - `tools`: 85 files
 - `agentic-architecture`: 61 files
 - `integrations`: 35 files
@@ -50,8 +50,8 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 ## Agentic surface
 
 - Agent/capability/sidecar related files: 274
-- Routing/capability/broker/manifest files: 92
-- Evidence/HITL/receipt/dossier files: 75
+- Routing/capability/broker/manifest files: 114
+- Evidence/HITL/receipt/dossier files: 78
 - OpenWebUI/ChatGPT adapter files: 37
 
 Primary agentic files:
@@ -190,6 +190,7 @@ Potential duplicate or overlapping slugs:
 - `services/evidence-router.service.js`, `src/evidence-router.js`
 - `services/function-coverage.service.js`, `src/function-coverage.js`
 - `services/governance-cards.service.js`, `src/governance-cards.js`
+- `services/project-manifest.service.js`, `src/project-manifest.js`
 - `services/shared-service-journal.service.js`, `src/shared-service-journal.js`
 - `services/shared-service-learning.service.js`, `src/shared-service-learning.js`
 - `services/shared-service-notices.service.js`, `src/shared-service-notices.js`
