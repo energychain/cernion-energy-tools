@@ -1,0 +1,556 @@
+{
+  "generatedAt": "2026-10-17T15:16:29.314Z",
+  "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261017T151534Z",
+  "counts": {
+    "files": 2097,
+    "candidateFiles": 1249,
+    "services": 164,
+    "srcFiles": 489,
+    "docs": 552,
+    "unclassifiedServices": 0
+  },
+  "clusters": {
+    "casework-and-assistance": {
+      "label": "Fallarbeit und Assistenz",
+      "files": 25,
+      "services": 2,
+      "hits": 10724
+    },
+    "evidence-and-trust": {
+      "label": "Evidence, Nachweis und Vertrauen",
+      "files": 25,
+      "services": 23,
+      "hits": 19234
+    },
+    "mako-and-edm": {
+      "label": "MaKo / EDM / Stammdaten",
+      "files": 25,
+      "services": 8,
+      "hits": 3682
+    },
+    "grid-and-connection": {
+      "label": "Netz, Anschluss und Kapazität",
+      "files": 25,
+      "services": 49,
+      "hits": 11012
+    },
+    "forecast-and-market": {
+      "label": "Prognose, Markt und Portfolio",
+      "files": 25,
+      "services": 17,
+      "hits": 4271
+    },
+    "redispatch-and-controllability": {
+      "label": "Redispatch, Steuerbarkeit und Flexibilität",
+      "files": 25,
+      "services": 3,
+      "hits": 4728
+    },
+    "gas-heat-and-eog": {
+      "label": "Gas, Wärme und EOG",
+      "files": 25,
+      "services": 3,
+      "hits": 4287
+    },
+    "tenant-and-operation": {
+      "label": "Tenant, Rollen und Betrieb",
+      "files": 25,
+      "services": 52,
+      "hits": 9585
+    },
+    "openwebui-agentic-routing": {
+      "label": "OpenWebUI und agentisches Routing",
+      "files": 25,
+      "services": 7,
+      "hits": 5047
+    }
+  },
+  "ambiguousTerms": [
+    {
+      "term": "Evidenz",
+      "risk": "Kann als Beweiszwang missverstanden werden und natürliche Fallarbeit blockieren.",
+      "directive": "Unterscheide harte Nachweispflicht, fachliche Plausibilisierung und Arbeitsannahme."
+    },
+    {
+      "term": "Freigabe",
+      "risk": "Klingt nach finaler Entscheidung, obwohl CET oft nur vorbereitet oder prüft.",
+      "directive": "Für unsichere fachliche Zwischenschritte Befassung, Klärpunkt, Prüfauftrag oder nächster Arbeitsschritt verwenden."
+    },
+    {
+      "term": "Routing",
+      "risk": "Reduziert Facharbeit auf Toolauswahl.",
+      "directive": "Routing als Fall- und Prozesszustandsentscheidung modellieren, nicht nur als Service-/Action-Mapping."
+    },
+    {
+      "term": "Capability",
+      "risk": "Kann zu technisch bleiben und fachliche Absicht verstecken.",
+      "directive": "Jede Capability braucht Intent, Actor, Prozesszustand, Evidence Boundary, HITL Boundary und natürliche Antwortform."
+    },
+    {
+      "term": "Marktkommunikation",
+      "risk": "Doppeldeutig zwischen energiewirtschaftlicher MaKo und Publishing/Kommunikation.",
+      "directive": "Bei Publishing/Comms andere Begriffe verwenden; bei MaKo explizit EDM/Marktpartner/Prozesskontext nennen."
+    }
+  ],
+  "caseTypes": [
+    {
+      "id": "stammdaten_marktrollen_klaerfall",
+      "title": "Stammdaten-/Marktrollen-Klärfall",
+      "maturity": "observed",
+      "priority": 1,
+      "clusterIds": [
+        "mako-and-edm",
+        "casework-and-assistance",
+        "openwebui-agentic-routing"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "services/utility-report.service.js",
+          "hits": 310
+        },
+        {
+          "path": "docs/agent-responses/rd-audit.json",
+          "hits": 301
+        },
+        {
+          "path": "src/report-builder.js",
+          "hits": 237
+        },
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 231
+        },
+        {
+          "path": "docs/validation/813-live.json",
+          "hits": 207
+        },
+        {
+          "path": "docs/validation/practice-evaluation-887-live-1.md",
+          "hits": 199
+        },
+        {
+          "path": "docs/validation/issue-874-before.md",
+          "hits": 198
+        },
+        {
+          "path": "services/grid-operations.service.js",
+          "hits": 191
+        },
+        {
+          "path": "docs/validation/practice-evaluation-baseline-corrected.json",
+          "hits": 169
+        },
+        {
+          "path": "docs/validation/practice-evaluation-baseline-corrected.md",
+          "hits": 165
+        }
+      ]
+    },
+    {
+      "id": "messwert_edm_plausibilitaetsfall",
+      "title": "Messwert-/EDM-Plausibilitätsfall",
+      "maturity": "observed",
+      "priority": 2,
+      "clusterIds": [
+        "mako-and-edm",
+        "forecast-and-market",
+        "evidence-and-trust"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "docs/validation/739-routing.json",
+          "hits": 308
+        },
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 299
+        },
+        {
+          "path": "docs/validation/practice-evaluation-baseline-corrected.json",
+          "hits": 253
+        },
+        {
+          "path": "docs/validation/practice-evaluation-baseline.json",
+          "hits": 251
+        },
+        {
+          "path": "src/evidence-registry.js",
+          "hits": 187
+        },
+        {
+          "path": "services/api.service.js",
+          "hits": 163
+        },
+        {
+          "path": "src/answer-dossier-hydration-rules.json",
+          "hits": 144
+        },
+        {
+          "path": "services/energy-market.service.js",
+          "hits": 139
+        },
+        {
+          "path": "services/dashboard-api/methods-part-05-of-14.js",
+          "hits": 131
+        },
+        {
+          "path": "services/forecast.service.js",
+          "hits": 115
+        }
+      ]
+    },
+    {
+      "id": "kunden_service_klaerfall",
+      "title": "Kunden-/Service-Klärfall",
+      "maturity": "routable",
+      "priority": 3,
+      "clusterIds": [
+        "casework-and-assistance",
+        "tenant-and-operation",
+        "openwebui-agentic-routing"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 479
+        },
+        {
+          "path": "docs/validation/813-live.json",
+          "hits": 343
+        },
+        {
+          "path": "agentic-architecture/domain/ENERGY_DOMAIN_CANON.md",
+          "hits": 299
+        },
+        {
+          "path": "agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md",
+          "hits": 299
+        },
+        {
+          "path": "agentic-architecture/reports/latest/architecture-scan.md",
+          "hits": 272
+        },
+        {
+          "path": "services/capability-broker.service.js",
+          "hits": 261
+        },
+        {
+          "path": "docs/validation/practice-evaluation-887-live-1.md",
+          "hits": 227
+        },
+        {
+          "path": "docs/validation/issue-874-before.md",
+          "hits": 214
+        },
+        {
+          "path": "src/report-builder.js",
+          "hits": 174
+        },
+        {
+          "path": "services/chatgpt-sidecar.service.js",
+          "hits": 156
+        }
+      ]
+    },
+    {
+      "id": "netzanschluss_kapazitaets_klaerfall",
+      "title": "Netzanschluss-/Kapazitäts-Klärfall",
+      "maturity": "observed",
+      "priority": 4,
+      "clusterIds": [
+        "casework-and-assistance",
+        "openwebui-agentic-routing"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "docs/agent-responses/rd-audit.json",
+          "hits": 236
+        },
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 91
+        },
+        {
+          "path": "docs/validation/tenant-memory-868-live.json",
+          "hits": 71
+        },
+        {
+          "path": "services/capability-broker.service.js",
+          "hits": 67
+        },
+        {
+          "path": "docs/validation/issue-874-before.md",
+          "hits": 53
+        },
+        {
+          "path": "docs/validation/practice-evaluation-887-live-1.md",
+          "hits": 45
+        },
+        {
+          "path": "src/report-builder.js",
+          "hits": 44
+        },
+        {
+          "path": "docs/validation/813-live.json",
+          "hits": 36
+        },
+        {
+          "path": "src/answer-dossier-hydration-rules.json",
+          "hits": 35
+        },
+        {
+          "path": "docs/validation/tenant-memory-863-live.json",
+          "hits": 33
+        }
+      ]
+    },
+    {
+      "id": "prognose_abweichungsfall",
+      "title": "Prognose-/Abweichungsfall",
+      "maturity": "observed",
+      "priority": 5,
+      "clusterIds": [
+        "casework-and-assistance",
+        "openwebui-agentic-routing"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 210
+        },
+        {
+          "path": "services/mastr-monitor.service.js",
+          "hits": 158
+        },
+        {
+          "path": "docs/validation/739-routing.json",
+          "hits": 150
+        },
+        {
+          "path": "docs/sonarcloud-security-review.json",
+          "hits": 144
+        },
+        {
+          "path": "services/energy-market.service.js",
+          "hits": 141
+        },
+        {
+          "path": "services/forecast-sandbox.service.js",
+          "hits": 133
+        },
+        {
+          "path": "src/report-builder.js",
+          "hits": 124
+        },
+        {
+          "path": "services/in-memory-join.service.js",
+          "hits": 120
+        },
+        {
+          "path": "src/answer-dossier-hydration-rules.json",
+          "hits": 111
+        },
+        {
+          "path": "services/forecast.service.js",
+          "hits": 109
+        }
+      ]
+    },
+    {
+      "id": "redispatch_steuerbarkeits_readiness",
+      "title": "Redispatch-/Steuerbarkeits-Readiness",
+      "maturity": "observed",
+      "priority": 6,
+      "clusterIds": [
+        "casework-and-assistance",
+        "openwebui-agentic-routing"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "docs/agent-responses/rd-audit.json",
+          "hits": 667
+        },
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 586
+        },
+        {
+          "path": "src/answer-dossier-hydration-rules.json",
+          "hits": 416
+        },
+        {
+          "path": "docs/validation/739-routing.json",
+          "hits": 372
+        },
+        {
+          "path": "services/capability-broker.service.js",
+          "hits": 345
+        },
+        {
+          "path": "src/validation-findings.js",
+          "hits": 314
+        },
+        {
+          "path": "services/dashboard-api/methods-part-04-of-14.js",
+          "hits": 201
+        },
+        {
+          "path": "services/dashboard-api/methods-part-05-of-14.js",
+          "hits": 183
+        },
+        {
+          "path": "services/redispatch-expost.service.js",
+          "hits": 180
+        },
+        {
+          "path": "services/api.service.js",
+          "hits": 179
+        }
+      ]
+    },
+    {
+      "id": "waerme_gas_eog_szenariofall",
+      "title": "Wärme-/Gas-/EOG-Szenariofall",
+      "maturity": "observed",
+      "priority": 7,
+      "clusterIds": [
+        "casework-and-assistance",
+        "openwebui-agentic-routing"
+      ],
+      "signalFiles": 25,
+      "topSignalFiles": [
+        {
+          "path": "docs/validation/tenant-memory-868-live.json",
+          "hits": 497
+        },
+        {
+          "path": "src/capability-catalog.js",
+          "hits": 338
+        },
+        {
+          "path": "docs/validation/practice-evaluation-887-live-1.md",
+          "hits": 239
+        },
+        {
+          "path": "docs/validation/practice-evaluation-baseline-corrected.json",
+          "hits": 191
+        },
+        {
+          "path": "docs/validation/practice-evaluation-baseline-corrected.md",
+          "hits": 191
+        },
+        {
+          "path": "docs/validation/issue-874-before.md",
+          "hits": 184
+        },
+        {
+          "path": "docs/validation/practice-evaluation-baseline.md",
+          "hits": 184
+        },
+        {
+          "path": "docs/validation/739-routing.json",
+          "hits": 183
+        },
+        {
+          "path": "docs/validation/practice-evaluation-baseline.json",
+          "hits": 183
+        },
+        {
+          "path": "services/capability-broker.service.js",
+          "hits": 180
+        }
+      ]
+    }
+  ],
+  "unclassifiedServices": [],
+  "topEvidenceFiles": [
+    {
+      "path": "src/answer-dossier-hydration-rules.json",
+      "hits": 4049
+    },
+    {
+      "path": "services/dashboard-api/methods-part-05-of-14.js",
+      "hits": 1574
+    },
+    {
+      "path": "services/dashboard-api/methods-part-04-of-14.js",
+      "hits": 1416
+    },
+    {
+      "path": "services/personal-agent/actions-part-01-of-1.js",
+      "hits": 1204
+    },
+    {
+      "path": "services/dashboard-api/methods-part-06-of-14.js",
+      "hits": 1195
+    },
+    {
+      "path": "services/dashboard-api/methods-part-03-of-14.js",
+      "hits": 1119
+    },
+    {
+      "path": "src/evidence-registry.js",
+      "hits": 1100
+    },
+    {
+      "path": "src/capability-catalog.js",
+      "hits": 1024
+    },
+    {
+      "path": "services/dashboard-api/methods-part-13-of-14.js",
+      "hits": 660
+    },
+    {
+      "path": "services/dashboard-api/methods-part-12-of-14.js",
+      "hits": 642
+    },
+    {
+      "path": "services/dashboard-api/methods-part-07-of-14.js",
+      "hits": 636
+    },
+    {
+      "path": "services/dashboard-api/methods-part-11-of-14.js",
+      "hits": 550
+    },
+    {
+      "path": "services/agent-receipts.service.js",
+      "hits": 479
+    },
+    {
+      "path": "function-model.report.md",
+      "hits": 397
+    },
+    {
+      "path": "services/personal-agent/shared.js",
+      "hits": 355
+    },
+    {
+      "path": "src/answer-dossier-builder.js",
+      "hits": 349
+    },
+    {
+      "path": "docs/validation/practice-evaluation-887-live-1.md",
+      "hits": 325
+    },
+    {
+      "path": "src/vdmi-blueprint-pack-seeds.js",
+      "hits": 309
+    },
+    {
+      "path": "services/capability-broker.service.js",
+      "hits": 296
+    },
+    {
+      "path": "services/dashboard-api/methods-part-09-of-14.js",
+      "hits": 279
+    }
+  ],
+  "fingerprint": "80af0d662747bf2514185c959739f5830b9acee8f3b7639bd516d9e88325f293"
+}

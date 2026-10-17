@@ -1,7 +1,7 @@
 'use strict';
 
 const { Errors } = require('moleculer');
-const { GOVERNANCE_BY_DOMAIN, governanceForDomain } = require('./workbench-tool-governance');
+const { GOVERNANCE_BY_DOMAIN } = require('./workbench-tool-governance');
 
 const SAFE_ACTIONS = ['inspect_evidence', 'clarify', 'prepare_handoff'];
 const SKILL_STATUSES = ['draft', 'proposed', 'active', 'deprecated', 'archived'];

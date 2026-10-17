@@ -4870,7 +4870,7 @@ module.exports = {
         );
       }
 
-      let responsePlan = execution?.plan || routedPlan || plan;
+      const responsePlan = execution?.plan || routedPlan || plan;
       const receiptExecutionUsed = receiptSelectionResult?.execution?.used === true;
       const receiptGroundedReply = receiptExecutionUsed
         ? this.buildGroundedReceiptReply(ctx.params.message, receiptSelectionResult, execution)

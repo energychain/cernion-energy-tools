@@ -1,0 +1,8 @@
+{
+  "generatedAt": "2026-10-17T15:16:29.361Z",
+  "run": "20261017T151534Z",
+  "branch": "shepherd/runtime-refactor-20261017T151533Z",
+  "fingerprint": "10abcac192a1df2e41a2edd1a1d6102f05aad22e6b6a85140d4962bead0d61c3",
+  "previousFingerprint": "7875f23dbdf24a68df40bb9bee2c74108568ee198d722b9b00e42b0aecc6e6d1",
+  "scope": "agentic-architecture docs/canon/domain generated from Shepherd scan"
+}
