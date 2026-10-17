@@ -93,6 +93,7 @@ SITUATION_SCHEMA.properties.conversationContext = object({
   durable: { type: 'boolean' },
 });
 SITUATION_SCHEMA.properties.conversationContext.properties.mandate = text;
+SITUATION_SCHEMA.properties.conversationContext.properties.statement = { type: 'string' };
 SITUATION_SCHEMA.properties.responseMode = {
   type: 'string',
   enum: ['standard', 'conversation', 'correspondence'],
