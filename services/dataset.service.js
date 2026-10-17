@@ -54,6 +54,7 @@ async function matchingDatasets(records, question, conversationId) {
 
 module.exports = {
   name: 'dataset',
+  mixins: [require('../src/dataset-evidence').mixin],
   created() {
     this.datasetPool = new DatasetSqlitePool(
       process.env.WORKBENCH_DATASET_DB_PATH || 'data/datasets'
@@ -184,6 +185,7 @@ module.exports = {
         question: 'string',
         documents: { type: 'array', optional: true, default: [] },
         conversationId: 'string',
+        channel: { type: 'string', optional: true },
         correctionDatasetId: { type: 'string', optional: true },
         selectionDatasetIds: { type: 'array', items: 'string', optional: true, default: [] },
         clarificationOnly: { type: 'boolean', optional: true, default: false },
@@ -336,6 +338,11 @@ module.exports = {
           title: datasetSheetTitle(table.name, table.sheet, table.explicitSheet),
           sensitivityLevel: table.sensitivityLevel || ctx.params.sensitivityLevel,
           semantic,
+          evidenceAnchors: require('../src/tenant-evidence-anchors').tableSourceAnchors(
+            table.rows,
+            columns,
+            table.sheet
+          ),
           columns,
           profile: table.profile,
           rowCount: table.rows.length,
@@ -356,6 +363,7 @@ module.exports = {
             roles: p.roles,
             at: now,
             conversationId,
+            channel: ctx.params.channel || 'api',
             filename: table.name,
           },
           audit: [{ kind: 'created', actorId: p.actorId, at: now }],

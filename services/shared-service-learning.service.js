@@ -23,6 +23,7 @@ const correctionParams = {
       'gap',
       'projectEdge',
       'projectManifest',
+      'tenantEvidence',
     ],
   },
   correction: 'object',
@@ -56,7 +57,7 @@ module.exports = {
       'Apply an authenticated admin correction',
       function (ctx) {
         const p = principal(ctx, ctx.params);
-        if (ctx.params.target !== 'projectManifest') admin(p);
+        if (!['projectManifest', 'tenantEvidence'].includes(ctx.params.target)) admin(p);
         return this.enqueue(() => this.apply(ctx));
       },
       correctionParams
@@ -180,7 +181,21 @@ module.exports = {
       if (doc.pending) {
         const consumer =
           doc.target === 'coverage' ? 'function-coverage.correct' : 'activation.correct';
-        if (doc.target === 'projectManifest')
+        if (doc.target === 'tenantEvidence')
+          await ctx.call(
+            require('../src/tenant-evidence-sources').evidenceCorrectionAction(
+              correction.sourceType
+            ),
+            {
+              correction,
+              tenantId: p.tenantId,
+              actorId: p.actorId,
+              correctionId,
+              at: doc.at,
+              sequence: doc.sequence,
+            }
+          );
+        else if (doc.target === 'projectManifest')
           await ctx.call('project-manifest.correct', { ...event, at: doc.at });
         else if (doc.target === 'projectEdge')
           await ctx.call('project-graph.correct', { ...event, at: doc.at });
@@ -201,6 +216,7 @@ module.exports = {
       const doc = await this.db.get(
         `correction:${encodeURIComponent(p.tenantId)}:${encodeURIComponent(ctx.params.correctionId)}`
       );
+      if (doc.target === 'tenantEvidence') deny('Use a new tenant evidence correction');
       if (doc.target === 'projectManifest') deny('Use a new project manifest correction');
       if (doc.target === 'projectEdge') deny('Use a new project edge correction');
       if (doc.target === 'gap')

@@ -394,26 +394,121 @@ async function readJoinKey(ctx, projectId, node, keys) {
 }
 
 async function projectManifestAnswer(ctx, question, options = {}) {
-  if (!ctx.broker?.getLocalService?.('project-manifest')) return null;
-  const settings = ctx.broker.getLocalService('project-manifest').settings;
+  const settings = ctx.broker?.getLocalService?.('project-manifest')?.settings || {};
   options = { catalog: settings.catalog, operations: settings.operations, ...options };
-  const candidates = await require('./evidence-endpoint-catalog').projectEvidenceCandidates(ctx);
-  const selected = require('./dataset-routing').selectProjectCandidates(candidates, question, {
-    ...settings.routing,
-    ...options.routing,
-    onAssessment: options.onAssessment,
-  })[0];
-  if (!selected) return null;
-  const result = await readProjectEvidence(ctx, selected, question, options);
-  if (!result) return null;
+  let candidates = await require('./evidence-endpoint-catalog').projectEvidenceCandidates(
+    ctx,
+    question
+  );
+  const select = (routingQuestion) =>
+    require('./dataset-routing').selectProjectCandidates(candidates, routingQuestion, {
+      ...settings.routing,
+      ...options.routing,
+      onAssessment: options.onAssessment,
+    });
+  let selected = select(question);
+  if (!selected.length) {
+    const contextual = await require('./tenant-evidence-question').contextualEvidenceQuestion(
+      ctx,
+      candidates,
+      question
+    );
+    if (contextual) {
+      candidates = await require('./evidence-endpoint-catalog').projectEvidenceCandidates(
+        ctx,
+        contextual
+      );
+      selected = select(contextual);
+    }
+  }
+  if (
+    selected.length < (options.minSources || 1) ||
+    (options.requireSourceIds?.length &&
+      !selected.some((candidate) => options.requireSourceIds.includes(candidate.sourceId)))
+  )
+    return null;
+  if (
+    selected.some((candidate) => candidate.sourceType !== 'project' && candidate.sourceType) &&
+    !(await require('./tenant-evidence-question').evidenceContentRequested(ctx, question))
+  )
+    return null;
+  const results = [];
+  for (const candidate of selected) {
+    const result = await require('./tenant-evidence-sources').readEvidenceSource(
+      ctx,
+      candidate,
+      question,
+      options
+    );
+    if (result) results.push({ ...result, candidate });
+  }
+  if (!results.length) return null;
+  const chat = selected.some(
+    (candidate) => candidate.sourceType && candidate.sourceType !== 'project'
+  );
+  if (!chat) {
+    const result = results[0];
+    const selection = `Ich habe dafür die Projektakte „${result.title}“ herangezogen.`;
+    return {
+      ...result,
+      selection,
+      responseText: [
+        selection,
+        ...result.evidence.map((entry) => entry.value),
+        ...result.gaps,
+      ].join('\n\n'),
+    };
+  }
+  const evidence = results
+    .flatMap((result) => result.evidence)
+    .map((entry) => ({
+      ...entry,
+      metadata: {
+        ...entry.metadata,
+        sourceLabel:
+          entry.metadata.sourceLabel || entry.metadata.filename || entry.metadata.projectTitle,
+      },
+    }));
+  const labels = [
+    ...new Set(
+      evidence.map(
+        (entry) =>
+          entry.metadata.sourceLabel || entry.metadata.filename || entry.metadata.projectTitle
+      )
+    ),
+  ];
+  const selection = evidence.length
+    ? `Ich habe dafür ${evidence
+        .map(
+          (entry) =>
+            `„${entry.metadata.sourceLabel || entry.metadata.filename || entry.metadata.projectTitle}“` +
+            (entry.metadata.displayRef
+              ? ` aus Fall ${entry.metadata.displayRef}`
+              : entry.metadata.conversationId
+                ? entry.metadata.conversationId ===
+                  (ctx.params?.conversationId || ctx.params?.openWebuiConversationId)
+                  ? ' aus diesem Gespräch'
+                  : ' aus einem früheren Gespräch'
+                : '')
+        )
+        .join(' und ')} herangezogen.`
+    : '';
+  const gaps = results.flatMap((result) => result.gaps);
   return {
-    ...result,
-    selection: `Ich habe dafür die Projektakte „${result.title}“ herangezogen.`,
-    responseText: [
-      `Ich habe dafür die Projektakte „${result.title}“ herangezogen.`,
-      ...result.evidence.map((entry) => entry.value),
-      ...result.gaps,
-    ].join('\n\n'),
+    evidence,
+    gaps,
+    trace: results.flatMap((result) => result.trace),
+    title: labels.join(' · '),
+    selection,
+    projectSelections: selected
+      .filter((candidate) => candidate.sourceType === 'project')
+      .map(({ projectId, questionType }) => ({ projectId, questionTypeId: questionType?.id })),
+    tenantSelection: selected
+      .filter((candidate) => candidate.sourceType !== 'project')
+      .map(({ sourceType, sourceId }) => ({ sourceType, sourceId })),
+    responseText: [selection, ...evidence.map((entry) => entry.value), ...gaps]
+      .filter(Boolean)
+      .join('\n\n'),
   };
 }
 

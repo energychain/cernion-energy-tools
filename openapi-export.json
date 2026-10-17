@@ -77062,6 +77062,45 @@
                       "type": "string",
                       "description": "Readiness state"
                     },
+                    "tenantEvidenceSelection": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "sourceType": {
+                            "type": "string",
+                            "description": "Registered source adapter type"
+                          },
+                          "sourceId": {
+                            "type": "string",
+                            "description": "Source-owned record id; target for tenantEvidence corrections"
+                          }
+                        },
+                        "required": [
+                          "sourceType",
+                          "sourceId"
+                        ]
+                      }
+                    },
+                    "caseProposal": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "cetCaseId": {
+                          "type": "string",
+                          "description": "Visible origin case proposed for continuation"
+                        },
+                        "displayRef": {
+                          "type": "string",
+                          "description": "Human-readable case reference"
+                        }
+                      },
+                      "required": [
+                        "cetCaseId",
+                        "displayRef"
+                      ]
+                    },
                     "responseText": {
                       "type": "string",
                       "description": "UI response text"

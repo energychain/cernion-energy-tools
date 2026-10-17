@@ -1,8 +1,7 @@
 'use strict';
 
-async function projectEvidenceCandidates(ctx) {
-  if (!ctx.broker?.getLocalService?.('project-manifest')) return [];
-  return ctx.call('project-manifest.candidates', {});
+async function projectEvidenceCandidates(ctx, question = '') {
+  return require('./tenant-evidence-sources').evidenceCandidates(ctx, question);
 }
 
 function describeProjectEndpoint(endpoint, operation) {

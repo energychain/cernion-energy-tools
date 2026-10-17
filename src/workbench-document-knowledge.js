@@ -96,6 +96,7 @@ async function ingestDocuments(
       refs: [
         {
           conversationId: envelope.conversationId,
+          channel: envelope.channel,
           caseId: envelope.cetCaseId || '',
           fileId: doc.original?.fileId || '',
         },
@@ -177,7 +178,14 @@ async function currentEvidence(ctx, hits) {
     if (!id || states.has(id)) continue;
     try {
       const row = await ctx.call('knowledge-rag.documentGet', { id });
-      states.set(id, row.status === 'active');
+      const actorId = require('./domain-router-policy').principal(ctx).actorId;
+      states.set(
+        id,
+        row.status === 'active' &&
+          !(row.evidenceCorrections || []).some(
+            (correction) => correction.actorId === actorId && correction.kind === 'reject'
+          )
+      );
     } catch (_error) {
       states.set(id, false);
     }

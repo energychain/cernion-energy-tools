@@ -1,10 +1,17 @@
 'use strict';
 
-// Scope is structural provenance, never subject similarity or a tenant-wide search.
+// Structural bindings remain valid; authorized descriptor selections extend this scope.
 function scopedDatasets(
   records,
   message,
-  { conversationId, caseId, projectIds = [], previousReads = [], newDatasetIds = [] } = {}
+  {
+    conversationId,
+    caseId,
+    projectIds = [],
+    previousReads = [],
+    newDatasetIds = [],
+    tenantEvidenceIds = [],
+  } = {}
 ) {
   return records.filter((record) => {
     if (record.provenance?.projectId)
@@ -22,6 +29,7 @@ function scopedDatasets(
     );
     return (
       explicit ||
+      tenantEvidenceIds.includes(record.id) ||
       newDatasetIds.includes(record.id) ||
       (conversationId && record.provenance?.conversationId === conversationId) ||
       (caseId && record.provenance?.caseId === caseId) ||

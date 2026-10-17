@@ -1744,6 +1744,7 @@ module.exports = {
               question: datasetQuestion,
               documents: envelope.documents || [],
               conversationId: envelope.conversationId,
+              channel: envelope.channel,
               ...(lastDataset?.metadata?.datasetId
                 ? { correctionDatasetId: lastDataset.metadata.datasetId }
                 : {}),
@@ -1762,6 +1763,17 @@ module.exports = {
           if (datasetTurn.documents) envelope.documents = datasetTurn.documents;
           envelope.datasetConfirmations = datasetTurn.confirmations || [];
           envelope.datasetIds = datasetTurn.datasetIds || [];
+        }
+        // Uploads have entered their source stores; offer their descriptors before short answers/status routing.
+        if (envelope.datasetIds?.length) {
+          const evidenceReply =
+            await require('../src/workbench-project-manifest').projectManifestTurn(this, ctx, {
+              p,
+              envelope: { ...envelope, tenantEvidenceReady: true },
+              pending,
+              meta: correctionMeta,
+            });
+          if (evidenceReply) return evidenceReply;
         }
         const memoryReply = await require('../src/tenant-memory').preturn(
           memoryContext,

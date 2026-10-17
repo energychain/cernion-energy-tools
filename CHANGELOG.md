@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased — Selbst anbietende Chat-Evidenz (#927 Phase A)
+
+- Chat-Dokumente und Chat-Datensätze speichern quellengebundene Deskriptoren im
+  bestehenden Bestand. Erzeugung, Bereinigung, Schema und Minimal-Fallback verwenden
+  das Projektmanifest-Muster; Tabellenzeilen/Zellwerte gelangen nicht in die Prompts.
+- Projektakten und Chat-Quellen laufen durch denselben Kandidaten- und Lesepfad.
+  Gemeinsam relevante Quellen werden sichtbar genannt, frisch autorisiert gelesen und
+  mit quellenspezifischer Zahlenprüfung gemeinsam beantwortet. Ein vorhandener
+  Herkunftsfall wird zur Fortsetzung vorgeschlagen; Evidenz benötigt keine Fallbindung.
+- Struktureller Datenscope bleibt erhalten und wird um gewählte Deskriptorquellen
+  erweitert. Tenant, Clearance, Herkunftsfall und Projektmitgliedschaft begrenzen die
+  Suche. `target: tenantEvidence` und „passt nicht“ korrigieren spätere automatische
+  Auswahlen für die jeweilige Person; andere Personen behalten ihre Sicht.
+- Rückfallantworten werden nicht als letzte Falleinordnung gespeichert; historische
+  Rückfalltexte werden bei der Projektion ausgeblendet. Neue Mehrchat-Tests und ein
+  generierter neutraler Praxisfall sichern die Erweiterung. Der Live-Praxislauf folgt
+  in der aufrufenden Session; Phase B registriert weitere Quellenadapter.
+
 ## Unreleased — Deterministisches Routing eigener Kontextänderungen (#925)
 
 - Gespeicherter Arbeitskontext und grammatischer Selbstbezug bestimmen den Vorrang

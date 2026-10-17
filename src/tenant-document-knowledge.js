@@ -274,6 +274,17 @@ async function ingestDocument(service, ctx, input) {
         duplicate.refs = refs;
         await service.objectPut(safe, documentNamespace(p.tenantId), duplicate.id, duplicate);
       }
+      if (!duplicate.provenance?.projectId) {
+        const descriptor = await require('./tenant-evidence-descriptor').ensureDescriptor(
+          'document',
+          duplicate,
+          { broker: service.broker, logger: service.logger }
+        );
+        if (descriptor !== duplicate.evidenceDescriptor) {
+          duplicate.evidenceDescriptor = descriptor;
+          await service.objectPut(safe, documentNamespace(p.tenantId), duplicate.id, duplicate);
+        }
+      }
       if (duplicate.status === 'active' && duplicate.indexState !== 'indexed') {
         if (input.deferIndex) scheduleIndex(service, safe, duplicate);
         else await indexDocument(service, safe, duplicate);
@@ -314,6 +325,12 @@ async function ingestDocument(service, ctx, input) {
       extractionState: 'pending',
       audit: [{ kind: 'stored', actorId: p.actorId, at }],
     };
+    if (!row.provenance?.projectId)
+      row.evidenceDescriptor = await require('./tenant-evidence-descriptor').ensureDescriptor(
+        'document',
+        row,
+        { broker: service.broker, logger: service.logger }
+      );
     await service.objectPut(safe, documentNamespace(p.tenantId), row.id, row);
     for (const old of family.filter((item) => item.status === 'active')) {
       old.status = 'superseded';
@@ -416,6 +433,73 @@ const mixin = {
     await Promise.allSettled([...(this.documentIndexJobs || [])]);
   },
   actions: {
+    documentEvidenceCandidates: {
+      visibility: 'protected',
+      params: { question: { type: 'string', optional: true, max: 32000 } },
+      async handler(ctx) {
+        const { p, ctx: safe } = scoped(ctx);
+        const descriptor = require('./tenant-evidence-descriptor');
+        return serial(p.tenantId, async () => {
+          const rows = await records(this, safe, p);
+          const result = [];
+          for (const row of rows.filter(
+            (item) => item.status === 'active' && !item.provenance?.projectId && visible(p, item)
+          )) {
+            if ((await require('./tenant-evidence-read').chatEvidenceOrigin(ctx, row)).inaccessible)
+              continue;
+            if (descriptor.needsDescriptor('document', row, ctx.params.question, p.actorId)) {
+              row.evidenceDescriptor = await descriptor.ensureDescriptor('document', row, {
+                broker: this.broker,
+                logger: this.logger,
+              });
+              await this.objectPut(safe, documentNamespace(p.tenantId), row.id, row);
+            }
+            result.push(descriptor.evidenceCandidate('document', row, p.actorId));
+          }
+          return result;
+        });
+      },
+    },
+    documentEvidenceCorrect: {
+      visibility: 'protected',
+      params: {
+        correction: 'object',
+        tenantId: 'string',
+        actorId: 'string',
+        correctionId: 'string',
+        at: 'string',
+        sequence: { type: 'number', integer: true, min: 0, optional: true },
+      },
+      async handler(ctx) {
+        require('./shared-service-learning').correctionPrincipal(ctx.params, ctx.meta);
+        const descriptor = require('./tenant-evidence-descriptor');
+        const correction = descriptor.validateEvidenceCorrection(ctx.params.correction);
+        if (correction.sourceType !== 'document') deny('Wrong evidence source');
+        const { p, ctx: safe } = scoped(ctx);
+        return serial(p.tenantId, async () => {
+          const rows = await records(this, safe, p);
+          const row = rows.find(
+            (item) =>
+              item.id === correction.sourceId &&
+              item.status === 'active' &&
+              !item.provenance?.projectId &&
+              visible(p, item)
+          );
+          if (
+            !row ||
+            (await require('./tenant-evidence-read').chatEvidenceOrigin(ctx, row)).inaccessible
+          )
+            deny('Evidence not accessible');
+          await this.objectPut(
+            safe,
+            documentNamespace(p.tenantId),
+            row.id,
+            descriptor.correctedEvidence(row, ctx.params)
+          );
+          return { corrected: true };
+        });
+      },
+    },
     documentIngest: {
       visibility: 'protected',
       params: {
@@ -458,7 +542,7 @@ const mixin = {
     documentSearch: {
       visibility: 'protected',
       params: {
-        query: { type: 'string', optional: true, max: 2000 },
+        query: { type: 'string', optional: true, max: 32000 },
         limit: { type: 'number', min: 1, max: 20, optional: true },
       },
       handler(ctx) {

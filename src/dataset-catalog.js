@@ -91,6 +91,18 @@ const datasetCatalogActions = {
       assertSensitivityAllowed(input.sensitivityLevel, p.clearance);
       for (const level of input.requiredClearance || [])
         assertSensitivityAllowed(level, p.clearance);
+      if (previous?.data?.value?.evidenceCorrections || input.evidenceCorrections)
+        input.evidenceCorrections =
+          require('./tenant-evidence-descriptor').mergeEvidenceCorrections(
+            previous?.data?.value?.evidenceCorrections,
+            input.evidenceCorrections
+          );
+      if (!input.provenance?.projectId)
+        input.evidenceDescriptor = await require('./tenant-evidence-descriptor').ensureDescriptor(
+          'dataset',
+          input,
+          { broker: this.broker, logger: this.logger }
+        );
       const doc = {
         _id: `${prefix}${id}`,
         ...(previous ? { _rev: previous._rev } : {}),
