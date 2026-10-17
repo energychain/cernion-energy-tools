@@ -17,7 +17,11 @@ function documentTable(text) {
   }
 }
 
-async function documentQuestion(documents, question, { tenantId, logger } = {}) {
+async function documentQuestion(
+  documents,
+  question,
+  { tenantId, logger, internalContext = [] } = {}
+) {
   if (
     !question.trim() ||
     /^(?:Dokument aufnehmen|speicher\w*|ablegen)[.!]?$/iu.test(question.trim())
@@ -93,7 +97,11 @@ async function documentQuestion(documents, question, { tenantId, logger } = {}) 
       { ...llmOptions(tenantId, 'answer', true), logger }
     );
     const answer = typeof result?.answer === 'string' ? result.answer.trim() : '';
-    if (answer && !/```|\{\s*"/u.test(answer))
+    if (
+      answer &&
+      !/```|\{\s*"/u.test(answer) &&
+      !require('./workbench-answer-filter').isInternalDescription(answer, internalContext)
+    )
       return { responseText: restoreContext(answer, safe.reidentMap) };
   } catch (error) {
     const errors = require('./workbench-llm-errors');
@@ -105,6 +113,7 @@ async function documentQuestion(documents, question, { tenantId, logger } = {}) 
   return {
     responseText:
       'Aus den verfügbaren Dokumentabschnitten lässt sich diese Frage gerade nicht zuverlässig beantworten. Die vollständige übermittelte Dokumentgrundlage ist gespeichert.',
+    metadata: { degraded: true, degradedReason: 'document_answer_unavailable' },
   };
 }
 

@@ -63,11 +63,39 @@ ein Blatt zeigender Manifest-Fragetyp ergänzt die Geschwisterblätter. Ausgegeb
 werden die getrennten Ergebnisse, Datensummen, deren gerichtete Differenz
 (zweites minus erstes Blatt in kanonischer Blattreihenfolge), geänderte gemeinsame
 Zeilen und nur einseitig vorhandene Kennungen. Gruppierte und gefilterte Differenzen
-verwenden die ausgeführten Aggregationen. Bei unterschiedlichen Einheiten wird
+verwenden die ausgeführten Aggregationen. Ihre Beschriftung entsteht aus
+Aggregatfunktion und Quellspalte; interne Plan-Aliase dienen ausschließlich dem
+Ergebniszugriff. Je Blatt abweichende Aliase werden über Funktion und Feld verbunden.
+Bei unterschiedlichen Einheiten wird
 keine numerische Differenz gebildet. Blattweite Zeilenvergleiche beziehen sich auf
 die gesamten Blätter. Unterschiedliche Schemas werden nicht still vereinigt.
 
+Varianten führen denselben einmal geplanten Aggregations-/Filterplan je Blatt aus;
+nur die Quell-ID wird auf das jeweilige Blatt gebunden. So entstehen keine
+Vergleichspaare aus unabhängig gewählten Gruppierungen. Eine echte Datenzeile
+mit leerer Gruppenzuordnung bleibt enthalten; ihre Gruppe heißt in Antworten
+„ohne Gruppenangabe“. Der leere Gruppenschlüssel allein belegt keine Kontrollsumme.
+
 ## Einheiten und Korrekturen
+
+`src/dataset-clarification.js` verwaltet den gemeinsamen Rückfragezustand im
+geschützten Tenant-Katalog: `kind`, `status`, `conversationId`, versionierte
+`targets`, `allowedAnswers`, Zeitstempel und Antwort. Blattwahl und Einheitenfrage
+verwenden dieselben Zustandsübergänge. Die gespeicherten Antwortoptionen enthalten
+Datei-/Blattnamen, Versionen, Wertspalten und Einheitenbezeichnungen aus `Intl`.
+Eigene Einheiten sind als `Spaltenname = Einheit` möglich. Es gibt keine
+handgepflegte Liste von Einheiten oder Formulierungen zur Absichtserkennung.
+
+Die Workbench prüft diesen Zustand vor Projekt-, Memory- und allgemeiner
+Semantikerkennung. Passende Antworten werden direkt über den auditierten
+Datensatzpfad gespeichert und schließen die beantwortete Frage. Mehrdeutige
+Einheitenantworten öffnen eine Blattwahl mit erhaltenem Einheitenvorschlag;
+die anschließende Auswahl übernimmt diesen Vorschlag. Bei mehreren Wertspalten
+bleibt die Frage bis zur Bestätigung aller Felder offen. Nicht passende Fragen
+werden regulär abgefragt und verbrauchen die Rückfrage nicht. Wiederholte gültige
+Bestätigungen nennen den gespeicherten Wert ohne weiteren Änderungsaudit.
+Eine ausdrückliche Blattwahl bleibt auch nach beantworteter Einheitenfrage
+deterministisch möglich. Nackte Korrekturen behalten ihren bisherigen Objektbezug.
 
 Erst wenn eine veröffentlichte Wert-Aggregation oder ein numerischer Überblick eine
 Spalte ohne Einheit benötigt, fragt die Abfrage gezielt nach deren Einheit. Reine
@@ -82,7 +110,16 @@ Blattwahl und die Bestätigung echter Datenzeilen entgegen. Die Klassifikation i
 schema-gebunden und nutzt ausschließlich Metadaten, keine Zeilen oder Zellwerte.
 Eine Änderung braucht einen wörtlichen Beleg aus der aktuellen Nutzernachricht;
 Fragen und Berechnungsbitten bleiben Abfragen. Eine Einheitenantwort setzt eine
-offene Frage im selben Gespräch voraus. Mehrdeutige Korrekturen fragen mit
+offene Frage im selben Gespräch voraus. Eine ausdrückliche Einheitenangabe ist
+auch ohne offene Frage möglich. Ein fehlender Spaltenbezug wird nur bei genau
+einem offenen Feld oder einer einzigen numerischen, nicht sensitiven Wertspalte
+ergänzt. Der wörtliche Einheitenbeleg kann eine abweichende Modellnormalisierung
+ersetzen und wird als Einheit gespeichert, ohne Wörterbuch oder Phrasenliste.
+Eine ausdrücklich gemeinsame Angabe für strukturgleiche Blätter derselben Datei
+wird je Blatt über denselben Auditpfad gespeichert; ohne belegten Mehrblattbezug
+bleibt die Auswahlrückfrage bestehen. Folgeabfragen verwenden die gespeicherten
+Spalteneinheiten aus dem Katalog. Ohne tatsächliche Änderung gibt es keine
+Korrekturbestätigung. Mehrdeutige Korrekturen fragen mit
 Datei-/Blattnamen und Version, ohne interne IDs, nach dem Datensatz. Titel stammen
 aus dem Quelldateinamen. Eine Blattwahl gilt für das
 jeweilige Gespräch; explizite Blattnennung bzw. Vergleich können andere Blätter

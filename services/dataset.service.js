@@ -121,14 +121,11 @@ module.exports = {
           return queryDatasetVariants(ctx, matches, ctx.params);
         }
         if (matches.length > 1)
-          return {
-            responseText: `Mehrere Datensätze passen: ${matches.map((record) => `${record.title} (Version ${record.version})`).join('; ')}. Bitte wähle den Datensatz.`,
-            datasets: matches.map((record) => ({
-              id: record.id,
-              title: record.title,
-              version: record.version,
-            })),
-          };
+          return require('../src/dataset-clarification').askDatasetSelection(
+            ctx,
+            matches,
+            ctx.params.conversationId
+          );
         const record = matches[0];
         if (record.tenantId !== p.tenantId) deny('Tenant mismatch');
         const pool = await require('../src/project-dataset-pool').datasetPoolFor(this, record);
@@ -189,6 +186,7 @@ module.exports = {
         conversationId: 'string',
         correctionDatasetId: { type: 'string', optional: true },
         selectionDatasetIds: { type: 'array', items: 'string', optional: true, default: [] },
+        clarificationOnly: { type: 'boolean', optional: true, default: false },
         sensitivityLevel: { type: 'string', optional: true, default: 'tenant_internal' },
       },
       async handler(ctx) {
@@ -241,6 +239,24 @@ module.exports = {
       return reason;
     },
     async datasetTurn(ctx, p) {
+      if (!ctx.params.documents.length) {
+        const current = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
+        const scoped = require('../src/workbench-data-scope').scopedDatasets(
+          current.filter((record) => record.current !== false && !record.structuredFormat),
+          ctx.params.question,
+          { conversationId: ctx.params.conversationId }
+        );
+        const reply = await require('../src/dataset-clarification').resolveDatasetClarification(
+          this,
+          ctx,
+          p,
+          scoped,
+          ctx.params.question,
+          ctx.params.conversationId
+        );
+        if (reply) return reply;
+      }
+      if (ctx.params.clarificationOnly) return { handled: false };
       const structured = await require('../src/structured-message').structuredTurn(this, ctx, p);
       if (structured) return structured;
       const { question, documents, conversationId } = ctx.params;
@@ -429,8 +445,10 @@ module.exports = {
           : null;
       if (!confirmations.length && (deleting || correction)) {
         const candidates = correction
-          ? correctionRecords.filter(
-              (record) => !correction.datasetId || record.id === correction.datasetId
+          ? correctionRecords.filter((record) =>
+              correction.datasetIds
+                ? correction.datasetIds.includes(record.id)
+                : !correction.datasetId || record.id === correction.datasetId
             )
           : await matchingDatasets(
               deleting ? records.filter((record) => record.current !== false) : correctionRecords,
@@ -438,13 +456,32 @@ module.exports = {
               conversationId
             );
         const mutating = Boolean(correction) || deleting;
-        if (mutating && candidates.length > 1)
+        if (correction?.multipleSheets && candidates.length > 1) {
+          const replies = [];
+          for (const record of candidates)
+            replies.push(
+              await require('../src/dataset-correction').correctDatasetSemantics(
+                this,
+                ctx,
+                p,
+                record,
+                correction,
+                question
+              )
+            );
           return {
             handled: true,
             datasetIds: candidates.map((record) => record.id),
-            selectionDatasetIds: candidates.map((record) => record.id),
-            responseText: `Bitte wähle den Datensatz: ${candidates.map((record) => `${record.title} (Version ${record.version})`).join('; ')}.`,
+            selectionDatasetIds: [],
+            responseText: replies.map((reply) => reply.responseText).join('\n\n'),
           };
+        }
+        if (mutating && candidates.length > 1)
+          return require('../src/dataset-clarification').askDatasetSelection(
+            ctx,
+            candidates,
+            conversationId
+          );
         if (mutating && candidates.length === 1) {
           const record = candidates[0];
           if (correction?.kind === 'restore-rows')
@@ -474,99 +511,14 @@ module.exports = {
               responseText: `Der Datensatz ${record.title} und seine ${family.length} Version(en) sind physisch gelöscht. Die Löschung ist auditiert.`,
             };
           }
-          const correctionPool = await require('../src/project-dataset-pool').datasetPoolFor(
+          return require('../src/dataset-correction').correctDatasetSemantics(
             this,
-            record
+            ctx,
+            p,
+            record,
+            correction,
+            question
           );
-          const semantic = correction?.units.length
-            ? {
-                ...record.semantic,
-                units: {
-                  ...record.semantic.units,
-                  ...Object.fromEntries(correction.units.map(({ field, unit }) => [field, unit])),
-                },
-                interpretationStatus: 'interpreted',
-              }
-            : await datasetSemantics(
-                { profile: record.profile, name: record.sourceName, hash: record.hash },
-                p.tenantId,
-                question,
-                record.semantic
-              );
-          // No new row version; metadata correction is audited independently.
-          if (semantic.interpretationStatus !== 'interpreted')
-            return {
-              handled: true,
-              responseText:
-                'Die Semantikkorrektur konnte ich noch nicht sicher zuordnen. Die bisherige Semantik bleibt erhalten. Bitte nenne Spalte, Einheit, Raster und gegebenenfalls Zeitzone ausdrücklich.',
-            };
-          if (
-            semantic.unitQuestion &&
-            semantic.unitQuestion.fields.every(
-              (field) =>
-                require('../src/dataset-unit-question').datasetUnits({ ...record, semantic })[field]
-            )
-          )
-            semantic.unitQuestion = {
-              ...semantic.unitQuestion,
-              answeredAt: new Date().toISOString(),
-            };
-          const updated = {
-            ...record,
-            semantic,
-            audit: [
-              ...record.audit,
-              {
-                kind: 'semantic-correction',
-                actorId: p.actorId,
-                at: new Date().toISOString(),
-                before: record.semantic,
-                after: semantic,
-              },
-            ],
-          };
-          const temporalChange = [
-            'timeField',
-            'timezone',
-            'intervalConvention',
-            'intervalMinutes',
-          ].some((key) => semantic[key] !== record.semantic[key]);
-          if (temporalChange) {
-            const rows = correctionPool.rows(p.tenantId, record.id, record.columns);
-            const times = normalizeDatasetTimes(rows, semantic.timeField, semantic.timezone);
-            updated.quality = {
-              ...updated.quality,
-              ...times,
-              utc: undefined,
-              local: undefined,
-              intervalMinutes: semantic.intervalMinutes || times.intervalMinutes,
-            };
-            const db = correctionPool.tenant(p.tenantId);
-            const positions = db
-              .prepare(
-                `SELECT row_number FROM ${correctionPool.table(record.id)} ORDER BY row_number`
-              )
-              .all();
-            const updateTime = db.prepare(
-              `UPDATE ${correctionPool.table(record.id)} SET utc = ?, local_time = ? WHERE row_number = ?`
-            );
-            db.transaction(() =>
-              positions.forEach((row, i) =>
-                updateTime.run(times.utc[i] || null, times.local[i] || null, row.row_number)
-              )
-            )();
-          }
-          await ctx.call('datapoint.datasetCatalog', { operation: 'put', record: updated });
-          return {
-            handled: true,
-            datasetIds: [record.id],
-            responseText: `Die Semantik von ${record.title} ist korrigiert: ${Object.entries(
-              semantic.units
-            )
-              .filter(([, unit]) => unit)
-              .map(([field, unit]) => `${field}: ${unit}`)
-              .join('; ')}. ${semantic.assumptions.join(' ')}`,
-          };
         }
         if (
           !candidates.length ||
