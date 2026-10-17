@@ -1664,35 +1664,11 @@ module.exports = {
         if (background.backgroundTask(envelope.userRequest))
           return background.answerBackgroundTask(envelope.userRequest, p.tenantId, this.logger);
         const pending = await conversationAssistance.readTurn(this.conversationsDb, p, envelope);
-        let roleUpdate;
-        try {
-          roleUpdate = await require('../src/workbench-role-context').readRoleUpdate(
-            p,
-            envelope,
-            pending,
-            {
-              messages: require('../src/workbench-document-flow').cleanDocumentHistory(
-                ctx.params.messages
-              ),
-              model: this.settings.systemActivityModel,
-              codeCatalog: this.settings.workbenchCodeCatalog,
-              logger: this.logger,
-              tenantGlossary: pending?.conversationContext?.role
-                ? await require('../src/workbench-tenant-glossary').loadTenantGlossary(
-                    ctx,
-                    p,
-                    envelope.userRequest,
-                    correctionMeta
-                  )
-                : [],
-            }
-          );
-        } catch (error) {
-          this.logger.warn(
-            'Workbench role routing unavailable',
-            require('../src/workbench-llm-errors').llmErrorDetails(error)
-          );
-        }
+        const roleUpdate = await require('../src/workbench-role-context').readRoleUpdate(
+          p,
+          envelope,
+          pending
+        );
         if (roleUpdate?.updated)
           return contentTurn.runContentTurn(this, ctx, {
             p,
@@ -1700,7 +1676,6 @@ module.exports = {
             envelope,
             pending,
             meta: correctionMeta,
-            preferenceExtraction: roleUpdate.preferences,
             understoodSituation: roleUpdate.situation,
           });
         const memoryContext = {
@@ -1821,7 +1796,6 @@ module.exports = {
             pending,
             conversation,
             meta: correctionMeta,
-            preferenceExtraction: roleUpdate?.preferences,
           });
         if (/^(?:kein fall|no case)[.!\s]*$/i.test(envelope.userRequest.trim())) {
           return contentTurn.discard(this, ctx, p, envelope, pending, correctionMeta);
@@ -1902,7 +1876,6 @@ module.exports = {
           pending,
           conversation,
           meta: correctionMeta,
-          preferenceExtraction: roleUpdate?.preferences,
         });
       }
     ),
