@@ -70,7 +70,32 @@ Bei unterschiedlichen Einheiten wird
 keine numerische Differenz gebildet. Blattweite Zeilenvergleiche beziehen sich auf
 die gesamten Blätter. Unterschiedliche Schemas werden nicht still vereinigt.
 
+Varianten führen denselben einmal geplanten Aggregations-/Filterplan je Blatt aus;
+nur die Quell-ID wird auf das jeweilige Blatt gebunden. So entstehen keine
+Vergleichspaare aus unabhängig gewählten Gruppierungen. Eine echte Datenzeile
+mit leerer Gruppenzuordnung bleibt enthalten; ihre Gruppe heißt in Antworten
+„ohne Gruppenangabe“. Der leere Gruppenschlüssel allein belegt keine Kontrollsumme.
+
 ## Einheiten und Korrekturen
+
+`src/dataset-clarification.js` verwaltet den gemeinsamen Rückfragezustand im
+geschützten Tenant-Katalog: `kind`, `status`, `conversationId`, versionierte
+`targets`, `allowedAnswers`, Zeitstempel und Antwort. Blattwahl und Einheitenfrage
+verwenden dieselben Zustandsübergänge. Die gespeicherten Antwortoptionen enthalten
+Datei-/Blattnamen, Versionen, Wertspalten und Einheitenbezeichnungen aus `Intl`.
+Eigene Einheiten sind als `Spaltenname = Einheit` möglich. Es gibt keine
+handgepflegte Liste von Einheiten oder Formulierungen zur Absichtserkennung.
+
+Die Workbench prüft diesen Zustand vor Projekt-, Memory- und allgemeiner
+Semantikerkennung. Passende Antworten werden direkt über den auditierten
+Datensatzpfad gespeichert und schließen die beantwortete Frage. Mehrdeutige
+Einheitenantworten öffnen eine Blattwahl mit erhaltenem Einheitenvorschlag;
+die anschließende Auswahl übernimmt diesen Vorschlag. Bei mehreren Wertspalten
+bleibt die Frage bis zur Bestätigung aller Felder offen. Nicht passende Fragen
+werden regulär abgefragt und verbrauchen die Rückfrage nicht. Wiederholte gültige
+Bestätigungen nennen den gespeicherten Wert ohne weiteren Änderungsaudit.
+Eine ausdrückliche Blattwahl bleibt auch nach beantworteter Einheitenfrage
+deterministisch möglich. Nackte Korrekturen behalten ihren bisherigen Objektbezug.
 
 Erst wenn eine veröffentlichte Wert-Aggregation oder ein numerischer Überblick eine
 Spalte ohne Einheit benötigt, fragt die Abfrage gezielt nach deren Einheit. Reine

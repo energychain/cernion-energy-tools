@@ -176,7 +176,7 @@ function compareDatasetResults(records, answers, differences) {
       const b = rightAnswer.result?.find((row) => labels.every((key) => row[key] === a[key]));
       if (!b) {
         lines.push(
-          `${labels.map((key) => `${key}: ${a[key]}`).join(', ')}: nur im Abfrageergebnis von ${left.sheet}.`
+          `${labels.map((key) => `${key}: ${a[key] ?? 'ohne Gruppenangabe'}`).join(', ')}: nur im Abfrageergebnis von ${left.sheet}.`
         );
         continue;
       }
@@ -209,7 +209,7 @@ function compareDatasetResults(records, answers, differences) {
       });
       if (deltas.length && (labels.length || leftAnswer.filtered))
         lines.push(
-          `${labels.map((key) => `${key}: ${a[key]}`).join(', ')}${labels.length ? ' — ' : ''}${deltas.join('; ')}.`
+          `${labels.map((key) => `${key}: ${a[key] ?? 'ohne Gruppenangabe'}`).join(', ')}${labels.length ? ' — ' : ''}${deltas.join('; ')}.`
         );
     }
   }
@@ -241,9 +241,21 @@ async function queryDatasetVariants(ctx, records, params) {
   records = [...records].sort((a, b) =>
     require('./canonical-order').compareCanonicalStrings(a.sheet, b.sheet)
   );
+  const plan =
+    params.plan ||
+    (await require('./dataset-semantics').datasetQueryPlan(records[0], params.question));
   const answers = [];
   for (const record of records)
-    answers.push(await ctx.call('dataset.query', { ...params, id: record.id }));
+    answers.push(
+      await ctx.call('dataset.query', {
+        ...params,
+        id: record.id,
+        plan: {
+          ...plan,
+          sources: plan.sources.map((source) => ({ ...source, sourceId: record.id })),
+        },
+      })
+    );
   const measured = (answers[0].filtered ? [] : answers[0].summaries || [])
     .filter(
       (left) =>

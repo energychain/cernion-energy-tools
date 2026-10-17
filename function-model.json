@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "1f5bd739eaf33a20da89d3c21cfa9f6214bf03820f3e0a441ddd561767796daa",
+  "sourceHash": "99cdbe9879d28dfe67b965187fe2719bf42aaaadc720e388c57ba733486ec48a",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -69500,11 +69500,23 @@
         },
         {
           "kind": "service",
+          "ref": "src/dataset-clarification.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-correction.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/dataset-input.js"
         },
         {
           "kind": "service",
           "ref": "src/dataset-query.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-routing.js"
         },
         {
           "kind": "service",
@@ -69525,6 +69537,10 @@
         {
           "kind": "service",
           "ref": "src/dataset-unit-question.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-variants.js"
         },
         {
           "kind": "service",
@@ -69673,6 +69689,10 @@
         {
           "kind": "service",
           "ref": "src/project-file-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/project-manifest-routing.js"
         },
         {
           "kind": "service",
@@ -122257,6 +122277,14 @@
         {
           "kind": "service",
           "ref": "src/dataset-catalog.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-clarification.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/dataset-correction.js"
         },
         {
           "kind": "service",

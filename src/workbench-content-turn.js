@@ -154,11 +154,17 @@ async function readTurnDataset(ctx, p, envelope, candidates, meta) {
       })),
     };
   }
-  if (candidates.length !== 1)
+  if (candidates.length > 1) {
+    await require('./dataset-clarification').askDatasetSelection(
+      ctx,
+      candidates,
+      envelope.conversationId
+    );
     return {
       answer: `Mehrere Tabellenblätter passen: ${candidates.map((record) => record.sheet || record.title).join(', ')}. Welches meinst du?`,
       evidence: [],
     };
+  }
   const record = candidates[0];
   try {
     const result = await ctx.call(

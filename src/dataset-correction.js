@@ -13,7 +13,7 @@ const { datasetUnits, columnUnit } = require('./dataset-unit-question');
 // Extends the existing audited metadata-correction path with schema-bound intent.
 // Only metadata is supplied; control cell values never enter a prompt.
 async function datasetCorrection(records, question, tenantId, conversationId, selectionIds = []) {
-  if (!records.length) return null;
+  if (!records.length || require('./dataset-routing').datasetQuestion(question)) return null;
   const named = require('./dataset-variants').namedSheetCandidates(records, question);
   const selected = named.filter((record) => selectionIds.includes(record.id));
   if (selected.length === 1 && !require('./dataset-routing').datasetQuestion(question))
@@ -227,7 +227,7 @@ async function restoreDatasetControls(service, ctx, p, record, rowNumbers) {
 
 async function selectDatasetSheet(ctx, p, records, record, conversationId) {
   for (const peer of records.filter(
-    (item) => item.id === record.id || record.variants?.includes(item.id)
+    (item) => item.id === record.id || item.selectedInConversations?.includes(conversationId)
   )) {
     const selected = (peer.selectedInConversations || []).filter((id) => id !== conversationId);
     if (peer.id === record.id) selected.push(conversationId);
@@ -316,7 +316,9 @@ async function correctDatasetSemantics(service, ctx, p, record, correction, ques
     return {
       handled: true,
       datasetIds: [record.id],
-      responseText: `Für ${record.title} ist noch keine geänderte Semantik belegt. Bitte nenne die Spalte und die richtige Angabe.`,
+      responseText: correction?.units.length
+        ? `Für ${record.title} gilt bereits ${correction.units.map(({ field, unit }) => `${field}: ${unit}`).join('; ')}. Die Einheit ist gespeichert.`
+        : `Für ${record.title} ist noch keine geänderte Semantik belegt. Bitte nenne die Spalte und die richtige Angabe.`,
     };
   if (temporalChange) {
     const correctionPool = await require('./project-dataset-pool').datasetPoolFor(service, record);
@@ -343,6 +345,14 @@ async function correctDatasetSemantics(service, ctx, p, record, correction, ques
     )();
   }
   await ctx.call('datapoint.datasetCatalog', { operation: 'put', record: updated });
+  if (correction?.units.length)
+    await require('./dataset-clarification').closeClarifications(
+      ctx,
+      [record.id],
+      ctx.params.conversationId,
+      'unit',
+      { units: correction.units }
+    );
   return {
     handled: true,
     datasetIds: [record.id],

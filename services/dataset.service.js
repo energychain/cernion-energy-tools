@@ -121,14 +121,11 @@ module.exports = {
           return queryDatasetVariants(ctx, matches, ctx.params);
         }
         if (matches.length > 1)
-          return {
-            responseText: `Mehrere Datensätze passen: ${matches.map((record) => `${record.title} (Version ${record.version})`).join('; ')}. Bitte wähle den Datensatz.`,
-            datasets: matches.map((record) => ({
-              id: record.id,
-              title: record.title,
-              version: record.version,
-            })),
-          };
+          return require('../src/dataset-clarification').askDatasetSelection(
+            ctx,
+            matches,
+            ctx.params.conversationId
+          );
         const record = matches[0];
         if (record.tenantId !== p.tenantId) deny('Tenant mismatch');
         const pool = await require('../src/project-dataset-pool').datasetPoolFor(this, record);
@@ -189,6 +186,7 @@ module.exports = {
         conversationId: 'string',
         correctionDatasetId: { type: 'string', optional: true },
         selectionDatasetIds: { type: 'array', items: 'string', optional: true, default: [] },
+        clarificationOnly: { type: 'boolean', optional: true, default: false },
         sensitivityLevel: { type: 'string', optional: true, default: 'tenant_internal' },
       },
       async handler(ctx) {
@@ -241,6 +239,24 @@ module.exports = {
       return reason;
     },
     async datasetTurn(ctx, p) {
+      if (!ctx.params.documents.length) {
+        const current = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
+        const scoped = require('../src/workbench-data-scope').scopedDatasets(
+          current.filter((record) => record.current !== false && !record.structuredFormat),
+          ctx.params.question,
+          { conversationId: ctx.params.conversationId }
+        );
+        const reply = await require('../src/dataset-clarification').resolveDatasetClarification(
+          this,
+          ctx,
+          p,
+          scoped,
+          ctx.params.question,
+          ctx.params.conversationId
+        );
+        if (reply) return reply;
+      }
+      if (ctx.params.clarificationOnly) return { handled: false };
       const structured = await require('../src/structured-message').structuredTurn(this, ctx, p);
       if (structured) return structured;
       const { question, documents, conversationId } = ctx.params;
@@ -461,12 +477,11 @@ module.exports = {
           };
         }
         if (mutating && candidates.length > 1)
-          return {
-            handled: true,
-            datasetIds: candidates.map((record) => record.id),
-            selectionDatasetIds: candidates.map((record) => record.id),
-            responseText: `Bitte wähle den Datensatz: ${candidates.map((record) => `${record.title} (Version ${record.version})`).join('; ')}.`,
-          };
+          return require('../src/dataset-clarification').askDatasetSelection(
+            ctx,
+            candidates,
+            conversationId
+          );
         if (mutating && candidates.length === 1) {
           const record = candidates[0];
           if (correction?.kind === 'restore-rows')

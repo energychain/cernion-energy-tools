@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased — Gespeicherte Rückfragen vor allgemeiner Klassifikation (#926)
+
+- Blatt- und Einheitenfragen speichern Art, Gespräch, versionierte Ziele,
+  Wertspalten und erlaubte Antworten im Tenant-Katalog. Passende Antworten werden
+  vor Projekt-, Memory- und allgemeiner Semantikerkennung deterministisch
+  übernommen; Zwischenfragen lassen die Rückfrage offen.
+- Mehrdeutige Einheitenantworten bleiben bis zur Blattwahl als Vorschlag erhalten.
+  Wiederholte Bestätigungen nennen die gespeicherte Einheit, ohne eine zusätzliche
+  Semantikänderung zu behaupten oder doppelt zu auditieren.
+- Varianten verwenden einen gemeinsamen Abfrageplan. Echte Zeilen ohne
+  Gruppenangabe bleiben in Gruppen- und Gesamtsummen enthalten und werden lesbar
+  beschriftet; Kontrollsummen bleiben ausgeschlossen.
+- Vollständige Turn-Regressionen validieren Situationen gegen das Produktschema
+  einschließlich `requestedAction` und erzwingen abweichende Klassifikationen.
+  Vierten Live-Ausgangsbericht unverändert aufgenommen; kein neuer Live-Lauf.
+
 ## Unreleased — Einheiten im Folgeturn und lesbare Variantenvergleiche (#926 Teil 2)
 
 - Einheitenantworten und ausdrückliche Angaben an Wertspalten binden und auditiert
