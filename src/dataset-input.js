@@ -184,10 +184,13 @@ function matrixRows(matrix) {
             ? parseNumber(value)
             : String(value).trim();
     }
-  const finalProfile = profileRows(rows);
-  const emptyColumns = emptyColumnNames(finalProfile.columns, rows, rows.length);
+  const separated = require('./dataset-table-quality').separateControlRows(rows, profile.columns);
+  const dataRows = separated.rows;
+  const finalProfile = profileRows(dataRows);
+  const emptyColumns = emptyColumnNames(finalProfile.columns, dataRows, dataRows.length);
   return {
-    rows,
+    rows: dataRows,
+    controls: separated.controls,
     profile: finalProfile,
     hash: hashValue(rows),
     ...(emptyColumns.length ? { emptyColumns } : {}),
@@ -223,7 +226,7 @@ function parseTableText(text, name) {
       parseDatasetText(
         raw.slice(marker.index + marker[0].length, sheetMarkers[i + 1]?.index),
         name
-      ).map((table) => ({ ...table, sheet: marker[1].trim() }))
+      ).map((table) => ({ ...table, sheet: marker[1].trim(), explicitSheet: true }))
     );
     if (tables.length && Buffer.byteLength(raw) > datasetSetting('MAX_BYTES', 8000000))
       datasetLimit('Die Datei überschreitet das Bytebudget.');
@@ -289,7 +292,10 @@ function parseTableText(text, name) {
         continue;
       }
       if (!candidate) continue;
-      const score = [candidate.rows.length, candidate.profile.columns.length];
+      const score = [
+        candidate.rows.length + (candidate.controls?.length || 0),
+        candidate.profile.columns.length,
+      ];
       if (
         !best ||
         score[0] > best.score[0] ||

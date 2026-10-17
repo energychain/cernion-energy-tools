@@ -10,6 +10,12 @@ const {
 const { datasetSemantics, datasetQueryPlan } = require('../src/dataset-semantics');
 const { normalizeDatasetTimes } = require('../src/dataset-time');
 const { executeDatasetQuery } = require('../src/dataset-query');
+const { controlConfirmation, datasetSheetTitle } = require('../src/dataset-table-quality');
+const {
+  registerDatasetVariants,
+  variantDifference,
+  queryDatasetVariants,
+} = require('../src/dataset-variants');
 const DatasetSqlitePool = require('../src/dataset-sqlite-pool');
 
 function datasetId() {
@@ -22,13 +28,23 @@ async function matchingDatasets(records, question, conversationId) {
     /lösch|loesch|delete|korrigier|werte sind|einheit.*(?:ist|sind)/i.test(question)
   ) {
     const text = String(question || '').toLocaleLowerCase('de-DE');
+    const namedSheet = require('../src/dataset-variants').namedSheetCandidates(records, question);
+    if (namedSheet.length) return namedSheet;
     const explicit = records.filter((record) =>
       [record.id, record.title, record.sourceName]
         .filter(Boolean)
         .some((label) => text.includes(label.toLocaleLowerCase('de-DE')))
     );
     if (explicit.length) return explicit;
-    return records.filter((record) => record.provenance.conversationId === conversationId);
+    const preferred = records.filter((record) =>
+      record.selectedInConversations?.includes(conversationId)
+    );
+    if (preferred.length) return preferred;
+    return records.filter(
+      (record) =>
+        record.provenance.conversationId === conversationId ||
+        record.projectRefs?.some((ref) => ref.conversationId === conversationId)
+    );
   }
   return require('../src/dataset-routing').selectDatasetCandidates(records, question, {
     conversationId,
@@ -96,9 +112,17 @@ module.exports = {
             responseText: 'Dazu ist kein zugänglicher Datensatz im Tenant-Katalog vorhanden.',
             datasets: [],
           };
+        if (
+          matches.length > 1 &&
+          matches.every(
+            (record) => record.id === matches[0].id || matches[0].variants?.includes(record.id)
+          )
+        ) {
+          return queryDatasetVariants(ctx, matches, ctx.params);
+        }
         if (matches.length > 1)
           return {
-            responseText: `Mehrere Datensätze passen: ${matches.map((record) => `${record.title} (Version ${record.version}, ${record.id})`).join('; ')}. Bitte wähle den Datensatz.`,
+            responseText: `Mehrere Datensätze passen: ${matches.map((record) => `${record.title} (Version ${record.version})`).join('; ')}. Bitte wähle den Datensatz.`,
             datasets: matches.map((record) => ({
               id: record.id,
               title: record.title,
@@ -135,7 +159,25 @@ module.exports = {
             status: 'unavailable',
           };
         const plan = ctx.params.plan || (await datasetQueryPlan(record, ctx.params.question));
-        return executeDatasetQuery(pool, record, { ...ctx.params, plan });
+        const answer = executeDatasetQuery(pool, record, { ...ctx.params, plan });
+        answer.variantDifferences = [];
+        for (const peer of active.filter(
+          (item) => record.variants?.includes(item.id) && !item.quality?.unusable
+        )) {
+          const difference = variantDifference(pool, record, peer);
+          if (difference) answer.variantDifferences.push({ datasetId: peer.id, ...difference });
+        }
+        answer.aggregation = plan.operations.find((operation) => operation.op === 'aggregate');
+        answer.filtered = plan.operations.some(
+          (operation) => operation.op === 'filter' && operation.field !== record.semantic.timeField
+        );
+        answer.responseText += await require('../src/dataset-unit-question').answerUnitQuestion(
+          ctx,
+          record,
+          answer,
+          ctx.params.conversationId
+        );
+        return answer;
       },
     },
     // Internal ingestion/mutation entrypoint; never offered to the read capability loop.
@@ -145,6 +187,8 @@ module.exports = {
         question: 'string',
         documents: { type: 'array', optional: true, default: [] },
         conversationId: 'string',
+        correctionDatasetId: { type: 'string', optional: true },
+        selectionDatasetIds: { type: 'array', items: 'string', optional: true, default: [] },
         sensitivityLevel: { type: 'string', optional: true, default: 'tenant_internal' },
       },
       async handler(ctx) {
@@ -218,9 +262,8 @@ module.exports = {
         return { handled: true, responseText: error.message, documents: [], datasetIds: [] };
       }
       const pasted = !documents.length ? tables : [];
-      const records = (await ctx.call('datapoint.datasetCatalog', { operation: 'list' })).filter(
-        (record) => !record.provenance?.projectId
-      );
+      const allRecords = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
+      const records = allRecords.filter((record) => !record.provenance?.projectId);
       if (tables.length) for (const record of records) await this.datasetHealth(ctx, p, record);
       const deleted = tables.length
         ? await ctx.call('datapoint.datasetCatalog', { operation: 'deleted' })
@@ -235,7 +278,8 @@ module.exports = {
           continue;
         }
         const duplicate = records.find(
-          (record) => record.hash === table.hash && !record.quality?.unusable
+          (record) =>
+            record.hash === table.hash && record.sheet === table.sheet && !record.quality?.unusable
         );
         if (duplicate) {
           ids.push(duplicate.id);
@@ -248,7 +292,8 @@ module.exports = {
             responseText:
               'Die Datei kam beschädigt an; bitte lade sie erneut hoch oder schalte den Dateikanal ein.',
           };
-        const ephemeral = disposableDataset(table, question);
+        const ephemeral =
+          tables.length === 1 && !table.controls?.length && disposableDataset(table, question);
         const semantic = await datasetSemantics(
           table,
           p.tenantId,
@@ -272,7 +317,7 @@ module.exports = {
           hash: table.hash,
           sourceName: table.name,
           sheet: table.sheet,
-          title: semantic.title,
+          title: datasetSheetTitle(table.name, table.sheet, table.explicitSheet),
           sensitivityLevel: table.sensitivityLevel || ctx.params.sensitivityLevel,
           semantic,
           columns,
@@ -283,6 +328,7 @@ module.exports = {
             to: table.rows.at(-1)?.[semantic.timeField] || null,
           },
           quality: {
+            controls: table.controls || [],
             ...times,
             utc: undefined,
             local: undefined,
@@ -323,10 +369,12 @@ module.exports = {
             operation: 'put',
             record: { ...prior, current: false },
           });
+        if (prior) prior.current = false;
+        await registerDatasetVariants(ctx, this.datasetPool, record, records);
         records.push(record);
         ids.push(id);
         confirmations.push(
-          `Hab ich abgelegt: ${record.title}, Version ${record.version}, ${record.period.from || 'Zeitraum ungeklärt'} bis ${record.period.to || 'ungeklärt'}, ${record.rowCount.toLocaleString('de-DE')} Werte, ${record.quality.missingValues} leere Werte und ${times.gaps} fehlende Intervalle, ${times.intervalMinutes || 'ungeklärtes'}-min-Raster${Object.values(semantic.units).filter(Boolean).length ? ' in ' + [...new Set(Object.values(semantic.units).filter(Boolean))].join(', ') : '; Einheit ungeklärt'}. ${semantic.assumptions.join(' ')}${table.emptyColumns?.length ? ` ${table.emptyColumns.length} Spalten sind durchgehend leer und für Auswertungen nicht nutzbar.` : ''}`
+          `Hab ich abgelegt: ${record.title}, Version ${record.version}, ${record.period.from || 'Zeitraum ungeklärt'} bis ${record.period.to || 'ungeklärt'}, ${record.rowCount.toLocaleString('de-DE')} Werte, ${record.quality.missingValues} leere Werte und ${times.gaps} fehlende Intervalle, ${times.intervalMinutes || 'ungeklärtes'}-min-Raster${Object.values(semantic.units).filter(Boolean).length ? ' in ' + [...new Set(Object.values(semantic.units).filter(Boolean))].join(', ') : '; Einheit ungeklärt'}. ${semantic.assumptions.join(' ')}${controlConfirmation(record.quality.controls) ? ` ${controlConfirmation(record.quality.controls)}` : ''}${table.emptyColumns?.length ? ` ${table.emptyColumns.length} Spalten sind durchgehend leer und für Auswertungen nicht nutzbar.` : ''}`
         );
       }
       const deletedReference = replayed.find(
@@ -348,27 +396,74 @@ module.exports = {
           documents: ordinary,
         };
       }
-      if (
-        !confirmations.length &&
+      const correctionRecords = require('../src/workbench-data-scope').scopedDatasets(
+        allRecords.filter((record) => record.current !== false && !record.structuredFormat),
+        question,
+        { conversationId }
+      );
+      if (ctx.params.correctionDatasetId) {
+        const target = correctionRecords.find(
+          (record) => record.id === ctx.params.correctionDatasetId
+        );
+        return {
+          handled: true,
+          datasetIds: target ? [target.id] : [],
+          responseText: target
+            ? `Welche Semantikkorrektur gilt für ${target.title}? Bitte nenne die zu ändernde Spalte und die richtige Angabe.`
+            : 'Dazu ist kein zugänglicher Datensatz im Tenant-Katalog vorhanden.',
+        };
+      }
+      const legacyCorrection =
         /(?:datensatz|tabelle|dataset|werte|einheit)/i.test(question) &&
-        /lösch|loesch|delete|korrigier|werte sind|einheit.*(?:ist|sind)/i.test(question)
-      ) {
-        const candidates = await matchingDatasets(
-          records.filter((record) => record.current !== false),
-          question,
-          conversationId
-        );
-        const mutating = /lösch|loesch|delete|korrigier|werte sind|einheit.*(?:ist|sind)/i.test(
-          question
-        );
+        /lösch|loesch|delete|korrigier|werte sind|einheit.*(?:ist|sind)/i.test(question);
+      const deleting = legacyCorrection && /lösch|loesch|delete/i.test(question);
+      const correction =
+        !confirmations.length && (!documents.length || tables.length) && !deleting
+          ? await require('../src/dataset-correction').datasetCorrection(
+              correctionRecords,
+              question,
+              p.tenantId,
+              conversationId,
+              ctx.params.selectionDatasetIds
+            )
+          : null;
+      if (!confirmations.length && (deleting || correction)) {
+        const candidates = correction
+          ? correctionRecords.filter(
+              (record) => !correction.datasetId || record.id === correction.datasetId
+            )
+          : await matchingDatasets(
+              deleting ? records.filter((record) => record.current !== false) : correctionRecords,
+              question,
+              conversationId
+            );
+        const mutating = Boolean(correction) || deleting;
         if (mutating && candidates.length > 1)
           return {
             handled: true,
-            responseText: `Bitte wähle den Datensatz: ${candidates.map((record) => `${record.title} (${record.id})`).join('; ')}.`,
+            datasetIds: candidates.map((record) => record.id),
+            selectionDatasetIds: candidates.map((record) => record.id),
+            responseText: `Bitte wähle den Datensatz: ${candidates.map((record) => `${record.title} (Version ${record.version})`).join('; ')}.`,
           };
         if (mutating && candidates.length === 1) {
           const record = candidates[0];
-          if (/lösch|loesch|delete/i.test(question)) {
+          if (correction?.kind === 'restore-rows')
+            return require('../src/dataset-correction').restoreDatasetControls(
+              this,
+              ctx,
+              p,
+              record,
+              correction.rowNumbers
+            );
+          if (correction?.kind === 'select-sheet')
+            return require('../src/dataset-correction').selectDatasetSheet(
+              ctx,
+              p,
+              correctionRecords,
+              record,
+              conversationId
+            );
+          if (deleting) {
             const family = records.filter((item) => item.familyId === record.familyId);
             for (const item of family) {
               this.datasetPool.removeRows(p.tenantId, item.id);
@@ -379,19 +474,42 @@ module.exports = {
               responseText: `Der Datensatz ${record.title} und seine ${family.length} Version(en) sind physisch gelöscht. Die Löschung ist auditiert.`,
             };
           }
-          const rows = this.datasetPool.rows(p.tenantId, record.id, record.columns);
-          const semantic = await datasetSemantics(
-            { rows, name: record.title, hash: record.hash },
-            p.tenantId,
-            question,
-            record.semantic
+          const correctionPool = await require('../src/project-dataset-pool').datasetPoolFor(
+            this,
+            record
           );
+          const semantic = correction?.units.length
+            ? {
+                ...record.semantic,
+                units: {
+                  ...record.semantic.units,
+                  ...Object.fromEntries(correction.units.map(({ field, unit }) => [field, unit])),
+                },
+                interpretationStatus: 'interpreted',
+              }
+            : await datasetSemantics(
+                { profile: record.profile, name: record.sourceName, hash: record.hash },
+                p.tenantId,
+                question,
+                record.semantic
+              );
           // No new row version; metadata correction is audited independently.
           if (semantic.interpretationStatus !== 'interpreted')
             return {
               handled: true,
               responseText:
                 'Die Semantikkorrektur konnte ich noch nicht sicher zuordnen. Die bisherige Semantik bleibt erhalten. Bitte nenne Spalte, Einheit, Raster und gegebenenfalls Zeitzone ausdrücklich.',
+            };
+          if (
+            semantic.unitQuestion &&
+            semantic.unitQuestion.fields.every(
+              (field) =>
+                require('../src/dataset-unit-question').datasetUnits({ ...record, semantic })[field]
+            )
+          )
+            semantic.unitQuestion = {
+              ...semantic.unitQuestion,
+              answeredAt: new Date().toISOString(),
             };
           const updated = {
             ...record,
@@ -407,18 +525,41 @@ module.exports = {
               },
             ],
           };
-          const times = normalizeDatasetTimes(rows, semantic.timeField, semantic.timezone);
-          updated.quality = {
-            ...updated.quality,
-            ...times,
-            utc: undefined,
-            local: undefined,
-            intervalMinutes: semantic.intervalMinutes || times.intervalMinutes,
-          };
-          this.datasetPool.updateTimes(p.tenantId, record.id, times.utc, times.local);
+          const temporalChange = [
+            'timeField',
+            'timezone',
+            'intervalConvention',
+            'intervalMinutes',
+          ].some((key) => semantic[key] !== record.semantic[key]);
+          if (temporalChange) {
+            const rows = correctionPool.rows(p.tenantId, record.id, record.columns);
+            const times = normalizeDatasetTimes(rows, semantic.timeField, semantic.timezone);
+            updated.quality = {
+              ...updated.quality,
+              ...times,
+              utc: undefined,
+              local: undefined,
+              intervalMinutes: semantic.intervalMinutes || times.intervalMinutes,
+            };
+            const db = correctionPool.tenant(p.tenantId);
+            const positions = db
+              .prepare(
+                `SELECT row_number FROM ${correctionPool.table(record.id)} ORDER BY row_number`
+              )
+              .all();
+            const updateTime = db.prepare(
+              `UPDATE ${correctionPool.table(record.id)} SET utc = ?, local_time = ? WHERE row_number = ?`
+            );
+            db.transaction(() =>
+              positions.forEach((row, i) =>
+                updateTime.run(times.utc[i] || null, times.local[i] || null, row.row_number)
+              )
+            )();
+          }
           await ctx.call('datapoint.datasetCatalog', { operation: 'put', record: updated });
           return {
             handled: true,
+            datasetIds: [record.id],
             responseText: `Die Semantik von ${record.title} ist korrigiert: ${Object.entries(
               semantic.units
             )

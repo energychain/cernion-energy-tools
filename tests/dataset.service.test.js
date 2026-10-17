@@ -509,6 +509,13 @@ describe('tenant dataset catalog', () => {
   });
   test('semantic correction changes energy calculation without row upload', async () => {
     llm.generateStructured.mockResolvedValueOnce({
+      kind: 'metadata',
+      basis: 'Die Werte sind kWh je Viertelstunde.',
+      datasetId: '',
+      rowNumbers: [],
+      units: [],
+    });
+    llm.generateStructured.mockResolvedValueOnce({
       title: 'synthetischer-lastgang.csv',
       timezone: 'Europe/Berlin',
       units: { 'Wirkleistung Bezug [kW]': 'kWh' },

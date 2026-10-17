@@ -579,6 +579,7 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
   catalog.push(
     ...require('./generate-project-manifest-fixtures').generateProjectScenarios(scenario, turn)
   );
+  catalog.push(require('./generate-table-quality-fixtures').tableQualityScenario(scenario, turn));
   return { schemaVersion: VERSION, scenarios: catalog };
 }
 
@@ -608,6 +609,10 @@ function practiceDocument(spec) {
     if (!loadFixtures.has(spec.format))
       loadFixtures.set(spec.format, generateDatasetFixture(spec.format));
     return loadFixtures.get(spec.format);
+  }
+  if (spec.kind === 'table-quality') {
+    const { tableQualityText } = require('./generate-table-quality-fixtures');
+    return `Sheet: Basis\n${tableQualityText({ decimalComma: true })}\n\nSheet: Variant\n${tableQualityText({ variant: true, decimalComma: true })}`;
   }
   if (spec.kind === 'invoic') return generateEdifactFixture();
   return spec.text;
