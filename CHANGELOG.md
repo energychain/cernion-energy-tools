@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased — VDMI Blueprint Pack: Asset-to-Decision Readiness Review seed (#592)
+
+- Neuer statischer `read_only_blueprint_seed`
+  `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-asset-to-decision-readiness-v1.json`
+  (`asset_investment_decision_governance` / `asset_to_decision_readiness_review`, primäre Rolle
+  `ROLE_ASSET`), registriert in `src/vdmi-blueprint-pack-seeds.js`. Er bildet das
+  CR-LKA-RV-001-Beispiel `asset_to_decision` als tenant-parametrisierbare VDMI-Matrix ab:
+  exakt vier Zeilen, sechs kanonische Header, `roleLegend.M = Mitwirkend`, reine Rollenzellen,
+  getrennte Nachweisspuren je Zeile und die vier festgelegten Gate-Ergebnisse.
+- Der Validator prüft diesen Seed zusätzlich fail-closed: exakte Matrix/Gates, die acht
+  bestehenden Read Models nur als `source_hint_only` ohne ausführbare Felder, qualitative
+  Resolution Value (nur `data_quality_improvement`, `compliance_audit_improvement`,
+  `forecast_budget_confidence`; keine EUR-/Zahlen-/Score-/Rang-/ROI-/NPV-/TOTEX-/Einsparungsangaben),
+  unveränderlicher `publicContextLayer`, positive menschliche Folgeschritte und No-Call-Guards
+  (u. a. `state_budget_commitment`, `mark_committee_ready`, `recommend_final_investment_decision`,
+  Asset/GIS/ERP/SAP/PSP-Write, Workflow/HITL, Connector, Budibase-Write, direktes Rundeck,
+  Produktionsmutation). Bestehende Seeds bleiben unverändert gültig.
+- `buildDemoProcessMatrixSync(...)` meldet `Blueprint-Pack complete -> Landing-Registry pending ->
+  Produktivseite pending`. Kein Endpoint, keine Persistenz, kein Budibase-Manifest, keine
+  Ausführung. `tests/vdmi-blueprint-pack-seeds.test.js`: 31 neue Tests (inkl. 25 tabellengetriebene
+  Fail-closed-Mutationen), Suite 118/118 grün.
+
 ## Unreleased — Deterministisches Routing eigener Kontextänderungen (#925)
 
 - Gespeicherter Arbeitskontext und grammatischer Selbstbezug bestimmen den Vorrang

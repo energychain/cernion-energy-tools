@@ -20,6 +20,7 @@ const stadtwerkMauerModelViabilityManagementReview = require('./vdmi-blueprint-p
 const stadtwerkMauerTabularDecisionInputReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-tabular-decision-input-readiness-v1.json');
 const stadtwerkMauerMunicipalityPublicContextReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-municipality-public-context-readiness-v1.json');
 const stadtwerkMauerMakoResolutionValueReview = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-mako-resolution-value-review-v1.json');
+const stadtwerkMauerAssetToDecisionReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-asset-to-decision-readiness-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -355,6 +356,157 @@ const REQUIRED_MAKO_RESOLUTION_VALUE_REVIEW_ROLE_IDS = Object.freeze([
   'ROLE_FINANCE',
   'ROLE_COMPLIANCE',
 ]);
+const REQUIRED_ASSET_TO_DECISION_READINESS_EVIDENCE = Object.freeze([
+  'assetConditionSourceEvidence',
+  'technicalSignalContextEvidence',
+  'evidenceReceiptEvidence',
+  'riskQuantificationEvidence',
+  'alternativeOptionsEvidence',
+  'regulatoryAssessmentEvidence',
+  'controllingBudgetEvidence',
+  'budgetOwnerConfirmationEvidence',
+  'capexOpexClassificationEvidence',
+  'decisionOwnerEvidence',
+  'committeeReadinessBoundaryEvidence',
+  'positiveFollowUpEvidence',
+  'noCallGuardEvidence',
+  'qualitativeResolutionValueEvidence',
+]);
+const REQUIRED_ASSET_TO_DECISION_READINESS_ROLE_IDS = Object.freeze([
+  'ROLE_ASSET',
+  'ROLE_NETZPLANUNG',
+  'ROLE_CONTROLLING',
+  'ROLE_REGULATORIK',
+  'ROLE_GESCHAEFTSFUEHRUNG',
+  'ROLE_CERNION_GOVERNANCE',
+]);
+const ASSET_TO_DECISION_READINESS_CONTRACT = Object.freeze({
+  headers: Object.freeze([
+    'Phase',
+    'V = Verantwortlich',
+    'D = Durchfuehrend',
+    'M = Mitwirkend',
+    'I = Informiert',
+    'Nachweise',
+  ]),
+  rows: Object.freeze([
+    Object.freeze({
+      phase: '1',
+      v: 'ROLE_ASSET',
+      d: 'ROLE_CERNION_GOVERNANCE',
+      m: 'ROLE_NETZPLANUNG',
+      i: 'ROLE_GESCHAEFTSFUEHRUNG',
+      evidenceRequirements: Object.freeze([
+        'assetConditionSourceEvidence',
+        'technicalSignalContextEvidence',
+        'evidenceReceiptEvidence',
+      ]),
+      status: 'clarification',
+      gateOutcome: 'asset_signal_provenance_review_pending',
+    }),
+    Object.freeze({
+      phase: '2',
+      v: 'ROLE_ASSET',
+      d: 'ROLE_NETZPLANUNG',
+      m: 'ROLE_REGULATORIK',
+      i: 'ROLE_GESCHAEFTSFUEHRUNG',
+      evidenceRequirements: Object.freeze([
+        'riskQuantificationEvidence',
+        'alternativeOptionsEvidence',
+        'regulatoryAssessmentEvidence',
+      ]),
+      status: 'evidence_gap',
+      gateOutcome: 'risk_alternatives_regulatory_evidence_pending',
+    }),
+    Object.freeze({
+      phase: '3',
+      v: 'ROLE_ASSET',
+      d: 'ROLE_CONTROLLING',
+      m: 'ROLE_NETZPLANUNG',
+      i: 'ROLE_GESCHAEFTSFUEHRUNG',
+      evidenceRequirements: Object.freeze([
+        'controllingBudgetEvidence',
+        'budgetOwnerConfirmationEvidence',
+        'capexOpexClassificationEvidence',
+      ]),
+      status: 'evidence_gap',
+      gateOutcome: 'budget_classification_and_owner_evidence_pending',
+    }),
+    Object.freeze({
+      phase: '4',
+      v: 'ROLE_GESCHAEFTSFUEHRUNG',
+      d: 'ROLE_CERNION_GOVERNANCE',
+      m: 'ROLE_ASSET',
+      i: 'ROLE_CONTROLLING',
+      evidenceRequirements: Object.freeze([
+        'decisionOwnerEvidence',
+        'committeeReadinessBoundaryEvidence',
+        'positiveFollowUpEvidence',
+        'noCallGuardEvidence',
+      ]),
+      status: 'clarification',
+      gateOutcome: 'human_investment_review_ready_or_evidence_gap',
+    }),
+  ]),
+  sourceApiPaths: Object.freeze([
+    '/api/dashboard/investment-data-review-queue',
+    '/api/dashboard/investment-risk-translation',
+    '/api/dashboard/investment-owner-deadline-budget-gate',
+    '/api/dashboard/investment-committee-steering-cards',
+    '/api/dashboard/decision-readiness-matrix',
+    '/api/dashboard/evidence-grounding-confidence-audit',
+    '/api/dashboard/receipt-grounded-presentation-contract',
+    '/api/governance/role-workbench',
+  ]),
+  resolutionValueDimensions: Object.freeze([
+    'data_quality_improvement',
+    'compliance_audit_improvement',
+    'forecast_budget_confidence',
+  ]),
+  noCallActions: Object.freeze([
+    'state_budget_commitment',
+    'mark_committee_ready',
+    'recommend_final_investment_decision',
+    'budget_release',
+    'investment_ranking_or_scoring',
+    'committee_vote_or_scheduling',
+    'asset_mdm_write',
+    'gis_write',
+    'erp_write',
+    'sap_psp_write',
+    'workflow_create',
+    'task_create',
+    'hitl_create',
+    'mail_send',
+    'webhook_call',
+    'external_connector_call',
+    'budibase_table_write',
+    'rundeck_execute',
+    'production_mutation',
+  ]),
+});
+const EXECUTABLE_HINT_KEYS = Object.freeze([
+  'command',
+  'script',
+  'execute',
+  'invoke',
+  'rundeckJobId',
+  'httpRequest',
+  'url',
+]);
+const QUANTITATIVE_RESOLUTION_VALUE_KEYS = Object.freeze([
+  'amount',
+  'value',
+  'eur',
+  'score',
+  'rank',
+  'roi',
+  'npv',
+  'totex',
+  'savings',
+]);
+const QUANTITATIVE_RESOLUTION_VALUE_PATTERN =
+  /\d|€|\bEUR\b|\bscore|\brank|\bROI\b|\bNPV\b|\bTOTEX\b|\bsaving|Einsparung/i;
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -386,6 +538,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerTabularDecisionInputReadiness,
   stadtwerkMauerMunicipalityPublicContextReadiness,
   stadtwerkMauerMakoResolutionValueReview,
+  stadtwerkMauerAssetToDecisionReadiness,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -489,6 +642,12 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredRoleIds: REQUIRED_MAKO_RESOLUTION_VALUE_REVIEW_ROLE_IDS,
     expectedMatrixSlug: 'mako-m2c-resolution-value-review',
   }),
+  [stadtwerkMauerAssetToDecisionReadiness.id]: Object.freeze({
+    requiredEvidence: REQUIRED_ASSET_TO_DECISION_READINESS_EVIDENCE,
+    requiredRoleIds: REQUIRED_ASSET_TO_DECISION_READINESS_ROLE_IDS,
+    expectedMatrixSlug: 'asset-to-decision-readiness-review',
+    strictContract: ASSET_TO_DECISION_READINESS_CONTRACT,
+  }),
 });
 
 function getSeedValidationRequirements(seed) {
@@ -499,6 +658,152 @@ function getSeedValidationRequirements(seed) {
       expectedMatrixSlug: seed?.demoProcessMatrix?.slug || null,
     }
   );
+}
+
+function sameList(actual, expected) {
+  return (
+    Array.isArray(actual) &&
+    actual.length === expected.length &&
+    actual.every((value, index) => value === expected[index])
+  );
+}
+
+function collectQuantitativeResolutionValueErrors(value, path, errors) {
+  if (typeof value === 'number') {
+    errors.push(`${path} must be qualitative, not numeric`);
+  } else if (typeof value === 'string') {
+    if (QUANTITATIVE_RESOLUTION_VALUE_PATTERN.test(value)) {
+      errors.push(`${path} must not contain numeric/EUR/score/rank/ROI/NPV/TOTEX/savings claims`);
+    }
+  } else if (Array.isArray(value)) {
+    value.forEach((item, index) =>
+      collectQuantitativeResolutionValueErrors(item, `${path}[${index}]`, errors)
+    );
+  } else if (value && typeof value === 'object') {
+    for (const [key, nested] of Object.entries(value)) {
+      if (QUANTITATIVE_RESOLUTION_VALUE_KEYS.includes(key.toLowerCase())) {
+        errors.push(`${path}.${key} is a forbidden quantitative Resolution Value field`);
+      }
+      collectQuantitativeResolutionValueErrors(nested, `${path}.${key}`, errors);
+    }
+  }
+}
+
+// Fail-closed contract checks for seeds whose issue fixes the exact matrix, source hints,
+// qualitative Resolution Value and no-call boundary (#592). Other seeds are unaffected.
+function collectStrictContractErrors(seed, contract) {
+  const errors = [];
+  const matrix = seed.demoProcessMatrix || {};
+
+  if (!sameList(matrix.headers, contract.headers)) {
+    errors.push('demoProcessMatrix.headers must be the six canonical presentation headers');
+  }
+  const rows = Array.isArray(matrix.rows) ? matrix.rows : [];
+  if (rows.length !== contract.rows.length) {
+    errors.push(`demoProcessMatrix.rows must contain exactly ${contract.rows.length} rows`);
+  }
+  contract.rows.forEach((expected, index) => {
+    const row = rows[index] || {};
+    for (const key of ['phase', ...REQUIRED_MATRIX_ROLE_KEYS, 'status', 'gateOutcome']) {
+      if (row[key] !== expected[key]) {
+        errors.push(`demoProcessMatrix row ${expected.phase} ${key} must be ${expected[key]}`);
+      }
+    }
+    if (!sameList(row.evidenceRequirements, expected.evidenceRequirements)) {
+      errors.push(
+        `demoProcessMatrix row ${expected.phase} evidenceRequirements must be ${expected.evidenceRequirements.join(', ')}`
+      );
+    }
+  });
+
+  const evidenceById = new Map((seed.evidenceRequirements || []).map((item) => [item.id, item]));
+  for (const item of evidenceById.values()) {
+    if (!['clarification', 'evidence_gap'].includes(item.missingState)) {
+      errors.push(`evidence requirement ${item.id} must map to clarification or evidence_gap`);
+    }
+  }
+
+  const sourceApis = Array.isArray(seed.sourceApis) ? seed.sourceApis : [];
+  const sourcePaths = new Set(sourceApis.map((api) => api.path));
+  for (const path of contract.sourceApiPaths) {
+    if (!sourcePaths.has(path)) errors.push(`missing source hint: ${path}`);
+  }
+  for (const api of sourceApis) {
+    const label = api.path || api.operation || 'unknown';
+    if (!contract.sourceApiPaths.includes(api.path)) {
+      errors.push(`source hint ${label} is not an allowed existing read model`);
+    }
+    if (api.method !== 'GET' || api.readOnly !== true) {
+      errors.push(`source hint ${label} must be a read-only GET reference`);
+    }
+    if (api.invocation !== 'source_hint_only') {
+      errors.push(`source hint ${label} must be source_hint_only`);
+    }
+    if (EXECUTABLE_HINT_KEYS.some((key) => key in api)) {
+      errors.push(`source hint ${label} must not carry executable fields`);
+    }
+  }
+  for (const hint of seed.allowedCommandHints || []) {
+    if (EXECUTABLE_HINT_KEYS.some((key) => key in hint)) {
+      errors.push(`command hint ${hint.id || hint.kind} must not carry executable fields`);
+    }
+  }
+
+  const resolutionValue = seed.resolutionValue;
+  if (!resolutionValue || resolutionValue.kind !== 'qualitative_only') {
+    errors.push('resolutionValue.kind must be qualitative_only');
+  } else {
+    if (!evidenceById.has(resolutionValue.evidenceRef)) {
+      errors.push('resolutionValue.evidenceRef must reference a separate evidence requirement');
+    }
+    const dimensions = Array.isArray(resolutionValue.dimensions) ? resolutionValue.dimensions : [];
+    if (dimensions.length === 0) errors.push('resolutionValue.dimensions must not be empty');
+    for (const entry of dimensions) {
+      if (!contract.resolutionValueDimensions.includes(entry.dimension)) {
+        errors.push(`resolutionValue dimension ${entry.dimension} is not allowed`);
+      }
+    }
+    const { forbiddenClaims: _forbiddenClaims, ...claims } = resolutionValue;
+    collectQuantitativeResolutionValueErrors(claims, 'resolutionValue', errors);
+  }
+
+  const dataClasses = seed.dataClasses || {};
+  if (dataClasses.publicContextLayer?.immutable !== true) {
+    errors.push('publicContextLayer must be immutable');
+  }
+  if (dataClasses.syntheticTenantSeed?.invented !== true) {
+    errors.push('syntheticTenantSeed must be marked invented');
+  }
+  if (dataClasses.sandboxRuntimeArtifact?.resettable !== true) {
+    errors.push('sandboxRuntimeArtifact must be resettable');
+  }
+  const resettable = seed.resetPolicy?.resettableDataClasses || [];
+  if (
+    dataClasses.publicContextLayer?.resettable !== false ||
+    resettable.includes('publicContextLayer') ||
+    !(seed.resetPolicy?.neverResetOrDelete || []).includes('publicContextLayer')
+  ) {
+    errors.push('reset/delete must never target publicContextLayer');
+  }
+
+  const followUps = Array.isArray(seed.humanFollowUps) ? seed.humanFollowUps : [];
+  if (followUps.length === 0) errors.push('missing positive human follow-ups');
+  for (const followUp of followUps) {
+    if (!followUp.enablesDossierAddition || !evidenceById.has(followUp.missingDataPoint)) {
+      errors.push(
+        `human follow-up ${followUp.missingDataPoint} must be positive and evidence-bound`
+      );
+    }
+  }
+
+  const forbidden = new Set(seed.forbiddenActions || []);
+  const mustNotTrigger = new Set(seed.decisionPolicy?.mustNotTrigger || []);
+  for (const action of contract.noCallActions) {
+    if (!forbidden.has(action)) errors.push(`missing forbidden action: ${action}`);
+    if (!mustNotTrigger.has(action)) errors.push(`missing no-call guard: ${action}`);
+  }
+
+  return errors;
 }
 
 function listVdmiBlueprintPackSeeds() {
@@ -676,6 +981,10 @@ function validateVdmiBlueprintPackSeed(seed) {
     errors.push('realWorldClaim must be synthetic_demo_only');
   }
 
+  if (requirements.strictContract) {
+    errors.push(...collectStrictContractErrors(seed, requirements.strictContract));
+  }
+
   return {
     valid: errors.length === 0,
     errors,
@@ -726,7 +1035,10 @@ function buildWorkbenchClarificationItems(seed) {
                                     : selectedSeed.id ===
                                         stadtwerkMauerRedispatchParticipationReadiness.id
                                       ? 'ROLE_GRID_OPERATIONS_LEAD'
-                                      : 'ROLE_GRID_OPERATOR',
+                                      : selectedSeed.id ===
+                                          stadtwerkMauerAssetToDecisionReadiness.id
+                                        ? 'ROLE_ASSET'
+                                        : 'ROLE_GRID_OPERATOR',
     enablesDossierAddition: item.enablesDossierAddition,
     sourceSeedId: selectedSeed.id,
     execution: 'none',
@@ -899,6 +1211,9 @@ function buildLandingRegistryDraftFromBlueprintSeed(seed) {
 }
 
 module.exports = {
+  ASSET_TO_DECISION_READINESS_CONTRACT,
+  REQUIRED_ASSET_TO_DECISION_READINESS_EVIDENCE,
+  REQUIRED_ASSET_TO_DECISION_READINESS_ROLE_IDS,
   REQUIRED_DATA_CLASSES,
   REQUIRED_CONNECTION_DEADLINE_EVIDENCE,
   REQUIRED_CONNECTION_DEADLINE_ROLE_IDS,
@@ -945,6 +1260,7 @@ module.exports = {
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
   listVdmiBlueprintPackSeeds,
+  stadtwerkMauerAssetToDecisionReadiness,
   stadtwerkMauerRedispatchParticipationReadiness,
   stadtwerkMauerSubstationLoadAssessment,
   stadtwerkMauerPvMissingNap,
