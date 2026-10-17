@@ -72,7 +72,12 @@ async function readTurn(db, p, envelope, time = Date.now()) {
 
 async function expireTurn(db, doc) {
   // The last question contains no document text and lasts with the conversation.
-  if (doc.lastQuestion || doc.askedQuestions?.length || doc.caseSuppressed) {
+  if (
+    doc.lastQuestion ||
+    doc.askedQuestions?.length ||
+    doc.caseSuppressed ||
+    doc.conversationContext
+  ) {
     if (!doc.offeredContent && !doc.situation) return doc;
     const next = { ...doc, offeredContent: '', situation: null };
     await db.put(next);
@@ -135,6 +140,7 @@ async function saveTurn(db, p, envelope, patch, time = Date.now()) {
                   _rev: existing._rev,
                   askedQuestions: existing.askedQuestions || [],
                   caseSuppressed: existing.caseSuppressed === true,
+                  conversationContext: existing.conversationContext,
                 }
               : {}),
           }),
@@ -144,7 +150,19 @@ async function saveTurn(db, p, envelope, patch, time = Date.now()) {
       ...patch,
       expiresAt: time + PENDING_TTL_MS,
     };
-    if (doc.situation) doc.situation = persistentSituation(doc.situation);
+    if (doc.situation) {
+      doc.situation = persistentSituation(doc.situation);
+      if (doc.askedQuestions)
+        doc.askedQuestions = doc.askedQuestions.map((question) =>
+          doc.situation.missingInformation?.some(
+            (item) => item.key === question.key && item.answered === true
+          )
+            ? { ...question, answered: true }
+            : question
+        );
+      if (doc.situation.conversationContext)
+        doc.conversationContext = doc.situation.conversationContext;
+    }
     try {
       await db.put(doc);
       return doc;

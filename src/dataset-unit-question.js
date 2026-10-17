@@ -37,9 +37,18 @@ function unresolvedAnswerUnits(record, answer) {
 
 async function answerUnitQuestion(ctx, record, answer, conversationId) {
   const fields = unresolvedAnswerUnits(record, answer);
-  if (!fields.length || record.semantic.unitQuestion) return '';
+  if (
+    !fields.length ||
+    (record.semantic.unitQuestion && record.semantic.unitQuestion.conversationId === conversationId)
+  )
+    return '';
   record.semantic.unitQuestion = { fields, at: new Date().toISOString(), conversationId };
-  await ctx.call('datapoint.datasetCatalog', { operation: 'put', record });
+  const { datasetClarification, storeClarification } = require('./dataset-clarification');
+  await storeClarification(
+    ctx,
+    [record],
+    datasetClarification('unit', [record], conversationId, { [record.id]: fields })
+  );
   return `\n\nWelche Einheit gilt in ${record.title} für ${fields.join(', ')}?`;
 }
 

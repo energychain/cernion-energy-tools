@@ -194,6 +194,61 @@ test.each([
   });
 });
 
+test('only a current open clarification can precede manifest routing with saved dataset context', async () => {
+  const { scenario, projectId } = await setup('project-a-implicit');
+  const conversationId = 'routing-chat';
+  await h.call('project-file.update', { projectId, projectRefs: [{ conversationId }] }, meta());
+  const [record] = await h.call('datapoint.datasetCatalog', { operation: 'list' }, meta());
+  const { principal } = require('../src/domain-router-policy');
+  const { saveTurn } = require('../src/workbench-conversation');
+  const { datasetClarification } = require('../src/dataset-clarification');
+  const question = datasetClarification('sheet', [record], conversationId);
+  const workbench = h.broker.getLocalService('workbench');
+  await saveTurn(
+    workbench.conversationsDb,
+    principal({ meta: meta() }),
+    {
+      channel: 'api',
+      conversationId,
+    },
+    { datasetContext: { datasetIds: [record.id] } }
+  );
+  const questions = [
+    [],
+    [{ ...question, status: 'answered' }],
+    [{ ...question, conversationId: 'another-conversation' }],
+    [{ ...question, targets: [{ datasetId: record.id, version: record.version + 1, fields: [] }] }],
+  ];
+  for (const clarifications of questions) {
+    await h.call(
+      'datapoint.datasetCatalog',
+      {
+        operation: 'put',
+        record: { ...record, clarifications },
+      },
+      meta()
+    );
+    phases.length = 0;
+    const reply = await chat(scenario.turns[0].message);
+    expect(reply.responseText).toContain('Ich habe dafür die Projektakte');
+    expect(phases).not.toContain('dataset.turn');
+    expect(phases).not.toContain('understanding');
+  }
+  await h.call(
+    'datapoint.datasetCatalog',
+    {
+      operation: 'put',
+      record: { ...record, clarifications: [question] },
+    },
+    meta()
+  );
+  phases.length = 0;
+  const selected = await chat(record.title);
+  expect(selected.responseText).toContain('Für dieses Gespräch verwende ich');
+  expect(phases).toContain('dataset.turn');
+  expect(phases).not.toContain('project-manifest.candidates');
+});
+
 test.each(['a', 'b'])(
   'paraphrased mixed %s answer retains actual catalog provenance',
   async (domain) => {

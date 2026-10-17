@@ -1,5 +1,84 @@
 # Changelog
 
+## Unreleased — Rollenbestätigung und eigene Rollenkorrektur (#925)
+
+- Jede belegte eigene Rollenangabe erhält nach erfolgreicher Speicherung eine
+  deterministische Bestätigung von Rolle, Auftrag und Ziel vor der Antwort,
+  auch bei einer gleichzeitig gewählten Dokumentantwort.
+- Eigene Rollenänderungen mit vorhandenem Arbeitskontext werden vor allgemeinen
+  Gedächtnis-Korrekturen geprüft. Aussagen und Datensätze behalten ihren bisherigen
+  Korrekturvertrag; Folgefragen verwenden den korrigierten Kontext.
+- Mehrturn-Tests mit echten Gedächtnis-Diensten prüfen abweichende Klassifikationen,
+  Dokumentantworten und laufende Reviews. HTTP-Regressionen prüfen „korrigier das“
+  zusätzlich bei vorhandenem Rollen-Kontext. Live-Bericht zum Ausgangsstand aufgenommen.
+
+## Unreleased — Dokumentreviews blockieren keine Folgeturns (#925 / #754)
+
+- Die Prüfanfrage-Erkennung unterscheidet Verbformen und eigenständige Prüfungsbitten
+  von beliebigen Wortzusammensetzungen; synthetische Referenzanker starten kein Review.
+- Das Zeitbudget umfasst jetzt Verstehen, Recherche, Abschnittsanalyse und Zusammenführung.
+  Fehler, Zeitüberschreitungen und verwaiste Jobs erhalten terminale gespeicherte Zustände;
+  verspätete Ergebnisse überschreiben diese nicht.
+- Nur ausdrückliche Ergebnis-/Statusfragen erhalten den Reviewstatus. Rollenangaben,
+  Korrekturen und weitere Dokumentfragen laufen normal weiter; Dokumentantworten verwenden
+  den gespeicherten Arbeitskontext.
+- Das Einarbeitungsszenario bestellt ausdrücklich einen Überblick mit Rollenrückfrage.
+  Vollständige Turn-Tests übergeben echte synthetische Dokumente und laufen auch bei
+  parallelem Review. Live-Ausgangsberichte unverändert aufgenommen; kein neuer Live-Lauf.
+
+## Unreleased — Eigene Rollenangaben als Arbeitskontext (#925)
+
+- Eigene Rollen-/Aufgabenangaben werden mit strukturiertem Subjektbezug und
+  wörtlichem Nachweis vor dem Personenbewertungspfad geprüft. Elliptische Antworten
+  benötigen eine gespeicherte offene Rollenfrage. Der Schutz für Dritte bleibt erhalten.
+- Rolle, Auftrag/Gremium und Ziel bleiben im Gespräch als korrigierbarer Arbeitskontext
+  erhalten, auch nach Ablauf des kurzfristigen Lagebilds. Berechtigungen bleiben unverändert.
+- Antwort-Prompts nutzen den Kontext in Folgeturns. Vorbereitete Fragen an Dritte haben
+  ein eigenes schemageprüftes Fragenziel; Rückfragen an Nutzer bleiben im Rückfragepfad.
+- Vollständige Mehrturn-Regressionen mit schema-validen Modell-Stubs und das generierte
+  synthetische Praxis-Szenario „Einarbeitung mit Rollenangabe“ sichern das Verhalten ab.
+
+## Unreleased — Akten-Routing und Dokument-Folgefragen (#926)
+
+- Der frühe Datensatz-Turn läuft nur bei einer gespeicherten offenen Rückfrage
+  im aktuellen Gespräch. Ohne Rückfrage bleibt das Akten-Routing vorrangig (#887).
+- Hochgeladene Dateien werden vor einer angenommenen Katalog-Leseaktion genutzt;
+  Dokumentfragen und Folgefragen verwenden die gespeicherten Dokumentabschnitte
+  auch bei abweichender Gesprächsklassifikation.
+- Der Antwortfilter erkennt auch einzelne oder neu zusammengesetzte Sätze aus
+  internen Situationsbeschreibungen und fordert eine direkte Antwort an.
+  Vollständige Turn-Regressionen verwenden schema-valide Modell-Stubs; fünfter
+  Live-Ausgangsbericht unverändert aufgenommen, kein neuer Live-Lauf.
+
+## Unreleased — Gespeicherte Rückfragen vor allgemeiner Klassifikation (#926)
+
+- Blatt- und Einheitenfragen speichern Art, Gespräch, versionierte Ziele,
+  Wertspalten und erlaubte Antworten im Tenant-Katalog. Passende Antworten werden
+  vor Projekt-, Memory- und allgemeiner Semantikerkennung deterministisch
+  übernommen; Zwischenfragen lassen die Rückfrage offen.
+- Mehrdeutige Einheitenantworten bleiben bis zur Blattwahl als Vorschlag erhalten.
+  Wiederholte Bestätigungen nennen die gespeicherte Einheit, ohne eine zusätzliche
+  Semantikänderung zu behaupten oder doppelt zu auditieren.
+- Varianten verwenden einen gemeinsamen Abfrageplan. Echte Zeilen ohne
+  Gruppenangabe bleiben in Gruppen- und Gesamtsummen enthalten und werden lesbar
+  beschriftet; Kontrollsummen bleiben ausgeschlossen.
+- Vollständige Turn-Regressionen validieren Situationen gegen das Produktschema
+  einschließlich `requestedAction` und erzwingen abweichende Klassifikationen.
+  Vierten Live-Ausgangsbericht unverändert aufgenommen; kein neuer Live-Lauf.
+
+## Unreleased — Einheiten im Folgeturn und lesbare Variantenvergleiche (#926 Teil 2)
+
+- Einheitenantworten und ausdrückliche Angaben an Wertspalten binden und auditiert
+  speichern, auch für ausdrücklich gemeinsam genannte Blätter. Der belegte
+  Einheitenwortlaut bleibt bei abweichender Modellnormalisierung erhalten.
+- Mehrdeutige Antworten führen zur Datensatzauswahl; unveränderte Semantik wird
+  nicht als gespeicherte Korrektur bestätigt. Folgeabfragen lesen die Einheit aus
+  dem Katalog und berücksichtigen die bestätigte Blattwahl.
+- Variantenvergleiche zeigen Aggregat- und Spaltennamen statt interner Plan-Aliase;
+  unterschiedliche Aliase je Blatt werden anhand der Aggregation zugeordnet.
+- Vollständige Workbench-Turn-Regressionen mit LLM-Stubs prüfen beide Wege und
+  die unveränderte Praxisprüfung auf interne Codes.
+
 ## Unreleased — Tabellenqualität: Gesprächszustand und Vergleich stabilisieren (#926)
 
 - Varianten mit den bereits aufgelösten Quellen über einen gemeinsamen Abfrage-

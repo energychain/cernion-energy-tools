@@ -8,6 +8,8 @@ const TURN_SCOPED_FIELDS = Object.freeze([
   'codeMeaningQuestion',
   'regulatoryQuestion',
   'personAssessment',
+  'roleStatement',
+  'roleContextUpdated',
   'personAssessmentOutput',
   'disclosure',
   'linkedCaseProposal',

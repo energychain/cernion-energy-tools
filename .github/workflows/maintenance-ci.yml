@@ -10,8 +10,8 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    # Serial coverage plus real forecast-model tests exceeded the previous 20-minute budget.
-    timeout-minutes: 40
+    # Serial coverage plus real forecast-model tests exceeded the previous 20- and 40-minute budgets.
+    timeout-minutes: 55
     steps:
       - name: Checkout
         uses: actions/checkout@v7

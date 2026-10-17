@@ -8,7 +8,7 @@ const {
   documentDraftRequested,
 } = require('./workbench-document-input');
 const { attachDocuments, loadDocuments, documentSections } = require('./workbench-document');
-const { reviewDocuments, reviewOptions } = require('./workbench-review');
+const { reviewDocuments, reviewOptions, beforeDeadline } = require('./workbench-review');
 const { understand } = require('./workbench-understanding');
 const { sourceLine } = require('./workbench-answer-evidence');
 const { filterEvidence, retrievalTimeoutMs } = require('./workbench-retrieval');
@@ -203,9 +203,10 @@ function renderReview(result) {
     }))
   );
   if (criteria) lines.push(criteria);
-  lines.push(
-    `Umfang: ${result.stats.documentChars} Zeichen; ${result.stats.mapCalls} Abschnittsaufrufe, ${result.stats.reduceCalls} Zusammenführung; ${result.stats.elapsedMs} ms.`
-  );
+  if (Number.isFinite(result.stats?.documentChars))
+    lines.push(
+      `Umfang: ${result.stats.documentChars} Zeichen; ${result.stats.mapCalls} Abschnittsaufrufe, ${result.stats.reduceCalls} Zusammenführung; ${result.stats.elapsedMs} ms.`
+    );
   return lines.filter(Boolean).join('\n\n');
 }
 
@@ -265,7 +266,18 @@ function storedPassage(documents, question) {
 
 async function readJob(service, key) {
   try {
-    return await service.conversationsDb.get(key);
+    const job = await service.conversationsDb.get(key);
+    if (job.state !== 'running') return job;
+    const deadline = job.deadlineAt || job.expiresAt - 30 * 60 * 1000 + reviewOptions().timeoutMs;
+    const expired = deadline <= Date.now();
+    if (!expired && service.workbenchDocumentReviews?.has(key)) return job;
+    return finishReview(
+      service,
+      job,
+      failedReview(job, {
+        type: expired ? 'WORKBENCH_REVIEW_TIMEOUT' : 'WORKBENCH_REVIEW_INTERRUPTED',
+      })
+    );
   } catch (error) {
     if (error.status === 404) return null;
     throw error;
@@ -301,12 +313,76 @@ function jobMatchesDocuments(job, documents) {
   return job.hashes.length === documents.length && job.hashes.every((hash) => hashes.has(hash));
 }
 
+function reviewResultRequested(question) {
+  return (
+    /^(?:(?:was|wie)\s+(?:ist|lautet)\s+(?:das\s+)?)?(?:das\s+)?ergebnis(?:\s+bitte)?[.!?]?$/iu.test(
+      String(question).trim()
+    ) ||
+    (/\b(?:review|prüfung|pruefung|dokumentprüfung|dokumentpruefung)\b/iu.test(question) &&
+      /\b(?:ergebnis|stand|status|fertig|abgeschlossen|läuft|laeuft|weit)\b/iu.test(question))
+  );
+}
+
+function failedReview(job, error) {
+  const timeout = error.type === 'WORKBENCH_REVIEW_TIMEOUT';
+  const interrupted = error.type === 'WORKBENCH_REVIEW_INTERRUPTED';
+  return {
+    status: timeout ? 'timeout' : 'failed',
+    reason: timeout
+      ? 'Die Dokumentprüfung wurde nach Ablauf ihres Zeitbudgets abgebrochen. Ein vollständiges Urteil liegt nicht vor.'
+      : interrupted
+        ? 'Die Dokumentprüfung wurde unterbrochen. Ein vollständiges Urteil liegt nicht vor.'
+        : require('./workbench-llm-errors').quotaMessage(error) ||
+          'Die Dokumentprüfung ist fehlgeschlagen. Ein vollständiges Urteil liegt nicht vor.',
+    maps: [],
+    criteria: [],
+    stats: {
+      documentChars: job.documentChars,
+      mapCalls: 0,
+      reduceCalls: 0,
+      elapsedMs: Math.max(0, Date.now() - (job.startedAt || Date.now())),
+    },
+  };
+}
+
+async function finishReview(service, job, result) {
+  const timedOut =
+    result.status === 'timeout' ||
+    result.gaps?.some((gap) => gap.reason === 'WORKBENCH_REVIEW_TIMEOUT');
+  const settled = timedOut
+    ? {
+        ...result,
+        status: 'timeout',
+        reason: failedReview(job, { type: 'WORKBENCH_REVIEW_TIMEOUT' }).reason,
+      }
+    : result;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const latest = await service.conversationsDb.get(job._id);
+    if (latest.state !== 'running' || latest.runId !== job.runId) return latest;
+    const next = {
+      ...latest,
+      state: settled.status === 'completed' ? 'ready' : 'failed',
+      completedAt: Date.now(),
+      result: settled,
+    };
+    try {
+      const saved = await service.conversationsDb.put(next);
+      return { ...next, _rev: saved.rev };
+    } catch (error) {
+      if (error.status !== 409 || attempt === 3) throw error;
+    }
+  }
+}
+
 async function launchReview(
   service,
   ctx,
   { key, p, caseId, documents, question, situation, retrieval }
 ) {
   const existing = await readJob(service, key);
+  const options = reviewOptions();
+  const started = performance.now();
+  const deadline = started + options.timeoutMs;
   const job = {
     _id: key,
     ...(existing ? { _rev: existing._rev } : {}),
@@ -315,6 +391,9 @@ async function launchReview(
     actorId: p.actorId,
     caseId,
     state: 'running',
+    startedAt: Date.now(),
+    deadlineAt: Date.now() + options.timeoutMs,
+    documentChars: documents.reduce((sum, doc) => sum + doc.text.length, 0),
     runId: randomUUID(),
     policyHash: policyHash(p, ctx.meta.workbenchEvidenceAccess),
     question,
@@ -325,36 +404,48 @@ async function launchReview(
   await service.conversationsDb.put(job);
   const active = (service.workbenchDocumentReviews ||= new Map());
   const task = Promise.resolve()
-    .then(async () => {
-      const evidence =
-        retrieval || (await reviewRetrieval(service, ctx, documents, question, situation));
-      const result = await reviewDocuments({
-        documents,
-        question,
-        situation: evidence.situation || situation,
-        retrieval: evidence,
-        ctx: { meta: { tenantId: p.tenantId } },
-        draftRequested: documentDraftRequested(question),
-      });
-      const latest = await readJob(service, key);
-      // A replaced job must never be overwritten by an older completion.
-      if (
-        latest?.state === 'running' &&
-        latest.runId === job.runId &&
-        latest.hashes.join() === job.hashes.join()
-      )
-        await service.conversationsDb.put({ ...latest, state: 'ready', result });
+    .then(() =>
+      beforeDeadline(async () => {
+        const evidence =
+          retrieval || (await reviewRetrieval(service, ctx, documents, question, situation));
+        // Preflight shares the job budget; a late provider response cannot start another phase.
+        const remaining = Math.ceil(deadline - performance.now());
+        if (remaining <= 0)
+          throw Object.assign(new Error('Review timeout'), { type: 'WORKBENCH_REVIEW_TIMEOUT' });
+        const latest = await readJob(service, key);
+        if (latest?.runId !== job.runId || latest.state !== 'running')
+          return failedReview(job, { type: 'WORKBENCH_REVIEW_INTERRUPTED' });
+        return reviewDocuments(
+          {
+            documents,
+            question,
+            situation: evidence.situation || situation,
+            retrieval: evidence,
+            ctx: { meta: { tenantId: p.tenantId } },
+            draftRequested: documentDraftRequested(question),
+          },
+          { ...options, timeoutMs: remaining }
+        );
+      }, deadline)
+    )
+    .then((result) => finishReview(service, job, result))
+    .catch(async (error) => {
+      require('./workbench-llm-errors').logLlmError(service.logger, 'review', error);
+      return finishReview(service, job, failedReview(job, error));
     })
     .catch((error) => {
       service.logger.warn('Document review persistence unavailable', {
         type: error.type || error.name,
       });
     })
-    .finally(() => active.delete(key));
+    .finally(() => {
+      // Completion of an older run must not remove the replacement run's lifecycle handle.
+      if (active.get(key) === task) active.delete(key);
+    });
   active.set(key, task);
   // Keep shutdown inside the existing broker lifecycle, rather than leaving DB writes behind.
   return {
-    responseText: `Ich prüfe ${documents.length} Dokument(e) mit ${documents.reduce((sum, doc) => sum + doc.text.length, 0)} Zeichen abschnittsweise: Aussagen, Annahmen, Zahlen, Zeitplan und Widersprüche sowie verfügbare Prüfmaßstäbe. Das Review läuft; das Ergebnis liefere ich im nächsten Turn. Die Vollständigkeit des übermittelten Texts ist ${documents.every((doc) => doc.completeness === 'full') ? 'bestätigt' : 'nicht bestätigt'}.`,
+    responseText: `Ich prüfe ${documents.length} Dokument(e) mit ${documents.reduce((sum, doc) => sum + doc.text.length, 0)} Zeichen abschnittsweise: Aussagen, Annahmen, Zahlen, Zeitplan und Widersprüche sowie verfügbare Prüfmaßstäbe. Das Review läuft. Du kannst nach dem Stand der Prüfung fragen oder das Gespräch fortsetzen. Die Vollständigkeit des übermittelten Texts ist ${documents.every((doc) => doc.completeness === 'full') ? 'bestätigt' : 'nicht bestätigt'}.`,
     pending: true,
   };
 }
@@ -369,7 +460,6 @@ async function documentReply(
     situation,
     retrieval,
     asked = [],
-    conversationReplyRequested = false,
     meta = ctx.meta,
     access,
     selectedCapabilities = [],
@@ -403,11 +493,31 @@ async function documentReply(
   });
   if (!documents.length) return null;
   const question = envelope.userRequest;
-  if (
-    (conversationReplyRequested &&
+  if (envelope.documents?.length) {
+    const previousJob = await readJob(service, reviewKey(p, envelope, caseId));
+    if (
       !isReviewRequest(question) &&
-      !documentDraftRequested(question)) ||
-    ['orientation', 'knowledge', 'assistance', 'filing'].includes(situation.conversationShape)
+      !documentDraftRequested(question) &&
+      jobScope(previousJob, p, caseId, access) &&
+      !jobMatchesDocuments(previousJob, documents)
+    )
+      return {
+        responseText:
+          'Die neue Dokumentgrundlage ist gespeichert. Eine weitere Prüfung nutzt diesen Stand.',
+        pending: previousJob.state === 'running',
+      };
+  }
+  if (
+    (situation.roleContextUpdated && situation.roleStatement?.roleOnly) ||
+    situation.personAssessment?.applicable
+  )
+    return null;
+  if (
+    !isReviewRequest(question) &&
+    !documentDraftRequested(question) &&
+    situation.missingInformation?.some(
+      (item) => (item.reason === 'purpose' || item.kind === 'role') && !item.answered
+    )
   ) {
     const reply = await require('./workbench-understanding').answer({
       situation,
@@ -428,20 +538,27 @@ async function documentReply(
     return { responseText: reply.responseText, conversationReply: reply };
   }
   const reviewRequested = isReviewRequest(question) || documentDraftRequested(question);
-  if (!reviewRequested && !/\b(?:ergebnis|review|prüfung|pruefung)\b/iu.test(question)) {
+  if (!reviewRequested && !reviewResultRequested(question)) {
     const table = documents.some((document) =>
       require('./workbench-document-question').documentTable(document.text)
     );
-    const answer =
-      (!table && storedPassage(documents, question)) ||
-      (
-        await require('./workbench-document-question').documentQuestion(documents, question, {
+    const passage = !table && storedPassage(documents, question);
+    const reply = passage
+      ? { responseText: passage }
+      : await require('./workbench-document-question').documentQuestion(documents, question, {
           tenantId: p.tenantId,
           logger: service.logger,
-        })
-      )?.responseText;
-    if (answer) return { responseText: [answer, storageNote].filter(Boolean).join('\n\n') };
+          internalContext: [situation.concern, situation.situation],
+          conversationContext: situation.conversationContext,
+          conversationPreferences: situation.conversationPreferences,
+        });
+    if (reply?.responseText)
+      return {
+        ...reply,
+        responseText: [reply.responseText, storageNote].filter(Boolean).join('\n\n'),
+      };
   }
+  if (!reviewRequested && !reviewResultRequested(question)) return null;
   const passage = storedPassage(documents, envelope.userRequest);
   if (passage) return { responseText: passage };
   const key = reviewKey(p, envelope, caseId);
@@ -451,7 +568,7 @@ async function documentReply(
     if (service.workbenchDocumentReviews?.has(key))
       return {
         responseText:
-          'Die vorherige Dokumentprüfung läuft noch. Die neue Dokumentgrundlage ist gespeichert und wird im nächsten Turn erneut geprüft.',
+          'Die vorherige Dokumentprüfung läuft noch. Die neue Dokumentgrundlage ist gespeichert Eine weitere Prüfung nutzt diesen Stand.',
         pending: true,
       };
     return launchReview(service, ctx, {
@@ -468,7 +585,7 @@ async function documentReply(
     });
   }
   if (visible && !added && !documentDraftRequested(envelope.userRequest)) {
-    if (job.state === 'ready') {
+    if (['ready', 'failed'].includes(job.state)) {
       await service.conversationsDb.put({ ...job, state: 'delivered' });
       return { responseText: renderReview(job.result), result: job.result };
     }
@@ -485,23 +602,20 @@ async function documentReply(
         });
       return {
         responseText:
-          'Die Dokumentprüfung läuft noch. Das Ergebnis folgt im nächsten Turn; noch liegt kein vollständiges Urteil vor.',
+          'Die Dokumentprüfung läuft noch. Noch liegt kein vollständiges Urteil vor; du kannst das Gespräch fortsetzen.',
         pending: true,
       };
     }
   }
   if (!isReviewRequest(envelope.userRequest) && !documentDraftRequested(envelope.userRequest))
     return storageNote ? { responseText: storageNote } : null;
-  const options = reviewOptions();
-  const maps = documents.reduce(
-    (sum, document) => sum + documentSections(document.text, options.chunkChars).length,
-    0
-  );
+  const maps = documents.reduce((sum, document) => sum + documentSections(document.text).length, 0);
   // Even a single provider request can consume the remaining HTTP budget. Run reviews
   // outside the turn consistently; this also avoids relying on guessed provider latency.
   if (maps > 0 && service.workbenchDocumentReviews?.has(key))
     return {
-      responseText: 'Die Dokumentprüfung läuft bereits. Das Ergebnis folgt im nächsten Turn.',
+      responseText:
+        'Die Dokumentprüfung läuft bereits. Du kannst nach dem Stand der Prüfung fragen oder das Gespräch fortsetzen.',
       pending: true,
     };
   if (maps > 0)
@@ -525,38 +639,20 @@ async function documentFollowup(service, { p, envelope, caseId, access }) {
     roles: p.roles,
   });
   if (!documents.length) return null;
-  if (
-    !isReviewRequest(envelope.userRequest) &&
-    !/\b(?:ergebnis|review|prüfung|pruefung)\b/iu.test(envelope.userRequest)
-  ) {
-    const table = documents.some((document) =>
-      require('./workbench-document-question').documentTable(document.text)
-    );
-    if (table)
-      return require('./workbench-document-question').documentQuestion(
-        documents,
-        envelope.userRequest,
-        { tenantId: p.tenantId, logger: service.logger }
-      );
-  }
   const passage = storedPassage(documents, envelope.userRequest);
   if (passage) return { responseText: passage };
+  if (!reviewResultRequested(envelope.userRequest)) return null;
   const job = await readJob(service, reviewKey(p, envelope, caseId));
-  if (!job && !isReviewRequest(envelope.userRequest))
-    return require('./workbench-document-question').documentQuestion(
-      documents,
-      envelope.userRequest,
-      { tenantId: p.tenantId, logger: service.logger }
-    );
   if (!jobScope(job, p, caseId, access) || !jobMatchesDocuments(job, documents)) return null;
-  if (job.state === 'ready') {
-    await service.conversationsDb.put({ ...job, state: 'delivered' });
+  if (['ready', 'failed', 'delivered'].includes(job.state)) {
+    if (job.state !== 'delivered')
+      await service.conversationsDb.put({ ...job, state: 'delivered' });
     return { responseText: renderReview(job.result), result: job.result };
   }
   return job.state === 'running' && service.workbenchDocumentReviews?.has(job._id)
     ? {
         responseText:
-          'Die Dokumentprüfung läuft noch. Das Ergebnis folgt im nächsten Turn; noch liegt kein vollständiges Urteil vor.',
+          'Die Dokumentprüfung läuft noch. Noch liegt kein vollständiges Urteil vor; du kannst das Gespräch fortsetzen.',
         pending: true,
       }
     : null;
@@ -586,6 +682,7 @@ function documentAnswer(reply) {
     evidenceTrace: {},
     answerAttempts: 0,
     answerStatus: reply.pending ? 'pending_review' : 'document_answer',
+    metadata: { degraded: false, ...reply.metadata },
   };
 }
 
@@ -593,7 +690,11 @@ async function documentFollowupResponse(
   service,
   { p, envelope, conversation, state, started, access, previousShape }
 ) {
-  if (['orientation', 'knowledge', 'assistance', 'filing'].includes(previousShape)) return null;
+  if (
+    ['orientation', 'knowledge', 'assistance', 'filing'].includes(previousShape) &&
+    !reviewResultRequested(envelope.userRequest)
+  )
+    return null;
   if (!state || state.disposition === 'discarded') return null;
   const reply = await documentFollowup(service, {
     p,

@@ -32,11 +32,31 @@ test('other model errors keep the existing document fallback', async () => {
   expect(responseText).toContain('nicht zuverlässig beantworten');
 });
 
+test('a document answer containing only internal description sentences uses the neutral fallback', async () => {
+  const internalContext = [
+    'Die Anfrage betrifft einen noch offenen Punkt. Der dokumentierte Stand soll geklärt werden.',
+  ];
+  llm.generateStructured.mockResolvedValue({
+    answer: 'Der dokumentierte Stand soll geklärt werden.',
+  });
+  const reply = await documentQuestion(documents, 'Was ist noch offen?', { internalContext });
+  expect(reply.responseText).not.toContain('Stand soll geklärt werden');
+  expect(reply.metadata.degraded).toBe(true);
+});
+
 test('chat document memory budget allows the configured number of sections only', async () => {
   const budget = chatMemoryBudget(2);
   const claims = [];
   for (let i = 0; i < 4; i += 1) claims.push(await budget.claimSection());
   expect(claims).toEqual([true, true, false, false]);
+});
+
+test('a document answer cannot concatenate unpunctuated internal fields into an answer', async () => {
+  const internalContext = ['Die Frage nach dem Stand', 'Klärung der offenen Angaben'];
+  llm.generateStructured.mockResolvedValue({ answer: internalContext.join(' ') });
+  const reply = await documentQuestion(documents, 'Was ist noch offen?', { internalContext });
+  expect(reply.responseText).not.toContain(internalContext[0]);
+  expect(reply.metadata.degraded).toBe(true);
 });
 
 test('chat document memory budget defaults to 50 and 0 disables the cap', async () => {
