@@ -4867,7 +4867,7 @@
             "description": "Dokument im ersten Chat ablegen",
             "rules": {
               "require": [
-                "Abgelegt"
+                "Abgelegt|gespeichert"
               ],
               "casePresent": true
             },

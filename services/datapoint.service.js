@@ -48,6 +48,7 @@ module.exports = {
 
   created() {
     this.activeRefreshes = new Set();
+    this.datasetQueues = new Map();
   },
 
   async started() {
@@ -57,6 +58,7 @@ module.exports = {
   },
 
   async stopped() {
+    await require('../src/tenant-evidence-background').stopDescriptorWorker(this);
     if (this.schedulerInterval) {
       clearInterval(this.schedulerInterval);
       this.schedulerInterval = null;

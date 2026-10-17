@@ -102,11 +102,11 @@ function minimalDescriptor(kind, row) {
 }
 
 async function ensureDescriptor(kind, row, options = {}) {
-  const input = descriptorInput(kind, row);
+  const input = options.metadata || descriptorInput(kind, row);
   if (row.evidenceDescriptor?.fingerprint === input.fingerprint) {
     try {
       validateManifest(row.evidenceDescriptor.manifest, input.nodes);
-      return row.evidenceDescriptor;
+      if (!options.enrich || row.evidenceDescriptor.generation) return row.evidenceDescriptor;
     } catch (_error) {
       /* Repair invalid legacy metadata when needed. */
     }
@@ -184,7 +184,7 @@ function needsDescriptor(kind, row, question, actorId) {
   if (row.evidenceDescriptor?.fingerprint === input.fingerprint) {
     try {
       validateManifest(row.evidenceDescriptor.manifest, input.nodes);
-      return false;
+      if (row.evidenceDescriptor.generation) return false;
     } catch (_error) {
       /* Invalid stored descriptors use the same lazy repair. */
     }

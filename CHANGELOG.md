@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Gegenüberstellung und Quellenkontinuität (#927 Nachprüfung)
+
+- Chat-Uploads erhalten sofort einen Minimal-Deskriptor. Begrenzte, koaleszierte
+  LLM-Anreicherung läuft im Hintergrund und blockiert die Upload-Antwort nicht.
+- Gemeinsam gelesene Quellen mit derselben benannten Größe/Einheit erhalten eine
+  belegte Gegenüberstellung mit Herkunft und offener Bezugsbasis, auch wenn die
+  Modellformulierung verworfen wird. Zahlenprüfung und Normalisierung bleiben gemeinsam.
+- Folgeturns können die zuvor gewählte Quellengruppe erneut autorisiert lesen.
+  Generierte Entitätsnamen verdrängen keine passenden Spalten-/Abschnittsmerkmale;
+  interne Beschreibungen einer Anfrage werden auch in diesem Antwortpfad verworfen.
+- Das Praxis-Fixture akzeptiert die vorhandene Ablagebestätigung „gespeichert“.
+  Der rote Live-Bericht auf `7d8dcf39` ist dokumentiert; die Korrekturen sind offline
+  geprüft, ein erneuter Live-Lauf bleibt der aufrufenden Session vorbehalten.
+
 ## Unreleased — Selbst anbietende Chat-Evidenz (#927 Phase A)
 
 - Chat-Dokumente und Chat-Datensätze speichern quellengebundene Deskriptoren im

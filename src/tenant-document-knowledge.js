@@ -176,6 +176,40 @@ function scheduleIndex(service, ctx, row) {
     .finally(() => service.documentIndexJobs.delete(job));
   service.documentIndexJobs.add(job);
 }
+function scheduleDocumentDescriptor(service, ctx, row) {
+  const { id, tenantId, hash } = row;
+  const meta = { ...ctx.meta };
+  const detached = {
+    meta,
+    broker: service.broker,
+    call: (name, params, options) =>
+      service.broker.call(name, params, { ...options, meta, parentCtx: null }),
+  };
+  require('./tenant-evidence-background').scheduleDescriptor(service, 'document', row, (enriched) =>
+    serial(tenantId, async () => {
+      let current;
+      try {
+        current = (
+          await detached.call('object-store.get', {
+            namespace: documentNamespace(tenantId),
+            key: id,
+          })
+        ).payload;
+      } catch (error) {
+        if (error.code === 404 || error.status === 404) return;
+        throw error;
+      }
+      if (
+        current.status !== 'active' ||
+        current.hash !== hash ||
+        current.evidenceDescriptor?.fingerprint !== enriched.fingerprint
+      )
+        return;
+      current.evidenceDescriptor = enriched;
+      await service.objectPut(detached, documentNamespace(tenantId), id, current);
+    })
+  );
+}
 async function invalidateFacts(ctx, p, row, status) {
   const memory = require('./tenant-memory-store');
   const facts = await memory.query(ctx, p, {
@@ -275,16 +309,16 @@ async function ingestDocument(service, ctx, input) {
         await service.objectPut(safe, documentNamespace(p.tenantId), duplicate.id, duplicate);
       }
       if (!duplicate.provenance?.projectId) {
-        const descriptor = await require('./tenant-evidence-descriptor').ensureDescriptor(
+        const descriptor = require('./tenant-evidence-background').availableDescriptor(
           'document',
-          duplicate,
-          { broker: service.broker, logger: service.logger }
+          duplicate
         );
         if (descriptor !== duplicate.evidenceDescriptor) {
           duplicate.evidenceDescriptor = descriptor;
           await service.objectPut(safe, documentNamespace(p.tenantId), duplicate.id, duplicate);
         }
       }
+      if (!duplicate.provenance?.projectId) scheduleDocumentDescriptor(service, safe, duplicate);
       if (duplicate.status === 'active' && duplicate.indexState !== 'indexed') {
         if (input.deferIndex) scheduleIndex(service, safe, duplicate);
         else await indexDocument(service, safe, duplicate);
@@ -326,12 +360,12 @@ async function ingestDocument(service, ctx, input) {
       audit: [{ kind: 'stored', actorId: p.actorId, at }],
     };
     if (!row.provenance?.projectId)
-      row.evidenceDescriptor = await require('./tenant-evidence-descriptor').ensureDescriptor(
+      row.evidenceDescriptor = require('./tenant-evidence-background').availableDescriptor(
         'document',
-        row,
-        { broker: service.broker, logger: service.logger }
+        row
       );
     await service.objectPut(safe, documentNamespace(p.tenantId), row.id, row);
+    if (!row.provenance?.projectId) scheduleDocumentDescriptor(service, safe, row);
     for (const old of family.filter((item) => item.status === 'active')) {
       old.status = 'superseded';
       old.audit.push({ kind: 'superseded', actorId: p.actorId, at, replacement: row.id });
@@ -430,6 +464,7 @@ async function visibleChunks(service, ctx, chunks) {
 }
 const mixin = {
   async stopped() {
+    await require('./tenant-evidence-background').stopDescriptorWorker(this);
     await Promise.allSettled([...(this.documentIndexJobs || [])]);
   },
   actions: {
@@ -448,11 +483,12 @@ const mixin = {
             if ((await require('./tenant-evidence-read').chatEvidenceOrigin(ctx, row)).inaccessible)
               continue;
             if (descriptor.needsDescriptor('document', row, ctx.params.question, p.actorId)) {
-              row.evidenceDescriptor = await descriptor.ensureDescriptor('document', row, {
-                broker: this.broker,
-                logger: this.logger,
-              });
+              row.evidenceDescriptor = require('./tenant-evidence-background').availableDescriptor(
+                'document',
+                row
+              );
               await this.objectPut(safe, documentNamespace(p.tenantId), row.id, row);
+              scheduleDocumentDescriptor(this, safe, row);
             }
             result.push(descriptor.evidenceCandidate('document', row, p.actorId));
           }

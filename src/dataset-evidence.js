@@ -43,10 +43,10 @@ const mixin = {
               }
             }
             if (descriptor.needsDescriptor('dataset', row, ctx.params.question, p.actorId)) {
-              row.evidenceDescriptor = await descriptor.ensureDescriptor('dataset', row, {
-                broker: this.broker,
-                logger: this.logger,
-              });
+              row.evidenceDescriptor = require('./tenant-evidence-background').availableDescriptor(
+                'dataset',
+                row
+              );
               await ctx.call('datapoint.datasetCatalog', { operation: 'put', record: row });
             }
             result.push(descriptor.evidenceCandidate('dataset', row, p.actorId));
@@ -93,4 +93,4 @@ const mixin = {
     },
   },
 };
-module.exports = { mixin };
+module.exports = { mixin, mutateEvidence };

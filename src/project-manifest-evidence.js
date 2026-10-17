@@ -407,11 +407,13 @@ async function projectManifestAnswer(ctx, question, options = {}) {
       onAssessment: options.onAssessment,
     });
   let selected = select(question);
+  let readQuestion = question;
   if (!selected.length) {
     const contextual = await require('./tenant-evidence-question').contextualEvidenceQuestion(
       ctx,
       candidates,
-      question
+      question,
+      options.previousEvidence
     );
     if (contextual) {
       candidates = await require('./evidence-endpoint-catalog').projectEvidenceCandidates(
@@ -419,6 +421,7 @@ async function projectManifestAnswer(ctx, question, options = {}) {
         contextual
       );
       selected = select(contextual);
+      readQuestion = contextual;
     }
   }
   if (
@@ -429,6 +432,7 @@ async function projectManifestAnswer(ctx, question, options = {}) {
     return null;
   if (
     selected.some((candidate) => candidate.sourceType !== 'project' && candidate.sourceType) &&
+    readQuestion === question &&
     !(await require('./tenant-evidence-question').evidenceContentRequested(ctx, question))
   )
     return null;
@@ -437,7 +441,7 @@ async function projectManifestAnswer(ctx, question, options = {}) {
     const result = await require('./tenant-evidence-sources').readEvidenceSource(
       ctx,
       candidate,
-      question,
+      readQuestion,
       options
     );
     if (result) results.push({ ...result, candidate });

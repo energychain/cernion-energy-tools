@@ -67,6 +67,10 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
         ? envelope.evidenceSourceIds || envelope.datasetIds
         : [],
       minSources: envelope.tenantEvidenceMinSources,
+      previousEvidence: {
+        selection: pending?.tenantEvidenceSelection,
+        question: pending?.tenantEvidenceQuestion,
+      },
       onAssessment: (assessment) => assessments.set(ctx, assessment),
     }
   );
@@ -74,7 +78,11 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
   const answer = await require('./project-manifest-prose').projectManifestProse(
     result,
     envelope.userRequest,
-    { tenantId: p.tenantId, logger: service.logger }
+    {
+      tenantId: p.tenantId,
+      logger: service.logger,
+      internalContext: [pending?.situation?.concern, pending?.situation?.situation].filter(Boolean),
+    }
   );
   const caseProposal = result.tenantSelection
     ? require('./workbench-tenant-evidence').caseProposal(result.evidence)
@@ -84,6 +92,7 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
   await conversation.saveTurn(service.conversationsDb, p, envelope, {
     tenantMemoryFactIds: [],
     tenantEvidenceSelection: result.tenantSelection || null,
+    tenantEvidenceQuestion: envelope.userRequest.slice(0, 2000),
     tenantEvidenceProjectSelections: result.projectSelections || [],
     projectSelection: result.projectId
       ? { projectId: result.projectId, questionTypeId: result.questionTypeId }

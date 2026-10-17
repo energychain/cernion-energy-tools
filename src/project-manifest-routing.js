@@ -94,7 +94,16 @@ function scoreCandidate(candidate, question, bounds) {
   };
   const subjects = names.map(subject).filter(Boolean);
   const subjectScore = subjects.length ? Math.max(...subjects.map((item) => item.score)) : 0;
-  const subjectWords = new Set(subjects.flatMap((item) => item.words));
+  // Generated entities may contain a field as well as its subject. They must not
+  // consume deterministic field/heading terms and thereby hide a matching source.
+  const deterministicNames = sources.flatMap((source) => [
+    ...source.names.map((name) => name.replace(/\.[a-z0-9]+$/iu, '')),
+    ...source.anchors.map((item) => corrected(item, corrections)),
+  ]);
+  const deterministicSubjects = deterministicNames.map(subject).filter(Boolean);
+  const subjectWords = new Set(
+    (deterministicSubjects.length ? deterministicSubjects : subjects).flatMap((item) => item.words)
+  );
   const explicit = phrase(question, candidate.title);
   const lexical = types
     .map((type) => {

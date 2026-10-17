@@ -24,7 +24,7 @@ function tenantEvidenceScenario(scenario, turn, anchor) {
         'document',
         'Bitte ablegen.',
         'Dokument im ersten Chat ablegen',
-        { require: ['Abgelegt'], casePresent: true },
+        { require: ['Abgelegt|gespeichert'], casePresent: true },
         {
           chat: 'first',
           dependencies: ['927'],

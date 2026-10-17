@@ -3,6 +3,106 @@
 Stand: 2026-10-17. Branch: `feat/927-mandantenwissen-a`.
 Ausgangsstand: `d848c5e99e707abc8379f3c4b2fba82008a4d725` (`origin/main`).
 
+## Nachprüfung nach Commit `7d8dcf39`
+
+Die aufrufende Session hat vollständige Unit-CI und Live-Praxisprüfung ausgeführt.
+Der unveränderte Bericht [practice-evaluation-927-live-1.md](practice-evaluation-927-live-1.md)
+gehört zu `7d8dcf39` und dokumentiert ein **rotes** Release-Gate. Die nachfolgenden
+Korrekturen sind ausschließlich offline geprüft; ein erneuter Live-Nachweis ist offen.
+Die weiter unten stehenden Erstimplementierungsnachweise bleiben als Verlauf erhalten.
+
+### Reproduzierte Ursachen und Korrekturen
+
+- Deskriptoren wurden beim Katalog-/Dokument-Write sowie beim Nachziehen synchron
+  über das Modell erzeugt. Mehrere Upload-/Qualitätswrites verbrauchten dadurch im
+  Harness zusätzliche Turn-Tokens. Jetzt wird sofort ein deterministischer Minimal-
+  Deskriptor gespeichert; die Anreicherung läuft separat, koalesziert und begrenzt.
+  `tests/dataset-quality.service.test.js` bleibt unverändert; kein Budget wurde erhöht.
+- Die Ausformulierung verlangte Gegenüberstellungen nur im Prompt. Bei unvollständiger
+  oder durch die Zahlenprüfung verworfener Prosa blieb eine Aneinanderreihung von
+  Einzelauszügen. Jetzt werden wörtlich belegte Werte derselben benannten Größe und
+  Einheit zusätzlich deterministisch gegenübergestellt, mit Datei/Fundstelle je Seite.
+  Gemeinsame Werte, unterschiedliche Zahlenangaben und die noch ungeklärte Bezugsbasis
+  bleiben auch bei ungültiger Prosa und bei einem Modell-Quota-Hinweis sichtbar.
+  Dieselbe Zahlennormalisierung dient der Ausformulierung und Gegenüberstellung.
+- Generierte Entitäten konnten den Größenbegriff in den Gegenstand aufnehmen und
+  dadurch beim Scoring das passende Abschnitts-/Spaltenmerkmal aufzehren. Vorhandene
+  deterministische Gegenstandsmerkmale begrenzen diese Subtraktion nun; Schwellen
+  und Relevanzabstand werden nicht abgesenkt. Ein kompletter Turn mit frischem Anker
+  und der Entität „Bestand Objekt Nord“ reproduziert diesen Fall.
+- Die Bezugserkennung sah nur Uploads des aktuellen Gesprächs. Nun sind auch die
+  zuvor tatsächlich gelesenen Quellen und die letzte Inhaltsfrage Teil ihres
+  Metadatenkontexts. Nur weiterhin sichtbare aktuelle Kandidaten sind zulässig;
+  anschließend erfolgen derselbe Selektor und frische Originalreads. Eine bestätigte
+  Inhaltsreferenz wird nicht erneut von einem zweiten Inhaltsklassifikator verworfen.
+  Der aufgelöste Gegenstand wird auch beim Lesen genutzt. So entsteht im Folgeturn
+  weder ein neuer Fall noch eine unnötige Frage nach den bereits bekannten Unterlagen.
+- Die generische Ausgabeprüfung aus #926 greift jetzt auch auf Manifest-Prosa;
+  interne Beschreibungen der Anfrage werden auch innerhalb einer gemischten Antwort
+  verworfen. Die Regeln betreffen ausschließlich Ausgaben, nicht die Quellenwahl.
+- Das Praxis-Fixture akzeptiert „Abgelegt“ oder „gespeichert“: Die beobachtete Antwort
+  bestätigt die Speicherung bereits ausdrücklich und nennt den Dokumentinhalt.
+  Dafür ist kein neuer Ablage-Sonderpfad erforderlich.
+
+Hintergrundbudget je Quellendienst: 64 wartende Aufträge, ein aktiver Auftrag,
+Standardabstand 30 Sekunden (`settings.tenantEvidenceEnrichment.delayMs`),
+16.000 Byte projizierte Metadaten, ein Modellversuch, maximal 1.200 Ausgabetokens
+und 5 Sekunden Modellzeit. Die Tenant-Quota gilt unverändert. Inaktive Aufträge
+werden beim Shutdown verworfen, aktive abgewartet. Vor Persistenz werden Hash und
+Metadatenstand geprüft; bestehende Datensatz-Mutationsqueues bzw. Dokument-Serialisierung
+schützen neuere Qualitätsdaten, Korrekturen und Löschungen. Ein Neustart benötigt
+keine Migration: Bei relevantem Bedarf kann die Anreicherung erneut angeboten werden.
+
+### Nachprüfungsumfang und Grenzen
+
+Geändert werden Workbench-Quellenkontinuität, gemeinsames Manifest-Scoring,
+Ausformulierung/Ausgabefilter sowie Deskriptor-Writes von Datapoint und Dokumentbestand.
+Die Quellenregistry für Phase B, `tenantEvidenceIds`, Schutzprüfungen und Auswahlgrenzen
+bleiben bestehen. GitNexus-Impact vor Änderungen: aktuelle Symbole überwiegend nicht
+im Index (`UNKNOWN`), `datapoint.created` ohne erkannte Aufrufer (`LOW`). Ergänzende
+`grep -rn`-Suche und manuelle Prüfung ergeben weiterhin **HIGH** für Upload-/Antwort-
+und Gesprächspfade; diese Einstufung wurde vor Änderungen kommuniziert.
+
+AC-01/02/02b/03/04/04b sind offline abgesichert. AC-05 bleibt bis zur erneuten
+Live-Prüfung der aufrufenden Session offen. Die alten Live-Rotpunkte werden nicht
+nachträglich als grün erklärt. Kein Live-Modelllauf, keine Unit-Voll-CI, keine
+Credentials/`.env`, keine globalen Installationen, kein Push.
+
+### Abschließende Checks dieser Nachprüfung
+
+- Mehrchat-/Zahlen-/Budget-Abschluss: **3 Suiten / 35 Tests grün**. Enthalten sind
+  die vollständigen Turns mit mehreren Formulierungen, unvollständiger/interner Prosa,
+  zuletzt gewählter Quellengruppe, variierenden Entitäten, Minimal-Deskriptoren,
+  Hintergrund-Korrektur/Löschung sowie der unveränderte Budget-Regressionsfall.
+- Weitere betroffene Regressionspfade: **14 Suiten / 212 Tests grün**;
+  Projektakten-Routing separat **16 Tests grün**. Manifest-/Hintergrund-/Prosa-
+  Nachprüfung **3 Suiten / 56 Tests grün**. Die Läufe überschneiden sich bewusst.
+- Shared-Service-CI: **3 Suiten / 86 Tests grün**, Harness 20,08 Sekunden.
+  Shared-Service-HTTP-E2E: **grün**, 15,76 Sekunden; ausschließlich Stub-Fassade.
+- TDD-Matrix: **3 Suiten / 82 Tests grün**, 1 Suite / 4 Tests wie vorgesehen
+  übersprungen; Coverage-Gate **66/66 aktive IDs = 100 %**.
+- Lint: **0 Fehler, 12 bestehende Warnungen**. Zusätzliche gezielte ESLint-Prüfung
+  für unerreichbare Schleifen sowie Sonar-Anker-/Sortierregeln: keine Befunde.
+- Grün: Build, Praxis-Fixture-Synchronität, Domain-Free-Core und Scanner-Äquivalenz,
+  Funktionsmodell, Signalkatalog, Operation-Capability-Index, `llm.txt`, Capability-
+  Keywords, Qualitätsgate und OpenAPI-Audit (**0 Fehler, 480 bestehende Warnungen**).
+- OpenAPI, Operation-Capability-Index, `llm.txt`, Funktionsmodell samt Reports,
+  Signalkatalog und Praxis-Fixtures wurden neu erzeugt. Funktionsmodell und
+  Signalkatalog wurden nach dem letzten Quellwechsel gemeinsam erneut abgeglichen.
+- `git diff --check`: grün. GitNexus-Abschlussprüfung siehe unten.
+
+GitNexus `detect_changes(scope: staged)` erfasst die 31 Dateien dieser Nachprüfung,
+aber nur einen alten Index-Treffer (`datapoint.stopped`), keine betroffenen Prozesse;
+`risk_level: low` ist wegen der Indexlücke keine Entwarnung. Der Vergleich gegen
+`origin/main` erfasst 61 Dateien einschließlich Erstimplementierung, denselben einen
+Symboltreffer und keine Prozesse. Der zusätzlich vorgeschriebene Vergleich gegen das
+veraltete lokale `main` erreichte das 20-Sekunden-Limit. Manuell wurden gestagte
+Dateiliste/Diff, `git diff origin/main`, `grep -rn`-Aufrufer und beide Diff-Checks
+geprüft; die Änderungen entsprechen den oben genannten Quellen-/Antwortpfaden,
+Tests, Dokumentation und generierten Artefakten. Keine unerwarteten Quellpfade.
+
+## Erstimplementierung auf `7d8dcf39`
+
 ## Umfang und Ergebnis
 
 Chat-Dokumente und Chat-Datensätze bieten quellengebundene Deskriptoren an. Sie

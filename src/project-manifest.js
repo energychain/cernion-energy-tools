@@ -203,6 +203,7 @@ async function generateManifest(project, records, datasets, version, options = {
           timeoutMs: 10000,
           maxRetries: 0,
           structuredFallback: false,
+          ...options.generationOptions,
         }
       );
     } catch (error) {
@@ -227,7 +228,7 @@ async function generateManifest(project, records, datasets, version, options = {
   let content;
   try {
     content = await request(false);
-    if (!content) {
+    if (!content && options.maxAttempts !== 1) {
       diagnostics.reason = 'regenerated';
       content = await request(true);
     }

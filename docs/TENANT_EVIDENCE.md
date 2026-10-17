@@ -37,8 +37,10 @@ Inhaltshash und Gesprächs-/Fallreferenzen; `sensitivity` die Quelleneinstufung.
 
 Chat-Records speichern `evidenceDescriptor` und personenbezogene
 `evidenceCorrections` im vorhandenen Datensatzkatalog bzw. Dokumentbestand.
-Erzeugung nutzt `llm-client` und `generateManifest`, dessen Validierung/Bereinigung
-und deterministischen Minimal-Deskriptor. Gleichzeitig eintreffende Anforderungen
+Der deterministische Minimal-Deskriptor wird sofort beim Speichern verfügbar.
+LLM-Anreicherung nutzt `llm-client` und `generateManifest`, dessen Validierung und
+Bereinigung, in einer getrennten Hintergrundwarteschlange; Upload und Kandidaten-
+Suche warten nicht auf diese Modellantwort. Gleichzeitig eintreffende Anforderungen
 werden pro Tenant, Quellentyp, Record und Metadatenstand koalesziert. Tenant-IDs sind
 Klartext-Schlüssel im internen Koaleszierungszustand und gehen nicht in Inhaltshashes
 ein. Deskriptoren enthalten keine Antwortzahlen aus Tabellenzellen.
@@ -50,6 +52,18 @@ Metadaten die automatische Suche bewusst zurückhaltend. Alte Records erhalten e
 bei einer passenden Anfrage einen gespeicherten Deskriptor; zuvor reicht der
 virtuelle deterministische Minimal-Deskriptor zur Kandidatenprüfung. Es gibt keine
 Massenmigration.
+
+Pro Quellendienst sind höchstens 64 wartende Aufträge und ein aktiver Auftrag erlaubt.
+Standardmäßig startet alle 30 Sekunden höchstens ein Auftrag; `settings.tenantEvidenceEnrichment.delayMs`
+steuert diesen Abstand. Pro Auftrag gelten 16.000 Byte projizierte Metadaten,
+1 Modellversuch, 1.200 Ausgabetokens und 5 Sekunden Modellzeit. Die normale Tenant-Quota
+gilt auch im Hintergrund. Wiederholte Writes koaleszieren pro Quelle; aktive Aufträge
+mit gleichem Metadatenstand werden nicht doppelt eingeplant. Bei Überlauf, Fehler,
+Neustart oder Schreibkonflikt bleibt der Minimal-Deskriptor nutzbar; eine relevante
+spätere Anfrage kann eine ausstehende Anreicherung erneut einplanen. Vor dem Schreiben
+werden Quelle, Inhaltshash und Metadatenstand erneut geprüft; neuere Qualitätsdaten
+und Korrekturen bleiben erhalten. Shutdown verwirft wartende Arbeit und wartet nur
+auf bereits aktive Arbeit.
 
 ## Auswahl und Scope
 
@@ -75,7 +89,12 @@ Workbench mit `workbench.settings.tenantEvidenceRouting` überschreiben.
 
 Fehlt ein wiederholter Gegenstandsbezug, löst ein schema-validierter semantischer
 Metadatenaufruf den Bezug ausschließlich gegen strukturell gebundene Quellen des
-aktuellen Gesprächs auf. Nur registrierte aktuelle Quellen-IDs sind zulässig.
+aktuellen Gesprächs und die zuvor tatsächlich herangezogene Quellengruppe auf.
+Dazu werden die letzte Inhaltsfrage und die gespeicherten Quellenschlüssel verwendet;
+die alten Auszüge werden nicht als neue Evidenz wiederverwendet. Nur aktuell sichtbare,
+registrierte Quellen-IDs sind zulässig. Die semantische Auflösung bestätigt bereits
+einen Inhaltsbezug, weshalb danach kein zweiter, widersprüchlicher Inhaltsklassifikator
+mehr gefragt wird.
 Danach greift erneut derselbe deterministische Selektor. Quellenverwaltung und reine
 Fallübersichten behalten ihre bisherigen Pfade. Es gibt keine Erkennung anhand
 fester Abgleichsformulierungen und keine nachträgliche Verwendung interner Lagebilder
@@ -98,6 +117,18 @@ gemeinsame Zahlenmenge. Unbelegte Zahlen und Zahlen mit falscher Einzelherkunft
 verwerfen die Ausformulierung zugunsten der deterministischen Belege. Differenzen
 werden nicht frei berechnet. Fundstellen, Blatt und Inhaltshash bleiben in der
 strukturierten Evidenz verfügbar.
+
+Sobald mindestens zwei gelesene Quellen wörtliche Zahlen derselben benannten Größe
+und Einheit enthalten, ergänzt `tenant-evidence-comparison` eine deterministische
+Gegenüberstellung einschließlich gemeinsamer und unterschiedlicher Werte sowie der
+noch zu prüfenden Zeit-/Bezugsbasis. Datei und Fundstelle stehen bei beiden Seiten.
+Spaltennamen/Einheiten kommen aus dem jeweiligen Datensatz (`metadata.quantityFields`);
+Dokumentwerte werden nur aus passenden benannten Aussagen bzw. Abschnittsüberschriften
+übernommen. Andere Größen, Einheiten und Kennungen werden nicht gleichgesetzt. Die
+Zahlennormalisierung wird mit der bestehenden Ausformulierungsprüfung geteilt.
+Die Gegenüberstellung bleibt auch bei verworfener Modellprosa erhalten. Generische
+interne Anfragebeschreibungen werden über denselben Antwortfilter wie in #926 verworfen;
+dies betrifft die Ausgabeprüfung, nicht die Relevanzauswahl.
 
 `shared-service-learning.apply` nimmt beispielsweise an:
 

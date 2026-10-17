@@ -6,6 +6,7 @@ async function readChatEvidence(ctx, selected, question) {
   const p = principal(ctx);
   const evidence = [],
     gaps = [];
+  let quantityFields = [];
   try {
     let row, value, location, origin;
     if (selected.sourceType === 'dataset') {
@@ -36,6 +37,14 @@ async function readChatEvidence(ctx, selected, question) {
       )
         throw new Error('Evidence unavailable');
       value = result.responseText;
+      quantityFields = (row.columns || [])
+        .filter(
+          (column) =>
+            column.type === 'number' &&
+            !column.sensitive &&
+            result.unitFields?.includes(column.name)
+        )
+        .map((column) => ({ name: column.name, unit: row.semantic?.units?.[column.name] || '' }));
       location = row.sheet ? `Blatt ${row.sheet}` : 'Tabelle';
     } else {
       row = await ctx.call('knowledge-rag.documentGet', { id: selected.sourceId });
@@ -78,6 +87,7 @@ async function readChatEvidence(ctx, selected, question) {
         location,
         hash: row.hash,
         version: row.version,
+        quantityFields,
         ...origin,
       },
     });

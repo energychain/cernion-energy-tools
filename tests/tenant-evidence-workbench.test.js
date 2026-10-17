@@ -12,7 +12,7 @@ const { createCaseBroker, auth } = require('./helpers/case-linking-broker');
 const { complete, validate } = require('./helpers/workbench-schema-stub');
 const llm = require('../src/llm-client');
 const { SITUATION_SCHEMA } = require('../src/workbench-understanding');
-let app, env, mode, phases, invalidNumber;
+let app, env, mode, phases, invalidNumber, proseMode;
 const subject = 'Objekt Nord';
 const docName = 'Objekt Nord.txt';
 const tableName = 'Objekt Nord.csv';
@@ -112,6 +112,21 @@ function installStub() {
         ],
       };
     } else if (input.untrustedEvidence) {
+      if (proseMode === 'internal')
+        return validate(schema, {
+          answer:
+            'Die Frage bezieht sich auf die Auswirkungen auf die bereits vorliegenden Unterlagen.',
+        });
+      if (proseMode === 'separate')
+        return validate(schema, {
+          answer: input.untrustedEvidence
+            .map((entry) =>
+              entry.metadata.sourceType === 'document'
+                ? `Bestand: 80 Stück (${entry.metadata.sourceLabel}, Bestand).`
+                : `Maximum: 95 Stück (${entry.metadata.sourceLabel}, Tabelle).`
+            )
+            .join(' '),
+        });
       result = {
         answer:
           input.untrustedEvidence
@@ -125,7 +140,7 @@ function installStub() {
       };
     } else if (input.sections) {
       result = {
-        answer: `Der dokumentierte Bestand beträgt 80 Stück (${entry.metadata.sourceLabel}, Bestand).`,
+        answer: `Der dokumentierte Bestand beträgt 80 Stück (${docName}, Bestand).`,
       };
     } else if (schema.properties?.concern) {
       result = {
@@ -219,6 +234,7 @@ beforeEach(async () => {
   mode = 'work';
   phases = [];
   invalidNumber = false;
+  proseMode = 'complete';
   app = await createCaseBroker();
   process.env.WORKBENCH_DATASET_DB_PATH = path.join(app.dir, 'tables');
   process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
@@ -259,6 +275,11 @@ async function twoChats(options = meta()) {
   expect(result.responseText).toBeTruthy();
   expect(result.caseProposal?.cetCaseId).toBe(first.cetCaseId);
   expect(result.responseText).toContain('Der neue Upload passt zu Fall');
+  for (const name of ['knowledge-rag', 'datapoint']) {
+    const service = app.broker.getLocalService(name);
+    while (service.evidenceWorker?.pending.size)
+      await require('../src/tenant-evidence-background').runDescriptorJob(service);
+  }
   const rows = await app.call('knowledge-rag.documentList', {}, options);
   const datasets = await app.call('datapoint.datasetCatalog', { operation: 'list' }, options);
   expect(rows[0].evidenceDescriptor.manifest.summary.text).toContain('Archivierte');
@@ -430,7 +451,7 @@ test('legacy descriptors are backfilled only on demand without bulk migration', 
   expect(records.find((row) => row.id === value.id).evidenceDescriptor).toBeUndefined();
   expect(
     llm.generateStructured.mock.calls.filter(([, prompt]) => JSON.parse(prompt).nodes)
-  ).toHaveLength(1);
+  ).toHaveLength(0);
 });
 
 test('a document answer fallback is visible to the user but never stored as a case conclusion', async () => {
@@ -579,4 +600,130 @@ test('generic file names resolve their shared observed anchor without sending ce
     .filter((input) => input.nodes || input.task === 'evidence_reference_resolution');
   expect(prompts.length).toBeGreaterThan(1);
   expect(JSON.stringify(prompts)).not.toContain('REF-A123');
+});
+
+test.each(['separate', 'internal'])(
+  'combined evidence answers despite %s prose, and retains both sources on the next turn',
+  async (kind) => {
+    const { first } = await twoChats();
+    proseMode = kind;
+    const initial = await chat(queries[1], 'chat-table');
+    expect(initial.tenantEvidenceSelection).toHaveLength(2);
+    expect(initial.responseText).toMatch(/Gegenüberstellung/u);
+    expect(initial.responseText).toMatch(/80 Stück/u);
+    expect(initial.responseText).toMatch(/95 Stück/u);
+    expect(initial.responseText).toMatch(/weichen ab/u);
+    expect(initial.responseText).toMatch(/bleibt offen/u);
+    expect(initial.responseText).not.toMatch(/Die Frage bezieht sich/u);
+    phases.length = 0;
+    const reply = await chat(queries[0], 'chat-table');
+    expect(reply.tenantEvidenceSelection).toHaveLength(2);
+    expect(reply.responseText).toContain(docName);
+    expect(reply.responseText).toContain(tableName);
+    expect(reply.caseProposal.cetCaseId).toBe(first.cetCaseId);
+    expect(reply.responseText).not.toMatch(/Die Frage bezieht sich|Welche konkreten Unterlagen/u);
+    expect(phases).not.toContain('workbench.classify');
+    const reference = llm.generateStructured.mock.calls
+      .map(([, raw]) => JSON.parse(raw))
+      .filter((input) => input.task === 'evidence_reference_resolution')
+      .at(-1);
+    expect(reference.previousSourceIds).toHaveLength(2);
+    expect(
+      reference.currentSources
+        .map((source) => source.id.split(':')[0])
+        .sort((a, b) => a.localeCompare(b))
+    ).toEqual(['dataset', 'document']);
+  }
+);
+
+test('upload and lazy discovery return minimal descriptors without response-path model enrichment', async () => {
+  await chat('Zur Kenntnis', 'chat-document', [document]);
+  await chat('Bitte speichern.', 'chat-table', [table]);
+  expect(llm.generateStructured.mock.calls.filter(([, raw]) => JSON.parse(raw).nodes)).toHaveLength(
+    0
+  );
+  const candidates = await app.call('dataset.evidenceCandidates', { question: queries[1] });
+  expect(candidates).toHaveLength(1);
+  const reply = await chat(queries[1], 'chat-table');
+  expect(reply.tenantEvidenceSelection).toHaveLength(2);
+  expect(reply.responseText).toContain('Gegenüberstellung');
+  expect(llm.generateStructured.mock.calls.filter(([, raw]) => JSON.parse(raw).nodes)).toHaveLength(
+    0
+  );
+});
+
+test('generated entities containing the quantity do not hide the earlier document', async () => {
+  const original = llm.generateStructured.getMockImplementation();
+  llm.generateStructured.mockImplementation(async (schema, raw) => {
+    const result = await original(schema, raw);
+    const input = JSON.parse(raw);
+    if (!input.nodes) return result;
+    result.entities = [
+      { name: 'Bestand Objekt Nord', kind: 'subject', sources: [input.nodes[0].nodeId] },
+    ];
+    return validate(schema, result);
+  });
+  const first = await chat('Zur Kenntnis', 'chat-document', [
+    { ...document, text: document.text.replace('# Objekt Nord', '# Objekt Nord Prüfbezugabcdef') },
+  ]);
+  await chat('Bitte speichern.', 'chat-table', [table]);
+  for (const name of ['knowledge-rag', 'datapoint']) {
+    const service = app.broker.getLocalService(name);
+    while (service.evidenceWorker?.pending.size)
+      await require('../src/tenant-evidence-background').runDescriptorJob(service);
+  }
+  const reply = await chat(
+    'Ordne den Bestand am Objekt Nord Prüfbezugabcdef anhand der Unterlagen und Daten ein.',
+    'chat-table'
+  );
+  expect(reply.tenantEvidenceSelection).toHaveLength(2);
+  expect(reply.responseText).toContain(docName);
+  expect(reply.responseText).toContain(tableName);
+  expect(reply.responseText).toContain('Gegenüberstellung');
+  expect(reply.caseProposal.cetCaseId).toBe(first.cetCaseId);
+});
+
+test('background enrichment retains newer corrections and never resurrects a removed dataset', async () => {
+  await chat('Bitte speichern.', 'chat-table', [table]);
+  const [stored] = await app.call('datapoint.datasetCatalog', { operation: 'list' });
+  const source = app.broker.getLocalService('datapoint');
+  const original = llm.generateStructured.getMockImplementation();
+  let start, finish;
+  const started = new Promise((resolve) => {
+    start = resolve;
+  });
+  llm.generateStructured.mockImplementation(async (schema, raw) => {
+    if (JSON.parse(raw).nodes) {
+      start();
+      await new Promise((resolve) => {
+        finish = resolve;
+      });
+    }
+    return original(schema, raw);
+  });
+  const worker = require('../src/tenant-evidence-background').runDescriptorJob(source);
+  await started;
+  await app.call('shared-service-learning.apply', {
+    target: 'tenantEvidence',
+    correction: { sourceType: 'dataset', sourceId: stored.id, kind: 'reject' },
+  });
+  finish();
+  await worker;
+  const [current] = await app.call('datapoint.datasetCatalog', { operation: 'list' });
+  expect(current.evidenceCorrections[0].kind).toBe('reject');
+  expect(current.evidenceDescriptor.generation).toBeTruthy();
+  // A different metadata state queues another job; deletion while it runs is final.
+  await app.call('datapoint.datasetCatalog', {
+    operation: 'put',
+    record: { ...current, title: 'Geänderte Erfassung' },
+  });
+  const nextStarted = new Promise((resolve) => {
+    start = resolve;
+  });
+  const next = require('../src/tenant-evidence-background').runDescriptorJob(source);
+  await nextStarted;
+  await app.call('datapoint.datasetCatalog', { operation: 'remove', id: stored.id });
+  finish();
+  await next;
+  expect(await app.call('datapoint.datasetCatalog', { operation: 'list' })).toEqual([]);
 });
