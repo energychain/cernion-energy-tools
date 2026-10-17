@@ -63,7 +63,10 @@ ein Blatt zeigender Manifest-Fragetyp ergänzt die Geschwisterblätter. Ausgegeb
 werden die getrennten Ergebnisse, Datensummen, deren gerichtete Differenz
 (zweites minus erstes Blatt in kanonischer Blattreihenfolge), geänderte gemeinsame
 Zeilen und nur einseitig vorhandene Kennungen. Gruppierte und gefilterte Differenzen
-verwenden die ausgeführten Aggregationen. Bei unterschiedlichen Einheiten wird
+verwenden die ausgeführten Aggregationen. Ihre Beschriftung entsteht aus
+Aggregatfunktion und Quellspalte; interne Plan-Aliase dienen ausschließlich dem
+Ergebniszugriff. Je Blatt abweichende Aliase werden über Funktion und Feld verbunden.
+Bei unterschiedlichen Einheiten wird
 keine numerische Differenz gebildet. Blattweite Zeilenvergleiche beziehen sich auf
 die gesamten Blätter. Unterschiedliche Schemas werden nicht still vereinigt.
 
@@ -82,7 +85,16 @@ Blattwahl und die Bestätigung echter Datenzeilen entgegen. Die Klassifikation i
 schema-gebunden und nutzt ausschließlich Metadaten, keine Zeilen oder Zellwerte.
 Eine Änderung braucht einen wörtlichen Beleg aus der aktuellen Nutzernachricht;
 Fragen und Berechnungsbitten bleiben Abfragen. Eine Einheitenantwort setzt eine
-offene Frage im selben Gespräch voraus. Mehrdeutige Korrekturen fragen mit
+offene Frage im selben Gespräch voraus. Eine ausdrückliche Einheitenangabe ist
+auch ohne offene Frage möglich. Ein fehlender Spaltenbezug wird nur bei genau
+einem offenen Feld oder einer einzigen numerischen, nicht sensitiven Wertspalte
+ergänzt. Der wörtliche Einheitenbeleg kann eine abweichende Modellnormalisierung
+ersetzen und wird als Einheit gespeichert, ohne Wörterbuch oder Phrasenliste.
+Eine ausdrücklich gemeinsame Angabe für strukturgleiche Blätter derselben Datei
+wird je Blatt über denselben Auditpfad gespeichert; ohne belegten Mehrblattbezug
+bleibt die Auswahlrückfrage bestehen. Folgeabfragen verwenden die gespeicherten
+Spalteneinheiten aus dem Katalog. Ohne tatsächliche Änderung gibt es keine
+Korrekturbestätigung. Mehrdeutige Korrekturen fragen mit
 Datei-/Blattnamen und Version, ohne interne IDs, nach dem Datensatz. Titel stammen
 aus dem Quelldateinamen. Eine Blattwahl gilt für das
 jeweilige Gespräch; explizite Blattnennung bzw. Vergleich können andere Blätter

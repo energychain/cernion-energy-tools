@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — Einheiten im Folgeturn und lesbare Variantenvergleiche (#926 Teil 2)
+
+- Einheitenantworten und ausdrückliche Angaben an Wertspalten binden und auditiert
+  speichern, auch für ausdrücklich gemeinsam genannte Blätter. Der belegte
+  Einheitenwortlaut bleibt bei abweichender Modellnormalisierung erhalten.
+- Mehrdeutige Antworten führen zur Datensatzauswahl; unveränderte Semantik wird
+  nicht als gespeicherte Korrektur bestätigt. Folgeabfragen lesen die Einheit aus
+  dem Katalog und berücksichtigen die bestätigte Blattwahl.
+- Variantenvergleiche zeigen Aggregat- und Spaltennamen statt interner Plan-Aliase;
+  unterschiedliche Aliase je Blatt werden anhand der Aggregation zugeordnet.
+- Vollständige Workbench-Turn-Regressionen mit LLM-Stubs prüfen beide Wege und
+  die unveränderte Praxisprüfung auf interne Codes.
+
 ## Unreleased — Tabellenqualität: Gesprächszustand und Vergleich stabilisieren (#926)
 
 - Varianten mit den bereits aufgelösten Quellen über einen gemeinsamen Abfrage-

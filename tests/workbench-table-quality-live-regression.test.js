@@ -19,6 +19,7 @@ const {
 } = require('../scripts/generate-practice-evaluation-fixtures');
 const Datapoint = require('../services/datapoint.service');
 const scenarios = generatePracticeCatalog().scenarios;
+const { checkTurn } = require('../scripts/practice-evaluation-checks');
 let broker,
   dir,
   meta,
@@ -59,11 +60,25 @@ async function modelStub(schema, raw) {
         datasetId: input.datasets.find((entry) => input.question.includes(entry.sheet)).id,
       };
     if (/\bkg\b/.test(input.question)) {
-      if (input.datasets.length !== 1) return { ...result, kind: 'metadata' };
+      const targets = input.datasets.filter((entry) => entry.selected);
+      if (input.datasets.length !== 1 && targets.length !== 1)
+        return { ...result, kind: 'metadata' };
       return {
         ...result,
         kind: 'unit-answer',
+        datasetId: targets[0]?.id || input.datasets[0].id,
         units: [{ field: '', unit: 'kg' }],
+      };
+    }
+    if (/Kilogramm/.test(input.question)) {
+      const multiple = /beiden Blättern/.test(input.question);
+      return {
+        ...result,
+        kind: input.datasets.some((entry) => entry.unitQuestion) ? 'unit-answer' : 'metadata',
+        datasetId: multiple ? '' : input.datasets.find((entry) => entry.selected)?.id || '',
+        scope: multiple ? 'sheets' : 'dataset',
+        scopeBasis: multiple ? 'beiden Blättern' : '',
+        units: [{ field: '', unit: 'kg', basis: 'Kilogramm' }],
       };
     }
     return result;
@@ -119,8 +134,8 @@ beforeEach(() => {
     },
   };
   structuredMock.mockReset().mockImplementation(modelStub);
-  textMock.mockRejectedValue(new Error('Unexpected answer call'));
-  chatMock.mockRejectedValue(new Error('Unexpected answer call'));
+  textMock.mockReset().mockRejectedValue(new Error('Unexpected answer call'));
+  chatMock.mockReset().mockRejectedValue(new Error('Unexpected answer call'));
 });
 afterAll(async () => {
   await broker.stop();
@@ -185,6 +200,154 @@ test.each(['Einheit ist kg.', 'kg'])(
     const question = await chat('Welche Einheit ist für Amount gespeichert?');
     expect(question.responseText).not.toMatch(/Semantik.*korrigiert/);
     expect((await catalog()).find((record) => record.id === basis.id).audit).toEqual(basis.audit);
+  }
+);
+
+test.each(['unit-answer', 'metadata'])(
+  'complete turns persist a literal unit for both sheets from %s',
+  async (kind) => {
+    const scenario = scenarios.find((entry) => entry.id === 'table-quality');
+    await ingest(scenario.turns[0]);
+    await chat(scenario.turns[1].message);
+    structuredMock.mockImplementation(async (schema, raw) => {
+      const result = await modelStub(schema, raw);
+      if (result?.units?.[0]?.basis === 'Kilogramm') return { ...result, kind };
+      return result;
+    });
+    const receipt = await chat('Die Maßeinheit Kilogramm gilt in beiden Blättern.');
+    expect(receipt.responseText).toContain('Amount: Kilogramm');
+    expect(receipt.responseText).toContain('Blatt Basis');
+    expect(receipt.responseText).toContain('Blatt Variant');
+    for (const record of await catalog()) {
+      expect(record.semantic.units.Amount).toBe('Kilogramm');
+      expect(record.semantic.unitQuestion.answeredAt).toEqual(expect.any(String));
+      expect(record.audit.filter((entry) => entry.kind === 'semantic-correction')).toHaveLength(1);
+    }
+    const sum = await chat(scenario.turns[5].message);
+    expect(sum.responseText).toContain('40 Kilogramm');
+    expect(sum.responseText).toContain('44 Kilogramm');
+    expect(sum.responseText).toContain('Differenz 4 Kilogramm');
+    expect(sum.responseText).not.toMatch(/Welche Einheit|Einheit ungeklärt/);
+    // A later sheet choice still limits the next answer to that stored source.
+    await chat('Bitte Blatt Basis verwenden.');
+    const selectedSum = await chat(scenario.turns[5].message);
+    expect(selectedSum.responseText).toContain('40 Kilogramm');
+    expect(selectedSum.responseText).not.toContain('Variant');
+    expect(textMock).not.toHaveBeenCalled();
+    expect(chatMock).not.toHaveBeenCalled();
+  }
+);
+
+test('a short unit answer with multiple pending sheets asks for a target instead of falling through', async () => {
+  const scenario = scenarios.find((entry) => entry.id === 'table-quality');
+  await ingest(scenario.turns[0]);
+  structuredMock.mockImplementation(async (schema, raw) => {
+    if (schema.properties?.kind && schema.properties?.basis)
+      return {
+        kind: 'unit-answer',
+        basis: 'kg',
+        datasetId: '',
+        rowNumbers: [],
+        units: [{ field: '', unit: 'kg' }],
+      };
+    return modelStub(schema, raw);
+  });
+  const reply = await chat('kg');
+  expect(reply.responseText).toContain('Bitte wähle den Datensatz');
+  for (const record of await catalog()) {
+    expect(record.semantic.units.Amount).toBe('');
+    expect(record.semantic.unitQuestion.answeredAt).toBeUndefined();
+  }
+  expect(textMock).not.toHaveBeenCalled();
+});
+
+test('an explicit assignment to both sheets overrides a prior sheet preference without a pending question', async () => {
+  const scenario = scenarios.find((entry) => entry.id === 'table-quality');
+  await ingest({ ...scenario.turns[0], message: 'Bitte die Tabellen ablegen.' });
+  await chat('Bitte Blatt Basis verwenden.');
+  const receipt = await chat('Die Maßeinheit Kilogramm gilt in beiden Blättern.');
+  expect(receipt.responseText.match(/Amount: Kilogramm/g)).toHaveLength(2);
+  for (const record of await catalog()) {
+    expect(record.semantic.units.Amount).toBe('Kilogramm');
+    expect(record.semantic.unitQuestion).toBeUndefined();
+  }
+  const reply = await chat(scenario.turns[1].message);
+  expect(reply.responseText).toContain('Differenz 4 Kilogramm');
+  expect(reply.responseText).not.toContain('Einheit ungeklärt');
+});
+
+test('an empty metadata correction cannot acknowledge an unsaved unit', async () => {
+  const scenario = scenarios.find((entry) => entry.id === 'table-quality');
+  await ingest(scenario.turns[0]);
+  await chat('Bitte Blatt Basis verwenden.');
+  const before = (await catalog()).find((record) => record.sheet === 'Basis');
+  structuredMock.mockImplementation(async (schema, raw) => {
+    if (schema.properties?.kind && schema.properties?.basis)
+      return { kind: 'metadata', basis: 'kg', datasetId: before.id, rowNumbers: [], units: [] };
+    return modelStub(schema, raw);
+  });
+  const reply = await chat('Einheit ist kg.');
+  expect(reply.responseText).toContain('Bitte nenne die Spalte und die richtige Angabe');
+  expect(reply.responseText).not.toMatch(/korrigiert|festgehalten/);
+  expect((await catalog()).find((record) => record.id === before.id)).toEqual(before);
+});
+
+test.each([true, false])(
+  'explicit units persist with pending question=%s and a model-normalized unit spelling',
+  async (pending) => {
+    const scenario = scenarios.find((entry) => entry.id === 'table-quality');
+    await ingest({
+      ...scenario.turns[0],
+      message: pending ? scenario.turns[0].message : 'Bitte die Tabellen ablegen.',
+    });
+    for (const record of await catalog())
+      expect(Boolean(record.semantic.unitQuestion)).toBe(pending);
+    await chat('Bitte Blatt Basis verwenden.');
+    const receipt = await chat('Die Maßeinheit für die genannten Daten ist Kilogramm.');
+    expect(receipt.responseText).toContain('Amount: Kilogramm');
+    const sum = await chat(scenario.turns[5].message);
+    expect(sum.responseText).toContain('40 Kilogramm');
+    expect(sum.responseText).not.toMatch(/Variant|Einheit ungeklärt|Welche Einheit/);
+    const records = await catalog();
+    expect(records.find((record) => record.sheet === 'Basis').semantic.units.Amount).toBe(
+      'Kilogramm'
+    );
+    expect(records.find((record) => record.sheet === 'Variant').semantic.units.Amount).toBe('');
+    expect(textMock).not.toHaveBeenCalled();
+  }
+);
+
+test.each([false, true])(
+  'variant comparison renders speaking metric names with filtered=%s and distinct internal aliases',
+  async (filtered) => {
+    const scenario = scenarios.find((entry) => entry.id === 'table-quality');
+    await ingest(scenario.turns[0]);
+    structuredMock.mockImplementation(async (schema, raw) => {
+      const input = JSON.parse(raw);
+      if (input.sourceId)
+        return {
+          sources: [{ alias: 'table', sourceId: input.sourceId }],
+          operations: [
+            ...(filtered ? [{ op: 'filter', field: 'Group', operator: 'eq', value: 'a' }] : []),
+            {
+              op: 'aggregate',
+              groupBy: filtered ? [] : ['Group'],
+              metrics: [
+                { fn: 'sum', field: 'Amount', as: `sum_amount_${input.sourceId}` },
+                { fn: 'count', as: `row_count_${input.sourceId}` },
+              ],
+            },
+          ],
+        };
+      return modelStub(schema, raw);
+    });
+    const reply = await chat('Vergleiche Amount nach Group in beiden Blättern.');
+    expect(reply.responseText).toContain('Summe (Amount): 30 (Basis), 33 (Variant); Differenz 3');
+    expect(reply.responseText).toContain('Anzahl: 2 (Basis), 2 (Variant); Differenz 0 Zeilen');
+    expect(reply.responseText).not.toMatch(/sum_amount|row_count|ds_[a-f0-9]+|\bnumber\b/);
+    const checks = checkTurn(scenario.turns[1], reply);
+    expect(checks.find((entry) => entry.id === 'internal-codes').passed).toBe(true);
+    expect(checks.find((entry) => entry.id === 'uuid').passed).toBe(true);
   }
 );
 

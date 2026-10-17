@@ -181,19 +181,30 @@ function compareDatasetResults(records, answers, differences) {
         continue;
       }
       const deltas = aggregation.metrics.flatMap((metric) => {
-        if (typeof a[metric.as] !== 'number' || typeof b[metric.as] !== 'number') return [];
+        const rightMetric = rightAnswer.aggregation?.metrics.find(
+          (entry) => entry.fn === metric.fn && entry.field === metric.field
+        );
+        if (
+          !rightMetric ||
+          typeof a[metric.as] !== 'number' ||
+          typeof b[rightMetric.as] !== 'number'
+        )
+          return [];
+        const label = `${{ count: 'Anzahl', sum: 'Summe', avg: 'Mittelwert', min: 'Minimum', max: 'Maximum' }[metric.fn]}${metric.field ? ` (${metric.field})` : ''}`;
         const unitLeft =
           metric.fn === 'count'
             ? 'Zeilen'
-            : left.semantic.units[metric.field] || 'Einheit ungeklärt';
+            : require('./dataset-unit-question').datasetUnits(left)[metric.field] ||
+              'Einheit ungeklärt';
         const unitRight =
           metric.fn === 'count'
             ? 'Zeilen'
-            : right.semantic.units[metric.field] || 'Einheit ungeklärt';
+            : require('./dataset-unit-question').datasetUnits(right)[metric.field] ||
+              'Einheit ungeklärt';
         if (unitLeft !== unitRight)
-          return [`${metric.as}: Einheiten unterscheiden sich; keine Differenz berechnet`];
+          return [`${label}: Einheiten unterscheiden sich; keine Differenz berechnet`];
         return [
-          `${metric.as}: ${formatDatasetNumber(a[metric.as])} (${left.sheet}), ${formatDatasetNumber(b[metric.as])} (${right.sheet}); Differenz ${formatDatasetNumber(b[metric.as] - a[metric.as])} ${unitLeft}`,
+          `${label}: ${formatDatasetNumber(a[metric.as])} (${left.sheet}), ${formatDatasetNumber(b[rightMetric.as])} (${right.sheet}); Differenz ${formatDatasetNumber(b[rightMetric.as] - a[metric.as])} ${unitLeft}`,
         ];
       });
       if (deltas.length && (labels.length || leftAnswer.filtered))
