@@ -1688,9 +1688,11 @@ module.exports = {
           const lastDataset =
             !pending?.tenantMemoryFactIds?.length &&
             /^(?:korrigier(?:e)? das|das stimmt so nicht)[.!\s]*$/i.test(envelope.userRequest) &&
-            pending?.retrieval?.evidence?.find(
-              (hit) => hit.source === 'dataset.query' && hit.metadata?.tenantId === p.tenantId
-            );
+            (pending?.datasetContext?.lastDatasetId
+              ? { metadata: { datasetId: pending.datasetContext.lastDatasetId } }
+              : pending?.retrieval?.evidence?.find(
+                  (hit) => hit.source === 'dataset.query' && hit.metadata?.tenantId === p.tenantId
+                ));
           const datasetQuestion = lastDataset?.metadata?.datasetId
             ? `Datensatz ${lastDataset.metadata.datasetId}: ${envelope.userRequest}`
             : envelope.userRequest;
@@ -1700,6 +1702,10 @@ module.exports = {
               question: datasetQuestion,
               documents: envelope.documents || [],
               conversationId: envelope.conversationId,
+              ...(lastDataset?.metadata?.datasetId
+                ? { correctionDatasetId: lastDataset.metadata.datasetId }
+                : {}),
+              selectionDatasetIds: pending?.datasetContext?.selectionDatasetIds || [],
             },
             { meta: correctionMeta }
           );
@@ -1710,6 +1716,21 @@ module.exports = {
             });
             await conversationAssistance.saveTurn(this.conversationsDb, p, envelope, {
               tenantMemoryFactIds: [],
+              ...(datasetTurn.datasetIds?.length
+                ? {
+                    datasetContext: {
+                      datasetIds: [
+                        ...new Set([
+                          ...(pending?.datasetContext?.datasetIds || []),
+                          ...datasetTurn.datasetIds,
+                        ]),
+                      ],
+                      selectionDatasetIds: datasetTurn.selectionDatasetIds || [],
+                      lastDatasetId:
+                        datasetTurn.datasetIds.length === 1 ? datasetTurn.datasetIds[0] : undefined,
+                    },
+                  }
+                : {}),
             });
             return {
               state: 'assistance',

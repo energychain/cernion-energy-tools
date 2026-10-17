@@ -1,5 +1,41 @@
 # Changelog
 
+## Unreleased — Tabellenqualität: Gesprächszustand und Vergleich stabilisieren (#926)
+
+- Varianten mit den bereits aufgelösten Quellen über einen gemeinsamen Abfrage-
+  und Vergleichshelfer lesen; keine zweite Modellwahl verwirft die erste Auswahl.
+- Datensatzbezug, offene Auswahl und zuletzt verwendetes Objekt im Gespräch
+  speichern. Blattantworten auf offene Auswahlen brauchen keine erneute
+  Absichtsklassifikation; bestätigte Einheiten wirken auch nach Retrieval-Wechseln.
+- Nackte Korrekturen bleiben beim zuletzt genannten Objekt. Interne
+  Situationskopien werden ohne zusätzliche Formulierungslisten aus Antworten gefiltert.
+- Vollständige Turn-Regressionen mit abweichenden Klassifikationen, leeren
+  Selektoren und Zählplänen; zweiten Live-Bericht als Ausgangsbefund aufgenommen.
+
+## Unreleased — Tabellenqualität: Korrekturen nach Live-Praxisbefund (#926)
+
+- Normale Datenfragen bleiben Abfragen; Metadatenänderungen benötigen eine belegte
+  Korrekturabsicht oder eine Antwort auf eine offene Einheitenfrage.
+- Offene Einheitenfragen speichern Gespräch und Spalte; knappe Antworten werden
+  auditiert zugeordnet und schließen die Rückfrage. Einheiten aus Spaltennamen
+  bleiben bekannt, Datentypen werden nicht als Einheit ausgegeben.
+- Titel verwenden den Quelldateinamen mit Blatt, Auswahldialoge zeigen Namen und
+  Versionen ohne interne IDs. Vollständige Workbench-Turns prüfen die generierten
+  Praxisfälle mit kontrollierten LLM-Stubs; Live-Bericht mit aufgenommen.
+
+## Unreleased — Tabellenqualität: Kontrollsummen, Varianten und Einheiten (#926)
+
+- Gemeinsame strukturelle/numerische Kontrollsummenerkennung für Chat- und
+  Aktentabellen: Zwischen-, führende und wiederholte Gesamtsummen ausschließen,
+  Originalzeilen und Abgleich zur Korrektur erhalten; leere Gruppen bleiben Daten.
+- Blattbezogene Titel, Wiederholungserkennung und Versionen; Varianten über
+  Schemavergleich und Kennungsüberdeckung. Gemeinsame Abfragen und deterministische
+  Differenzen auch im Projektmanifest verhindern die stille Auswahl eines Blatts.
+- Gezielte Einheitenfrage einmal je Datensatz; auditierte Metadatenkorrektur,
+  gesprächsbezogene Blattwahl und Wiederherstellung bestätigter Datenzeilen.
+- Synthetische XLSX-/Streaming-Regressionen und generiertes Praxis-Szenario;
+  Regeln und Schwellen unter `docs/table-upload-quality.md`. Live-Praxislauf separat.
+
 ## Unreleased — Projektakte: Manifest im Routing (#887)
 
 - E2E-Regression ohne Akten behoben: Kandidatenabfragen isolieren interne

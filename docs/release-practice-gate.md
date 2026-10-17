@@ -148,7 +148,7 @@ Lokale temporäre Dateien werden erst nach Bereinigung und Broker-Stopp entfernt
 
 ## Laufzeit und Kosten
 
-Der Umfang beträgt 337 Turns plus 118 Rubrikbewertungen; reine Basisabfragen benötigen keinen
+Der Umfang beträgt 355 Turns plus 121 Rubrikbewertungen; reine Basisabfragen benötigen keinen
 Modellaufruf. Laufzeit hängt von Antwort-/Kontingentlimits ab. Für die erste Planung 30–60 Minuten
 vorsehen; der Bericht enthält anschließend die gemessene Laufzeit und Nutzung.
 Standardobergrenzen: 3000 Aufrufe und 20 Millionen Tokens. Sie sind Grenzen, keine Verbrauchsprognose.
@@ -169,3 +169,13 @@ npm run check:practice-fixtures
 NODE_OPTIONS=--experimental-vm-modules npx jest --runInBand --coverage=false \
   tests/practice-evaluation.test.js tests/practice-evaluation-cleanup.test.js
 ```
+
+## Tabellenqualität (#926)
+
+Das synthetische Szenario `table-quality` („Export mit Summenzeilen und Variantenblatt“)
+prüft getrennte Blattbestätigungen, ausgeschlossene Kontrollzeilen mit Abgleich,
+Datensummen 40/44 und Differenz 4 sowie gespeicherte Einheiten-/Blattkorrekturen.
+Die Daten entstehen in `scripts/generate-table-quality-fixtures.js`; kein Kundenexport
+fließt in Fixtures ein. `check:practice-fixtures` prüft den Katalog offline.
+Der vollständige Live-Lauf ohne Regression ist separat durch die aufrufende Session
+auszuführen; der Offline-Nachweis allein erfüllt diesen Teil von AC-05 nicht.
