@@ -71,6 +71,20 @@ function substantive(claims) {
     .replace(/(?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße|Beste Grüße)[^\n]*/giu, '');
   return (body.match(/[\p{L}]{3,}/gu) || []).length >= 3;
 }
+function isInternalDescription(value, internalContext = []) {
+  const context = [...internalContext, internalContext.join(' ')]
+    .filter(Boolean)
+    .map((text) => ` ${normalizePhrase(text)} `);
+  const sentences = String(value)
+    .split(/(?<=[.!?])\s+|\n+/u)
+    .map(normalizePhrase)
+    .filter(Boolean);
+  return (
+    sentences.length > 0 &&
+    sentences.every((sentence) => context.some((text) => text.includes(` ${sentence} `)))
+  );
+}
+
 function filterAnswer(
   parsed,
   {
@@ -127,9 +141,7 @@ function filterAnswer(
       const rules = [];
       if (
         field !== 'draft' &&
-        [...internalContext, internalContext.join(' ')].some(
-          (value) => normalizePhrase(value) === normalizePhrase(claim.text)
-        ) &&
+        isInternalDescription(claim.text, internalContext) &&
         !message.includes(claim.text) &&
         !evidence.some((hit) => String(hit.value || '').includes(claim.text))
       )
@@ -303,4 +315,4 @@ function repairForFilters(counts) {
     'Jede bedingte Entwurfsvariante muss vollständig sein. Weitere ausdrücklich verlangte Ergebnisse wie Zusammenfassung und Prüfung in interpretation sowie nächste Schritte erhalten; expectation bleibt leer. Nur bei einer alleinstehenden Entwurfsbitte bleiben die übrigen Antwortfelder leer.',
   ].join('\n');
 }
-module.exports = { filterAnswer, repairForFilters, unsupportedEarlierDate };
+module.exports = { filterAnswer, repairForFilters, unsupportedEarlierDate, isInternalDescription };

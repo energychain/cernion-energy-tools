@@ -176,29 +176,40 @@ function compareDatasetResults(records, answers, differences) {
       const b = rightAnswer.result?.find((row) => labels.every((key) => row[key] === a[key]));
       if (!b) {
         lines.push(
-          `${labels.map((key) => `${key}: ${a[key]}`).join(', ')}: nur im Abfrageergebnis von ${left.sheet}.`
+          `${labels.map((key) => `${key}: ${a[key] ?? 'ohne Gruppenangabe'}`).join(', ')}: nur im Abfrageergebnis von ${left.sheet}.`
         );
         continue;
       }
       const deltas = aggregation.metrics.flatMap((metric) => {
-        if (typeof a[metric.as] !== 'number' || typeof b[metric.as] !== 'number') return [];
+        const rightMetric = rightAnswer.aggregation?.metrics.find(
+          (entry) => entry.fn === metric.fn && entry.field === metric.field
+        );
+        if (
+          !rightMetric ||
+          typeof a[metric.as] !== 'number' ||
+          typeof b[rightMetric.as] !== 'number'
+        )
+          return [];
+        const label = `${{ count: 'Anzahl', sum: 'Summe', avg: 'Mittelwert', min: 'Minimum', max: 'Maximum' }[metric.fn]}${metric.field ? ` (${metric.field})` : ''}`;
         const unitLeft =
           metric.fn === 'count'
             ? 'Zeilen'
-            : left.semantic.units[metric.field] || 'Einheit ungeklärt';
+            : require('./dataset-unit-question').datasetUnits(left)[metric.field] ||
+              'Einheit ungeklärt';
         const unitRight =
           metric.fn === 'count'
             ? 'Zeilen'
-            : right.semantic.units[metric.field] || 'Einheit ungeklärt';
+            : require('./dataset-unit-question').datasetUnits(right)[metric.field] ||
+              'Einheit ungeklärt';
         if (unitLeft !== unitRight)
-          return [`${metric.as}: Einheiten unterscheiden sich; keine Differenz berechnet`];
+          return [`${label}: Einheiten unterscheiden sich; keine Differenz berechnet`];
         return [
-          `${metric.as}: ${formatDatasetNumber(a[metric.as])} (${left.sheet}), ${formatDatasetNumber(b[metric.as])} (${right.sheet}); Differenz ${formatDatasetNumber(b[metric.as] - a[metric.as])} ${unitLeft}`,
+          `${label}: ${formatDatasetNumber(a[metric.as])} (${left.sheet}), ${formatDatasetNumber(b[rightMetric.as])} (${right.sheet}); Differenz ${formatDatasetNumber(b[rightMetric.as] - a[metric.as])} ${unitLeft}`,
         ];
       });
       if (deltas.length && (labels.length || leftAnswer.filtered))
         lines.push(
-          `${labels.map((key) => `${key}: ${a[key]}`).join(', ')}${labels.length ? ' — ' : ''}${deltas.join('; ')}.`
+          `${labels.map((key) => `${key}: ${a[key] ?? 'ohne Gruppenangabe'}`).join(', ')}${labels.length ? ' — ' : ''}${deltas.join('; ')}.`
         );
     }
   }
@@ -230,9 +241,21 @@ async function queryDatasetVariants(ctx, records, params) {
   records = [...records].sort((a, b) =>
     require('./canonical-order').compareCanonicalStrings(a.sheet, b.sheet)
   );
+  const plan =
+    params.plan ||
+    (await require('./dataset-semantics').datasetQueryPlan(records[0], params.question));
   const answers = [];
   for (const record of records)
-    answers.push(await ctx.call('dataset.query', { ...params, id: record.id }));
+    answers.push(
+      await ctx.call('dataset.query', {
+        ...params,
+        id: record.id,
+        plan: {
+          ...plan,
+          sources: plan.sources.map((source) => ({ ...source, sourceId: record.id })),
+        },
+      })
+    );
   const measured = (answers[0].filtered ? [] : answers[0].summaries || [])
     .filter(
       (left) =>

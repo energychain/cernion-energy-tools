@@ -188,12 +188,15 @@ describe('document conversation integration', () => {
     const repeated = await turn(message);
     expect(repeated.responseText).not.toContain(question.question);
     expect(repeated.requiredClarifications).toEqual([]);
-    llm.generateStructured.mockResolvedValue({
-      ...structuredClone(situation),
-      turnKind: 'knowledge',
-      conversationShape: 'knowledge',
-      missingInformation: [{ ...question, answered: true }],
-      requestedAction: { description: '', draftRequested: false, externalEffect: false },
+    llm.generateStructured.mockImplementation(async (schema) => {
+      if (schema.properties?.answer) return { answer: 'Der Zeitplan braucht noch eine Freigabe.' };
+      return {
+        ...structuredClone(situation),
+        turnKind: 'knowledge',
+        conversationShape: 'knowledge',
+        missingInformation: [{ ...question, answered: true }],
+        requestedAction: { description: '', draftRequested: false, externalEffect: false },
+      };
     });
     const overview = await turn('Mir geht es um einen kurzen Überblick.');
     expect(overview.situation.conversationShape).toBe('knowledge');

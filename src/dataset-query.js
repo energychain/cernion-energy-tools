@@ -519,7 +519,10 @@ function executeDatasetQuery(pool, record, input) {
           return `${labels[metric.fn]}${metric.field ? ` (${/^Spalte \d+$/i.test(metric.field) ? 'Messwert' : metric.field})` : ''}: ${typeof value === 'number' ? formatDatasetNumber(value) : value} ${unit}${extremum?.at ? ` am ${extremum.at} (${semantic.timezone})` : ''}.`;
         })
         .join(' ');
-      return [groups.map((field) => `${field}: ${row[field]}`).join(', '), values]
+      return [
+        groups.map((field) => `${field}: ${row[field] ?? 'ohne Gruppenangabe'}`).join(', '),
+        values,
+      ]
         .filter(Boolean)
         .join(' — ');
     })

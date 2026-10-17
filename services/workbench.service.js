@@ -1669,6 +1669,34 @@ module.exports = {
           call: (name, params, options) =>
             ctx.call(name, params, { meta: { ...correctionMeta, ...options?.meta } }),
         };
+        if (
+          !envelope.documents?.length &&
+          pending?.datasetContext?.datasetIds?.length &&
+          this.broker.getLocalService('dataset') &&
+          (await require('../src/dataset-clarification').hasOpenDatasetClarification(
+            memoryContext,
+            envelope.conversationId
+          ))
+        ) {
+          const resolved = await ctx.call(
+            'dataset.turn',
+            {
+              question: envelope.userRequest,
+              conversationId: envelope.conversationId,
+              documents: [],
+              clarificationOnly: true,
+            },
+            { meta: correctionMeta }
+          );
+          if (resolved.handled)
+            return require('../src/workbench-dataset-reply').datasetTurnReply(
+              this,
+              p,
+              envelope,
+              pending,
+              resolved
+            );
+        }
         const projectReply = await require('../src/workbench-project-manifest').projectManifestTurn(
           this,
           ctx,
@@ -1709,37 +1737,14 @@ module.exports = {
             },
             { meta: correctionMeta }
           );
-          if (datasetTurn.handled) {
-            this.logger.info('Workbench turn phases and sources', {
-              phaseTimes: { answerMs: datasetTurn.answerMs || 0 },
-              sources: datasetTurn.sources || [],
-            });
-            await conversationAssistance.saveTurn(this.conversationsDb, p, envelope, {
-              tenantMemoryFactIds: [],
-              ...(datasetTurn.datasetIds?.length
-                ? {
-                    datasetContext: {
-                      datasetIds: [
-                        ...new Set([
-                          ...(pending?.datasetContext?.datasetIds || []),
-                          ...datasetTurn.datasetIds,
-                        ]),
-                      ],
-                      selectionDatasetIds: datasetTurn.selectionDatasetIds || [],
-                      lastDatasetId:
-                        datasetTurn.datasetIds.length === 1 ? datasetTurn.datasetIds[0] : undefined,
-                    },
-                  }
-                : {}),
-            });
-            return {
-              state: 'assistance',
-              nonBinding: true,
-              responseText: datasetTurn.responseText,
-              sources: datasetTurn.sources || [],
-              phaseTimes: { answerMs: datasetTurn.answerMs || 0 },
-            };
-          }
+          if (datasetTurn.handled)
+            return require('../src/workbench-dataset-reply').datasetTurnReply(
+              this,
+              p,
+              envelope,
+              pending,
+              datasetTurn
+            );
           if (datasetTurn.documents) envelope.documents = datasetTurn.documents;
           envelope.datasetConfirmations = datasetTurn.confirmations || [];
           envelope.datasetIds = datasetTurn.datasetIds || [];
