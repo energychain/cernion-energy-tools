@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased — Deterministisches Routing eigener Kontextänderungen (#925)
+
+- Gespeicherter Arbeitskontext und grammatischer Selbstbezug bestimmen den Vorrang
+  vor Gedächtnis-Korrekturen; Modellantworten entscheiden nicht mehr über diesen Pfad.
+- Das Modell extrahiert nur Rolle, Auftrag und Ziel. Bei leeren, unbelegten oder
+  fehlgeschlagenen Feldern bleibt die aktuelle Aussage wörtlich als neuer Arbeitskontext
+  gespeichert, sichtbar bestätigt und korrigierbar; Folgeturns erhalten diese Aussage.
+- Sprecherrahmen mit Aussagen über Dritte sowie zitierte Selbstaussagen bleiben im
+  bisherigen Schutzpfad. Bloße Korrekturbitten behalten ihren letzten Objektbezug.
+- Vollständige Mehrturn-Tests prüfen ausgefallene Selbstsubjekt-/Präferenzextraktion,
+  den wörtlichen Fallback und erneute Korrekturen. Live-Bericht auf `ce9a5e9c` aufgenommen.
+
+## Unreleased — Vorrang der eigenen Rollenkorrektur (#925 Teil 2)
+
+- Bei gespeichertem Arbeitskontext läuft die zusammengeführte Selbsterkennung vor
+  beiden Gedächtnis-Präturns. Eine fehlende Rollenangabe in der Präferenzextraktion
+  kann eine anderweitig belegte eigene Rollenkorrektur nicht mehr verdrängen.
+- Der Inhaltsturn übernimmt das bereits geprüfte Lagebild. Die korrigierte Rolle,
+  der Auftrag und das Ziel werden gespeichert, sichtbar bestätigt und im Folgeturn genutzt.
+- Schema-valide vollständige Turn-Tests reproduzieren den bisherigen Fehler bei
+  Korrektur-, Wissens- und Arbeitsklassifikation; zusätzlich sind abgelaufener
+  Gesprächszustand und eine Korrektur mit beigefügtem Dokument abgedeckt.
+
 ## Unreleased — Rollenbestätigung und eigene Rollenkorrektur (#925)
 
 - Jede belegte eigene Rollenangabe erhält nach erfolgreicher Speicherung eine

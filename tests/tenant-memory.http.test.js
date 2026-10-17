@@ -567,7 +567,7 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
         llm.generateStructured.mock.calls.some(
           ([, prompt]) => JSON.parse(prompt).currentUserMessage === 'korrigier das'
         )
-      ).toBe(withRole);
+      ).toBe(false);
     }
   );
   test('AC-02: reverse order in fresh conversations retains symmetric links', async () => {

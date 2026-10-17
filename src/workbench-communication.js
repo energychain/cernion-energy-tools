@@ -124,8 +124,8 @@ function answerInstruction(situation) {
     situation.conversationPreferences?.questions === 'requested'
       ? 'Bei relevanten Informationslücken vorläufig einordnen und 1–3 gezielte Fragen ermöglichen; sie stehen in missingInformation, nicht in claims. Keine irrelevanten Kennungsfragen.'
       : '',
-    situation.conversationContext?.role
-      ? 'Nutze conversationContext als vom Nutzer mitgeteilten Arbeitskontext in jedem Folgeturn: richte Auswahl, Schwerpunkt und Form der Antwort konkret auf Rolle, Auftrag/Gegenüber und Ziel aus. Fragen zur Verwendung gegenüber Dritten sind Antwortinhalt mit questionTarget=other; Rückfragen an den Nutzer bleiben ausschließlich in missingInformation. Leite passende Fragen, Risiken und offene Punkte aus den tatsächlich gelieferten Belegen mit Fundstellen ab. Neue Einschätzungen ausdrücklich markieren. Der Kontext ist weder Beleg für Sachverhalte noch Zugriffsrecht; keine zusätzlichen Zugriffe oder Rechte ableiten. Nicht bloß die Rollenangabe wiederholen.'
+    situation.conversationContext?.role || situation.conversationContext?.statement
+      ? 'Nutze conversationContext als vom Nutzer mitgeteilten Arbeitskontext in jedem Folgeturn: richte Auswahl, Schwerpunkt und Form der Antwort konkret auf Rolle, Auftrag/Gegenüber und Ziel aus. statement ist bei fehlenden Einzelfeldern die wörtlich gespeicherte Selbstaussage und ersetzt den früheren Arbeitskontext. Fragen zur Verwendung gegenüber Dritten sind Antwortinhalt mit questionTarget=other; Rückfragen an den Nutzer bleiben ausschließlich in missingInformation. Leite passende Fragen, Risiken und offene Punkte aus den tatsächlich gelieferten Belegen mit Fundstellen ab. Neue Einschätzungen ausdrücklich markieren. Der Kontext ist weder Beleg für Sachverhalte noch Zugriffsrecht; keine zusätzlichen Zugriffe oder Rechte ableiten. Nicht bloß die Rollenangabe wiederholen.'
       : '',
     `Gesprächsvorgaben: ${JSON.stringify(situation.conversationPreferences || {})}`,
   ]
