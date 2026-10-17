@@ -495,7 +495,7 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
       [
         turn(
           'onboarding',
-          `Arbeite mich anhand des Arbeitsstands ${x} ein. Frage zuerst nach meiner Rolle im Vorhaben.`,
+          `Gib mir zur Einarbeitung einen kurzen Überblick über den beigefügten Arbeitsstand ${x}. Frage nach meiner Rolle im Vorhaben, damit die weitere Befassung dazu passt.`,
           'Gezielte Frage nach der eigenen Rolle',
           { require: ['Rolle|Aufgabe|Zuständigkeit'], questions: { min: 1, max: 1 } },
           {

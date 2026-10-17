@@ -2293,7 +2293,7 @@
           "id": "onboarding",
           "actor": "a",
           "chat": "main",
-          "message": "Arbeite mich anhand des Arbeitsstands Prüfbezugcacbafeebafc ein. Frage zuerst nach meiner Rolle im Vorhaben.",
+          "message": "Gib mir zur Einarbeitung einen kurzen Überblick über den beigefügten Arbeitsstand Prüfbezugcacbafeebafc. Frage nach meiner Rolle im Vorhaben, damit die weitere Befassung dazu passt.",
           "expect": {
             "description": "Gezielte Frage nach der eigenen Rolle",
             "rules": {

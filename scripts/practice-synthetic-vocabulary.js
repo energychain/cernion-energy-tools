@@ -7,7 +7,7 @@ module.exports = new Set(
     .split(' ')
     .concat(
       // Reviewed neutral words for the synthetic role-onboarding scenario (#925).
-      'abc abgleich abschnitt anhand arbeite arbeitskontext arbeitsstand arbeitsstands aufsicht bearbeitung begleite belegbezogene belegübersicht benannt bestimmt beträgt betreue bleibt correct corrected dem dokumentation dritte durch eigenen einarbeitung einheiten ergibt folgebearbeitung fragen glaube gremium kollege korrigierte kostenrahmen mein meine nabschnitt nachweis onboarding own party personenbewertung relevant richte rollenangabe schätzung schutzpfad sich soll team third unveränderten verantwortung vermeiden vertuschen vorhaben will wirksam zuerst'.split(
+      'abc abgleich abschnitt anhand arbeite arbeitskontext arbeitsstand arbeitsstands aufsicht bearbeitung begleite belegbezogene belegübersicht benannt bestimmt beträgt betreue bleibt correct corrected dem dokumentation dritte durch eigenen einarbeitung einheiten ergibt folgebearbeitung fragen glaube gremium kollege korrigierte kostenrahmen mein meine nabschnitt nachweis onboarding own party personenbewertung relevant richte rollenangabe schätzung schutzpfad sich soll team third unveränderten verantwortung vermeiden vertuschen vorhaben will wirksam zuerst beigefügten damit dazu gib kurzen passt überblick weitere'.split(
         ' '
       )
     )

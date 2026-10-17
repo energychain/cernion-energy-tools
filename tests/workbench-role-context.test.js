@@ -5,7 +5,7 @@ jest.mock('../src/llm-client', () => ({
   generateText: jest.fn(),
   generateChat: jest.fn(),
 }));
-const Ajv = require('ajv');
+const { complete, validate } = require('./helpers/workbench-schema-stub');
 const llm = require('../src/llm-client');
 const { createCaseBroker } = require('./helpers/case-linking-broker');
 const { readTurn, saveTurn } = require('../src/workbench-conversation');
@@ -92,32 +92,46 @@ const claim = (text) => ({
   completedAction: false,
   evidenceIds: [],
 });
-const validate = (schema, result) => {
-  const validator = new Ajv({ strict: false }).compile(schema);
-  if (!validator(result)) throw new Error(JSON.stringify(validator.errors));
-  return result;
-};
-
-function complete(schema, value) {
-  if (schema.type === 'object')
-    return Object.fromEntries(
-      Object.entries(schema.properties).map(([key, child]) => [key, complete(child, value?.[key])])
-    );
-  if (schema.type === 'array') return (value || []).map((item) => complete(schema.items, item));
-  if (value !== undefined) return value;
-  if (schema.enum) return schema.enum[0];
-  if (schema.type === 'boolean') return false;
-  if (['integer', 'number'].includes(schema.type)) return schema.minimum || 0;
-  return '';
-}
-
 function installModel({ misclassified = true, missingPrimary = false } = {}) {
   const failures = [];
   llm.generateStructured.mockImplementation(async (schema, raw) => {
     const input = JSON.parse(raw);
     const message = input.currentUserMessage || input.message || '';
     let result;
-    if (schema.properties?.requestedAction && schema.properties?.concern) {
+    if (schema.properties?.answer && input.sections) {
+      const context = input.conversationContext;
+      if ([messages[2], messages[4]].includes(message || input.question)) {
+        expect(context?.role).toBe(input.question === messages[2] ? 'Aufsicht' : 'Dokumentation');
+        expect(input.communicationInstruction).toContain('Arbeitskontext');
+        expect(input.sections.some((part) => part.text.includes('80 Einheiten'))).toBe(true);
+      }
+      result = {
+        answer:
+          input.question === messages[2]
+            ? 'Frage für das Gremium: Wie wird die Abweichung zwischen 80 und 95 Einheiten geklärt (Arbeitsstand-A, Abschnitt A/B)? Offen bleibt die Verantwortung für den Abgleich (Abschnitt C).'
+            : 'Für die Dokumentation ist die Belegübersicht aus Abschnitt A, B und C relevant.',
+      };
+    } else if (input.untrustedDocument) {
+      result = {
+        claims: [],
+        assumptions: [],
+        numbers: [],
+        measures: [],
+        schedule: [],
+        citations: [input.lines[0]],
+      };
+    } else if (input.maps) {
+      result = {
+        verdict: 'Prüfung abgeschlossen.',
+        rationale: 'Synthetischer Nachweis.',
+        strengths: [],
+        risks: [],
+        checkpoints: [],
+        contradictions: [],
+        openQuestions: [],
+        draft: '',
+      };
+    } else if (schema.properties?.requestedAction && schema.properties?.concern) {
       result = situationFor(message, misclassified);
       if (missingPrimary) result.roleStatement = emptyRole;
     } else if (input.currentUserMessage) {
@@ -218,11 +232,23 @@ test.each([
   { misclassified: true, missingPrimary: false },
   { misclassified: true, missingPrimary: true, expired: true },
   { misclassified: false, missingPrimary: false },
+  { misclassified: true, runningReview: true },
 ])(
   'full turn: role answer, follow-up, correction and third-party protection (%j)',
   async (variant) => {
     const app = await createCaseBroker();
     const failures = installModel(variant);
+    let releaseReview;
+    const blockedReview = new Promise((resolve) => {
+      releaseReview = resolve;
+    });
+    const model = llm.generateStructured.getMockImplementation();
+    llm.generateStructured.mockImplementation(async (schema, prompt) => {
+      const input = JSON.parse(prompt);
+      if (variant.runningReview && input.message === 'Bewerte den beigefügten Arbeitsstand.')
+        await blockedReview;
+      return model(schema, prompt);
+    });
     const evidenceRequests = [];
     await app.broker.destroyService(app.broker.getLocalService('personal-agent'));
     app.broker.createService({
@@ -286,7 +312,15 @@ test.each([
           caseStateVersion: existing.caseStateVersion,
         });
       }
-      const initial = await chat(messages[0]);
+      const document = scenario.turns[0].document;
+      const withDocument = (message) =>
+        `<context><source name="${document.name}">${document.text}</source></context><user_query>${message}</user_query>`;
+      if (variant.runningReview) {
+        const review = await chat(withDocument('Bewerte den beigefügten Arbeitsstand.'));
+        expect(review.documentReview.status).toBe('pending');
+      }
+      const initial = await chat(variant.runningReview ? messages[0] : withDocument(messages[0]));
+      expect(initial.responseText).not.toContain('Das Review läuft');
       expect(failures).toEqual([]);
       expect(initial.responseText).toContain(question.question);
       let pending = await readTurn(app.workbench.conversationsDb, p, envelope);
@@ -323,7 +357,7 @@ test.each([
       expect(third.responseText).toContain('Nutzerhypothese, nicht erwiesen');
       expect(third.responseText).not.toContain('Ich richte mich');
       expect(await app.workbench.store.getUserContext(p)).toEqual(profile);
-      expect(await app.router.visibleStates(p)).toHaveLength(variant.expired ? 1 : 0);
+      expect(await app.router.visibleStates(p)).toHaveLength(1);
       expect(failures).toEqual([]);
       expect(evidenceRequests.length).toBeGreaterThan(0);
       for (const meta of evidenceRequests) expect(meta.apiToken.roles).toEqual(['ROLE_ALPHA']);
@@ -338,6 +372,8 @@ test.each([
         await readTurn(app.workbench.conversationsDb, { ...p, tenantId: 'tenant-b' }, envelope)
       ).toBeNull();
     } finally {
+      releaseReview();
+      await Promise.all(app.workbench.workbenchDocumentReviews?.values() || []);
       await app.cleanup();
     }
   }

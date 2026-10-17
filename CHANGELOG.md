@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Dokumentreviews blockieren keine Folgeturns (#925 / #754)
+
+- Die Prüfanfrage-Erkennung unterscheidet Verbformen und eigenständige Prüfungsbitten
+  von beliebigen Wortzusammensetzungen; synthetische Referenzanker starten kein Review.
+- Das Zeitbudget umfasst jetzt Verstehen, Recherche, Abschnittsanalyse und Zusammenführung.
+  Fehler, Zeitüberschreitungen und verwaiste Jobs erhalten terminale gespeicherte Zustände;
+  verspätete Ergebnisse überschreiben diese nicht.
+- Nur ausdrückliche Ergebnis-/Statusfragen erhalten den Reviewstatus. Rollenangaben,
+  Korrekturen und weitere Dokumentfragen laufen normal weiter; Dokumentantworten verwenden
+  den gespeicherten Arbeitskontext.
+- Das Einarbeitungsszenario bestellt ausdrücklich einen Überblick mit Rollenrückfrage.
+  Vollständige Turn-Tests übergeben echte synthetische Dokumente und laufen auch bei
+  parallelem Review. Live-Ausgangsberichte unverändert aufgenommen; kein neuer Live-Lauf.
+
 ## Unreleased — Eigene Rollenangaben als Arbeitskontext (#925)
 
 - Eigene Rollen-/Aufgabenangaben werden mit strukturiertem Subjektbezug und

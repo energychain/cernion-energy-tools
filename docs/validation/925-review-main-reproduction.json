@@ -1,0 +1,75 @@
+{
+  "base": "5da85e90997c8d7b2ecdbd6d30ebcee584c5b3c4",
+  "identicalModules": [
+    "src/workbench-document-input.js",
+    "src/workbench-document-flow.js",
+    "src/workbench-review.js"
+  ],
+  "chars": 231,
+  "first": "Ich prüfe 1 Dokument(e) mit 231 Zeichen abschnittsweise: Aussagen, Annahmen, Zahlen, Zeitplan und Widersprüche sowie verfügbare Prüfmaßstäbe. Das Review läuft; das Ergebnis liefere ich im nächsten Turn. Die Vollständigkeit des übermittelten Texts ist nicht bestätigt.\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+  "replies": [
+    {
+      "turn": "own-role",
+      "pending": "pending"
+    },
+    {
+      "turn": "followup",
+      "pending": "pending"
+    },
+    {
+      "turn": "correct-role",
+      "pending": "pending"
+    },
+    {
+      "turn": "corrected-followup",
+      "pending": "pending"
+    },
+    {
+      "turn": "third-party",
+      "pending": "pending"
+    }
+  ],
+  "modelCallsBeforeRelease": 1,
+  "normalCompletionReplay": {
+    "source": "Review, document input and document flow loaded directly from origin/main using git show; all model responses validated against their supplied schemas",
+    "first": "Ich prüfe 1 Dokument(e) mit 231 Zeichen abschnittsweise: Aussagen, Annahmen, Zahlen, Zeitplan und Widersprüche sowie verfügbare Prüfmaßstäbe. Das Review läuft; das Ergebnis liefere ich im nächsten Turn. Die Vollständigkeit des übermittelten Texts ist nicht bestätigt.\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+    "replies": [
+      {
+        "turn": "own-role",
+        "pending": "pending"
+      },
+      {
+        "turn": "followup",
+        "pending": "pending"
+      },
+      {
+        "turn": "correct-role",
+        "pending": "pending"
+      },
+      {
+        "turn": "corrected-followup",
+        "pending": "pending"
+      },
+      {
+        "turn": "third-party",
+        "pending": "pending"
+      }
+    ],
+    "modelCallsBeforeRelease": 1,
+    "phases": [
+      "understanding",
+      "map",
+      "reduce"
+    ],
+    "resultAfterRelease": {
+      "status": "completed",
+      "stats": {
+        "mapCalls": 1,
+        "reduceCalls": 1,
+        "inputChars": 3907,
+        "documentChars": 231,
+        "elapsedMs": 10
+      }
+    }
+  }
+}

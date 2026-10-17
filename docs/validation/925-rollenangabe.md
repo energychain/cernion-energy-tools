@@ -112,3 +112,13 @@ Die LLM-Kontextdatei enthält den aktualisierten Changelog-Fingerabdruck.
 - Vollständiger Unit-CI-Lauf mit globalen Coverage-Gates: durch die aufrufende Session.
 - GitNexus-Index liefert für diese Dateien keinen vollständigen Impact-Graphen;
   lokale Referenzprüfung und Offline-Regressionen dienen als ergänzende Absicherung.
+
+## Nachtrag nach Live-Ausgangsprüfung
+
+Die aufrufende Session bestätigte Unit-CI auf `9f3bb790` als grün. Der danach
+bereitgestellte Live-Rollenlauf war mit 4/12 rot, weil ein bereits auf `origin/main`
+vorhandener Dokumentreviewpfad den gesamten Dialog abfing. Die übrigen gemessenen
+Regressionen und #874 blieben intakt. Ursachen, Main-Reproduktion, Produktfix,
+realistische Dokument-Turn-Tests und die unveränderten Live-Berichte sind im
+[Review-Nachtrag](925-review-followup.md) dokumentiert. Der korrigierte Stand wurde
+hier ausschließlich offline geprüft; seine erneute Live-Abnahme steht aus.
