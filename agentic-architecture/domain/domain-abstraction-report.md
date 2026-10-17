@@ -1,22 +1,22 @@
 # Domain Abstraction Report
 
-Generated: 2026-10-16T21:04:46.264Z
+Generated: 2026-10-17T03:09:07.450Z
 
-- Candidate files scanned: 1205
-- Services classified: 163
+- Candidate files scanned: 1220
+- Services classified: 164
 - Unclassified services: 0
-- Fingerprint: 5dbba12db93a82cc54f9a85b661e256a6a0a77281f3b2ff794259bf37eb79611
+- Fingerprint: 4986676a6498689100fb784924ed3dc9326bbc0f8a471757a5df601c00d04ca2
 
 ## Cluster counts
 
-- `casework-and-assistance` — Fallarbeit und Assistenz: 2 services, 25 top files, 9659 top-file hits
-- `evidence-and-trust` — Evidence, Nachweis und Vertrauen: 23 services, 25 top files, 19114 top-file hits
-- `mako-and-edm` — MaKo / EDM / Stammdaten: 8 services, 25 top files, 3606 top-file hits
-- `grid-and-connection` — Netz, Anschluss und Kapazität: 48 services, 25 top files, 11012 top-file hits
+- `casework-and-assistance` — Fallarbeit und Assistenz: 2 services, 25 top files, 10669 top-file hits
+- `evidence-and-trust` — Evidence, Nachweis und Vertrauen: 23 services, 25 top files, 19234 top-file hits
+- `mako-and-edm` — MaKo / EDM / Stammdaten: 8 services, 25 top files, 3682 top-file hits
+- `grid-and-connection` — Netz, Anschluss und Kapazität: 49 services, 25 top files, 11012 top-file hits
 - `forecast-and-market` — Prognose, Markt und Portfolio: 17 services, 25 top files, 4271 top-file hits
 - `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files, 4728 top-file hits
-- `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files, 4112 top-file hits
-- `tenant-and-operation` — Tenant, Rollen und Betrieb: 52 services, 25 top files, 9285 top-file hits
+- `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files, 4287 top-file hits
+- `tenant-and-operation` — Tenant, Rollen und Betrieb: 52 services, 25 top files, 9576 top-file hits
 - `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files, 5045 top-file hits
 
 ## Case type coverage

@@ -1,25 +1,25 @@
 # Agentic Core Findings
 
-Generated: 2026-10-16T21:04:41.960Z
+Generated: 2026-10-17T03:09:01.987Z
 
 ## Current measurable surface
 
 - Agentic files: 274
-- Routing/capability files: 92
-- Evidence/HITL files: 75
+- Routing/capability files: 114
+- Evidence/HITL files: 78
 - Operation capability index: present
 - OpenAPI export: present
 - llm.txt: present
 
 ## Domain term distribution
 
-- `evidence`: 25053 hits in 794 files
-- `tenant`: 17698 hits in 801 files
-- `broker`: 11387 hits in 650 files
+- `evidence`: 25262 hits in 815 files
+- `tenant`: 18113 hits in 818 files
+- `broker`: 11450 hits in 661 files
 - `grid`: 9862 hits in 654 files
-- `agent`: 8398 hits in 764 files
+- `agent`: 8412 hits in 770 files
 - `decision`: 6979 hits in 454 files
-- `capability`: 5949 hits in 514 files
+- `capability`: 5982 hits in 522 files
 - `stadtwerk`: 5635 hits in 248 files
 - `forecast`: 4595 hits in 329 files
 - `vdmi`: 4530 hits in 295 files
@@ -27,12 +27,12 @@ Generated: 2026-10-16T21:04:41.960Z
 - `market`: 3966 hits in 403 files
 - `hitl`: 3707 hits in 447 files
 - `edm`: 2920 hits in 365 files
-- `regulator`: 2647 hits in 341 files
-- `mako`: 2470 hits in 306 files
+- `regulator`: 2694 hits in 342 files
+- `mako`: 2493 hits in 307 files
 - `receipt`: 2445 hits in 167 files
-- `routing`: 2216 hits in 353 files
-- `personal-agent`: 2024 hits in 307 files
-- `workflow`: 1606 hits in 245 files
+- `routing`: 2302 hits in 369 files
+- `personal-agent`: 2029 hits in 309 files
+- `workflow`: 1609 hits in 248 files
 - `willi`: 1536 hits in 113 files
 - `sidecar`: 1003 hits in 112 files
 - `eog`: 792 hits in 101 files
@@ -93,6 +93,8 @@ Generated: 2026-10-16T21:04:41.960Z
 - `src/evidence-registry.js`
 - `src/evidence-router.js`
 - `src/mako-evidence-parser.js`
+- `src/project-manifest-dossier.js`
+- `src/project-manifest-evidence.js`
 - `src/receipt-grounded-presentation-contract.js`
 - `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-connection-deadline-evidence-queue-v1.json`
 - `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-cross-system-variance-evidence-matrix-v1.json`
@@ -118,6 +120,7 @@ Generated: 2026-10-16T21:04:41.960Z
 - `tests/personal-agent-auto-evidence-requirement.integration.test.js`
 - `tests/personal-agent-willi-mako-evidence.test.js`
 - `tests/personal-agent-work-out-loud-evidence-revalidation.integration.test.js`
+- `tests/project-manifest-evidence.test.js`
 
 ## Shepherd interpretation
 

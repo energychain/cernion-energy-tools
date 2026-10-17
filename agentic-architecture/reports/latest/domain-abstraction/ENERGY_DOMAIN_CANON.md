@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-16T21:04:46.264Z
+Generated: 2026-10-17T03:09:07.450Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -33,18 +33,18 @@ Arbeitsmodell: CET soll unvollständige Vorgänge bearbeitbar machen: einordnen,
 
 Starke Code-/Doku-Signale:
 
+- `docs/validation/practice-evaluation-887-live-1.md` (1172 hits)
 - `docs/validation/issue-874-before.md` (961 hits)
 - `docs/validation/practice-evaluation-baseline.json` (753 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.json` (723 hits)
 - `docs/validation/practice-evaluation-baseline.md` (688 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (658 hits)
 - `src/capability-catalog.js` (613 hits)
-- `services/workbench.service.js` (565 hits)
+- `services/workbench.service.js` (567 hits)
 - `docs/reviews/730-capability-routing-evaluation.json` (462 hits)
 - `src/answer-dossier-hydration-rules.json` (361 hits)
 - `services/personal-agent/actions-part-01-of-1.js` (360 hits)
 - `services/capability-broker.service.js` (329 hits)
-- `docs/validation/workbench-873-live.json` (320 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -60,7 +60,7 @@ Starke Code-/Doku-Signale:
 - `src/answer-dossier-hydration-rules.json` (4049 hits)
 - `services/dashboard-api/methods-part-05-of-14.js` (1574 hits)
 - `services/dashboard-api/methods-part-04-of-14.js` (1416 hits)
-- `services/personal-agent/actions-part-01-of-1.js` (1200 hits)
+- `services/personal-agent/actions-part-01-of-1.js` (1204 hits)
 - `services/dashboard-api/methods-part-06-of-14.js` (1195 hits)
 - `services/dashboard-api/methods-part-03-of-14.js` (1119 hits)
 - `src/evidence-registry.js` (1100 hits)
@@ -104,13 +104,13 @@ Starke Code-/Doku-Signale:
 - `docs/validation/practice-evaluation-baseline.json` (332 hits)
 - `docs/validation/739-routing.json` (271 hits)
 - `docs/validation/813-live.json` (253 hits)
+- `docs/validation/practice-evaluation-887-live-1.md` (146 hits)
 - `src/evidence-registry.js` (144 hits)
 - `docs/validation/issue-874-before.md` (136 hits)
 - `services/api.service.js` (131 hits)
 - `services/capability-broker.service.js` (131 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (122 hits)
 - `src/answer-dossier-hydration-rules.json` (121 hits)
-- `services/dashboard-api/methods-part-05-of-14.js` (116 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -240,13 +240,13 @@ Starke Code-/Doku-Signale:
 - `docs/validation/739-routing.json` (257 hits)
 - `src/evidence-registry.js` (249 hits)
 - `services/capability-broker.service.js` (243 hits)
+- `docs/validation/practice-evaluation-887-live-1.md` (238 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.json` (192 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (191 hits)
 - `docs/validation/issue-874-before.md` (186 hits)
 - `docs/validation/practice-evaluation-baseline.json` (184 hits)
 - `docs/validation/practice-evaluation-baseline.md` (184 hits)
 - `src/answer-dossier-hydration-rules.json` (181 hits)
-- `docs/validation/tenant-memory-live.json` (175 hits)
 
 Zugeordnete Services nach Heuristik:
 
@@ -261,6 +261,7 @@ Arbeitsmodell: Ein selbstlaufender EVU-Assistent muss bei erster Nutzung Kontext
 Starke Code-/Doku-Signale:
 
 - `services/workbench.service.js` (610 hits)
+- `docs/validation/practice-evaluation-887-live-1.md` (521 hits)
 - `docs/validation/workbench-873-live.json` (512 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (492 hits)
 - `services/api.service.js` (453 hits)
@@ -271,7 +272,6 @@ Starke Code-/Doku-Signale:
 - `services/personal-agent/actions-part-01-of-1.js` (393 hits)
 - `src/capability-catalog.js` (381 hits)
 - `docs/validation/issue-874-before.md` (379 hits)
-- `services/vdmi.service.js` (376 hits)
 
 Zugeordnete Services nach Heuristik:
 

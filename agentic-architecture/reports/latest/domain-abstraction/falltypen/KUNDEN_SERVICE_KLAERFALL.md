@@ -1,6 +1,6 @@
 # Kunden-/Service-Klärfall
 
-Generated: 2026-10-16T21:04:46.264Z
+Generated: 2026-10-17T03:09:07.450Z
 
 Status: routable
 Priority: 3
@@ -136,14 +136,15 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 - `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md` (302 hits)
 - `agentic-architecture/reports/latest/architecture-scan.md` (270 hits)
 - `services/capability-broker.service.js` (261 hits)
+- `docs/validation/practice-evaluation-887-live-1.md` (227 hits)
 - `docs/validation/issue-874-before.md` (214 hits)
 - `src/report-builder.js` (174 hits)
 - `services/chatgpt-sidecar.service.js` (156 hits)
 - `docs/validation/practice-evaluation-baseline.json` (151 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.json` (149 hits)
+- `function-model.report.md` (149 hits)
 - `docs/validation/practice-evaluation-baseline.md` (147 hits)
 - `feedback/HYGIENE_SPRINT.md` (145 hits)
-- `function-model.report.md` (145 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (142 hits)
 - `docs/v0.58-architecture/lagebild/tranche_c.md` (136 hits)
 - `src/cookbook-recipes.js` (129 hits)
@@ -154,4 +155,3 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 - `agentic-architecture/reports/latest/scan-summary.json` (106 hits)
 - `agentic-architecture/reports/latest/refactoring-backlog.md` (101 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (99 hits)
-- `docs/ARCHITECTURE.md` (93 hits)

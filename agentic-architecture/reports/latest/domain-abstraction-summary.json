@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-16T21:04:46.264Z",
+  "generatedAt": "2026-10-17T03:09:07.450Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261016T210347Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261017T030753Z",
   "counts": {
-    "files": 2032,
-    "candidateFiles": 1205,
-    "services": 163,
-    "srcFiles": 470,
-    "docs": 528,
+    "files": 2058,
+    "candidateFiles": 1220,
+    "services": 164,
+    "srcFiles": 481,
+    "docs": 531,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -15,24 +15,24 @@
       "label": "Fallarbeit und Assistenz",
       "files": 25,
       "services": 2,
-      "hits": 9659
+      "hits": 10669
     },
     "evidence-and-trust": {
       "label": "Evidence, Nachweis und Vertrauen",
       "files": 25,
       "services": 23,
-      "hits": 19114
+      "hits": 19234
     },
     "mako-and-edm": {
       "label": "MaKo / EDM / Stammdaten",
       "files": 25,
       "services": 8,
-      "hits": 3606
+      "hits": 3682
     },
     "grid-and-connection": {
       "label": "Netz, Anschluss und Kapazität",
       "files": 25,
-      "services": 48,
+      "services": 49,
       "hits": 11012
     },
     "forecast-and-market": {
@@ -51,13 +51,13 @@
       "label": "Gas, Wärme und EOG",
       "files": 25,
       "services": 3,
-      "hits": 4112
+      "hits": 4287
     },
     "tenant-and-operation": {
       "label": "Tenant, Rollen und Betrieb",
       "files": 25,
       "services": 52,
-      "hits": 9285
+      "hits": 9576
     },
     "openwebui-agentic-routing": {
       "label": "OpenWebUI und agentisches Routing",
@@ -127,6 +127,10 @@
           "hits": 207
         },
         {
+          "path": "docs/validation/practice-evaluation-887-live-1.md",
+          "hits": 199
+        },
+        {
           "path": "docs/validation/issue-874-before.md",
           "hits": 198
         },
@@ -141,10 +145,6 @@
         {
           "path": "docs/validation/practice-evaluation-baseline-corrected.md",
           "hits": 165
-        },
-        {
-          "path": "services/edm.service.js",
-          "hits": 164
         }
       ]
     },
@@ -239,6 +239,10 @@
           "hits": 261
         },
         {
+          "path": "docs/validation/practice-evaluation-887-live-1.md",
+          "hits": 227
+        },
+        {
           "path": "docs/validation/issue-874-before.md",
           "hits": 214
         },
@@ -249,10 +253,6 @@
         {
           "path": "services/chatgpt-sidecar.service.js",
           "hits": 156
-        },
-        {
-          "path": "docs/validation/practice-evaluation-baseline.json",
-          "hits": 151
         }
       ]
     },
@@ -288,6 +288,10 @@
           "hits": 53
         },
         {
+          "path": "docs/validation/practice-evaluation-887-live-1.md",
+          "hits": 45
+        },
+        {
           "path": "src/report-builder.js",
           "hits": 44
         },
@@ -302,10 +306,6 @@
         {
           "path": "docs/validation/tenant-memory-863-live.json",
           "hits": 33
-        },
-        {
-          "path": "services/personal-agent/shared.js",
-          "hits": 30
         }
       ]
     },
@@ -435,6 +435,10 @@
           "hits": 338
         },
         {
+          "path": "docs/validation/practice-evaluation-887-live-1.md",
+          "hits": 239
+        },
+        {
           "path": "docs/validation/practice-evaluation-baseline-corrected.json",
           "hits": 191
         },
@@ -461,10 +465,6 @@
         {
           "path": "services/capability-broker.service.js",
           "hits": 180
-        },
-        {
-          "path": "docs/validation/tenant-memory-live.json",
-          "hits": 175
         }
       ]
     }
@@ -485,7 +485,7 @@
     },
     {
       "path": "services/personal-agent/actions-part-01-of-1.js",
-      "hits": 1200
+      "hits": 1204
     },
     {
       "path": "services/dashboard-api/methods-part-06-of-14.js",
@@ -533,7 +533,11 @@
     },
     {
       "path": "src/answer-dossier-builder.js",
-      "hits": 335
+      "hits": 349
+    },
+    {
+      "path": "docs/validation/practice-evaluation-887-live-1.md",
+      "hits": 325
     },
     {
       "path": "src/vdmi-blueprint-pack-seeds.js",
@@ -546,11 +550,7 @@
     {
       "path": "services/dashboard-api/methods-part-09-of-14.js",
       "hits": 279
-    },
-    {
-      "path": "docs/validation/issue-874-before.md",
-      "hits": 266
     }
   ],
-  "fingerprint": "5dbba12db93a82cc54f9a85b661e256a6a0a77281f3b2ff794259bf37eb79611"
+  "fingerprint": "4986676a6498689100fb784924ed3dc9326bbc0f8a471757a5df601c00d04ca2"
 }
