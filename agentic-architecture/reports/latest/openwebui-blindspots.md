@@ -1,6 +1,6 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-17T15:16:25.136Z
+Generated: 2026-10-17T21:20:19.944Z
 
 ## Observed adapter surface
 
@@ -76,6 +76,7 @@ Routing/capability/broker/manifest files:
 - `docs/v0.58-architecture/DECLARATIVE_BLUEPRINT_AND_CASCADING_BROKER_SPEC.md`
 - `docs/validation/739-routing.json`
 - `docs/validation/887-projektakte-manifest.md`
+- `docs/validation/925-deterministic-role-routing.md`
 - `docs/validation/926-routing-document-followup.md`
 - `docs/validation/dataset-routing-live.json`
 - `docs/VNB_LOOKUP_ROUTING.md`
