@@ -22,7 +22,7 @@ function unitOptions() {
         const label = format.formatToParts(count).find((part) => part.type === 'unit')?.value;
         if (label) values.add(label);
       }
-  return [...values].sort();
+  return [...values].sort((a, b) => a.localeCompare(b, 'de'));
 }
 const UNIT_OPTIONS = unitOptions();
 
