@@ -51,7 +51,7 @@ function documentInput(input) {
 }
 
 function isReviewRequest(question) {
-  return /\b(?:bewert\w*|prüf\w*|pruef\w*|review|peer[ -]?review|stellungnahme|gutachten|plausib\w*|realistisch|stimmig)\b/i.test(
+  return /\b(?:bewert\w*|prüf(?:e|en|st|t|ung)?|pruef(?:e|en|st|t|ung)?|review|peer[ -]?review|stellungnahme|gutachten|plausib\w*|realistisch|stimmig)\b/i.test(
     String(question)
   );
 }

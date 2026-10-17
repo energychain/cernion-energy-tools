@@ -17,6 +17,7 @@ const { provisionToken } = require('../scripts/provision-token');
 const { provisionMapping } = require('../scripts/provision-workbench-mapping');
 const llm = require('../src/llm-client');
 const fixture = require('./fixtures/tenant-memory.json');
+const { complete, validate } = require('./helpers/workbench-schema-stub');
 
 describe('tenant memory through authenticated OpenAI HTTP', () => {
   let app, env, base, gateway, otherGateway;
@@ -63,8 +64,18 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
     });
     app.broker.createService(Dataset);
     app.broker.createService(MemoryPolicy);
-    llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+    llm.generateStructured.mockImplementation(async (schema, prompt) => {
       const input = JSON.parse(prompt);
+      if (input.currentUserMessage)
+        return validate(
+          schema,
+          complete(schema, {
+            register: 'unchanged',
+            concise: 'unchanged',
+            questions: 'unchanged',
+            roleStatement: { subject: 'none' },
+          })
+        );
       if (input.datasets) return { datasetIds: input.datasets.map((record) => record.id) };
       if (input.profile) return null;
       if (input.fact)
@@ -493,45 +504,72 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
     );
     expect(facts.docs).toHaveLength(0);
   });
-  test('bare correction follows the latest statement or dataset without changing the other', async () => {
-    const table =
-      '<context><source name="Synthetic.csv">timestamp;value\n2031-01-01T00:00:00Z;1\n2031-01-01T00:15:00Z;2</source></context><user_query>Tabelle behalten.</user_query>';
-    const conversation = 'mixed-correction';
-    expect((await request(fixture.first, table, conversation)).status).toBe(200);
-    expect((await request(fixture.first, fixture.first.text, conversation)).text).toContain(
-      'Hab ich festgehalten:'
-    );
-    const corrected = await request(fixture.first, 'korrigier das', conversation);
-    expect(corrected.text).toContain('als korrigiert');
-    const meta = auth('Charly', ['ROLE_GRID_OPERATOR'], 'public');
-    const query = () =>
-      app.call(
-        'object-store.query',
-        {
-          namespace: 'tenant:public:workbench_facts',
-          selector: { 'payload.type': 'tenant_memory_fact' },
-        },
-        meta
+  test.each([false, true])(
+    'bare correction follows the latest statement or dataset (existing role context: %s)',
+    async (withRole) => {
+      const table =
+        '<context><source name="Synthetic.csv">timestamp;value\n2031-01-01T00:00:00Z;1\n2031-01-01T00:15:00Z;2</source></context><user_query>Tabelle behalten.</user_query>';
+      const conversation = 'mixed-correction';
+      expect((await request(fixture.first, table, conversation)).status).toBe(200);
+      expect((await request(fixture.first, fixture.first.text, conversation)).text).toContain(
+        'Hab ich festgehalten:'
       );
-    expect((await query()).docs[0].payload.status).toBe('corrected');
-    const next = `${fixture.first.text} Andere Variante.`;
-    expect((await request(fixture.first, next, conversation)).text).toContain(
-      'Hab ich festgehalten:'
-    );
-    const tableAnswer = await request(
-      fixture.first,
-      table.replace('Tabelle behalten.', 'Welche Daten haben wir?'),
-      conversation
-    );
-    expect(tableAnswer.status).toBe(200);
-    expect(tableAnswer.text).toContain('Synthetic');
-    const datasetCorrection = await request(fixture.first, 'korrigier das', conversation);
-    expect(datasetCorrection.text).toContain('Semantikkorrektur');
-    expect((await query()).docs.find((doc) => doc.payload.text === next).payload.status).toBe(
-      'valid'
-    );
-    expect(await app.call('datapoint.datasetCatalog', { operation: 'list' }, meta)).toHaveLength(1);
-  });
+      if (withRole) {
+        await require('../src/workbench-conversation').saveTurn(
+          app.workbench.conversationsDb,
+          { tenantId: 'public', actorId: 'Charly' },
+          { channel: 'open-webui', conversationId: conversation },
+          {
+            conversationContext: {
+              role: 'Dokumentation',
+              goal: 'Belegübersicht',
+              mandate: 'Team A',
+              basis: 'synthetic',
+              durable: false,
+              preference: '',
+            },
+          }
+        );
+      }
+      const corrected = await request(fixture.first, 'korrigier das', conversation);
+      expect(corrected.text).toContain('als korrigiert');
+      const meta = auth('Charly', ['ROLE_GRID_OPERATOR'], 'public');
+      const query = () =>
+        app.call(
+          'object-store.query',
+          {
+            namespace: 'tenant:public:workbench_facts',
+            selector: { 'payload.type': 'tenant_memory_fact' },
+          },
+          meta
+        );
+      expect((await query()).docs[0].payload.status).toBe('corrected');
+      const next = `${fixture.first.text} Andere Variante.`;
+      expect((await request(fixture.first, next, conversation)).text).toContain(
+        'Hab ich festgehalten:'
+      );
+      const tableAnswer = await request(
+        fixture.first,
+        table.replace('Tabelle behalten.', 'Welche Daten haben wir?'),
+        conversation
+      );
+      expect(tableAnswer.status).toBe(200);
+      expect(tableAnswer.text).toContain('Synthetic');
+      const datasetCorrection = await request(fixture.first, 'korrigier das', conversation);
+      expect(datasetCorrection.text).toContain('Semantikkorrektur');
+      expect((await query()).docs.find((doc) => doc.payload.text === next).payload.status).toBe(
+        'valid'
+      );
+      expect(await app.call('datapoint.datasetCatalog', { operation: 'list' }, meta)).toHaveLength(
+        1
+      );
+      expect(
+        llm.generateStructured.mock.calls.some(
+          ([, prompt]) => JSON.parse(prompt).currentUserMessage === 'korrigier das'
+        )
+      ).toBe(withRole);
+    }
+  );
   test('AC-02: reverse order in fresh conversations retains symmetric links', async () => {
     const d = await request(
       fixture.second,

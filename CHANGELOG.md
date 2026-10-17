@@ -1,5 +1,43 @@
 # Changelog
 
+## Unreleased — Rollenbestätigung und eigene Rollenkorrektur (#925)
+
+- Jede belegte eigene Rollenangabe erhält nach erfolgreicher Speicherung eine
+  deterministische Bestätigung von Rolle, Auftrag und Ziel vor der Antwort,
+  auch bei einer gleichzeitig gewählten Dokumentantwort.
+- Eigene Rollenänderungen mit vorhandenem Arbeitskontext werden vor allgemeinen
+  Gedächtnis-Korrekturen geprüft. Aussagen und Datensätze behalten ihren bisherigen
+  Korrekturvertrag; Folgefragen verwenden den korrigierten Kontext.
+- Mehrturn-Tests mit echten Gedächtnis-Diensten prüfen abweichende Klassifikationen,
+  Dokumentantworten und laufende Reviews. HTTP-Regressionen prüfen „korrigier das“
+  zusätzlich bei vorhandenem Rollen-Kontext. Live-Bericht zum Ausgangsstand aufgenommen.
+
+## Unreleased — Dokumentreviews blockieren keine Folgeturns (#925 / #754)
+
+- Die Prüfanfrage-Erkennung unterscheidet Verbformen und eigenständige Prüfungsbitten
+  von beliebigen Wortzusammensetzungen; synthetische Referenzanker starten kein Review.
+- Das Zeitbudget umfasst jetzt Verstehen, Recherche, Abschnittsanalyse und Zusammenführung.
+  Fehler, Zeitüberschreitungen und verwaiste Jobs erhalten terminale gespeicherte Zustände;
+  verspätete Ergebnisse überschreiben diese nicht.
+- Nur ausdrückliche Ergebnis-/Statusfragen erhalten den Reviewstatus. Rollenangaben,
+  Korrekturen und weitere Dokumentfragen laufen normal weiter; Dokumentantworten verwenden
+  den gespeicherten Arbeitskontext.
+- Das Einarbeitungsszenario bestellt ausdrücklich einen Überblick mit Rollenrückfrage.
+  Vollständige Turn-Tests übergeben echte synthetische Dokumente und laufen auch bei
+  parallelem Review. Live-Ausgangsberichte unverändert aufgenommen; kein neuer Live-Lauf.
+
+## Unreleased — Eigene Rollenangaben als Arbeitskontext (#925)
+
+- Eigene Rollen-/Aufgabenangaben werden mit strukturiertem Subjektbezug und
+  wörtlichem Nachweis vor dem Personenbewertungspfad geprüft. Elliptische Antworten
+  benötigen eine gespeicherte offene Rollenfrage. Der Schutz für Dritte bleibt erhalten.
+- Rolle, Auftrag/Gremium und Ziel bleiben im Gespräch als korrigierbarer Arbeitskontext
+  erhalten, auch nach Ablauf des kurzfristigen Lagebilds. Berechtigungen bleiben unverändert.
+- Antwort-Prompts nutzen den Kontext in Folgeturns. Vorbereitete Fragen an Dritte haben
+  ein eigenes schemageprüftes Fragenziel; Rückfragen an Nutzer bleiben im Rückfragepfad.
+- Vollständige Mehrturn-Regressionen mit schema-validen Modell-Stubs und das generierte
+  synthetische Praxis-Szenario „Einarbeitung mit Rollenangabe“ sichern das Verhalten ab.
+
 ## Unreleased — Akten-Routing und Dokument-Folgefragen (#926)
 
 - Der frühe Datensatz-Turn läuft nur bei einer gespeicherten offenen Rückfrage

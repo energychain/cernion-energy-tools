@@ -207,7 +207,8 @@ function filterAnswer(
         )
       )
         rules.push('completed_action');
-      if (field !== 'draft' && claim.text.includes('?')) rules.push('question_in_claim');
+      if (field !== 'draft' && claim.text.includes('?') && claim.questionTarget !== 'other')
+        rules.push('question_in_claim');
       if (
         claim.supported === 'model'
           ? claim.evidenceIds.length !== 0

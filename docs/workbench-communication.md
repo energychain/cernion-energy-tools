@@ -41,6 +41,46 @@ Personenbewertungen trennen berichtete Beobachtung, unbewiesene Nutzerhypothese,
 mögliche Wirkung und führungsfähige Formulierung. Eine Nutzerdeutung wird weder als
 eigene Arbeitsannahme noch als organisationsweite Tatsache gespeichert.
 
+## Eigene Rolle als Arbeitskontext (#925)
+
+`roleStatement` klassifiziert den Subjektbezug (`self`, `other_person`, `mixed`, `none`)
+getrennt von `personAssessment`. Die Prüfung erfolgt nach allen Verstehens- und
+Präferenzklassifikationen, bevor der Schutzpfad ausgeführt wird. Nur `self` mit
+wörtlichem Nachweis für Rolle, Auftrag und Ziel kann die Personenbewertung aufheben.
+Dazu muss entweder die Rolle grammatisch in erster Person benannt sein oder
+`answersQuestionKey` eine gespeicherte offene Rückfrage mit `kind=role` beantworten.
+Ein bloßes „Ich glaube“ über eine andere Person ist keine eigene Rollenangabe.
+Dritte und gemischte Aussagen behalten den Schutzpfad; keine Phrasenliste erkennt Rollen.
+
+Der vorhandene `conversationContext` speichert `role`, `mandate`, `goal` und `basis`
+im nach Tenant, Akteur, Kanal und Gespräch getrennten Conversation-Dokument.
+`basis` ist ein unverändertes Belegstück aus der äußeren Nutzernachricht, kein interner
+Situationstext. Der Kontext bleibt nach Ablauf des kurzfristigen Lagebilds erhalten.
+Beantwortete Rollenfragen werden in `askedQuestions` als beantwortet fortgeführt.
+Der Kontext liegt zugleich im persistenten Lagebild und gelangt bei normalen
+Vorgangsturns über den bestehenden `knownContext.situation`-Pfad in den Vorgang.
+Er wird nicht als organisationsweite Sachbehauptung oder als Berechtigung übernommen.
+
+Jede erkannte und gespeicherte eigene Rollenmitteilung erhält eine kurze sichtbare
+Bestätigung mit Korrekturhinweis. Die Antwortmontage erzeugt diesen Vorspann
+deterministisch aus den gespeicherten Feldern für Rolle, Auftrag und Ziel; er hängt
+weder von `roleOnly` noch vom Wortlaut einer Modell- oder Dokumentantwort ab.
+Eine neue eigene Rollenangabe, etwa „Korrektur: …“, ersetzt Rolle, Auftrag und Ziel
+über denselben beleggebundenen Pfad; es gibt keine eigene Korrekturphrase im Code.
+Bei bereits vorhandenem Arbeitskontext prüft die schema-validierte Präferenzextraktion
+den Selbstbezug vor den allgemeinen Gedächtnis- und Datensatz-Korrekturpfaden.
+Nur eine belegte eigene Rollenangabe erhält dort Vorrang; „korrigier das“ ohne eigene
+neue Rollenangabe korrigiert weiterhin das zuletzt genannte Sachobjekt.
+Die Extraktion wird für das normale Verstehen desselben Turns wiederverwendet.
+Folgeturns verwenden den Kontext im Antwort-Prompt für passende Schwerpunkte, Fragen
+für die weitere Befassung, belegte Risiken mit Fundstelle und markierte Einschätzungen.
+Vorbereitete Fragen gegenüber Dritten tragen im Antwortschema `questionTarget=other`;
+Rückfragen an den Nutzer bleiben ausschließlich in `missingInformation`.
+Interne Situationstexte sowie unbelegte Angaben bleiben durch die bestehenden Filter geschützt.
+`roles`, `roleFamilies`, `domainsAllowed`, Clearance und Gateway-Regeln werden durch
+Selbstauskünfte nicht verändert. Die Rolle gilt für dieses Gespräch, nicht automatisch
+als dauerhafte Rollenänderung des Nutzerprofils oder für andere Gespräche.
+
 ## Verbundene Vorgänge
 
 Ein Vorschlag enthält Titel, Typ, Bezug, Owner-Rolle, Frist, nächste Befassung und

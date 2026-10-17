@@ -13,15 +13,15 @@ Der Uploadturn wartet auf keinen Modell- oder Wissensquellenaufruf: Er bestätig
 Prüfumfang und geplante Prüfung. Verstehen, vorhandenes read-only-Retrieval und Map/Reduce
 laufen anschließend außerhalb des HTTP-Turns. Auch kurze Reviews verwenden denselben Weg,
 weil bereits ein einzelner externer Aufruf das verbleibende Turnbudget verbrauchen kann.
-`pendingEvents` zeigt die laufende Aufgabe an. Das Ergebnis wird im nächsten Turn dieser
+`pendingEvents` zeigt die laufende Aufgabe an. Das Ergebnis wird auf ausdrückliche Ergebnis-/Statusanfrage in dieser
 Unterhaltung ausgegeben; eine Seite-/Kapitelanfrage hat Vorrang und liest direkt die
 gespeicherte Fundstelle, auch ohne Chatverlauf und ohne weiteren Modellaufruf.
 
 Reviewzustand und Ergebnis liegen im bestehenden Conversation-PouchDB mit 30 Minuten
 Gültigkeit und dessen bestehender Bereinigung. Tenant, Actor, Unterhaltung, Fall und
 Dokumenthashes binden die Aufgabe; Fallzugriff und Clearance werden vor Ausgabe erneut
-geprüft. Nach Prozessneustart startet ein noch laufend markiertes Review beim nächsten
-Turn erneut, sofern die Dokumentgrundlage weiter zugänglich ist. Laufende Aufgaben werden
+geprüft. Nach Prozessneustart wird ein verwaistes, noch laufend markiertes Review beim nächsten
+Statusabruf als unterbrochen beendet; eine erneute Prüfbitte kann einen neuen Lauf starten. Laufende Aufgaben werden
 beim geordneten Broker-Stopp vor dem Schließen der Datenbanken abgewartet.
 
 Urteil und Begründung, Stärken, Risiken, Prüfpunkte, Widersprüche, offene Fragen und
@@ -254,3 +254,25 @@ Die synthetischen Generatoren und Abnahmen liegen in
 `tests/tenant-document-knowledge.http.test.js`. HTTP-Tests verwenden den echten Gateway,
 die Identitätszuordnung und PouchDB; die LLM-Fassade ist gestubbt. Diese Abnahme belegt
 Integration und Schutzgrenzen, nicht die Qualität eines konkreten Produktionsmodells.
+
+## Nicht blockierende Folgeturns und Gesamtbudget (#925)
+
+`WORKBENCH_REVIEW_TIMEOUT_MS` begrenzt den gesamten Hintergrundjob, einschließlich
+Verstehen und Recherche vor der eigentlichen Abschnittsanalyse. Der persistierte Job
+speichert Start, Deadline und Laufkennung. Erfolg wird als `ready`, Fehler und Abbruch
+als `failed` mit einem unterscheidbaren Ergebnisstatus gespeichert; nach Auslieferung
+bleibt das Ergebnis erneut abrufbar. Ein verwaister laufender Job wird beim nächsten
+Statusabruf als unterbrochen beendet, ein abgelaufener als abgebrochen. Das verspätete
+Ergebnis eines alten Laufs überschreibt weder den terminalen Zustand noch einen neueren Lauf.
+
+Eine ausdrückliche Frage nach dem Ergebnis oder dem Stand der Dokumentprüfung liefert
+Status oder Ergebnis. Andere Folgeturns werden unabhängig davon normal verstanden und
+beantwortet. Eigene Rollenangaben und Personenschutz umgehen die Dokumentantwort;
+belegte Dokumentfragen verwenden den aktuellen Gesprächs-/Arbeitskontext.
+Eine erneute explizite Prüfbitte kann nach Auslieferung einen neuen Lauf starten.
+Die Ablagefrist von 30 Minuten ist vom Ausführungsbudget getrennt.
+
+Referenzanker und andere Wortzusammensetzungen mit einem Prüf-Wortstamm sind für sich
+kein Prüfauftrag. Das generierte Einarbeitungsszenario bestellt einen kurzen Überblick
+und eine Rollenrückfrage, keine Dokumentbewertung. Die Hintergrundprüfung muss auch
+unabhängig von dieser Szenariokorrektur nicht blockierend bleiben.

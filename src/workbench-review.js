@@ -383,4 +383,11 @@ async function reviewDocuments(
   }
 }
 
-module.exports = { reviewDocuments, reviewOptions, MAP_SCHEMA, REVIEW_SCHEMA, facadeSchema };
+module.exports = {
+  reviewDocuments,
+  reviewOptions,
+  beforeDeadline,
+  MAP_SCHEMA,
+  REVIEW_SCHEMA,
+  facadeSchema,
+};
