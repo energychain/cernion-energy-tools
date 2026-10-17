@@ -57,6 +57,7 @@ async function readProjectEvidence(ctx, selected, question, options = {}) {
   const { projectId, title, questionType } = selected;
   const project = await ctx.call('project-file.get', { projectId });
   if (!['ready', 'degraded'].includes(project.lifecycle) || project.deletion) return null;
+  const tableReads = [];
   const evidence = [],
     gaps = [],
     trace = [];
@@ -72,7 +73,34 @@ async function readProjectEvidence(ctx, selected, question, options = {}) {
   const datasets = nodes.some((node) => node.kind === 'dataset')
     ? await ctx.call('datapoint.datasetCatalog', { operation: 'list' })
     : [];
-  for (const node of nodes
+  const scoped = datasets.filter(
+    (record) => record.provenance?.projectId === projectId && record.current !== false
+  );
+  const selectedTables = require('./dataset-variants').expandVariantCandidates(
+    scoped.filter((record) =>
+      nodes.some((node) => node.kind === 'dataset' && node.ref === record.id)
+    ),
+    scoped,
+    question,
+    options.conversationId || ctx.params?.conversationId
+  );
+  const selectedIds = new Set(selectedTables.map((record) => record.id));
+  const expanded = [
+    ...nodes.filter(
+      (node) =>
+        node.kind !== 'dataset' ||
+        selectedIds.has(node.ref) ||
+        !scoped.some((record) => record.id === node.ref)
+    ),
+  ];
+  for (const node of graph.nodes)
+    if (
+      node.kind === 'dataset' &&
+      selectedIds.has(node.ref) &&
+      !expanded.some((entry) => entry.nodeId === node.nodeId)
+    )
+      expanded.push(node);
+  for (const node of expanded
     .filter((entry) => ['dataset', 'section'].includes(entry.kind))
     .slice(0, 8)) {
     const object = objects.find(
@@ -120,6 +148,7 @@ async function readProjectEvidence(ctx, selected, question, options = {}) {
         }
         value = result.responseText;
         datasetId = record.id;
+        tableReads.push({ record, result });
       } else {
         const document = await ctx.call('knowledge-rag.documentGet', { id: node.ref });
         if (
@@ -160,6 +189,29 @@ async function readProjectEvidence(ctx, selected, question, options = {}) {
         `der autorisierte Lesezugriff auf „${object.name}“ (${sourceLocation(node.provenance.location)})`
       );
     }
+  }
+  const compared = new Set();
+  for (const entry of tableReads) {
+    if (compared.has(entry.record.id)) continue;
+    const peers = tableReads.filter((other) => entry.record.variants?.includes(other.record.id));
+    if (!peers.length) continue;
+    const reads = [entry, ...peers].sort((a, b) =>
+      require('./canonical-order').compareCanonicalStrings(a.record.sheet, b.record.sheet)
+    );
+    const comparison = require('./dataset-variants').compareDatasetResults(
+      reads.map((item) => item.record),
+      reads.map((item) => item.result),
+      reads
+        .slice(1)
+        .map((item) =>
+          reads[0].result.variantDifferences?.find(
+            (difference) => difference.datasetId === item.record.id
+          )
+        )
+    );
+    const hit = evidence.find((item) => item.metadata.datasetId === reads[0].record.id);
+    if (hit) hit.value += `\n${comparison}`;
+    reads.forEach((item) => compared.add(item.record.id));
   }
   if (questionType && !evidence.length && !gaps.length)
     missing('eine aktuelle Tabellen- oder Passagenquelle für diesen Fragetyp');

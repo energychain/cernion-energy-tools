@@ -81,12 +81,13 @@ describe('versioned generated practice catalog', () => {
       'paragraph14a',
       'notices',
       'boundaries',
+      'table-quality',
     ]);
     expect(c.scenarios.some((s) => s.turns.some((t) => t.upload))).toBe(true);
     expect(c.scenarios.some((s) => s.turns.some((t) => t.document?.format === 'openwebui'))).toBe(
       true
     );
-    expect(c.scenarios.reduce((n, s) => n + (s.memory ? 10 : 3), 0)).toBe(118);
+    expect(c.scenarios.reduce((n, s) => n + (s.memory ? 10 : 3), 0)).toBe(121);
   });
   test('A.2/acceptance 6: fixture audit and generator check are green; role names, organizations, emails and provenance cannot be imported', () => {
     const c = generatePracticeCatalog();

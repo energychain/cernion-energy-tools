@@ -4507,6 +4507,158 @@
           "key": "Bezug-B"
         }
       ]
+    },
+    {
+      "id": "table-quality",
+      "group": "B.3",
+      "title": "Export mit Summenzeilen und Variantenblatt",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "ingest",
+          "actor": "a",
+          "chat": "main",
+          "message": "Bitte die Datei ablegen und beide Blätter auswerten.",
+          "expect": {
+            "description": "Unterscheidbare Blätter und ausgeschlossene Kontrollsummen bestätigen",
+            "rules": {
+              "require": [
+                "Basis",
+                "Variant",
+                "3.*Summenzeilen",
+                "Summen stimmen"
+              ]
+            },
+            "dependencies": []
+          },
+          "document": {
+            "kind": "table-quality",
+            "name": "Export-A.xlsx"
+          },
+          "dataQuestion": true
+        },
+        {
+          "id": "compare",
+          "actor": "a",
+          "chat": "main",
+          "message": "Vergleiche die Summen in beiden Blättern.",
+          "expect": {
+            "description": "Datensummen und Differenz aus Abfragen, ohne doppelte Summenzeilen",
+            "rules": {
+              "numeric": [
+                {
+                  "value": 40,
+                  "tolerance": 0.01
+                },
+                {
+                  "value": 44,
+                  "tolerance": 0.01
+                },
+                {
+                  "value": 4,
+                  "tolerance": 0.01
+                }
+              ],
+              "require": [
+                "Differenz",
+                "Basis",
+                "Variant"
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        },
+        {
+          "id": "units",
+          "actor": "a",
+          "chat": "main",
+          "message": "Die Einheit in beiden Blättern ist kg.",
+          "expect": {
+            "description": "Einheit gezielt einem Datensatz zuordnen oder nachfragen",
+            "rules": {
+              "require": [
+                "kg|Datensatz|Blatt"
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        },
+        {
+          "id": "select",
+          "actor": "a",
+          "chat": "main",
+          "message": "Blatt Basis verwenden.",
+          "expect": {
+            "description": "Blattwahl bestätigen",
+            "rules": {
+              "require": [
+                "Basis"
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        },
+        {
+          "id": "unit",
+          "actor": "a",
+          "chat": "main",
+          "message": "Einheit ist kg.",
+          "expect": {
+            "description": "Einheit im ausgewählten Datensatz speichern",
+            "rules": {
+              "require": [
+                "kg"
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        },
+        {
+          "id": "sum",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch ist die Summe?",
+          "expect": {
+            "description": "Bestätigtes Blatt und gespeicherte Einheit nutzen",
+            "rules": {
+              "numeric": [
+                {
+                  "value": 40,
+                  "tolerance": 0.01
+                }
+              ],
+              "require": [
+                "kg"
+              ],
+              "forbid": [
+                "Welche Einheit",
+                "Einheit ungeklärt"
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        }
+      ]
     }
   ]
 }
