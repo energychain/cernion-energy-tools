@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "65e2ef61ee8fdc129d97a1957bb28447b6a46345326b0529deddf2b984ffb4f1",
+  "sourceHash": "7008571e10a474999c24f6c1a043bdeacb647f4eb9b50ef8e795fb4a64380e0a",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -69912,6 +69912,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-role-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-self-knowledge.js"
         },
         {
@@ -122801,6 +122805,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-review.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-role-context.js"
         },
         {
           "kind": "service",

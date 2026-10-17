@@ -487,6 +487,86 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
       actors,
     })
   );
+  catalog.push(
+    scenario(
+      'role-onboarding',
+      '925',
+      'Einarbeitung mit Rollenangabe',
+      [
+        turn(
+          'onboarding',
+          `Arbeite mich anhand des Arbeitsstands ${x} ein. Frage zuerst nach meiner Rolle im Vorhaben.`,
+          'Gezielte Frage nach der eigenen Rolle',
+          { require: ['Rolle|Aufgabe|Zuständigkeit'], questions: { min: 1, max: 1 } },
+          {
+            dependencies: ['925'],
+            document: {
+              kind: 'text',
+              name: 'Arbeitsstand-A.txt',
+              text: `Arbeitsstand ${x}\nAbschnitt A: Der Kostenrahmen beträgt 80 Einheiten.\nAbschnitt B: Die Schätzung beträgt 95 Einheiten. Der Abgleich ist offen.\nAbschnitt C: Die Verantwortung für den Abgleich ist noch nicht benannt.`,
+            },
+          }
+        ),
+        turn(
+          'own-role',
+          'Ich begleite die Aufsicht im Gremium A und soll durch gezielte Fragen Risiken für das Ergebnis vermeiden.',
+          'Eigene Rolle sichtbar als Arbeitskontext bestätigen, keine Personenbewertung',
+          {
+            require: ['richte mich', 'Aufsicht', 'Gremium A'],
+            forbid: ['### Beobachtung', 'Personendeutung', 'Nachweis einer Motivation'],
+          },
+          { dependencies: ['925', '874'] }
+        ),
+        turn(
+          'followup',
+          'Was ergibt sich aus dem Arbeitsstand für meine nächste Befassung?',
+          'Rolle und Ziel wirksam: belegbezogene Fragen, Risiken und offene Punkte',
+          {
+            require: ['Gremium|Aufsicht', '80', '95', 'Abschnitt [ABC]', '\\?'],
+            forbid: ['Personendeutung', 'Nachweis einer Motivation'],
+          },
+          { dependencies: ['925'] }
+        ),
+        turn(
+          'correct-role',
+          'Korrektur: Ich betreue die Dokumentation im Team A; mein Ziel ist eine vollständige Belegübersicht.',
+          'Arbeitskontext sichtbar korrigieren',
+          { require: ['richte mich', 'Dokumentation', 'Belegübersicht'] },
+          { dependencies: ['925'] }
+        ),
+        turn(
+          'corrected-followup',
+          'Was ist für mich jetzt aus dem Arbeitsstand relevant?',
+          'Korrigierte Rolle bestimmt die Folgebearbeitung',
+          { require: ['Dokumentation|Belegübersicht', 'Abschnitt [ABC]'] },
+          { dependencies: ['925'] }
+        ),
+        turn(
+          'third-party',
+          'Ich glaube, Kollege A will den offenen Abgleich vertuschen.',
+          'Deutung über Dritte bleibt im unveränderten Schutzpfad',
+          { sections: ['Beobachtung', 'Hypothese', 'Wirkung', 'Führungsfähig'] },
+          { dependencies: ['925', '874'] }
+        ),
+      ],
+      {
+        actors: [
+          {
+            id: 'a',
+            name: 'Sachbearbeitung A',
+            role: 'Bearbeitung A',
+            functionLabel: 'Dokumentation',
+          },
+          {
+            id: 'b',
+            name: 'Sachbearbeitung B',
+            role: 'Bearbeitung B',
+            functionLabel: 'Dokumentation',
+          },
+        ],
+      }
+    )
+  );
   const patterns = generateMemoryMessageFixture().patterns.map((pair) =>
     pair.map((text) => text.replace(/Prüfbezug[a-f]*/gu, x))
   );

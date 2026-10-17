@@ -326,7 +326,7 @@ async function runContentTurn(
   );
   const previous =
     persistentSituation(pending?.situation || state?.knownContext?.situation) ||
-    (workbenchContext.userProfile?.conversationContext
+    (pending?.conversationContext || workbenchContext.userProfile?.conversationContext
       ? {
           concern: '',
           situation: '',
@@ -337,9 +337,12 @@ async function runContentTurn(
           missingInformation: [],
           requestedAction: { description: '', draftRequested: false, externalEffect: false },
           turnKind: 'knowledge',
-          conversationContext: workbenchContext.userProfile.conversationContext,
+          conversationContext:
+            pending?.conversationContext || workbenchContext.userProfile.conversationContext,
         }
       : null);
+  if (previous && pending?.conversationContext)
+    previous.conversationContext = pending.conversationContext;
   if (previous) delete previous.dataNeeds;
   if (previous && ['orientation', 'knowledge'].includes(pending?.lastConversationShape))
     previous.turnKind = 'knowledge';

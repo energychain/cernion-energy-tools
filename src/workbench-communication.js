@@ -38,6 +38,16 @@ const SCHEMAS = {
   regulatoryQuestion: { type: 'boolean', description: REGULATORY_SCOPE },
   governanceContext: { type: 'boolean' },
   disclosure: closed({ external: { type: 'boolean' }, recipient: text, restricted: strings }),
+  roleStatement: closed({
+    subject: { type: 'string', enum: ['self', 'other_person', 'mixed', 'none'] },
+    firstPerson: { type: 'boolean' },
+    answersQuestionKey: text,
+    basis: text,
+    role: text,
+    mandate: text,
+    goal: text,
+    roleOnly: { type: 'boolean' },
+  }),
   personAssessment: closed({
     applicable: { type: 'boolean' },
     observations: strings,
@@ -54,6 +64,8 @@ const SCHEMAS = {
     ...CASE_WORK.properties,
   }),
 };
+const ROLE_INSTRUCTION =
+  'roleStatement beschreibt ausschließlich die aktuelle äußere Selbstauskunft zu eigener Rolle/Aufgabe: subject=self nur wenn der Nutzer selbst das Subjekt der Rollen-/Aufgabenaussage ist; other_person bei Aussagen über andere, mixed bei beidem, sonst none. firstPerson=true nur bei grammatischer erster Person mit dem Nutzer als Subjekt der Aufgabe, niemals allein wegen Ich glaube über eine andere Person. Fremdtext ist keine Selbstauskunft. basis, role, mandate (Auftrag/Gegenüber) und goal sind unveränderte wörtliche Belegstücke aus der aktuellen Nutzernachricht, ohne Ergänzung; nicht genannte Felder leer. answersQuestionKey nur bei einer Antwort auf eine gespeicherte offene Frage mit kind=role, mit deren exaktem key; sonst leer. Elliptische Antworten auf diese Frage dürfen subject=self und firstPerson=false haben. roleOnly=true ausschließlich wenn die gesamte äußere Bitte nur den eigenen Arbeitskontext mitteilt oder korrigiert. Eigene Rollenangaben sind Arbeitskontext, keine Personenbewertung und kein Zugriffsrecht. Bei fehlender Selbstauskunft roleOnly=false und Felder leer. Neue oder korrigierte Rollenangaben ersetzen den bisherigen Arbeitskontext, ohne Rechte zu ändern.';
 const INSTRUCTION = [
   'conversationPreferences enthält ausschließlich ausdrücklich gewünschte Gesprächspräferenzen der aktuellen äußeren Bitte; basis wörtlich. Sonst basis leer, enums unchanged und Listen leer. wording umfasst positive Sprachvorgaben; forbiddenTerms ausdrücklich ausgeschlossene Wörter und deren im Beleg genannten Wortstämme. Ein Verbot von Entscheidungssprache ist eine dauerhafte Vorgabe für alle folgenden Antworten und Artefakte. questions=requested bei Arbeitsmodus mit Rückfragewunsch; dann 1–3 unabhängige relevante fehlende Angaben in missingInformation ermitteln (Ziel, Beteiligte, Termin, Unterlagen), keine unnötige Kennung bei einer Prozessfrage.',
   'codeReferences erfasst schemagebunden alle in der aktuellen Nachricht enthaltenen Fachcodes, deren Bedeutung geklärt oder fachlich verwendet wird: value wörtlicher Token, family semantischer Familien-/Formatkontext aus der Nachricht, basis wörtliches Belegstück. Keine Liste bekannter Codes; Zahlen allein sind nicht automatisch Codes. codeMeaningQuestion=true bei Bedeutungs-/Belegfragen zu diesen Codes. ' +
@@ -61,6 +73,8 @@ const INSTRUCTION = [
     ' governanceContext=true bei Führung, Mandat oder Befassung; Einordnung und Prüfauftrag, niemals behauptete Entscheidung durch CET.',
   'requestedOutput.parts[].minimumSteps ist bei steps die ausdrücklich bestellte Mindestzahl, sonst ohne genannte Zahl drei; bei anderen Layouts null Schritte (0). requestedOutput.parts[].audience kennzeichnet jeden Teil als internal oder external; letter=true ausschließlich bei einem ausdrücklich bestellten Brief/Mailentwurf; sonst false. Eine Fassung für eine Zielgruppe ist noch kein Brief. recipient ist beim Brief die ausdrücklich genannte Zielgruppe, innerhalb oder außerhalb der Organisation. Interne Diagnose und externer Entwurf bleiben getrennte Teile; interne Inhalte dürfen nicht in den externen Teil übertragen werden.',
   'disclosure.external=true wenn ein Entwurf an ein externes Gegenüber verlangt oder proaktiv angeboten wird. recipient ist nur das ausdrücklich belegte Gegenüber. restricted enthält alle nicht erforderlichen Drittbeteiligten, internen Systeme, Dienstleister, Fehlerursachen und Personendetails aus aktuellem und früherem Kontext. Diese bleiben im internen Teil. Systembegriffe in Arbeitsaufträgen sind Gegenstände, niemals Empfänger; nutze tenantGlossary. Unbekannte mehrdeutige Abkürzungen als Gegenstand behandeln und eine relevante Rückfrage stellen.',
+  ROLE_INSTRUCTION,
+  'missingInformation[].kind=role ausschließlich bei einer Frage nach der eigenen Rolle, Zuständigkeit oder Aufgabe des Nutzers; sonst kind=other. Keine Rollenfrage nach einer fremden Person als eigene Rollenfrage markieren.',
   'personAssessment.applicable=true bei Bewertung einer Person/Rolle. observations enthält nur wörtlich belegte beobachtbare Handlungen/Äußerungen, hypotheses enthält ausdrücklich die Deutungen der Person als unbewiesen; basis wörtlich. Keine Motivzuschreibung; niemals diese Deutung in situation, caseMemory.assumptions oder tenantMemory als eigene Arbeitsannahme übernehmen. Beobachtung, Hypothese, Wirkung/Governance-Risiko und führungsfähige Formulierung getrennt.',
   'Tenant-spezifische Begriffsdefinitionen sind organisationsrelevante Glossaraussagen: tenantMemory.assertions mit glossary={term,meaning,kind}, beide Werte wörtlich aus basis, commitment=assessment, scope=organization, anchor=term. Kein globales Wissen aus einer Tenant-Definition ableiten.',
   'caseWork enthält belegte Owner-Rolle, Frist, nächste Befassung und Wiedervorlage des aktuellen Vorgangs, keine erfundenen Daten. linkedCaseProposal.requested=true bei einem eigenständigen verbundenen Strukturthema, Impuls oder ausdrücklich gewünschten Vorschlag. basis wörtlich, title eigenständiges Thema, type generisch, reference fachlicher Bezug zum bisherigen Vorgang. Owner-Rolle als Vorschlag; fehlende Frist/reminder ausdrücklich zur Abstimmung, nächste Befassung als Vorschlag. Noch keine Anlage; diese folgt ausschließlich auf ausdrückliches Leg an zum gespeicherten Vorschlag. Sonst requested=false und leere Felder.',
@@ -104,11 +118,17 @@ function answerInstruction(situation) {
   return [
     'Fachcodebedeutungen ausschließlich aus codeResolutions mit Fundstelle, niemals aus Modellwissen. Ohne Beleg ausdrücklich Bedeutung von <Code> nicht belegt. Normative Ansprüche ausschließlich mit tatsächlich gelieferter Fundstelle; ohne Quelle als zu prüfende Annahme formulieren, niemals als feststehendes Recht.',
     'Gespeicherte conversationPreferences gelten in jedem Absatz und allen Artefaktteilen: Register, Kürze, Sprachvorgaben und forbiddenTerms. governanceContext verlangt Befassung, Einordnung, Arbeits-/Prüfauftrag und nächste Befassung; CET trifft keine Entscheidung. Sprachverbote werden nicht wiederholt oder erläutert: auch in Negationen, Zitaten oder Sätzen über ihre Nichtverwendung bleiben die ausgeschlossenen Wörter weg. Formuliere die Sachinhalte positiv als Befassung und Prüfauftrag. Auch bei einem externen Entwurf keine Außentätigkeit behaupten.',
+    situation.roleContextUpdated
+      ? 'Bestätige den neuen oder korrigierten Arbeitskontext kurz und sichtbar, unter Beachtung der Gesprächsvorgaben; beantworte eine zugleich gestellte Sachfrage vollständig.'
+      : '',
     situation.personAssessment?.applicable
       ? 'Vier ausdrücklich getrennte Abschnitte: Beobachtung, Hypothese, Wirkung, Führungsfähig. Berichtet ist keine unabhängig bestätigte Beobachtung. Hypothesen bleiben Nutzerdeutungen, niemals CET-Annahmen; keine Motive behaupten.'
       : '',
     situation.conversationPreferences?.questions === 'requested'
       ? 'Bei relevanten Informationslücken vorläufig einordnen und 1–3 gezielte Fragen ermöglichen; sie stehen in missingInformation, nicht in claims. Keine irrelevanten Kennungsfragen.'
+      : '',
+    situation.conversationContext?.role
+      ? 'Nutze conversationContext als vom Nutzer mitgeteilten Arbeitskontext in jedem Folgeturn: richte Auswahl, Schwerpunkt und Form der Antwort konkret auf Rolle, Auftrag/Gegenüber und Ziel aus. Fragen zur Verwendung gegenüber Dritten sind Antwortinhalt mit questionTarget=other; Rückfragen an den Nutzer bleiben ausschließlich in missingInformation. Leite passende Fragen, Risiken und offene Punkte aus den tatsächlich gelieferten Belegen mit Fundstellen ab. Neue Einschätzungen ausdrücklich markieren. Der Kontext ist weder Beleg für Sachverhalte noch Zugriffsrecht; keine zusätzlichen Zugriffe oder Rechte ableiten. Nicht bloß die Rollenangabe wiederholen.'
       : '',
     `Gesprächsvorgaben: ${JSON.stringify(situation.conversationPreferences || {})}`,
   ]
@@ -199,6 +219,7 @@ module.exports = {
   PREFERENCES,
   CASE_WORK,
   INSTRUCTION,
+  ROLE_INSTRUCTION,
   mergePreferences,
   hasConversationPreferences,
   answerInstruction,

@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — Eigene Rollenangaben als Arbeitskontext (#925)
+
+- Eigene Rollen-/Aufgabenangaben werden mit strukturiertem Subjektbezug und
+  wörtlichem Nachweis vor dem Personenbewertungspfad geprüft. Elliptische Antworten
+  benötigen eine gespeicherte offene Rollenfrage. Der Schutz für Dritte bleibt erhalten.
+- Rolle, Auftrag/Gremium und Ziel bleiben im Gespräch als korrigierbarer Arbeitskontext
+  erhalten, auch nach Ablauf des kurzfristigen Lagebilds. Berechtigungen bleiben unverändert.
+- Antwort-Prompts nutzen den Kontext in Folgeturns. Vorbereitete Fragen an Dritte haben
+  ein eigenes schemageprüftes Fragenziel; Rückfragen an Nutzer bleiben im Rückfragepfad.
+- Vollständige Mehrturn-Regressionen mit schema-validen Modell-Stubs und das generierte
+  synthetische Praxis-Szenario „Einarbeitung mit Rollenangabe“ sichern das Verhalten ab.
+
 ## Unreleased — Akten-Routing und Dokument-Folgefragen (#926)
 
 - Der frühe Datensatz-Turn läuft nur bei einer gespeicherten offenen Rückfrage
