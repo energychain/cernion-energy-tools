@@ -55,20 +55,37 @@ function applyRoleContext(situation, message, previous, asked = []) {
   }
 }
 
-async function readRoleUpdate(p, envelope, pending) {
-  if (envelope.documents?.length || !pending?.conversationContext?.role) return null;
+async function readRoleUpdate(p, envelope, pending, options = {}) {
+  if (!pending?.conversationContext?.role) return null;
+  const understanding = require('./workbench-understanding');
   const preferences =
     await require('./workbench-preference-extraction').extractConversationPreferences(
       envelope.userRequest,
-      require('./workbench-understanding').llmOptions(p.tenantId),
+      understanding.llmOptions(p.tenantId),
       {
         conversationContext: pending.conversationContext,
         askedQuestions: pending.askedQuestions || [],
       }
     );
-  const candidate = { roleStatement: preferences.roleStatement };
-  applyRoleContext(candidate, envelope.userRequest, pending, pending.askedQuestions);
-  return { preferences, updated: candidate.roleContextUpdated === true };
+  const previous = {
+    participants: [],
+    identifiers: [],
+    deadlines: [],
+    ...require('./workbench-turn-scope').persistentSituation(pending.situation),
+    conversationContext: pending.conversationContext,
+  };
+  if (['orientation', 'knowledge'].includes(pending.lastConversationShape))
+    previous.turnKind = 'knowledge';
+  // Use the same merged self-subject recognition as an initial role statement.
+  const situation = await understanding.understand({
+    ...options,
+    message: envelope.userRequest,
+    previous,
+    asked: pending.askedQuestions || [],
+    tenantId: p.tenantId,
+    preferenceExtraction: preferences,
+  });
+  return { preferences, situation, updated: situation.roleContextUpdated === true };
 }
 
 function roleConfirmation(situation, message, context = situation.conversationContext) {

@@ -99,6 +99,8 @@ function installModel({
   roleOnly = true,
   memoryCorrection = false,
   correctionMessage = messages[3],
+  correctionClassification,
+  missingRefinement = false,
 } = {}) {
   const failures = [];
   const role = (message) => {
@@ -145,6 +147,10 @@ function installModel({
     } else if (schema.properties?.requestedAction && schema.properties?.concern) {
       result = situationFor(message, misclassified);
       result.roleStatement = missingPrimary ? emptyRole : role(message);
+      if (correctionClassification && message === correctionMessage) {
+        result.turnKind = correctionClassification === 'work' ? 'work' : 'knowledge';
+        result.conversationShape = correctionClassification === 'work' ? 'task' : 'knowledge';
+      }
       if (memoryCorrection && message === correctionMessage)
         result.tenantMemory = { correction: { kind: 'corrected', basis: message, factId: '' } };
     } else if (input.currentUserMessage) {
@@ -156,7 +162,8 @@ function installModel({
         wording: [],
         forbiddenTerms: [],
         preferenceOnly: false,
-        roleStatement: role(message),
+        roleStatement:
+          missingRefinement && message === correctionMessage ? emptyRole : role(message),
         personAssessment: personFor(message, misclassified),
       };
     } else if (input.task === 'output_contract') {
@@ -183,8 +190,14 @@ function installModel({
     } else if (input.task === 'turn_controls') {
       result = {
         missingInformation: message === messages[0] ? [question] : [],
-        turnKind: 'knowledge_or_orientation',
-        conversationShape: 'knowledge',
+        turnKind:
+          correctionClassification === 'work' && message === correctionMessage
+            ? 'work_on_concrete_case'
+            : 'knowledge_or_orientation',
+        conversationShape:
+          correctionClassification === 'work' && message === correctionMessage
+            ? 'task'
+            : 'knowledge',
         personAssessment: personFor(message, misclassified),
       };
     } else {
@@ -248,10 +261,33 @@ test.each([
   { misclassified: true, runningReview: true },
   { misclassified: true, roleOnly: false, memoryCorrection: true },
   { misclassified: true, missingPrimary: true, memoryCorrection: true, preturnCorrection: true },
+  ...['correction', 'knowledge', 'work'].map((correctionClassification) => ({
+    correctionClassification,
+    missingRefinement: true,
+    roleOnly: false,
+    memoryCorrection: correctionClassification === 'correction',
+    preturnCorrection: true,
+  })),
+  {
+    correctionClassification: 'work',
+    missingRefinement: true,
+    roleOnly: false,
+    preturnCorrection: true,
+    expiredBeforeCorrection: true,
+  },
+  {
+    correctionClassification: 'correction',
+    missingRefinement: true,
+    roleOnly: false,
+    memoryCorrection: true,
+    preturnCorrection: true,
+    correctionDocument: true,
+  },
 ])(
   'full turn: role answer, follow-up, correction and third-party protection (%j)',
   async (variant) => {
     const app = await createCaseBroker();
+    const memoryPreturn = jest.spyOn(require('../src/tenant-memory'), 'preturn');
     for (const name of ['object-store', 'tenant-memory-policy']) {
       const schema = require(`../services/${name}.service`);
       app.broker.createService({
@@ -376,11 +412,33 @@ test.each([
       expect(followup.responseText).toContain('80');
       expect(checkTurn(scenario.turns[2], followup).filter((entry) => !entry.passed)).toEqual([]);
       expect(followup.responseText).not.toContain('Interner Situationstext');
-      const corrected = await chat(correctionMessage);
+      if (variant.expiredBeforeCorrection) {
+        const current = await readTurn(app.workbench.conversationsDb, p, envelope);
+        await app.workbench.conversationsDb.put({ ...current, expiresAt: 0 });
+      }
+      const corrected = await chat(
+        variant.correctionDocument ? withDocument(correctionMessage) : correctionMessage
+      );
       expect(corrected.responseText).toMatch(/^Ich richte mich/);
       expect(corrected.responseText).toContain('Ziel „vollständige Belegübersicht“');
       expect(corrected.responseText).not.toContain('Welche festgehaltene Aussage');
+      expect(
+        memoryPreturn.mock.calls.filter(([, , input]) => input.userRequest === correctionMessage)
+      ).toEqual([]);
       expect(checkTurn(scenario.turns[3], corrected).filter((entry) => !entry.passed)).toEqual([]);
+      pending = await readTurn(app.workbench.conversationsDb, p, envelope);
+      expect(pending.conversationContext).toMatchObject({
+        role: 'Dokumentation',
+        mandate: 'Team A',
+        goal: 'vollständige Belegübersicht',
+        basis: correctionMessage,
+      });
+      const correctionCalls = llm.generateStructured.mock.calls
+        .map(([, prompt]) => JSON.parse(prompt))
+        .filter(
+          (input) => input.message === correctionMessage && input.schema?.properties?.concern
+        );
+      expect(correctionCalls).toHaveLength(1);
       const correctedFollowup = await chat(messages[4]);
       expect(
         checkTurn(scenario.turns[4], correctedFollowup).filter((entry) => !entry.passed)
@@ -414,6 +472,7 @@ test.each([
       releaseReview();
       await Promise.all(app.workbench.workbenchDocumentReviews?.values() || []);
       await app.cleanup();
+      memoryPreturn.mockRestore();
     }
   }
 );

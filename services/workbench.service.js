@@ -1669,7 +1669,23 @@ module.exports = {
           roleUpdate = await require('../src/workbench-role-context').readRoleUpdate(
             p,
             envelope,
-            pending
+            pending,
+            {
+              messages: require('../src/workbench-document-flow').cleanDocumentHistory(
+                ctx.params.messages
+              ),
+              model: this.settings.systemActivityModel,
+              codeCatalog: this.settings.workbenchCodeCatalog,
+              logger: this.logger,
+              tenantGlossary: pending?.conversationContext?.role
+                ? await require('../src/workbench-tenant-glossary').loadTenantGlossary(
+                    ctx,
+                    p,
+                    envelope.userRequest,
+                    correctionMeta
+                  )
+                : [],
+            }
           );
         } catch (error) {
           this.logger.warn(
@@ -1685,6 +1701,7 @@ module.exports = {
             pending,
             meta: correctionMeta,
             preferenceExtraction: roleUpdate.preferences,
+            understoodSituation: roleUpdate.situation,
           });
         const memoryContext = {
           ...ctx,

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — Vorrang der eigenen Rollenkorrektur (#925 Teil 2)
+
+- Bei gespeichertem Arbeitskontext läuft die zusammengeführte Selbsterkennung vor
+  beiden Gedächtnis-Präturns. Eine fehlende Rollenangabe in der Präferenzextraktion
+  kann eine anderweitig belegte eigene Rollenkorrektur nicht mehr verdrängen.
+- Der Inhaltsturn übernimmt das bereits geprüfte Lagebild. Die korrigierte Rolle,
+  der Auftrag und das Ziel werden gespeichert, sichtbar bestätigt und im Folgeturn genutzt.
+- Schema-valide vollständige Turn-Tests reproduzieren den bisherigen Fehler bei
+  Korrektur-, Wissens- und Arbeitsklassifikation; zusätzlich sind abgelaufener
+  Gesprächszustand und eine Korrektur mit beigefügtem Dokument abgedeckt.
+
 ## Unreleased — Rollenbestätigung und eigene Rollenkorrektur (#925)
 
 - Jede belegte eigene Rollenangabe erhält nach erfolgreicher Speicherung eine
