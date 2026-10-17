@@ -436,6 +436,7 @@ async function understand({
   logger,
   onRecovery,
   tenantGlossary = [],
+  preferenceExtraction,
 }) {
   const catalog = catalogs(model);
   const thread = require('./workbench-thread');
@@ -826,11 +827,12 @@ async function understand({
             missingInformation: result.missingInformation,
           };
         }),
-      require('./workbench-preference-extraction').extractConversationPreferences(
-        message,
-        llmOptions(tenantId),
-        { askedQuestions: asked, conversationContext: previous?.conversationContext }
-      ),
+      preferenceExtraction ||
+        require('./workbench-preference-extraction').extractConversationPreferences(
+          message,
+          llmOptions(tenantId),
+          { askedQuestions: asked, conversationContext: previous?.conversationContext }
+        ),
     ]);
     result.roleStatement = require('./workbench-role-context').selectRoleStatement(
       result.roleStatement,
@@ -1754,7 +1756,7 @@ async function answer({
   logger,
 }) {
   const roleReply = require('./workbench-role-context').roleConfirmation(situation, message);
-  if (roleReply)
+  if (roleReply && situation.roleStatement?.roleOnly && !situation.requestedOutput?.requested)
     return {
       responseText: roleReply,
       draft: '',

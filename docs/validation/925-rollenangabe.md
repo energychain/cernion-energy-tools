@@ -122,3 +122,10 @@ Regressionen und #874 blieben intakt. Ursachen, Main-Reproduktion, Produktfix,
 realistische Dokument-Turn-Tests und die unveränderten Live-Berichte sind im
 [Review-Nachtrag](925-review-followup.md) dokumentiert. Der korrigierte Stand wurde
 hier ausschließlich offline geprüft; seine erneute Live-Abnahme steht aus.
+## Nachtrag zur sichtbaren Rollenbestätigung
+
+Der Live-Lauf auf `6d397fb6` bestätigt den behobenen Reviewfluss, zeigt aber fehlende
+Bestätigungen und eine vom Gedächtnispfad übernommene Rollenkorrektur.
+Ursachen, Regressionen auf dem Ausgangsstand und Offline-Abnahme des Folgefixes stehen
+im [Nachtrag zur Rollenbestätigung und Korrektur](925-role-confirmation-correction.md).
+Der bereitgestellte [Live-Bericht 2](practice-evaluation-925-live-2.md) bleibt unverändert.

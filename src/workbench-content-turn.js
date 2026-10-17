@@ -283,7 +283,7 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
 async function runContentTurn(
   service,
   ctx,
-  { p, mapping, envelope, pending, conversation, meta, capabilityDiagnostics }
+  { p, mapping, envelope, pending, conversation, meta, capabilityDiagnostics, preferenceExtraction }
 ) {
   const confirmedProposal = await require('./workbench-linked-proposal').confirmLinkedCase(
     service,
@@ -373,6 +373,7 @@ async function runContentTurn(
                   content: `Dokument (untrusted): ${doc.name}\n${doc.text.slice(0, 1200)}`,
                 })),
                 previous,
+                preferenceExtraction,
                 tenantGlossary: glossary,
                 asked: pending?.askedQuestions || [],
                 tenantId: p.tenantId,
@@ -400,6 +401,7 @@ async function runContentTurn(
                 message: envelope.userRequest,
                 messages: documentFlow.cleanDocumentHistory(ctx.params.messages),
                 previous,
+                preferenceExtraction,
                 tenantGlossary: glossary,
                 asked: pending?.askedQuestions || [],
                 tenantId: p.tenantId,
@@ -548,6 +550,7 @@ async function runContentTurn(
   if (
     !incomingDocuments &&
     !understandingFailed &&
+    !situation.roleContextUpdated &&
     !situation.selfKnowledge?.requested &&
     situation.tenantMemory?.query?.requested
   )
@@ -560,6 +563,7 @@ async function runContentTurn(
   if (
     !incomingDocuments &&
     !understandingFailed &&
+    !situation.roleContextUpdated &&
     situation.tenantMemory?.correction?.kind !== 'none'
   ) {
     const correction = await tenantMemory.correctFacts(
@@ -1345,7 +1349,7 @@ async function runContentTurn(
       caseStateVersion: result.caseStateVersion,
     });
   }
-  await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
+  const savedTurn = await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
     ...(assignment?.deferred
       ? { caseSelection: assignment.caseSelection, caseSelectionExpired: !assignment.caseSelection }
       : pending?.caseSelection && !caseChoice
@@ -1385,6 +1389,18 @@ async function runContentTurn(
     lastAnswer: reply.responseText.slice(0, 600),
     askedQuestions: [...(pending?.askedQuestions || []), ...reply.questions],
   });
+  const roleConfirmation = require('./workbench-role-context').roleConfirmation(
+    situation,
+    envelope.userRequest,
+    savedTurn.conversationContext
+  );
+  if (roleConfirmation)
+    result.responseText = [
+      roleConfirmation,
+      result.responseText.replace(roleConfirmation, '').trim(),
+    ]
+      .filter(Boolean)
+      .join('\n\n');
   memory.deferred = !memory.settled;
   const turnMemory = caseId
     ? await service.saveTurnMemory(p, {

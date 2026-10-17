@@ -7,6 +7,7 @@ jest.mock('../src/llm-client', () => ({
 }));
 const { complete, validate } = require('./helpers/workbench-schema-stub');
 const llm = require('../src/llm-client');
+const path = require('node:path');
 const { createCaseBroker } = require('./helpers/case-linking-broker');
 const { readTurn, saveTurn } = require('../src/workbench-conversation');
 const { generatePracticeCatalog } = require('../scripts/generate-practice-evaluation-fixtures');
@@ -92,8 +93,18 @@ const claim = (text) => ({
   completedAction: false,
   evidenceIds: [],
 });
-function installModel({ misclassified = true, missingPrimary = false } = {}) {
+function installModel({
+  misclassified = true,
+  missingPrimary = false,
+  roleOnly = true,
+  memoryCorrection = false,
+  correctionMessage = messages[3],
+} = {}) {
   const failures = [];
+  const role = (message) => {
+    const statement = roleFor(message === correctionMessage ? messages[3] : message);
+    return statement.subject === 'self' ? { ...statement, basis: message, roleOnly } : statement;
+  };
   llm.generateStructured.mockImplementation(async (schema, raw) => {
     const input = JSON.parse(raw);
     const message = input.currentUserMessage || input.message || '';
@@ -133,7 +144,9 @@ function installModel({ misclassified = true, missingPrimary = false } = {}) {
       };
     } else if (schema.properties?.requestedAction && schema.properties?.concern) {
       result = situationFor(message, misclassified);
-      if (missingPrimary) result.roleStatement = emptyRole;
+      result.roleStatement = missingPrimary ? emptyRole : role(message);
+      if (memoryCorrection && message === correctionMessage)
+        result.tenantMemory = { correction: { kind: 'corrected', basis: message, factId: '' } };
     } else if (input.currentUserMessage) {
       result = {
         basis: '',
@@ -143,7 +156,7 @@ function installModel({ misclassified = true, missingPrimary = false } = {}) {
         wording: [],
         forbiddenTerms: [],
         preferenceOnly: false,
-        roleStatement: roleFor(message),
+        roleStatement: role(message),
         personAssessment: personFor(message, misclassified),
       };
     } else if (input.task === 'output_contract') {
@@ -233,11 +246,23 @@ test.each([
   { misclassified: true, missingPrimary: true, expired: true },
   { misclassified: false, missingPrimary: false },
   { misclassified: true, runningReview: true },
+  { misclassified: true, roleOnly: false, memoryCorrection: true },
+  { misclassified: true, missingPrimary: true, memoryCorrection: true, preturnCorrection: true },
 ])(
   'full turn: role answer, follow-up, correction and third-party protection (%j)',
   async (variant) => {
     const app = await createCaseBroker();
-    const failures = installModel(variant);
+    for (const name of ['object-store', 'tenant-memory-policy']) {
+      const schema = require(`../services/${name}.service`);
+      app.broker.createService({
+        ...schema,
+        settings: { ...schema.settings, dbPath: path.join(app.dir, name) },
+      });
+    }
+    const correctionMessage = variant.preturnCorrection
+      ? `Bitte korrigiere meinen Arbeitskontext: ${messages[3]}`
+      : messages[3];
+    const failures = installModel({ ...variant, correctionMessage });
     let releaseReview;
     const blockedReview = new Promise((resolve) => {
       releaseReview = resolve;
@@ -326,7 +351,10 @@ test.each([
       let pending = await readTurn(app.workbench.conversationsDb, p, envelope);
       expect(pending.askedQuestions).toContainEqual(question);
       const own = await chat(messages[1]);
-      expect(own.responseText).toContain('Ich richte mich');
+      expect(own.responseText).toMatch(/^Ich richte mich/);
+      expect(own.responseText.match(/Ich richte mich/g)).toHaveLength(1);
+      expect(own.responseText).toContain('Ziel „Risiken für das Ergebnis vermeiden“');
+      expect(checkTurn(scenario.turns[1], own).filter((entry) => !entry.passed)).toEqual([]);
       expect(own.responseText).not.toMatch(/Beobachtung|Personendeutung|Interner Situationstext/);
       pending = await readTurn(app.workbench.conversationsDb, p, envelope);
       expect(pending.situation.conversationContext).toMatchObject({
@@ -348,14 +376,25 @@ test.each([
       expect(followup.responseText).toContain('80');
       expect(checkTurn(scenario.turns[2], followup).filter((entry) => !entry.passed)).toEqual([]);
       expect(followup.responseText).not.toContain('Interner Situationstext');
-      expect((await chat(messages[3])).responseText).toContain('Dokumentation');
-      expect((await chat(messages[4])).responseText).toContain('Belegübersicht');
+      const corrected = await chat(correctionMessage);
+      expect(corrected.responseText).toMatch(/^Ich richte mich/);
+      expect(corrected.responseText).toContain('Ziel „vollständige Belegübersicht“');
+      expect(corrected.responseText).not.toContain('Welche festgehaltene Aussage');
+      expect(checkTurn(scenario.turns[3], corrected).filter((entry) => !entry.passed)).toEqual([]);
+      const correctedFollowup = await chat(messages[4]);
+      expect(
+        checkTurn(scenario.turns[4], correctedFollowup).filter((entry) => !entry.passed)
+      ).toEqual([]);
+      expect(correctedFollowup.responseText).not.toMatch(/Aufsicht|Gremium A/);
       pending = await readTurn(app.workbench.conversationsDb, p, envelope);
       expect(pending.situation.conversationContext.role).toBe('Dokumentation');
       const third = await chat(messages[5]);
       expect(third.responseText).toContain('### Hypothese');
       expect(third.responseText).toContain('Nutzerhypothese, nicht erwiesen');
       expect(third.responseText).not.toContain('Ich richte mich');
+      expect(
+        (await readTurn(app.workbench.conversationsDb, p, envelope)).conversationContext.role
+      ).toBe('Dokumentation');
       expect(await app.workbench.store.getUserContext(p)).toEqual(profile);
       expect(await app.router.visibleStates(p)).toHaveLength(1);
       expect(failures).toEqual([]);

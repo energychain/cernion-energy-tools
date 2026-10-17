@@ -118,9 +118,6 @@ function answerInstruction(situation) {
   return [
     'Fachcodebedeutungen ausschließlich aus codeResolutions mit Fundstelle, niemals aus Modellwissen. Ohne Beleg ausdrücklich Bedeutung von <Code> nicht belegt. Normative Ansprüche ausschließlich mit tatsächlich gelieferter Fundstelle; ohne Quelle als zu prüfende Annahme formulieren, niemals als feststehendes Recht.',
     'Gespeicherte conversationPreferences gelten in jedem Absatz und allen Artefaktteilen: Register, Kürze, Sprachvorgaben und forbiddenTerms. governanceContext verlangt Befassung, Einordnung, Arbeits-/Prüfauftrag und nächste Befassung; CET trifft keine Entscheidung. Sprachverbote werden nicht wiederholt oder erläutert: auch in Negationen, Zitaten oder Sätzen über ihre Nichtverwendung bleiben die ausgeschlossenen Wörter weg. Formuliere die Sachinhalte positiv als Befassung und Prüfauftrag. Auch bei einem externen Entwurf keine Außentätigkeit behaupten.',
-    situation.roleContextUpdated
-      ? 'Bestätige den neuen oder korrigierten Arbeitskontext kurz und sichtbar, unter Beachtung der Gesprächsvorgaben; beantworte eine zugleich gestellte Sachfrage vollständig.'
-      : '',
     situation.personAssessment?.applicable
       ? 'Vier ausdrücklich getrennte Abschnitte: Beobachtung, Hypothese, Wirkung, Führungsfähig. Berichtet ist keine unabhängig bestätigte Beobachtung. Hypothesen bleiben Nutzerdeutungen, niemals CET-Annahmen; keine Motive behaupten.'
       : '',

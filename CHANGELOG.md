@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — Rollenbestätigung und eigene Rollenkorrektur (#925)
+
+- Jede belegte eigene Rollenangabe erhält nach erfolgreicher Speicherung eine
+  deterministische Bestätigung von Rolle, Auftrag und Ziel vor der Antwort,
+  auch bei einer gleichzeitig gewählten Dokumentantwort.
+- Eigene Rollenänderungen mit vorhandenem Arbeitskontext werden vor allgemeinen
+  Gedächtnis-Korrekturen geprüft. Aussagen und Datensätze behalten ihren bisherigen
+  Korrekturvertrag; Folgefragen verwenden den korrigierten Kontext.
+- Mehrturn-Tests mit echten Gedächtnis-Diensten prüfen abweichende Klassifikationen,
+  Dokumentantworten und laufende Reviews. HTTP-Regressionen prüfen „korrigier das“
+  zusätzlich bei vorhandenem Rollen-Kontext. Live-Bericht zum Ausgangsstand aufgenommen.
+
 ## Unreleased — Dokumentreviews blockieren keine Folgeturns (#925 / #754)
 
 - Die Prüfanfrage-Erkennung unterscheidet Verbformen und eigenständige Prüfungsbitten

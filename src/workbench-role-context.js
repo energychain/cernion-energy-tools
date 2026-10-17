@@ -55,16 +55,38 @@ function applyRoleContext(situation, message, previous, asked = []) {
   }
 }
 
-function roleConfirmation(situation, message) {
+async function readRoleUpdate(p, envelope, pending) {
+  if (envelope.documents?.length || !pending?.conversationContext?.role) return null;
+  const preferences =
+    await require('./workbench-preference-extraction').extractConversationPreferences(
+      envelope.userRequest,
+      require('./workbench-understanding').llmOptions(p.tenantId),
+      {
+        conversationContext: pending.conversationContext,
+        askedQuestions: pending.askedQuestions || [],
+      }
+    );
+  const candidate = { roleStatement: preferences.roleStatement };
+  applyRoleContext(candidate, envelope.userRequest, pending, pending.askedQuestions);
+  return { preferences, updated: candidate.roleContextUpdated === true };
+}
+
+function roleConfirmation(situation, message, context = situation.conversationContext) {
   if (
     !situation.roleContextUpdated ||
-    !situation.roleStatement?.roleOnly ||
-    situation.requestedOutput?.requested ||
     situation.personAssessment?.applicable ||
-    !message.includes(situation.conversationContext.basis)
+    !context?.basis ||
+    !message.includes(context.basis)
   )
     return '';
-  const response = `Ich richte mich auf diesen Arbeitskontext aus: „${situation.conversationContext.basis}“\n\n${situation.conversationPreferences?.register === 'Sie' ? 'Sie können' : 'Du kannst'} Rolle, Auftrag und Ziel jederzeit korrigieren.`;
+  const details = [
+    `Rolle „${context.role}“`,
+    context.mandate && `Auftrag „${context.mandate}“`,
+    context.goal && `Ziel „${context.goal}“`,
+  ]
+    .filter(Boolean)
+    .join('; ');
+  const response = `Ich richte mich auf diesen Arbeitskontext aus: ${details}.\n\n${situation.conversationPreferences?.register === 'Sie' ? 'Sie können' : 'Du kannst'} Rolle, Auftrag und Ziel jederzeit korrigieren.`;
   return require('./workbench-communication').forbiddenWording(
     response,
     situation.conversationPreferences?.forbiddenTerms
@@ -73,4 +95,4 @@ function roleConfirmation(situation, message) {
     : response;
 }
 
-module.exports = { selectRoleStatement, applyRoleContext, roleConfirmation };
+module.exports = { selectRoleStatement, applyRoleContext, readRoleUpdate, roleConfirmation };

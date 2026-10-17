@@ -61,9 +61,17 @@ Der Kontext liegt zugleich im persistenten Lagebild und gelangt bei normalen
 Vorgangsturns über den bestehenden `knownContext.situation`-Pfad in den Vorgang.
 Er wird nicht als organisationsweite Sachbehauptung oder als Berechtigung übernommen.
 
-Reine Rollenmitteilungen erhalten eine kurze sichtbare Bestätigung mit Korrekturhinweis.
+Jede erkannte und gespeicherte eigene Rollenmitteilung erhält eine kurze sichtbare
+Bestätigung mit Korrekturhinweis. Die Antwortmontage erzeugt diesen Vorspann
+deterministisch aus den gespeicherten Feldern für Rolle, Auftrag und Ziel; er hängt
+weder von `roleOnly` noch vom Wortlaut einer Modell- oder Dokumentantwort ab.
 Eine neue eigene Rollenangabe, etwa „Korrektur: …“, ersetzt Rolle, Auftrag und Ziel
 über denselben beleggebundenen Pfad; es gibt keine eigene Korrekturphrase im Code.
+Bei bereits vorhandenem Arbeitskontext prüft die schema-validierte Präferenzextraktion
+den Selbstbezug vor den allgemeinen Gedächtnis- und Datensatz-Korrekturpfaden.
+Nur eine belegte eigene Rollenangabe erhält dort Vorrang; „korrigier das“ ohne eigene
+neue Rollenangabe korrigiert weiterhin das zuletzt genannte Sachobjekt.
+Die Extraktion wird für das normale Verstehen desselben Turns wiederverwendet.
 Folgeturns verwenden den Kontext im Antwort-Prompt für passende Schwerpunkte, Fragen
 für die weitere Befassung, belegte Risiken mit Fundstelle und markierte Einschätzungen.
 Vorbereitete Fragen gegenüber Dritten tragen im Antwortschema `questionTarget=other`;
