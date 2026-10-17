@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Praxis-Replay und Ergänzung struktureller Datenantworten (#927)
+
+- Der lokale Praxis-Transport verwendet jetzt die echte Chat-Dokumentablage samt
+  Deskriptoren. Nur externe Wissensabfragen bleiben kontrolliert leer. Ein Offline-
+  Replay des generierten `document-table`-Szenarios wertet dieselben Prüfungen wie
+  der Live-Bericht aus und reproduzierte zuvor fehlendes Dokument und Zeilenzahlantwort.
+- Strukturelle Datensatzantworten werden vor der Rückgabe über denselben Evidenzpfad
+  um passende Quellen ergänzt. Bei gemeinsam gewählter Evidenz stehen auch nach
+  einem COUNT-Plan die begrenzten Zahlenzusammenfassungen des Executors zur Verfügung;
+  reine Katalogabkürzungen können diese Zusammenführung nicht verdrängen.
+- Der Vertrag aus #873 bleibt erhalten: Ein bereits autorisiert gelesenes Dokument
+  ohne personenbezogene Auswahlkorrekturen benötigt keine zusätzliche Identitätsprüfung.
+  Vorhandene Korrekturen werden weiterhin personenbezogen geprüft.
+
 ## Unreleased — Gegenüberstellung und Quellenkontinuität (#927 Nachprüfung)
 
 - Chat-Uploads erhalten sofort einen Minimal-Deskriptor. Begrenzte, koaleszierte

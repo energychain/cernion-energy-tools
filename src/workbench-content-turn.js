@@ -259,6 +259,13 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
   );
   if (!candidates.length) return null;
   const { answer, evidence } = await readTurnDataset(ctx, p, envelope, candidates, meta);
+  const combined = await require('./workbench-project-manifest').supplementDatasetAnswer(
+    service,
+    ctx,
+    { p, envelope, pending, meta },
+    { evidence }
+  );
+  if (combined) return combined;
   const receipts = envelope.datasetConfirmations?.length
     ? records
         .filter((record) => fresh.includes(record.id))

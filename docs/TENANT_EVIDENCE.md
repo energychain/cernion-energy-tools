@@ -107,6 +107,42 @@ Angebote bleibt die bisherige Antwortführung erhalten. Vor dem Lesen werden
 Originalstatus, Hash, Metadatenstand, Korrekturen und Herkunftsfall erneut geprüft.
 Projektmitgliedschaft bleibt durch die vorhandenen Projektaktionen abgesichert.
 
+## Strukturelle Antworten und Praxis-Transport
+
+Auch nach einer bereits ausgeführten strukturellen Tabellenabfrage bietet die
+Workbench passende zusätzliche Quellen über den gemeinsamen Selektor an. Die
+Ergänzung benötigt mindestens zwei tatsächlich gelesene Quellen, darunter einen
+bereits strukturell abgefragten Datensatz. Ohne passende zusätzliche Quellen bleibt
+die ursprüngliche Datensatzantwort unverändert. Diese Grenze gilt sowohl vor der
+Kurzantwort im Inhaltsturn als auch bei einer bereits behandelten `dataset.turn`-
+Antwort. Verwaltung und Rückfragen ohne belegten Datenread behalten ihren Pfad.
+Die gewählte Quellengruppe wird für den folgenden Bezugsturn gespeichert.
+
+Für gemeinsam gelesene Quellen setzt der Datenread `includeSummary=true` bei
+`dataset.query`. Damit bleibt eine Katalog-Metadatenabkürzung außer Kraft; außerhalb
+dieser Verwendung bleibt deren Standardverhalten unverändert. Liefert der Plan nur
+COUNT, ergänzen die bereits vom Executor berechneten, gefilterten `summaries` die
+Zahlenevidenz (höchstens acht freigegebene numerische Spalten mit bestätigter Einheit,
+Minimum/Maximum samt Zeitpunkt). Es gibt weder eine weitere Modellabfrage noch einen
+neuen Abgleichs-Fragenkatalog. Die ursprüngliche Abfrageantwort bleibt ebenfalls
+enthalten. Gegenüberstellung und Zahlenprüfung verwenden anschließend diese belegten
+Werte und deren Herkunft.
+
+Der lokale Praxis-Transport bindet die produktive `knowledge-rag`-Dokumentablage mit
+ihren Methoden und Mixins ein. Externe `query`-/`federatedSearch`-Backends bleiben
+kontrolliert leer; hochgeladene Chat-Dokumente bleiben echte autorisierte Quellen.
+Der Test `practice-tenant-evidence-replay.test.js` führt das generierte Szenario über
+`createLocalTransport`/`createLiveHarness` aus und wertet `checkTurn` aus. Zusätzlich
+prüft er die strukturellen Rückgabepunkte mit einer leeren ersten Kandidatensuche
+und die unveränderte Rückgabe ohne zusätzliche Angebote. Alle Modellantworten sind
+lokale schema-validierte Stubs, einschließlich eines absichtlich kargen COUNT-Plans.
+
+Die Revalidierung aus #873 bleibt vor der Daten-Scope-Grenze: `documentGet` prüft
+Sichtbarkeit und Status. Nur wenn personenbezogene Auswahlkorrekturen vorhanden
+sind, muss die Revalidierung zusätzlich die aktuelle Person bestimmen. Substanzielle
+Dokumenttreffer werden nicht wegen einer fehlenden redundanten Identitätsinformation
+verworfen; tabellarische Treffer bleiben von `scopedDataEvidence` begrenzt.
+
 ## Antwort und Korrektur
 
 Die Antwort nennt tatsächlich gelesene Quellen deterministisch, einschließlich Fall

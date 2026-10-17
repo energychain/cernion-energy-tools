@@ -2,7 +2,7 @@
 
 const { principal } = require('./domain-router-policy');
 
-async function readChatEvidence(ctx, selected, question) {
+async function readChatEvidence(ctx, selected, question, options = {}) {
   const p = principal(ctx);
   const evidence = [],
     gaps = [];
@@ -29,6 +29,7 @@ async function readChatEvidence(ctx, selected, question) {
         id: row.id,
         question,
         conversationId: ctx.params?.conversationId,
+        ...(options.combinedEvidence ? { includeSummary: true } : {}),
       });
       if (
         ['unavailable', 'unusable'].includes(result.status) ||
@@ -37,14 +38,44 @@ async function readChatEvidence(ctx, selected, question) {
       )
         throw new Error('Evidence unavailable');
       value = result.responseText;
+      // A count plan can still contain executor-verified statistics for its exact
+      // filtered scope. Combined evidence needs those quantities, not just cardinality.
+      const units = require('./dataset-unit-question').datasetUnits(row);
+      const quantitative =
+        options.combinedEvidence && !result.unitFields?.length
+          ? (result.summaries || [])
+              .filter(
+                (summary) =>
+                  summary.present &&
+                  units[summary.field] &&
+                  summary.unit === units[summary.field] &&
+                  row.columns.some(
+                    (column) =>
+                      column.name === summary.field && column.type === 'number' && !column.sensitive
+                  )
+              )
+              .slice(0, 8)
+          : [];
+      if (quantitative.length) {
+        const { formatDatasetNumber } = require('./dataset-query');
+        const details = quantitative
+          .map(
+            (summary) =>
+              `Minimum (${summary.field}): ${formatDatasetNumber(summary.min)} ${summary.unit}${summary.trough?.at ? ` am ${summary.trough.at}` : ''}. ` +
+              `Maximum (${summary.field}): ${formatDatasetNumber(summary.max)} ${summary.unit}${summary.peak?.at ? ` am ${summary.peak.at}` : ''}.`
+          )
+          .join('\n');
+        value = `${details}\n${value}`;
+      }
       quantityFields = (row.columns || [])
         .filter(
           (column) =>
             column.type === 'number' &&
             !column.sensitive &&
-            result.unitFields?.includes(column.name)
+            (result.unitFields?.includes(column.name) ||
+              quantitative.some((summary) => summary.field === column.name))
         )
-        .map((column) => ({ name: column.name, unit: row.semantic?.units?.[column.name] || '' }));
+        .map((column) => ({ name: column.name, unit: units[column.name] || '' }));
       location = row.sheet ? `Blatt ${row.sheet}` : 'Tabelle';
     } else {
       row = await ctx.call('knowledge-rag.documentGet', { id: selected.sourceId });

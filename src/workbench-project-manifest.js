@@ -130,4 +130,35 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
   };
 }
 
-module.exports = { projectManifestTurn, projectManifestTrace };
+async function supplementDatasetAnswer(service, ctx, input, result) {
+  const ids = [
+    ...new Set(
+      [
+        ...(result.evidence || [])
+          .filter((entry) => entry.source === 'dataset.query')
+          .map((entry) => entry.metadata?.datasetId),
+        result.datasetId,
+        ...(result.sources?.some(
+          (source) => source.source === 'dataset.query' && source.status === 'available'
+        )
+          ? result.datasetIds || []
+          : []),
+      ].filter(Boolean)
+    ),
+  ];
+  if (!ids.length) return null;
+  const reply = await projectManifestTurn(service, ctx, {
+    ...input,
+    envelope: {
+      ...input.envelope,
+      tenantEvidenceReady: true,
+      evidenceSourceIds: ids,
+      tenantEvidenceMinSources: 2,
+    },
+  });
+  if (!reply) return null;
+  const receipts = input.envelope.datasetConfirmations || [];
+  return { ...reply, responseText: [reply.responseText, ...receipts].filter(Boolean).join('\n\n') };
+}
+
+module.exports = { projectManifestTurn, projectManifestTrace, supplementDatasetAnswer };

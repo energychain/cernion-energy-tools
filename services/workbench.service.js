@@ -1702,7 +1702,15 @@ module.exports = {
             },
             { meta: correctionMeta }
           );
-          if (resolved.handled)
+          if (resolved.handled) {
+            const combined =
+              await require('../src/workbench-project-manifest').supplementDatasetAnswer(
+                this,
+                ctx,
+                { p, envelope, pending, meta: correctionMeta },
+                resolved
+              );
+            if (combined) return combined;
             return require('../src/workbench-dataset-reply').datasetTurnReply(
               this,
               p,
@@ -1710,6 +1718,7 @@ module.exports = {
               pending,
               resolved
             );
+          }
         }
         const projectReply = await require('../src/workbench-project-manifest').projectManifestTurn(
           this,
@@ -1752,7 +1761,15 @@ module.exports = {
             },
             { meta: correctionMeta }
           );
-          if (datasetTurn.handled)
+          if (datasetTurn.handled) {
+            const combined =
+              await require('../src/workbench-project-manifest').supplementDatasetAnswer(
+                this,
+                ctx,
+                { p, envelope, pending, meta: correctionMeta },
+                datasetTurn
+              );
+            if (combined) return combined;
             return require('../src/workbench-dataset-reply').datasetTurnReply(
               this,
               p,
@@ -1760,6 +1777,7 @@ module.exports = {
               pending,
               datasetTurn
             );
+          }
           if (datasetTurn.documents) envelope.documents = datasetTurn.documents;
           envelope.datasetConfirmations = datasetTurn.confirmations || [];
           envelope.datasetIds = datasetTurn.datasetIds || [];

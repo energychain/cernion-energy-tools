@@ -76,6 +76,7 @@ module.exports = {
         from: { type: 'string', optional: true },
         to: { type: 'string', optional: true },
         plan: { type: 'object', optional: true },
+        includeSummary: { type: 'boolean', optional: true, default: false },
         conversationId: { type: 'string', optional: true },
       },
       openapi: {
@@ -90,6 +91,13 @@ module.exports = {
           })),
           { name: 'version', in: 'query', schema: { type: 'integer', minimum: 1 } },
           { name: 'plan', in: 'query', schema: { type: 'object' } },
+          {
+            name: 'includeSummary',
+            in: 'query',
+            description: 'Read scoped numeric summaries alongside catalog metadata',
+            schema: { type: 'boolean', default: false },
+            example: true,
+          },
         ],
         responses: {
           200: { description: 'Dataset answer in sentences with units, time and provenance' },
@@ -137,7 +145,10 @@ module.exports = {
             datasetId: record.id,
             status: 'unusable',
           };
-        if (/welche.*daten|katalog|catalog/i.test(ctx.params.question))
+        if (
+          !ctx.params.includeSummary &&
+          /welche.*daten|katalog|catalog/i.test(ctx.params.question)
+        )
           return {
             responseText: `${record.title}, Version ${record.version}: ${record.rowCount} Zeilen, ${record.period.from || 'Zeitraum ungeklärt'} bis ${record.period.to || 'ungeklärt'}; Nutzerangabe von ${record.provenance.person} am ${record.provenance.at.slice(0, 10)}.`,
             datasets: [{ id: record.id, title: record.title }],

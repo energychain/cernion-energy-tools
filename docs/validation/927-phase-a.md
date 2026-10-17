@@ -3,6 +3,122 @@
 Stand: 2026-10-17. Branch: `feat/927-mandantenwissen-a`.
 Ausgangsstand: `d848c5e99e707abc8379f3c4b2fba82008a4d725` (`origin/main`).
 
+## Zweite Nachprüfung nach Commit `b41c789b`
+
+Ausgangspunkt ist der unveränderte rote Live-Bericht
+[practice-evaluation-927-live-2.md](practice-evaluation-927-live-2.md): `document-table`
+weiterhin 6,33/12, fehlendes Dokument im zweiten Chat und keine belastbare gemeinsame
+Quellengruppe im Bezugsturn. Diesen Bericht hat die aufrufende Session erzeugt.
+Hier wurden ausschließlich Offline-Stubs verwendet; kein erneuter Live-Lauf und
+kein `test:unit:ci`. Der vorgefundene ungetrackte Python-Cache bleibt unberührt und
+wird nicht committed.
+
+### Reproduktion vor Produktänderungen
+
+`tests/practice-tenant-evidence-replay.test.js` führt die fünf generierten Turns aus
+`instantiatePracticeScenario('document-table')` über den unveränderten lokalen
+`createLocalTransport` und dessen `createLiveHarness` aus. Die Antworten werden mit
+`practice-evaluation-checks.checkTurn` bewertet. Der deterministische Stub validiert
+seine strukturierten Modellantworten gegen das jeweilige echte Schema und liefert
+für die Tabellenplanung einen realistischen COUNT-Plan.
+
+Der erste Lauf auf dem unveränderten Produkt reproduzierte die Symptome:
+Dokumentablage in Chat 1 mit 80 kg und offenem Punkt; im zweiten Chat nur die CSV
+mit „Anzahl: 3 Zeilen“. Sowohl `question` als auch `reference` verfehlten
+`required-2/4/5` und `reference-1/2`. Der unveränderte Test aus #873 war ebenfalls rot.
+Erst danach wurden Produkt- und Harness-Pfade geändert. Das Fixture und seine
+Erwartungen wurden für diese Nachprüfung nicht abgeschwächt.
+
+Zusätzlich wurde der finale schema-validierte Replay-Stub nochmals auf den
+unveränderten Quellstand `b41c789b` angewendet: erneut rot an den fehlenden
+Dokument-/Abweichungs-/Lückenmustern und Referenzwerten in `question`/`reference`.
+Dafür wurden ausschließlich die acht selbst geänderten Quellpfade kurzzeitig aus
+der Git-Basis gelesen und danach bytegenau auf den Korrekturstand zurückgesetzt.
+Der anschließende Replay auf dem wiederhergestellten Korrekturstand ist separat
+protokolliert. Die Reproduktion hängt somit nicht von einer zwischenzeitlichen
+Änderung des Modell-Stubs ab.
+
+### Ursachen und Behebung
+
+1. **Quellenbestand im Praxis-Harness:** Der lokale Transport hatte `knowledge-rag`
+   durch einen Stub ohne `documentIngest`, `documentGet` und Dokument-Deskriptoren
+   ersetzt. Das Dokument lag nur in der Fallanlage; meine bisherigen Mehrchat-Tests
+   hatten dagegen bereits die echte Dokumentablage installiert. Nun verwendet der
+   lokale Transport die echten Dokumentmethoden/Mixins; nur externe Wissensabfragen
+   bleiben leer. Tatsächlich entstand der sichtbare Quellenwahlsatz bereits im
+   gemeinsamen Evidenzpfad, dort aber mit nur einem verfügbaren Kandidaten.
+2. **Einzelantwort vor zusätzlicher Evidenz:** Vor den strukturellen Daten-Kurzantworten
+   sowie vor Antworten aus `dataset.turn` mit belegtem Datenread wird derselbe
+   gemeinsame Evidenzpfad erneut angeboten. Er verlangt mindestens zwei aktuelle
+   Originalreads und einen der strukturell gelesenen Datensätze. Ohne weitere passende
+   Kandidaten bleibt die ursprüngliche Antwort bytegleich. Verwaltungsantworten ohne
+   Datenread werden nicht umgedeutet. Es gibt keinen zweiten Katalog/Selektor.
+3. **COUNT/Katalogabkürzung:** Ein COUNT-Plan enthält im Executor bereits gefilterte
+   Zahlenzusammenfassungen, diese gelangten jedoch nicht in die gemeinsame Evidenz.
+   Bei mehreren gewählten Quellen ergänzen jetzt begrenzte, autorisierte Minima und
+   Maxima mit Einheiten/Zeitpunkten die ursprüngliche Antwort. `includeSummary=true`
+   verhindert beim gemeinsamen Read zusätzlich die alte Katalogabkürzung. Keine
+   Abgleichs-Phrasenerkennung, zusätzliche Modellabfrage oder ungefilterte Rohdaten.
+4. **#873:** `currentEvidence` verlangte eine weitere Personidentität selbst dann,
+   wenn `documentGet` den Treffer bereits autorisiert hatte und keine personenbezogene
+   Korrektur vorlag. Dieser Fehler entfernte den Treffer vor `scopedDataEvidence`.
+   Die Identität wird jetzt nur bei vorhandenen Korrekturen benötigt; der bestehende
+   Daten-Scope-Vertrag selbst bleibt unverändert.
+
+Der Replay-Nachtest deckt zusätzlich eine leere erste Kandidatensuche ab: Die
+strukturelle Antwort wird vor Rückgabe mit beiden Quellen zusammengeführt. Dasselbe
+wird für eine als `handled` zurückgegebene echte Tabellenabfrage geprüft. Der
+anschließende Bezugsturn verwendet die gemeinsame Gruppe erneut. Ohne Kandidaten
+wird die strukturelle Antwort unverändert zurückgegeben. Quellenwahl, Werte 80/95,
+Abweichung, offener Punkt und Herkunft bestehen dieselben Praxisprüfungen.
+
+### Impact und Checks dieser Nachprüfung
+
+GitNexus `query` sowie vorgängige `impact`-Aufrufe finden die aktuellen relevanten
+Symbole nicht (`UNKNOWN`). Ergänzende `grep -rn`-Suche erfasst Workbench-Chat,
+Inhaltsturn, gemeinsamen Manifest-Read, Datensatzquery, Dokument-Revalidierung und
+lokalen Praxis-Transport. Manuelle Risikostufe **HIGH**, vor Änderungen kommuniziert.
+Die Auswahlgrenzen und Tenant-/Clearance-/Mitgliedschaftsprüfungen bleiben erhalten.
+
+- Vollständiger gezielter Nachlauf: **32 Suiten / 447 Tests grün**. Enthalten sind
+  alle `dataset*.test.js`, alle `project-manifest*.test.js`, #873, der neue Praxis-
+  Replay, Tenant-Evidenz, Dokument-/HTTP-Pfade, Workbench-Service/-API-Vertrag,
+  Tenant-Dokumente und Praxis-Evaluationsprüfungen. PDF-Pfade mit
+  `NODE_OPTIONS=--experimental-vm-modules`. Ein im ersten breiten Lauf aufgefallener
+  Verlust der Diagnose `no_candidates` wurde vor diesem vollständig grünen Lauf
+  behoben; die bisherigen leeren Tenant-Antworten bleiben unverändert.
+- Finaler identischer Replay-Stub auf `b41c789b`: **erwartet rot**; nach bytegenauer
+  Wiederherstellung des Korrekturstands separat **grün** (7,28 Sekunden).
+- `test:shared-service:ci`: **3 Suiten / 86 Tests grün**, Harness 25,01 Sekunden.
+  `test:e2e:shared-service`: **grün**. `test:tdd-matrix`: **3 Suiten / 82 Tests grün**,
+  1 Suite / 4 Tests wie vorgesehen übersprungen; Coverage-Gate **66/66 = 100 %**.
+- Lint: **0 Fehler, 12 bestehende Warnungen**. Zusätzliche gezielte Prüfung der
+  geänderten Laufzeitdateien auf unerreichbare Schleifen sowie Sonar-Anker-/Sortier-
+  regeln: keine Befunde. Keine neuen globalen Vokabularausnahmen.
+- Grün: Build, Praxis-Fixtures, Domain-Free-Core, Scanner-Äquivalenz
+  (**168 Dateien, 27.877 Treffer, 87,47 Sekunden**), Funktionsmodell, Signalkatalog,
+  Operation-Capability-Index, `llm.txt`, Capability-Keywords, Qualitätsgate und
+  OpenAPI-Audit (**0 Fehler, 480 bestehende Warnungen**).
+- OpenAPI, Operation-Capability-Index, `llm.txt`, Funktionsmodell samt Reports,
+  Signalkatalog und Praxis-Fixtures sind neu erzeugt und synchron. Der neue
+  optionale Parameter `dataset.query.includeSummary` ist dokumentiert; Standard
+  ist `false`. Die Funktions-/Capability-Zahlen bleiben 107/172.
+- `git diff --check` und gestagter Diff-Check: **grün**.
+
+GitNexus-Abschluss: `detect_changes(scope: staged)` sieht **20 Dateien**, aber
+keine Symbole/Prozesse im alten Index. Vergleich gegen `origin/main`: **64 Dateien**
+einschließlich vorheriger Phasen, nur ein alter Datapoint-Stop-Hook erkannt. Die
+Meldung `risk_level: low` ist wegen der Indexlücke keine Entwarnung; manuell weiterhin
+**HIGH**. Der zusätzlich verlangte Vergleich gegen das alte lokale `main` erreichte
+wieder das 20-Sekunden-Limit. Gestagte Dateiliste, Diff und `grep -rn`-Aufruferprüfung
+zeigen ausschließlich die beschriebenen Ablage-/Antwort-/Revalidierungspfade,
+ihre Tests, Dokumentation und Artefakte.
+
+AC-01/02/02b/03/04/04b bleiben offline abgesichert; für AC-02 liegt nun zusätzlich
+der Replay über den tatsächlichen lokalen Praxis-Transport vor. AC-05 und das
+Release-Gate benötigen weiterhin einen erneuten Live-Lauf durch die aufrufende
+Session. Der rote Ausgangsbericht wird nicht nachträglich als grün erklärt.
+
 ## Nachprüfung nach Commit `7d8dcf39`
 
 Die aufrufende Session hat vollständige Unit-CI und Live-Praxisprüfung ausgeführt.

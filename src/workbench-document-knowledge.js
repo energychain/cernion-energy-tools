@@ -178,7 +178,11 @@ async function currentEvidence(ctx, hits) {
     if (!id || states.has(id)) continue;
     try {
       const row = await ctx.call('knowledge-rag.documentGet', { id });
-      const actorId = require('./domain-router-policy').principal(ctx).actorId;
+      // documentGet already enforces access. Identity is additionally needed only
+      // when this source carries actor-specific selection corrections.
+      const actorId = row.evidenceCorrections?.length
+        ? require('./domain-router-policy').principal(ctx).actorId
+        : null;
       states.set(
         id,
         row.status === 'active' &&

@@ -400,6 +400,7 @@ async function projectManifestAnswer(ctx, question, options = {}) {
     ctx,
     question
   );
+  if (options.minSources > 1 && candidates.length < options.minSources) return null;
   const select = (routingQuestion) =>
     require('./dataset-routing').selectProjectCandidates(candidates, routingQuestion, {
       ...settings.routing,
@@ -408,7 +409,7 @@ async function projectManifestAnswer(ctx, question, options = {}) {
     });
   let selected = select(question);
   let readQuestion = question;
-  if (!selected.length) {
+  if (selected.length < (options.minSources || 1)) {
     const contextual = await require('./tenant-evidence-question').contextualEvidenceQuestion(
       ctx,
       candidates,
@@ -442,11 +443,21 @@ async function projectManifestAnswer(ctx, question, options = {}) {
       ctx,
       candidate,
       readQuestion,
-      options
+      { ...options, combinedEvidence: selected.length > 1 }
     );
     if (result) results.push({ ...result, candidate });
   }
-  if (!results.length) return null;
+  if (
+    !results.length ||
+    (options.minSources > 1 &&
+      results.filter((result) => result.evidence.length).length < options.minSources) ||
+    (options.requireSourceIds?.length &&
+      !results.some(
+        (result) =>
+          result.evidence.length && options.requireSourceIds.includes(result.candidate.sourceId)
+      ))
+  )
+    return null;
   const chat = selected.some(
     (candidate) => candidate.sourceType && candidate.sourceType !== 'project'
   );
