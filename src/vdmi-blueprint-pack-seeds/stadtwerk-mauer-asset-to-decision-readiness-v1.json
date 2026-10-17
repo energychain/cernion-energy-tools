@@ -1,0 +1,519 @@
+{
+  "id": "stadtwerk-mauer-asset-to-decision-readiness-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Asset-to-Decision Readiness Review seed",
+  "processFamily": "asset_investment_decision_governance",
+  "controlCase": "asset_to_decision_readiness_review",
+  "changeRequest": "CR-LKA-RV-001",
+  "workedExample": "asset_to_decision",
+  "sideEffects": "none",
+  "tenantParameterization": {
+    "parameter": "tenantId",
+    "defaultTenantId": "stadtwerk-mauer",
+    "appliesTo": "syntheticTenantSeed references only",
+    "realTenantAdoption": "requires a separate explicit onboarding issue; this seed never provisions or mutates a tenant"
+  },
+  "sourceApis": [
+    {
+      "operation": "GET /api/dashboard/investment-data-review-queue",
+      "path": "/api/dashboard/investment-data-review-queue",
+      "method": "GET",
+      "workbenchBrick": "investment_data_review_queue",
+      "capability": "dashboard-api.investmentDataReviewQueueStatus",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/investment-risk-translation",
+      "path": "/api/dashboard/investment-risk-translation",
+      "method": "GET",
+      "workbenchBrick": "investment_risk_translation",
+      "capability": "dashboard-api.investmentRiskTranslationStatus",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/investment-owner-deadline-budget-gate",
+      "path": "/api/dashboard/investment-owner-deadline-budget-gate",
+      "method": "GET",
+      "workbenchBrick": "investment_owner_deadline_budget_gate",
+      "capability": "dashboard-api.investmentOwnerDeadlineBudgetGateStatus",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/investment-committee-steering-cards",
+      "path": "/api/dashboard/investment-committee-steering-cards",
+      "method": "GET",
+      "workbenchBrick": "investment_committee_steering_cards",
+      "capability": "dashboard-api.investmentCommitteeSteeringCardsStatus",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/decision-readiness-matrix",
+      "path": "/api/dashboard/decision-readiness-matrix",
+      "method": "GET",
+      "workbenchBrick": "decision_readiness_matrix",
+      "capability": "dashboard-api.decisionReadinessMatrixStatus",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/evidence-grounding-confidence-audit",
+      "path": "/api/dashboard/evidence-grounding-confidence-audit",
+      "method": "GET",
+      "workbenchBrick": "evidence_grounding_confidence_audit",
+      "capability": "dashboard-api.evidenceGroundingConfidenceAudit",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/receipt-grounded-presentation-contract",
+      "path": "/api/dashboard/receipt-grounded-presentation-contract",
+      "method": "GET",
+      "workbenchBrick": "receipt_grounded_presentation_contract",
+      "capability": "dashboard-api.receiptGroundedPresentationContract",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/governance/role-workbench",
+      "path": "/api/governance/role-workbench",
+      "method": "GET",
+      "queryHint": "role=ROLE_ASSET",
+      "workbenchBrick": "role_workbench_asset",
+      "capability": "governance.roleWorkbenchProjection",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    }
+  ],
+  "governanceArchitectureAlignment": {
+    "description": "References the merged CR-LKA-RV-001 asset_to_decision fixtures, the Role Workbench governanceArchitecture projection and the draft asset-to-decision-v1 Agent Receipt instead of duplicating their policy/projection logic. This seed is static metadata only and never loads fixtures or calls endpoints.",
+    "changeRequest": "CR-LKA-RV-001",
+    "workedExample": "asset_to_decision",
+    "sourceReceiptId": "asset-to-decision-v1",
+    "sourceProjector": "src/role-workbench-projector.js#buildGovernanceArchitecture",
+    "resolutionValueKind": "qualitative_only",
+    "sideEffects": "none"
+  },
+  "futureRenderTarget": {
+    "target": "budibase:stadtwerk-mauer-workbench:asset-to-decision-readiness-panel",
+    "status": "pending",
+    "note": "Future render target only; no Budibase manifest, table write or apply is part of this seed."
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; asset, risk, alternative, budget, owner, role and evidence references are synthetic review data, never a real asset, SAP/PSP element, budget line, customer, meter, contract or committee record."
+  },
+  "roleQuestion": {
+    "actor": "ROLE_ASSET",
+    "answerableIn": "under_one_minute",
+    "question": "Is a synthetic asset signal prepared for the next human investment review by source, risk, alternatives, budget, regulatory and owner evidence; what is missing; and why do budget commitment, committee-ready and final recommendation stay blocked?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Optional public, read-only asset/regulatory context already blended into the virtual Stadtwerk. Immutable; never removed by reset/delete.",
+      "immutable": true,
+      "resettable": false,
+      "examples": [
+        "public regulatory investment-review reference",
+        "public grid-planning context label"
+      ]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented asset, risk, alternative, budget, owner, role and evidence references for stadtwerk-mauer, aligned to the CR-LKA-RV-001 asset_to_decision worked example.",
+      "immutable": false,
+      "resettable": false,
+      "invented": true,
+      "examples": [
+        "synthetic asset-condition signal reference",
+        "synthetic budget-assumption marker",
+        "synthetic decision-owner hint"
+      ]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable validator/render/smoke proof only, separate from public context and synthetic tenant data.",
+      "immutable": false,
+      "resettable": true,
+      "examples": [
+        "matrix-sync render artifact",
+        "qualitative resolution-value render proof",
+        "no-call guard verification proof"
+      ]
+    }
+  },
+  "resetPolicy": {
+    "resettableDataClasses": ["sandboxRuntimeArtifact"],
+    "neverResetOrDelete": ["publicContextLayer"]
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_ASSET",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the asset-to-decision readiness item and decides which evidence must be clarified before the next human investment review."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync, no-call boundary and source API hints without creating runtime records."
+    },
+    {
+      "roleId": "ROLE_NETZPLANUNG",
+      "relation": "mitwirkend",
+      "responsibility": "Provides technical signal, risk and alternatives context without planning, prioritizing or rejecting an investment."
+    },
+    {
+      "roleId": "ROLE_CONTROLLING",
+      "relation": "mitwirkend",
+      "responsibility": "Provides budget-assumption and CAPEX/OPEX classification evidence without committing or releasing budget."
+    },
+    {
+      "roleId": "ROLE_REGULATORIK",
+      "relation": "mitwirkend",
+      "responsibility": "Provides regulatory assessment evidence without stating a regulatory approval or cost recognition."
+    },
+    {
+      "roleId": "ROLE_GESCHAEFTSFUEHRUNG",
+      "relation": "information",
+      "responsibility": "Receives readiness and evidence-gap context and remains accountable for the later human investment review; no committee vote or scheduling is created."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "assetConditionSourceEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the synthetic asset-condition source reference once supplied, kept separate from risk, budget and owner evidence."
+    },
+    {
+      "id": "technicalSignalContextEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the technical signal context so the asset signal provenance can be reviewed by a human."
+    },
+    {
+      "id": "evidenceReceiptEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the evidence receipt reference as provenance only; an evidence receipt is never a committee vote."
+    },
+    {
+      "id": "riskQuantificationEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the synthetic risk-quantification evidence as a separate trace, without prioritizing or ranking the asset."
+    },
+    {
+      "id": "alternativeOptionsEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the alternative-options evidence so the human review can compare options without an automated recommendation."
+    },
+    {
+      "id": "regulatoryAssessmentEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the regulatory assessment reference as review context, not as a regulatory approval."
+    },
+    {
+      "id": "controllingBudgetEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the controlling budget-assumption marker as review evidence, never as a budget commitment or release."
+    },
+    {
+      "id": "budgetOwnerConfirmationEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the budget-owner confirmation marker once supplied by a human owner."
+    },
+    {
+      "id": "capexOpexClassificationEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the CAPEX/OPEX classification marker as review context without any ERP/SAP/PSP posting."
+    },
+    {
+      "id": "decisionOwnerEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the accountable decision owner so the next human investment review has a clear owner."
+    },
+    {
+      "id": "committeeReadinessBoundaryEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the explicit boundary that this seed never marks an item committee-ready; that remains a human decision."
+    },
+    {
+      "id": "positiveFollowUpEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the positive human follow-up list so every gap becomes a clarification step, never a rejection."
+    },
+    {
+      "id": "noCallGuardEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the no-call guard confirmation that this seed never invoked the referenced governance/dashboard endpoints."
+    },
+    {
+      "id": "qualitativeResolutionValueEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the qualitative Resolution Value statement as its own evidence trace, separate from asset, risk, budget, owner and alternatives evidence."
+    }
+  ],
+  "resolutionValue": {
+    "kind": "qualitative_only",
+    "evidenceRef": "qualitativeResolutionValueEvidence",
+    "dimensions": [
+      {
+        "dimension": "data_quality_improvement",
+        "qualitativeImpact": "Asset signal provenance becomes reviewable once source and technical context evidence are present."
+      },
+      {
+        "dimension": "compliance_audit_improvement",
+        "qualitativeImpact": "Regulatory and owner evidence become traceable for a later human audit."
+      },
+      {
+        "dimension": "forecast_budget_confidence",
+        "qualitativeImpact": "Budget confidence stays low until asset state, risk, alternatives, budget assumptions and decision ownership evidence are complete."
+      }
+    ],
+    "forbiddenClaims": [
+      "monetary_value",
+      "numeric_value",
+      "score",
+      "rank",
+      "roi",
+      "npv",
+      "totex",
+      "savings_claim",
+      "final_investment_decision_recommendation",
+      "budget_commitment_state",
+      "committee_ready_state"
+    ]
+  },
+  "demoProcessMatrix": {
+    "slug": "asset-to-decision-readiness-review",
+    "title": "Asset-to-Decision Readiness Review",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": ["publicContextLayer", "syntheticTenantSeed", "sandboxRuntimeArtifact"],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_ASSET",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_NETZPLANUNG",
+        "i": "ROLE_GESCHAEFTSFUEHRUNG",
+        "evidenceRequirements": [
+          "assetConditionSourceEvidence",
+          "technicalSignalContextEvidence",
+          "evidenceReceiptEvidence"
+        ],
+        "dataClassRefs": ["publicContextLayer", "syntheticTenantSeed"],
+        "status": "clarification",
+        "gateOutcome": "asset_signal_provenance_review_pending",
+        "enablesDossierAddition": "Adds asset-signal source, technical context and receipt provenance for human review before any risk or budget framing."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_ASSET",
+        "d": "ROLE_NETZPLANUNG",
+        "m": "ROLE_REGULATORIK",
+        "i": "ROLE_GESCHAEFTSFUEHRUNG",
+        "evidenceRequirements": [
+          "riskQuantificationEvidence",
+          "alternativeOptionsEvidence",
+          "regulatoryAssessmentEvidence"
+        ],
+        "dataClassRefs": ["publicContextLayer", "syntheticTenantSeed"],
+        "status": "evidence_gap",
+        "gateOutcome": "risk_alternatives_regulatory_evidence_pending",
+        "enablesDossierAddition": "Adds risk, alternatives and regulatory evidence as separate traces for human clarification, without prioritization or rejection."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_ASSET",
+        "d": "ROLE_CONTROLLING",
+        "m": "ROLE_NETZPLANUNG",
+        "i": "ROLE_GESCHAEFTSFUEHRUNG",
+        "evidenceRequirements": [
+          "controllingBudgetEvidence",
+          "budgetOwnerConfirmationEvidence",
+          "capexOpexClassificationEvidence"
+        ],
+        "dataClassRefs": ["syntheticTenantSeed"],
+        "status": "evidence_gap",
+        "gateOutcome": "budget_classification_and_owner_evidence_pending",
+        "enablesDossierAddition": "Adds budget-assumption, budget-owner and CAPEX/OPEX classification evidence for human clarification, without a budget statement or commitment."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_GESCHAEFTSFUEHRUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET",
+        "i": "ROLE_CONTROLLING",
+        "evidenceRequirements": [
+          "decisionOwnerEvidence",
+          "committeeReadinessBoundaryEvidence",
+          "positiveFollowUpEvidence",
+          "noCallGuardEvidence"
+        ],
+        "dataClassRefs": ["syntheticTenantSeed", "sandboxRuntimeArtifact"],
+        "status": "clarification",
+        "gateOutcome": "human_investment_review_ready_or_evidence_gap",
+        "enablesDossierAddition": "Adds decision owner, committee-readiness boundary, positive follow-ups and no-call guard status for the next human investment review."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingOwner": "clarification",
+    "onReadyEvidence": "human_investment_review_ready_or_evidence_gap",
+    "allowedStates": [
+      "clarification",
+      "evidence_gap",
+      "human_investment_review_ready_or_evidence_gap"
+    ],
+    "mustNotTrigger": [
+      "state_budget_commitment",
+      "mark_committee_ready",
+      "recommend_final_investment_decision",
+      "budget_release",
+      "investment_ranking_or_scoring",
+      "committee_vote_or_scheduling",
+      "asset_mdm_write",
+      "gis_write",
+      "erp_write",
+      "sap_psp_write",
+      "workflow_create",
+      "task_create",
+      "hitl_create",
+      "mail_send",
+      "webhook_call",
+      "external_connector_call",
+      "budibase_table_write",
+      "rundeck_execute",
+      "mako_write",
+      "billing",
+      "settlement",
+      "smgw_cls_device_control",
+      "public_context_mutation",
+      "production_mutation",
+      "secret_key_handling",
+      "wallet_operation",
+      "personal_agent_hardcoding"
+    ]
+  },
+  "humanFollowUps": [
+    {
+      "missingDataPoint": "assetConditionSourceEvidence",
+      "ownerRole": "ROLE_ASSET",
+      "enablesDossierAddition": "Asset owner supplies the synthetic source reference so provenance can be reviewed."
+    },
+    {
+      "missingDataPoint": "riskQuantificationEvidence",
+      "ownerRole": "ROLE_NETZPLANUNG",
+      "enablesDossierAddition": "Netzplanung supplies risk and alternatives context for the human review."
+    },
+    {
+      "missingDataPoint": "budgetOwnerConfirmationEvidence",
+      "ownerRole": "ROLE_CONTROLLING",
+      "enablesDossierAddition": "Controlling clarifies budget assumption and owner confirmation without committing budget."
+    },
+    {
+      "missingDataPoint": "decisionOwnerEvidence",
+      "ownerRole": "ROLE_GESCHAEFTSFUEHRUNG",
+      "enablesDossierAddition": "Geschaeftsfuehrung names the decision owner for the next human investment review."
+    }
+  ],
+  "allowedCommandHints": [
+    {
+      "id": "inspect-role-workbench-asset",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only governance.roleWorkbenchProjection action; this seed must not invoke or mutate live role-workbench state."
+    },
+    {
+      "id": "verify-blueprint-pack-seed",
+      "kind": "operations_runbook_reference",
+      "execution": "metadata_only",
+      "description": "Any later operational verification stays behind curated /api/operations-runbook/** wrappers; no direct Rundeck execution."
+    }
+  ],
+  "forbiddenActions": [
+    "state_budget_commitment",
+    "mark_committee_ready",
+    "recommend_final_investment_decision",
+    "budget_release",
+    "investment_ranking_or_scoring",
+    "committee_vote_or_scheduling",
+    "asset_mdm_write",
+    "gis_write",
+    "erp_write",
+    "sap_psp_write",
+    "workflow_create",
+    "task_create",
+    "hitl_create",
+    "mail_send",
+    "webhook_call",
+    "external_connector_call",
+    "budibase_table_write",
+    "rundeck_execute",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "dispatch_redispatch",
+    "smgw_cls_device_control",
+    "landing_registry_publication",
+    "cernion_de_publication",
+    "public_context_mutation",
+    "production_mutation",
+    "secret_key_handling",
+    "wallet_operation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}
