@@ -343,7 +343,29 @@ async function applyUnitAnswer(service, ctx, p, records, answer, conversationId,
   };
 }
 
+async function hasOpenDatasetClarification(ctx, conversationId) {
+  if (!conversationId) return false;
+  const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
+  return require('./workbench-data-scope')
+    .scopedDatasets(records, '', { conversationId })
+    .some(
+      (record) =>
+        record.current !== false &&
+        !record.structuredFormat &&
+        (record.clarifications || []).some(
+          (entry) =>
+            entry.status === 'open' &&
+            entry.conversationId === conversationId &&
+            ['sheet', 'unit'].includes(entry.kind) &&
+            entry.targets.some(
+              (target) => target.datasetId === record.id && target.version === record.version
+            )
+        )
+    );
+}
+
 module.exports = {
+  hasOpenDatasetClarification,
   closeClarifications,
   datasetClarification,
   storeClarification,

@@ -369,7 +369,6 @@ async function documentReply(
     situation,
     retrieval,
     asked = [],
-    conversationReplyRequested = false,
     meta = ctx.meta,
     access,
     selectedCapabilities = [],
@@ -404,10 +403,9 @@ async function documentReply(
   if (!documents.length) return null;
   const question = envelope.userRequest;
   if (
-    (conversationReplyRequested &&
-      !isReviewRequest(question) &&
-      !documentDraftRequested(question)) ||
-    ['orientation', 'knowledge', 'assistance', 'filing'].includes(situation.conversationShape)
+    !isReviewRequest(question) &&
+    !documentDraftRequested(question) &&
+    situation.missingInformation?.some((item) => item.reason === 'purpose' && !item.answered)
   ) {
     const reply = await require('./workbench-understanding').answer({
       situation,
@@ -432,15 +430,19 @@ async function documentReply(
     const table = documents.some((document) =>
       require('./workbench-document-question').documentTable(document.text)
     );
-    const answer =
-      (!table && storedPassage(documents, question)) ||
-      (
-        await require('./workbench-document-question').documentQuestion(documents, question, {
+    const passage = !table && storedPassage(documents, question);
+    const reply = passage
+      ? { responseText: passage }
+      : await require('./workbench-document-question').documentQuestion(documents, question, {
           tenantId: p.tenantId,
           logger: service.logger,
-        })
-      )?.responseText;
-    if (answer) return { responseText: [answer, storageNote].filter(Boolean).join('\n\n') };
+          internalContext: [situation.concern, situation.situation],
+        });
+    if (reply?.responseText)
+      return {
+        ...reply,
+        responseText: [reply.responseText, storageNote].filter(Boolean).join('\n\n'),
+      };
   }
   const passage = storedPassage(documents, envelope.userRequest);
   if (passage) return { responseText: passage };
@@ -586,6 +588,7 @@ function documentAnswer(reply) {
     evidenceTrace: {},
     answerAttempts: 0,
     answerStatus: reply.pending ? 'pending_review' : 'document_answer',
+    metadata: { degraded: false, ...reply.metadata },
   };
 }
 

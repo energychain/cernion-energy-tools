@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — Akten-Routing und Dokument-Folgefragen (#926)
+
+- Der frühe Datensatz-Turn läuft nur bei einer gespeicherten offenen Rückfrage
+  im aktuellen Gespräch. Ohne Rückfrage bleibt das Akten-Routing vorrangig (#887).
+- Hochgeladene Dateien werden vor einer angenommenen Katalog-Leseaktion genutzt;
+  Dokumentfragen und Folgefragen verwenden die gespeicherten Dokumentabschnitte
+  auch bei abweichender Gesprächsklassifikation.
+- Der Antwortfilter erkennt auch einzelne oder neu zusammengesetzte Sätze aus
+  internen Situationsbeschreibungen und fordert eine direkte Antwort an.
+  Vollständige Turn-Regressionen verwenden schema-valide Modell-Stubs; fünfter
+  Live-Ausgangsbericht unverändert aufgenommen, kein neuer Live-Lauf.
+
 ## Unreleased — Gespeicherte Rückfragen vor allgemeiner Klassifikation (#926)
 
 - Blatt- und Einheitenfragen speichern Art, Gespräch, versionierte Ziele,

@@ -1669,7 +1669,15 @@ module.exports = {
           call: (name, params, options) =>
             ctx.call(name, params, { meta: { ...correctionMeta, ...options?.meta } }),
         };
-        if (!envelope.documents?.length && this.broker.getLocalService('dataset')) {
+        if (
+          !envelope.documents?.length &&
+          pending?.datasetContext?.datasetIds?.length &&
+          this.broker.getLocalService('dataset') &&
+          (await require('../src/dataset-clarification').hasOpenDatasetClarification(
+            memoryContext,
+            envelope.conversationId
+          ))
+        ) {
           const resolved = await ctx.call(
             'dataset.turn',
             {

@@ -1181,9 +1181,6 @@ async function runContentTurn(
       situation,
       retrieval: incomingDocuments ? null : retrieval,
       asked: pending?.askedQuestions || [],
-      conversationReplyRequested: ['orientation', 'knowledge', 'assistance', 'filing'].includes(
-        pending?.lastConversationShape
-      ),
       meta,
       access,
       selectedCapabilities: result.selectedCapabilities,
