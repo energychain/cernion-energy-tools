@@ -283,7 +283,17 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
 async function runContentTurn(
   service,
   ctx,
-  { p, mapping, envelope, pending, conversation, meta, capabilityDiagnostics, preferenceExtraction }
+  {
+    p,
+    mapping,
+    envelope,
+    pending,
+    conversation,
+    meta,
+    capabilityDiagnostics,
+    preferenceExtraction,
+    understoodSituation,
+  }
 ) {
   const confirmedProposal = await require('./workbench-linked-proposal').confirmLinkedCase(
     service,
@@ -359,7 +369,8 @@ async function runContentTurn(
   const understandStarted = performance.now();
   try {
     situation =
-      caseChoice && pending?.caseSelection
+      understoodSituation ||
+      (caseChoice && pending?.caseSelection
         ? pending.caseSelection.situation || pending.situation
         : incomingDocuments
           ? previous?.turnKind === 'review' ||
@@ -411,7 +422,7 @@ async function runContentTurn(
                 onRecovery: ({ reason }) => {
                   understandingRecoveryReason = reason;
                 },
-              });
+              }));
   } catch (error) {
     understandingFailed = true;
     const quotaText = require('./workbench-llm-errors').quotaMessage(error);

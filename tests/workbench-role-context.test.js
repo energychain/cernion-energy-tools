@@ -13,7 +13,11 @@ const { readTurn, saveTurn } = require('../src/workbench-conversation');
 const { generatePracticeCatalog } = require('../scripts/generate-practice-evaluation-fixtures');
 const { checkTurn } = require('../scripts/practice-evaluation-checks');
 const { SITUATION_SCHEMA } = require('../src/workbench-understanding');
-const { applyRoleContext, selectRoleStatement } = require('../src/workbench-role-context');
+const {
+  applyRoleContext,
+  selectRoleStatement,
+  selfSubject,
+} = require('../src/workbench-role-context');
 const scenario = generatePracticeCatalog().scenarios.find((item) => item.id === 'role-onboarding');
 const messages = scenario.turns.map((turn) => turn.message);
 const question = {
@@ -99,6 +103,10 @@ function installModel({
   roleOnly = true,
   memoryCorrection = false,
   correctionMessage = messages[3],
+  correctionClassification,
+  missingRefinement = false,
+  fieldExtraction = 'valid',
+  selfExtractionFailure = false,
 } = {}) {
   const failures = [];
   const role = (message) => {
@@ -109,10 +117,32 @@ function installModel({
     const input = JSON.parse(raw);
     const message = input.currentUserMessage || input.message || '';
     let result;
-    if (schema.properties?.answer && input.sections) {
+    if (input.task === 'working_context_fields') {
+      if (fieldExtraction === 'throws') throw new Error('Synthetic field extraction unavailable');
+      if (fieldExtraction === 'invalid') return { role: 7, mandate: '', goal: '' };
+      const statement = role(message);
+      result =
+        fieldExtraction === 'empty'
+          ? { role: '', mandate: '', goal: '' }
+          : {
+              role: fieldExtraction === 'unproven' ? 'Nicht im Text' : statement.role,
+              mandate: statement.mandate,
+              goal: statement.goal,
+            };
+    } else if (selfExtractionFailure && message === correctionMessage) {
+      throw new Error('Synthetic subject and preference extraction unavailable');
+    } else if (schema.properties?.answer && input.sections) {
       const context = input.conversationContext;
       if ([messages[2], messages[4]].includes(message || input.question)) {
-        expect(context?.role).toBe(input.question === messages[2] ? 'Aufsicht' : 'Dokumentation');
+        expect(context?.role).toBe(
+          input.question === messages[2]
+            ? 'Aufsicht'
+            : fieldExtraction === 'valid'
+              ? 'Dokumentation'
+              : ''
+        );
+        if (input.question === messages[4] && fieldExtraction !== 'valid')
+          expect(context.statement).toBe(correctionMessage);
         expect(input.communicationInstruction).toContain('Arbeitskontext');
         expect(input.sections.some((part) => part.text.includes('80 Einheiten'))).toBe(true);
       }
@@ -145,6 +175,10 @@ function installModel({
     } else if (schema.properties?.requestedAction && schema.properties?.concern) {
       result = situationFor(message, misclassified);
       result.roleStatement = missingPrimary ? emptyRole : role(message);
+      if (correctionClassification && message === correctionMessage) {
+        result.turnKind = correctionClassification === 'work' ? 'work' : 'knowledge';
+        result.conversationShape = correctionClassification === 'work' ? 'task' : 'knowledge';
+      }
       if (memoryCorrection && message === correctionMessage)
         result.tenantMemory = { correction: { kind: 'corrected', basis: message, factId: '' } };
     } else if (input.currentUserMessage) {
@@ -156,7 +190,8 @@ function installModel({
         wording: [],
         forbiddenTerms: [],
         preferenceOnly: false,
-        roleStatement: role(message),
+        roleStatement:
+          missingRefinement && message === correctionMessage ? emptyRole : role(message),
         personAssessment: personFor(message, misclassified),
       };
     } else if (input.task === 'output_contract') {
@@ -183,8 +218,14 @@ function installModel({
     } else if (input.task === 'turn_controls') {
       result = {
         missingInformation: message === messages[0] ? [question] : [],
-        turnKind: 'knowledge_or_orientation',
-        conversationShape: 'knowledge',
+        turnKind:
+          correctionClassification === 'work' && message === correctionMessage
+            ? 'work_on_concrete_case'
+            : 'knowledge_or_orientation',
+        conversationShape:
+          correctionClassification === 'work' && message === correctionMessage
+            ? 'task'
+            : 'knowledge',
         personAssessment: personFor(message, misclassified),
       };
     } else {
@@ -208,7 +249,15 @@ function installModel({
     const input = JSON.parse(raw);
     const context = input.situation?.conversationContext;
     if (input.message === messages[2] || input.message === messages[4]) {
-      expect(context?.role).toBe(input.message === messages[2] ? 'Aufsicht' : 'Dokumentation');
+      expect(context?.role).toBe(
+        input.message === messages[2]
+          ? 'Aufsicht'
+          : fieldExtraction === 'valid'
+            ? 'Dokumentation'
+            : ''
+      );
+      if (input.message === messages[4] && fieldExtraction !== 'valid')
+        expect(context.statement).toBe(correctionMessage);
       expect(input.communicationInstruction || input.instruction).toContain('Arbeitskontext');
       expect(input.communicationInstruction || input.instruction).toContain('Fundstellen');
       expect(input.evidence.some((hit) => hit.value.includes('80 Einheiten'))).toBe(true);
@@ -248,10 +297,41 @@ test.each([
   { misclassified: true, runningReview: true },
   { misclassified: true, roleOnly: false, memoryCorrection: true },
   { misclassified: true, missingPrimary: true, memoryCorrection: true, preturnCorrection: true },
+  ...['correction', 'knowledge', 'work'].map((correctionClassification) => ({
+    correctionClassification,
+    missingRefinement: true,
+    roleOnly: false,
+    memoryCorrection: correctionClassification === 'correction',
+    preturnCorrection: true,
+  })),
+  ...['valid', 'empty', 'throws', 'invalid', 'unproven'].map((fieldExtraction) => ({
+    fieldExtraction,
+    missingPrimary: true,
+    missingRefinement: true,
+    selfExtractionFailure: fieldExtraction !== 'valid',
+  })),
+  { goalContext: true, missingPrimary: true },
+  { longStatement: true, fieldExtraction: 'throws', selfExtractionFailure: true },
+  {
+    correctionClassification: 'work',
+    missingRefinement: true,
+    roleOnly: false,
+    preturnCorrection: true,
+    expiredBeforeCorrection: true,
+  },
+  {
+    correctionClassification: 'correction',
+    missingRefinement: true,
+    roleOnly: false,
+    memoryCorrection: true,
+    preturnCorrection: true,
+    correctionDocument: true,
+  },
 ])(
   'full turn: role answer, follow-up, correction and third-party protection (%j)',
   async (variant) => {
     const app = await createCaseBroker();
+    const memoryPreturn = jest.spyOn(require('../src/tenant-memory'), 'preturn');
     for (const name of ['object-store', 'tenant-memory-policy']) {
       const schema = require(`../services/${name}.service`);
       app.broker.createService({
@@ -259,9 +339,10 @@ test.each([
         settings: { ...schema.settings, dbPath: path.join(app.dir, name) },
       });
     }
-    const correctionMessage = variant.preturnCorrection
-      ? `Bitte korrigiere meinen Arbeitskontext: ${messages[3]}`
-      : messages[3];
+    const correctionMessage =
+      (variant.preturnCorrection
+        ? `Bitte korrigiere meinen Arbeitskontext: ${messages[3]}`
+        : messages[3]) + (variant.longStatement ? ' Weitere Angaben.'.repeat(100) : '');
     const failures = installModel({ ...variant, correctionMessage });
     let releaseReview;
     const blockedReview = new Promise((resolve) => {
@@ -350,6 +431,17 @@ test.each([
       expect(initial.responseText).toContain(question.question);
       let pending = await readTurn(app.workbench.conversationsDb, p, envelope);
       expect(pending.askedQuestions).toContainEqual(question);
+      if (variant.goalContext)
+        await saveTurn(app.workbench.conversationsDb, p, envelope, {
+          conversationContext: {
+            role: '',
+            mandate: '',
+            goal: 'Risiken für das Ergebnis vermeiden',
+            basis: 'Gespeichertes Ziel.',
+            preference: '',
+            durable: false,
+          },
+        });
       const own = await chat(messages[1]);
       expect(own.responseText).toMatch(/^Ich richte mich/);
       expect(own.responseText.match(/Ich richte mich/g)).toHaveLength(1);
@@ -376,25 +468,65 @@ test.each([
       expect(followup.responseText).toContain('80');
       expect(checkTurn(scenario.turns[2], followup).filter((entry) => !entry.passed)).toEqual([]);
       expect(followup.responseText).not.toContain('Interner Situationstext');
-      const corrected = await chat(correctionMessage);
+      if (variant.expiredBeforeCorrection) {
+        const current = await readTurn(app.workbench.conversationsDb, p, envelope);
+        await app.workbench.conversationsDb.put({ ...current, expiresAt: 0 });
+      }
+      const corrected = await chat(
+        variant.correctionDocument ? withDocument(correctionMessage) : correctionMessage
+      );
+      const literal = variant.fieldExtraction && variant.fieldExtraction !== 'valid';
       expect(corrected.responseText).toMatch(/^Ich richte mich/);
-      expect(corrected.responseText).toContain('Ziel „vollständige Belegübersicht“');
+      expect(corrected.responseText).toContain(
+        literal ? correctionMessage : 'Ziel „vollständige Belegübersicht“'
+      );
+      expect(corrected.responseText).toContain('jederzeit korrigieren');
       expect(corrected.responseText).not.toContain('Welche festgehaltene Aussage');
+      expect(
+        memoryPreturn.mock.calls.filter(([, , input]) => input.userRequest === correctionMessage)
+      ).toEqual([]);
       expect(checkTurn(scenario.turns[3], corrected).filter((entry) => !entry.passed)).toEqual([]);
+      pending = await readTurn(app.workbench.conversationsDb, p, envelope);
+      expect(pending.conversationContext).toMatchObject({
+        role: literal ? '' : 'Dokumentation',
+        mandate: literal ? '' : 'Team A',
+        goal: literal ? '' : 'vollständige Belegübersicht',
+        basis: literal ? correctionMessage.slice(0, 1200) : correctionMessage,
+      });
+      if (literal) expect(pending.conversationContext.statement).toBe(correctionMessage);
+      validate(SITUATION_SCHEMA.properties.conversationContext, pending.conversationContext);
+      const correctionCalls = llm.generateStructured.mock.calls
+        .map(([, prompt]) => JSON.parse(prompt))
+        .filter(
+          (input) => input.message === correctionMessage && input.schema?.properties?.concern
+        );
+      expect(correctionCalls).toHaveLength(0);
+      expect(
+        llm.generateStructured.mock.calls
+          .map(([, prompt]) => JSON.parse(prompt))
+          .filter((input) => input.currentUserMessage === correctionMessage)
+      ).toHaveLength(0);
       const correctedFollowup = await chat(messages[4]);
       expect(
         checkTurn(scenario.turns[4], correctedFollowup).filter((entry) => !entry.passed)
       ).toEqual([]);
       expect(correctedFollowup.responseText).not.toMatch(/Aufsicht|Gremium A/);
       pending = await readTurn(app.workbench.conversationsDb, p, envelope);
-      expect(pending.situation.conversationContext.role).toBe('Dokumentation');
+      expect(pending.situation.conversationContext.role).toBe(literal ? '' : 'Dokumentation');
       const third = await chat(messages[5]);
       expect(third.responseText).toContain('### Hypothese');
       expect(third.responseText).toContain('Nutzerhypothese, nicht erwiesen');
       expect(third.responseText).not.toContain('Ich richte mich');
       expect(
         (await readTurn(app.workbench.conversationsDb, p, envelope)).conversationContext.role
-      ).toBe('Dokumentation');
+      ).toBe(literal ? '' : 'Dokumentation');
+      if (literal) {
+        const repeated = await chat(correctionMessage);
+        expect(repeated.responseText).toContain(correctionMessage);
+        expect(
+          (await readTurn(app.workbench.conversationsDb, p, envelope)).conversationContext.statement
+        ).toBe(correctionMessage);
+      }
       expect(await app.workbench.store.getUserContext(p)).toEqual(profile);
       expect(await app.router.visibleStates(p)).toHaveLength(1);
       expect(failures).toEqual([]);
@@ -414,9 +546,33 @@ test.each([
       releaseReview();
       await Promise.all(app.workbench.workbenchDocumentReviews?.values() || []);
       await app.cleanup();
+      memoryPreturn.mockRestore();
     }
   }
 );
+
+test.each([
+  [messages[3], true],
+  ['Ich betreue eine andere Aufgabe.', true],
+  ['Ich arbeite.', true],
+  ['In dieser Sache arbeite ich.', true],
+  ['Für diese Aufgabe bin ich zuständig.', true],
+  ['Mein Ziel ist eine vollständige Übersicht.', true],
+  ['Meine Aufgabe bleibt die Dokumentation.', true],
+  ['mein ziel ist eine vollständige übersicht.', true],
+  ['korrigier das', false],
+  ['Welche Aufgabe soll ich übernehmen?', false],
+  ['Was folgt daraus für meine nächste Befassung?', false],
+  ['Ich glaube, Kollege A will den Abgleich vertuschen.', false],
+  ['Ich glaube Kollege A will den Abgleich vertuschen.', false],
+  ['Ich denke, dass Kollege A den Abgleich vertuschen will.', false],
+  ['Meiner Meinung nach will Kollege A den Abgleich vertuschen.', false],
+  ['„Ich betreue die Dokumentation“, sagt Kollege A.', false],
+  ['Ich betreue die Dokumentation; Kollege A will den Abgleich vertuschen.', false],
+  ['Ich betreue die Dokumentation; ich glaube, dass Kollege A etwas vertuscht.', false],
+])('grammatical self subject: %s → %s', (message, expected) => {
+  expect(selfSubject(message)).toBe(expected);
+});
 
 test.each(['other_person', 'mixed'])(
   'an open role question never clears %s protection',

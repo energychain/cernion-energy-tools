@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "4228f4178f28f8ccd732286bfd89a82504b1e4d52e7e806115088adf4bcac378",
+  "sourceHash": "e802aa007139855384788927fc7291ce0f02a858a344969b20b41734d98d4200",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -69932,6 +69932,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-turn-scope.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-understanding.js"
         }
       ],
@@ -122825,6 +122829,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-turn-memory.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-turn-scope.js"
         },
         {
           "kind": "service",
