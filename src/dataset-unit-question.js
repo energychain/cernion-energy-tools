@@ -8,7 +8,7 @@ function columnUnit(column, proposed, fallback) {
   if (unit) return unit.trim();
   return (
     column.name
-      .match(/\[([^\]]+)\]|\(([^)]+)\)\s*$/)
+      .match(/(?:\[([^\]]+)\])|(?:\(([^)]+)\)\s*$)/)
       ?.slice(1)
       .find(Boolean)
       ?.trim() || ''
