@@ -368,3 +368,27 @@ begrenzt; daraus folgt kein Anspruch auf Vollständigkeit eines umfangreichen Be
 Ältere Sitzungen, Fallzusammenfassungen, Turn-Memory und Teamgedächtnis als eigene
 selbst anbietende Quellen folgen in Phase B. Der sichere Ausschluss von Rückfall-
 Antworten aus bestehenden Falleinordnungen gehört bereits zu dieser Phase A.
+
+## Abschluss in der aufrufenden Session (2026-10-18/19)
+
+- **Unit-CI-Regression:** `test:unit:ci` war auf `9329b3ac` rot
+  (`workbench-table-quality-live-regression`, 3 Tests): Blattwahl („Blatt Basis verwenden.“)
+  und Einheitenangabe („Einheit ist kg.“) lösten je einen zusätzlichen LLM-Aufruf der
+  Bezugsauflösung aus, bevor `dataset.turn` sie deterministisch beantwortete. Behoben in
+  `1a4ed53e`: Der allgemeine Evidenzpfad überspringt die Bezugsauflösung
+  (`contextual: 'skip'`) und setzt sie erst fort, wenn `dataset.turn` den Turn nicht
+  übernommen hat (`contextual: 'only'`). Antworten auf offene Rückfragen bleiben LLM-frei.
+  Danach `test:unit:ci` vollständig grün (Exit 0).
+- **Live-Lauf 3** ([practice-evaluation-927-live-3.md](practice-evaluation-927-live-3.md),
+  2,31 EUR): `document-table` 11,0/12 (vorher 6,33), aber der Bezugsturn blieb rot.
+  Ein A/B-Lauf auf `9329b3ac` zeigte denselben Fehler, er stammt also nicht aus `1a4ed53e`.
+- **Ursache Bezugsturn:** Gemini lehnt `uniqueItems` im `response_schema` mit HTTP 400
+  („Unknown name "uniqueItems"“) ab. Die Bezugsauflösung scheiterte deshalb live bei jedem
+  Aufruf; Stub-Tests können das nicht erkennen. Behoben zentral in
+  `src/adapters/gemini.js` (`providerSchema`); die lokale Ajv-Prüfung behält `uniqueItems`.
+  Einzelaufruf live verifiziert; `maxLength`, `minLength`, `pattern` und `oneOf` werden
+  akzeptiert.
+- **Live-Lauf 4** ([practice-evaluation-927-live-4.md](practice-evaluation-927-live-4.md),
+  1,39 EUR, Adapter-Fix uncommittet auf `1a4ed53e`): `document-table` 12/12 und
+  `file-question` 12/12 in je 2 Wiederholungen, keine roten Prüfpunkte. Das Gate meldet nur
+  wegen des bewusst reduzierten Szenarioumfangs ROT.
