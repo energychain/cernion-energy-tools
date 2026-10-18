@@ -67,6 +67,7 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
         ? envelope.evidenceSourceIds || envelope.datasetIds
         : [],
       minSources: envelope.tenantEvidenceMinSources,
+      contextual: envelope.contextualEvidence,
       previousEvidence: {
         selection: pending?.tenantEvidenceSelection,
         question: pending?.tenantEvidenceQuestion,

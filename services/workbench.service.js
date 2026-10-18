@@ -1702,15 +1702,8 @@ module.exports = {
             },
             { meta: correctionMeta }
           );
-          if (resolved.handled) {
-            const combined =
-              await require('../src/workbench-project-manifest').supplementDatasetAnswer(
-                this,
-                ctx,
-                { p, envelope, pending, meta: correctionMeta },
-                resolved
-              );
-            if (combined) return combined;
+          // A reply to an open clarification asks for no source comparison; keep it free of LLM calls.
+          if (resolved.handled)
             return require('../src/workbench-dataset-reply').datasetTurnReply(
               this,
               p,
@@ -1718,12 +1711,17 @@ module.exports = {
               pending,
               resolved
             );
-          }
         }
+        // Resolving references needs an LLM call; deterministic dataset replies (sheet, unit) go first.
         const projectReply = await require('../src/workbench-project-manifest').projectManifestTurn(
           this,
           ctx,
-          { p, envelope, pending, meta: correctionMeta }
+          {
+            p,
+            envelope: { ...envelope, contextualEvidence: 'skip' },
+            pending,
+            meta: correctionMeta,
+          }
         );
         if (projectReply) return projectReply;
         if (pending?.tenantMemoryFactIds?.length || !envelope.documents?.length) {
@@ -1783,16 +1781,17 @@ module.exports = {
           envelope.datasetIds = datasetTurn.datasetIds || [];
         }
         // Uploads have entered their source stores; offer their descriptors before short answers/status routing.
-        if (envelope.datasetIds?.length) {
-          const evidenceReply =
-            await require('../src/workbench-project-manifest').projectManifestTurn(this, ctx, {
-              p,
-              envelope: { ...envelope, tenantEvidenceReady: true },
-              pending,
-              meta: correctionMeta,
-            });
-          if (evidenceReply) return evidenceReply;
-        }
+        // Otherwise only the deferred reference resolution against this chat's sources remains.
+        const evidenceReply =
+          await require('../src/workbench-project-manifest').projectManifestTurn(this, ctx, {
+            p,
+            envelope: envelope.datasetIds?.length
+              ? { ...envelope, tenantEvidenceReady: true }
+              : { ...envelope, contextualEvidence: 'only' },
+            pending,
+            meta: correctionMeta,
+          });
+        if (evidenceReply) return evidenceReply;
         const memoryReply = await require('../src/tenant-memory').preturn(
           memoryContext,
           p,

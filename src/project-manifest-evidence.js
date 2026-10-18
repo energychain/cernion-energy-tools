@@ -409,7 +409,9 @@ async function projectManifestAnswer(ctx, question, options = {}) {
     });
   let selected = select(question);
   let readQuestion = question;
-  if (selected.length < (options.minSources || 1)) {
+  // 'only' resumes a deferred reference resolution; the deterministic routing already ran once.
+  if (options.contextual === 'only' && selected.length >= (options.minSources || 1)) return null;
+  if (selected.length < (options.minSources || 1) && options.contextual !== 'skip') {
     const contextual = await require('./tenant-evidence-question').contextualEvidenceQuestion(
       ctx,
       candidates,
@@ -425,6 +427,7 @@ async function projectManifestAnswer(ctx, question, options = {}) {
       readQuestion = contextual;
     }
   }
+  if (options.contextual === 'only' && readQuestion === question) return null;
   if (
     selected.length < (options.minSources || 1) ||
     (options.requireSourceIds?.length &&
