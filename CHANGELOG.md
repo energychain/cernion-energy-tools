@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Bezugsauflösung live funktionsfähig (#927 Abschluss Phase A)
+
+- Gemini lehnt `uniqueItems` im `response_schema` mit HTTP 400 ab. Der Adapter entfernt
+  das Schlüsselwort wie `additionalProperties` nur aus der Provider-Kopie; die lokale
+  Ajv-Prüfung bleibt vollständig. Bezugsfragen wie „Was ergibt sich daraus …“ erhalten
+  dadurch live wieder beide Quellen.
+- Blattwahl und Einheitenangaben werden wieder ohne zusätzlichen LLM-Aufruf
+  deterministisch beantwortet; die Bezugsauflösung läuft erst, wenn `dataset.turn`
+  den Turn nicht übernimmt.
+
 ## Unreleased — Praxis-Replay und Ergänzung struktureller Datenantworten (#927)
 
 - Der lokale Praxis-Transport verwendet jetzt die echte Chat-Dokumentablage samt
