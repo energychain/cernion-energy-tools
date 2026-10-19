@@ -1,6 +1,6 @@
 # Evidence vs Practice
 
-Generated: 2026-10-18T03:22:59.273Z
+Generated: 2026-10-19T09:41:40.989Z
 
 ## Rule
 
@@ -36,7 +36,7 @@ Evidenz begrenzt Behauptungen. Sie darf nicht verhindern, dass CET einen Fall fa
 - `services/dashboard-api/methods-part-07-of-14.js` (636 hits)
 - `services/dashboard-api/methods-part-11-of-14.js` (550 hits)
 - `services/agent-receipts.service.js` (479 hits)
-- `function-model.report.md` (397 hits)
+- `function-model.report.md` (399 hits)
 - `services/personal-agent/shared.js` (355 hits)
 - `src/answer-dossier-builder.js` (349 hits)
 - `docs/validation/practice-evaluation-887-live-1.md` (325 hits)

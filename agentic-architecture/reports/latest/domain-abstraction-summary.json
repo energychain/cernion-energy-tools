@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-18T03:22:59.273Z",
+  "generatedAt": "2026-10-19T09:41:40.989Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261018T032156Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261019T094031Z",
   "counts": {
-    "files": 2101,
-    "candidateFiles": 1253,
+    "files": 2125,
+    "candidateFiles": 1270,
     "services": 164,
-    "srcFiles": 489,
-    "docs": 556,
+    "srcFiles": 500,
+    "docs": 562,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -15,13 +15,13 @@
       "label": "Fallarbeit und Assistenz",
       "files": 25,
       "services": 2,
-      "hits": 10722
+      "hits": 10738
     },
     "evidence-and-trust": {
       "label": "Evidence, Nachweis und Vertrauen",
       "files": 25,
       "services": 23,
-      "hits": 19234
+      "hits": 19236
     },
     "mako-and-edm": {
       "label": "MaKo / EDM / Stammdaten",
@@ -57,13 +57,13 @@
       "label": "Tenant, Rollen und Betrieb",
       "files": 25,
       "services": 52,
-      "hits": 9581
+      "hits": 9582
     },
     "openwebui-agentic-routing": {
       "label": "OpenWebUI und agentisches Routing",
       "files": 25,
       "services": 7,
-      "hits": 5047
+      "hits": 5051
     }
   },
   "ambiguousTerms": [
@@ -251,8 +251,8 @@
           "hits": 174
         },
         {
-          "path": "services/chatgpt-sidecar.service.js",
-          "hits": 156
+          "path": "function-model.report.md",
+          "hits": 165
         }
       ]
     },
@@ -525,7 +525,7 @@
     },
     {
       "path": "function-model.report.md",
-      "hits": 397
+      "hits": 399
     },
     {
       "path": "services/personal-agent/shared.js",
@@ -552,5 +552,5 @@
       "hits": 279
     }
   ],
-  "fingerprint": "cb901471bbb86a3d981ecf6c4997850aa6fd0e971595e93b22571387d47b6882"
+  "fingerprint": "caf43752299a5422505a0195aa570b4d8fe2ee298bf02ff02300f20dcfb1fb7a"
 }

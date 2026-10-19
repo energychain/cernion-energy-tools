@@ -1,6 +1,6 @@
 # Prognose-/Abweichungsfall
 
-Generated: 2026-10-18T03:22:59.273Z
+Generated: 2026-10-19T09:41:40.989Z
 
 Status: observed
 Priority: 5

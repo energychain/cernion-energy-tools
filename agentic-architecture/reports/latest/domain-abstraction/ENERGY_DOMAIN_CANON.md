@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-18T03:22:59.273Z
+Generated: 2026-10-19T09:41:40.989Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -40,7 +40,7 @@ Starke Code-/Doku-Signale:
 - `docs/validation/practice-evaluation-baseline.md` (688 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (658 hits)
 - `src/capability-catalog.js` (613 hits)
-- `services/workbench.service.js` (567 hits)
+- `services/workbench.service.js` (570 hits)
 - `docs/reviews/730-capability-routing-evaluation.json` (462 hits)
 - `src/answer-dossier-hydration-rules.json` (361 hits)
 - `services/personal-agent/actions-part-01-of-1.js` (360 hits)
@@ -260,7 +260,7 @@ Arbeitsmodell: Ein selbstlaufender EVU-Assistent muss bei erster Nutzung Kontext
 
 Starke Code-/Doku-Signale:
 
-- `services/workbench.service.js` (615 hits)
+- `services/workbench.service.js` (616 hits)
 - `docs/validation/practice-evaluation-887-live-1.md` (521 hits)
 - `docs/validation/workbench-873-live.json` (512 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (492 hits)
@@ -285,7 +285,7 @@ Zugeordnete Services nach Heuristik:
 - `company` — services/company.service.js (11 actions)
 - `cya` — services/cya.service.js (8 actions)
 - `dashboard-api` — services/dashboard-api.service.js
-- `dataset` — services/dataset.service.js (9 actions)
+- `dataset` — services/dataset.service.js (10 actions)
 - `decision-frame` — services/decision-frame.service.js (2 actions)
 - `energy-sharing-community` — services/energy-sharing-community.service.js (5 actions)
 - `evidence-requirement` — services/evidence-requirement.service.js (10 actions)
@@ -306,7 +306,7 @@ Starke Code-/Doku-Signale:
 - `services/chatgpt-sidecar.service.js` (335 hits)
 - `services/personal-agent/actions-part-01-of-1.js` (330 hits)
 - `src/capability-catalog.js` (292 hits)
-- `function-model.report.md` (284 hits)
+- `function-model.report.md` (288 hits)
 - `services/domain-routes-management.service.js` (275 hits)
 - `services/workbench.service.js` (255 hits)
 - `src/answer-dossier-hydration-rules.json` (235 hits)
