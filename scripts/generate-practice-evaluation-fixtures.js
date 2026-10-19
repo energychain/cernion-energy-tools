@@ -660,6 +660,9 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
     ...require('./generate-project-manifest-fixtures').generateProjectScenarios(scenario, turn)
   );
   catalog.push(require('./generate-table-quality-fixtures').tableQualityScenario(scenario, turn));
+  catalog.push(
+    require('./generate-tenant-evidence-fixtures').tenantEvidenceScenario(scenario, turn, x)
+  );
   return { schemaVersion: VERSION, scenarios: catalog };
 }
 

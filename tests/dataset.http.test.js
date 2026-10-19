@@ -78,7 +78,13 @@ describe('datasets through authenticated Open WebUI HTTP', () => {
     );
     app.broker.createService({
       ...Datapoint,
-      settings: { ...Datapoint.settings, dbPath: path.join(app.dir, 'dataset-catalog') },
+      settings: {
+        ...Datapoint.settings,
+        dbPath: path.join(app.dir, 'dataset-catalog'),
+        // The ordered model mocks below must not be consumed by background descriptor enrichment,
+        // whose default 30 s delay elapses mid-suite on slower CI runners.
+        tenantEvidenceEnrichment: { delayMs: 2 ** 31 - 1 },
+      },
     });
     app.broker.createService(Dataset);
     const routingFixture = generateDatasetRoutingFixture();

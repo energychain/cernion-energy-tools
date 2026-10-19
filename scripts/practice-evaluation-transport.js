@@ -146,11 +146,11 @@ async function createLocalTransport({ budget }) {
     })),
     projectFixtures.referenceService,
     {
+      ...require('../services/knowledge-rag.service'),
       name: 'knowledge-rag',
       actions: {
         query: () => ({ results: [] }),
         federatedSearch: () => ({ results: [] }),
-        documentList: () => [],
       },
     },
     {

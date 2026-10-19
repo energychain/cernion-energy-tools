@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `797bcb3018084623b12ba15fe61a38af51866d663e27d41bc6c7c0830ad69e5a`
+Source SHA-256: `620268c63ebb2aa84a50ca5fac576940fb0431b125e14eec07308820ec555bbf`
 
 Capabilities: 172; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
@@ -481,7 +481,7 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (87)
+## unresolvedStaticEvents (101)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:227: dynamic emission"}
@@ -499,6 +499,8 @@ None.
 - {"service":"cya","ref":"services/cya.service.js:3412: dynamic emission"}
 - {"service":"cya","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"cya","ref":"src/llm-client.js:227: dynamic emission"}
+- {"service":"datapoint","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"datapoint","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"dataset","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"dataset","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"datasource-classifier","ref":"src/job-store.js:67: dynamic emission"}
@@ -512,11 +514,17 @@ None.
 - {"service":"energy-sharing-allocation","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"energy-sharing","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"entsoe","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"evidence-router","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"evidence-router","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"ewk-monitoring","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"finance-agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"finance-agent","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"forecast-sandbox","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"forecast","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"activation","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"activation","ref":"src/llm-client.js:227: dynamic emission"}
+- {"service":"function-coverage","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"function-coverage","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"gas-storage","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"german-grid","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"grid-connection","ref":"src/job-store.js:67: dynamic emission"}
@@ -540,6 +548,8 @@ None.
 - {"service":"personal-agent","ref":"services/personal-agent/methods-part-08-of-11.js:31: dynamic emission"}
 - {"service":"personal-agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"personal-agent","ref":"src/llm-client.js:227: dynamic emission"}
+- {"service":"project-graph","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"project-graph","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"project-manifest","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"project-manifest","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"project-structure","ref":"src/job-store.js:67: dynamic emission"}
@@ -550,6 +560,10 @@ None.
 - {"service":"residual-load","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"shared-service-agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"shared-service-agent","ref":"src/llm-client.js:227: dynamic emission"}
+- {"service":"journal","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"journal","ref":"src/llm-client.js:227: dynamic emission"}
+- {"service":"shared-service-learning","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"shared-service-learning","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"notices","ref":"services/shared-service-notices.service.js:412: spread event handlers"}
 - {"service":"notices","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"notices","ref":"src/llm-client.js:227: dynamic emission"}

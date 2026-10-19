@@ -38,14 +38,16 @@ function getClient() {
   return new GoogleGenerativeAI(apiKey);
 }
 
-// Gemini's response_schema (OpenAPI subset) rejects `additionalProperties` with HTTP 400.
-// Callers keep their full JSON Schema for local Ajv validation; only the provider copy is reduced.
+// Gemini's response_schema (OpenAPI subset) rejects `additionalProperties` and `uniqueItems`
+// with HTTP 400. Callers keep their full JSON Schema for local Ajv validation; only the
+// provider copy is reduced.
+const UNSUPPORTED_SCHEMA_KEYS = new Set(['additionalProperties', 'uniqueItems']);
 function providerSchema(value) {
   if (Array.isArray(value)) return value.map(providerSchema);
   if (!value || typeof value !== 'object') return value;
   return Object.fromEntries(
     Object.entries(value)
-      .filter(([key]) => key !== 'additionalProperties')
+      .filter(([key]) => !UNSUPPORTED_SCHEMA_KEYS.has(key))
       .map(([key, entry]) => [key, providerSchema(entry)])
   );
 }

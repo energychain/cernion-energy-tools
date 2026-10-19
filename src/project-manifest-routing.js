@@ -75,13 +75,35 @@ function scoreCandidate(candidate, question, bounds) {
   const query = new Set(terms([...split(normalize(question))].join(' ')));
   const coverage = (words) =>
     words.length ? words.filter((word) => query.has(word)).length / words.length : 0;
-  const subjects = names
-    .map((name) => ({ name, words: terms(name) }))
-    .filter((item) => item.words.length >= 2 && coverage(item.words) >= bounds.minSubjectCoverage);
-  const subjectScore = subjects.length
-    ? Math.max(...subjects.map((item) => coverage(item.words)))
-    : 0;
-  const subjectWords = new Set(subjects.flatMap((item) => item.words));
+  const subject = (name) => {
+    const words = terms(name);
+    const reference =
+      /^(?:\d{6,}|[\p{L}\p{N}]+[-_:][\p{L}\p{N}_:-]+)$/u.test(String(name)) &&
+      require('./workbench-codes').exactToken(String(question), String(name));
+    const score = coverage(words);
+    return reference || (words.length >= 2 && score >= bounds.minSubjectCoverage)
+      ? {
+          name,
+          words,
+          score: reference ? 1 : score,
+          key: reference
+            ? `id:${normalize(name)}`
+            : [...words].sort((a, b) => a.localeCompare(b)).join(' '),
+        }
+      : null;
+  };
+  const subjects = names.map(subject).filter(Boolean);
+  const subjectScore = subjects.length ? Math.max(...subjects.map((item) => item.score)) : 0;
+  // Generated entities may contain a field as well as its subject. They must not
+  // consume deterministic field/heading terms and thereby hide a matching source.
+  const deterministicNames = sources.flatMap((source) => [
+    ...source.names.map((name) => name.replace(/\.[a-z0-9]+$/iu, '')),
+    ...source.anchors.map((item) => corrected(item, corrections)),
+  ]);
+  const deterministicSubjects = deterministicNames.map(subject).filter(Boolean);
+  const subjectWords = new Set(
+    (deterministicSubjects.length ? deterministicSubjects : subjects).flatMap((item) => item.words)
+  );
   const explicit = phrase(question, candidate.title);
   const lexical = types
     .map((type) => {
@@ -112,9 +134,7 @@ function scoreCandidate(candidate, question, bounds) {
           )
           .map((item) => corrected(item, corrections)),
       ];
-      const subjectMatches = localNames.some(
-        (name) => terms(name).length >= 2 && coverage(terms(name)) >= bounds.minSubjectCoverage
-      );
+      const subjectMatches = localNames.some((name) => subject(name));
       const contentScore = Math.max(
         0,
         ...(source.kind === 'section'
@@ -199,6 +219,14 @@ function scoreCandidate(candidate, question, bounds) {
     candidate,
     score,
     subjectScore,
+    subjectKeys: sources
+      .flatMap((source) => [
+        ...source.names.map((name) => name.replace(/\.[a-z0-9]+$/iu, '')),
+        ...source.anchors.map((anchor) => corrected(anchor, corrections)),
+      ])
+      .map(subject)
+      .filter(Boolean)
+      .map((item) => item.key),
     contentScore,
     periodMatch,
     explicit,
@@ -211,6 +239,9 @@ function scoreCandidate(candidate, question, bounds) {
 // Descriptions and deterministic metadata are candidates, never answer evidence.
 function selectProjectCandidates(candidates, question, options = {}) {
   const bounds = thresholds(options);
+  const maxSources = options.maxSources ?? 8;
+  if (!Number.isInteger(maxSources) || maxSources < 1 || maxSources > 8)
+    throw new Error('Invalid evidence routing maxSources');
   const ranked = candidates
     .map((candidate) => scoreCandidate(candidate, String(question || ''), bounds))
     .sort(
@@ -220,8 +251,18 @@ function selectProjectCandidates(candidates, question, options = {}) {
         a.candidate.projectId.localeCompare(b.candidate.projectId)
     );
   const best = ranked[0];
+  // Complementary source records with the same matched subject form one candidate group.
+  // Competing subjects still require the configured relevance margin.
+  const complementary = (item) =>
+    Boolean(
+      best?.candidate.sourceType &&
+      item.candidate.sourceType &&
+      (best.candidate.sourceType !== 'project' || item.candidate.sourceType !== 'project') &&
+      item.subjectKeys?.some((key) => best.subjectKeys?.includes(key))
+    );
   const next = ranked.find(
-    (item, index) => index > 0 && ['selected', 'below_threshold'].includes(item.reason)
+    (item, index) =>
+      index > 0 && !complementary(item) && ['selected', 'below_threshold'].includes(item.reason)
   );
   const margin = best ? best.score - (next?.score || 0) : 0;
   const reason = !best
@@ -242,14 +283,15 @@ function selectProjectCandidates(candidates, question, options = {}) {
     ...(best?.candidate.generation ? { generation: best.candidate.generation } : {}),
   });
   return reason === 'selected'
-    ? [
-        {
-          ...best.candidate,
-          explicit: best.explicit,
-          questionType: best.questionType,
-          score: best.score,
-        },
-      ]
+    ? ranked
+        .filter((item, index) => item.eligible && (index === 0 || complementary(item)))
+        .slice(0, maxSources)
+        .map((item) => ({
+          ...item.candidate,
+          explicit: item.explicit,
+          questionType: item.questionType,
+          score: item.score,
+        }))
     : [];
 }
 

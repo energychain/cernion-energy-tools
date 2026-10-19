@@ -54,6 +54,7 @@ async function matchingDatasets(records, question, conversationId) {
 
 module.exports = {
   name: 'dataset',
+  mixins: [require('../src/dataset-evidence').mixin],
   created() {
     this.datasetPool = new DatasetSqlitePool(
       process.env.WORKBENCH_DATASET_DB_PATH || 'data/datasets'
@@ -75,6 +76,7 @@ module.exports = {
         from: { type: 'string', optional: true },
         to: { type: 'string', optional: true },
         plan: { type: 'object', optional: true },
+        includeSummary: { type: 'boolean', optional: true, default: false },
         conversationId: { type: 'string', optional: true },
       },
       openapi: {
@@ -89,6 +91,13 @@ module.exports = {
           })),
           { name: 'version', in: 'query', schema: { type: 'integer', minimum: 1 } },
           { name: 'plan', in: 'query', schema: { type: 'object' } },
+          {
+            name: 'includeSummary',
+            in: 'query',
+            description: 'Read scoped numeric summaries alongside catalog metadata',
+            schema: { type: 'boolean', default: false },
+            example: true,
+          },
         ],
         responses: {
           200: { description: 'Dataset answer in sentences with units, time and provenance' },
@@ -136,7 +145,10 @@ module.exports = {
             datasetId: record.id,
             status: 'unusable',
           };
-        if (/welche.*daten|katalog|catalog/i.test(ctx.params.question))
+        if (
+          !ctx.params.includeSummary &&
+          /welche.*daten|katalog|catalog/i.test(ctx.params.question)
+        )
           return {
             responseText: `${record.title}, Version ${record.version}: ${record.rowCount} Zeilen, ${record.period.from || 'Zeitraum ungeklärt'} bis ${record.period.to || 'ungeklärt'}; Nutzerangabe von ${record.provenance.person} am ${record.provenance.at.slice(0, 10)}.`,
             datasets: [{ id: record.id, title: record.title }],
@@ -184,6 +196,7 @@ module.exports = {
         question: 'string',
         documents: { type: 'array', optional: true, default: [] },
         conversationId: 'string',
+        channel: { type: 'string', optional: true },
         correctionDatasetId: { type: 'string', optional: true },
         selectionDatasetIds: { type: 'array', items: 'string', optional: true, default: [] },
         clarificationOnly: { type: 'boolean', optional: true, default: false },
@@ -336,6 +349,11 @@ module.exports = {
           title: datasetSheetTitle(table.name, table.sheet, table.explicitSheet),
           sensitivityLevel: table.sensitivityLevel || ctx.params.sensitivityLevel,
           semantic,
+          evidenceAnchors: require('../src/tenant-evidence-anchors').tableSourceAnchors(
+            table.rows,
+            columns,
+            table.sheet
+          ),
           columns,
           profile: table.profile,
           rowCount: table.rows.length,
@@ -356,6 +374,7 @@ module.exports = {
             roles: p.roles,
             at: now,
             conversationId,
+            channel: ctx.params.channel || 'api',
             filename: table.name,
           },
           audit: [{ kind: 'created', actorId: p.actorId, at: now }],

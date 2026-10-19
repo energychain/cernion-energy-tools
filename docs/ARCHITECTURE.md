@@ -654,3 +654,12 @@ Branches 66,60 %, Functions 86,12 %, Lines 83,67 %. API-Audit: 0 Fehler,
 Hash-Referenztests bestanden. GitNexus meldet für den erwarteten Umfang
 CRITICAL Risk über 22 Flüsse wegen der zentralen Hash-/Cursor-Helfer;
 die betreffende Kompatibilität ist mit alten Referenzwerten geprüft.
+
+## Mandantenweite Chat-Evidenz (#927 Phase A)
+
+Projektakte, Chat-Dokument und Chat-Datensatz verwenden die gemeinsame Quellenregistry
+`src/tenant-evidence-sources.js` und den bestehenden Manifest-Selektor. Deskriptoren
+bleiben an Dokument-/Datensatz-Records; Originale und Abfrageergebnisse sind die
+Antwort-Evidenz. Strukturelle Bindungen aus `workbench-data-scope` bleiben gültig und
+werden um autorisiert gewählte Quellen erweitert. Details zu Vertrag, Schwellen,
+Korrektur und Phase B: [TENANT_EVIDENCE.md](TENANT_EVIDENCE.md).

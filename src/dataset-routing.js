@@ -29,6 +29,7 @@ async function selectDatasetCandidates(
     previousSubject = '',
     newDatasetIds = [],
     contextDatasetIds = [],
+    tenantEvidenceIds = [],
   } = {}
 ) {
   if (!records.length || !String(question || '').trim()) return [];
@@ -41,6 +42,7 @@ async function selectDatasetCandidates(
           projectIds,
           previousReads,
           newDatasetIds,
+          tenantEvidenceIds,
         })
       : records
   ).filter(

@@ -230,10 +230,19 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
         lastDatasetId: fresh.length === 1 ? fresh[0] : undefined,
       },
     });
+    const safe = memoryDocumentContext(ctx, meta);
+    const proposal = await require('./workbench-tenant-evidence').uploadCaseProposal(
+      service,
+      safe,
+      { p, envelope, sourceIds: fresh }
+    );
     return {
       state: 'assistance',
       nonBinding: true,
-      responseText: envelope.datasetConfirmations.join('\n\n'),
+      responseText: [envelope.datasetConfirmations.join('\n\n'), proposal?.text]
+        .filter(Boolean)
+        .join('\n\n'),
+      ...(proposal ? { caseProposal: proposal.caseProposal } : {}),
       sources: [],
     };
   }
@@ -250,6 +259,13 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
   );
   if (!candidates.length) return null;
   const { answer, evidence } = await readTurnDataset(ctx, p, envelope, candidates, meta);
+  const combined = await require('./workbench-project-manifest').supplementDatasetAnswer(
+    service,
+    ctx,
+    { p, envelope, pending, meta },
+    { evidence }
+  );
+  if (combined) return combined;
   const receipts = envelope.datasetConfirmations?.length
     ? records
         .filter((record) => fresh.includes(record.id))
@@ -526,9 +542,40 @@ async function runContentTurn(
         ],
       }
     );
+    if (stored?.length && situation.conversationShape !== 'filing') {
+      const evidenceReply = await require('./workbench-project-manifest').projectManifestTurn(
+        service,
+        ctx,
+        {
+          p,
+          pending,
+          meta,
+          envelope: {
+            ...envelope,
+            tenantEvidenceReady: true,
+            evidenceSourceIds: stored.map((row) => row.id),
+            tenantEvidenceMinSources: 2,
+          },
+        }
+      );
+      if (evidenceReply) return evidenceReply;
+    }
     if (stored && situation.conversationShape === 'filing') {
       // Case creation remains in the normal assignment path; documentReply renders only the receipt.
       envelope.documentKnowledgeReceipt = documentKnowledge.filingReply(stored);
+      const proposal = await require('./workbench-tenant-evidence').uploadCaseProposal(
+        service,
+        memoryDocumentContext(ctx, meta),
+        { p, envelope, sourceIds: stored.map((row) => row.id) }
+      );
+      if (proposal)
+        return {
+          state: 'assistance',
+          nonBinding: true,
+          sources: [],
+          responseText: [envelope.documentKnowledgeReceipt, proposal.text].join('\n\n'),
+          caseProposal: proposal.caseProposal,
+        };
     }
   }
   if (incomingDocuments && !['work', 'review'].includes(situation.turnKind))
@@ -1336,7 +1383,9 @@ async function runContentTurn(
           {
             cetCaseId: caseId,
             caseStateVersion: result.caseStateVersion,
-            responseText: result.responseText.slice(0, 16000),
+            responseText: require('./workbench-answer-outcome')
+              .safeConclusion(result.responseText, reply)
+              .slice(0, 16000),
             requiredClarifications: result.requiredClarifications,
             noCallGuards: result.noCallGuards,
           },
@@ -1418,7 +1467,12 @@ async function runContentTurn(
         caseId,
         caseStateVersion: result.caseStateVersion,
         previousMemory,
-        classification: { ...result, memorySummary: reply.memorySummary },
+        classification: {
+          ...result,
+          memorySummary: reply.memorySummary,
+          answerStatus: reply.answerStatus,
+          metadata: reply.metadata,
+        },
         envelope: {
           ...envelope,
           userRequest: understanding.routingRequest(situation),
