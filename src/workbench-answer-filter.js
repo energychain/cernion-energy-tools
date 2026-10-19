@@ -80,8 +80,9 @@ function isInternalDescription(value, internalContext = []) {
     .map(normalizePhrase)
     .filter(Boolean);
   return (
-    sentences.length > 0 &&
-    sentences.every((sentence) => context.some((text) => text.includes(` ${sentence} `)))
+    require('./workbench-conversation-shape').forbiddenMeta(String(value)) ||
+    (sentences.length > 0 &&
+      sentences.some((sentence) => context.some((text) => text.includes(` ${sentence} `))))
   );
 }
 

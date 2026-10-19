@@ -122,7 +122,10 @@
     "src/workbench-tenant-glossary.js",
     "src/workbench-code-sources.js",
     "src/workbench-code-classification.js",
-    "src/workbench-preference-extraction.js"
+    "src/workbench-preference-extraction.js",
+    "src/tenant-evidence-*.js",
+    "src/workbench-tenant-evidence.js",
+    "src/workbench-answer-outcome.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

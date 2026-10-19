@@ -11,4 +11,14 @@ module.exports = new Set(
         ' '
       )
     )
+    .concat(
+      'chats abgleichen datum angaben ergeben vorhandenen vorliegenden daraus sagt sagen weichen ergibt'.split(
+        ' '
+      )
+    )
+    .concat(
+      'ersten abgelegt zweiten n2025 daten herkunft hinterlegt letzte unpassende quellenwahl fallzuordnung material koordination'.split(
+        ' '
+      )
+    )
 );

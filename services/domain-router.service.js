@@ -150,7 +150,10 @@ module.exports = {
         )
           throw new Errors.MoleculerClientError('Case version conflict', 409);
         state.caseStateVersion++;
-        state.lastClassification.responseText = ctx.params.responseText;
+        const { safeConclusion } = require('../src/workbench-answer-outcome');
+        state.lastClassification.responseText =
+          safeConclusion(ctx.params.responseText) ||
+          safeConclusion(state.lastClassification.responseText);
         state.lastClassification.requiredClarifications = ctx.params.requiredClarifications;
         state.lastClassification.noCallGuards = [
           ...new Set([

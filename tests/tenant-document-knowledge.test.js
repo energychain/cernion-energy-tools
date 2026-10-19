@@ -243,6 +243,7 @@ describe('tenant document knowledge (#789)', () => {
     expect(latest.standDate).toBe('2026-10-12');
     expect(await docCall('documentSearch', { query: 'Delta' }, 'actor-b')).toEqual([]);
     const ctx = {
+      meta: meta('actor-a', ['restricted']),
       call: (name, params) => docCall(name.split('.').at(-1), params, 'actor-a', ['restricted']),
     };
     const cached = [

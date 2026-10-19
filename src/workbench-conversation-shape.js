@@ -12,7 +12,7 @@ function kind(situation) {
   );
 }
 function forbiddenMeta(text) {
-  return /\b(?:der Nutzer|den Nutzer|der Anfragende|den Anfragenden|es wird erwartet|es wird angenommen)\b/iu.test(
+  return /\b(?:der Nutzer|den Nutzer|der Anfragende|den Anfragenden|es wird erwartet|es wird angenommen)\b|(?:^|[.!?]\s+|\n)\s*(?:die|diese|deine|ihre)\s+(?:anfrage|frage|bitte)\s+(?:zielt|bezieht sich|betrifft|richtet sich|verlangt|fordert|soll|ist auf)\b/iu.test(
     text
   );
 }

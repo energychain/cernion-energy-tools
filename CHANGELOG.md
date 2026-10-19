@@ -1,5 +1,61 @@
 # Changelog
 
+## Unreleased — Bezugsauflösung live funktionsfähig (#927 Abschluss Phase A)
+
+- Gemini lehnt `uniqueItems` im `response_schema` mit HTTP 400 ab. Der Adapter entfernt
+  das Schlüsselwort wie `additionalProperties` nur aus der Provider-Kopie; die lokale
+  Ajv-Prüfung bleibt vollständig. Bezugsfragen wie „Was ergibt sich daraus …“ erhalten
+  dadurch live wieder beide Quellen.
+- Blattwahl und Einheitenangaben werden wieder ohne zusätzlichen LLM-Aufruf
+  deterministisch beantwortet; die Bezugsauflösung läuft erst, wenn `dataset.turn`
+  den Turn nicht übernimmt.
+
+## Unreleased — Praxis-Replay und Ergänzung struktureller Datenantworten (#927)
+
+- Der lokale Praxis-Transport verwendet jetzt die echte Chat-Dokumentablage samt
+  Deskriptoren. Nur externe Wissensabfragen bleiben kontrolliert leer. Ein Offline-
+  Replay des generierten `document-table`-Szenarios wertet dieselben Prüfungen wie
+  der Live-Bericht aus und reproduzierte zuvor fehlendes Dokument und Zeilenzahlantwort.
+- Strukturelle Datensatzantworten werden vor der Rückgabe über denselben Evidenzpfad
+  um passende Quellen ergänzt. Bei gemeinsam gewählter Evidenz stehen auch nach
+  einem COUNT-Plan die begrenzten Zahlenzusammenfassungen des Executors zur Verfügung;
+  reine Katalogabkürzungen können diese Zusammenführung nicht verdrängen.
+- Der Vertrag aus #873 bleibt erhalten: Ein bereits autorisiert gelesenes Dokument
+  ohne personenbezogene Auswahlkorrekturen benötigt keine zusätzliche Identitätsprüfung.
+  Vorhandene Korrekturen werden weiterhin personenbezogen geprüft.
+
+## Unreleased — Gegenüberstellung und Quellenkontinuität (#927 Nachprüfung)
+
+- Chat-Uploads erhalten sofort einen Minimal-Deskriptor. Begrenzte, koaleszierte
+  LLM-Anreicherung läuft im Hintergrund und blockiert die Upload-Antwort nicht.
+- Gemeinsam gelesene Quellen mit derselben benannten Größe/Einheit erhalten eine
+  belegte Gegenüberstellung mit Herkunft und offener Bezugsbasis, auch wenn die
+  Modellformulierung verworfen wird. Zahlenprüfung und Normalisierung bleiben gemeinsam.
+- Folgeturns können die zuvor gewählte Quellengruppe erneut autorisiert lesen.
+  Generierte Entitätsnamen verdrängen keine passenden Spalten-/Abschnittsmerkmale;
+  interne Beschreibungen einer Anfrage werden auch in diesem Antwortpfad verworfen.
+- Das Praxis-Fixture akzeptiert die vorhandene Ablagebestätigung „gespeichert“.
+  Der rote Live-Bericht auf `7d8dcf39` ist dokumentiert; die Korrekturen sind offline
+  geprüft, ein erneuter Live-Lauf bleibt der aufrufenden Session vorbehalten.
+
+## Unreleased — Selbst anbietende Chat-Evidenz (#927 Phase A)
+
+- Chat-Dokumente und Chat-Datensätze speichern quellengebundene Deskriptoren im
+  bestehenden Bestand. Erzeugung, Bereinigung, Schema und Minimal-Fallback verwenden
+  das Projektmanifest-Muster; Tabellenzeilen/Zellwerte gelangen nicht in die Prompts.
+- Projektakten und Chat-Quellen laufen durch denselben Kandidaten- und Lesepfad.
+  Gemeinsam relevante Quellen werden sichtbar genannt, frisch autorisiert gelesen und
+  mit quellenspezifischer Zahlenprüfung gemeinsam beantwortet. Ein vorhandener
+  Herkunftsfall wird zur Fortsetzung vorgeschlagen; Evidenz benötigt keine Fallbindung.
+- Struktureller Datenscope bleibt erhalten und wird um gewählte Deskriptorquellen
+  erweitert. Tenant, Clearance, Herkunftsfall und Projektmitgliedschaft begrenzen die
+  Suche. `target: tenantEvidence` und „passt nicht“ korrigieren spätere automatische
+  Auswahlen für die jeweilige Person; andere Personen behalten ihre Sicht.
+- Rückfallantworten werden nicht als letzte Falleinordnung gespeichert; historische
+  Rückfalltexte werden bei der Projektion ausgeblendet. Neue Mehrchat-Tests und ein
+  generierter neutraler Praxisfall sichern die Erweiterung. Der Live-Praxislauf folgt
+  in der aufrufenden Session; Phase B registriert weitere Quellenadapter.
+
 ## Unreleased — Deterministisches Routing eigener Kontextänderungen (#925)
 
 - Gespeicherter Arbeitskontext und grammatischer Selbstbezug bestimmen den Vorrang

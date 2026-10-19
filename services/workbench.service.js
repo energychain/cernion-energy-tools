@@ -1702,6 +1702,7 @@ module.exports = {
             },
             { meta: correctionMeta }
           );
+          // A reply to an open clarification asks for no source comparison; keep it free of LLM calls.
           if (resolved.handled)
             return require('../src/workbench-dataset-reply').datasetTurnReply(
               this,
@@ -1711,10 +1712,16 @@ module.exports = {
               resolved
             );
         }
+        // Resolving references needs an LLM call; deterministic dataset replies (sheet, unit) go first.
         const projectReply = await require('../src/workbench-project-manifest').projectManifestTurn(
           this,
           ctx,
-          { p, envelope, pending, meta: correctionMeta }
+          {
+            p,
+            envelope: { ...envelope, contextualEvidence: 'skip' },
+            pending,
+            meta: correctionMeta,
+          }
         );
         if (projectReply) return projectReply;
         if (pending?.tenantMemoryFactIds?.length || !envelope.documents?.length) {
@@ -1744,6 +1751,7 @@ module.exports = {
               question: datasetQuestion,
               documents: envelope.documents || [],
               conversationId: envelope.conversationId,
+              channel: envelope.channel,
               ...(lastDataset?.metadata?.datasetId
                 ? { correctionDatasetId: lastDataset.metadata.datasetId }
                 : {}),
@@ -1751,7 +1759,15 @@ module.exports = {
             },
             { meta: correctionMeta }
           );
-          if (datasetTurn.handled)
+          if (datasetTurn.handled) {
+            const combined =
+              await require('../src/workbench-project-manifest').supplementDatasetAnswer(
+                this,
+                ctx,
+                { p, envelope, pending, meta: correctionMeta },
+                datasetTurn
+              );
+            if (combined) return combined;
             return require('../src/workbench-dataset-reply').datasetTurnReply(
               this,
               p,
@@ -1759,10 +1775,23 @@ module.exports = {
               pending,
               datasetTurn
             );
+          }
           if (datasetTurn.documents) envelope.documents = datasetTurn.documents;
           envelope.datasetConfirmations = datasetTurn.confirmations || [];
           envelope.datasetIds = datasetTurn.datasetIds || [];
         }
+        // Uploads have entered their source stores; offer their descriptors before short answers/status routing.
+        // Otherwise only the deferred reference resolution against this chat's sources remains.
+        const evidenceReply =
+          await require('../src/workbench-project-manifest').projectManifestTurn(this, ctx, {
+            p,
+            envelope: envelope.datasetIds?.length
+              ? { ...envelope, tenantEvidenceReady: true }
+              : { ...envelope, contextualEvidence: 'only' },
+            pending,
+            meta: correctionMeta,
+          });
+        if (evidenceReply) return evidenceReply;
         const memoryReply = await require('../src/tenant-memory').preturn(
           memoryContext,
           p,
