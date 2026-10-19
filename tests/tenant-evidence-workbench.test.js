@@ -327,6 +327,14 @@ test('a question attached to the second upload combines both sources immediately
   expect(reply.caseProposal.cetCaseId).toBe(first.cetCaseId);
 });
 
+// Cross-chat selection is covered by the two-chat tests above and below.
+test('uploads of the current conversation alone stay in the regular turn', async () => {
+  await chat('Zur Kenntnis', 'chat-document', [document]);
+  const same = await chat(queries[0], 'chat-document');
+  expect(same.tenantEvidenceSelection).toBeUndefined();
+  expect(same.responseText).not.toContain('Ich habe dafür');
+});
+
 test('unrelated question offers nothing and does not read either source', async () => {
   await twoChats();
   phases.length = 0;
