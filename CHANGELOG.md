@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased — Infrastruktur-Störung Betriebsrisiko-Workbench (#527)
+
+- Additive, rein manifestbasierte `read_only_workbench_projection` „Infrastructure Disruption
+  Operating Risk Workbench“ für `ROLE_GRID_OPERATIONS_LEAD` in
+  `integrations/budibase/manifests/stadtwerk-mauer-workbench.json`: neun skalare Queries
+  (`getInfrastructureDisruptionOperatingRisk*Rows`) für genau drei synthetische Fälle
+  (`smm-incident-datacenter-communication-001`, `smm-incident-field-terminal-fallback-002`
+  vorausgewählt, `smm-incident-service-provider-delay-003`), komponiert ausschließlich aus
+  sechs bestehenden GET-Lesemodellen (communication-break-process-risk,
+  cross-channel-vnb-signal-queue, monitoring-non-escalation, evidence-freshness-guard,
+  automation-risk-gate, owner-deadline-evidence-gate).
+- Fehlende oder veraltete Evidenz wird als `clarification`/`human_review_required` mit positiver
+  Folgeaktion dargestellt, nie als realer Ausfall, Dienstleisterfehler, Wiederherstellung,
+  Eskalation oder Abschluss. Erlaubt sind nur Fallauswahl, Aktualisierung, Fallback-Evidenz-
+  Prüfung und Owner-Klärung (nur Anzeige); alle konsequenziellen Aktionen erscheinen als
+  deaktivierte `not_called`-Zeilen. Kein Backend, keine Persistenz, kein Blueprint-Seed.
+- Tests: drei neue Fälle in `tests/budibase-workbench.test.js` (Routen, Fallauswahl,
+  skalare Detailzeilen inkl. verschachtelter/leerer Eingaben und No-Call-Grenzen).
+- Fallbindung repariert: Alle Detail-Queries binden die expliziten skalaren Parameter der
+  ausgewählten Selector-Zeile (`selectedCaseId`, Prozess, Rollen, Evidenzreferenz, Fristen) statt
+  fest verdrahtet `smm-incident-field-terminal-fallback-002`; Transformer identifizieren den Fall
+  aus den zurückgegebenen Skalaren gegen den geschlossenen Drei-Fall-Katalog. Unbekannte oder
+  inkonsistente Bindungen ergeben `clarification`. Tests rufen für jeden der drei Fälle die sechs
+  echten GET-Lesemodelle mit den gebundenen Parametern auf und prüfen die Fall-ID jeder Zeile.
+
 ## Unreleased — Bezugsauflösung live funktionsfähig (#927 Abschluss Phase A)
 
 - Gemini lehnt `uniqueItems` im `response_schema` mit HTTP 400 ab. Der Adapter entfernt
