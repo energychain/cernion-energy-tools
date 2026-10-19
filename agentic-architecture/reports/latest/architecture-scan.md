@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-18T03:22:54.549Z
+Generated: 2026-10-19T09:41:36.219Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 2101
+- Files scanned: 2125
 - Services: 164
-- src/*.js files: 423
-- Tests: 527
+- src/*.js files: 434
+- Tests: 533
 - Integrations files: 35
-- Markdown/docs files: 556
+- Markdown/docs files: 562
 
 ## Existing validation summary
 
@@ -26,11 +26,11 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 598 files
-- `src`: 491 files
-- `docs`: 429 files
+- `tests`: 604 files
+- `src`: 502 files
+- `docs`: 435 files
 - `services`: 200 files
-- `scripts`: 89 files
+- `scripts`: 90 files
 - `tools`: 85 files
 - `agentic-architecture`: 61 files
 - `integrations`: 35 files
@@ -50,8 +50,8 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 ## Agentic surface
 
 - Agent/capability/sidecar related files: 274
-- Routing/capability/broker/manifest files: 116
-- Evidence/HITL/receipt/dossier files: 78
+- Routing/capability/broker/manifest files: 117
+- Evidence/HITL/receipt/dossier files: 94
 - OpenWebUI/ChatGPT adapter files: 37
 
 Primary agentic files:
@@ -130,7 +130,7 @@ Primary agentic files:
 - `cya` — services/cya.service.js (8 detected actions)
 - `dashboard-api` — services/dashboard-api.service.js (0 detected actions)
 - `datapoint` — services/datapoint.service.js (10 detected actions)
-- `dataset` — services/dataset.service.js (9 detected actions)
+- `dataset` — services/dataset.service.js (10 detected actions)
 - `datasource-cache` — services/datasource-cache.service.js (11 detected actions)
 - `datasource-classifier` — services/datasource-classifier.service.js (8 detected actions)
 - `datasource-connector` — services/datasource-connector.service.js (12 detected actions)

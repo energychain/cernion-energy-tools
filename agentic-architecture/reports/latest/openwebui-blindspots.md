@@ -1,6 +1,6 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-18T03:22:54.549Z
+Generated: 2026-10-19T09:41:36.219Z
 
 ## Observed adapter surface
 
@@ -127,6 +127,7 @@ Routing/capability/broker/manifest files:
 - `src/project-manifest-evidence.js`
 - `src/project-manifest-generation.js`
 - `src/project-manifest-metadata.js`
+- `src/project-manifest-numbers.js`
 - `src/project-manifest-prose.js`
 - `src/project-manifest-routing.js`
 - `src/project-manifest-store.js`

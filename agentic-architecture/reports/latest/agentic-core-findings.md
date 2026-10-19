@@ -1,25 +1,25 @@
 # Agentic Core Findings
 
-Generated: 2026-10-18T03:22:54.549Z
+Generated: 2026-10-19T09:41:36.219Z
 
 ## Current measurable surface
 
 - Agentic files: 274
-- Routing/capability files: 116
-- Evidence/HITL files: 78
+- Routing/capability files: 117
+- Evidence/HITL files: 94
 - Operation capability index: present
 - OpenAPI export: present
 - llm.txt: present
 
 ## Domain term distribution
 
-- `evidence`: 25316 hits in 824 files
-- `tenant`: 18457 hits in 853 files
-- `broker`: 11489 hits in 668 files
+- `evidence`: 25778 hits in 850 files
+- `tenant`: 18760 hits in 876 files
+- `broker`: 11518 hits in 675 files
 - `grid`: 9862 hits in 654 files
-- `agent`: 8415 hits in 773 files
+- `agent`: 8417 hits in 774 files
 - `decision`: 6979 hits in 454 files
-- `capability`: 6011 hits in 533 files
+- `capability`: 6020 hits in 534 files
 - `stadtwerk`: 5635 hits in 248 files
 - `forecast`: 4595 hits in 329 files
 - `vdmi`: 4528 hits in 293 files
@@ -29,15 +29,15 @@ Generated: 2026-10-18T03:22:54.549Z
 - `edm`: 2946 hits in 368 files
 - `regulator`: 2701 hits in 343 files
 - `mako`: 2493 hits in 307 files
-- `receipt`: 2454 hits in 169 files
-- `routing`: 2328 hits in 377 files
-- `personal-agent`: 2031 hits in 311 files
-- `workflow`: 1609 hits in 248 files
+- `receipt`: 2457 hits in 170 files
+- `routing`: 2368 hits in 385 files
+- `personal-agent`: 2033 hits in 312 files
+- `workflow`: 1610 hits in 249 files
 - `willi`: 1536 hits in 113 files
 - `sidecar`: 1003 hits in 112 files
 - `eog`: 792 hits in 101 files
 - `utility`: 613 hits in 94 files
-- `openwebui`: 597 hits in 95 files
+- `openwebui`: 599 hits in 97 files
 - `open-webui`: 414 hits in 72 files
 - `chatgpt`: 403 hits in 39 files
 
@@ -55,6 +55,7 @@ Generated: 2026-10-18T03:22:54.549Z
 - `docs/roadmap/resolved/25-v0.54.3-vnb-lookup-receipt-migration-plan-prompt.md`
 - `docs/roadmap/resolved/25-v0.54.4-knowledge-aware-receipts-plan-prompt.md`
 - `docs/roadmap/resolved/25-v0.54.5-learning-loop-draft-receipts-plan-prompt.md`
+- `docs/TENANT_EVIDENCE.md`
 - `docs/ui-contracts/40-hitl.md`
 - `docs/use-cases/anschlusskapazitaet-evidence-queue.md`
 - `docs/use-cases/dr-readiness-evidence-gate.md`
@@ -66,6 +67,7 @@ Generated: 2026-10-18T03:22:54.549Z
 - `docs/use-cases/znp-production-readiness-evidence-gate.md`
 - `docs/v0.58-architecture/EVIDENCE_CARRY_FORWARD_ORIGIN_SIGNAL_SCENARIO.md`
 - `integrations/rundeck/jobs/cernion-revalidation-execute-dev.yaml`
+- `scripts/generate-tenant-evidence-fixtures.js`
 - `scripts/spike-739-evidence.js`
 - `services/agent-receipts.service.js`
 - `services/connection-rejection-evidence.service.js`
@@ -86,6 +88,7 @@ Generated: 2026-10-18T03:22:54.549Z
 - `src/blueprints/v1-municipal-transformation-evidence-168.json`
 - `src/blueprints/v1-regulatory-evidence-map-164.json`
 - `src/blueprints/v1-vdmi-evidence-matrix-169.json`
+- `src/dataset-evidence.js`
 - `src/decision-evidence-audit-trail.js`
 - `src/dossier-hydration-registry.js`
 - `src/evidence-endpoint-catalog.js`
@@ -96,12 +99,20 @@ Generated: 2026-10-18T03:22:54.549Z
 - `src/project-manifest-dossier.js`
 - `src/project-manifest-evidence.js`
 - `src/receipt-grounded-presentation-contract.js`
+- `src/tenant-evidence-anchors.js`
+- `src/tenant-evidence-background.js`
+- `src/tenant-evidence-comparison.js`
+- `src/tenant-evidence-descriptor.js`
+- `src/tenant-evidence-question.js`
+- `src/tenant-evidence-read.js`
+- `src/tenant-evidence-sources.js`
 - `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-connection-deadline-evidence-queue-v1.json`
 - `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-cross-system-variance-evidence-matrix-v1.json`
 - `src/vdmi-hitl-role-derivation.js`
 - `src/workbench-answer-evidence.js`
 - `src/workbench-evidence.js`
 - `src/workbench-mail-evidence.js`
+- `src/workbench-tenant-evidence.js`
 - `src/workbench-web-evidence.js`
 - `tests/agent-receipts-seeds.test.js`
 - `tests/agent-receipts.service.test.js`
@@ -120,7 +131,12 @@ Generated: 2026-10-18T03:22:54.549Z
 - `tests/personal-agent-auto-evidence-requirement.integration.test.js`
 - `tests/personal-agent-willi-mako-evidence.test.js`
 - `tests/personal-agent-work-out-loud-evidence-revalidation.integration.test.js`
+- `tests/practice-tenant-evidence-replay.test.js`
 - `tests/project-manifest-evidence.test.js`
+- `tests/tenant-evidence-background.test.js`
+- `tests/tenant-evidence-comparison.test.js`
+- `tests/tenant-evidence-descriptor.test.js`
+- `tests/tenant-evidence-workbench.test.js`
 
 ## Shepherd interpretation
 
