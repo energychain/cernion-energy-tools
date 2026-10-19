@@ -31,3 +31,11 @@ test('legacy fallback conclusions disappear from both safe memory and case overv
   expect(text).not.toContain('nicht zuverlässig');
   expect(text).not.toContain('Letzte Einordnung');
 });
+
+test('internal descriptions, structural errors and bare titles are not last conclusions', () => {
+  expect(safeConclusion('Der Benutzer möchte vorhandene Angaben einordnen.')).toBe('');
+  expect(safeConclusion('Beliebige Fehlermeldung', { answerStatus: 'error' })).toBe('');
+  expect(
+    safeTurnMemory({ topic: 'Objekt Nord', lastSafeConclusion: 'Objekt Nord' }).lastSafeConclusion
+  ).toBeUndefined();
+});

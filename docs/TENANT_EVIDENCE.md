@@ -1,4 +1,4 @@
-# Chat-Bestandteile als Mandantenwissen (#927 Phase A)
+# Chat-Bestandteile als Mandantenwissen (#927 Phase A/B)
 
 Chat-Dokumente und Chat-Datensätze bieten sich neben Projektakten als Evidenz an.
 Die Workbench prüft die Angebote vor Fallübersicht und Tabellen-Kurzantwort.
@@ -17,9 +17,8 @@ in `src/tenant-evidence-sources.js` registriert ein selbst beschreibendes Angebo
 `read(ctx, selected, question, options)` liest die aktuelle autorisierte Originalquelle
 und liefert `{evidence, gaps, trace}`. `correctionAction` nennt den geschützten
 Korrekturverbraucher. Die Projektakte ist der registrierte Typ `project`.
-Phase B kann Fallzusammenfassungen, Sitzungen und Teamgedächtnis als weitere Adapter
-registrieren; Katalog, Selektor, Korrekturdispatch und Antwortpfad bleiben gemeinsam.
-Diese Sitzungsquellen sind in Phase A nicht registriert.
+Phase B registriert Fallzusammenfassungen, Sitzungen und festgehaltene Aussagen als weitere Adapter; Katalog, Selektor, Korrekturdispatch und Antwortpfad bleiben gemeinsam.
+Die Details der Sitzungsquellen stehen im Abschnitt „Phase B“ unten.
 
 Der Kandidat enthält `id`, `sourceType`, `sourceId`, `title`, `manifest`,
 `routingSources`, `provenance`, `sensitivity`, `corrections` und bei Chat-Quellen
@@ -187,3 +186,59 @@ Rückfalltexte aus `lastSafeConclusion`, damit sie nicht erneut als „Letzte Ei
 erscheinen. Deskriptoren entstehen ausschließlich aus Quellenmetadaten.
 
 Validierung und Grenzen: [927-phase-a.md](validation/927-phase-a.md).
+
+## Phase B: ältere Sitzungen und festgehaltene Aussagen
+
+Die Registry registriert zusätzlich `case` und `memory` über denselben Quellenvertrag.
+`case` projiziert die aktuelle sichere Fallzusammenfassung und das vorhandene Turn-Memory;
+`memory` projiziert aktive festgehaltene Aussagen aus dem bestehenden Tenant-Memory-Store.
+Es gibt weder einen zusätzlichen Katalog noch einen weiteren Selektor oder Antwortpfad.
+Die Quellen nennen die Originalherkunft mit Fall, Gesprächsreferenz, Zeitpunkt und Fundstelle.
+Die deterministische Quellennennung und `target: tenantEvidence` in der Lernschleife
+funktionieren für beide Typen; Ablehnungen gelten personenbezogen und `confirm` hebt sie auf.
+
+Kandidaten und Originalreads verwenden `principal`, `visible`, `loadVisibleCase` und
+bei Aussagen die bestehenden `tenant-memory-store`-Reads. Die Fallpolitik einschließlich
+Clearance und bestehender Teamauflösung bleibt maßgeblich: Die heutige
+`tenantCasePolicy` bildet auch historische `own`-/`team`-Einstellungen auf die
+mandantenweite Sichtbarkeit ab. Phase B führt dafür keine abweichende Mitgliedschafts-
+oder Gateway-Regel ein. Eine gesperrte Herkunft wird weder angeboten noch gelesen.
+Vor jedem Read werden Inhaltshash, Deskriptor-Fingerprint, Status, aktuelle Sitzung
+und personenbezogene Korrektur erneut geprüft.
+
+Deskriptoren bleiben an ihren Originalrecords: am Turn-Memory bzw. an der gespeicherten
+Aussage. Neue Inhalte erhalten sofort das deterministische Minimum. Ältere Bestände
+werden erst bei einer passenden Anfrage nachgezogen. Die Projektion verwendet Titel,
+Gegenstands-/Kennungsanker, Abschnittsbezeichnungen, Zeitraum und Status; Manifest-
+Fragetypen und einzelne Inhaltsfacetten werden aus diesen projizierten Bezeichnungen gewonnen. Gesprächsverlauf, letzte Inhaltsfrage, Antworttext und
+Aussagenwortlaut gelangen nicht in Deskriptor-Prompts. Die bestehende Hintergrundqueue
+behält ihre Grenzen (64 wartend, 1 aktiv, 30 s Standardabstand, 16 KB Metadaten,
+1 Versuch, 1.200 Tokens, 5 s). Sie schreibt nur nach erneuter Prüfung des Originalstands;
+Korrekturen und jüngere Inhalte bleiben erhalten.
+
+Nur verwertbare Einordnungen sind Inhalt. Titel ohne Aussage, interne Beschreibungen
+wie „Der Benutzer möchte …“, Rückfall- und Fehlerantworten bieten sich nicht an und
+werden nicht als „Letzte Einordnung“ projiziert. Neue Einordnungen werden vor dem
+Fall-Footer gespeichert. Das aktuelle Gespräch und der aktuell daran gebundene Fall
+sind als ältere Sitzung ausgeschlossen. Bei neuen Schlussfolgerungen wird ihre
+Upload-Herkunft gespeichert: Dokument-/Datensatzantworten werden nicht zusätzlich
+als Sitzungsquelle angeboten. Bei Altdaten ohne diese Herkunftsmetadaten unterdrückt
+die Registry Sitzungsangebote, deren Fall/Gespräch bereits durch einen sichtbaren
+Upload repräsentiert ist. Dokumentabgeleitete Tenant-Memory-Aussagen bleiben ebenfalls
+bei ihrer Dokumentquelle. Eigenständige Sitzungsinhalte können gemeinsam mit passenden
+Dokumenten und Datensätzen gelesen werden.
+
+Reine Tabellenablage verwendet bereits vor der Bezugsauflösung denselben bestehenden
+strukturellen Datensatzpfad wie der Inhaltsturn. Zuvor werden passende deterministische
+Deskriptorangebote ohne Bezugsauflösung geprüft, damit auch Inhaltsbitten direkt am
+Upload erhalten bleiben. Eine Ablagebestätigung ohne Datenread
+ruft `evidence_reference_resolution` nicht auf. `supplementDatasetAnswer` verlangt
+belegte Read-Evidenz oder ein strukturiertes Abfrageergebnis; eine Datensatz-ID allein
+reicht nicht. Inhaltsfragen direkt am Upload und strukturelle Blatt-/Einheitenantworten
+behalten ihre bisherigen Pfade.
+
+Das generierte Szenario `earlier-session` prüft zwei Formulierungen im neuen Chat,
+Herkunft, unpassende Fragen, Korrektur und einen ursprünglichen Rückfall. Der Offline-
+Replay verwendet `createLocalTransport`, den vollständigen Workbench-Harness,
+schema-validierte Modellstubs und unveränderte `checkTurn`-Erwartungen. Details und
+der Live-Vorbehalt stehen in [927-phase-b.md](validation/927-phase-b.md).

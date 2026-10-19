@@ -15,7 +15,8 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
   if (
     (!ctx.broker.getLocalService('project-manifest') &&
       !ctx.broker.getLocalService('dataset')?.schema?.actions?.evidenceCandidates &&
-      !ctx.broker.getLocalService('knowledge-rag')?.schema?.actions?.documentEvidenceCandidates) ||
+      !ctx.broker.getLocalService('knowledge-rag')?.schema?.actions?.documentEvidenceCandidates &&
+      !ctx.broker.getLocalService('workbench')?.store) ||
     (envelope.documents?.length && !envelope.tenantEvidenceReady) ||
     (envelope.datasetIds?.length && !envelope.tenantEvidenceReady) ||
     require('./workbench-thread').isDocumentInput(envelope.userRequest)
@@ -138,7 +139,11 @@ async function supplementDatasetAnswer(service, ctx, input, result) {
         ...(result.evidence || [])
           .filter((entry) => entry.source === 'dataset.query')
           .map((entry) => entry.metadata?.datasetId),
-        result.datasetId,
+        ...(result.datasetId &&
+        Number.isInteger(result.rowCount) &&
+        !['unavailable', 'unusable'].includes(result.status)
+          ? [result.datasetId]
+          : []),
         ...(result.sources?.some(
           (source) => source.source === 'dataset.query' && source.status === 'available'
         )

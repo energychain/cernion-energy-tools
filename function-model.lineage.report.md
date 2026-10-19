@@ -1,6 +1,6 @@
 # Function model lineage — generated report
 
-Current source SHA-256: 620268c63ebb2aa84a50ca5fac576940fb0431b125e14eec07308820ec555bbf.
+Current source SHA-256: 0e6b5c95bc8f3427443415f693fee0dec07f208d29ade297fa1bdb9d5882107d.
 Transition statistics (last membership transition): {"same":96,"merged":9,"split":5,"retired":4,"new":1,"previousSourceHash":"133194217cd96e07c18cc0a8abe34ad1f4fb1256a00c0ad5aed86a16877cf7e7"}.
 
 | Historical ID | Current successors |

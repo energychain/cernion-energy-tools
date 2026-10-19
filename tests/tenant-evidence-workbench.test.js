@@ -585,6 +585,12 @@ test('generic file names resolve their shared observed anchor without sending ce
       text: 'Bezug;Datum;Bestand (Stück)\nREF-A123;2025-01-01;95\nREF-A123;2025-01-02;90\nREF-A123;2025-01-03;80',
     },
   ]);
+  // Exercise descriptor prompts explicitly; filing no longer spends a reference-resolution call.
+  for (const name of ['knowledge-rag', 'datapoint']) {
+    const service = app.broker.getLocalService(name);
+    while (service.evidenceWorker?.pending.size)
+      await require('../src/tenant-evidence-background').runDescriptorJob(service);
+  }
   const reply = await chat(
     'Was ergibt sich daraus für die bereits vorliegenden Unterlagen?',
     'generic-table'

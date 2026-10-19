@@ -3,7 +3,7 @@
 // Status is authoritative for current replies; wording only cleans historical records.
 function safeConclusion(text, outcome = {}) {
   if (
-    outcome.answerStatus === 'fallback' ||
+    ['fallback', 'error', 'unavailable'].includes(outcome.answerStatus) ||
     outcome.metadata?.degraded ||
     outcome.metadata?.fallbackReason ||
     outcome.metadata?.degradedReason ||
@@ -12,6 +12,8 @@ function safeConclusion(text, outcome = {}) {
     )
   )
     return '';
-  return String(text || '');
+  const value = String(text || '');
+  if (outcome.topic && value.trim() === String(outcome.topic).trim()) return '';
+  return require('./workbench-answer-filter').isInternalDescription(value) ? '' : value;
 }
 module.exports = { safeConclusion };

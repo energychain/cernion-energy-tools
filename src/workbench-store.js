@@ -1040,6 +1040,7 @@ class WorkbenchStore {
       actorId: input.actorId,
       caseStateVersion: input.caseStateVersion,
       memory: input.memory || {},
+      evidenceOrigin: input.evidenceOrigin || existing?.evidenceOrigin,
       createdAt: existing?.createdAt || timestamp,
       updatedAt: timestamp,
     });

@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased — Ältere Sitzungen als Mandantenevidenz (#927 Phase B)
+
+- Sichere Fallzusammenfassungen/Turn-Memory (`case`) und aktive festgehaltene Aussagen
+  (`memory`) bieten sich über dieselbe Registry wie Dokumente, Datensätze und Projektakten an.
+  Originalreads beachten Tenant, Clearance und die bestehenden Herkunftszugriffe;
+  Quellenwahl mit Fall, Gespräch, Zeitpunkt und Fundstelle ist sichtbar und personenbezogen korrigierbar.
+- Quellengebundene Minimal-Deskriptoren sind sofort verfügbar; ältere Bestände werden
+  bei Bedarf nachgezogen. Dieselbe begrenzte Hintergrundqueue reichert ausschließlich
+  projizierte Metadaten an. Gesprächs- und Antworttexte bleiben aus diesen Prompts.
+- Aktuelle Sitzungen, Upload-Duplikate, Rückfall-/Fehlerantworten, interne Situationstexte
+  und bloße Überschriften liefern keine zusätzliche Sitzungsevidenz. Letzte Einordnungen
+  enthalten den Inhalt vor dem Fall-Footer.
+- Reine Tabellenablage erreicht den bestehenden strukturellen Bestätigungspfad vor der
+  Bezugsauflösung; eine Datensatz-ID allein löst keine Evidenzergänzung mehr aus.
+  Inhaltsfragen am Upload sowie Blattwahl/Einheitenangaben bleiben erhalten.
+- Generiertes Praxis-Szenario `earlier-session` mit Offline-Replay, mehreren Formulierungen,
+  Korrektur, Herkunft, Negativtests und gemischten Quellen. Live-Prüfung folgt in der aufrufenden Session.
+
 ## Unreleased — Bezugsauflösung live funktionsfähig (#927 Abschluss Phase A)
 
 - Gemini lehnt `uniqueItems` im `response_schema` mit HTTP 400 ab. Der Adapter entfernt

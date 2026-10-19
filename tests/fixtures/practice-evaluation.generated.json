@@ -5009,6 +5009,175 @@
           ]
         }
       ]
+    },
+    {
+      "id": "earlier-session",
+      "group": "927",
+      "title": "Erkenntnis aus älterer Sitzung in neuem Chat nutzen",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Koordination",
+          "functionLabel": "Koordination"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Koordination",
+          "functionLabel": "Koordination"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "intake",
+          "actor": "a",
+          "chat": "first",
+          "message": "Zum Standort Nord Prüfbezugcacbafeebafc: Der Bestand beträgt 80 kg. Die Zuordnung ist offen. Ordne diese Angaben ein.",
+          "expect": {
+            "description": "Belegte Einordnung im ersten Chat",
+            "rules": {
+              "casePresent": true,
+              "require": [
+                "80 kg"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "question",
+          "actor": "a",
+          "chat": "second",
+          "message": "Welche Einordnung zum Bestand am Standort Nord Prüfbezugcacbafeebafc liegt vor?",
+          "expect": {
+            "description": "Ältere Sitzung mit Herkunft heranziehen",
+            "rules": {
+              "require": [
+                "Ich habe dafür",
+                "aus Fall F-",
+                "80 kg",
+                "Zuordnung",
+                "Gespräch",
+                "Zeitpunkt",
+                "Fundstelle"
+              ],
+              "forbid": [
+                "nicht hinterlegt",
+                "Letzte Einordnung",
+                "Der Benutzer möchte"
+              ],
+              "previousCaseMention": true
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "paraphrase",
+          "actor": "a",
+          "chat": "second",
+          "message": "Wie wurde der Bestand für Standort Nord Prüfbezugcacbafeebafc eingeordnet?",
+          "expect": {
+            "description": "Andere Formulierung mit gleicher Evidenz",
+            "rules": {
+              "require": [
+                "Ich habe dafür",
+                "aus Fall F-",
+                "80 kg",
+                "Zuordnung",
+                "Gespräch",
+                "Zeitpunkt",
+                "Fundstelle"
+              ],
+              "forbid": [
+                "nicht hinterlegt",
+                "Letzte Einordnung",
+                "Der Benutzer möchte"
+              ],
+              "previousCaseMention": true
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "unrelated",
+          "actor": "a",
+          "chat": "unrelated",
+          "message": "Welche Temperatur ist im Depot West belegt?",
+          "expect": {
+            "description": "Keine unpassende Sitzung heranziehen",
+            "rules": {
+              "forbid": [
+                "Ich habe dafür",
+                "Das Material passt zu Fall"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "correction",
+          "actor": "a",
+          "chat": "second",
+          "message": "passt nicht",
+          "expect": {
+            "description": "Quellenwahl korrigieren",
+            "rules": {
+              "require": [
+                "Korrektur.*gespeichert"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "after-correction",
+          "actor": "a",
+          "chat": "second",
+          "message": "Welche Einordnung zum Bestand am Standort Nord Prüfbezugcacbafeebafc liegt vor?",
+          "expect": {
+            "description": "Abgelehnte Sitzung später ausschließen",
+            "rules": {
+              "forbid": [
+                "Ich habe dafür",
+                "Das Material passt zu Fall"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "fallback",
+          "actor": "a",
+          "chat": "fallback",
+          "message": "Ordne die Temperatur im Depot West Prüfbezugcacbafeebafc ein.",
+          "expect": {
+            "description": "Rückfallantwort im ersten Chat",
+            "rules": {
+              "casePresent": true
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "fallback-question",
+          "actor": "a",
+          "chat": "after-fallback",
+          "message": "Welche Einordnung zur Temperatur im Depot West Prüfbezugcacbafeebafc liegt vor?",
+          "expect": {
+            "description": "Rückfallantwort bietet sich nicht an",
+            "rules": {
+              "forbid": [
+                "Ich habe dafür",
+                "Letzte Einordnung"
+              ]
+            },
+            "dependencies": []
+          }
+        }
+      ]
     }
   ]
 }
