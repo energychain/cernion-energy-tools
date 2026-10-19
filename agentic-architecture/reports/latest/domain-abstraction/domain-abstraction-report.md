@@ -1,6 +1,6 @@
 # Domain Abstraction Report
 
-Generated: 2026-10-19T09:41:40.989Z
+Generated: 2026-10-19T15:44:41.615Z
 
 - Candidate files scanned: 1270
 - Services classified: 164
