@@ -197,8 +197,13 @@ Die Quellen nennen die Originalherkunft mit Fall, Gesprächsreferenz, Zeitpunkt 
 Die deterministische Quellennennung und `target: tenantEvidence` in der Lernschleife
 funktionieren für beide Typen; Ablehnungen gelten personenbezogen und `confirm` hebt sie auf.
 
-Kandidaten und Originalreads verwenden `principal`, `visible`, `loadVisibleCase` und
-bei Aussagen die bestehenden `tenant-memory-store`-Reads. Die Fallpolitik einschließlich
+Kandidaten verwenden `principal`, `visible` und die Fallautorisierung des Domain Routers
+im Zusammenfassungsmodus (`loadCase(…, { summaryOnly: true })`); erst der Originalread
+als Evidenz läuft über `loadVisibleCase` und protokolliert damit den Zugriff auf fremde
+Fälle wie die übrigen Inhaltsreads. Bei Aussagen gelten die bestehenden
+`tenant-memory-store`-Reads. Pro Kandidatensuche werden nur die zuletzt aktualisierten
+Sitzungen bzw. Aussagen betrachtet (`settings.tenantEvidenceSessions.maxCandidates`,
+Standard 64 je Quellentyp); die Gesprächsreferenzen werden einmal je Suche geladen. Die Fallpolitik einschließlich
 Clearance und bestehender Teamauflösung bleibt maßgeblich: Die heutige
 `tenantCasePolicy` bildet auch historische `own`-/`team`-Einstellungen auf die
 mandantenweite Sichtbarkeit ab. Phase B führt dafür keine abweichende Mitgliedschafts-

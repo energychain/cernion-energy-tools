@@ -6,6 +6,9 @@
   (`memory`) bieten sich über dieselbe Registry wie Dokumente, Datensätze und Projektakten an.
   Originalreads beachten Tenant, Clearance und die bestehenden Herkunftszugriffe;
   Quellenwahl mit Fall, Gespräch, Zeitpunkt und Fundstelle ist sichtbar und personenbezogen korrigierbar.
+- Die Kandidatensuche liest fremde Fälle nur im Zusammenfassungsmodus und schreibt dafür
+  keine Zugriffsprotokolle; protokolliert wird erst der tatsächliche Inhaltsread. Pro Suche
+  werden höchstens die 64 zuletzt aktualisierten Sitzungen bzw. Aussagen betrachtet.
 - Quellengebundene Minimal-Deskriptoren sind sofort verfügbar; ältere Bestände werden
   bei Bedarf nachgezogen. Dieselbe begrenzte Hintergrundqueue reichert ausschließlich
   projizierte Metadaten an. Gesprächs- und Antworttexte bleiben aus diesen Prompts.

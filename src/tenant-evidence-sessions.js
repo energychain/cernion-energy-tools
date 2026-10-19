@@ -119,8 +119,11 @@ function memoryRow(fact) {
   };
 }
 
-async function loadCaseRow(service, ctx, p, id, refs) {
-  const state = await service.loadVisibleCase(ctx, p, id);
+// Routing and descriptor upkeep read metadata only; reading content as evidence is audited.
+async function loadCaseRow(service, ctx, p, id, refs, { audited = false } = {}) {
+  const state = audited
+    ? await service.loadVisibleCase(ctx, p, id)
+    : await ctx.broker.getLocalService('domain-router').loadCase(p, id, { summaryOnly: true });
   if (!visible(p, state) || state.disposition === 'discarded' || state.mergedInto) return null;
   const saved = await service.store.getTurnMemory({ tenantId: p.tenantId, caseId: id });
   const row = caseRow(state, saved, refs);
@@ -131,18 +134,18 @@ async function loadCaseRow(service, ctx, p, id, refs) {
   return row;
 }
 
-async function loadMemoryRow(service, ctx, p, id) {
+async function loadMemoryRow(service, ctx, p, id, refs) {
   const fact = (await facts.get(ctx, p, id)).payload;
   const row = memoryRow(fact);
   if (!row || fact.type !== 'tenant_memory_fact') return null;
   if (row.provenance.conversationId) {
-    const refs = (await conversationRefs(service, p)).filter(
+    const matching = (refs || (await conversationRefs(service, p))).filter(
       (ref) =>
         ref.conversationId === row.provenance.conversationId &&
         (!row.provenance.channel || ref.client === row.provenance.channel)
     );
     row.refs.push(
-      ...refs.map((ref) => ({
+      ...matching.map((ref) => ({
         caseId: ref.cetCaseId,
         conversationId: ref.conversationId,
         channel: ref.client,
@@ -231,20 +234,28 @@ async function sessionCandidates(ctx, question, kind) {
   const p = principal(ctx),
     refs = await conversationRefs(service, p),
     result = [];
+  const limit = service.settings?.tenantEvidenceSessions?.maxCandidates ?? 64;
+  const recent = (items, at) =>
+    items.sort((a, b) => String(at(b) || '').localeCompare(String(at(a) || ''))).slice(0, limit);
+  // Bound per-turn work: only the most recently updated sessions and statements become candidates.
   const entries =
     kind === 'case'
-      ? (await service.visibleDomainStates(p)).map((state) => state.cetCaseId)
+      ? recent(
+          await service.visibleDomainStates(p),
+          (state) => state.updatedAt || state.createdAt
+        ).map((state) => state.cetCaseId)
       : ctx.broker.getLocalService('object-store')
-        ? (await facts.query(ctx, p, { 'payload.type': 'tenant_memory_fact' })).map(
-            (fact) => fact.id
-          )
+        ? recent(
+            await facts.query(ctx, p, { 'payload.type': 'tenant_memory_fact' }),
+            (fact) => fact.payload?.at || fact.at
+          ).map((fact) => fact.id)
         : [];
   for (const id of entries) {
     try {
       const row =
         kind === 'case'
           ? await loadCaseRow(service, ctx, p, id, refs)
-          : await loadMemoryRow(service, ctx, p, id);
+          : await loadMemoryRow(service, ctx, p, id, refs);
       if (!row || isCurrent(row, ctx, refs)) continue;
       if (descriptor.needsDescriptor(kind, row, question, p.actorId))
         await storeDescriptor(service, ctx, p, kind, row);
@@ -266,8 +277,8 @@ async function readSessionEvidence(ctx, selected) {
     const kind = selected.sourceType;
     const row =
       kind === 'case'
-        ? await loadCaseRow(service, ctx, p, selected.sourceId, refs)
-        : await loadMemoryRow(service, ctx, p, selected.sourceId);
+        ? await loadCaseRow(service, ctx, p, selected.sourceId, refs, { audited: true })
+        : await loadMemoryRow(service, ctx, p, selected.sourceId, refs);
     if (
       !row ||
       isCurrent(row, ctx, refs) ||

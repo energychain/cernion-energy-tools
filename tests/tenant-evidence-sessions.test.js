@@ -112,6 +112,31 @@ test('full turns use fresh authorized case memory, exclude their current session
   expect(controls.errors).toEqual([]);
 });
 
+test('offering a colleague case reads metadata only; reading it as evidence is audited once', async () => {
+  const first = await intake();
+  const colleague = p('tenant-a', 'actor-b');
+  const audits = async () =>
+    (await app.router.eventsDb.allDocs({ include_docs: true })).rows.filter(
+      ({ doc }) => doc.kind === 'observed' && doc.cetCaseId === first.cetCaseId
+    ).length;
+  const before = await audits();
+  const [selected] = await sessionCandidates(ctx(colleague, 'colleague-chat'), question, 'case');
+  await sessionCandidates(ctx(colleague, 'colleague-chat'), question, 'case');
+  expect(selected?.sourceId).toBe(first.cetCaseId);
+  expect(await audits()).toBe(before);
+  const read = await readSessionEvidence(ctx(colleague, 'colleague-chat'), selected);
+  expect(read.evidence).toHaveLength(1);
+  expect(await audits()).toBe(before + 1);
+});
+
+test('only the most recently updated sessions offer themselves', async () => {
+  await intake();
+  app.workbench.settings.tenantEvidenceSessions = { maxCandidates: 0 };
+  expect(await sessionCandidates(ctx(), question, 'case')).toEqual([]);
+  delete app.workbench.settings.tenantEvidenceSessions;
+  expect(await sessionCandidates(ctx(), question, 'case')).toHaveLength(1);
+});
+
 test('full turns deny foreign tenants and clearance, including a source changed after selection', async () => {
   const first = await intake();
   const selected = (await sessionCandidates(ctx(), question, 'case'))[0];
@@ -133,14 +158,13 @@ test('full turns deny foreign tenants and clearance, including a source changed 
 test('case adapters honor the existing source access gate before offering and reading', async () => {
   await intake();
   const selected = (await sessionCandidates(ctx(), question, 'case'))[0];
-  const original = app.workbench.loadVisibleCase.bind(app.workbench);
-  const gate = jest
-    .spyOn(app.workbench, 'loadVisibleCase')
-    .mockImplementation((context, person, id) => {
-      if (id === selected.sourceId)
-        throw Object.assign(new Error('Source membership revoked'), { code: 403 });
-      return original(context, person, id);
-    });
+  // Offering (summary) and reading (content) both pass the router's case authorization.
+  const original = app.router.loadCase.bind(app.router);
+  const gate = jest.spyOn(app.router, 'loadCase').mockImplementation((person, id, options) => {
+    if (id === selected.sourceId)
+      throw Object.assign(new Error('Source membership revoked'), { code: 403 });
+    return original(person, id, options);
+  });
   try {
     expect((await chat(question)).tenantEvidenceSelection).toBeUndefined();
     expect((await readSessionEvidence(ctx(), selected)).evidence).toEqual([]);
