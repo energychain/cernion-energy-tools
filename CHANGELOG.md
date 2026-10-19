@@ -21,6 +21,14 @@
 - Generiertes Praxis-Szenario `earlier-session` mit Offline-Replay, mehreren Formulierungen,
   Korrektur, Herkunft, Negativtests und gemischten Quellen. Live-Prüfung folgt in der aufrufenden Session.
 
+## Unreleased — Mandantenwissen nur gesprächsübergreifend (#927 Hotfix)
+
+- Der allgemeine Evidenzpfad übernimmt einen Turn nur noch, wenn mindestens eine gewählte
+  Quelle von außerhalb des aktuellen Gesprächs stammt. Uploads des eigenen Gesprächs
+  allein bleiben im regulären Ablauf. Dadurch greifen Rollenangaben, der Schutzpfad für
+  Aussagen über Dritte (#874) und der Summenvergleich mehrerer Blätter wieder wie vor
+  Phase A; gesprächsübergreifende Abgleiche bleiben unverändert.
+
 ## Unreleased — Bezugsauflösung live funktionsfähig (#927 Abschluss Phase A)
 
 - Gemini lehnt `uniqueItems` im `response_schema` mit HTTP 400 ab. Der Adapter entfernt

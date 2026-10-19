@@ -393,6 +393,15 @@ async function readJoinKey(ctx, projectId, node, keys) {
   return result.result[0][keys[0]] ?? null;
 }
 
+function fromConversation(candidate, conversationId) {
+  return Boolean(
+    candidate.sourceType &&
+    candidate.sourceType !== 'project' &&
+    (candidate.provenance?.conversationId === conversationId ||
+      candidate.provenance?.refs?.some((ref) => ref.conversationId === conversationId))
+  );
+}
+
 async function projectManifestAnswer(ctx, question, options = {}) {
   const settings = ctx.broker?.getLocalService?.('project-manifest')?.settings || {};
   options = { catalog: settings.catalog, operations: settings.operations, ...options };
@@ -432,6 +441,13 @@ async function projectManifestAnswer(ctx, question, options = {}) {
     selected.length < (options.minSources || 1) ||
     (options.requireSourceIds?.length &&
       !selected.some((candidate) => options.requireSourceIds.includes(candidate.sourceId)))
+  )
+    return null;
+  // Uploads of the current conversation already reach the regular turn (documents, roles,
+  // person protection); tenant evidence takes over only when a source from elsewhere joins.
+  if (
+    options.currentConversationId &&
+    selected.every((candidate) => fromConversation(candidate, options.currentConversationId))
   )
     return null;
   if (
