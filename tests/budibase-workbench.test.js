@@ -9340,4 +9340,255 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
   });
+
+  const IDOR_SELECTED_CASE = 'smm-incident-field-terminal-fallback-002';
+  const IDOR_QUERY_NAMES = [
+    'Selector',
+    'CaseImpact',
+    'FallbackEvidence',
+    'Monitoring',
+    'Freshness',
+    'DeescalationGate',
+    'OwnerDeadline',
+    'Interaction',
+    'NoCall',
+  ].map((part) => `getInfrastructureDisruptionOperatingRisk${part}Rows`);
+  const IDOR_DETAIL_NAMES = IDOR_QUERY_NAMES.slice(1);
+
+  it('adds the Infrastructure Disruption Operating Risk panel from exactly the six named existing GET reads (#527)', () => {
+    const queries = manifest.queries.filter((query) => IDOR_QUERY_NAMES.includes(query.name));
+    expect(queries.map((query) => query.name)).toEqual(IDOR_QUERY_NAMES);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/communication-break-process-risk',
+        '/api/dashboard/cross-channel-vnb-signal-queue',
+        '/api/dashboard/monitoring-non-escalation',
+        '/api/dashboard/evidence-freshness-guard',
+        '/api/dashboard/automation-risk-gate',
+        '/api/dashboard/owner-deadline-evidence-gate',
+      ])
+    );
+    for (const query of queries) {
+      expect(query.method).toBe('GET');
+      const params = new URLSearchParams(query.queryString);
+      expect(params.get('tenantId')).toBe('{{tenantId}}');
+      // every selected-case parameter binds the same default-selected synthetic case
+      for (const key of ['signalId', 'caseId']) {
+        if (params.has(key)) expect(params.get(key)).toBe(IDOR_SELECTED_CASE);
+      }
+      // transferable role labels only; Personal-Agent appears solely as a disabled no-call boundary
+      for (const role of query.transformer.match(/ROLE_[A-Za-z_]+/g) || []) {
+        expect(role).toMatch(/^ROLE_[A-Z_]+$/);
+      }
+      if (!query.name.endsWith('NoCallRows'))
+        expect(query.transformer).not.toMatch(/personal[-_ ]?agent/i);
+      expect(query.transformer).not.toMatch(/fetch\(|require\(|XMLHttpRequest/);
+    }
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('infrastructure_disruption_operating_risk'))
+        .map((section) => section.queryName)
+    ).toEqual(IDOR_QUERY_NAMES);
+    const notes = manifest.notes.join(' ');
+    expect(notes).toContain('Infrastructure Disruption Operating Risk panel (#527)');
+    expect(notes).toContain(
+      'no Blueprint-Pack seed, demoProcessMatrix, Landing-Registry item or productive page'
+    );
+  });
+
+  it('renders exactly three explicitly synthetic Infrastructure Disruption Operating Risk cases, never persisted', () => {
+    const rows = runTransformer('getInfrastructureDisruptionOperatingRiskSelectorRows', {});
+    expectScalarRows(rows);
+    expectNoRawObjectText(rows);
+    expect(rows.map((row) => row.caseId)).toEqual([
+      'smm-incident-datacenter-communication-001',
+      IDOR_SELECTED_CASE,
+      'smm-incident-service-provider-delay-003',
+    ]);
+    expect(rows.map((row) => row.evidenceState)).toEqual([
+      'communication_process_impact_gap',
+      'fallback_evidence_review',
+      'stale_provider_completion_evidence',
+    ]);
+    for (const row of rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          dataClass: 'synthetic_tenant_seed',
+          roleTarget: 'ROLE_GRID_OPERATIONS_LEAD',
+          selectedCaseId: IDOR_SELECTED_CASE,
+          humanGate: 'human_review_required',
+          tenantId: 'stadtwerk-mauer',
+        })
+      );
+    }
+    expect(rows.filter((row) => row.selected).map((row) => row.caseId)).toEqual([
+      IDOR_SELECTED_CASE,
+    ]);
+  });
+
+  it('renders scalar Infrastructure Disruption Operating Risk detail rows with human-gated clarification, positive follow-up and no-call guards', () => {
+    const gap = { missingDataPoint: 'evidence_ref', label: 'Evidence reference' };
+    const fixture = {
+      status: 'needs_evidence_ref',
+      queueStatus: 'needs_evidence',
+      process: {
+        processDomain: 'field_terminal_disruption_meter_replacement',
+        blockedDecision: 'Nachbuchung',
+      },
+      governanceContext: { escalationCriterion: { nested: true } },
+      ownerContext: { owner: 'ROLE_GRID_OPERATIONS_LEAD', ownerRole: 'ROLE_GRID_OPERATIONS_LEAD' },
+      normalizedSignals: [
+        {
+          evidenceRefs: [{ nested: true }],
+          sourceSystem: 'synthetic-monitoring',
+          channel: 'field_operations_app',
+        },
+      ],
+      checkedSource: { sourceName: 'synthetic-mdm' },
+      absentBlocker: { classification: 'absent_blocker_documented' },
+      freshnessState: 'stale_context',
+      escalationRecommended: true,
+      readinessSignals: [
+        { code: 'stop_criteria', rawStatus: 'documented' },
+        { code: 'rollback_path', rawStatus: null },
+      ],
+      signalContext: { blockedDecision: 'Nachbuchung' },
+      missingEvidence: [gap, null],
+      positiveFollowUps: [
+        {
+          missingDataPoint: 'evidence_ref',
+          enablesDossierAddition: 'attach the blocking evidence proof',
+        },
+      ],
+      sourceActions: { notCalled: ['hr.personScore'] },
+    };
+
+    for (const name of IDOR_DETAIL_NAMES) {
+      for (const data of [fixture, {}]) {
+        const rows = runTransformer(name, data);
+        expectScalarRows(rows);
+        expectNoRawObjectText(rows);
+        expect(rows.every((row) => row.selectedCaseId === IDOR_SELECTED_CASE)).toBe(true);
+        expect(rows.every((row) => row.dataClass === 'synthetic_tenant_seed')).toBe(true);
+        for (const row of rows.filter(
+          (item) => item.state === 'human_review_required' && item.missingDataPoint !== undefined
+        )) {
+          expect(row.value).toBe('clarification');
+          expect(row.enablesDossierAddition.length).toBeGreaterThan(0);
+        }
+        // never infer a real outage, provider failure, recovery, escalation or closure
+        const text = rows.map((row) => Object.values(row).join(' ')).join(' ');
+        expect(text).not.toMatch(
+          /\b(outage_confirmed|provider_failed|recovered|escalated|closed|resolved)\b/i
+        );
+      }
+      const gapRows = runTransformer(name, fixture).filter(
+        (row) => row.state === 'human_review_required' && row.missingDataPoint
+      );
+      if (
+        ![
+          'getInfrastructureDisruptionOperatingRiskInteractionRows',
+          'getInfrastructureDisruptionOperatingRiskNoCallRows',
+        ].includes(name)
+      ) {
+        // gap without a source-supplied follow-up still gets a positive human follow-up
+        expect(gapRows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              missingDataPoint: 'evidence_ref',
+              enablesDossierAddition: expect.any(String),
+            }),
+          ])
+        );
+      }
+    }
+
+    const fallbackRows = runTransformer(
+      'getInfrastructureDisruptionOperatingRiskFallbackEvidenceRows',
+      fixture
+    );
+    expect(fallbackRows[0]).toEqual(
+      expect.objectContaining({
+        interactionClass: 'inspect_fallback_evidence',
+        status: 'clarification',
+        state: 'human_review_required',
+      })
+    );
+    expect(fallbackRows[1].status).toBe('caller_supplied_pointer');
+    const freshnessSummary = runTransformer(
+      'getInfrastructureDisruptionOperatingRiskFreshnessRows',
+      fixture
+    )[0];
+    expect(freshnessSummary).toEqual(
+      expect.objectContaining({ value: 'stale_context', escalationHint: 'human_review_required' })
+    );
+    expect(freshnessSummary).not.toHaveProperty('escalationRecommended');
+    expect(
+      runTransformer('getInfrastructureDisruptionOperatingRiskDeescalationGateRows', fixture)[0]
+    ).toEqual(
+      expect.objectContaining({
+        stopCriterion: 'documented',
+        rollbackPath: 'missing',
+        state: 'human_review_required',
+      })
+    );
+    expect(
+      runTransformer('getInfrastructureDisruptionOperatingRiskCaseImpactRows', {})
+        .slice(0, 5)
+        .map((row) => row.status)
+    ).toEqual(['unknown', 'clarification', 'clarification', 'clarification', 'clarification']);
+    expect(
+      runTransformer('getInfrastructureDisruptionOperatingRiskOwnerDeadlineRows', fixture)[0]
+        .interactionClass
+    ).toBe('open_owner_clarification');
+
+    const interactionRows = runTransformer(
+      'getInfrastructureDisruptionOperatingRiskInteractionRows',
+      {}
+    );
+    expect(interactionRows.map((row) => [row.interactionClass, row.enabled, row.mode])).toEqual([
+      ['select_synthetic_case', true, 'read_only'],
+      ['refresh_read_models', true, 'read_only'],
+      ['inspect_fallback_evidence', true, 'read_only'],
+      ['open_owner_clarification', true, 'display_navigation_only'],
+    ]);
+
+    const noCallRows = runTransformer(
+      'getInfrastructureDisruptionOperatingRiskNoCallRows',
+      fixture
+    );
+    expect(noCallRows.every((row) => row.status === 'not_called' && row.disabled === true)).toBe(
+      true
+    );
+    expect(noCallRows.map((row) => row.boundary)).toEqual(
+      expect.arrayContaining([
+        'hr.personScore',
+        'incident.create',
+        'ticket.create',
+        'task.create',
+        'pager.escalate',
+        'alerting.escalate',
+        'owner.assign',
+        'provider.call',
+        'mail.send',
+        'webhook.emit',
+        'workflow.execute',
+        'hitl.create',
+        'log.directAccess',
+        'monitoring.mutate',
+        'budibase.table.write',
+        'budibase.app.create',
+        'rundeck.execute',
+        'mako.dispatch',
+        'billing.release',
+        'settlement.exportA96',
+        'tariff.mutate',
+        'redispatch.dispatch',
+        'device-control.execute',
+        'external.connector.call',
+        'personal-agent.execute',
+        'production.action',
+      ])
+    );
+  });
 });
