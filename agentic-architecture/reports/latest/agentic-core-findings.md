@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-10-19T09:41:36.219Z
+Generated: 2026-10-19T15:44:36.601Z
 
 ## Current measurable surface
 
@@ -13,8 +13,8 @@ Generated: 2026-10-19T09:41:36.219Z
 
 ## Domain term distribution
 
-- `evidence`: 25778 hits in 850 files
-- `tenant`: 18760 hits in 876 files
+- `evidence`: 25794 hits in 850 files
+- `tenant`: 18775 hits in 876 files
 - `broker`: 11518 hits in 675 files
 - `grid`: 9862 hits in 654 files
 - `agent`: 8417 hits in 774 files
@@ -34,12 +34,12 @@ Generated: 2026-10-19T09:41:36.219Z
 - `personal-agent`: 2033 hits in 312 files
 - `workflow`: 1610 hits in 249 files
 - `willi`: 1536 hits in 113 files
-- `sidecar`: 1003 hits in 112 files
+- `sidecar`: 1002 hits in 111 files
 - `eog`: 792 hits in 101 files
 - `utility`: 613 hits in 94 files
 - `openwebui`: 599 hits in 97 files
 - `open-webui`: 414 hits in 72 files
-- `chatgpt`: 403 hits in 39 files
+- `chatgpt`: 402 hits in 38 files
 
 ## Evidence and HITL files
 
