@@ -209,3 +209,64 @@ test('dossier receives project selection and separated sources; candidates are e
     expect(text).not.toContain('FORBIDDEN-MANIFEST-NUMBER');
   }
 });
+
+test('both dossier variants name chat sources without turning their combined title into a project', () => {
+  const {
+    buildDossierMarkdown,
+    buildSlimDossierMarkdown,
+  } = require('../src/answer-dossier-builder');
+  const input = {
+    question: 'Welche Angaben ergeben sich aus den Quellen?',
+    dossierState: {
+      userContext: 'unknown',
+      processStage: 'intake',
+      answerMode: 'clarification',
+      confidence: 'low',
+    },
+    projectSelection: { title: 'Unterlage.txt · Export.csv' },
+    evidence: [
+      {
+        source: 'knowledge-rag.documentGet',
+        value: '80 Stück aus der Unterlage.',
+        metadata: {
+          sourceType: 'document',
+          sourceId: 'document-a',
+          sourceLabel: 'Unterlage.txt',
+          evidenceQuality: 'validated',
+        },
+      },
+      {
+        source: 'dataset.query',
+        value: '95 Stück aus der Tabelle.',
+        metadata: {
+          sourceType: 'dataset',
+          sourceId: 'dataset-a',
+          sourceLabel: 'Export.csv',
+          evidenceQuality: 'validated',
+        },
+      },
+    ],
+    timeBudget: { totalBudgetMs: 1000 },
+    completionState: 'completed',
+  };
+  for (const render of [buildDossierMarkdown, buildSlimDossierMarkdown]) {
+    const output = render(input);
+    const text = typeof output === 'string' ? output : output.dossierMarkdown;
+    expect(text).toContain('Ich habe dafür „Unterlage.txt“ und „Export.csv“ herangezogen.');
+    expect(text).not.toContain('Projektakte „Unterlage.txt · Export.csv“');
+    const legacy = render({
+      ...input,
+      projectSelection: { title: 'Unterlagen A' },
+      evidence: [
+        {
+          source: 'reference.read',
+          value: 'Vorhandener Beleg.',
+          metadata: { sourceType: 'catalog', sourceId: 'reference-a', sourceLabel: 'Katalog A' },
+        },
+      ],
+    });
+    expect(typeof legacy === 'string' ? legacy : legacy.dossierMarkdown).toContain(
+      'Ich habe dafür die Projektakte „Unterlagen A“ herangezogen.'
+    );
+  }
+});

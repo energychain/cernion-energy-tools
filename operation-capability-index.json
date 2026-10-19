@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "8370434cd410374ba91e73f4771d5d1e63e260aa5c7a78db5e22999bdd67bf89",
+  "sourceOpenApiHash": "351d90ff54ae066c082a127845f7b787f120413a32dfe6a45cb1a49cfa8b82d2",
   "coverage": {
     "rawOperationCount": 1274,
     "operationCount": 1018,
@@ -36919,6 +36919,13 @@
             "in": "query",
             "type": "object",
             "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "includeSummary",
+            "in": "query",
+            "type": "boolean",
+            "description": "Read scoped numeric summaries alongside catalog metadata",
             "extractionHint": null
           }
         ]

@@ -422,6 +422,22 @@ const schemas = {
       objectSchema({ domain: stringSchema('Domain'), confidence: numberSchema('Confidence') })
     ),
     readinessState: stringSchema('Readiness state'),
+    tenantEvidenceSelection: arrayOf(
+      objectSchema(
+        {
+          sourceType: stringSchema('Registered source adapter type'),
+          sourceId: stringSchema('Source-owned record id; target for tenantEvidence corrections'),
+        },
+        ['sourceType', 'sourceId']
+      )
+    ),
+    caseProposal: objectSchema(
+      {
+        cetCaseId: stringSchema('Visible origin case proposed for continuation'),
+        displayRef: stringSchema('Human-readable case reference'),
+      },
+      ['cetCaseId', 'displayRef']
+    ),
     responseText: stringSchema('UI response text'),
     requiredClarifications: arrayOf(stringSchema('Required clarification')),
     missingEvidence: arrayOf(objectSchema({}, [], 'Missing evidence descriptor')),

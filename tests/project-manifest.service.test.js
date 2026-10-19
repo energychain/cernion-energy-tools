@@ -171,6 +171,16 @@ test('AC-05: other tenant, missing clearance, missing membership, ingesting, arc
     auth('tenant-a', ['restricted'], 'actor-b'),
   ]) {
     expect(await h.call('project-manifest.candidates', {}, meta)).toEqual([]);
+    expect(
+      await require('../src/evidence-endpoint-catalog').projectEvidenceCandidates(
+        {
+          broker: h.broker,
+          meta,
+          call: (name, input) => h.call(name, input, meta),
+        },
+        'Maximum Leistung Standort Nord?'
+      )
+    ).toEqual([]);
     await expect(h.call('project-manifest.get', { projectId }, meta)).rejects.toMatchObject({
       code: 404,
     });
@@ -261,7 +271,11 @@ test('empty tenant and irrelevant questions leave the original routing path unto
   };
   const { projectManifestAnswer } = require('../src/project-manifest-evidence');
   expect(await projectManifestAnswer(ctx, 'Maximum Leistung Standort Nord?')).toBeNull();
-  expect(ctx.call.mock.calls.map(([name]) => name)).toEqual(['project-manifest.candidates']);
+  expect(ctx.call.mock.calls.map(([name]) => name)).toEqual([
+    'project-manifest.candidates',
+    'knowledge-rag.documentEvidenceCandidates',
+    'dataset.evidenceCandidates',
+  ]);
   await populate();
   ctx.call.mockClear();
   expect(await projectManifestAnswer(ctx, 'Wie ist die Temperatur im Depot West?')).toBeNull();

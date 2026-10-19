@@ -1,6 +1,6 @@
 'use strict';
 
-// Gemini's response_schema rejects `additionalProperties` (HTTP 400 "Unknown name").
+// Gemini's response_schema rejects `additionalProperties` and `uniqueItems` (HTTP 400 "Unknown name").
 // The adapter must strip it from the provider copy while callers keep their full schema.
 
 let mockGenerateContent;
@@ -60,6 +60,33 @@ describe('src/adapters/gemini generateStructured', () => {
     expect(sent.properties.answer).toEqual({ type: 'string', minLength: 1, maxLength: 6000 });
     expect(sent.properties.items.items.properties).toEqual({ id: { type: 'string' } });
     expect(sent.required).toEqual(['answer']);
+    expect(schema).toEqual(original);
+  });
+
+  it('removes uniqueItems while keeping the other array constraints', async () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        sourceIds: {
+          type: 'array',
+          maxItems: 8,
+          uniqueItems: true,
+          items: { type: 'string', enum: ['a', 'b'] },
+        },
+      },
+      required: ['sourceIds'],
+    };
+    const original = JSON.parse(JSON.stringify(schema));
+    const geminiAdapter = require('../src/adapters/gemini');
+
+    await geminiAdapter.generateStructured(schema, 'prompt');
+
+    const sent = mockGetGenerativeModel.mock.calls[0][0].generationConfig.responseSchema;
+    expect(sent.properties.sourceIds).toEqual({
+      type: 'array',
+      maxItems: 8,
+      items: { type: 'string', enum: ['a', 'b'] },
+    });
     expect(schema).toEqual(original);
   });
 

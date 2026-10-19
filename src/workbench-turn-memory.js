@@ -121,11 +121,12 @@ function buildTurnMemory({
       previousMemory?.missingEvidence ||
       []
   );
+  const { safeConclusion } = require('./workbench-answer-outcome');
   const lastSafeConclusion = safeText(
-    classification.responseText ||
-      classification.responseGuidance ||
-      previousMemory?.lastSafeConclusion ||
-      '',
+    safeConclusion(
+      classification.responseText || classification.responseGuidance,
+      classification
+    ) || safeConclusion(previousMemory?.lastSafeConclusion),
     700
   );
   const lastUserIntent = safeText(
@@ -233,7 +234,10 @@ function safeTurnMemory(memory) {
     blockedActions: safeList(memory.blockedActions || []),
     appliedPlaybooks: safeAppliedPlaybooks(memory.appliedPlaybooks || []),
     lastUserIntent: safeText(memory.lastUserIntent, 500),
-    lastSafeConclusion: safeText(memory.lastSafeConclusion, 700),
+    lastSafeConclusion: safeText(
+      require('./workbench-answer-outcome').safeConclusion(memory.lastSafeConclusion),
+      700
+    ),
     recentEventStatus: memory.recentEventStatus || null,
     memoryUpdatedAt: memory.memoryUpdatedAt,
     rawChatHistoryStored: false,

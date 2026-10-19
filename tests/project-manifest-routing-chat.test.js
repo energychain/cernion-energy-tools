@@ -337,7 +337,8 @@ test('explicit pasted tables keep their dataset path even with matching project 
   );
   expect(reply.projectSelection).toBeUndefined();
   expect(phases).toContain('dataset.turn');
-  expect(phases).not.toContain('project-manifest.candidates');
+  // Uploads may offer metadata; an unmatched offer does not read a project.
+  expect(phases).not.toContain('project-graph.nodes');
 });
 
 test('wrong-project correction still blocks the next paraphrased turn', async () => {
@@ -434,4 +435,78 @@ test('forwarded document without projects preserves source citations and the ori
     expect(metadata).not.toHaveProperty('projectGraph');
     expect(metadata).not.toHaveProperty('projectManifest');
   }
+});
+
+test('project files and a chat document are read through the same candidate and answer path', async () => {
+  const { scenario, projectId } = await setup('project-a-implicit');
+  const model = llm.generateStructured.getMockImplementation();
+  llm.generateStructured.mockImplementation((schema, prompt) => {
+    const input = JSON.parse(prompt);
+    if (input.task === 'evidence_request_kind') return { contentRequested: true };
+    if (input.nodes?.some((node) => node.kind === 'section')) {
+      const sources = input.nodes
+        .filter((node) => node.kind === 'section')
+        .map((node) => node.nodeId);
+      return require('./helpers/workbench-schema-stub').validate(schema, {
+        summary: { text: 'Archivierte Beobachtung für einen abgegrenzten Gegenstand.', sources },
+        entities: [],
+        timeRanges: [],
+        questionTypes: [
+          {
+            id: 'documented-quantity',
+            description: 'Dokumentierte Größe der archivierten Reihe einordnen',
+            inputs: [],
+            skillRefs: [],
+            sources,
+          },
+        ],
+        externalLinks: [],
+      });
+    }
+    if (input.untrustedEvidence)
+      return {
+        answer:
+          input.untrustedEvidence
+            .map((entry) => `Der Wert beträgt 23 kW (${entry.metadata.sourceLabel}, Fundstelle).`)
+            .join(' ') +
+          ' Die belegten Werte stimmen überein; die zeitliche Vergleichbarkeit bleibt offen.',
+      };
+    return model(schema, prompt);
+  });
+  const document = await h.call(
+    'knowledge-rag.documentIngest',
+    {
+      name: 'Standort Nord.txt',
+      text: '# Standort Nord\n## Leistung\nDie Unterlage nennt 23 kW.',
+      refs: [{ conversationId: 'chat-document', channel: 'api' }],
+    },
+    meta()
+  );
+  phases.length = 0;
+  const reply = await chat(scenario.turns[0].message);
+  expect(reply.evidence).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ metadata: expect.objectContaining({ projectId }) }),
+      expect.objectContaining({
+        metadata: expect.objectContaining({ sourceId: document.id, sourceType: 'document' }),
+      }),
+    ])
+  );
+  expect(reply.responseText).toContain('Standort Nord.txt');
+  expect(reply.responseText).toContain('Standort Nord.csv');
+  expect(reply.responseText).toContain('stimmen überein');
+  expect(phases).toEqual(
+    expect.arrayContaining([
+      'project-manifest.candidates',
+      'knowledge-rag.documentEvidenceCandidates',
+      'dataset.evidenceCandidates',
+    ])
+  );
+  await chat('passt nicht');
+  expect((await h.call('project-manifest.candidates', {}, meta()))[0].corrections).toContainEqual({
+    kind: 'reject',
+    questionTypeId: undefined,
+    nodeId: undefined,
+    name: undefined,
+  });
 });
