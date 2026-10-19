@@ -228,28 +228,43 @@ async function storeDescriptor(service, ctx, p, kind, row) {
   );
 }
 
-async function sessionCandidates(ctx, question, kind) {
-  const service = serviceFor(ctx);
-  if (!service?.store || !ctx.broker.getLocalService('domain-router')) return [];
-  const p = principal(ctx),
-    refs = await conversationRefs(service, p),
-    result = [];
+// Bound per-turn work: only the most recently updated sessions and statements become candidates.
+async function sessionEntries(ctx, service, p, kind) {
   const limit = service.settings?.tenantEvidenceSessions?.maxCandidates ?? 64;
   const recent = (items, at) =>
     items.sort((a, b) => String(at(b) || '').localeCompare(String(at(a) || ''))).slice(0, limit);
-  // Bound per-turn work: only the most recently updated sessions and statements become candidates.
-  const entries =
-    kind === 'case'
-      ? recent(
-          await service.visibleDomainStates(p),
-          (state) => state.updatedAt || state.createdAt
-        ).map((state) => state.cetCaseId)
-      : ctx.broker.getLocalService('object-store')
-        ? recent(
-            await facts.query(ctx, p, { 'payload.type': 'tenant_memory_fact' }),
-            (fact) => fact.payload?.at || fact.at
-          ).map((fact) => fact.id)
-        : [];
+  if (kind === 'case')
+    return recent(
+      await service.visibleDomainStates(p),
+      (state) => state.updatedAt || state.createdAt
+    ).map((state) => state.cetCaseId);
+  if (!ctx.broker.getLocalService('object-store')) return [];
+  return recent(
+    await facts.query(ctx, p, { 'payload.type': 'tenant_memory_fact' }),
+    (fact) => fact.payload?.at || fact.at
+  ).map((fact) => fact.id);
+}
+
+async function sessionCandidates(ctx, question, kind) {
+  const service = serviceFor(ctx);
+  if (
+    !service?.store?.conversationsDb ||
+    typeof ctx.broker.getLocalService('domain-router')?.loadCase !== 'function'
+  )
+    return [];
+  const p = principal(ctx),
+    result = [];
+  let refs, entries;
+  // An optional source must never prevent the turn's answer.
+  try {
+    refs = await conversationRefs(service, p);
+    entries = await sessionEntries(ctx, service, p, kind);
+  } catch (error) {
+    service.logger?.debug('Session evidence unavailable', {
+      errorClass: error.type || error.name,
+    });
+    return [];
+  }
   for (const id of entries) {
     try {
       const row =
