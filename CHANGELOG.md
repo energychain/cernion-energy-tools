@@ -18,6 +18,12 @@
   deaktivierte `not_called`-Zeilen. Kein Backend, keine Persistenz, kein Blueprint-Seed.
 - Tests: drei neue Fälle in `tests/budibase-workbench.test.js` (Routen, Fallauswahl,
   skalare Detailzeilen inkl. verschachtelter/leerer Eingaben und No-Call-Grenzen).
+- Fallbindung repariert: Alle Detail-Queries binden die expliziten skalaren Parameter der
+  ausgewählten Selector-Zeile (`selectedCaseId`, Prozess, Rollen, Evidenzreferenz, Fristen) statt
+  fest verdrahtet `smm-incident-field-terminal-fallback-002`; Transformer identifizieren den Fall
+  aus den zurückgegebenen Skalaren gegen den geschlossenen Drei-Fall-Katalog. Unbekannte oder
+  inkonsistente Bindungen ergeben `clarification`. Tests rufen für jeden der drei Fälle die sechs
+  echten GET-Lesemodelle mit den gebundenen Parametern auf und prüfen die Fall-ID jeder Zeile.
 
 ## Unreleased — Bezugsauflösung live funktionsfähig (#927 Abschluss Phase A)
 

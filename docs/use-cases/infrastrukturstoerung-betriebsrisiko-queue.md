@@ -41,8 +41,12 @@ Alle Zeilen sind skalar und anzeigesicher: verschachtelte Objekte oder Arrays au
 Der Selector (`getInfrastructureDisruptionOperatingRiskSelectorRows`) rendert exakt drei Faelle; ein vierter Fall wird nie synthetisiert und die Auswahl ist reiner Renderer-/Query-State (keine Persistenz):
 
 1. `smm-incident-datacenter-communication-001` — Rechenzentrums-Stoerung, `communication_process_impact_gap`.
-2. `smm-incident-field-terminal-fallback-002` — Standort-/Terminalstoerung Aussendienst, `fallback_evidence_review` — **default-selected**; alle Detail-Queries binden `signalId`/`caseId` konsistent an diesen Fall.
+2. `smm-incident-field-terminal-fallback-002` — Standort-/Terminalstoerung Aussendienst, `fallback_evidence_review` — **default-selected** (nur als Parameter-Default).
 3. `smm-incident-service-provider-delay-003` — Leitungsstoerung Ersatzstandort, `stale_provider_completion_evidence`.
+
+### Fallbindung ueber explizite skalare Parameter
+
+Jede Selector-Zeile traegt den vollstaendigen Bindungssatz ihres Falls als skalare Spalten (`selectedCaseId`, `processDomain`, `affectedProcess`, `blockedDecision`, `contributingRole`, `evidenceRef`, `dueDate`/`dueAt`, Monitoring-/Freshness-/Prozessmetadaten). Alle acht Detail-Queries der sechs GET-Lesemodelle deklarieren genau diese Parameter und binden sie per `{{...}}` in den Query-String (u. a. `caseId`, `signalId`, `processId`, `proofLabel`, `sourceRef`); kein Detail-Query-String enthaelt eine fest verdrahtete Fall-ID. Jeder Transformer identifiziert den Fall aus den vom Lesemodell zurueckgegebenen Skalaren gegen den geschlossenen Drei-Fall-Katalog und prueft Prozess, Rollen, Evidenzreferenz und Fristen auf Konsistenz. Alle Zeilen tragen `caseId`/`selectedCaseId` des gebundenen Falls und `caseBinding: bound_to_selected_case`; eine unbekannte Fall-ID ergibt `unbound_selection_human_review_required`, eine inkonsistente Mischbindung `parameter_mismatch_human_review_required` — jeweils mit `clarification` statt eines vierten oder still vorausgewaehlten Falls.
 
 Rollen erscheinen nur als uebertragbare Rollenlabels (`ROLE_GRID_OPERATIONS_LEAD`, mitwirkend/informiert z. B. `ROLE_METERING`, `ROLE_IT_OPERATIONS`, `ROLE_MANAGEMENT`), nie als Personen oder Personal-Agent-Sonderpfad.
 
