@@ -285,3 +285,25 @@ bleibt HIGH; ein nicht antwortender Index ist keine Entwarnung.
 Offen bleiben ausschließlich der Live-Nachweis und der vollständige Unit-CI-Lauf
 in der aufrufenden Session. Kein Push, keine schreibenden GitHub-Aufrufe,
 kein Live-LLM-Lauf und kein `npm run test:unit:ci` in dieser Runde.
+
+## Abschluss in der aufrufenden Session (2026-10-20)
+
+- **Review-Fixes:** `c3536ea2` (Kandidatensuche liest fremde Fälle nur im Zusammenfassungsmodus,
+  höchstens 64 Sitzungen/Aussagen je Suche), `3a27cb5b` (fehlende Voraussetzungen oder Fehler
+  beim Sammeln brechen keinen Turn ab), `06024fb8` (die Runde-2-Erkennung interner Texte hätte
+  jede Antwort verworfen, die den Gegenstand des Anliegens nennt; jetzt nur noch bloß
+  umhüllte Situationstexte).
+- **Hotfix übernommen:** #954 (Mandantenevidenz nur gesprächsübergreifend).
+- **Live-Lauf 1** ([practice-evaluation-927b-live-1.md](practice-evaluation-927b-live-1.md),
+  vor Runde 2): `earlier-session` wählte die ältere Sitzung nie (lexikalische Inhaltsdeckung);
+  Regressionen aus Phase A in `role-onboarding`/`table-quality` (durch #954 behoben).
+- **Live-Lauf 2** ([practice-evaluation-927b-live-2.md](practice-evaluation-927b-live-2.md),
+  6,83 EUR, je 2 Wiederholungen): `earlier-session` 11,5, `document-table` 12, `table-quality` 12,
+  `role-onboarding` 11,5, `memory` 11,5, `file-question` 12, `project-a-unrelated` 10,5.
+  Frage, Umformulierung und Korrektur der älteren Sitzung live grün.
+- **Bekannte Grenzen:** (1) Formuliert das Modell in Chat 1 eine bloße Arbeitsbeschreibung um
+  („… wird im Rahmen des Arbeitsauftrags geprüft“), erkennt der herkunftsbasierte Filter das
+  nicht wörtlich; die Sitzung kann sich dann mit dieser inhaltsarmen Einordnung anbieten
+  (1 von 2 Läufen). (2) Der rote `notice`-Turn in `memory` kam aus dem bestehenden
+  Gedächtnispfad; drei instrumentierte Wiederholungen waren grün, der Evidenzpfad las dabei
+  keine Gedächtnisquelle.
