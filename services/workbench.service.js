@@ -155,7 +155,11 @@ module.exports = {
     },
     error: { chat: coverageTurn.error, query: coverageTurn.error },
   },
-  mixins: [...WORKBENCH_DATABASES.map(workbenchDbMixin), conversationAssistance.lifecycle],
+  mixins: [
+    ...WORKBENCH_DATABASES.map(workbenchDbMixin),
+    conversationAssistance.lifecycle,
+    require('../src/tenant-evidence-sessions').mixin,
+  ],
   actions: {
     'activities.list': action(
       'GET /activities',
@@ -1604,7 +1608,7 @@ module.exports = {
                 dataNeeds: '',
                 dataQuestion: { requested: false, basis: '' },
               },
-              retrieval: found,
+              retrieval: { ...found, caseOverview: true },
               tenantId: p.tenantId,
               message: envelope.userRequest,
               logger: this.logger,
@@ -1779,6 +1783,24 @@ module.exports = {
           if (datasetTurn.documents) envelope.documents = datasetTurn.documents;
           envelope.datasetConfirmations = datasetTurn.confirmations || [];
           envelope.datasetIds = datasetTurn.datasetIds || [];
+        }
+        // The existing structural path already distinguishes storage receipts from data reads.
+        if (envelope.datasetIds?.length && envelope.datasetConfirmations?.length) {
+          const contentReply =
+            await require('../src/workbench-project-manifest').projectManifestTurn(this, ctx, {
+              p,
+              envelope: { ...envelope, tenantEvidenceReady: true, contextualEvidence: 'skip' },
+              pending,
+              meta: correctionMeta,
+            });
+          if (contentReply) return contentReply;
+          const datasetReply = await contentTurn.incomingDatasetReply(this, ctx, {
+            p,
+            envelope,
+            pending,
+            meta: correctionMeta,
+          });
+          if (datasetReply) return datasetReply;
         }
         // Uploads have entered their source stores; offer their descriptors before short answers/status routing.
         // Otherwise only the deferred reference resolution against this chat's sources remains.
@@ -2386,13 +2408,34 @@ module.exports = {
         principal: p,
         workbenchContext: input.workbenchContext,
       });
-      await this.store.saveTurnMemory({
+      const saved = await this.store.saveTurnMemory({
         tenantId: p.tenantId,
         actorId: p.actorId,
         caseId: input.caseId,
         caseStateVersion: input.caseStateVersion,
         memory,
+        evidenceOrigin: require('../src/workbench-answer-outcome').safeConclusion(
+          input.classification?.responseText,
+          input.classification
+        )
+          ? {
+              at: memory.memoryUpdatedAt,
+              conversationId: input.envelope?.conversationId,
+              channel: input.envelope?.channel,
+              uploadBacked: Boolean(
+                input.envelope?.documents?.length ||
+                input.envelope?.datasetIds?.length ||
+                input.classification?.evidence?.some(
+                  (entry) =>
+                    ['dataset.query', 'knowledge-rag.documentGet'].includes(entry.source) ||
+                    entry.metadata?.workbenchDocument ||
+                    entry.metadata?.datasetId
+                )
+              ),
+            }
+          : undefined,
       });
+      await require('../src/tenant-evidence-sessions').prepareCaseDescriptor(this, p, saved);
       return memory;
     },
     emptyTaskSummary() {

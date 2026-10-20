@@ -16,6 +16,7 @@ function descriptorInput(kind, row) {
         row.title,
         row.sourceName || row.name,
         row.sheet,
+        ...(row.sectionNames || []),
         ...(kind === 'document'
           ? [
               ...new Set(
@@ -51,7 +52,7 @@ function descriptorInput(kind, row) {
       kind: kind === 'dataset' ? 'dataset' : 'section',
       ref: row.id,
       labels: names,
-      attributes: { columns, period: row.period },
+      attributes: { columns, period: row.period, ...(row.status ? { status: row.status } : {}) },
     },
     ...anchors.map((anchor, index) => ({
       recordType: 'node',
@@ -159,6 +160,7 @@ function evidenceCandidate(kind, row, actorId) {
     sourceType: kind,
     sourceId: row.id,
     descriptorFingerprint: input.fingerprint,
+    subjectIdentifiers: row.semantic?.identifiers || [],
     title: input.project.title,
     manifest: descriptor.manifest,
     generation: descriptor.generation,

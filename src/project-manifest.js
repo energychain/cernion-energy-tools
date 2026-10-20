@@ -82,6 +82,7 @@ function manifestInput(project, records, datasets) {
       titles: ['object', 'dataset', 'section', 'external'].includes(node.kind) ? node.labels : [],
       columns: (node.attributes?.columns || []).map(({ name, type }) => ({ name, type })),
       period: node.attributes?.period,
+      ...(node.attributes?.status ? { status: node.attributes.status } : {}),
       catalogField: node.attributes?.catalogField,
     })),
     edges: edges.map(({ from, to, relation, weight }) => ({ from, to, relation, weight })),

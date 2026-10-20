@@ -71,8 +71,19 @@ function substantive(claims) {
     .replace(/(?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße|Beste Grüße)[^\n]*/giu, '');
   return (body.match(/[\p{L}]{3,}/gu) || []).length >= 3;
 }
+// A sentence built only from internal descriptions (plus greeting or filler) adds no content of its
+// own; a sentence that names the same subject and states something about it stays an answer.
+function wrapsOnly(sentence, context) {
+  let rest = sentence;
+  for (const text of context
+    .filter((item) => item.trim().split(/\s+/u).length >= 4)
+    .sort((a, b) => b.length - a.length))
+    rest = rest.split(text).join(' ');
+  return rest !== sentence && (rest.match(/[\p{L}\p{N}]+/gu) || []).length < 3;
+}
 function isInternalDescription(value, internalContext = []) {
-  const context = [...internalContext, internalContext.join(' ')]
+  const context = internalContext
+    .flatMap((text) => String(text || '').split(/(?<=[.!?])\s+|\n+/u))
     .filter(Boolean)
     .map((text) => ` ${normalizePhrase(text)} `);
   const sentences = String(value)
@@ -82,7 +93,11 @@ function isInternalDescription(value, internalContext = []) {
   return (
     require('./workbench-conversation-shape').forbiddenMeta(String(value)) ||
     (sentences.length > 0 &&
-      sentences.some((sentence) => context.some((text) => text.includes(` ${sentence} `))))
+      sentences.some(
+        (sentence) =>
+          context.some((text) => text.includes(` ${sentence} `)) ||
+          wrapsOnly(` ${sentence} `, context)
+      ))
   );
 }
 
@@ -142,6 +157,7 @@ function filterAnswer(
       const rules = [];
       if (
         field !== 'draft' &&
+        !reportedInput &&
         isInternalDescription(claim.text, internalContext) &&
         !message.includes(claim.text) &&
         !evidence.some((hit) => String(hit.value || '').includes(claim.text))

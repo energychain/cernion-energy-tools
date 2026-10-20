@@ -187,6 +187,7 @@ async function createLocalTransport({ budget }) {
   async function send(run, turn) {
     const actor = run.actors.find((item) => item.id === turn.actor);
     const chat = `practice-${run.prefix}-${turn.actor}-${turn.chat}`;
+    if (!run.chats.has(chat)) await app.drainDescriptors();
     run.chats.set(chat, actor);
     if (turn.operation === 'admin-cleanup') {
       const admin = actorMeta(run, actor, { admin: true });

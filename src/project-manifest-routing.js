@@ -78,7 +78,8 @@ function scoreCandidate(candidate, question, bounds) {
   const subject = (name) => {
     const words = terms(name);
     const reference =
-      /^(?:\d{6,}|[\p{L}\p{N}]+[-_:][\p{L}\p{N}_:-]+)$/u.test(String(name)) &&
+      (/^(?:\d{6,}|[\p{L}\p{N}]+[-_:][\p{L}\p{N}_:-]+)$/u.test(String(name)) ||
+        candidate.subjectIdentifiers?.some((entry) => entry.value === name)) &&
       require('./workbench-codes').exactToken(String(question), String(name));
     const score = coverage(words);
     return reference || (words.length >= 2 && score >= bounds.minSubjectCoverage)
@@ -250,6 +251,7 @@ function selectProjectCandidates(candidates, question, options = {}) {
         b.score - a.score ||
         a.candidate.projectId.localeCompare(b.candidate.projectId)
     );
+  options.onRanked?.(ranked);
   const best = ranked[0];
   // Complementary source records with the same matched subject form one candidate group.
   // Competing subjects still require the configured relevance margin.
