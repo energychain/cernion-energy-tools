@@ -71,6 +71,13 @@ function substantive(claims) {
     .replace(/(?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße|Beste Grüße)[^\n]*/giu, '');
   return (body.match(/[\p{L}]{3,}/gu) || []).length >= 3;
 }
+// A sentence that merely wraps an internal description (greeting, filler) adds no content of its
+// own; a sentence that names the same subject and states something about it stays an answer.
+function wrapsOnly(sentence, text) {
+  if (!sentence.includes(text)) return false;
+  const rest = sentence.replace(text, ' ').match(/[\p{L}\p{N}]+/gu) || [];
+  return rest.length < 3;
+}
 function isInternalDescription(value, internalContext = []) {
   const context = internalContext
     .flatMap((text) => String(text || '').split(/(?<=[.!?])\s+|\n+/u))
@@ -87,7 +94,7 @@ function isInternalDescription(value, internalContext = []) {
         context.some(
           (text) =>
             text.includes(` ${sentence} `) ||
-            (text.trim().split(/\s+/u).length >= 4 && ` ${sentence} `.includes(text))
+            (text.trim().split(/\s+/u).length >= 4 && wrapsOnly(` ${sentence} `, text))
         )
       ))
   );
