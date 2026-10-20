@@ -1,6 +1,10 @@
 {
   "entries": [
     {
+      "term": "alter",
+      "reason": "SQL ALTER keyword in the fail-closed statement rejection set (#888); technical database syntax, without business-domain meaning."
+    },
+    {
       "term": "endpoint",
       "reason": "Technical module name evidence-endpoint-catalog, reused for metadata-backed read-only graph observations (#886); no business vocabulary or source selection rules."
     },

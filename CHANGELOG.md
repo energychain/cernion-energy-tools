@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — CET-Skript v1 (#888)
+
+- Eigener Acorn-/AST-Interpreter für die Skill-Sprache der Projektakte, mit statischer
+  Syntax-/Schema-/Scope-Prüfung, expliziten eingebauten Funktionen und sicheren Skriptwerten.
+- Interner nutzergebundener Projekteinstieg ohne zusätzliche REST-Route; Tabellen, Graph,
+  Dokumentpassagen und indexgesteuerte lesende Operationen erhalten eine feste Containerbindung.
+- Parametrisierte SQL-Templates auf der eigenen read-only SQLite-Datei, Prüfung der
+  kompilierten Lesezugriffe, unterbrechbare Checkpoints und konservative Ressourcenbudgets.
+- Strukturierte Ergebnisse mit Zahlenherkunft, Evidenz und Replay-Hash; abgeleitete Knoten
+  werden erst nach erfolgreichem Lauf atomar in derselben Akte geschrieben.
+- Konformitäts-, Escape-, Container-, Budget- und Referenztests; Sprachumfang,
+  bewusste SQL-Grenzen und Security-Selbstreview dokumentiert.
+
 ## Unreleased — Mandantenwissen: Live-Befunde Runde 2 (#927 Phase B)
 
 - Vollständig getroffene Gegenstände älterer Gespräche erreichen bei fehlender lexikalischer
