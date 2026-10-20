@@ -39,7 +39,7 @@ function caseRow(state, saved, refs) {
   const summary = state.knownContext?.situation?.caseMemory;
   const conclusion = usableConclusion(
     memory?.lastSafeConclusion || state.lastClassification?.responseText,
-    state.lastClassification
+    { ...state.lastClassification, knownContext: state.knownContext }
   );
   const title =
     usableConclusion(memory?.topic || summary?.topic) ||
@@ -65,6 +65,7 @@ function caseRow(state, saved, refs) {
         .slice(0, 16),
     ],
     semantic: {
+      identifiers: state.typedIdentifiers || [],
       anchors: [...(state.typedIdentifiers || []).map((item) => item.value), title].filter(Boolean),
     },
     period: { from: state.createdAt || at, to: at },

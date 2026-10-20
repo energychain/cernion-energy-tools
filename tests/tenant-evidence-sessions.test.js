@@ -527,3 +527,21 @@ test('a legacy case summary without a turn-memory record is backfilled only on d
       .evidenceDescriptor
   ).toBeTruthy();
 });
+
+test('legacy situation text with an added greeting never becomes session evidence', () => {
+  const text = 'Für den Bestand am Objekt Nord wird eine Einordnung angefragt.';
+  expect(
+    require('../src/tenant-evidence-sessions').caseRow(
+      {
+        tenantId: 'tenant-a',
+        cetCaseId: 'legacy-case',
+        knownContext: { situation: { concern: 'Bestand am Objekt Nord', situation: text } },
+        lastClassification: { answerStatus: 'model_knowledge' },
+      },
+      {
+        memory: { topic: 'Bestand am Objekt Nord', lastSafeConclusion: `Guten Tag, ${text}` },
+      },
+      []
+    )
+  ).toBeNull();
+});

@@ -1457,7 +1457,11 @@ async function generateAnswerResult({
         if (conversationMode) parsed.nextSteps = [];
         if (decisive || conversationMode) parsed.assumptions = [];
         const filterOptions = {
-          internalContext: [situation.concern, situation.situation].filter(Boolean),
+          internalContext: [
+            situation.concern,
+            situation.situation,
+            situation.requestedAction?.description,
+          ].filter(Boolean),
           evidence,
           answerEvidence,
           unresolved,
@@ -1805,8 +1809,23 @@ async function answer({
     toolTrace: dataScope.dataRequested ? retrieval.toolTrace : [],
     toolCandidateCount: dataScope.dataRequested ? retrieval.toolCandidateCount : 0,
   };
+  const casePresentation = require('./workbench-case-search');
+  const caseOverview =
+    retrieval.caseOverview === true ||
+    situation.requestedOutput === undefined ||
+    (situation.requestedOutput?.requested &&
+      casePresentation.canRenderCaseRequest(situation.requestedOutput));
   const evidence = require('./workbench-data-scope')
     .scopedDataEvidence(retrieval.evidence || [], dataScope)
+    .flatMap((hit) => {
+      if (hit.source !== 'cases' || caseOverview) return [hit];
+      const memory = hit.metadata?.caseMemory || {};
+      const value = require('./workbench-answer-outcome').safeConclusion(
+        memory.lastSafeConclusion,
+        memory
+      );
+      return value ? [{ ...hit, value }] : [];
+    })
     .map((hit, index) => ({
       ...hit,
       evidenceId: `E${index + 1}`,
@@ -1843,8 +1862,8 @@ async function answer({
         ],
       },
     };
-  const casePresentation = require('./workbench-case-search');
   if (
+    caseOverview &&
     situation.caseSearch?.requested &&
     caseEvidence.length &&
     situation.conversationPreferences?.register !== 'Sie' &&
@@ -2221,7 +2240,7 @@ async function answer({
     situation,
     unresolved,
     sources,
-    caseEvidence: evidence.filter((hit) => hit.source === 'cases'),
+    caseEvidence: caseOverview ? caseEvidence : [],
   });
   const toolEvidence = evidence.filter((hit) => hit.retrievalSource === 'capability-read');
   const toolAnswer = require('./workbench-tool-answer');

@@ -410,11 +410,15 @@ async function projectManifestAnswer(ctx, question, options = {}) {
     question
   );
   if (options.minSources > 1 && candidates.length < options.minSources) return null;
+  let assessments = [];
   const select = (routingQuestion) =>
     require('./dataset-routing').selectProjectCandidates(candidates, routingQuestion, {
       ...settings.routing,
       ...options.routing,
       onAssessment: options.onAssessment,
+      onRanked: (ranked) => {
+        assessments = ranked;
+      },
     });
   let selected = select(question);
   let readQuestion = question;
@@ -425,15 +429,21 @@ async function projectManifestAnswer(ctx, question, options = {}) {
       ctx,
       candidates,
       question,
-      options.previousEvidence
+      options.previousEvidence,
+      assessments
     );
     if (contextual) {
       candidates = await require('./evidence-endpoint-catalog').projectEvidenceCandidates(
         ctx,
-        contextual
+        contextual.question
       );
-      selected = select(contextual);
-      readQuestion = contextual;
+      candidates = candidates.filter(
+        (candidate) =>
+          !contextual.subjectMatchedIds.includes(candidate.id) ||
+          contextual.sourceIds.includes(candidate.id)
+      );
+      selected = select(contextual.question);
+      readQuestion = contextual.question;
     }
   }
   if (options.contextual === 'only' && readQuestion === question) return null;

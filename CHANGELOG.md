@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — Mandantenwissen: Live-Befunde Runde 2 (#927 Phase B)
+
+- Vollständig getroffene Gegenstände älterer Gespräche erreichen bei fehlender lexikalischer
+  Inhaltsdeckung die vorhandene semantische Bezugsauflösung. Vollständige typisierte Kennungen
+  werden lokal geprüft; höchstens acht Kandidaten und 64 KB Prompt, ohne zweiten Selektor.
+  Neue semantische Kandidaten werden erst nach Bestätigung frisch gelesen.
+- Der gemeinsame Antwortfilter erkennt interne Situations-/Arbeitsauftragstexte auch innerhalb
+  längerer Antwortsätze. Wörtlich belegte Nutzerangaben bleiben erhalten.
+- Inhaltsfragen erhalten keine direkte Fallübersicht aus unvollständigen Vorgängen;
+  explizite Übersichten und der bestehende Statuspfad bleiben verfügbar.
+- Der lokale Praxis-Transport arbeitet Deskriptorjobs vor dem ersten Turn neuer Gespräche ab.
+  Der realistischere Offline-Replay enthält nicht wörtlich passende Deskriptoren,
+  abweichende Klassifikationen und interne Situationstexte; neue Vollturn-Tests reproduzieren
+  die beiden Antwortfehler auch auf dem exportierten `origin/main`.
+
 ## Unreleased — Ältere Sitzungen als Mandantenevidenz (#927 Phase B)
 
 - Sichere Fallzusammenfassungen/Turn-Memory (`case`) und aktive festgehaltene Aussagen

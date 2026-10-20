@@ -72,7 +72,7 @@ function sessionEvidenceScenario(scenario, turn, anchor) {
         'fallback-question',
         `Welche Einordnung zur Temperatur im Depot West ${anchor} liegt vor?`,
         'Rückfallantwort bietet sich nicht an',
-        { forbid: ['Ich habe dafür', 'Letzte Einordnung'] },
+        { forbid: ['Ich habe dafür', 'Letzte Einordnung', 'nicht hinterlegt', 'Fall F-[0-9]+:'] },
         { chat: 'after-fallback' }
       ),
     ],

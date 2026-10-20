@@ -39,3 +39,15 @@ test('internal descriptions, structural errors and bare titles are not last conc
     safeTurnMemory({ topic: 'Objekt Nord', lastSafeConclusion: 'Objekt Nord' }).lastSafeConclusion
   ).toBeUndefined();
 });
+
+test('internal field provenance rejects wrapped descriptions while retaining substantive answers', () => {
+  const context = {
+    concern: 'Bestand am Objekt Nord',
+    situation: 'Für den Bestand am Objekt Nord wird eine Einordnung angefragt.',
+    requestedAction: { description: 'Prüfung der Einordnung zum Gegenstand durchführen' },
+  };
+  for (const text of [context.situation, context.requestedAction.description]) {
+    expect(safeConclusion(`Guten Tag, ${text}`, { knownContext: { situation: context } })).toBe('');
+  }
+  expect(safeConclusion('Der Bestand beträgt 80 kg.', context)).toBe('Der Bestand beträgt 80 kg.');
+});

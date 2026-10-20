@@ -3,16 +3,22 @@
 const llm = require('../../src/llm-client');
 const { complete, validate } = require('./workbench-schema-stub');
 
-function model(schema, raw, classification) {
+function model(schema, raw, classification, internalAnswerField, realistic) {
   const input = JSON.parse(raw);
   let value = {};
   if (input.task === 'evidence_request_kind') value = { contentRequested: true };
   else if (input.task === 'evidence_reference_resolution')
     value = {
       sourceIds:
-        input.question.includes('Standort Nord') && input.previousSourceIds.length
+        input.question.includes('Standort Nord') && !input.question.includes('Temperatur')
           ? input.currentSources.map((entry) => entry.id)
           : [],
+    };
+  else if (input.cases)
+    value = {
+      caseIds: input.cases
+        .filter((entry) => JSON.stringify(entry).includes('Depot West'))
+        .map((entry) => entry.caseId),
     };
   else if (input.nodes) {
     const sources = [input.nodes[0].nodeId];
@@ -24,7 +30,9 @@ function model(schema, raw, classification) {
       questionTypes: [
         {
           id: 'read',
-          description: 'Standort Nord Bestand Einordnung',
+          description: realistic
+            ? 'Standort Nord Bestand Zuordnung'
+            : 'Standort Nord Bestand Einordnung',
           inputs: [],
           skillRefs: [],
           sources,
@@ -67,16 +75,38 @@ function model(schema, raw, classification) {
   else if (schema.properties?.concern) {
     const north = input.message.includes('Standort Nord');
     value = {
-      concern: north ? 'Standort Nord' : 'Depot West',
-      situation: 'Der Benutzer möchte vorhandene Angaben einordnen.',
+      concern: north
+        ? realistic
+          ? 'Bestand am Standort Nord'
+          : 'Standort Nord'
+        : 'Temperatur im Depot West',
+      situation: north
+        ? 'Für den Bestand am Standort Nord wird die konkrete fachliche Einordnung angefragt.'
+        : 'Für die Temperatur im Depot West wird die konkrete fachliche Einordnung angefragt.',
+      caseSearch: {
+        requested: input.message.includes('Welche Einordnung zur Temperatur'),
+        query: input.message,
+      },
       turnKind: classification,
       conversationShape: 'knowledge',
-      requestedAction: { description: '', externalEffect: false, draftRequested: false },
+      requestedAction: {
+        description: internalAnswerField ? 'Prüfung der Einordnung zum Gegenstand durchführen' : '',
+        externalEffect: false,
+        draftRequested: false,
+      },
       missingInformation: [],
       caseMemory: {
         applicable: true,
-        topic: north ? 'Standort Nord' : 'Depot West',
-        status: 'Einordnung des Bestands',
+        topic: north
+          ? realistic
+            ? 'Bestand am Standort Nord'
+            : 'Standort Nord'
+          : 'Temperatur im Depot West',
+        status: north
+          ? realistic
+            ? 'Bestand beträgt 80 kg, Zuordnung offen'
+            : 'Einordnung des Bestands'
+          : 'Neu angefragt',
         openPoints: [],
         assumptions: [],
         risks: [],
@@ -85,6 +115,10 @@ function model(schema, raw, classification) {
     };
   } else if (input.task === 'turn_controls')
     value = {
+      caseSearch: {
+        requested: input.message.includes('Welche Einordnung zur Temperatur'),
+        query: input.message,
+      },
       turnKind: classification === 'work' ? 'work_on_concrete_case' : 'knowledge_or_orientation',
       conversationShape: 'knowledge',
       missingInformation: [],
@@ -123,12 +157,13 @@ function model(schema, raw, classification) {
   return validate(schema, complete(schema, value));
 }
 
-function installSessionStub() {
+function installSessionStub({ realistic = false } = {}) {
   const errors = [];
-  const controls = { classification: 'work', errors };
+  const controls = { classification: 'work', errors, inputs: [] };
   llm.generateStructured.mockImplementation(async (schema, raw) => {
     try {
-      return model(schema, raw, controls.classification);
+      controls.inputs.push(JSON.parse(raw));
+      return model(schema, raw, controls.classification, controls.internalAnswerField, realistic);
     } catch (error) {
       errors.push(error.message);
       throw error;
@@ -136,8 +171,32 @@ function installSessionStub() {
   });
   llm.generateText.mockImplementation(async (raw) => {
     const input = JSON.parse(raw);
+    controls.inputs.push(input);
     if (!input.schema) throw new Error('Unexpected unstructured task');
     const north = JSON.stringify(input).includes('Standort Nord');
+    if (controls.internalAnswerField || (realistic && north && !input.message?.includes('80 kg'))) {
+      const text =
+        !controls.internalAnswerField || controls.internalAnswerField === 'situation'
+          ? input.situation.situation
+          : input.situation.requestedAction.description;
+      return JSON.stringify(
+        validate(
+          input.schema,
+          complete(input.schema, {
+            interpretation: [
+              {
+                text: `Guten Tag, ${text}`,
+                origin: 'model',
+                supported: 'model',
+                completedAction: false,
+                specific: false,
+                evidenceIds: [],
+              },
+            ],
+          })
+        )
+      );
+    }
     return JSON.stringify(
       validate(
         input.schema,

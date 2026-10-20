@@ -1608,7 +1608,7 @@ module.exports = {
                 dataNeeds: '',
                 dataQuestion: { requested: false, basis: '' },
               },
-              retrieval: found,
+              retrieval: { ...found, caseOverview: true },
               tenantId: p.tenantId,
               message: envelope.userRequest,
               logger: this.logger,

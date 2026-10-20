@@ -160,6 +160,7 @@ function evidenceCandidate(kind, row, actorId) {
     sourceType: kind,
     sourceId: row.id,
     descriptorFingerprint: input.fingerprint,
+    subjectIdentifiers: row.semantic?.identifiers || [],
     title: input.project.title,
     manifest: descriptor.manifest,
     generation: descriptor.generation,

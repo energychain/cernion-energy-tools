@@ -159,3 +159,129 @@ angeforderten generierten Artefakten. Die manuelle HIGH-Einstufung bleibt besteh
 Alle Läufe waren offline. Kein `npm run test:unit:ci`, kein Live-LLM-/Live-Praxislauf,
 kein Push und keine schreibenden GitHub-Aufrufe. Vollständiger Unit-CI-Lauf und
 Phase-B-Live-Nachweis verbleiben wie beauftragt bei der aufrufenden Session.
+
+
+## Runde 2
+
+Stand: 2026-10-20. Ausgangsstand `89d045d0`, einschließlich Review-Fixes
+`c3536ea2` / `3a27cb5b` und Hotfix `2a34b9c9`. Kein Live-LLM-Lauf.
+
+### Rote Reproduktion vor dem jeweiligen Fix
+
+- **Befund 1:** Der vollständige lokale `earlier-session`-Replay wurde vor Produktänderungen
+  mit dem echten Gegenstand „Bestand am Standort Nord“, dem Status „Bestand beträgt
+  80 kg, Zuordnung offen“ und Deskriptor-Fragetypen ohne „Einordnung/eingeordnet“ rot.
+  Quellenwahl, Herkunft und Korrektur fehlten bei beiden Formulierungen. Eine Variante
+  klassifiziert weiter als `knowledge` statt `work`; keine bestehende Prüferwartung wurde
+  abgeschwächt. Die Stub-Situation verwendet die live beobachtete Struktur „… wird …
+  angefragt“. Der bisherige Testwert „Standort Nord“ allein hatte das Inhaltswort
+  „Bestand“ versehentlich als Lexikaltreffer übrig gelassen.
+- **Befund 2:** Zwei zusätzliche vollständige lokale Turns liefern ein internes
+  Situationsfeld bzw. Arbeitsauftragsfeld mit vorangestellter Anrede als Modellantwort.
+  Vor dem Fix wurden beide als `model_knowledge` ausgegeben und gespeichert statt als
+  Rückfall behandelt. **Auf `origin/main` ebenso:** Ein reiner Source-Export des
+  unveränderten `origin/main` (`cc5ba2e7`) nach `/tmp`, mit denselben offline validierten
+  Stubs und Vollturn-Tests, reproduzierte beide Fehler. Es wurde weder ein anderer
+  Worktree geöffnet noch eine Branch-Umschaltung vorgenommen.
+- **Befund 3:** Eine Inhaltsfrage mit `caseSearch.requested=true` nach einem ursprünglichen
+  Rückfall lieferte direkt `Fall F-1: … Stand: Neu angefragt … nicht hinterlegt`.
+  **Auf `origin/main` ebenso:** Derselbe separate Source-Export reproduzierte auch diesen
+  dritten roten Vollturn-Test. Die Fallsuche selbst ist kein Ausgabevertrag für eine Übersicht.
+- **Befund 4:** Der Transport wartete beim Gesprächswechsel nicht auf die bestehende
+  Anreicherungsqueue. Der Replay prüft jetzt zusätzlich einen tatsächlich abgearbeiteten
+  Sitzungsdeskriptor vor der Folgefrage und fehlende Fragewortdeckung trotz Anreicherung.
+
+### Änderungen und Grenzen
+
+Die bestehenden Routingbewertungen gehen in denselben Bezugsauflöser ein; es gibt
+keinen zweiten semantischen Selektor. Vollständiger deterministischer Gegenstandsbezug
+und vollständige typisierte Kennungen begrenzen zusätzliche Kandidaten. Die bisherigen
+Grenzen (acht Kandidaten, 64 KB, fünf Sekunden, ein Versuch) gelten weiter; das Schema
+enthält keine Gemini-inkompatiblen `uniqueItems`, `const` oder Referenzen. Nach der
+frischen Kandidatensuche sind aus der neuen Gegenstandsbrücke ausschließlich vom Modell
+bestätigte Quellen zulässig. Die bisherige deterministische Ergänzung komplementärer
+Quellen bei impliziten Gesprächsbezügen bleibt erhalten.
+`skip`/`only`, eigene Uploads, Zusammenfassungszugriff bei der Kandidatensuche und
+Audit erst beim Inhaltsread bleiben erhalten.
+
+Der zentrale Antwortfilter vergleicht vollständige interne Textbestandteile auch mit
+längeren Antwortsätzen und erhält zusätzlich das Arbeitsauftragsfeld. Wörtlich belegte
+Nutzerberichte aus #874 bleiben durch ihren vorhandenen Herkunftsnachweis erhalten.
+`safeConclusion` nutzt dieselbe Erkennung mit vorhandenem internem Kontext. Der normale
+Inhaltsantwortpfad erhält aus Falltreffern sichere Schlussfolgerungen statt Fallhüllen;
+die direkte Fallübersicht bleibt expliziten Übersichtsausgaben, dem bestehenden
+Statuspfad und bisherigen Aufrufern ohne Ausgabevertrag vorbehalten.
+
+Im #874-Test zur letzten Einordnung wurde ein bereits mit Phase B unvereinbarer
+Testwert korrigiert: `lastSafeConclusion` war identisch mit dem bloßen Titel. Jetzt
+enthält er Titel plus fachlichen Stand; alle bisherigen positiven und negativen
+Ausgabeprüfungen bleiben unverändert. Der eigenständige Test für den Ausschluss bloßer
+Titel bleibt ebenfalls unverändert.
+
+Der lokale Harness leert bei neuen Gesprächen die Queue aller vorhandenen Quellendienste.
+Dies verändert ausschließlich die lokale Praxis-Simulation, nicht den produktiven
+Queue-Abstand. Alle Antworten/Deskriptoren der Tests kommen aus `src/llm-client.js`-Mocks.
+
+### Modellaufrufe und Blast Radius
+
+Die neue Gegenstandsbrücke verursacht höchstens **einen** `evidence_reference_resolution`-
+Aufruf je betroffenem Turn. Ohne Gegenstandsbezug, bei abgelehnten Quellen, zu vielen
+Kandidaten oder zu großem Prompt: **null** zusätzliche Bezugsaufrufe. Im Replay erhalten
+`question` und `paraphrase` je einen solchen Aufruf, ohne anschließenden
+`evidence_request_kind`; zusammen mit der Ausformulierung sind das jeweils genau
+zwei Vordergrund-Modellaufrufe. Der zusätzliche Budgettest zählt strukturierte und
+unstrukturierte Aufrufe gemeinsam, getrennt von den Deskriptorjobs. Die weiteren
+Szenario-Turns erhalten keinen Bezugsaufruf.
+Ausformulierung und sonstige Modellphasen behalten ihre bestehenden Aufgaben und
+Budgets. Die lokale Queue-Anreicherung läuft beim Gesprächswechsel separat pro
+wartender Quelle, nicht als weitere Bezugsauflösung. Blatt-/Einheitenantworten und
+reine Tabellenablage sind durch ihre unveränderten Regressionstests abgesichert.
+
+GitNexus-Impact wurde vor Produktänderungen für die betroffenen Symbole versucht;
+der erreichbare Index kennt die aktuellen Symbole nicht (`UNKNOWN`/fehlende Treffer).
+Zusätzlich wurden Definitionen und Aufrufer mit `grep -rn` im erlaubten Worktree geprüft.
+Manuell **HIGH**, vor Änderungen kommuniziert: direkte Aufrufer sind die gemeinsame
+Projekt-/Tenant-Evidenzführung, Workbench-Antwortgenerierung, Statusabfrage und
+Fallgedächtnis. Betroffene Abläufe: Kandidatenbewertung, Bezug, Antwortfilter,
+Inhaltsantwort versus Fallübersicht und lokale Praxis-Simulation. Allgemeine
+Autorisierung, Datensatzberechnung und Session-Audit bleiben unverändert.
+
+### Abschließende Checks
+
+- Alle angeforderten gezielten Regressionen am abschließenden Produktstand:
+  **27 Suiten / 497 Tests grün**. Davon die vier Evidenz-/Sitzungs-/Replay-Suiten
+  mit **58 Tests**, übrige Gruppen **82 + 91 + 266 Tests**. Enthalten sind beide
+  Praxis-Replays, alle `tenant-evidence-*`, `project-manifest*`, `tenant-memory*`,
+  Tabellenqualität, Rollen, #874, #873, Funktionsabdeckung, Dataset-HTTP und Antwortstatus.
+  Der zusätzliche abschließende Replay-Budgetlauf besteht mit **4 Tests**.
+- `test:shared-service:ci`: **86 Tests**, **25,21 s** (< 60 s).
+  `test:e2e:shared-service`: Offline-HTTP-E2E grün, **20,99 s**.
+- `lint`: **0 Fehler, 12 bestehende Warnungen**. Ergänzende S1751-/S5850-/S2871-Prüfung
+  (`no-unreachable-loop`, `sonarjs/anchor-precedence`, `sonarjs/no-alphabetical-sort`):
+  **0 Fehler**, nur die bekannte Warnung im unveränderten `answerOutcome`-Parameter.
+- `check:domain-free-core`: keine Befunde, keine neue Ausnahme.
+  Abschließende Scanner-Äquivalenz: **169 Dateien, 28.266 identische Treffer,
+  91,70 s**, einschließlich Kontaminationsprobe.
+- `build`, `check:practice-fixtures`, `check:tdd-matrix-coverage` (**66/66 aktive IDs**),
+  `check:function-model`, `check:signal-catalog`, `check:operation-capability-index`,
+  `check:llm`, `audit:openapi` und `git diff --check`: grün.
+  OpenAPI hat **0 Fehler und 480 bestehende Warnungen**.
+- Neu erzeugt: OpenAPI, Operation-Capability-Index, Funktionsmodell mit Reports,
+  Signalkatalog, Praxis-Fixtures und zuletzt `llm.txt` nach dem CHANGELOG. OpenAPI und
+  Operation-Index bleiben inhaltlich unverändert. Es gibt keine neue REST-Route.
+
+GitNexus-`detect_changes` wurde für den exakten Worktree mit `all` und
+`compare, base_ref: main` aufgerufen; beide Anfragen lieferten auch nach mehreren
+Minuten keine Antwort und wurden beendet. Die zusätzliche Anfrage für den
+gestagten Diff mit dem exakten Worktree als Repository wurde mit „Repository … not
+found“ abgelehnt. Es wurde keine ersatzweise Analyse eines anderen Checkouts ausgelöst.
+Die manuelle Prüfung umfasst den vollständigen Rundendiff, Aufrufer mit `grep -rn` und den Branchvergleich. Das lokale
+`main` (`e1e03958`) ist deutlich älter als `origin/main` (`cc5ba2e7`); sein großer
+Branchdiff enthält bereits übernommene Historie. Der aktuelle Upstreamvergleich enthält
+die erwartete bisherige Phase-B-Lieferung. Der Diff gegen den Runden-Ausgangsstand zeigt ausschließlich die 27 erwarteten
+Runde-2-Dateien: Evidenz-/Antwortmodule, Harness, Tests, Dokumentation und Artefakte. Die manuelle Risikoeinstufung
+bleibt HIGH; ein nicht antwortender Index ist keine Entwarnung.
+
+Offen bleiben ausschließlich der Live-Nachweis und der vollständige Unit-CI-Lauf
+in der aufrufenden Session. Kein Push, keine schreibenden GitHub-Aufrufe,
+kein Live-LLM-Lauf und kein `npm run test:unit:ci` in dieser Runde.

@@ -14,6 +14,15 @@ function safeConclusion(text, outcome = {}) {
     return '';
   const value = String(text || '');
   if (outcome.topic && value.trim() === String(outcome.topic).trim()) return '';
-  return require('./workbench-answer-filter').isInternalDescription(value) ? '' : value;
+  const context =
+    outcome.knownContext?.situation || (outcome.concern || outcome.requestedAction ? outcome : {});
+  return require('./workbench-answer-filter').isInternalDescription(
+    value,
+    [context.concern, context.situation, context.requestedAction?.description].filter(
+      (text) => typeof text === 'string'
+    )
+  )
+    ? ''
+    : value;
 }
 module.exports = { safeConclusion };

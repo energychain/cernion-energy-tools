@@ -72,7 +72,8 @@ function substantive(claims) {
   return (body.match(/[\p{L}]{3,}/gu) || []).length >= 3;
 }
 function isInternalDescription(value, internalContext = []) {
-  const context = [...internalContext, internalContext.join(' ')]
+  const context = internalContext
+    .flatMap((text) => String(text || '').split(/(?<=[.!?])\s+|\n+/u))
     .filter(Boolean)
     .map((text) => ` ${normalizePhrase(text)} `);
   const sentences = String(value)
@@ -82,7 +83,13 @@ function isInternalDescription(value, internalContext = []) {
   return (
     require('./workbench-conversation-shape').forbiddenMeta(String(value)) ||
     (sentences.length > 0 &&
-      sentences.some((sentence) => context.some((text) => text.includes(` ${sentence} `))))
+      sentences.some((sentence) =>
+        context.some(
+          (text) =>
+            text.includes(` ${sentence} `) ||
+            (text.trim().split(/\s+/u).length >= 4 && ` ${sentence} `.includes(text))
+        )
+      ))
   );
 }
 
@@ -142,6 +149,7 @@ function filterAnswer(
       const rules = [];
       if (
         field !== 'draft' &&
+        !reportedInput &&
         isInternalDescription(claim.text, internalContext) &&
         !message.includes(claim.text) &&
         !evidence.some((hit) => String(hit.value || '').includes(claim.text))

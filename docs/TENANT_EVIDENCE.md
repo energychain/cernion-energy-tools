@@ -247,3 +247,52 @@ Herkunft, unpassende Fragen, Korrektur und einen ursprünglichen Rückfall. Der 
 Replay verwendet `createLocalTransport`, den vollständigen Workbench-Harness,
 schema-validierte Modellstubs und unveränderte `checkTurn`-Erwartungen. Details und
 der Live-Vorbehalt stehen in [927-phase-b.md](validation/927-phase-b.md).
+
+
+## Runde 2: semantischer Bezug älterer Gespräche und Antwortgrenzen
+
+Der gemeinsame deterministische Selektor stellt seine bestehenden Kandidatenbewertungen
+über `onRanked` bereit. Erreicht eine sichtbare Quelle volle Gegenstandsdeckung mit
+lokalen Ankern, aber keine ausreichende lexikalische Inhaltsdeckung (`no_content`/`below_threshold`), darf
+sie zusätzlich in `contextualEvidenceQuestion` eingehen. Typisierte Kennungen bleiben
+als `subjectIdentifiers` in den Routing-Metadaten erhalten; ihre vollständigen Werte
+müssen in der Frage vorkommen. Teilwerte oder ein bloß gleicher Standort bei abweichender
+Kennung reichen nicht. Die Modellentscheidung bestätigt den Inhaltsbezug, niemals einen
+Zugriff oder eine Antworttatsache. Es gibt weiterhin nur denselben Prompt-/Schema-Pfad
+`evidence_reference_resolution`, höchstens acht Kandidaten, 64.000 Byte Prompt und einen
+Versuch mit fünf Sekunden Timeout. Das Antwortschema verwendet keine `uniqueItems`;
+die lokale Quellenmenge dedupliziert IDs und weist unbekannte IDs zurück.
+
+Nach Bestätigung werden die Kandidaten erneut autorisiert gesammelt. Unbestätigte Kandidaten
+der neuen Gegenstandsbrücke sind ausgeschlossen; die schon vorhandene deterministische
+Ergänzung komplementärer Quellen bei impliziten Gesprächsbezügen bleibt erhalten. Originalread, Fingerprint-/Hashprüfung und Audit
+bleiben unverändert. Die generischen Turnpfade behalten `contextualEvidence: 'skip'`
+und den nachgelagerten Aufruf mit `'only'`. Ohne Gegenstandsbezug entsteht kein neuer
+Bezugsaufruf. Ein positiver semantischer Bezug ersetzt weiterhin
+`evidence_request_kind`; es gibt keinen zweiten Inhaltsklassifikator. Die Ausformulierung
+verwendet anschließend die frisch gelesene Evidenz. Die erfolgreichen Sitzungsfragen
+des Replays benötigen so genau zwei Vordergrundaufrufe (Bezug und Ausformulierung),
+getrennt von der lokalen Hintergrundanreicherung. Das ist pro solchem Turn höchstens
+ein zusätzlicher Bezugsaufruf gegenüber einem erfolglosen deterministischen Routing,
+keine zusätzliche Bezugsaufrufserie. Strukturierte Blatt-/Einheitenantworten bleiben
+LLM-frei hinsichtlich dieser Auflösung. Der Hotfix für eigene Uploads bleibt erhalten.
+
+Der gemeinsame Antwortfilter vergleicht Antwortsätze mit ihren tatsächlichen internen
+Ursprungsfeldern (`concern`, `situation`, `requestedAction.description`), auch wenn die
+Antwort die vollständige interne Aussage in einen längeren Satz einbettet. Literale,
+belegte Nutzerberichte bleiben zulässig. Dieselbe Erkennung schützt Schlussfolgerungen;
+fachliche Statusfelder des gespeicherten Turn-Memory sind keine internen Arbeitsaufträge.
+
+Die direkte Fallübersicht benötigt einen passenden expliziten Ausgabevertrag oder den
+bereits bestehenden serverseitigen Statuspfad. Ältere interne Aufrufer ohne Ausgabevertrag
+behalten ihre bisherige Darstellung. Bei einer ausdrücklich als gewöhnliche Antwort
+klassifizierten Inhaltsfrage werden Falltreffer auf sichere Schlussfolgerungen reduziert;
+eine Fallhülle ohne solche Schlussfolgerung liefert keine Antwort-Evidenz. Dadurch können
+Rückfallvorgänge nicht als Übersicht mit leeren Verwaltungsfeldern in Inhaltsantworten gelangen.
+
+`createLiveHarness.drainDescriptors` arbeitet die wartenden bzw. laufenden Jobs aller lokalen
+Quellendienste über `runDescriptorJob` ab. `createLocalTransport.send` ruft dies vor dem
+allerersten Turn jedes neuen Gesprächs auf. Das simuliert Zeit zwischen Gesprächen;
+Produktivqueue, Verzögerungen und Quoten bleiben unverändert. Der Offline-Replay prüft,
+dass vor der ersten Folgefrage ein Sitzungsdeskriptor angereichert wurde und dessen
+Fragetypen die Fragewörter trotzdem nicht wörtlich enthalten. Details: [Runde 2](validation/927-phase-b.md#runde-2).

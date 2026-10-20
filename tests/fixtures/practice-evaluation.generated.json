@@ -5171,7 +5171,9 @@
             "rules": {
               "forbid": [
                 "Ich habe dafür",
-                "Letzte Einordnung"
+                "Letzte Einordnung",
+                "nicht hinterlegt",
+                "Fall F-[0-9]+:"
               ]
             },
             "dependencies": []
