@@ -394,7 +394,14 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
         channel: envelope.channel,
         checking: 'pending',
       };
+      const row = require('./tenant-evidence-sessions').memoryRow(fact);
+      if (row)
+        fact.evidenceDescriptor = require('./tenant-evidence-descriptor').minimalDescriptor(
+          'memory',
+          row
+        );
       await store.put(ctx, p, fact);
+      await require('./tenant-evidence-sessions').prepareFactDescriptor(ctx, p, fact);
       const bases = [...new Set(fact.anchorKeys.map((key) => JSON.parse(key)[0]))];
       const required = [
         ...new Set(

@@ -71,6 +71,13 @@ function createLiveHarness(directory, sourceServices) {
       throw new Error('Cleanup dataset action is limited to deletion');
     return cleanup.run(true, () => call(name, params, options));
   };
-  return { broker, workbench, cleanupCall };
+  const drainDescriptors = async () => {
+    for (const service of broker.services) {
+      while (service.evidenceWorker?.pending.size || service.evidenceWorker?.running) {
+        await require('../src/tenant-evidence-background').runDescriptorJob(service);
+      }
+    }
+  };
+  return { broker, workbench, cleanupCall, drainDescriptors };
 }
 module.exports = { createLiveHarness, isolatedSettings };

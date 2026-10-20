@@ -1,6 +1,6 @@
 'use strict';
 
-// Phase B adds source adapters here; generation, scoring and answering remain shared.
+// Source adapters share generation, scoring, correction dispatch and answering.
 const sources = new Map();
 function registerEvidenceSource(source) {
   if (
@@ -20,7 +20,25 @@ async function evidenceCandidates(ctx, question) {
     if (!service || (source.action && !service.schema?.actions?.[source.action])) continue;
     candidates.push(...(await source.candidates(ctx, question)));
   }
-  return candidates;
+  // Legacy sessions lack derivation metadata: suppress duplicate candidates for their uploads.
+  const uploads = candidates.filter((candidate) =>
+    ['document', 'dataset'].includes(candidate.sourceType)
+  );
+  return candidates.filter(
+    (candidate) =>
+      candidate.sourceType !== 'case' ||
+      candidate.provenance.uploadBacked === false ||
+      !uploads.some((upload) =>
+        [...(upload.provenance?.refs || []), upload.provenance || {}].some(
+          (ref) =>
+            (ref.caseId && ref.caseId === candidate.provenance.caseId) ||
+            (ref.conversationId &&
+              candidate.provenance.refs?.some(
+                (origin) => origin.conversationId === ref.conversationId
+              ))
+        )
+      )
+  );
 }
 function evidenceCorrectionAction(type) {
   return sources.get(type)?.correctionAction || null;
@@ -53,6 +71,16 @@ for (const [type, service, action] of [
     candidates: (ctx, question) => ctx.call(`${service}.${action}`, { question: question || '' }),
     read: (ctx, selected, question, options) =>
       require('./tenant-evidence-read').readChatEvidence(ctx, selected, question, options),
+  });
+for (const type of ['case', 'memory'])
+  registerEvidenceSource({
+    type,
+    service: 'workbench',
+    correctionAction: 'workbench.evidenceCorrect',
+    candidates: (ctx, question) =>
+      require('./tenant-evidence-sessions').sessionCandidates(ctx, question, type),
+    read: (ctx, selected) =>
+      require('./tenant-evidence-sessions').readSessionEvidence(ctx, selected),
   });
 module.exports = {
   registerEvidenceSource,
