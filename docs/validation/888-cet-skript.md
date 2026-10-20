@@ -170,3 +170,10 @@ der exportierten Prüffälle benötigen die Funktions-/Skill-Zuordnung von #889.
 Die öffentliche Graphansicht kann dort gezielt an die interne Ableitungsprojektion
 angeschlossen werden. Erweiterungen der SQL-/Methodenfreigaben benötigen erneute Tests
 und ein Review; die gegenwärtigen Einschränkungen sind dokumentiert.
+
+## Review der aufrufenden Session (2026-10-20)
+
+- **Eigene Angriffs-Suite (59 Fälle, temporär, nicht eingecheckt):** Prototyp- und Konstruktorketten (auch berechnet, über Destrukturierung, `JSON.parse`, Fehlerobjekte, Map/Set/Iteratoren, `Math`), Host-Funktionen als Werte, `valueOf`/`toString`-Konvertierung, Endlosschleifen in Callbacks (`sort`, `map`) und um `await`, tiefe Rekursion, Speicher-DoS (String-/Array-Verdopplung, `repeat`, `padStart`, `length`-Zuweisung, Map-Wachstum), SQL über `sqlite_master`, `pragma_*`-Tabellenfunktionen, endlose rekursive CTE, `zeroblob`/`randomblob`/`printf`-Blowups, `load_extension`, mehrere Anweisungen, `cet.sql` ohne Template, fremde physische Tabellennamen, schreibende `cet.op`, Mutation von `cet`. **Alle abgewiesen oder durch Budgets gestoppt**; RSS blieb unter 470 MB.
+- **Nachbesserung:** Nach Ablauf des Zeitbudgets wartete der Hauptprozess unbegrenzt auf das Ende des SQL-Workers. Erreicht eine Anweisung keinen Checkpoint, hätte das den Turn blockiert. Jetzt wird der Worker nach 2 s Kulanz hart beendet (`worker.terminate()`).
+- **Hinweis:** Der Interpreter lehnt andere SQLite-Versionen als die geprüfte ab (fail closed). Nach einem Update von `better-sqlite3` müssen Bytecode-Prüfung und Tests neu validiert werden.
+- **Anbindung:** `runProjectSkill` ist bewusst noch an keinen Service angebunden; das übernimmt #889.

@@ -7,6 +7,7 @@ const { quoteDatasetField } = require('../dataset-query');
 const { fail, ScriptError } = require('./errors');
 const v = require('./values');
 const { namespace } = require('./builtins');
+const WORKER_EXIT_GRACE_MS = 2000;
 function tableSet(datasets, aliases, budget) {
   const references = new Map();
   for (const dataset of datasets) {
@@ -131,8 +132,17 @@ async function query({ filename, sql, params, datasets, budget, node }) {
     return v.copy(rows, budget);
   } finally {
     // Let the guarded statement unwind before destroying its isolate.
-    // Forced isolate termination can suppress native callback exceptions.
-    await exited;
+    // Forced isolate termination can suppress native callback exceptions, so it is only the
+    // last resort when a statement does not reach a checkpoint within the grace period.
+    let timer;
+    const grace = new Promise((resolve) => {
+      timer = setTimeout(resolve, WORKER_EXIT_GRACE_MS, 'timeout');
+    });
+    if ((await Promise.race([exited, grace])) === 'timeout') {
+      await worker.terminate();
+      await exited;
+    }
+    clearTimeout(timer);
   }
 }
 module.exports = { tableSet, filenameFor, bindSql, query, namespace };
