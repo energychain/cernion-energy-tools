@@ -1384,7 +1384,7 @@ async function runContentTurn(
             cetCaseId: caseId,
             caseStateVersion: result.caseStateVersion,
             responseText: require('./workbench-answer-outcome')
-              .safeConclusion(result.responseText, reply)
+              .safeConclusion(reply.responseText, reply)
               .slice(0, 16000),
             requiredClarifications: result.requiredClarifications,
             noCallGuards: result.noCallGuards,
@@ -1469,6 +1469,8 @@ async function runContentTurn(
         previousMemory,
         classification: {
           ...result,
+          responseText: reply.responseText,
+          evidence: retrieval.evidence,
           memorySummary: reply.memorySummary,
           answerStatus: reply.answerStatus,
           metadata: reply.metadata,
@@ -1641,7 +1643,7 @@ async function queuedContentTurn(service, ctx, input) {
   }
 }
 
-module.exports = { runContentTurn: queuedContentTurn, discard, selectChoice };
+module.exports = { runContentTurn: queuedContentTurn, discard, selectChoice, incomingDatasetReply };
 
 function memoryDocumentContext(ctx, meta) {
   return Object.assign(Object.create(ctx), {

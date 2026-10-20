@@ -1469,7 +1469,10 @@ test('personal interpretations do not become new factual risks in case memory', 
 });
 
 test('ordinary case recall includes the existing last working conclusion and applies wording restrictions', () => {
-  const memory = { ...fixture.queryCaseMemory, lastSafeConclusion: fixture.proposal.title };
+  const memory = {
+    ...fixture.queryCaseMemory,
+    lastSafeConclusion: `${fixture.proposal.title}: ${fixture.queryCaseMemory.situation}`,
+  };
   const output = renderCaseMemory({ memory }, fixture.queryCaseMemory.caseDisplayRef);
   expect(output).toContain(`Letzte Einordnung (Arbeitsstand): ${fixture.proposal.title}`);
   const restricted = renderCaseMemory({ memory }, fixture.queryCaseMemory.caseDisplayRef, null, {

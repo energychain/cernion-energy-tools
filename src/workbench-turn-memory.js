@@ -126,7 +126,7 @@ function buildTurnMemory({
     safeConclusion(
       classification.responseText || classification.responseGuidance,
       classification
-    ) || safeConclusion(previousMemory?.lastSafeConclusion),
+    ) || safeConclusion(previousMemory?.lastSafeConclusion, previousMemory || {}),
     700
   );
   const lastUserIntent = safeText(
@@ -235,7 +235,7 @@ function safeTurnMemory(memory) {
     appliedPlaybooks: safeAppliedPlaybooks(memory.appliedPlaybooks || []),
     lastUserIntent: safeText(memory.lastUserIntent, 500),
     lastSafeConclusion: safeText(
-      require('./workbench-answer-outcome').safeConclusion(memory.lastSafeConclusion),
+      require('./workbench-answer-outcome').safeConclusion(memory.lastSafeConclusion, memory),
       700
     ),
     recentEventStatus: memory.recentEventStatus || null,

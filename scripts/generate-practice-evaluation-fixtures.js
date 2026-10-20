@@ -663,6 +663,9 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
   catalog.push(
     require('./generate-tenant-evidence-fixtures').tenantEvidenceScenario(scenario, turn, x)
   );
+  catalog.push(
+    require('./generate-session-evidence-fixtures').sessionEvidenceScenario(scenario, turn, x)
+  );
   return { schemaVersion: VERSION, scenarios: catalog };
 }
 

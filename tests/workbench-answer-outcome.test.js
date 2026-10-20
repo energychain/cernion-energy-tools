@@ -31,3 +31,30 @@ test('legacy fallback conclusions disappear from both safe memory and case overv
   expect(text).not.toContain('nicht zuverlässig');
   expect(text).not.toContain('Letzte Einordnung');
 });
+
+test('internal descriptions, structural errors and bare titles are not last conclusions', () => {
+  expect(safeConclusion('Der Benutzer möchte vorhandene Angaben einordnen.')).toBe('');
+  expect(safeConclusion('Beliebige Fehlermeldung', { answerStatus: 'error' })).toBe('');
+  expect(
+    safeTurnMemory({ topic: 'Objekt Nord', lastSafeConclusion: 'Objekt Nord' }).lastSafeConclusion
+  ).toBeUndefined();
+});
+
+test('internal field provenance rejects wrapped descriptions while retaining substantive answers', () => {
+  const context = {
+    concern: 'Bestand am Objekt Nord',
+    situation: 'Für den Bestand am Objekt Nord wird eine Einordnung angefragt.',
+    requestedAction: { description: 'Prüfung der Einordnung zum Gegenstand durchführen' },
+  };
+  for (const text of [context.situation, context.requestedAction.description]) {
+    expect(safeConclusion(`Guten Tag, ${text}`, { knownContext: { situation: context } })).toBe('');
+  }
+  expect(safeConclusion('Der Bestand beträgt 80 kg.', context)).toBe('Der Bestand beträgt 80 kg.');
+  // Naming the same subject as the concern is an answer, not a wrapped internal description.
+  for (const text of [
+    'Der Bestand am Objekt Nord beträgt 80 kg.',
+    'Laut Unterlage liegt der Bestand am Objekt Nord bei 80 kg, die Zuordnung ist offen.',
+    'Der Bestand am Objekt Nord ist offen.',
+  ])
+    expect(safeConclusion(text, { knownContext: { situation: context } })).toBe(text);
+});

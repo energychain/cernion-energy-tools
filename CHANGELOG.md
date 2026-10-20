@@ -1,5 +1,41 @@
 # Changelog
 
+## Unreleased — Mandantenwissen: Live-Befunde Runde 2 (#927 Phase B)
+
+- Vollständig getroffene Gegenstände älterer Gespräche erreichen bei fehlender lexikalischer
+  Inhaltsdeckung die vorhandene semantische Bezugsauflösung. Vollständige typisierte Kennungen
+  werden lokal geprüft; höchstens acht Kandidaten und 64 KB Prompt, ohne zweiten Selektor.
+  Neue semantische Kandidaten werden erst nach Bestätigung frisch gelesen.
+- Der gemeinsame Antwortfilter erkennt interne Situations-/Arbeitsauftragstexte auch innerhalb
+  längerer Antwortsätze. Wörtlich belegte Nutzerangaben bleiben erhalten.
+- Inhaltsfragen erhalten keine direkte Fallübersicht aus unvollständigen Vorgängen;
+  explizite Übersichten und der bestehende Statuspfad bleiben verfügbar.
+- Der lokale Praxis-Transport arbeitet Deskriptorjobs vor dem ersten Turn neuer Gespräche ab.
+  Der realistischere Offline-Replay enthält nicht wörtlich passende Deskriptoren,
+  abweichende Klassifikationen und interne Situationstexte; neue Vollturn-Tests reproduzieren
+  die beiden Antwortfehler auch auf dem exportierten `origin/main`.
+
+## Unreleased — Ältere Sitzungen als Mandantenevidenz (#927 Phase B)
+
+- Sichere Fallzusammenfassungen/Turn-Memory (`case`) und aktive festgehaltene Aussagen
+  (`memory`) bieten sich über dieselbe Registry wie Dokumente, Datensätze und Projektakten an.
+  Originalreads beachten Tenant, Clearance und die bestehenden Herkunftszugriffe;
+  Quellenwahl mit Fall, Gespräch, Zeitpunkt und Fundstelle ist sichtbar und personenbezogen korrigierbar.
+- Die Kandidatensuche liest fremde Fälle nur im Zusammenfassungsmodus und schreibt dafür
+  keine Zugriffsprotokolle; protokolliert wird erst der tatsächliche Inhaltsread. Pro Suche
+  werden höchstens die 64 zuletzt aktualisierten Sitzungen bzw. Aussagen betrachtet.
+- Quellengebundene Minimal-Deskriptoren sind sofort verfügbar; ältere Bestände werden
+  bei Bedarf nachgezogen. Dieselbe begrenzte Hintergrundqueue reichert ausschließlich
+  projizierte Metadaten an. Gesprächs- und Antworttexte bleiben aus diesen Prompts.
+- Aktuelle Sitzungen, Upload-Duplikate, Rückfall-/Fehlerantworten, interne Situationstexte
+  und bloße Überschriften liefern keine zusätzliche Sitzungsevidenz. Letzte Einordnungen
+  enthalten den Inhalt vor dem Fall-Footer.
+- Reine Tabellenablage erreicht den bestehenden strukturellen Bestätigungspfad vor der
+  Bezugsauflösung; eine Datensatz-ID allein löst keine Evidenzergänzung mehr aus.
+  Inhaltsfragen am Upload sowie Blattwahl/Einheitenangaben bleiben erhalten.
+- Generiertes Praxis-Szenario `earlier-session` mit Offline-Replay, mehreren Formulierungen,
+  Korrektur, Herkunft, Negativtests und gemischten Quellen. Live-Prüfung folgt in der aufrufenden Session.
+
 ## Unreleased — Mandantenwissen nur gesprächsübergreifend (#927 Hotfix)
 
 - Der allgemeine Evidenzpfad übernimmt einen Turn nur noch, wenn mindestens eine gewählte
