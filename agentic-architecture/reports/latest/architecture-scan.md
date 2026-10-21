@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-20T09:56:16.104Z
+Generated: 2026-10-21T04:08:48.041Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 2126
+- Files scanned: 2135
 - Services: 164
-- src/*.js files: 434
-- Tests: 533
+- src/*.js files: 435
+- Tests: 537
 - Integrations files: 35
-- Markdown/docs files: 563
+- Markdown/docs files: 566
 
 ## Existing validation summary
 
@@ -26,11 +26,11 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 604 files
-- `src`: 502 files
-- `docs`: 436 files
+- `tests`: 608 files
+- `src`: 503 files
+- `docs`: 439 files
 - `services`: 200 files
-- `scripts`: 90 files
+- `scripts`: 91 files
 - `tools`: 85 files
 - `agentic-architecture`: 61 files
 - `integrations`: 35 files
@@ -51,7 +51,7 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 - Agent/capability/sidecar related files: 274
 - Routing/capability/broker/manifest files: 117
-- Evidence/HITL/receipt/dossier files: 94
+- Evidence/HITL/receipt/dossier files: 100
 - OpenWebUI/ChatGPT adapter files: 37
 
 Primary agentic files:

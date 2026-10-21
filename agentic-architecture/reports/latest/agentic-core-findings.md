@@ -1,25 +1,25 @@
 # Agentic Core Findings
 
-Generated: 2026-10-20T09:56:16.104Z
+Generated: 2026-10-21T04:08:48.041Z
 
 ## Current measurable surface
 
 - Agentic files: 274
 - Routing/capability files: 117
-- Evidence/HITL files: 94
+- Evidence/HITL files: 100
 - Operation capability index: present
 - OpenAPI export: present
 - llm.txt: present
 
 ## Domain term distribution
 
-- `evidence`: 25798 hits in 851 files
-- `tenant`: 18797 hits in 877 files
-- `broker`: 11518 hits in 675 files
+- `evidence`: 25989 hits in 860 files
+- `tenant`: 19006 hits in 884 files
+- `broker`: 11544 hits in 678 files
 - `grid`: 9862 hits in 654 files
-- `agent`: 8417 hits in 774 files
+- `agent`: 8419 hits in 775 files
 - `decision`: 6979 hits in 454 files
-- `capability`: 6020 hits in 534 files
+- `capability`: 6024 hits in 535 files
 - `stadtwerk`: 5635 hits in 248 files
 - `forecast`: 4595 hits in 329 files
 - `vdmi`: 4528 hits in 293 files
@@ -29,15 +29,15 @@ Generated: 2026-10-20T09:56:16.104Z
 - `edm`: 2946 hits in 368 files
 - `regulator`: 2701 hits in 343 files
 - `mako`: 2493 hits in 307 files
-- `receipt`: 2457 hits in 170 files
-- `routing`: 2368 hits in 385 files
-- `personal-agent`: 2033 hits in 312 files
-- `workflow`: 1610 hits in 249 files
+- `receipt`: 2459 hits in 171 files
+- `routing`: 2378 hits in 388 files
+- `personal-agent`: 2034 hits in 313 files
+- `workflow`: 1611 hits in 250 files
 - `willi`: 1536 hits in 113 files
 - `sidecar`: 1002 hits in 111 files
 - `eog`: 792 hits in 101 files
 - `utility`: 613 hits in 94 files
-- `openwebui`: 599 hits in 97 files
+- `openwebui`: 601 hits in 98 files
 - `open-webui`: 414 hits in 72 files
 - `chatgpt`: 402 hits in 38 files
 
@@ -67,6 +67,7 @@ Generated: 2026-10-20T09:56:16.104Z
 - `docs/use-cases/znp-production-readiness-evidence-gate.md`
 - `docs/v0.58-architecture/EVIDENCE_CARRY_FORWARD_ORIGIN_SIGNAL_SCENARIO.md`
 - `integrations/rundeck/jobs/cernion-revalidation-execute-dev.yaml`
+- `scripts/generate-session-evidence-fixtures.js`
 - `scripts/generate-tenant-evidence-fixtures.js`
 - `scripts/spike-739-evidence.js`
 - `services/agent-receipts.service.js`
@@ -105,6 +106,7 @@ Generated: 2026-10-20T09:56:16.104Z
 - `src/tenant-evidence-descriptor.js`
 - `src/tenant-evidence-question.js`
 - `src/tenant-evidence-read.js`
+- `src/tenant-evidence-sessions.js`
 - `src/tenant-evidence-sources.js`
 - `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-connection-deadline-evidence-queue-v1.json`
 - `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-cross-system-variance-evidence-matrix-v1.json`
@@ -126,16 +128,20 @@ Generated: 2026-10-20T09:56:16.104Z
 - `tests/evidence-requirement.service.test.js`
 - `tests/evidence-revalidation.service.test.js`
 - `tests/evidence-router.test.js`
+- `tests/helpers/session-evidence-stub.js`
 - `tests/hitl.service.test.js`
 - `tests/mako-evidence-parser.test.js`
 - `tests/personal-agent-auto-evidence-requirement.integration.test.js`
 - `tests/personal-agent-willi-mako-evidence.test.js`
 - `tests/personal-agent-work-out-loud-evidence-revalidation.integration.test.js`
+- `tests/practice-session-evidence-replay.test.js`
 - `tests/practice-tenant-evidence-replay.test.js`
 - `tests/project-manifest-evidence.test.js`
 - `tests/tenant-evidence-background.test.js`
 - `tests/tenant-evidence-comparison.test.js`
 - `tests/tenant-evidence-descriptor.test.js`
+- `tests/tenant-evidence-question.test.js`
+- `tests/tenant-evidence-sessions.test.js`
 - `tests/tenant-evidence-workbench.test.js`
 
 ## Shepherd interpretation
