@@ -85,6 +85,42 @@ test('gateway auto-aliases expose CRUD and refs, preserve tenant/clearance filte
     expect(
       (await request(`/${projectId}`, 'GET', undefined, { 'x-test-clearance': 'yes' })).status
     ).toBe(200);
+    const overview = await request('/administration-overview');
+    expect(overview.status).toBe(200);
+    expect(await overview.json()).toEqual({
+      safetyClass: 'read_only_governance_projection',
+      advisory: true,
+      projects: [],
+    });
+    const cleared = await (
+      await request('/administration-overview', 'GET', undefined, { 'x-test-clearance': 'yes' })
+    ).json();
+    expect(cleared.projects).toEqual([
+      expect.objectContaining({
+        projectId,
+        requiredClearance: ['restricted'],
+        responsibility: expect.objectContaining({
+          projection: 'legacy_responsibility_projection',
+          grantsAuthority: false,
+        }),
+        deletionEligibility: 'policy_definition_required',
+      }),
+    ]);
+    expect(
+      (
+        await (
+          await request('/administration-overview', 'GET', undefined, {
+            'x-test-tenant': 'tenant-b',
+            'x-test-clearance': 'yes',
+          })
+        ).json()
+      ).projects
+    ).toEqual([]);
+    for (const method of ['POST', 'PATCH', 'DELETE'])
+      expect((await request('/administration-overview', method, {})).status).toBe(404);
+    expect(
+      (await request(`/${projectId}`, 'GET', undefined, { 'x-test-clearance': 'yes' })).status
+    ).toBe(200);
     for (const action of ['setLifecycle', 'registerComponent', 'recomputeClearance', 'addFile'])
       expect((await request(`/${action}`, 'POST', { projectId })).status).toBe(404);
   } finally {

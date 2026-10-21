@@ -4,7 +4,7 @@ const { randomUUID } = require('node:crypto');
 const { Errors } = require('moleculer');
 const { deny } = require('../src/domain-router-policy');
 const policy = require('../src/project-file-policy');
-const { projectOpenApi } = require('../src/project-file-openapi');
+const { projectOpenApi, administrationOverviewSchema } = require('../src/project-file-openapi');
 
 const membersParam = {
   type: 'array',
@@ -123,6 +123,25 @@ module.exports = {
       }),
       async handler(ctx) {
         return this.listProjects(ctx);
+      },
+    },
+    administrationOverview: {
+      rest: 'GET /administration-overview',
+      params: {},
+      openapi: projectOpenApi(
+        'Read-only administration inventory with advisory deletion eligibility',
+        {
+          response: administrationOverviewSchema,
+        }
+      ),
+      async handler(ctx) {
+        // read_only_governance_projection (#898): reuses list visibility and performs no
+        // write, audit, cleanup or lifecycle effect. Totals are deliberately omitted.
+        return {
+          safetyClass: 'read_only_governance_projection',
+          advisory: true,
+          projects: (await this.listProjects(ctx, false)).map(policy.administrationRow),
+        };
       },
     },
     forReference: {
@@ -301,13 +320,13 @@ module.exports = {
       if (!policy.visibleProject(project, p)) policy.notFound();
       return project;
     },
-    async listProjects(ctx) {
+    async listProjects(ctx, routingOnly = ctx.params.routingOnly) {
       const p = policy.projectPrincipal(ctx);
       return (await this.record(ctx, 'list'))
         .filter(
           (project) =>
             policy.visibleProject(project, p) &&
-            (!ctx.params.routingOnly || (project.lifecycle !== 'archived' && !project.deletion))
+            (!routingOnly || (project.lifecycle !== 'archived' && !project.deletion))
         )
         .map(policy.publicProject);
     },
