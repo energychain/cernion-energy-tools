@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-10-21T04:08:48.041Z
+Generated: 2026-10-21T10:12:13.515Z
 
 ## Current measurable surface
 
@@ -13,8 +13,8 @@ Generated: 2026-10-21T04:08:48.041Z
 
 ## Domain term distribution
 
-- `evidence`: 25989 hits in 860 files
-- `tenant`: 19006 hits in 884 files
+- `evidence`: 25995 hits in 860 files
+- `tenant`: 19009 hits in 884 files
 - `broker`: 11544 hits in 678 files
 - `grid`: 9862 hits in 654 files
 - `agent`: 8419 hits in 775 files

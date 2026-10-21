@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-21T04:08:48.041Z",
+  "generatedAt": "2026-10-21T10:12:13.515Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261021T040742Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261021T101110Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
@@ -412,7 +412,7 @@
     },
     "evidence": {
       "files": 860,
-      "hits": 25989
+      "hits": 25995
     },
     "receipt": {
       "files": 171,
@@ -432,7 +432,7 @@
     },
     "tenant": {
       "files": 884,
-      "hits": 19006
+      "hits": 19009
     },
     "market": {
       "files": 403,
