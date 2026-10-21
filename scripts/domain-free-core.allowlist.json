@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "term": "next gate",
+      "reason": "Technical review-gate field nextGate in the read-only project file administration contract (#898; enum human_policy_design_review); workflow metadata, no business-domain rule."
+    },
+    {
+      "term": "legal",
+      "reason": "Technical blocker identifier legal_hold_model_missing and its comment in the read-only deletion-eligibility advisory (#898): it records that no retention-hold model exists yet; no business-domain rule."
+    },
+    {
       "term": "endpoint",
       "reason": "Technical module name evidence-endpoint-catalog, reused for metadata-backed read-only graph observations (#886); no business vocabulary or source selection rules."
     },
