@@ -1,6 +1,6 @@
 # Wärme-/Gas-/EOG-Szenariofall
 
-Generated: 2026-10-20T09:56:22.194Z
+Generated: 2026-10-21T04:08:53.491Z
 
 Status: observed
 Priority: 7
@@ -108,9 +108,9 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `docs/reviews/730-capability-routing-evaluation.json` (67 hits)
 - `docs/validation/rc3-closeout-live.json` (67 hits)
 - `services/dashboard-api/methods-part-12-of-14.js` (64 hits)
+- `docs/validation/practice-evaluation-927b-live-2.md` (55 hits)
 - `services/dashboard-api/methods-part-06-of-14.js` (53 hits)
 - `services/gasnetz-waermeplanung.service.js` (53 hits)
 - `services/znp.service.js` (49 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (48 hits)
-- `services/api.service.js` (47 hits)
-- `services/gas-storage.service.js` (41 hits)
+- `docs/validation/practice-evaluation-927b-live-1.md` (47 hits)

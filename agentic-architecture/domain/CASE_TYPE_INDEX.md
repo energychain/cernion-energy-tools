@@ -1,6 +1,6 @@
 # Case Type Index
 
-Generated: 2026-10-20T09:56:22.194Z
+Generated: 2026-10-21T04:08:53.491Z
 
 Diese Datei ist ein Shepherd-Arbeitsmodell. Sie beschreibt natürliche energiewirtschaftliche Falltypen für CET, keine abschließenden regulatorischen Prozesse.
 
