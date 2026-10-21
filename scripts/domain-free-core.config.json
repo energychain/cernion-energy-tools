@@ -1,6 +1,7 @@
 {
   "minimumLength": 5,
   "corePaths": [
+    "src/cet-script/*.js",
     "services/project-graph.service.js",
     "src/project-graph-*.js",
     "services/project-structure.service.js",
