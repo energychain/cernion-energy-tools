@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-21T10:12:13.515Z",
+  "generatedAt": "2026-10-21T16:15:55.773Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261021T101110Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261021T161435Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
@@ -380,7 +380,7 @@
   "domainTermCounts": {
     "agent": {
       "files": 775,
-      "hits": 8419
+      "hits": 8423
     },
     "personal-agent": {
       "files": 313,
@@ -392,11 +392,11 @@
     },
     "capability": {
       "files": 535,
-      "hits": 6024
+      "hits": 6025
     },
     "broker": {
       "files": 678,
-      "hits": 11544
+      "hits": 11548
     },
     "openwebui": {
       "files": 98,
@@ -412,7 +412,7 @@
     },
     "evidence": {
       "files": 860,
-      "hits": 25995
+      "hits": 25996
     },
     "receipt": {
       "files": 171,
@@ -424,7 +424,7 @@
     },
     "routing": {
       "files": 388,
-      "hits": 2378
+      "hits": 2382
     },
     "workflow": {
       "files": 250,
@@ -432,7 +432,7 @@
     },
     "tenant": {
       "files": 884,
-      "hits": 19009
+      "hits": 19022
     },
     "market": {
       "files": 403,
@@ -484,7 +484,7 @@
     },
     "decision": {
       "files": 454,
-      "hits": 6979
+      "hits": 6980
     }
   },
   "validationSummary": "build: ok\nlint: ok\ntest-unit-ci: skipped (set SHEPHERD_FULL=1)\naudit-openapi: skipped (set SHEPHERD_FULL=1)\ncheck-llm: skipped (set SHEPHERD_FULL=1)\ngitnexus-analyze: skipped (set SHEPHERD_FULL=1)"
