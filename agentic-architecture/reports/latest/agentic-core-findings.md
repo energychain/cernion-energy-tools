@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-10-21T16:15:55.773Z
+Generated: 2026-10-21T22:20:17.274Z
 
 ## Current measurable surface
 
@@ -32,7 +32,7 @@ Generated: 2026-10-21T16:15:55.773Z
 - `receipt`: 2459 hits in 171 files
 - `routing`: 2382 hits in 388 files
 - `personal-agent`: 2034 hits in 313 files
-- `workflow`: 1611 hits in 250 files
+- `workflow`: 1612 hits in 250 files
 - `willi`: 1536 hits in 113 files
 - `sidecar`: 1002 hits in 111 files
 - `eog`: 792 hits in 101 files

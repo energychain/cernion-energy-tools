@@ -1,3 +1,3 @@
-generatedAt=2026-10-21T16:15:55.773Z
-summarySha256=89b868c957cc688cd3bc239ab73a70c9f89ff70a3901e99203747552e7bc2465
+generatedAt=2026-10-21T22:20:17.274Z
+summarySha256=bffca7ea44502047c744fce5bcf74da4154e8da90dbf4d2799936c6792fd5254
 artifacts=architecture-scan.md,openwebui-blindspots.md,agentic-core-findings.md,refactoring-backlog.md,canon-update-proposal.md,scan-summary.json
