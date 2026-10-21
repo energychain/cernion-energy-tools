@@ -57,12 +57,14 @@ hat keine fachliche Domäne und eröffnet keine zusätzliche Tool-Berechtigung.
 | `get` | `GET /:projectId` | sichtbare Akte |
 | `list` | `GET /` | sichtbare Akten; optional `routingOnly=true` |
 | `forReference` | `GET /refs?caseId=…&conversationId=…` | Akten zu struktureller Herkunft |
+| `administrationOverview` | `GET /administration-overview` | read-only Inventar mit beratender Löscheinschätzung (#898) |
 | `update` | `PATCH /:projectId` | Titel, Mitglieder und Referenzen ersetzen |
 | `archive` | `POST /:projectId/archive` | Daten dauerhaft behalten, Routing beenden |
 | `delete` | `DELETE /:projectId` | bestätigtes Aufräumen, Audit, Datensatz entfernen |
 
 `get`, `list` und `forReference` sind `x-agentable` und damit über die vorhandenen
 MCP-Meta-Tools `cernion_search`/`cernion_describe`/`cernion_execute_read` lesbar.
+`administrationOverview` ist bewusst nicht `x-agentable` (siehe unten).
 Interne Aktionen deklarieren `visibility: 'protected'` und keine REST-Route:
 
 - `setLifecycle({ projectId, lifecycle })`: für #884/#885, keine Reaktivierung archivierter Akten.
@@ -78,6 +80,39 @@ zu lassen. Eine Referenz muss mindestens `caseId` oder `conversationId` enthalte
 Mehrere Akten können dieselbe Referenz haben. Referenzen sind strukturelle IDs,
 keine Ähnlichkeitsberechnung und keine zusätzliche Fallzugriffsberechtigung; eine
 Validierung existierender Fälle durch spätere Workflow-Integrationen bleibt separat.
+
+## Verwaltungsübersicht (#898, erste Stufe)
+
+`GET /api/project-file/administration-overview` (Sicherheitsklasse
+`read_only_governance_projection`) liefert `{ safetyClass, advisory: true, projects: [...] }`.
+Grundlage ist exakt der Sichtbarkeitspfad von `list` (Tenant, Mitgliedschaft, unabhängige
+Clearance); archivierte und in Löschung befindliche Akten erscheinen unabhängig von
+`routingOnly`. Unsichtbare Akten fehlen vollständig; es gibt keine Summen oder Zähler über
+den Mandanten, die auf verborgene Akten schließen ließen.
+
+Je Zeile: `projectId`, `title`, `lifecycle`, `updatedAt`, `stats`, `requiredClearance`,
+`linkedCaseCount`/`linkedConversationCount` (nur Anzahlen), `deletionState`
+(`none`/`pending`/`incomplete`/`unknown`), `failedCleanupCount` (ohne Handlernamen) sowie
+`responsibility` mit `projection: 'legacy_responsibility_projection'`,
+`grantsAuthority: false`, `createdBy` und `members`. Diese Verantwortlichkeit ist nur eine
+Ableitung aus Bestandsfeldern und **keine** Berechtigung; `ROLE_TENANT_ADMIN` wird nicht
+ausgewertet.
+
+`deletionEligibility` ist beratend und kennt nur `not_eligible`,
+`policy_definition_required`, `blocked_incomplete_cleanup` und `human_review_required`.
+Unbekannte Zustände fallen auf `human_review_required`; ein „löschbar“ gibt es nicht.
+`blockers` nennt u. a. `cleanup_incomplete`, `ingest_in_progress`,
+`archived_retention_policy_missing` sowie immer `responsibility_model_missing` und
+`legal_hold_model_missing`. `nextGate` ist stets `human_policy_design_review`.
+
+Der Lesezugriff schreibt nichts: keine Persistenz, kein Audit-/Ereignisbucheintrag, kein
+Event, kein Cleanup-Handler, keine Lifecycle-Änderung, keine externen Aufrufe. Die Aktion ist
+nicht `x-agentable`; der generierte Operation-Capability-Index führt sie wie jede GET-Route
+als `data_read` mit Konsequenzstufe `none`, die Prinzipal-Filter bleiben dabei maßgeblich.
+
+Weiterhin offen (#898): Verantwortlichen-Modell, Löschantrag/Papierkorb/Wiederherstellung,
+Legal Hold, Aufbewahrungsfristen, Ereignisbuch-/Evidenzeinträge, Migration bestehender Akten
+und die eigene Verwaltungsoberfläche. RC3-Verhalten von `archive`/`delete` bleibt unverändert.
 
 ## Events und Löschkaskade
 

@@ -13,6 +13,18 @@
 - Konformitäts-, Escape-, Container-, Budget- und Referenztests; Sprachumfang,
   bewusste SQL-Grenzen und Security-Selbstreview dokumentiert.
 
+## Unreleased — Projektakten-Verwaltungsübersicht, read-only (#898 Phase A)
+
+- Neu: `project-file.administrationOverview` / `GET /api/project-file/administration-overview`
+  (`read_only_governance_projection`). Zeigt je sichtbarer Akte Lebenszyklus, letzte Änderung,
+  Bestandteile/Bytes, Clearance, Anzahl verknüpfter Fälle/Gespräche, Löschzustand und eine
+  beratende Löscheinschätzung (`not_eligible`, `policy_definition_required`,
+  `blocked_incomplete_cleanup`, `human_review_required`) mit Blockern.
+- Verantwortung ist als `legacy_responsibility_projection` (Ersteller + Mitglieder) gekennzeichnet
+  und begründet keine Rechte. Gleiche Tenant-/Mitglieder-/Clearance-Filter wie `list`, keine
+  mandantenweiten Summen. Der Lesezugriff schreibt, auditiert und bereinigt nichts.
+- Löschantrag, Papierkorb, Legal Hold, Aufbewahrung, Migration und Oberfläche bleiben offen.
+
 ## Unreleased — Mandantenwissen: Live-Befunde Runde 2 (#927 Phase B)
 
 - Vollständig getroffene Gegenstände älterer Gespräche erreichen bei fehlender lexikalischer
