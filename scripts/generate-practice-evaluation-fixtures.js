@@ -657,6 +657,7 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
     )
   );
   catalog.push(
+    ...require('./generate-project-skill-fixtures').generateProjectSkillScenarios(scenario, turn),
     ...require('./generate-project-manifest-fixtures').generateProjectScenarios(scenario, turn)
   );
   catalog.push(require('./generate-table-quality-fixtures').tableQualityScenario(scenario, turn));

@@ -130,6 +130,10 @@ async function saveTurn(db, p, envelope, patch, time = Date.now()) {
     } catch (error) {
       if (error.status !== 404) throw error;
     }
+    const replacesSkillAnswer =
+      existing?.projectSkillSelection &&
+      !Object.hasOwn(patch, 'projectSkillSelection') &&
+      ['lastAnswer', 'datasetContext', 'situation'].some((key) => Object.hasOwn(patch, key));
     const doc = {
       ...(existing?.expiresAt > time
         ? existing
@@ -148,6 +152,7 @@ async function saveTurn(db, p, envelope, patch, time = Date.now()) {
       tenantId: p.tenantId,
       actorId: p.actorId,
       ...patch,
+      ...(replacesSkillAnswer ? { projectSkillSelection: null } : {}),
       expiresAt: time + PENDING_TTL_MS,
     };
     if (doc.situation) {

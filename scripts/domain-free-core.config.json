@@ -126,7 +126,9 @@
     "src/workbench-preference-extraction.js",
     "src/tenant-evidence-*.js",
     "src/workbench-tenant-evidence.js",
-    "src/workbench-answer-outcome.js"
+    "src/workbench-answer-outcome.js",
+    "src/project-skill-*.js",
+    "src/workbench-project-skills.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

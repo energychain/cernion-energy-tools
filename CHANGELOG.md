@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — Selbstlernende Projekt-Skills ohne Freigabe (#889)
+
+- Aktengebundene CET-Skript-Programme im bestehenden Workbench-Skill-Register;
+  begrenzter Hintergrundentwurf nach wiederholter Bedeutungsähnlichkeit,
+  belegtem Fragetyp ohne Skill oder Degradierung.
+- Automatische Syntax-/Container-/Nur-Lese-Prüfung, Originalvergleich,
+  deterministischer Replay, Skripttests, zusätzlicher Manifest-Prüffall und Budgets
+  ersetzen eine Nutzerfreigabe. Prüffälle und Antwortausführung teilen eine Akten-Sperre.
+- Aktive Skills über Manifest-`skillRefs`, deterministische Nennung und Zahlenherkunft;
+  Neuprüfung nach Datenänderungen, Korrektur/Stilllegung über #701, Journal und
+  strukturelle Zustandsfrage. Übertragungen erhalten eigene Zielakten-Entwürfe.
+- Offline-Praxis-Replays in zwei synthetischen Akten prüfen gute/falsche/fremde
+  Entwürfe, Nutzung, Datenänderung, Korrektur, Übertragung, Sichtbarkeit und Löschung.
+  Dokumentation: `docs/PROJECT_SKILLS.md`, Validierung: `docs/validation/889-skills.md`.
+
 ## Unreleased — CET-Skript v1 (#888)
 
 - Eigener Acorn-/AST-Interpreter für die Skill-Sprache der Projektakte, mit statischer

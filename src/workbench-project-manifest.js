@@ -27,6 +27,12 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
     call: (name, params, options) =>
       ctx.call(name, params, { ...options, meta: { ...meta, ...options?.meta } }),
   });
+  const skillReply = await require('./project-skill-turn').projectSkillTurn(service, safe, {
+    p,
+    envelope,
+    pending,
+  });
+  if (skillReply) return skillReply;
   const evidenceCorrection = await require('./workbench-tenant-evidence').correctSelection(
     service,
     safe,
@@ -78,15 +84,15 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
     }
   );
   if (!result) return null;
-  const answer = await require('./project-manifest-prose').projectManifestProse(
-    result,
-    envelope.userRequest,
-    {
-      tenantId: p.tenantId,
-      logger: service.logger,
-      internalContext: [pending?.situation?.concern, pending?.situation?.situation].filter(Boolean),
-    }
-  );
+  const answer = result.learnedSkill
+    ? { responseText: result.responseText }
+    : await require('./project-manifest-prose').projectManifestProse(result, envelope.userRequest, {
+        tenantId: p.tenantId,
+        logger: service.logger,
+        internalContext: [pending?.situation?.concern, pending?.situation?.situation].filter(
+          Boolean
+        ),
+      });
   const caseProposal = result.tenantSelection
     ? require('./workbench-tenant-evidence').caseProposal(result.evidence)
     : null;
@@ -94,6 +100,9 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
     answer.responseText += `\n\nDas Material passt zu Fall ${caseProposal.displayRef}. Du kannst diesen Fall fortsetzen; die Quellenwahl lässt sich mit „passt nicht“ korrigieren.`;
   await conversation.saveTurn(service.conversationsDb, p, envelope, {
     tenantMemoryFactIds: [],
+    projectSkillSelection: result.learnedSkill
+      ? { projectId: result.projectId, skillId: result.learnedSkill.skillId }
+      : null,
     tenantEvidenceSelection: result.tenantSelection || null,
     tenantEvidenceQuestion: envelope.userRequest.slice(0, 2000),
     tenantEvidenceProjectSelections: result.projectSelections || [],
@@ -119,6 +128,7 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
     nonBinding: true,
     ...answer,
     evidence: result.evidence,
+    learnedSkill: result.learnedSkill,
     gaps: result.gaps,
     ...(result.projectId
       ? { projectSelection: { projectId: result.projectId, questionTypeId: result.questionTypeId } }

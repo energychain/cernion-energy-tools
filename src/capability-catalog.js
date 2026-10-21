@@ -53,6 +53,19 @@ const INTERFACE_PLACEHOLDER_CAPABILITY = {
 
 const CURATED_CAPABILITIES = [
   {
+    capability: 'project_skill_learning',
+    domain: 'governance',
+    abstractionLevel: 'project_check',
+    intent: 'read_project_skill_state',
+    keywords: [],
+    preferredActions: ['workbench.skills.list'],
+    fallbackActions: [],
+    avoid: [],
+    requiredInputs: [{ name: 'projectId', type: 'string', required: true }],
+    risksAndNotes: ['Aktivierung ausschließlich nach automatischer Prüfung auf eigenen Daten.'],
+    routingPattern: 'project_manifest',
+  },
+  {
     capability: 'cya_assessment_briefing',
     domain: 'cya',
     abstractionLevel: 'journalistic_risk_briefing',

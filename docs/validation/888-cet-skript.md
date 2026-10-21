@@ -177,3 +177,8 @@ und ein Review; die gegenwärtigen Einschränkungen sind dokumentiert.
 - **Nachbesserung:** Nach Ablauf des Zeitbudgets wartete der Hauptprozess unbegrenzt auf das Ende des SQL-Workers. Erreicht eine Anweisung keinen Checkpoint, hätte das den Turn blockiert. Jetzt wird der Worker nach 2 s Kulanz hart beendet (`worker.terminate()`).
 - **Hinweis:** Der Interpreter lehnt andere SQLite-Versionen als die geprüfte ab (fail closed). Nach einem Update von `better-sqlite3` müssen Bytecode-Prüfung und Tests neu validiert werden.
 - **Anbindung:** `runProjectSkill` ist bewusst noch an keinen Service angebunden; das übernimmt #889.
+
+- **Nachfolge #889:** Die in diesem Bericht noch offene Serviceanbindung erfolgt inzwischen
+  über das bestehende Workbench-Register und den Manifest-Evidenzpfad. Gelernte Skills
+  verwenden den nur lesenden Einstieg mit gemeinsamer Prüfsitzung; siehe
+  [889-skills.md](889-skills.md).

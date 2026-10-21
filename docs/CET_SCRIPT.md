@@ -31,9 +31,11 @@ Die Rückgabe enthält `result`, `replayHash`, Zahlenherkunft unter `provenance`
 einen Evidenzverweis im Format von `workbench-evidence` und das Ablaufprotokoll `log`.
 Fehler enthalten `code`/`type`, `line` (ab 1), `column` (ab 0) und `details`.
 Am Projekteinstieg kommt `scriptDiagnostic` als begrenzte Diagnose für das
-Lebenszyklus-/Journal-Handling des Aufrufers hinzu. Dessen Zuordnung zu einer Funktion,
-Journal-Persistierung und `degraded`-Status gehören zur Skill-Verwaltung #889;
-der Interpreter verändert keine Aktivierungszustände.
+Lebenszyklus-/Journal-Handling des Aufrufers hinzu. Die Skill-Verwaltung [#889](PROJECT_SKILLS.md) ordnet dies einer Funktion zu und
+übernimmt Journal-Persistierung und `degraded`-Status; der Interpreter verändert
+keine Aktivierungszustände. Ihr interner, nur lesender `verify`-Callback kann
+mehrere Eingaben unter derselben autorisierten Datensicht und Akten-Sperre prüfen.
+Er wird ausschließlich vom vertrauenswürdigen Host gesetzt, nie aus Nutzereingaben.
 
 ## Modul und Sprache
 
@@ -76,7 +78,7 @@ Zahlen-/Längen-/Anzahlgrenzen, `description`, `title` und die Formate `date`, `
 Referenzen, ausführbare Schema-Erweiterungen und Musterprüfungen sind ausgeschlossen.
 Codegenerierende Validatoren wie `AJV.compile` werden hier bewusst nicht verwendet;
 die erlaubten Schema-Schlüssel werden direkt und unter demselben Budget geprüft.
-Die Prüffälle werden strukturell geprüft; ihre Aktivierungs-/Wiederholungssteuerung ist #889.
+Die Prüffälle werden strukturell geprüft; ihre Aktivierungs-/Wiederholungssteuerung übernimmt [#889](PROJECT_SKILLS.md).
 
 Unterstützt werden:
 

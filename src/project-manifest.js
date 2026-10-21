@@ -45,6 +45,16 @@ const schema = {
   ...contentSchema,
   properties: {
     ...contentSchema.properties,
+    questionTypes: {
+      ...contentSchema.properties.questionTypes,
+      items: {
+        ...contentSchema.properties.questionTypes.items,
+        properties: {
+          ...contentSchema.properties.questionTypes.items.properties,
+          skillRefs: { ...strings, maxItems: 32 },
+        },
+      },
+    },
     projectId: text,
     version: { type: 'integer', minimum: 1 },
     generatedAt: text,
@@ -53,9 +63,12 @@ const schema = {
 };
 const validateSchema = new Ajv({ allErrors: true }).compile(schema);
 
-function validateManifest(manifest, nodes) {
+function validateManifest(manifest, nodes, { skillIds = [] } = {}) {
   if (!validateSchema(manifest)) throw new Error('Invalid project manifest schema');
   const ids = new Set(nodes.map((node) => node.nodeId));
+  const allowedSkills = new Set(skillIds);
+  if (manifest.questionTypes.some((type) => type.skillRefs.some((id) => !allowedSkills.has(id))))
+    throw new Error('Unknown project skill reference');
   const claims = [
     manifest.summary,
     ...manifest.entities,

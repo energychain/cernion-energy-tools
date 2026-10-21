@@ -247,6 +247,7 @@ async function createLocalTransport({ budget }) {
       { meta: actorMeta(run, actor), timeout: 120000 }
     );
     await Promise.allSettled([...(app.workbench.tenantMemoryJobs || [])]);
+    if (turn.waitForProjectSkills) await app.drainProjectSkills();
     budget.assertReady();
     return reply;
   }
