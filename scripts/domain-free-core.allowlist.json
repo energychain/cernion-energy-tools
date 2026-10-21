@@ -1,6 +1,10 @@
 {
   "entries": [
     {
+      "term": "alter",
+      "reason": "SQL ALTER keyword in the fail-closed statement rejection set (#888); technical database syntax, without business-domain meaning."
+    },
+    {
       "term": "next gate",
       "reason": "Technical review-gate field nextGate in the read-only project file administration contract (#898; enum human_policy_design_review); workflow metadata, no business-domain rule."
     },
