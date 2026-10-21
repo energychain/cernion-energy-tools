@@ -49,9 +49,78 @@ const projectSchema = {
   },
 };
 
+const administrationOverviewSchema = {
+  type: 'object',
+  required: ['safetyClass', 'advisory', 'projects'],
+  properties: {
+    safetyClass: { type: 'string', enum: ['read_only_governance_projection'] },
+    advisory: { type: 'boolean', enum: [true] },
+    projects: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'projectId',
+          'title',
+          'lifecycle',
+          'updatedAt',
+          'responsibility',
+          'stats',
+          'requiredClearance',
+          'linkedCaseCount',
+          'linkedConversationCount',
+          'deletionState',
+          'failedCleanupCount',
+          'deletionEligibility',
+          'blockers',
+          'nextGate',
+        ],
+        properties: {
+          projectId: { type: 'string' },
+          title: { type: 'string' },
+          lifecycle: {
+            type: 'string',
+            enum: ['ingesting', 'ready', 'degraded', 'archived', 'unknown'],
+          },
+          updatedAt: { type: 'string' },
+          responsibility: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['projection', 'grantsAuthority', 'createdBy', 'members'],
+            properties: {
+              projection: { type: 'string', enum: ['legacy_responsibility_projection'] },
+              grantsAuthority: { type: 'boolean', enum: [false] },
+              createdBy: { type: 'string' },
+              members: { type: 'array', items: { type: 'string' } },
+            },
+          },
+          stats: projectSchema.properties.stats,
+          requiredClearance: { type: 'array', items: { type: 'string' } },
+          linkedCaseCount: { type: 'integer', minimum: 0 },
+          linkedConversationCount: { type: 'integer', minimum: 0 },
+          deletionState: { type: 'string', enum: ['none', 'pending', 'incomplete', 'unknown'] },
+          failedCleanupCount: { type: 'integer', minimum: 0 },
+          deletionEligibility: {
+            type: 'string',
+            enum: [
+              'not_eligible',
+              'policy_definition_required',
+              'blocked_incomplete_cleanup',
+              'human_review_required',
+            ],
+          },
+          blockers: { type: 'array', items: { type: 'string' } },
+          nextGate: { type: 'string', enum: ['human_policy_design_review'] },
+        },
+      },
+    },
+  },
+};
+
 function projectOpenApi(
   summary,
-  { body, query = [], id = false, list = false, deleted = false, read = false } = {}
+  { body, query = [], id = false, list = false, deleted = false, read = false, response } = {}
 ) {
   return {
     summary,
@@ -112,14 +181,16 @@ function projectOpenApi(
         description: 'Tenant-scoped project result',
         content: {
           'application/json': {
-            schema: deleted
-              ? {
-                  type: 'object',
-                  properties: { deleted: { type: 'boolean' }, projectId: { type: 'string' } },
-                }
-              : list
-                ? { type: 'array', items: projectSchema }
-                : projectSchema,
+            schema: response
+              ? response
+              : deleted
+                ? {
+                    type: 'object',
+                    properties: { deleted: { type: 'boolean' }, projectId: { type: 'string' } },
+                  }
+                : list
+                  ? { type: 'array', items: projectSchema }
+                  : projectSchema,
           },
         },
       },
@@ -130,4 +201,4 @@ function projectOpenApi(
   };
 }
 
-module.exports = { projectSchema, projectOpenApi };
+module.exports = { projectSchema, administrationOverviewSchema, projectOpenApi };

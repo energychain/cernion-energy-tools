@@ -2,14 +2,14 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "351d90ff54ae066c082a127845f7b787f120413a32dfe6a45cb1a49cfa8b82d2",
+  "sourceOpenApiHash": "d448ba6c2492f2b9156a86b41142c1b3a6fc857d0d9aa3c5a92465bc6c51318e",
   "coverage": {
-    "rawOperationCount": 1274,
-    "operationCount": 1018,
-    "agentableCount": 1016,
+    "rawOperationCount": 1275,
+    "operationCount": 1019,
+    "agentableCount": 1017,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 442,
+      "data_read": 443,
       "admin": 24,
       "object_store_write": 272,
       "process_step": 26,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 999,
+    "resolvedActionCount": 1000,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -74288,6 +74288,71 @@
         "negativeCues": [],
         "examples": [
           "Please archive a project file and exclude it from routing"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-file_administrationOverview",
+      "method": "GET",
+      "path": "/api/project-file/administration-overview",
+      "service": "project-file",
+      "action": "project-file.administrationOverview",
+      "summary": "Read-only administration inventory with advisory deletion eligibility",
+      "tags": [
+        "Project files"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "project-file.administration_overview"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "project-file:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "file",
+          "administration",
+          "overview",
+          "read",
+          "only",
+          "inventory",
+          "with",
+          "advisory",
+          "deletion",
+          "eligibility",
+          "files"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me read-only administration inventory with advisory deletion eligibility"
         ],
         "synonyms": [
           "agent infrastructure",
