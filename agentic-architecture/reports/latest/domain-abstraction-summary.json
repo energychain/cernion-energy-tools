@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-21T22:20:22.994Z",
+  "generatedAt": "2026-10-22T04:24:55.583Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261021T221907Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261022T042341Z",
   "counts": {
-    "files": 2135,
-    "candidateFiles": 1275,
+    "files": 2160,
+    "candidateFiles": 1299,
     "services": 164,
-    "srcFiles": 501,
-    "docs": 566,
+    "srcFiles": 523,
+    "docs": 568,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -552,5 +552,5 @@
       "hits": 279
     }
   ],
-  "fingerprint": "6d6979159591b65d5876df171042efe3e15cf77d6a430e0fc2d98ef023b13722"
+  "fingerprint": "3ac36f5f7cb0f32def8dc61f719c44edf44b4363535f8426328d17275bf36631"
 }

@@ -1,6 +1,6 @@
 # Natural Workflows
 
-Generated: 2026-10-21T22:20:22.994Z
+Generated: 2026-10-22T04:24:55.583Z
 
 ## Agentic answer contract
 

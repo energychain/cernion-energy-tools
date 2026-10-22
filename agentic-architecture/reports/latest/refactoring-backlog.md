@@ -1,6 +1,6 @@
 # Shepherd Refactoring Backlog
 
-Generated: 2026-10-21T22:20:17.274Z
+Generated: 2026-10-22T04:24:50.370Z
 
 ## Safe first work packages
 
@@ -35,6 +35,7 @@ Generated: 2026-10-21T22:20:17.274Z
 - `services/shared-service-wake.service.js`, `src/shared-service-wake.js`
 - `services/tabular-intelligence.service.js`, `src/tabular-intelligence.js`
 - `services/tenant-memory-policy.service.js`, `src/tenant-memory-policy.js`
+- `src/cet-script/index.js`, `src/index.js`
 - `src/job-store/driver.js`, `src/rate-quota/driver.js`
 - `src/job-store/factory.js`, `src/rate-quota/factory.js`
 - `src/job-store/file-driver.js`, `src/rate-quota/file-driver.js`
