@@ -1,9 +1,9 @@
 # Function model — generated report
 
-Source SHA-256: `233bfd6b2acbe54f0dc46aa6de4723b4da8ac1bc4bcc4b9b3d635b1544a1cbef`
+Source SHA-256: `5659f9bac7a31b2b8116aa6f64e44cc45995a89d4d5dc4ae19b12e4b227f6c3c`
 
 Capabilities: 173; functions: 107.
-Function vectors: 106/107; missing or incompatible capability vectors: 1.
+Function vectors: 107/107; missing or incompatible capability vectors: 0.
 Directed density at minWeight=0.2: **0.063657** (722/11342).
 Naive baseline: 0.49; target: ≤ 0.15; target met: yes.
 
@@ -168,9 +168,9 @@ Previous source SHA-256: e1cd487bc97abf453b239f1fc2e58ddc8d8aa1a9323240bb636fa38
 Counts describe prior IDs in the last membership transition; retired counts IDs that lost their active identity, including merges. No-op generation preserves this provenance.
 Permanently reserved retired IDs: 36.
 
-## embeddingCacheEntries (1)
+## embeddingCacheEntries (0)
 
-- {"capability":"project_skill_learning","reason":"missing"}
+None.
 
 ## retiredFunctionIds (36)
 
