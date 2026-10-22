@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-10-21T22:20:17.274Z",
+  "generatedAt": "2026-10-22T04:24:50.370Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261021T221907Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261022T042341Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
     "version": "0.99.22"
   },
   "counts": {
-    "files": 2135,
+    "files": 2160,
     "services": 164,
-    "srcJs": 435,
-    "tests": 537,
+    "srcJs": 457,
+    "tests": 538,
     "integrations": 35,
-    "docs": 566,
+    "docs": 568,
     "agentFiles": 274,
     "openWebUiFiles": 37,
     "evidenceFiles": 100,
@@ -30,15 +30,15 @@
   "topDirectories": [
     {
       "dir": "tests",
-      "files": 608
+      "files": 609
     },
     {
       "dir": "src",
-      "files": 503
+      "files": 525
     },
     {
       "dir": "docs",
-      "files": 439
+      "files": 441
     },
     {
       "dir": "services",
@@ -361,6 +361,10 @@
       "src/tenant-memory-policy.js"
     ],
     [
+      "src/cet-script/index.js",
+      "src/index.js"
+    ],
+    [
       "src/job-store/driver.js",
       "src/rate-quota/driver.js"
     ],
@@ -379,8 +383,8 @@
   ],
   "domainTermCounts": {
     "agent": {
-      "files": 775,
-      "hits": 8423
+      "files": 779,
+      "hits": 8428
     },
     "personal-agent": {
       "files": 313,
@@ -391,12 +395,12 @@
       "hits": 1002
     },
     "capability": {
-      "files": 535,
-      "hits": 6025
+      "files": 543,
+      "hits": 6069
     },
     "broker": {
-      "files": 678,
-      "hits": 11548
+      "files": 680,
+      "hits": 11554
     },
     "openwebui": {
       "files": 98,
@@ -411,8 +415,8 @@
       "hits": 402
     },
     "evidence": {
-      "files": 860,
-      "hits": 25996
+      "files": 863,
+      "hits": 26008
     },
     "receipt": {
       "files": 171,
@@ -423,16 +427,16 @@
       "hits": 3707
     },
     "routing": {
-      "files": 388,
-      "hits": 2382
+      "files": 391,
+      "hits": 2388
     },
     "workflow": {
       "files": 250,
       "hits": 1612
     },
     "tenant": {
-      "files": 884,
-      "hits": 19022
+      "files": 891,
+      "hits": 19097
     },
     "market": {
       "files": 403,
@@ -455,8 +459,8 @@
       "hits": 2946
     },
     "mako": {
-      "files": 307,
-      "hits": 2493
+      "files": 308,
+      "hits": 2494
     },
     "willi": {
       "files": 113,

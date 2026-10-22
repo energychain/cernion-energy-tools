@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-21T22:20:17.274Z
+Generated: 2026-10-22T04:24:50.370Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 2135
+- Files scanned: 2160
 - Services: 164
-- src/*.js files: 435
-- Tests: 537
+- src/*.js files: 457
+- Tests: 538
 - Integrations files: 35
-- Markdown/docs files: 566
+- Markdown/docs files: 568
 
 ## Existing validation summary
 
@@ -26,9 +26,9 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 608 files
-- `src`: 503 files
-- `docs`: 439 files
+- `tests`: 609 files
+- `src`: 525 files
+- `docs`: 441 files
 - `services`: 200 files
 - `scripts`: 91 files
 - `tools`: 85 files
@@ -197,6 +197,7 @@ Potential duplicate or overlapping slugs:
 - `services/shared-service-wake.service.js`, `src/shared-service-wake.js`
 - `services/tabular-intelligence.service.js`, `src/tabular-intelligence.js`
 - `services/tenant-memory-policy.service.js`, `src/tenant-memory-policy.js`
+- `src/cet-script/index.js`, `src/index.js`
 - `src/job-store/driver.js`, `src/rate-quota/driver.js`
 - `src/job-store/factory.js`, `src/rate-quota/factory.js`
 - `src/job-store/file-driver.js`, `src/rate-quota/file-driver.js`
