@@ -1,10 +1,15 @@
 'use strict';
 
+jest.mock('node:crypto', () => {
+  const actual = jest.requireActual('node:crypto');
+  return { ...actual, randomUUID: jest.fn(actual.randomUUID) };
+});
 jest.mock('../src/llm-client', () => ({
   generateStructured: jest.fn(),
   generateText: jest.fn(),
   generateChat: jest.fn(),
 }));
+const { randomUUID } = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -147,6 +152,7 @@ beforeAll(async () => {
   await broker.start();
 });
 beforeEach(() => {
+  randomUUID.mockReset().mockImplementation(jest.requireActual('node:crypto').randomUUID);
   meta = {
     authUser: {
       tenantId: `regression-${++serial}`,
@@ -326,6 +332,10 @@ test('an empty metadata correction cannot acknowledge an unsaved unit', async ()
 test.each([true, false])(
   'explicit units persist with pending question=%s and a model-normalized unit spelling',
   async (pending) => {
+    // Valid dataset IDs whose digits previously matched the phone scrubber.
+    randomUUID.mockImplementation(
+      () => `01234567-89ab-${jest.requireActual('node:crypto').randomUUID().slice(14)}`
+    );
     const scenario = scenarios.find((entry) => entry.id === 'table-quality');
     await ingest({
       ...scenario.turns[0],
@@ -650,6 +660,10 @@ test('unit replies in another conversation cannot consume the stored question', 
 });
 
 test('variant grouping uses one plan, retains real missing-group rows and publishes complete totals', async () => {
+  // Exercise plan binding with a phone-like digit sequence in the source ID.
+  randomUUID.mockImplementation(
+    () => `01234567-89ab-${jest.requireActual('node:crypto').randomUUID().slice(14)}`
+  );
   const scenario = scenarios.find((entry) => entry.id === 'table-quality');
   await ingest(scenario.turns[0]);
   let plans = 0;

@@ -303,6 +303,26 @@ describe('scrubPromptText', () => {
     expect(result).toContain('[PHONE-MASKED]');
   });
 
+  test.each([
+    'ds_0123456789ab4defa123abcdefabcdef',
+    'ds_abcdefab0123456789abcdefabcdefab',
+    'ds_abcdefabcdef4defa123ab0123456789',
+  ])('preserves dataset ID %s while masking adjacent PII', (id) => {
+    const input = { sourceId: id, phone: '0621/1234567', email: 'person@example.org' };
+    const reidentMap = new Map();
+    const result = JSON.parse(scrubPromptText(JSON.stringify(input), { reidentMap }));
+    expect(result.sourceId).toBe(id);
+    expect(result.phone).toMatch(/^\[MASKED-/);
+    expect(result.email).toMatch(/^\[MASKED-/);
+    expect([...reidentMap.values()]).toEqual(expect.arrayContaining([input.phone, input.email]));
+    expect(reidentMap.size).toBe(2);
+    expect(JSON.parse(scrubPromptText(JSON.stringify(result)))).toEqual(result);
+  });
+
+  it('still masks phone numbers after a dataset prefix that is not a valid ID', () => {
+    expect(scrubPromptText('ds_06211234567')).toBe('ds_[PHONE-MASKED]');
+  });
+
   it('masks multiple PII in same text', () => {
     const text = 'Max: max@test.de, IBAN DE12345678901234567890, Tel +49 171 1234567';
     const result = scrubPromptText(text);
