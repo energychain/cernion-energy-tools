@@ -118,3 +118,36 @@ Details, Grenzen und Konfiguration: [PROJECT_SKILLS.md](../PROJECT_SKILLS.md).
 
 Live-Qualität der Generierung und vollständiger Unit-CI-Lauf bleiben der aufrufenden
 Session vorbehalten. Es wurde nicht gepusht.
+
+## Abschluss in der aufrufenden Session (2026-10-22/23)
+
+- **Unit-CI-Fix:** Die kuratierte Capability `project_skill_learning` (Journal-Funktion der Skills) hatte keinen Eintrag im Embedding-Cache, und der #730-Fixture-Hash war veraltet. Hinzugekommen ist genau ein Embedding (gleicher Provider und gleiches Modell, die übrigen 172 sind unverändert); der Hash ist aktualisiert und mit einem Vermerk versehen.
+- **Live-Lauf 1** ([practice-evaluation-889-live-1.md](practice-evaluation-889-live-1.md), 8,83 EUR): Kein Skill wurde aktiv. Ursachen:
+  - Der Entwurf brach nach 8 s auf dem Standardmodell ab (Denkmodell).
+  - Die Prüfung beim Einsatz, ob der Skill passt, lief mit 3 s Zeitlimit auf dem Standardmodell.
+
+  Behoben in `05442e2d`:
+  - Das Entwurfsbudget ist einstellbar (Standard 90 s und 8.000 Tokens).
+  - Die Prüfung beim Einsatz nutzt das schnelle Verständnismodell.
+  - Nach einer fehlgeschlagenen Prüfung gibt es genau einen weiteren Entwurf mit dem Prüfgrund als Rückmeldung (`draftAttempts`, Test „exactly one redraft“).
+  - Skill-Ergebnisse laufen durch die zahlengeprüfte Ausformulierung; nur die Nennung des Checks bleibt deterministisch.
+- **Live-Lauf 2** ([practice-evaluation-889-live-2.md](practice-evaluation-889-live-2.md), 7,65 EUR, je 2 Wiederholungen):
+
+  | Szenario | Mittel /12 |
+  | --- | --- |
+  | `project-skill-a` | 12 |
+  | `project-skill-b` | 12 |
+  | `role-onboarding` | 12 |
+  | `table-quality` | 12 |
+  | `document-table` | 12 |
+  | `earlier-session` | 12 |
+  | `file-question` | 12 |
+  | `project-a-unrelated` | 10,5 |
+  | `project-a-implicit` | 10 |
+  | `memory` | 10 |
+
+  Lernen, automatische Prüfung, Aktivierung, sichtbare Nutzung, Zustandsfrage, Korrektur und Stilllegung sind live grün.
+- **Bekannte, nicht durch #889 verursachte Abweichungen:**
+  - In einem Lauf erzeugte die Manifest-Generierung von #887 ungültige Knotenreferenzen (2 verworfen, Status „generated“).
+  - `memory`/`notice` zeigt Varianz im bestehenden Gedächtnispfad.
+  - `earlier-session`/`fallback-question`: bekannte Grenze aus #927 Phase B.
