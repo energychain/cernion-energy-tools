@@ -65,9 +65,11 @@ async function useSkill(ctx, selected, question, tables, objects, nodes) {
         originalInput: skill.baseline.input,
       }),
       {
-        tenantId: principal(ctx).tenantId,
+        // Synchronous answer-path classification uses the fast understanding model, like the
+        // other turn classifiers; the default model is reserved for background drafting.
+        ...require('./workbench-understanding').llmOptions(principal(ctx).tenantId),
         broker: ctx.broker,
-        timeoutMs: 3000,
+        timeoutMs: 5000,
         maxRetries: 0,
         structuredFallback: false,
       }

@@ -18,8 +18,10 @@ let transport,
   app,
   draftMode = 'good';
 const errors = [];
+const draftInputs = [];
 
 function draft(input) {
+  draftInputs.push(input);
   const read = input.successfulPath.reads[0];
   const metric = read.result.plan.operations.find((operation) => operation.op === 'aggregate')
     .metrics[0];
@@ -43,7 +45,9 @@ function draft(input) {
     { input: original, expect: { rows: 1, columns: [metric.as], contains: read.result.result } },
   ];
   const table = draftMode === 'foreign' ? 'ds_foreign' : read.record.id;
-  const expression = draftMode === 'wrong' ? '0' : `MAX(\u0024{data.col('${metric.field}')})`;
+  // 'redraft' fails the first automatic check and fixes it only when given the failure.
+  const wrong = draftMode === 'wrong' || (draftMode === 'redraft' && !input.previousAttempt);
+  const expression = wrong ? '0' : `MAX(\u0024{data.col('${metric.field}')})`;
   return {
     program: `export const meta=${JSON.stringify(meta)};export const tests=${JSON.stringify(tests)};export default async function skill(input,cet){ const data=cet.table('${table}');const rows=await cet.sql\u0060SELECT ${expression}${draftMode === 'recomputed' ? ' + 0' : ''} AS "${metric.as}" FROM \u0024{data} WHERE \u0024{data.col('Zeit')} >= \u0024{input.from} AND \u0024{data.col('Zeit')} < \u0024{input.to}\u0060;return cet.result.table(rows);}`,
     inputJson: JSON.stringify(original),
@@ -261,6 +265,28 @@ test.each(['wrong', 'foreign'])('generated %s draft never becomes active', async
   expect(skills).toHaveLength(1);
   expect(skills[0].lifecycle).toBe('draft');
   expect(skills[0].validation.checks.some((check) => !check.passed)).toBe(true);
+});
+
+test('a failed automatic check gets exactly one redraft with the failure as feedback', async () => {
+  draftMode = 'redraft';
+  errors.length = 0;
+  const before = draftInputs.length;
+  const fixture = instantiatePracticeScenario('project-skill-a');
+  const run = await transport.startRun(fixture);
+  for (const turn of fixture.turns.slice(0, 2)) await transport.send(run, turn);
+  while (
+    app.workbench.projectSkillWorker?.pending.size ||
+    app.workbench.projectSkillWorker?.running
+  )
+    await runProjectSkillJob(app.workbench);
+  const made = draftInputs.slice(before);
+  expect(made).toHaveLength(2);
+  expect(made[0].previousAttempt).toBeUndefined();
+  expect(made[1].previousAttempt.failure).toBeTruthy();
+  expect(made[1].previousAttempt.program).toContain('SELECT 0');
+  const [skill] = await app.workbench.store.listProjectSkillRecords(run.tenantId);
+  expect(errors).toEqual([]);
+  expect(skill.lifecycle).toBe('active');
 });
 
 async function learn(fixture) {

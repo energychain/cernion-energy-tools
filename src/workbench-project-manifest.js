@@ -84,15 +84,23 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
     }
   );
   if (!result) return null;
+  // Learned-check results are phrased like every other project answer (number-checked prose);
+  // only the naming of the check stays deterministic.
+  const prose = await require('./project-manifest-prose').projectManifestProse(
+    result,
+    envelope.userRequest,
+    {
+      tenantId: p.tenantId,
+      logger: service.logger,
+      internalContext: [pending?.situation?.concern, pending?.situation?.situation].filter(Boolean),
+    }
+  );
   const answer = result.learnedSkill
-    ? { responseText: result.responseText }
-    : await require('./project-manifest-prose').projectManifestProse(result, envelope.userRequest, {
-        tenantId: p.tenantId,
-        logger: service.logger,
-        internalContext: [pending?.situation?.concern, pending?.situation?.situation].filter(
-          Boolean
-        ),
-      });
+    ? {
+        ...prose,
+        responseText: `${prose.responseText}\n\nBerechnet nach meinem gelernten Check ‚${result.learnedSkill.title}‘.`,
+      }
+    : prose;
   const caseProposal = result.tenantSelection
     ? require('./workbench-tenant-evidence').caseProposal(result.evidence)
     : null;
