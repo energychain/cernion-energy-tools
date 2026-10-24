@@ -319,6 +319,21 @@ describe('scrubPromptText', () => {
     expect(JSON.parse(scrubPromptText(JSON.stringify(result)))).toEqual(result);
   });
 
+  test.each([
+    'e130c3be-a012345678-40c7-af43-157269b734f2',
+    'learned-dca45661-2403-4344-805e-9a0123456789',
+    'doc-3fb9552f-a0621123456-48ac-8acf-20ed470fe0ec-v1',
+  ])('preserves UUID-like identifier %s', (id) => {
+    expect(scrubPromptText(`ID ${id}`)).toBe(`ID ${id}`);
+  });
+
+  test.each(['Tel: 0621/1234567', 'Tel 0621 1234567', 'Telefon:+49 171 1234567'])(
+    'still masks a standalone phone number in %s',
+    (text) => {
+      expect(scrubPromptText(text)).toContain('[PHONE-MASKED]');
+    }
+  );
+
   it('still masks phone numbers after a dataset prefix that is not a valid ID', () => {
     expect(scrubPromptText('ds_06211234567')).toBe('ds_[PHONE-MASKED]');
   });
