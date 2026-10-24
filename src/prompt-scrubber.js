@@ -217,8 +217,13 @@ function scrubPromptText(text, options = {}) {
     dates.push(date);
     return `DATEPLACEHOLDER${(dates.length - 1).toString(36).replace(/\d/g, (digit) => String.fromCharCode(65 + Number(digit)))}END`;
   });
-  scrubbed = scrubbed.replace(/(?<![\d.-])(\+49|0049|0)\s?[\d\s/.-]{8,15}/g, (value) =>
-    mask(value, 'PHONE')
+  // Consume complete application-generated dataset IDs before phone matching, and never
+  // start a phone match directly after a letter or digit: random hex digits of dataset IDs and UUIDs (cases,
+  // documents, skills) can contain a phone-like sequence. Changing an ID breaks the
+  // binding of model classifications and query plans to the catalog.
+  scrubbed = scrubbed.replace(
+    /\bds_[a-f0-9]{32}\b|(?<![A-Za-z0-9.-])(\+49|0049|0)\s?[\d\s/.-]{8,15}/g,
+    (value, phonePrefix) => (phonePrefix ? mask(value, 'PHONE') : value)
   );
   scrubbed = scrubbed.replace(/DATEPLACEHOLDER([A-Za-z]+)END/g, (token) => {
     const index = token

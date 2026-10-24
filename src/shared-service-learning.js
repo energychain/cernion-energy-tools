@@ -15,6 +15,8 @@ function correctionPrincipal(event, meta) {
   return p;
 }
 function validateCorrection(input, model) {
+  if (input.target === 'projectSkill')
+    return require('./project-skill-store').validateSkillCorrection(input.correction);
   if (input.target === 'tenantEvidence')
     return require('./tenant-evidence-descriptor').validateEvidenceCorrection(input.correction);
   if (input.target === 'projectManifest')

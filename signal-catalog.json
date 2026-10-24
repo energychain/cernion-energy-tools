@@ -1,8 +1,8 @@
 {
  "version": 2,
  "generatedAt": "2026-01-01T00:00:00.000Z",
- "modelSourceHash": "8d0823a4a1911afe583659820bc5737bdcf21a32880da2cf72d4a275dc205dc5",
- "sourceHash": "c518f374eceb7e55e4a45ac7a0f02f6609b985d6fe1eea89e11e76cdfd6c1af4",
+ "modelSourceHash": "8f3b4c2754cfd41f59c3e04674c5b6607706eab81a5641da9f4f73d6eb91c33c",
+ "sourceHash": "8dfca536e466be26705a686bc49e721fa1b783a95504e5c2586b1d42d6fcfb7b",
  "probeEnvironment": {
   "tenantId": "stadtwerk-mauer",
   "services": [
@@ -4565,7 +4565,7 @@
    "operationId": "dashboard-api_heatTransformationLineAssetModelStatus",
    "action": "dashboard-api.heatTransformationLineAssetModelStatus",
    "functionIds": [
-    "fn-heat-transformation-line-asset-model"
+    "fn-znp-portfolio-assessment"
    ],
    "classification": "contextual",
    "contextKinds": [

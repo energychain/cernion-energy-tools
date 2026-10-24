@@ -22,6 +22,12 @@ module.exports = new Set(
       )
     )
     .concat(
+      // Reviewed neutral vocabulary and technical fixture fields for project checks (#889).
+      'skill wiederkehrende aktenfrage gelernten check originalantwort welchen höchstwert erreichte bedeutungsähnliche automatisch geprüften meinem projectskill timestamps waitforprojectskills used status skills hast du gelernt anlass aktivierung register journal aktiv geprüft incorrect degradiert entwirft neu herabgestuft retire stilllegen stillgelegter mehr genutzt nutzt keinen learnedskills'.split(
+        ' '
+      )
+    )
+    .concat(
       'ersten abgelegt zweiten n2025 daten herkunft hinterlegt letzte unpassende quellenwahl fallzuordnung material koordination'.split(
         ' '
       )

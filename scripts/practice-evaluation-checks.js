@@ -70,6 +70,9 @@ function checkTurn(turn, reply, context = {}) {
   const text = String(reply.responseText || reply.reply || '');
   const rules = turn.expect.rules || {};
   const checks = [
+    ...(rules.projectSkill
+      ? require('./generate-project-skill-fixtures').projectSkillChecks(rules.projectSkill, reply)
+      : []),
     ...(rules.projectEvidence
       ? require('./generate-project-manifest-fixtures').projectEvidenceChecks(
           rules.projectEvidence,

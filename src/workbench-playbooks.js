@@ -320,6 +320,21 @@ function safePlaybook(playbook) {
   const roleFamilies = playbook.roleFamilies || [];
   const routingSignals = playbook.routingSignals || [];
   return {
+    ...(playbook.projectId
+      ? {
+          projectId: playbook.projectId,
+          lifecycle: playbook.lifecycle,
+          intent: playbook.intent,
+          program: playbook.program,
+          inputs: playbook.inputs,
+          outputs: playbook.outputs,
+          validation: playbook.validation,
+          usage: playbook.usage,
+          origin: playbook.origin,
+          derivedFrom: playbook.derivedFrom,
+          reason: playbook.reason,
+        }
+      : {}),
     // legacy/back-compat playbook fields
     playbookId: playbook.playbookId,
     domain: playbook.domain,
@@ -364,7 +379,7 @@ function defaultPlaybooksForTenant(tenantId) {
 function matchPlaybooks(playbooks, { domain, roles = [], workspaceId = null } = {}) {
   const roleSet = new Set(roles);
   return playbooks
-    .filter((item) => (item.status || 'active') === 'active')
+    .filter((item) => !item.projectId && (item.status || 'active') === 'active')
     .filter((item) => {
       if (!domain) return true;
       if (item.domain === domain || item.domain === 'governance') return true;

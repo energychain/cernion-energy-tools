@@ -176,8 +176,8 @@ recipes:
   utility-report-ewk "A grid operator needs a structured EWK…"
 resolve: GET /api/_agent/operations?domain=regulatory
 
-### governance (49 capabilities · 1 recipes · 104 operations)
-capabilities: a2mdm_decision_object_meaning_preservation, automation_requirements_decision_value, automation_risk_gate, communication_break_process_risk, coordination_meaning_preservation_profile, crisis_decision_routine, cross_domain_special_topics_queue, cross_system_variance_matrix, cya_assessment_briefing, e2e_controllability_check_governance, eic_code_lookup, financier_due_diligence_assessment, flexibility_conductor_role_model, gremiencoach_workbook_readiness, grossspeicher_anschluss_readiness_gate, interconnection_release_file, interface_placeholder, jour_fixe_decision_closure_tracker, ki_floorwalker_governance, knowledge_continuity_governance_gate, layer0_audit_drilldown_note, leadership_delta_cockpit, legal_clarification_operating_model, liquidity_planning_governance_module, model_viability_evidence_gate, netzkoppelvertrag_workflow, netzprozess_readiness_gate, nkp_reporting, no_regret_measure_proof_gate, nova_decision_lifecycle_readiness, off_balancing_metering_pruefmatrix, owner_deadline_evidence_gate, process_sensitization_readiness_map, regulatory_signal_process_translator, reporting_governance, role_permission_access_readiness_gate, scqa_decision_framing, smart_meter_off_balancing_purpose_lock, stadtwerk_mauer_capability_projection, stadtwerk_mauer_event_replay_preview, stadtwerk_mauer_vdmi_profile, steering_artifact_acceptance_gate, vdmi_asset_validation_governance, vdmi_governance_templates, vdmi_grid_connection_decision_governance, vdmi_portfolio_gatekeeping, vdmi_role_boundary_governance, vnb_kpi_benchmark_comparison, zaehlpark_finanzierung_szenario_cockpit
+### governance (50 capabilities · 1 recipes · 104 operations)
+capabilities: a2mdm_decision_object_meaning_preservation, automation_requirements_decision_value, automation_risk_gate, communication_break_process_risk, coordination_meaning_preservation_profile, crisis_decision_routine, cross_domain_special_topics_queue, cross_system_variance_matrix, cya_assessment_briefing, e2e_controllability_check_governance, eic_code_lookup, financier_due_diligence_assessment, flexibility_conductor_role_model, gremiencoach_workbook_readiness, grossspeicher_anschluss_readiness_gate, interconnection_release_file, interface_placeholder, jour_fixe_decision_closure_tracker, ki_floorwalker_governance, knowledge_continuity_governance_gate, layer0_audit_drilldown_note, leadership_delta_cockpit, legal_clarification_operating_model, liquidity_planning_governance_module, model_viability_evidence_gate, netzkoppelvertrag_workflow, netzprozess_readiness_gate, nkp_reporting, no_regret_measure_proof_gate, nova_decision_lifecycle_readiness, off_balancing_metering_pruefmatrix, owner_deadline_evidence_gate, process_sensitization_readiness_map, project_skill_learning, regulatory_signal_process_translator, reporting_governance, role_permission_access_readiness_gate, scqa_decision_framing, smart_meter_off_balancing_purpose_lock, stadtwerk_mauer_capability_projection, stadtwerk_mauer_event_replay_preview, stadtwerk_mauer_vdmi_profile, steering_artifact_acceptance_gate, vdmi_asset_validation_governance, vdmi_governance_templates, vdmi_grid_connection_decision_governance, vdmi_portfolio_gatekeeping, vdmi_role_boundary_governance, vnb_kpi_benchmark_comparison, zaehlpark_finanzierung_szenario_cockpit
 recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
@@ -246,12 +246,12 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/vdmi-blueprint-pack-seeds.test.js` — 15 new tests for #591 covering the MaKo/M2C Resolution Value Review seed: catalog lookup/list registration, the six `source_hint_only` read-model references and `metadata_only` command hints, full validator coverage (required roles/evidence/data classes/forbidden actions), qualitative-only Resolution Value framing with positive missing-evidence follow-ups, the explicit HITL boundary/no-call guard, non-executing workbench-clarification-item mapping for `ROLE_MAKO_OWNER`, the exact four-row canonical matrix (roles, gate outcomes, pending downstream sync) via `buildDemoProcessMatrixSync`/`buildLandingRegistryDraftFromBlueprintSeed`, and five negative cases (missing required evidence key, non-role matrix cell, wrong `roleLegend.M`, an executable command hint, and a missing forbidden/consequential-action guard). Full suite: `tests/vdmi-blueprint-pack-seeds.test.js` — 1 suite / 87 tests pass.
 
 ## Source File Hashes
-- CHANGELOG.md: 64163c20d66a48a6c237e7aeca816143589e7ca2a19c02fdea951939864e70be
+- CHANGELOG.md: 7abec87eb8e2d87d5064704e26e88df93186781aabf1de06e46b851ed7fac0d9
 - README.md: 6928d66c5b662282824492ef8730244f9b17d03fd69b671088fc3dcdc81d3bdf
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
-- src/capability-catalog.js: b0a662fd9aa255721bd0e0c90f9bd41627c18b61f10200661e4e45c92d4e091c
-- openapi-export.json: d448ba6c2492f2b9156a86b41142c1b3a6fc857d0d9aa3c5a92465bc6c51318e
+- src/capability-catalog.js: d8c6398f801cc233ea13bf66a2ae66598896bd94787c382ee248075ec60b74c5
+- openapi-export.json: 4008cafe0875a3381e75163e73283230c8a2bef1a7d91f827de2a344b0d1c6f2
 
 ## OpenAPI Surface (full contract, not embedded)
 - path_count: 1153
@@ -259,4 +259,4 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 53c9a3d40a573e9efd2adcd9a9dff167a442318e655e9e158d3031d18ba6b6fe
+- llm_txt_sha256: 6cf8c17b3268b36262a29ffee5faabc2ceea4412e734c7d161d1cc94db789d8c
