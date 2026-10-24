@@ -307,8 +307,27 @@ async function runProjectSkill(ctx, request) {
           const budget = new Budgets(request.budgets);
           try {
             const options = await snapshot(safe, request, basePath, p, budget);
-            return await runSkill(request.source, request.input, {
+            const bound = {
               ...options,
+              ...(request.readOnly ? { commitDerived: undefined } : {}),
+            };
+            if (request.verify) {
+              if (!request.readOnly || typeof request.verify !== 'function')
+                fail('CONTAINER_VIOLATION', 'Verification requires trusted read-only execution');
+              // Host-only verification callback; every run shares this authorized snapshot/lock.
+              return await budget.wait(
+                request.verify((input, asOf = request.asOf) => {
+                  budget.check();
+                  const limits = {
+                    ...budget.limits,
+                    runtimeMs: Math.max(1, Math.floor(budget.remaining())),
+                  };
+                  return runSkill(request.source, input, { ...bound, asOf, budgets: limits });
+                })
+              );
+            }
+            return await runSkill(request.source, request.input, {
+              ...bound,
               asOf: request.asOf,
               budget,
             });

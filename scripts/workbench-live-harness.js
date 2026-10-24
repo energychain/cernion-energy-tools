@@ -78,6 +78,10 @@ function createLiveHarness(directory, sourceServices) {
       }
     }
   };
-  return { broker, workbench, cleanupCall, drainDescriptors };
+  const drainProjectSkills = async () => {
+    while (workbench.projectSkillWorker?.pending.size || workbench.projectSkillWorker?.running)
+      await require('../src/project-skill-learning').runProjectSkillJob(workbench);
+  };
+  return { broker, workbench, cleanupCall, drainDescriptors, drainProjectSkills };
 }
 module.exports = { createLiveHarness, isolatedSettings };

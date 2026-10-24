@@ -714,6 +714,35 @@ class WorkbenchStore {
     return { ...doc, _rev: saved.rev };
   }
 
+  async listProjectSkillRecords(tenantId) {
+    const { rows } = await this.playbookDb.allDocs({ include_docs: true });
+    return rows
+      .map(({ doc }) => doc)
+      .filter(
+        (doc) => doc.tenantId === tenantId && doc.type === 'workbench_playbook' && doc.projectId
+      );
+  }
+
+  async saveProjectSkill(input) {
+    const _id = playbookId(input.tenantId, input.skillId);
+    const previous = await this.getSkill(input);
+    if (previous && previous.projectId !== input.projectId) conflict('Skill project mismatch');
+    if (previous && previous.version !== input.version) conflict('Skill changed concurrently');
+    const doc = {
+      ...input,
+      _id,
+      _rev: previous?._rev,
+      type: 'workbench_playbook',
+      playbookId: input.skillId,
+      status: input.lifecycle,
+      scope: 'project',
+      version: (previous?.version || 0) + 1,
+      createdAt: previous?.createdAt || now(),
+    };
+    const saved = await this.playbookDb.put(doc);
+    return { ...doc, _rev: saved.rev };
+  }
+
   async savePlaybook(input) {
     const _id = playbookId(input.tenantId, input.playbookId);
     let existing = null;
@@ -722,6 +751,7 @@ class WorkbenchStore {
     } catch (e) {
       if (e.status !== 404) throw e;
     }
+    if (existing?.projectId) conflict('Use project skill lifecycle');
     const timestamp = now();
     const doc = Object.assign(existing ? { ...existing } : {}, {
       _id,
@@ -761,6 +791,7 @@ class WorkbenchStore {
           doc.domain === 'governance' ||
           (doc.domains || []).includes(input.domain)
       )
+      .filter((doc) => (input.projectId ? doc.projectId === input.projectId : !doc.projectId))
       .filter((doc) => !input.status || doc.status === input.status)
       .sort((a, b) => String(a.playbookId).localeCompare(String(b.playbookId)));
   }
@@ -859,6 +890,7 @@ class WorkbenchStore {
     } catch (e) {
       if (e.status !== 404) throw e;
     }
+    if (existing?.projectId) conflict('Use project skill lifecycle');
     if (existing && existing.status !== 'draft') {
       conflict('Skill can only be created/edited through this action while status is draft');
     }
@@ -942,6 +974,7 @@ class WorkbenchStore {
       throw e;
     }
     if (doc.tenantId !== tenantId) notFound('Workbench skill not found');
+    if (doc.projectId) conflict('Use project skill lifecycle');
     if (doc.status === toStatus) {
       await this.appendSkillAudit({
         tenantId,

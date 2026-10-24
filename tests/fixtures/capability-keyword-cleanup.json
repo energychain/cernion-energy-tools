@@ -445,5 +445,6 @@
       "added": []
     }
   ],
-  "nonKeywordFieldsHash": "a89d23ca244fb9b5ab58815d54dd0ddd456de7f521e5422607b5d227aa881852"
+  "nonKeywordFieldsHash": "bce56f35d678b37038d0419946ff773a34763c4906161704cca60438c9f6a213",
+  "nonKeywordFieldsHashNote": "Updated deliberately for the curated capability project_skill_learning (#889, journal function identity of learned project skills); the #730 keyword cleanup itself created no capabilities."
 }

@@ -32,6 +32,8 @@ function display(value, translate = true) {
 }
 
 function activityScope(message) {
+  const learned = require('./workbench-project-skills').learnedSkillScope(message);
+  if (learned) return learned;
   const text = String(message || '').trim();
   if (
     /^(?:was gibt es neues|gibt[’']?s (?:was|etwas) neues|was ist passiert|irgendwelche hinweise für mich|what[’']?s new)[?.!\s]*$/i.test(
@@ -231,6 +233,7 @@ async function answerSystemActivity(
   const p = principal(ctx);
   const scope = requestedScope || activityScope(message);
   if (!scope) return { mode: 'system_activity_query', state: 'function_unknown', items: [] };
+  if (scope.projectSkills) return require('./workbench-project-skills').answerSkills(ctx, scope);
   if (scope.noticesOnly) {
     const source = await readSource(
       ctx,
@@ -385,6 +388,7 @@ function renderFunctionActivity(item) {
 }
 
 function renderSystemActivity(result = {}) {
+  if (result.state === 'project_skills') return result.responseText;
   if (result.state === 'notices')
     return result.noticeQueue?.block || 'Derzeit gibt es keine neuen Hinweise für dich.';
   if (result.state === 'notices_unavailable')

@@ -100,6 +100,23 @@ async function readProjectEvidence(ctx, selected, question, options = {}) {
       !expanded.some((entry) => entry.nodeId === node.nodeId)
     )
       expanded.push(node);
+  const learned = options.skipLearned
+    ? null
+    : await require('./workbench-project-skills').useSkill(
+        ctx,
+        selected,
+        question,
+        selectedTables,
+        objects,
+        graph.nodes
+      );
+  if (learned) {
+    const linked = await readLinkedEvidence(ctx, selected, question, options);
+    learned.evidence.push(...linked.evidence);
+    learned.gaps.push(...linked.gaps);
+    learned.trace.push(...linked.trace);
+    return learned;
+  }
   for (const node of expanded
     .filter((entry) => ['dataset', 'section'].includes(entry.kind))
     .slice(0, 8)) {
@@ -215,6 +232,11 @@ async function readProjectEvidence(ctx, selected, question, options = {}) {
   }
   if (questionType && !evidence.length && !gaps.length)
     missing('eine aktuelle Tabellen- oder Passagenquelle für diesen Fragetyp');
+  if (!gaps.length && tableReads.length && !expanded.some((node) => node.kind === 'section')) {
+    options.onSuccessfulPath?.({ selected, question, reads: tableReads });
+    if (options.learning !== false)
+      require('./project-skill-learning').observe(ctx, selected, question, tableReads);
+  }
   const linked = await readLinkedEvidence(ctx, selected, question, options);
   evidence.push(...linked.evidence);
   gaps.push(...linked.gaps);

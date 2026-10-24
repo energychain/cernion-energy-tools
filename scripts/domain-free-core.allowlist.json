@@ -1017,6 +1017,18 @@
     {
       "term": "vorgaben",
       "reason": "Generische Gesprächs- und Sprachpräferenzen als belegte Nutzeranweisung, ohne Fachwortlisten."
+    },
+    {
+      "term": "skill",
+      "reason": "Technical CET-Skript entrypoint and ProjectSkill contract identifier (#889), also used in projectSkill/program bindings; no business-domain vocabulary."
+    },
+    {
+      "term": "project_skill_learning",
+      "reason": "Technical capability identity for the ProjectSkill journal function (#889); activation, correction and execution are tenant/project scoped and domain independent."
+    },
+    {
+      "term": "projekt",
+      "reason": "Technical ProjectManifest/ProjectSkill container label in the structural state-query grammar and deterministic presenter (#889); names the generic project resource, with no business-domain rule."
     }
   ]
 }
