@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-22T04:24:55.583Z
+Generated: 2026-10-24T23:18:14.850Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -39,8 +39,8 @@ Starke Code-/Doku-Signale:
 - `docs/validation/practice-evaluation-baseline-corrected.json` (723 hits)
 - `docs/validation/practice-evaluation-baseline.md` (688 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.md` (658 hits)
-- `src/capability-catalog.js` (613 hits)
-- `services/workbench.service.js` (575 hits)
+- `src/capability-catalog.js` (615 hits)
+- `services/workbench.service.js` (576 hits)
 - `docs/reviews/730-capability-routing-evaluation.json` (462 hits)
 - `src/answer-dossier-hydration-rules.json` (361 hits)
 - `services/personal-agent/actions-part-01-of-1.js` (360 hits)
@@ -305,8 +305,8 @@ Starke Code-/Doku-Signale:
 - `services/capability-broker.service.js` (758 hits)
 - `services/chatgpt-sidecar.service.js` (335 hits)
 - `services/personal-agent/actions-part-01-of-1.js` (330 hits)
-- `src/capability-catalog.js` (292 hits)
-- `function-model.report.md` (288 hits)
+- `src/capability-catalog.js` (293 hits)
+- `function-model.report.md` (287 hits)
 - `services/domain-routes-management.service.js` (275 hits)
 - `services/workbench.service.js` (255 hits)
 - `src/answer-dossier-hydration-rules.json` (235 hits)

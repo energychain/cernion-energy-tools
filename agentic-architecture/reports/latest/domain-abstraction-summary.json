@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-22T04:24:55.583Z",
+  "generatedAt": "2026-10-24T23:18:14.850Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261022T042341Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261024T231710Z",
   "counts": {
-    "files": 2160,
-    "candidateFiles": 1299,
+    "files": 2174,
+    "candidateFiles": 1310,
     "services": 164,
-    "srcFiles": 523,
-    "docs": 568,
+    "srcFiles": 530,
+    "docs": 572,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -15,13 +15,13 @@
       "label": "Fallarbeit und Assistenz",
       "files": 25,
       "services": 2,
-      "hits": 10844
+      "hits": 11013
     },
     "evidence-and-trust": {
       "label": "Evidence, Nachweis und Vertrauen",
       "files": 25,
       "services": 23,
-      "hits": 19236
+      "hits": 19237
     },
     "mako-and-edm": {
       "label": "MaKo / EDM / Stammdaten",
@@ -32,7 +32,7 @@
     "grid-and-connection": {
       "label": "Netz, Anschluss und Kapazität",
       "files": 25,
-      "services": 49,
+      "services": 48,
       "hits": 11012
     },
     "forecast-and-market": {
@@ -56,8 +56,8 @@
     "tenant-and-operation": {
       "label": "Tenant, Rollen und Betrieb",
       "files": 25,
-      "services": 52,
-      "hits": 9585
+      "services": 53,
+      "hits": 9589
     },
     "openwebui-agentic-routing": {
       "label": "OpenWebUI und agentisches Routing",
@@ -525,7 +525,7 @@
     },
     {
       "path": "function-model.report.md",
-      "hits": 399
+      "hits": 400
     },
     {
       "path": "services/personal-agent/shared.js",
@@ -552,5 +552,5 @@
       "hits": 279
     }
   ],
-  "fingerprint": "3ac36f5f7cb0f32def8dc61f719c44edf44b4363535f8426328d17275bf36631"
+  "fingerprint": "96d7cde36d3a9d3a02ee49db2216684fa2d76887dab60897b7ba867a55c2be9b"
 }

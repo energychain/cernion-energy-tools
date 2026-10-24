@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-10-22T04:24:50.370Z",
+  "generatedAt": "2026-10-24T23:18:09.981Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261022T042341Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261024T231710Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
     "version": "0.99.22"
   },
   "counts": {
-    "files": 2160,
+    "files": 2174,
     "services": 164,
-    "srcJs": 457,
-    "tests": 538,
+    "srcJs": 464,
+    "tests": 540,
     "integrations": 35,
-    "docs": 568,
+    "docs": 572,
     "agentFiles": 274,
     "openWebUiFiles": 37,
     "evidenceFiles": 100,
@@ -30,15 +30,15 @@
   "topDirectories": [
     {
       "dir": "tests",
-      "files": 609
+      "files": 611
     },
     {
       "dir": "src",
-      "files": 525
+      "files": 532
     },
     {
       "dir": "docs",
-      "files": 441
+      "files": 445
     },
     {
       "dir": "services",
@@ -46,7 +46,7 @@
     },
     {
       "dir": "scripts",
-      "files": 91
+      "files": 92
     },
     {
       "dir": "tools",
@@ -395,12 +395,12 @@
       "hits": 1002
     },
     "capability": {
-      "files": 543,
-      "hits": 6069
+      "files": 546,
+      "hits": 6076
     },
     "broker": {
-      "files": 680,
-      "hits": 11554
+      "files": 687,
+      "hits": 11582
     },
     "openwebui": {
       "files": 98,
@@ -415,8 +415,8 @@
       "hits": 402
     },
     "evidence": {
-      "files": 863,
-      "hits": 26008
+      "files": 874,
+      "hits": 26055
     },
     "receipt": {
       "files": 171,
@@ -427,24 +427,24 @@
       "hits": 3707
     },
     "routing": {
-      "files": 391,
-      "hits": 2388
+      "files": 394,
+      "hits": 2393
     },
     "workflow": {
       "files": 250,
       "hits": 1612
     },
     "tenant": {
-      "files": 891,
-      "hits": 19097
+      "files": 901,
+      "hits": 19275
     },
     "market": {
       "files": 403,
       "hits": 3966
     },
     "grid": {
-      "files": 654,
-      "hits": 9862
+      "files": 655,
+      "hits": 9863
     },
     "redispatch": {
       "files": 310,
@@ -476,7 +476,7 @@
     },
     "stadtwerk": {
       "files": 248,
-      "hits": 5635
+      "hits": 5634
     },
     "utility": {
       "files": 94,
