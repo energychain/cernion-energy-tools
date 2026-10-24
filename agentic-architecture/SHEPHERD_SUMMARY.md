@@ -1,16 +1,16 @@
 # Shepherd Summary
 
-Generated: 2026-10-22T04:24:55.654Z
-Run: 20261022T042341Z
-Branch: shepherd/runtime-refactor-20261022T042340Z
-Fingerprint: 47cbac5481a068475dd863cde779b363ffbe95647e565954bceb37c7d437cbe4
+Generated: 2026-10-24T23:18:14.914Z
+Run: 20261024T231710Z
+Branch: shepherd/runtime-refactor-20261024T231709Z
+Fingerprint: 09df79da50775e641d91c0b31b76a402e157505b37c30dc77720ac35ffe3def3
 
 ## Current measurable surface
 
-- Files: 2160
+- Files: 2174
 - Services: 164
-- src JS files: 457
-- Tests: 538
+- src JS files: 464
+- Tests: 540
 - Agentic files: 274
 - OpenWebUI/ChatGPT files: 37
 - Evidence/HITL files: 100
@@ -27,11 +27,11 @@ Fingerprint: 47cbac5481a068475dd863cde779b363ffbe95647e565954bceb37c7d437cbe4
 
 ## Top directories
 
-- `tests`: 609 files
-- `src`: 525 files
-- `docs`: 441 files
+- `tests`: 611 files
+- `src`: 532 files
+- `docs`: 445 files
 - `services`: 200 files
-- `scripts`: 91 files
+- `scripts`: 92 files
 - `tools`: 85 files
 - `agentic-architecture`: 61 files
 - `integrations`: 35 files
@@ -51,8 +51,8 @@ Fingerprint: 47cbac5481a068475dd863cde779b363ffbe95647e565954bceb37c7d437cbe4
 ## Domain abstraction
 
 - Domain abstraction: present
-- Domain fingerprint: 3ac36f5f7cb0f32def8dc61f719c44edf44b4363535f8426328d17275bf36631
-- Candidate files: 1299
+- Domain fingerprint: 96d7cde36d3a9d3a02ee49db2216684fa2d76887dab60897b7ba867a55c2be9b
+- Candidate files: 1310
 - Unclassified services: 0
 
 Cluster counts:
@@ -60,11 +60,11 @@ Cluster counts:
 - `casework-and-assistance` — Fallarbeit und Assistenz: 2 services, 25 top files
 - `evidence-and-trust` — Evidence, Nachweis und Vertrauen: 23 services, 25 top files
 - `mako-and-edm` — MaKo / EDM / Stammdaten: 8 services, 25 top files
-- `grid-and-connection` — Netz, Anschluss und Kapazität: 49 services, 25 top files
+- `grid-and-connection` — Netz, Anschluss und Kapazität: 48 services, 25 top files
 - `forecast-and-market` — Prognose, Markt und Portfolio: 17 services, 25 top files
 - `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files
 - `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files
-- `tenant-and-operation` — Tenant, Rollen und Betrieb: 52 services, 25 top files
+- `tenant-and-operation` — Tenant, Rollen und Betrieb: 53 services, 25 top files
 - `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files
 
 Case types:
