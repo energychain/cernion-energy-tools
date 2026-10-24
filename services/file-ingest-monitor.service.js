@@ -457,7 +457,7 @@ module.exports = {
         const now = Date.now();
         const scannedAt = new Date(now).toISOString();
         const findings = [];
-        let files = [];
+        const files = [];
 
         // Check if watch path exists
         if (!fs.existsSync(monitor.watchPath)) {

@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { createHash, randomUUID } = require('crypto');
+const { createHash } = require('crypto');
 const {
   clock,
   STEP,

@@ -786,8 +786,8 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         }
 
         // Use the most specific param as primary lookup
-        let lookupParam = bdew || vnbName || query || city;
-        let lookupType = bdew ? 'bdew' : vnbName ? 'vnbName' : query ? 'query' : 'city';
+        const lookupParam = bdew || vnbName || query || city;
+        const lookupType = bdew ? 'bdew' : vnbName ? 'vnbName' : query ? 'query' : 'city';
 
         // Primary lookup via cernion_vnb_lookup
         const mcpParams = {};
