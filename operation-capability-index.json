@@ -2,25 +2,25 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "4008cafe0875a3381e75163e73283230c8a2bef1a7d91f827de2a344b0d1c6f2",
+  "sourceOpenApiHash": "045bbf32e012440f2402a58c2c1e6ca0c24f395437d6b66ebcf537cb30a898d3",
   "coverage": {
-    "rawOperationCount": 1275,
-    "operationCount": 1019,
-    "agentableCount": 1017,
+    "rawOperationCount": 1281,
+    "operationCount": 1025,
+    "agentableCount": 1023,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 443,
+      "data_read": 445,
       "admin": 24,
-      "object_store_write": 272,
-      "process_step": 26,
-      "process_start": 53,
+      "object_store_write": 273,
+      "process_step": 27,
+      "process_start": 54,
       "advisory_plan": 48,
-      "draft_write": 17,
+      "draft_write": 18,
       "external_effect": 4,
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 1000,
+    "resolvedActionCount": 1006,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -96233,6 +96233,541 @@
         "curated": false
       },
       "actionResolutionReason": "route_alias_has_no_static_action",
+      "aliases": []
+    },
+    {
+      "operationId": "project-bundle_prepare",
+      "method": "POST",
+      "path": "/v1/project-bundle/prepare",
+      "service": "unknown",
+      "action": "project-bundle.prepare",
+      "summary": "Mapped-person project bundle transport; original upload and conversation status",
+      "tags": [
+        "Project bundle transport"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "draft_write",
+      "consequenceLevel": "low",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "unknown.project-bundle_prepare"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "unknown:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "unknown"
+      ],
+      "sideEffects": [
+        "creates_draft_or_intent"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Discard the created draft/intent - no persisted business state changes until a subsequent confirm/promote step.",
+      "parameters": {
+        "required": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "conversationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "message",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "files",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "bundle",
+          "prepare",
+          "mapped",
+          "person",
+          "transport;",
+          "original",
+          "upload",
+          "conversation",
+          "status",
+          "unknown",
+          "transport"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please mapped-person project bundle transport; original upload and conversation status"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-bundle_result",
+      "method": "GET",
+      "path": "/v1/project-bundle/result",
+      "service": "unknown",
+      "action": "project-bundle.result",
+      "summary": "Mapped-person project bundle transport; original upload and conversation status",
+      "tags": [
+        "Project bundle transport"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "unknown.project-bundle_result"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "unknown:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "conversationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "bundle",
+          "result",
+          "mapped",
+          "person",
+          "transport;",
+          "original",
+          "upload",
+          "conversation",
+          "status",
+          "unknown",
+          "transport"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me mapped-person project bundle transport; original upload and conversation status"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-bundle_start",
+      "method": "POST",
+      "path": "/v1/project-bundle/start",
+      "service": "unknown",
+      "action": "project-bundle.start",
+      "summary": "Mapped-person project bundle transport; original upload and conversation status",
+      "tags": [
+        "Project bundle transport"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "unknown.project-bundle_start"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "unknown:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "unknown"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "conversationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "sourceId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "hash",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "bundle",
+          "start",
+          "mapped",
+          "person",
+          "transport;",
+          "original",
+          "upload",
+          "conversation",
+          "status",
+          "unknown",
+          "transport"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please mapped-person project bundle transport; original upload and conversation status"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-bundle_status",
+      "method": "GET",
+      "path": "/v1/project-bundle/uploads/:uploadId",
+      "service": "unknown",
+      "action": "project-bundle.status",
+      "summary": "Mapped-person project bundle transport; original upload and conversation status",
+      "tags": [
+        "Project bundle transport"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "unknown.project-bundle_status"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "unknown:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "conversationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "uploadId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "bundle",
+          "status",
+          "mapped",
+          "person",
+          "transport;",
+          "original",
+          "upload",
+          "conversation",
+          "unknown",
+          "transport"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me mapped-person project bundle transport; original upload and conversation status"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-bundle_chunk",
+      "method": "PUT",
+      "path": "/v1/project-bundle/uploads/:uploadId/chunks/:index",
+      "service": "unknown",
+      "action": "project-bundle.chunk",
+      "summary": "Mapped-person project bundle transport; original upload and conversation status",
+      "tags": [
+        "Project bundle transport"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "unknown.project-bundle_chunk"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "unknown:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "unknown"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "bundle",
+          "chunk",
+          "mapped",
+          "person",
+          "transport;",
+          "original",
+          "upload",
+          "conversation",
+          "status",
+          "unknown",
+          "transport"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please mapped-person project bundle transport; original upload and conversation status"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "project-bundle_complete",
+      "method": "POST",
+      "path": "/v1/project-bundle/uploads/:uploadId/complete",
+      "service": "unknown",
+      "action": "project-bundle.complete",
+      "summary": "Mapped-person project bundle transport; original upload and conversation status",
+      "tags": [
+        "Project bundle transport"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_step",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "unknown.project-bundle_complete"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "unknown:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "unknown"
+      ],
+      "sideEffects": [
+        "advances_process_state"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Check for a companion reject/cancel/rollback operation on the same resource before treating this as final.",
+      "parameters": {
+        "required": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "conversationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "uploadId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "project",
+          "bundle",
+          "complete",
+          "mapped",
+          "person",
+          "transport;",
+          "original",
+          "upload",
+          "conversation",
+          "status",
+          "unknown",
+          "transport"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please mapped-person project bundle transport; original upload and conversation status"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
       "aliases": []
     }
   ]

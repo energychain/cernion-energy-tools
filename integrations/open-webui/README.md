@@ -481,3 +481,5 @@ Akteur, Rollen und Clearance stammen ausschließlich aus dem Mapping. Die intern
 Personenprojektion ist auf kontextuelle Lesezugriffe begrenzt (`read-only`); sie erbt
 keinen `full-access`-Scope vom Verbindungsschlüssel. Fachliche Rechte und No-Call-Guards
 werden weiterhin von CET geprüft. Fehler beim Mapping oder Audit bleiben fail-closed.
+
+Projektakten-Bündel für Open WebUI 0.12.0: [Function, Valves und E2E](../openwebui/README.md).

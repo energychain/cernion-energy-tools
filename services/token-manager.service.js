@@ -423,7 +423,8 @@ module.exports = {
           !(
             (method === 'POST' && requestPath === '/v1/chat/completions') ||
             (method === 'GET' && requestPath === '/v1/models') ||
-            require('../src/file-channel-http').isFileChannelRequest(method, requestPath)
+            require('../src/file-channel-http').isFileChannelRequest(method, requestPath) ||
+            require('../src/project-bundle-http').isProjectBundleRequest(method, requestPath)
           )
         ) {
           return { success: true, valid: false, reason: 'GATEWAY_TOKEN_FORBIDDEN' };

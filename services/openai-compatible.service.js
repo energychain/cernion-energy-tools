@@ -303,6 +303,8 @@ module.exports = {
         temperature: { type: 'number', optional: true, convert: true },
         max_tokens: { type: 'number', optional: true, integer: true, convert: true },
         metadata: { type: 'object', optional: true },
+        cet_project_bundle: { type: 'object', optional: true },
+        cet_client_context: { type: 'object', optional: true },
         stream: { type: 'boolean', optional: true, convert: true },
         tools: { type: 'array', optional: true },
         tool_choice: { type: 'any', optional: true },
@@ -462,6 +464,13 @@ module.exports = {
           );
         }
 
+        if (requestedModel === GOVERNANCE_MODEL && ctx.params.cet_project_bundle) {
+          return require('../src/project-bundle-chat').projectBundleCompletion(
+            ctx,
+            GOVERNANCE_MODEL
+          );
+        }
+
         const messages = normalizeMessages(ctx.params.messages, {
           preserveDocuments: requestedModel === GOVERNANCE_MODEL,
         });
@@ -471,6 +480,13 @@ module.exports = {
             ? { ...ctx.params.metadata }
             : {};
         if (ctx.params.cet_file_refs != null) metadata.fileRefs = ctx.params.cet_file_refs;
+        if (gateway && ctx.params.cet_client_context) {
+          const clientContext = ctx.params.cet_client_context;
+          metadata.conversationId = clientContext.conversationId;
+          metadata.openWebuiUserId = clientContext.openWebuiUserId;
+          metadata.openWebuiOrgId = clientContext.openWebuiOrgId;
+        }
+        metadata.conversationId ??= ctx.params.chat_id;
         if (gateway) {
           if (metadata.client && metadata.client !== ctx.meta.apiToken.client) gatewayForbidden();
           metadata.client = ctx.meta.apiToken.client;
