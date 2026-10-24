@@ -246,8 +246,23 @@ module.exports = {
         .filter((row) => row.key.startsWith('version:') && row.graphVersion === version)
         .sort((a, b) => b.version - a.version)[0];
       if (!current) return null;
+      const store = ctx.broker.getLocalService('workbench')?.store;
+      const skills = store
+        ? await store.listPlaybooks({
+            tenantId: principal(ctx).tenantId,
+            projectId: ctx.params.projectId,
+          })
+        : [];
       return {
-        manifest: current,
+        manifest: {
+          ...current,
+          questionTypes: current.questionTypes.map((type) => ({
+            ...type,
+            skillRefs: skills
+              .filter((skill) => skill.lifecycle === 'active' && skill.questionTypeId === type.id)
+              .map((skill) => skill.skillId),
+          })),
+        },
         graph: graph.filter((row) => row.recordType === 'node'),
         corrections: records
           .filter(

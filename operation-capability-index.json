@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "d448ba6c2492f2b9156a86b41142c1b3a6fc857d0d9aa3c5a92465bc6c51318e",
+  "sourceOpenApiHash": "4008cafe0875a3381e75163e73283230c8a2bef1a7d91f827de2a344b0d1c6f2",
   "coverage": {
     "rawOperationCount": 1275,
     "operationCount": 1019,
@@ -93376,6 +93376,13 @@
           },
           {
             "name": "status",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "projectId",
             "in": "query",
             "type": "string",
             "description": null,

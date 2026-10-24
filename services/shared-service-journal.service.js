@@ -324,7 +324,10 @@ module.exports = {
       );
     },
     async recordCorrection(input, meta = {}) {
-      if (['projectEdge', 'projectManifest'].includes(input.target)) return;
+      if (
+        ['projectEdge', 'projectManifest', 'projectSkill', 'tenantEvidence'].includes(input.target)
+      )
+        return;
       if (input.target === 'gap') {
         correctionPrincipal(input, meta);
         validateCorrection(input, this.model());
@@ -385,7 +388,11 @@ module.exports = {
         ...(entry.agentId ? { agentId: entry.agentId } : {}),
         functionId: entry.functionId,
         kind: entry.kind,
-        summary: entry.summary,
+        summary:
+          entry.refs.some((ref) => ref?.kind === 'projectSkill') &&
+          !refs.some((ref) => ref.kind === 'projectSkill')
+            ? 'Ein gelernter Check einer nicht sichtbaren Akte wurde aktualisiert.'
+            : entry.summary,
         refs,
         hiddenRefCount: entry.refs.length - refs.length,
         at: entry.at,
@@ -394,6 +401,13 @@ module.exports = {
     async referenceVisible(ctx, p, ref) {
       if (!ref || typeof ref !== 'object' || !ref.id) return false;
       try {
+        if (ref.kind === 'projectSkill') {
+          const skills = await require('../src/project-skill-store').projectSkills(
+            ctx,
+            ref.projectId
+          );
+          return skills.some((skill) => skill.skillId === ref.id);
+        }
         const router = this.broker.getLocalService('domain-router');
         if (ref.kind === 'case') {
           await router.loadCase(p, ref.id);

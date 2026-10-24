@@ -1,18 +1,18 @@
 # Function model — generated report
 
-Source SHA-256: `e1cd487bc97abf453b239f1fc2e58ddc8d8aa1a9323240bb636fa38445ccd474`
+Source SHA-256: `4ac9d88a4345ded383f7720bd9cb6c52a3f6e51e6e014da56f6efdc591fcf741`
 
-Capabilities: 172; functions: 107.
+Capabilities: 173; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
-Directed density at minWeight=0.2: **0.063745** (723/11342).
+Directed density at minWeight=0.2: **0.063657** (722/11342).
 Naive baseline: 0.49; target: ≤ 0.15; target met: yes.
 
-Capabilities per function: {"1":65,"2":30,"3":6,"4":3,"5":2,"7":1}.
-Single-capability fraction: 0.607477; cross-domain functions: 32.
-Outgoing degree: min=0; median=3; max=26; isolated fraction=0.280374.
+Capabilities per function: {"1":65,"2":29,"3":7,"4":3,"5":2,"7":1}.
+Single-capability fraction: 0.607477; cross-domain functions: 33.
+Outgoing degree: min=0; median=3; max=26; isolated fraction=0.289720.
 Maximum degree target: ≤ 0.25 × 107 = 26.75; met: yes.
 
-Candidate degree before mutual selection: {"minimum":0,"median":4,"maximum":37,"isolatedFraction":0.2616822429906542}; pruned directed edges: 92; peer limit: 26.
+Candidate degree before mutual selection: {"minimum":0,"median":4,"maximum":37,"isolatedFraction":0.27102803738317754}; pruned directed edges: 86; peer limit: 26.
 
 Operation index entries without action: 19/1019.
 
@@ -21,7 +21,7 @@ Edges describe catalog evidence only; they grant no authorization.
 
 ## Kohärenz je Funktion
 
-Complete multi-capability functions: 42; minimum pair cosine: 0.713003; median function minimum: 0.854582; median function mean: 0.860463.
+Complete multi-capability functions: 42; minimum pair cosine: 0.713003; median function minimum: 0.853978; median function mean: 0.858932.
 Singletons and unavailable comparisons are N/A, never assigned an artificial coherence of 1. Global statistics exclude incomplete and singleton functions.
 
 | Function | Mean cosine | Minimum cosine | Comparable pairs |
@@ -80,7 +80,6 @@ Singletons and unavailable comparisons are N/A, never assigned an artificial coh
 | fn-gremiencoach-workbook-readiness | N/A | N/A | 0/0 |
 | fn-grid-operator-identity-resolution | 0.877424 | 0.877424 | 1/1 |
 | fn-grossspeicher-anschluss-readiness-gate | 0.831232 | 0.831232 | 1/1 |
-| fn-heat-transformation-line-asset-model | N/A | N/A | 0/0 |
 | fn-inhouse-timeseries-analysis | N/A | N/A | 0/0 |
 | fn-interconnection-release-file-2 | N/A | N/A | 0/0 |
 | fn-investment-budget-cap-exception-governance | 0.898644 | 0.890879 | 10/10 |
@@ -107,6 +106,7 @@ Singletons and unavailable comparisons are N/A, never assigned an artificial coh
 | fn-non-escalation-control-evidence | N/A | N/A | 0/0 |
 | fn-nova-decision-lifecycle-readiness | N/A | N/A | 0/0 |
 | fn-oep-research-dataset-discovery | N/A | N/A | 0/0 |
+| fn-project-skill-learning | N/A | N/A | 0/0 |
 | fn-re4de-variable-grid-fee-layer3 | N/A | N/A | 0/0 |
 | fn-redispatch-asset-register | N/A | N/A | 0/0 |
 | fn-redispatch-data-governance | 0.867557 | 0.867557 | 1/1 |
@@ -132,7 +132,7 @@ Singletons and unavailable comparisons are N/A, never assigned an artificial coh
 | fn-vdmi-portfolio-gatekeeping | N/A | N/A | 0/0 |
 | fn-vnb-100-tage-assessment | N/A | N/A | 0/0 |
 | fn-water-pricing-net-investment-alignment-gate | N/A | N/A | 0/0 |
-| fn-znp-portfolio-assessment | 0.863668 | 0.863668 | 1/1 |
+| fn-znp-portfolio-assessment | 0.814849 | 0.784459 | 3/3 |
 
 ## 10 Funktionen mit geringster Kohärenz
 
@@ -143,11 +143,11 @@ Singletons and unavailable comparisons are N/A, never assigned an artificial coh
 | fn-legal-clarification-operating-model | 0.752600 | 0.752600 | 1/1 |
 | fn-connection-rejection-fnav-14a-evidence | 0.758736 | 0.758736 | 1/1 |
 | fn-gas-network-decision-chain | 0.772384 | 0.772384 | 1/1 |
+| fn-znp-portfolio-assessment | 0.814849 | 0.784459 | 3/3 |
 | fn-gas-capacity-booking-review-gate | 0.792064 | 0.792064 | 1/1 |
 | fn-controllability-asset-handover | 0.833329 | 0.795270 | 6/6 |
 | fn-cya-assessment-briefing | 0.810093 | 0.796687 | 3/3 |
 | fn-budget-waterfall-governance | 0.881213 | 0.797361 | 21/21 |
-| fn-stadtwerk-mauer-capability-projection | 0.840980 | 0.800029 | 3/3 |
 
 ## Zusammenführungen ohne strukturelle Evidenz
 
@@ -163,16 +163,16 @@ Singletons and unavailable comparisons are N/A, never assigned an artificial coh
 
 ## ID-Änderungen gegenüber Vorversion
 
-same: 96; merged: 9; split: 5; retired: 4; new: 1.
-Previous source SHA-256: 133194217cd96e07c18cc0a8abe34ad1f4fb1256a00c0ad5aed86a16877cf7e7.
+same: 105; merged: 2; split: 0; retired: 1; new: 1.
+Previous source SHA-256: e1cd487bc97abf453b239f1fc2e58ddc8d8aa1a9323240bb636fa38445ccd474.
 Counts describe prior IDs in the last membership transition; retired counts IDs that lost their active identity, including merges. No-op generation preserves this provenance.
-Permanently reserved retired IDs: 35.
+Permanently reserved retired IDs: 36.
 
 ## embeddingCacheEntries (0)
 
 None.
 
-## retiredFunctionIds (35)
+## retiredFunctionIds (36)
 
 - fn-asset-valuation-transformation-gate
 - fn-capacity-contract-risk-asset-cockpit
@@ -186,6 +186,7 @@ None.
 - fn-gas-grid-transformation-asset-cockpit
 - fn-gasnetz-waermeplanung
 - fn-german-grid-market-data
+- fn-heat-transformation-line-asset-model
 - fn-imsys-schedule-value-chain-readiness
 - fn-imsys-taf2-compliance-status
 - fn-interconnection-release-file
@@ -335,12 +336,12 @@ None.
 - {"capability":"znp_production_readiness_evidence_gate","action":"dossier-hydration.registry","reason":"Action does not exist in source"}
 - {"capability":"znp_production_readiness_evidence_gate","action":"presentation.generate","reason":"Action does not exist in source"}
 
-## isolatedFunctions (30)
+## isolatedFunctions (31)
 
 - {"functionId":"fn-agnes-bottleneck","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.15796283248596138}
 - {"functionId":"fn-altdaten-assessment","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.08453882436532342}
 - {"functionId":"fn-automatisierungsradar","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.160697505602099}
-- {"functionId":"fn-blindflug-radar-anomaly-detection","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.1367171632357515}
+- {"functionId":"fn-blindflug-radar-anomaly-detection","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.13308384408035687}
 - {"functionId":"fn-capex-prioritization","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.09222417203489829}
 - {"functionId":"fn-connection-rejection-evidence","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.05899846207519597}
 - {"functionId":"fn-connection-rejection-fnav-14a-evidence","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.18940795591084567}
@@ -354,10 +355,11 @@ None.
 - {"functionId":"fn-flexibilitaetskosten-raster","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.07615868123677559}
 - {"functionId":"fn-ghost-asset-alert","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.154295735709855}
 - {"functionId":"fn-knowledge-continuity-governance-gate","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.17987735690877046}
-- {"functionId":"fn-mastr-sync-gap-alerting","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.19167856006299475}
-- {"functionId":"fn-netzkoppelvertrag-workflow","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.10102674738504394}
+- {"functionId":"fn-mastr-sync-gap-alerting","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.1930201314962753}
+- {"functionId":"fn-netzkoppelvertrag-workflow","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.1003765602759603}
 - {"functionId":"fn-nkp-reporting","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.08308219771284608}
-- {"functionId":"fn-oep-research-dataset-discovery","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.11375445718332403}
+- {"functionId":"fn-oep-research-dataset-discovery","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.11509602861660459}
+- {"functionId":"fn-project-skill-learning","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.0766551498303962}
 - {"functionId":"fn-re4de-variable-grid-fee-layer3","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.12466810065954811}
 - {"functionId":"fn-reinvest-signal","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.09222417203489829}
 - {"functionId":"fn-renewable-generation-forecast","reason":"Insufficient independent evidence at default threshold","strongestWeight":0.16249139271276147}

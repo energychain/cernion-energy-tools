@@ -165,8 +165,9 @@ async function prepareProjectFixtures(app, run, scenario, meta) {
   for (const fixture of scenario.projectFixtures || []) {
     const project = await call('project-file.create', { title: fixture.title });
     run.projects.push(project.projectId);
+    const timestamps = fixture.timestamps || ['2025-01-01T00:00:00', '2025-01-01T01:00:00'];
     const bytes = Buffer.from(
-      `Zeit,${fixture.column} [${fixture.unit}],Token\n2025-01-01T00:00:00,17,${fixture.key}\n2025-01-01T01:00:00,${fixture.value},${fixture.key}\n`
+      `Zeit,${fixture.column} [${fixture.unit}],Token\n${timestamps[0]},17,${fixture.key}\n${timestamps[1]},${fixture.value},${fixture.key}\n`
     );
     const hash = require('node:crypto').createHash('sha256').update(bytes).digest('hex');
     const upload = await call('project-upload.start', {

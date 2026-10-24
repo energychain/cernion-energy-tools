@@ -4030,6 +4030,428 @@
       ]
     },
     {
+      "id": "project-skill-a",
+      "group": "B.4",
+      "title": "Wiederkehrende Aktenfrage wird zum gelernten Check",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "first",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Leistung am Standort Nord 2025?",
+          "expect": {
+            "description": "Originalantwort belegt",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "title": "Projekt A",
+                "file": "Standort Nord.csv"
+              },
+              "numeric": [
+                {
+                  "value": 23,
+                  "tolerance": 0
+                }
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        },
+        {
+          "id": "second",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welchen Höchstwert erreichte die Leistung am Standort Nord 2025?",
+          "expect": {
+            "description": "Bedeutungsähnliche Frage belegt",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "title": "Projekt A",
+                "file": "Standort Nord.csv"
+              },
+              "numeric": [
+                {
+                  "value": 23,
+                  "tolerance": 0
+                }
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true,
+          "waitForProjectSkills": true
+        },
+        {
+          "id": "third",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Leistung am Standort Nord 2025?",
+          "expect": {
+            "description": "Automatisch geprüften Check sichtbar nutzen",
+            "rules": {
+              "require": [
+                "nach meinem gelernten Check"
+              ],
+              "numeric": [
+                {
+                  "value": 23,
+                  "tolerance": 0
+                }
+              ],
+              "projectSkill": {
+                "used": true
+              }
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        },
+        {
+          "id": "status",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welche Skills hast du für Projekt A gelernt?",
+          "expect": {
+            "description": "Anlass und Aktivierung aus Register und Journal",
+            "rules": {
+              "require": [
+                "aktiv",
+                "bedeutungsähnliche belegte Fragen",
+                "angelegt",
+                "geprüft"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "incorrect",
+          "actor": "a",
+          "chat": "main",
+          "message": "passt nicht",
+          "expect": {
+            "description": "Korrektur degradiert und entwirft neu",
+            "rules": {
+              "require": [
+                "herabgestuft",
+                "Journal"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "retire",
+          "actor": "a",
+          "chat": "main",
+          "message": "Check stilllegen",
+          "expect": {
+            "description": "Check wird stillgelegt",
+            "rules": {
+              "require": [
+                "stillgelegt",
+                "Journal"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "after",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Leistung am Standort Nord 2025?",
+          "expect": {
+            "description": "Stillgelegter Check wird nicht mehr genutzt",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "title": "Projekt A",
+                "file": "Standort Nord.csv"
+              },
+              "numeric": [
+                {
+                  "value": 23,
+                  "tolerance": 0
+                }
+              ],
+              "projectSkill": {
+                "used": false
+              },
+              "forbid": [
+                "nach meinem gelernten Check"
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        },
+        {
+          "id": "unrelated",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie ist die Temperatur am Standort C?",
+          "expect": {
+            "description": "Unpassende Frage nutzt keinen Check",
+            "rules": {
+              "projectSkill": {
+                "used": false
+              },
+              "forbid": [
+                "nach meinem gelernten Check"
+              ]
+            },
+            "dependencies": []
+          }
+        }
+      ],
+      "projectFixtures": [
+        {
+          "id": "a",
+          "subject": "Standort Nord",
+          "title": "Projekt A",
+          "column": "Leistung",
+          "unit": "kW",
+          "value": 23,
+          "key": "Bezug-A",
+          "timestamps": [
+            "2025-01-01T00:00:00",
+            "2025-03-01T00:00:00"
+          ]
+        }
+      ],
+      "learnedSkills": true
+    },
+    {
+      "id": "project-skill-b",
+      "group": "B.4",
+      "title": "Wiederkehrende Aktenfrage wird zum gelernten Check",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "first",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Bestand am Depot West 2025?",
+          "expect": {
+            "description": "Originalantwort belegt",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "title": "Projekt B",
+                "file": "Depot West.csv"
+              },
+              "numeric": [
+                {
+                  "value": 29,
+                  "tolerance": 0
+                }
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        },
+        {
+          "id": "second",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welchen Höchstwert erreichte die Bestand am Depot West 2025?",
+          "expect": {
+            "description": "Bedeutungsähnliche Frage belegt",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "title": "Projekt B",
+                "file": "Depot West.csv"
+              },
+              "numeric": [
+                {
+                  "value": 29,
+                  "tolerance": 0
+                }
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true,
+          "waitForProjectSkills": true
+        },
+        {
+          "id": "third",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Bestand am Depot West 2025?",
+          "expect": {
+            "description": "Automatisch geprüften Check sichtbar nutzen",
+            "rules": {
+              "require": [
+                "nach meinem gelernten Check"
+              ],
+              "numeric": [
+                {
+                  "value": 29,
+                  "tolerance": 0
+                }
+              ],
+              "projectSkill": {
+                "used": true
+              }
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        },
+        {
+          "id": "status",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welche Skills hast du für Projekt B gelernt?",
+          "expect": {
+            "description": "Anlass und Aktivierung aus Register und Journal",
+            "rules": {
+              "require": [
+                "aktiv",
+                "bedeutungsähnliche belegte Fragen",
+                "angelegt",
+                "geprüft"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "incorrect",
+          "actor": "a",
+          "chat": "main",
+          "message": "passt nicht",
+          "expect": {
+            "description": "Korrektur degradiert und entwirft neu",
+            "rules": {
+              "require": [
+                "herabgestuft",
+                "Journal"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "retire",
+          "actor": "a",
+          "chat": "main",
+          "message": "Check stilllegen",
+          "expect": {
+            "description": "Check wird stillgelegt",
+            "rules": {
+              "require": [
+                "stillgelegt",
+                "Journal"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "after",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie hoch war das Maximum der Bestand am Depot West 2025?",
+          "expect": {
+            "description": "Stillgelegter Check wird nicht mehr genutzt",
+            "rules": {
+              "projectEvidence": {
+                "selected": true,
+                "title": "Projekt B",
+                "file": "Depot West.csv"
+              },
+              "numeric": [
+                {
+                  "value": 29,
+                  "tolerance": 0
+                }
+              ],
+              "projectSkill": {
+                "used": false
+              },
+              "forbid": [
+                "nach meinem gelernten Check"
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        },
+        {
+          "id": "unrelated",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie ist die Temperatur am Standort C?",
+          "expect": {
+            "description": "Unpassende Frage nutzt keinen Check",
+            "rules": {
+              "projectSkill": {
+                "used": false
+              },
+              "forbid": [
+                "nach meinem gelernten Check"
+              ]
+            },
+            "dependencies": []
+          }
+        }
+      ],
+      "projectFixtures": [
+        {
+          "id": "b",
+          "subject": "Depot West",
+          "title": "Projekt B",
+          "column": "Bestand",
+          "unit": "kg",
+          "value": 29,
+          "key": "Bezug-B",
+          "timestamps": [
+            "2025-01-01T00:00:00",
+            "2025-03-01T00:00:00"
+          ]
+        }
+      ],
+      "learnedSkills": true
+    },
+    {
       "id": "project-a-implicit",
       "group": "B.4",
       "title": "Projektakte ohne Nennung",

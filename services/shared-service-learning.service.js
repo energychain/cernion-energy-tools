@@ -23,6 +23,7 @@ const correctionParams = {
       'gap',
       'projectEdge',
       'projectManifest',
+      'projectSkill',
       'tenantEvidence',
     ],
   },
@@ -57,7 +58,8 @@ module.exports = {
       'Apply an authenticated admin correction',
       function (ctx) {
         const p = principal(ctx, ctx.params);
-        if (!['projectManifest', 'tenantEvidence'].includes(ctx.params.target)) admin(p);
+        if (!['projectManifest', 'projectSkill', 'tenantEvidence'].includes(ctx.params.target))
+          admin(p);
         return this.enqueue(() => this.apply(ctx));
       },
       correctionParams
@@ -195,6 +197,8 @@ module.exports = {
               sequence: doc.sequence,
             }
           );
+        else if (doc.target === 'projectSkill')
+          await ctx.call('workbench.projectSkills.correct', { ...event, at: doc.at });
         else if (doc.target === 'projectManifest')
           await ctx.call('project-manifest.correct', { ...event, at: doc.at });
         else if (doc.target === 'projectEdge')
@@ -217,6 +221,7 @@ module.exports = {
         `correction:${encodeURIComponent(p.tenantId)}:${encodeURIComponent(ctx.params.correctionId)}`
       );
       if (doc.target === 'tenantEvidence') deny('Use a new tenant evidence correction');
+      if (doc.target === 'projectSkill') deny('Use a new project skill correction');
       if (doc.target === 'projectManifest') deny('Use a new project manifest correction');
       if (doc.target === 'projectEdge') deny('Use a new project edge correction');
       if (doc.target === 'gap')

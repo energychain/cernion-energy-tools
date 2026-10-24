@@ -159,6 +159,7 @@ module.exports = {
     ...WORKBENCH_DATABASES.map(workbenchDbMixin),
     conversationAssistance.lifecycle,
     require('../src/tenant-evidence-sessions').mixin,
+    require('../src/workbench-project-skills').mixin,
   ],
   actions: {
     'activities.list': action(
@@ -1246,20 +1247,27 @@ module.exports = {
       'List tenant-scoped CET Workbench governed skills (issue #640), including code-owned defaults',
       async function (ctx) {
         const p = principal(ctx, ctx.params);
+        if (ctx.params.projectId)
+          await ctx.call('project-file.get', { projectId: ctx.params.projectId });
         const tenantSkills = await this.store.listPlaybooks({
           tenantId: p.tenantId,
           domain: ctx.params.domain,
           status: ctx.params.status,
+          projectId: ctx.params.projectId,
         });
         const items = [
-          ...(ctx.params.status && ctx.params.status !== 'active'
+          ...(ctx.params.projectId || (ctx.params.status && ctx.params.status !== 'active')
             ? []
             : defaultPlaybooksForTenant(p.tenantId)),
           ...tenantSkills.map((skill) => safePlaybook(skill)),
         ];
         return { items };
       },
-      { domain: { type: 'string', optional: true }, status: { type: 'string', optional: true } }
+      {
+        domain: { type: 'string', optional: true },
+        status: { type: 'string', optional: true },
+        projectId: { type: 'string', optional: true },
+      }
     ),
     'skills.get': action(
       'GET /skills/:skillId',
@@ -1271,6 +1279,7 @@ module.exports = {
           { tenantId: p.tenantId, skillId },
           { optional: true }
         );
+        if (doc?.projectId) await ctx.call('project-file.get', { projectId: doc.projectId });
         if (doc) return { skill: safePlaybook(doc) };
         const fallback = defaultPlaybooksForTenant(p.tenantId).find(
           (item) => item.skillId === skillId
@@ -2022,6 +2031,7 @@ module.exports = {
     require('../src/tenant-memory').startRecovery(this);
   },
   async stopped() {
+    await require('../src/project-skill-learning').stop(this);
     await require('../src/tenant-memory').stopRecovery(this);
     await Promise.allSettled([...(this.workbenchDocumentReviews?.values() || [])]);
     await Promise.allSettled([...(this.tenantMemoryJobs || [])]);

@@ -176,6 +176,7 @@ module.exports = {
           const difference = variantDifference(pool, record, peer);
           if (difference) answer.variantDifferences.push({ datasetId: peer.id, ...difference });
         }
+        answer.executedPlan = plan;
         answer.aggregation = plan.operations.find((operation) => operation.op === 'aggregate');
         answer.filtered = plan.operations.some(
           (operation) => operation.op === 'filter' && operation.field !== record.semantic.timeField
