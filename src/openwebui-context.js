@@ -32,7 +32,8 @@ function parseOpenWebUIContext(input) {
       attributes[attr[1].toLowerCase()] = attr[2] ?? attr[3] ?? attr[4];
     }
     documents.push({
-      id: attributes.id || null,
+      id: attributes.file_id || attributes.id || null,
+      ...(/^[a-f0-9]{64}$/.test(attributes.hash || '') ? { originalHash: attributes.hash } : {}),
       name: attributes.name || attributes.filename || `Dokument ${documents.length + 1}`,
       text: match[2].replace(/<\/context\s*>\s*$/i, ''),
     });

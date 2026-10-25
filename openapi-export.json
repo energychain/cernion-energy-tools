@@ -79706,6 +79706,347 @@
         ]
       }
     },
+    "/v1/project-bundle/prepare": {
+      "post": {
+        "operationId": "project-bundle_prepare",
+        "summary": "Mapped-person project bundle transport; original upload and conversation status",
+        "tags": [
+          "Project bundle transport"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized bundle state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mapping, membership or clearance missing"
+          },
+          "413": {
+            "description": "Upload limit exceeded"
+          }
+        },
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-agentable": false
+      }
+    },
+    "/v1/project-bundle/start": {
+      "post": {
+        "operationId": "project-bundle_start",
+        "summary": "Mapped-person project bundle transport; original upload and conversation status",
+        "tags": [
+          "Project bundle transport"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized bundle state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mapping, membership or clearance missing"
+          },
+          "413": {
+            "description": "Upload limit exceeded"
+          }
+        },
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string"
+                  },
+                  "sourceId": {
+                    "type": "string"
+                  },
+                  "hash": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-agentable": false
+      }
+    },
+    "/v1/project-bundle/uploads/:uploadId/chunks/:index": {
+      "put": {
+        "operationId": "project-bundle_chunk",
+        "summary": "Mapped-person project bundle transport; original upload and conversation status",
+        "tags": [
+          "Project bundle transport"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized bundle state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mapping, membership or clearance missing"
+          },
+          "413": {
+            "description": "Upload limit exceeded"
+          }
+        },
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "x-agentable": false
+      }
+    },
+    "/v1/project-bundle/uploads/:uploadId/complete": {
+      "post": {
+        "operationId": "project-bundle_complete",
+        "summary": "Mapped-person project bundle transport; original upload and conversation status",
+        "tags": [
+          "Project bundle transport"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized bundle state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mapping, membership or clearance missing"
+          },
+          "413": {
+            "description": "Upload limit exceeded"
+          }
+        },
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string"
+                  },
+                  "uploadId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-agentable": false
+      }
+    },
+    "/v1/project-bundle/uploads/:uploadId": {
+      "get": {
+        "operationId": "project-bundle_status",
+        "summary": "Mapped-person project bundle transport; original upload and conversation status",
+        "tags": [
+          "Project bundle transport"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized bundle state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mapping, membership or clearance missing"
+          },
+          "413": {
+            "description": "Upload limit exceeded"
+          }
+        },
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string"
+                  },
+                  "uploadId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-agentable": false
+      }
+    },
+    "/v1/project-bundle/result": {
+      "get": {
+        "operationId": "project-bundle_result",
+        "summary": "Mapped-person project bundle transport; original upload and conversation status",
+        "tags": [
+          "Project bundle transport"
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized bundle state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mapping, membership or clearance missing"
+          },
+          "413": {
+            "description": "Upload limit exceeded"
+          }
+        },
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-agentable": false
+      }
+    },
     "/v1/chat/completions": {
       "post": {
         "operationId": "createChatCompletion",

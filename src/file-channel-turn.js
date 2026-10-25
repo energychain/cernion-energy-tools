@@ -38,6 +38,7 @@ async function loadReferencedDocuments(ctx, envelope, meta) {
   }
 }
 async function prepareFileTurn(service, ctx, p, envelope, meta) {
+  await require('./openwebui-project-context').excludeProjectContext(service, ctx, envelope, meta);
   await loadReferencedDocuments(ctx, envelope, meta);
   const match = envelope.userRequest.match(
     /^(?:lösche|loesche)\s+(?:die\s+)?datei\s+([a-f0-9]{64})[.!]?$/i
