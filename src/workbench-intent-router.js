@@ -68,11 +68,9 @@ function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
   )
     return 'status_query';
   if (isFunctionKnowledgeQuery(message)) return 'knowledge_query';
-  if (
-    /\b(status|stand|bearbeitungsstand)\b/.test(text) &&
-    /\b(case|fall)\b|\bF-\d+\b|\bcase[_-][\w-]+\b/i.test(text)
-  )
-    return 'status_query';
+  // A status question naming a case or a concrete identifier is a case status query; a
+  // general "current status of the topic" request stays a content question.
+  if (status && (explicitCase || /\b(case|fall)\b/i.test(text))) return 'status_query';
   if (
     /compare|recommend|assess|bewerte|vergleiche|empfehl|abwäg|abwaeg|was soll ich tun|what should i do|nächste.*schritt|naechste.*schritt|next.*step/.test(
       text
