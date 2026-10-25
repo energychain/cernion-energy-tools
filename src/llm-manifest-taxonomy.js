@@ -168,6 +168,7 @@ const CAPABILITY_DOMAIN_MAP = {
 // add their tag here or they surface as "unmapped" in the build stats.
 const OPENAPI_TAG_DOMAIN_MAP = {
   'Project ingest': 'platform',
+  'Project bundle transport': 'platform',
   'Project files': 'platform',
   'Project graph': 'platform',
   'Project manifest': 'platform',

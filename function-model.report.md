@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `8f3b4c2754cfd41f59c3e04674c5b6607706eab81a5641da9f4f73d6eb91c33c`
+Source SHA-256: `5d4c049adb91e96c69a3bd56044716788aa43d6119f611dd31c16547e475dc50`
 
 Capabilities: 173; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
@@ -14,7 +14,7 @@ Maximum degree target: ≤ 0.25 × 107 = 26.75; met: yes.
 
 Candidate degree before mutual selection: {"minimum":0,"median":4,"maximum":37,"isolatedFraction":0.27102803738317754}; pruned directed edges: 86; peer limit: 26.
 
-Operation index entries without action: 19/1019.
+Operation index entries without action: 19/1025.
 
 All curated capabilities are assigned once, including entries without resolvable operations.
 Edges describe catalog evidence only; they grant no authorization.
@@ -483,7 +483,7 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (101)
+## unresolvedStaticEvents (103)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:227: dynamic emission"}
@@ -550,6 +550,8 @@ None.
 - {"service":"personal-agent","ref":"services/personal-agent/methods-part-08-of-11.js:31: dynamic emission"}
 - {"service":"personal-agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"personal-agent","ref":"src/llm-client.js:227: dynamic emission"}
+- {"service":"project-bundle","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"project-bundle","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"project-graph","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"project-graph","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"project-manifest","ref":"src/job-store.js:67: dynamic emission"}

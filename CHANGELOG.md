@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — Open-WebUI-Projektakte als Originalbündel (#890)
+
+- Gegen OWUI 0.12.0 geprüfter Filter vor der Dateiextraktion: Originale aus
+  nutzereigenem Storage, begrenzte Chunks, dauerhafte Fortsetzung und Chatstatus.
+- Strukturierter ausdrücklicher Aktenauftrag bzw. einmalige Rückfrage; Manifest-
+  Abschluss ohne zusätzlichen Antwort-LLM und stabile Gesprächsbindung.
+- Enger Gateway-Transport mit #736-Personenzuordnung, Rollen/Clearance und Audit;
+  Hashbindung verhindert zusätzliche OWUI-Textevidenz derselben Originale.
+- Größen-/Archiv-/Abbruchmeldungen, bestätigtes Referenz-Cleanup und parametrisierter
+  E2E-Treiber mit Unterbrechungsproxy; offline gegen lokale Doubles geprüft.
+- Installation: `integrations/openwebui/README.md`; Validierung: `docs/validation/890-owui.md`.
+
 ## Unreleased — Selbstlernende Projekt-Skills ohne Freigabe (#889)
 
 - Aktengebundene CET-Skript-Programme im bestehenden Workbench-Skill-Register;

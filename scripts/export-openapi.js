@@ -197,6 +197,7 @@ function buildOperationFromAction(actionRef, actionDef) {
 // `openapi` metadata this exporter reads.
 const V1_FUNCTION_ALIAS_ACTIONS = {
   ...require('../src/file-channel-http').FILE_ALIAS_ACTIONS,
+  ...require('../src/project-bundle-http').PROJECT_BUNDLE_ALIASES,
   'POST /chat/completions': 'openai-compatible.chatCompletions',
   'POST /images/generations': 'openai-compatible.imageGenerations',
   'POST /embeddings': 'openai-compatible.embeddings',
