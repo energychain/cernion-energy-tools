@@ -800,12 +800,20 @@ async function runOpenAiFacadeAction(service, req, res, { facadePath, brokerActi
   try {
     const meta = await buildOpenAiFacadeMeta(service, req, facadePath);
     const tenantIdForQuota = meta.tenantId || 'default';
+    const endpointClass = require('../src/project-bundle-http').isProjectBundleRequest(
+      req.method,
+      facadePath
+    )
+      ? isReadMethod(req.method)
+        ? 'read'
+        : 'write'
+      : 'compute';
     const rateLimit = rateQuotaStore.acquireRateLimitToken({
       tenantId: tenantIdForQuota,
-      endpointClass: 'compute',
+      endpointClass,
     });
     await emitRateQuotaEvents(service.broker, tenantIdForQuota, rateLimit.newEvents || [], {
-      endpointClass: 'compute',
+      endpointClass,
       requestPath: facadePath,
     });
     if (!rateLimit.allowed) {
@@ -1564,6 +1572,7 @@ module.exports = {
 
         aliases: {
           ...require('../src/file-channel-http').fileAliases(runOpenAiFacadeAction),
+          ...require('../src/project-bundle-http').projectBundleAliases(runOpenAiFacadeAction),
           'POST /chat/completions': handleOpenAiChatCompletions,
           'POST /images/generations': handleOpenAiImageGenerations,
           'POST /embeddings': handleOpenAiEmbeddings,
@@ -3532,9 +3541,10 @@ module.exports = {
           upsertOperation(fullPath, method, aliasTarget, action, serviceName);
         }
 
-        for (const [alias, target] of Object.entries(
-          require('../src/file-channel-http').FILE_ALIAS_ACTIONS
-        )) {
+        for (const [alias, target] of Object.entries({
+          ...require('../src/file-channel-http').FILE_ALIAS_ACTIONS,
+          ...require('../src/project-bundle-http').PROJECT_BUNDLE_ALIASES,
+        })) {
           const [method, route] = alias.split(' ');
           const action = actionRegistry.get(target);
           if (action)
@@ -3543,7 +3553,7 @@ module.exports = {
               method.toLowerCase(),
               target,
               action,
-              'files'
+              target.split('.')[0]
             );
         }
         const openAiChatAction = actionRegistry.get('openai-compatible.chatCompletions');

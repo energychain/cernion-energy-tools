@@ -1152,3 +1152,51 @@ weiter. Bei einem echten Abbruch enthält JSON/Markdown zusätzlich `abortMessag
 Bekannte feste Betriebsfehlermeldungen werden erhalten; beliebige Providertexte
 werden über die gemeinsame sichere LLM-Fehlerdiagnose ersetzt, damit keine Prompts,
 Tabellenzeilen oder Geheimnisse im Bericht landen.
+
+## Open-WebUI-Bündeltransport (#890)
+
+Die Function und vollständige Installation für die geprüfte Version **0.12.0** sind
+in [`integrations/openwebui/README.md`](../integrations/openwebui/README.md) beschrieben.
+Der Filter liest nutzereigene Originale über OWUIs Storage-Provider und überträgt sie
+chunked; die bestehende `project-upload`-API, Limits, Hashprüfung, Archivprüfung und
+Fortsetzung bleiben die zuständigen Verträge. Kleine Einzeldateien ohne Aktenwunsch
+bleiben im bisherigen Volltext-Modus.
+
+Der eng begrenzte `/v1/project-bundle`-Transport verwendet das Gateway-Modell #736.
+Jeder Aufruf wird erneut als zugeordnete Person ausgeführt, mit deren Rollen,
+Clearance und Tenant. Es gibt keinen Admin-Durchgriff und keine allgemeine
+Gateway-Freigabe der Projekt-APIs. Transportmetadaten liegen tenant-/personen-/
+gesprächsgebunden unter `data/project-bundle`; Tenant-IDs werden kodiert, nicht gehasht.
+Die Aktenlöschung räumt diese Referenzen über `project-bundle.deleteProject` bestätigt auf.
+
+Ein strukturiert erkannter ausdrücklicher Auftrag kann eine neue Akte anlegen oder
+eine sichtbare, eindeutig benannte Akte ergänzen. CET prüft die wörtliche Belegstelle;
+Dateiinhalt ist kein Auftrag. Ohne Auftrag gibt es bei mehreren Dateien oder über
+10 MiB genau eine Aktenfrage pro Gespräch. Zustimmung ohne erneuten Anhang und
+Fortsetzung nach Abbruch verwenden die dauerhaft gespeicherten OWUI-Datei-IDs.
+Die Originale bleiben bis zum Empfang ausschließlich im OWUI-Storage.
+
+Fortschritt erscheint als OWUI-Status; der Abschluss enthält Manifest-Zusammenfassung,
+Fragetypen sowie Namen fehlgeschlagener/nicht unterstützter Objekte. Bei noch fehlendem
+Manifest wird dieser Stand benannt. Die Fassade liefert diesen Abschluss direkt aus
+CET, ohne ihn durch einen zweiten Antwort-LLM zu verändern. `chat_id` wird als
+`conversationId` transportiert und über `projectRefs` für spätere Tabellenfragen gebunden.
+
+Für dieselben Originale entfernt der Filter die OWUI-Dateireferenzen vor dem
+Textkontext-Aufbau. CET prüft zusätzlich den Hash des extrahierten Texts gegen einen
+an das empfangene Original gebundenen Beleg. Nur sichtbare empfangene Originale mit
+passendem SHA-256 und Text-Hash unterdrücken Dokumentkontext; Dateinamen reichen nicht.
+#954, Rollen-, Blattwahl- und Einheitenschutz sowie Prompt-Scrubbing bleiben unverändert.
+
+Ergebnisse benötigen keine neue fachliche Capability: `project-file.get`,
+`project-manifest.get`, `project-upload.objects/status` und `workbench.skills.list`
+mit `projectId` sind bereits API-/MCP-seitig erreichbar. Das Transport-Gateway gibt
+keinen allgemeinen MCP-Zugriff. Normale API-/MCP-Principals nutzen die vorhandenen
+Werkzeuge mit den bestehenden Berechtigungen.
+
+E2E: `scripts/e2e-openwebui-project-bundle.py` ist standardmäßig ein Trockenlauf;
+`--live` ist für die aufrufende Session vorgesehen. Der lokale Mock-Test führt den
+Treiber mit echten Function-Hooks aus; separate CET-HTTP-Tests prüfen Originale,
+Abbruch/Fortsetzung, Nutzerbindung und die synthetische CSV-Summe 34.
+
+CET unterdrückt identischen Text nur mit zusätzlicher Originalidentität: passender OWUI-Datei-ID (`file_id`/`id`) oder Original-SHA-256 im `hash`-Attribut des `<source>`-Blocks. Reine Zitationsnummern oder identischer Text ohne diese Bindung reichen nicht. Der Filter entfernt Akten-Dateien unabhängig davon bereits vor OWUIs Textaufbau.
