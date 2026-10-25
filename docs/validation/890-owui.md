@@ -134,3 +134,14 @@ Testartefakte auf bzw. stellt eine benannte bestehende Function wieder her.
 Ein neuer Embedding-Cache-Eintrag ist mangels neuer Capability nicht erforderlich.
 
 CET unterdrückt identischen Text nur mit zusätzlicher Originalidentität: passender OWUI-Datei-ID (`file_id`/`id`) oder Original-SHA-256 im `hash`-Attribut des `<source>`-Blocks. Reine Zitationsnummern oder identischer Text ohne diese Bindung reichen nicht. Der Filter entfernt Akten-Dateien unabhängig davon bereits vor OWUIs Textaufbau.
+
+## Echter E2E-Lauf (aufrufende Session, 2026-10-25)
+
+- **Umgebung:** CET-Stand `22b4f128` als lokale Instanz in einer eigenen, isolierten Worktree. Port 3931; Port 3910 war belegt. Provisioniert mit den Werkzeugen aus #736:
+  - Tenant `e2e-890`
+  - normales API-Token und Gateway-Token für `open-webui` mit der Organisation `e2e-org`
+  - Zuordnung des OWUI-Testnutzers mit `ROLE_GRID_OPERATOR`
+- **Open-WebUI-Testinstanz:** Open WebUI 0.12.0 auf `10.0.0.101:3022`. Die OpenAI-Verbindung zeigte vorübergehend auf die lokale Instanz.
+- **Lauf:** `python3 scripts/e2e-openwebui-project-bundle.py --live`, Exit 0: `AC-01..AC-05: passed (originals, chat/table value 34, resume, progress, no duplicate evidence)`.
+- **Aufräumen:** Die temporäre Function ist entfernt; die vorhandene Function `cet_file_channel` blieb unverändert. Die OWUI-Verbindung ist auf `https://api.cernion.de/v1` zurückgestellt; Schlüssel und Konfiguration entsprechen exakt der Sicherung. Die lokale Instanz, die E2E-Worktree und die temporären Tokens sind entfernt.
+- **Volle Unit-CI** auf `22b4f128`: grün (26 Batches, Coverage-Gates bestanden).
