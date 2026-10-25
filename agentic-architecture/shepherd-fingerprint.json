@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-10-24T23:18:14.914Z",
-  "run": "20261024T231710Z",
-  "branch": "shepherd/runtime-refactor-20261024T231709Z",
-  "fingerprint": "09df79da50775e641d91c0b31b76a402e157505b37c30dc77720ac35ffe3def3",
-  "previousFingerprint": "47cbac5481a068475dd863cde779b363ffbe95647e565954bceb37c7d437cbe4",
+  "generatedAt": "2026-10-25T23:32:53.913Z",
+  "run": "20261025T233149Z",
+  "branch": "shepherd/runtime-refactor-20261025T233148Z",
+  "fingerprint": "d34e2d048ba70da83760ad15a22bb6edf897b308c1b405a9b6019b44d7814044",
+  "previousFingerprint": "09df79da50775e641d91c0b31b76a402e157505b37c30dc77720ac35ffe3def3",
   "scope": "agentic-architecture docs/canon/domain generated from Shepherd scan"
 }

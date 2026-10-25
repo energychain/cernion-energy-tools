@@ -1,20 +1,20 @@
 # Shepherd Summary
 
-Generated: 2026-10-24T23:18:14.914Z
-Run: 20261024T231710Z
-Branch: shepherd/runtime-refactor-20261024T231709Z
-Fingerprint: 09df79da50775e641d91c0b31b76a402e157505b37c30dc77720ac35ffe3def3
+Generated: 2026-10-25T23:32:53.913Z
+Run: 20261025T233149Z
+Branch: shepherd/runtime-refactor-20261025T233148Z
+Fingerprint: d34e2d048ba70da83760ad15a22bb6edf897b308c1b405a9b6019b44d7814044
 
 ## Current measurable surface
 
-- Files: 2174
-- Services: 164
-- src JS files: 464
-- Tests: 540
-- Agentic files: 274
-- OpenWebUI/ChatGPT files: 37
+- Files: 2189
+- Services: 165
+- src JS files: 469
+- Tests: 542
+- Agentic files: 278
+- OpenWebUI/ChatGPT files: 41
 - Evidence/HITL files: 100
-- Routing/capability files: 117
+- Routing/capability files: 118
 - Services without obvious direct filename-mapped test: 30
 
 ## Artifact state
@@ -27,14 +27,14 @@ Fingerprint: 09df79da50775e641d91c0b31b76a402e157505b37c30dc77720ac35ffe3def3
 
 ## Top directories
 
-- `tests`: 611 files
-- `src`: 532 files
-- `docs`: 445 files
-- `services`: 200 files
-- `scripts`: 92 files
+- `tests`: 616 files
+- `src`: 537 files
+- `docs`: 446 files
+- `services`: 201 files
+- `scripts`: 93 files
 - `tools`: 85 files
 - `agentic-architecture`: 61 files
-- `integrations`: 35 files
+- `integrations`: 37 files
 - `.claude`: 26 files
 - `.github`: 11 files
 - `feedback`: 8 files
@@ -51,8 +51,8 @@ Fingerprint: 09df79da50775e641d91c0b31b76a402e157505b37c30dc77720ac35ffe3def3
 ## Domain abstraction
 
 - Domain abstraction: present
-- Domain fingerprint: 96d7cde36d3a9d3a02ee49db2216684fa2d76887dab60897b7ba867a55c2be9b
-- Candidate files: 1310
+- Domain fingerprint: 84a542841472dc362b14d2c9a07eca25bc94ab142af098ed49b3bda0c09a3019
+- Candidate files: 1318
 - Unclassified services: 0
 
 Cluster counts:
@@ -61,7 +61,7 @@ Cluster counts:
 - `evidence-and-trust` — Evidence, Nachweis und Vertrauen: 23 services, 25 top files
 - `mako-and-edm` — MaKo / EDM / Stammdaten: 8 services, 25 top files
 - `grid-and-connection` — Netz, Anschluss und Kapazität: 48 services, 25 top files
-- `forecast-and-market` — Prognose, Markt und Portfolio: 17 services, 25 top files
+- `forecast-and-market` — Prognose, Markt und Portfolio: 18 services, 25 top files
 - `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files
 - `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files
 - `tenant-and-operation` — Tenant, Rollen und Betrieb: 53 services, 25 top files
