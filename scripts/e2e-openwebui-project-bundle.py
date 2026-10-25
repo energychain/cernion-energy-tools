@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import re
 import os
 import threading
 import uuid
@@ -37,6 +38,10 @@ class Client:
             raise RuntimeError(f"HTTP {error.code} on {method} {urlsplit(path).path}") from None
 
 
+ROUTE = re.compile(r"/v1/project-bundle/(?:prepare|start|result|uploads/[A-Za-z0-9_-]{1,128}(?:/complete|/chunks/[0-9]{1,6})?)")
+QUERY = re.compile(r"(?:[A-Za-z][A-Za-z0-9]{0,40}=[A-Za-z0-9._%+-]{0,256}(?:&[A-Za-z][A-Za-z0-9]{0,40}=[A-Za-z0-9._%+-]{0,256})*)?")
+
+
 class InterruptProxy:
     """Only the Function's project transport crosses this disposable proxy."""
     def __init__(self, target, port=0):
@@ -52,10 +57,13 @@ class InterruptProxy:
             def handle_request(self):
                 size = int(self.headers.get("Content-Length", 0))
                 data = self.rfile.read(size) if size else None
-                path = urlsplit(self.path).path
-                if not path.startswith("/v1/project-bundle/"):
+                parts = urlsplit(self.path)
+                path = parts.path
+                # Forward only the fixed bundle routes with validated segments, never a raw path.
+                if not ROUTE.fullmatch(path) or not QUERY.fullmatch(parts.query):
                     self.send_error(404)
                     return
+                forward = path + ("?" + parts.query if parts.query else "")
                 if self.command == "PUT":
                     upload_id, index = path.split("/")[-3], int(path.split("/")[-1])
                     owner.chunks.append((upload_id, index))
@@ -66,7 +74,7 @@ class InterruptProxy:
                         return
                 headers = {k: v for k, v in self.headers.items() if k.lower() in ("authorization", "content-type", "x-openwebui-user-id", "x-openwebui-user-email")}
                 try:
-                    with urlopen(Request(owner.target + self.path, data=data, headers=headers, method=self.command), timeout=300) as response:
+                    with urlopen(Request(owner.target + forward, data=data, headers=headers, method=self.command), timeout=300) as response:
                         body, status, mime = response.read(), response.status, response.headers.get("Content-Type", "application/json")
                 except HTTPError as error:
                     body, status, mime = error.read(), error.code, "application/json"
@@ -80,7 +88,7 @@ class InterruptProxy:
                 self.end_headers()
                 self.wfile.write(body)
             do_GET = do_POST = do_PUT = handle_request
-        self.server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
+        self.server = ThreadingHTTPServer((os.environ.get("E2E_PROXY_BIND", "127.0.0.1"), port), Handler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
 
     def start(self):

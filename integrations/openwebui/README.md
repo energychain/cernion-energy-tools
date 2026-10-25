@@ -108,7 +108,7 @@ API-/Session-Token **derselben CET-Person und desselben Tenants**, mit den regul
 benötigten Lese- und Löschrechten für Assertions und Aufräumen. Keine Zugangswerte
 in Dateien oder Kommandoargumente schreiben.
 
-Optionen: `OWUI_MODEL`, `OWUI_FUNCTION_ID`, `E2E_PROXY_PORT`,
+Optionen: `OWUI_MODEL`, `OWUI_FUNCTION_ID`, `E2E_PROXY_BIND` (Standard `127.0.0.1`), `E2E_PROXY_PORT`,
 `E2E_PROXY_PUBLIC_URL`, `E2E_RESUME_BYTES`. Der temporäre Proxy muss aus dem
 OWUI-Container erreichbar sein. Beim geprüften Host-Network-Betrieb auf demselben
 Host funktioniert die lokale Standardadresse; bei Remote-Ausführung ist eine
