@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "973e1a619ec0440af817df32a85b4acb66842a67fc7755d231a2d0e05c99541b",
+  "sourceHash": "e2f3ba9a05e48750a38fc9fc10b44fe7d9bdb93fb049a1cdbd88bfd74ce30dd9",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -9470,6 +9470,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -9843,6 +9847,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -13323,6 +13331,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -13684,6 +13696,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -21858,6 +21874,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -22231,6 +22251,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -32736,6 +32760,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -33109,6 +33137,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -36899,6 +36931,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -37276,6 +37312,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -57150,6 +57190,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -57511,6 +57555,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -67672,6 +67720,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -68045,6 +68097,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -73531,6 +73587,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -73892,6 +73952,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -79194,6 +79258,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -79563,6 +79631,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -85438,6 +85510,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -85811,6 +85887,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -88608,6 +88688,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -88969,6 +89053,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -91487,6 +91575,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -91868,6 +91960,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -100514,6 +100610,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -100899,6 +100999,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -114457,6 +114561,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -114846,6 +114954,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -127349,6 +127461,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -127814,6 +127930,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -130658,6 +130778,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -131027,6 +131151,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -135998,6 +136126,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -136375,6 +136507,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -140703,6 +140839,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -141080,6 +141220,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -145536,6 +145680,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -145901,6 +146049,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -150420,6 +150572,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -150785,6 +150941,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -175092,6 +175252,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -175461,6 +175625,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -182483,6 +182651,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -182860,6 +183032,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",
@@ -205047,6 +205223,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/function-coverage.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-model.js"
         },
         {
@@ -205432,6 +205612,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-conversation-shape.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-corrections.js"
         },
         {
           "kind": "service",

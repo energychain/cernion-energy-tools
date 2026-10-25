@@ -148,6 +148,7 @@ async function saveTurn(db, p, envelope, patch, time = Date.now()) {
                 }
               : {}),
           }),
+      lastUserRequest: String(envelope.userRequest || '').slice(0, 2000),
       type: 'workbench_conversation_assistance',
       tenantId: p.tenantId,
       actorId: p.actorId,

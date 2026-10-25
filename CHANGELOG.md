@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — RC3: Arbeitskontext und Quellenbezüge
+
+- Sprecherbezüge und kopierte Aufgabensätze begründen keine Rolle; ein belegter
+  Auftrag kann einen Arbeitskontext auch ohne Rollenbezeichnung setzen, ein bloßes Ziel nicht.
+- Mehrteilige eigene Rollenangaben erreichen die Kontextaktualisierung vor einer
+  mehrdeutigen Funktionskorrektur, auch ohne bisher gespeicherten Arbeitskontext.
+- Inhaltliche Befassungen mit einem Dokument werden nicht allein durch „Stand“ zu
+  Fallübersichten; explizite Statusfragen bleiben erhalten.
+- Folgebezüge verwenden den vorherigen Nutzergegenstand und semantisch bestätigte
+  gemeinsame Quellen. Jede Quelle bleibt einzeln geprüft; reine Quellen desselben
+  Gesprächs verbleiben im regulären Pfad. Routing-Metadaten verändern keine Berechnungsfrage.
+- Vier generierte synthetische Praxisfälle mit schema-validen Offline-Replays;
+  Reproduktion und Prüfungen: `docs/validation/rc3-real-cases.md`.
+
 ## Unreleased — Open-WebUI-Projektakte als Originalbündel (#890)
 
 - Gegen OWUI 0.12.0 geprüfter Filter vor der Dateiextraktion: Originale aus

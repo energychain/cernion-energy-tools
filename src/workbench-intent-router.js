@@ -13,17 +13,18 @@ function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
   const text = String(message || '').toLowerCase();
   const status = /\b(?:status|stand|bearbeitungsstand)\b/u.test(text);
   const explicitCase =
-    cetCaseId ||
     /\bF-\d+\b|\bcase[_-][\w-]+\b/iu.test(text) ||
     /\b[A-Z][A-Z\d]*(?:[-_][A-Z\d]+)+\b|\b[\p{L}]{2,}[-_]\d{2,}\b/u.test(String(message));
+  const caseStatus =
+    /^(?:status|stand|bearbeitungsstand)\s+(?:des|der|von|zum|zu|bei)\s+(?:falls?|falles|vorgangs?|cases?)[?.!\s]*$/iu.test(
+      text.trim()
+    );
+  if (caseStatus) return 'status_query';
   // A labelled assertion updates the situation; a thematic question needs semantic retrieval.
   if (
     status &&
     ((/:\s+\S/u.test(text) && !text.includes('?')) ||
       (!explicitCase &&
-        !/^(?:status|stand|bearbeitungsstand)\s+(?:des|der|von|zum|zu|bei)\s+(?:falls?|falles|vorgangs?|cases?)[?.!\s]*$/iu.test(
-          text.trim()
-        ) &&
         /\b(?:status|stand|bearbeitungsstand)\b[^?]*\b(?:bei|zu|zum|zur|von|für|des|der)\s+\S/iu.test(
           text
         )))
@@ -69,7 +70,7 @@ function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
   if (isFunctionKnowledgeQuery(message)) return 'knowledge_query';
   if (
     /\b(status|stand|bearbeitungsstand)\b/.test(text) &&
-    /\b(case|fall)\b|\bcase[_-][\w-]+\b/.test(text)
+    /\b(case|fall)\b|\bF-\d+\b|\bcase[_-][\w-]+\b/i.test(text)
   )
     return 'status_query';
   if (
@@ -80,8 +81,8 @@ function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
     return 'decision_support';
   if (resolveWorkbenchFollowup(message, { recentMessages })) return 'knowledge_query';
   if (
-    /\b(status|readiness|stand|bearbeitungsstand)\b|missing evidence|fehlende belege|next safe action/.test(
-      text
+    /^(?:(?:was|wie) ist (?:der )?|aktuelle[rn]? )?(?:status|readiness|stand|bearbeitungsstand|missing evidence|fehlende belege|next safe action)[?.!\s]*$/u.test(
+      text.trim()
     )
   )
     return 'status_query';
