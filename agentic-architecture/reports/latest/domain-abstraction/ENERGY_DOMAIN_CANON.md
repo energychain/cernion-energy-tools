@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-24T23:18:14.850Z
+Generated: 2026-10-25T23:32:53.854Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -200,6 +200,7 @@ Zugeordnete Services nach Heuristik:
 - `mqtt-edm-ingest` — services/mqtt-edm-ingest.service.js (6 actions)
 - `nkp-reporting` — services/nkp-reporting.service.js (8 actions)
 - `object-store` — services/object-store.service.js (4 actions)
+- `project-bundle` — services/project-bundle.service.js (2 actions)
 - `project-upload` — services/project-upload.service.js (8 actions)
 - `residual-load` — services/residual-load.service.js (12 actions)
 - `settlement` — services/settlement.service.js (15 actions)

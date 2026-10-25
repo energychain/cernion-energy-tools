@@ -1,10 +1,10 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-24T23:18:09.981Z
+Generated: 2026-10-25T23:32:49.224Z
 
 ## Observed adapter surface
 
-- OpenWebUI/ChatGPT adapter files detected: 37
+- OpenWebUI/ChatGPT adapter files detected: 41
 - verify:open-webui npm script: present
 - verify:agent-shapes npm script: present
 
@@ -39,11 +39,15 @@ Detected files:
 - `integrations/open-webui/RUNBOOK.md`
 - `integrations/open-webui/smoke-test.js`
 - `integrations/open-webui/smoke-test.test.js`
+- `integrations/openwebui/functions/cet_project_bundle.py`
+- `integrations/openwebui/README.md`
+- `scripts/e2e-openwebui-project-bundle.py`
 - `services/chatgpt-sidecar.service.js`
 - `src/chatgpt-sidecar-prompt.js`
 - `src/chatgpt-sidecar-session-policy.js`
 - `src/chatgpt-sidecar-session-store.js`
 - `src/openwebui-context.js`
+- `src/openwebui-project-context.js`
 - `tests/chatgpt-sidecar-session-policy.test.js`
 - `tests/chatgpt-sidecar-session-store.test.js`
 - `tests/chatgpt-sidecar.service.test.js`
@@ -173,6 +177,7 @@ Routing/capability/broker/manifest files:
 - `tests/project-manifest-routing.test.js`
 - `tests/project-manifest.service.test.js`
 - `tests/project-manifest.test.js`
+- `tests/python/test_e2e_proxy_routes.py`
 - `tests/workbench-capability-loop.test.js`
 - `tests/workbench-intent-router.test.js`
 - `tests/workbench-project-manifest.test.js`
@@ -292,10 +297,10 @@ Service names that should be capability-mapped:
 - `personal-agent`
 - `personal-agent-work-out-loud-listener`
 - `presentation`
+- `project-bundle`
 - `project-file`
 - `project-graph`
 - `project-manifest`
 - `project-structure`
 - `project-upload`
 - `query`
-- `rcs-rule-catalog`
