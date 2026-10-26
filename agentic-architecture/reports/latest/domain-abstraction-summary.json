@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-25T23:32:53.854Z",
+  "generatedAt": "2026-10-26T05:35:18.211Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261025T233149Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261026T053409Z",
   "counts": {
     "files": 2189,
     "candidateFiles": 1318,
@@ -63,7 +63,7 @@
       "label": "OpenWebUI und agentisches Routing",
       "files": 25,
       "services": 7,
-      "hits": 5056
+      "hits": 5061
     }
   },
   "ambiguousTerms": [
@@ -224,11 +224,11 @@
         },
         {
           "path": "agentic-architecture/domain/ENERGY_DOMAIN_CANON.md",
-          "hits": 299
+          "hits": 301
         },
         {
           "path": "agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md",
-          "hits": 299
+          "hits": 301
         },
         {
           "path": "agentic-architecture/reports/latest/architecture-scan.md",
@@ -552,5 +552,5 @@
       "hits": 279
     }
   ],
-  "fingerprint": "84a542841472dc362b14d2c9a07eca25bc94ab142af098ed49b3bda0c09a3019"
+  "fingerprint": "384e4df536af68ea37548a8f17b5483a2bc9dd8010b80241d6bae524afba8e85"
 }
