@@ -364,6 +364,19 @@ describe('tenant dataset catalog', () => {
     }
     expect(await call('datapoint.datasetCatalog', { operation: 'list' })).toHaveLength(1);
   });
+  test('a repeated attachment stays bound to the turn when a correction finds no target', async () => {
+    const [record] = await call('datapoint.datasetCatalog', { operation: 'list' });
+    const spy = jest
+      .spyOn(require('../src/dataset-correction'), 'datasetCorrection')
+      .mockResolvedValueOnce({ kind: 'unit', datasetId: 'synthetic-unknown' });
+    try {
+      const response = await upload('csv');
+      expect(response.handled).toBe(false);
+      expect(response.datasetIds).toEqual([record.id]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
   test('no source rows or cell samples reach the model', () => {
     expect(llm.generateStructured).toHaveBeenCalled();
     for (const [, prompt] of llm.generateStructured.mock.calls.filter(

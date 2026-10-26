@@ -204,6 +204,7 @@ test.each([
   ['mich in das Thema', '', 'einarbeiten'],
   ['', 'in das Thema einarbeiten', 'einen aktuellen Status'],
   ['Ich', '', 'in das Thema einarbeiten'],
+  ['in das Thema einarbeiten', '', ''],
 ])(
   'a task sentence never becomes a working context (role %p, mandate %p)',
   (role, mandate, goal) => {

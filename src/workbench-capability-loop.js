@@ -197,8 +197,16 @@ function dataQuestionIntent(message) {
       !/^(?:mein|unser) (?:antwort)?entwurf\b|^(?:von|from)\b/u.test(text),
   };
 }
-function allowsDataRead(situation, message, previous = {}) {
-  if (situation.dataQuestion) return situation.dataQuestion.requested === true;
+function allowsDataRead(situation, message, previous = {}, { attachedData = false } = {}) {
+  // A concrete question asked alongside a freshly attached dataset is a data question even when
+  // the semantic classification is unstable for that turn.
+  if (situation.dataQuestion)
+    return (
+      situation.dataQuestion.requested === true ||
+      (attachedData &&
+        !require('./workbench-thread').isDocumentInput(message) &&
+        dataQuestionIntent(message).concrete)
+    );
   const material =
     situation.conversationShape === 'filing' ||
     situation.outputKind === 'correspondence' ||
@@ -216,7 +224,7 @@ function resolveCapabilityNeed(situation, message, options = {}) {
   const api = options.api || require('../openapi-export.json');
   const { text, concrete } = dataQuestionIntent(message);
   const refinement = /\b(davon|darunter|dieser|diesen|deren|of those|among them)\b/.test(text);
-  if (!allowsDataRead(situation, message, options.previous))
+  if (!allowsDataRead(situation, message, options.previous, { attachedData: options.attachedData }))
     return {
       situation: { ...situation, dataNeeds: '' },
       candidates: [],
