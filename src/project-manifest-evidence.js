@@ -433,10 +433,12 @@ async function projectManifestAnswer(ctx, question, options = {}) {
   );
   if (options.minSources > 1 && candidates.length < options.minSources) return null;
   let assessments = [];
+  let relatedSourceIds = [];
   const select = (routingQuestion) =>
     require('./dataset-routing').selectProjectCandidates(candidates, routingQuestion, {
       ...settings.routing,
       ...options.routing,
+      relatedSourceIds,
       onAssessment: options.onAssessment,
       onRanked: (ranked) => {
         assessments = ranked;
@@ -464,6 +466,7 @@ async function projectManifestAnswer(ctx, question, options = {}) {
           !contextual.subjectMatchedIds.includes(candidate.id) ||
           contextual.sourceIds.includes(candidate.id)
       );
+      relatedSourceIds = contextual.sourceIds;
       selected = select(contextual.question);
       readQuestion = contextual.question;
     }
@@ -490,10 +493,11 @@ async function projectManifestAnswer(ctx, question, options = {}) {
     return null;
   const results = [];
   for (const candidate of selected) {
+    // Routing metadata must not become an instruction for the source query.
     const result = await require('./tenant-evidence-sources').readEvidenceSource(
       ctx,
       candidate,
-      readQuestion,
+      question,
       { ...options, combinedEvidence: selected.length > 1 }
     );
     if (result) results.push({ ...result, candidate });

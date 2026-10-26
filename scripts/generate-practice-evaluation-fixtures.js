@@ -667,6 +667,7 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
   catalog.push(
     require('./generate-session-evidence-fixtures').sessionEvidenceScenario(scenario, turn, x)
   );
+  catalog.push(...require('./generate-real-case-fixtures').realCaseScenarios(scenario, turn));
   return { schemaVersion: VERSION, scenarios: catalog };
 }
 

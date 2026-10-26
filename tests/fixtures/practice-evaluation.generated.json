@@ -5602,6 +5602,299 @@
           }
         }
       ]
+    },
+    {
+      "id": "task-without-role",
+      "group": "RC3",
+      "title": "Einarbeitungsauftrag ohne Rollenangabe",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Koordination",
+          "functionLabel": "Koordination"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Koordination",
+          "functionLabel": "Koordination"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "pronoun",
+          "actor": "a",
+          "chat": "main",
+          "message": "Ich soll mich in das Thema einarbeiten. Kannst Du mir einen aktuellen Status geben, um was es geht?",
+          "expect": {
+            "description": "Keine Rolle aus Sprecherbezug speichern",
+            "rules": {
+              "require": [
+                "80 kg",
+                "Zuordnung",
+                "Arbeitsstand-A"
+              ],
+              "forbid": [
+                "Fall F-[0-9]+:",
+                "nicht hinterlegt",
+                "Letzte Einordnung",
+                "Der Nutzer",
+                "Ich richte mich"
+              ]
+            },
+            "dependencies": []
+          },
+          "document": {
+            "kind": "text",
+            "name": "Arbeitsstand-A.txt",
+            "text": "# Projekt Nord\n## Bestand\nDer Bestand beträgt 80 kg.\n## Prüfung\nDie Zuordnung ist offen."
+          }
+        },
+        {
+          "id": "sentence",
+          "actor": "a",
+          "chat": "fresh",
+          "message": "Ich soll mich in das Thema von Projekt Nord einarbeiten. Was kannst Du mir sagen?",
+          "expect": {
+            "description": "Keine Rolle aus ganzem Aufgabensatz speichern",
+            "rules": {
+              "require": [
+                "80 kg",
+                "Zuordnung",
+                "Arbeitsstand-A"
+              ],
+              "forbid": [
+                "Fall F-[0-9]+:",
+                "nicht hinterlegt",
+                "Letzte Einordnung",
+                "Der Nutzer",
+                "Ich richte mich"
+              ]
+            },
+            "dependencies": []
+          },
+          "document": {
+            "kind": "text",
+            "name": "Arbeitsstand-A.txt",
+            "text": "# Projekt Nord\n## Bestand\nDer Bestand beträgt 80 kg.\n## Prüfung\nDie Zuordnung ist offen."
+          }
+        }
+      ]
+    },
+    {
+      "id": "role-before-correction",
+      "group": "RC3",
+      "title": "Eigene Rolle vor Funktionskorrektur erkennen",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Koordination",
+          "functionLabel": "Koordination"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Koordination",
+          "functionLabel": "Koordination"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "role",
+          "actor": "a",
+          "chat": "main",
+          "message": "Ich übernehme die Governance/Aufsicht und soll im Gremium A durch Fragen gezielt aktuelle Probleme und Risiken für das Ergebnis der Organisation A in den kommenden Jahren vermeiden.",
+          "expect": {
+            "description": "Arbeitskontext sichtbar setzen",
+            "rules": {
+              "require": [
+                "Ich richte mich",
+                "Rolle „Governance/Aufsicht“",
+                "Auftrag",
+                "Ziel"
+              ],
+              "forbid": [
+                "Welche Funktion meinst",
+                "Beobachtung:",
+                "Hypothese:"
+              ]
+            },
+            "dependencies": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "content-before-status",
+      "group": "RC3",
+      "title": "Befassung im Arbeitskontext beantworten",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Koordination",
+          "functionLabel": "Koordination"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Koordination",
+          "functionLabel": "Koordination"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "distractor",
+          "actor": "a",
+          "chat": "other",
+          "message": "Ordne den Ablauf am Standort West ein.",
+          "expect": {
+            "description": "Eigenständigen anderen Fall anlegen",
+            "rules": {
+              "casePresent": true
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "intake",
+          "actor": "a",
+          "chat": "main",
+          "message": "Ich bin in der Aufsicht für Gremium A. Ordne die Unterlage ein.",
+          "expect": {
+            "description": "Dokument und Arbeitskontext aufnehmen",
+            "rules": {},
+            "dependencies": []
+          },
+          "document": {
+            "kind": "text",
+            "name": "Arbeitsstand-A.txt",
+            "text": "# Projekt Nord\n## Bestand\nDer Bestand beträgt 80 kg.\n## Prüfung\nDie Zuordnung ist offen."
+          }
+        },
+        {
+          "id": "followup",
+          "actor": "a",
+          "chat": "main",
+          "message": "Die nächste Befassung ist, dass ich mich zunächst mit dem Stand (s. hochgeladenes Dokument) befassen muss. Vor dem nächsten Termin im Gremium kann ich Rückfragen an die beteiligten Autoren stellen, muss aber meine Governance-Fragen im Gremium stellen.",
+          "expect": {
+            "description": "Belegte Fragen an Autoren und Gremium",
+            "rules": {
+              "require": [
+                "80 kg",
+                "Zuordnung",
+                "Arbeitsstand-A",
+                "Autoren",
+                "Gremium"
+              ],
+              "forbid": [
+                "Fall F-[0-9]+:",
+                "nicht hinterlegt",
+                "Letzte Einordnung",
+                "Der Nutzer"
+              ]
+            },
+            "dependencies": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "table-record-reference",
+      "group": "RC3",
+      "title": "Tabelle dieses Chats mit vorhandener Akte abgleichen",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Koordination",
+          "functionLabel": "Koordination"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Koordination",
+          "functionLabel": "Koordination"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "document",
+          "actor": "a",
+          "chat": "first",
+          "message": "Bitte ablegen.",
+          "expect": {
+            "description": "Grundlage im früheren Chat speichern",
+            "rules": {},
+            "dependencies": []
+          },
+          "document": {
+            "kind": "text",
+            "name": "Arbeitsstand-A.txt",
+            "text": "# Projekt Nord\n## Bestand\nDer Bestand beträgt 80 kg.\n## Prüfung\nDie Zuordnung ist offen."
+          }
+        },
+        {
+          "id": "table",
+          "actor": "a",
+          "chat": "second",
+          "message": "Zum Thema Projekt Nord habe ich nun folgende Daten aus System A bekommen. Was sagt dies zur Akte?",
+          "expect": {
+            "description": "Neue Tabelle in Beziehung zur Akte setzen",
+            "rules": {},
+            "dependencies": []
+          },
+          "document": {
+            "kind": "text",
+            "name": "Export-A.csv",
+            "text": "Datum;Klasse;Bestand (kg)\n2025-01-01;Gruppe A;40\n2025-01-02;Gruppe B;55\n2025-01-03;Summe;95"
+          }
+        },
+        {
+          "id": "reference",
+          "actor": "a",
+          "chat": "second",
+          "message": "Deckt sich dies mit der Akte, die Du bereits hast?",
+          "expect": {
+            "description": "Beide Quellen mit Abweichung, Lücke und Herkunft",
+            "rules": {
+              "require": [
+                "Ich habe dafür",
+                "Arbeitsstand-A",
+                "Export-A",
+                "Abweichung|weichen|Unterschied",
+                "Zuordnung"
+              ],
+              "forbid": [
+                "Anzahl: 3 Zeilen",
+                "Welche konkreten",
+                "nicht hinterlegt"
+              ],
+              "numeric": [
+                {
+                  "value": 80,
+                  "tolerance": 0
+                },
+                {
+                  "value": 95,
+                  "tolerance": 0
+                }
+              ]
+            },
+            "dependencies": []
+          }
+        }
+      ]
     }
   ]
 }

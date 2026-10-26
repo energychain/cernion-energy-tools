@@ -78,7 +78,7 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
       currentConversationId: envelope.conversationId,
       previousEvidence: {
         selection: pending?.tenantEvidenceSelection,
-        question: pending?.tenantEvidenceQuestion,
+        question: pending?.tenantEvidenceQuestion || pending?.lastUserRequest,
       },
       onAssessment: (assessment) => assessments.set(ctx, assessment),
     }

@@ -253,14 +253,16 @@ function selectProjectCandidates(candidates, question, options = {}) {
     );
   options.onRanked?.(ranked);
   const best = ranked[0];
-  // Complementary source records with the same matched subject form one candidate group.
+  // Complementary records share a matched subject or a validated semantic reference group.
   // Competing subjects still require the configured relevance margin.
   const complementary = (item) =>
     Boolean(
       best?.candidate.sourceType &&
       item.candidate.sourceType &&
       (best.candidate.sourceType !== 'project' || item.candidate.sourceType !== 'project') &&
-      item.subjectKeys?.some((key) => best.subjectKeys?.includes(key))
+      (item.subjectKeys?.some((key) => best.subjectKeys?.includes(key)) ||
+        (options.relatedSourceIds?.includes(best.candidate.id) &&
+          options.relatedSourceIds.includes(item.candidate.id)))
     );
   const next = ranked.find(
     (item, index) =>
