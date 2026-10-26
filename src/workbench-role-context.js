@@ -55,7 +55,10 @@ function applyRoleContext(situation, message, previous, asked = []) {
     )
   )
     return;
-  const role = substantiveRole(statement.role, statement.basis) ? statement.role : '';
+  const role =
+    substantiveRole(statement.role, statement.basis) && !reflexive(statement.role, statement.basis)
+      ? statement.role
+      : '';
   const mandate =
     substantiveRole(statement.mandate, '') &&
     statement.mandate !== statement.goal &&
