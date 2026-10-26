@@ -1,11 +1,11 @@
 # Domain Abstraction Report
 
-Generated: 2026-10-25T23:32:53.854Z
+Generated: 2026-10-26T05:35:18.211Z
 
 - Candidate files scanned: 1318
 - Services classified: 165
 - Unclassified services: 0
-- Fingerprint: 84a542841472dc362b14d2c9a07eca25bc94ab142af098ed49b3bda0c09a3019
+- Fingerprint: 384e4df536af68ea37548a8f17b5483a2bc9dd8010b80241d6bae524afba8e85
 
 ## Cluster counts
 
@@ -17,7 +17,7 @@ Generated: 2026-10-25T23:32:53.854Z
 - `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files, 4728 top-file hits
 - `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files, 4287 top-file hits
 - `tenant-and-operation` — Tenant, Rollen und Betrieb: 53 services, 25 top files, 9589 top-file hits
-- `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files, 5056 top-file hits
+- `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files, 5061 top-file hits
 
 ## Case type coverage
 

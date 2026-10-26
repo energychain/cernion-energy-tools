@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-10-25T23:32:49.224Z
+Generated: 2026-10-26T05:35:13.276Z
 
 ## Current measurable surface
 
@@ -36,7 +36,7 @@ Generated: 2026-10-25T23:32:49.224Z
 - `willi`: 1536 hits in 113 files
 - `sidecar`: 1002 hits in 111 files
 - `eog`: 792 hits in 101 files
-- `openwebui`: 636 hits in 106 files
+- `openwebui`: 640 hits in 106 files
 - `utility`: 613 hits in 94 files
 - `open-webui`: 425 hits in 77 files
 - `chatgpt`: 402 hits in 38 files

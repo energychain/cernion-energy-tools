@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-25T23:32:53.854Z
+Generated: 2026-10-26T05:35:18.211Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -314,7 +314,7 @@ Starke Code-/Doku-Signale:
 - `services/personal-agent/methods-part-03-of-11.js` (234 hits)
 - `services/api.service.js` (189 hits)
 - `src/personal-agent-routing.js` (168 hits)
-- `docs/sonarcloud-security-review.json` (155 hits)
+- `agentic-architecture/reports/latest/openwebui-blindspots.md` (156 hits)
 
 Zugeordnete Services nach Heuristik:
 
