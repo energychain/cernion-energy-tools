@@ -198,3 +198,31 @@ test('a substantive mandate can set context without a role, while a goal alone c
     expect(roleConfirmation(situation, basis).includes('Auftrag')).toBe(Boolean(mandate));
   }
 });
+
+// Live model variants of the same task sentence (observed fragments, anonymized).
+test.each([
+  ['mich in das Thema', '', 'einarbeiten'],
+  ['', 'in das Thema einarbeiten', 'einen aktuellen Status'],
+  ['Ich', '', 'in das Thema einarbeiten'],
+])(
+  'a task sentence never becomes a working context (role %p, mandate %p)',
+  (role, mandate, goal) => {
+    const { applyRoleContext } = require('../src/workbench-role-context');
+    const basis =
+      'Ich soll mich in das Thema einarbeiten. Kannst Du mir einen aktuellen Status geben?';
+    const situation = {
+      roleStatement: {
+        subject: 'self',
+        firstPerson: true,
+        basis,
+        role,
+        mandate,
+        goal,
+        roleOnly: false,
+      },
+    };
+    applyRoleContext(situation, basis, null);
+    expect(situation.roleContextUpdated).toBeUndefined();
+    expect(situation.conversationContext).toBeUndefined();
+  }
+);

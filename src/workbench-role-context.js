@@ -9,7 +9,10 @@ function selectRoleStatement(primary, refinement) {
   );
 }
 
-// Speaker references and a copied self-description do not name a function.
+// A function names a responsibility; any speaker reference inside it ("mich in das …"), a bare
+// pronoun or a copied self-description is part of a task sentence, not a role.
+const SPEAKER_TOKEN =
+  /^(?:ich|mich|mir|mein\w*|wir|uns|unser\w*|du|dich|dir|dein\w*|i|me|my|myself|we|us|our|self|selbst|selber)$/u;
 function substantiveRole(value, basis) {
   const normalize = (text) =>
     String(text || '')
@@ -17,16 +20,18 @@ function substantiveRole(value, basis) {
       .replace(/[.!?]+$/u, '')
       .toLowerCase();
   const role = normalize(value);
-  if (
-    !role ||
-    role
-      .split(/\s+/u)
-      .every((token) =>
-        /^(?:ich|mich|mir|wir|uns|du|dich|dir|i|me|myself|we|us|self|selbst|selber)$/u.test(token)
-      )
-  )
-    return false;
+  if (!role || role.split(/[\s/,;:()]+/u).some((token) => SPEAKER_TOKEN.test(token))) return false;
   return role !== normalize(basis) || !selfSubject(basis);
+}
+
+// "… mich in das Thema einarbeiten": a speaker reference directly before the fragment marks an
+// action on oneself (a task or learning intention), not a responsibility towards someone else.
+function reflexive(value, basis) {
+  const text = String(basis || '');
+  const at = text.indexOf(String(value || ''));
+  if (!value || at < 0) return false;
+  const before = text.slice(0, at).trim().split(/\s+/u).pop() || '';
+  return SPEAKER_TOKEN.test(before.toLowerCase().replace(/[^\p{L}]/gu, ''));
 }
 
 function applyRoleContext(situation, message, previous, asked = []) {
@@ -52,7 +57,9 @@ function applyRoleContext(situation, message, previous, asked = []) {
     return;
   const role = substantiveRole(statement.role, statement.basis) ? statement.role : '';
   const mandate =
-    substantiveRole(statement.mandate, '') && statement.mandate !== statement.goal
+    substantiveRole(statement.mandate, '') &&
+    statement.mandate !== statement.goal &&
+    !reflexive(statement.mandate, statement.basis)
       ? statement.mandate
       : '';
   if (!role && !mandate) return;
