@@ -47,7 +47,9 @@ test('a fully matched subject without lexical content reaches the existing seman
     task: 'evidence_reference_resolution',
     previousSourceIds: [],
   });
-  expect(JSON.stringify(schema)).not.toMatch(/uniqueItems|const|\$ref|allOf|oneOf/u);
+  expect(JSON.stringify(schema)).not.toMatch(
+    /additionalProperties|uniqueItems|const|\$ref|allOf|oneOf/u
+  );
 });
 
 test('the same subject is insufficient when semantic resolution rejects the content', async () => {
@@ -114,6 +116,83 @@ test('deferred resolution reads only confirmed IDs after refreshing candidates',
     expect(read).toHaveBeenCalledTimes(1);
     expect(read.mock.calls[0][1].id).toBe(candidates[0].id);
     expect(catalog).toHaveBeenCalledTimes(3);
+  } finally {
+    catalog.mockRestore();
+    read.mockRestore();
+  }
+});
+
+test('a previous user question binds the missing subject of a semantic follow-up', async () => {
+  const candidate = source();
+  llm.generateStructured.mockResolvedValue({ sourceIds: [candidate.id] });
+  const result = await contextualEvidenceQuestion(
+    ctx,
+    [candidate],
+    'Passen diese Angaben zusammen?',
+    { question }
+  );
+  expect(result.sourceIds).toEqual([candidate.id]);
+  expect(JSON.parse(llm.generateStructured.mock.calls[0][1]).previousQuestion).toBe(question);
+});
+
+test('previous subject context never bypasses a semantic rejection or exact identifier checks', async () => {
+  llm.generateStructured.mockResolvedValue({ sourceIds: [] });
+  expect(
+    await contextualEvidenceQuestion(ctx, [source()], 'Welche Temperatur hat Objekt West?', {
+      question,
+    })
+  ).toBeNull();
+  llm.generateStructured.mockClear();
+  expect(
+    await contextualEvidenceQuestion(
+      ctx,
+      [
+        source({
+          semantic: {
+            anchors: ['Objekt Nord'],
+            identifiers: [{ kind: 'reference', value: 'AbcdAbcd' }],
+          },
+        }),
+      ],
+      'Passen diese Angaben zusammen?',
+      { question: `${question} AbcdAbcdX` }
+    )
+  ).toBeNull();
+  expect(llm.generateStructured).not.toHaveBeenCalled();
+});
+
+test('semantic source groups retain individual validation and execute the original question', async () => {
+  const candidates = [
+    source(),
+    source({
+      id: 'source-b',
+      title: 'Tabelle West',
+      semantic: { anchors: ['Tabelle West'] },
+      provenance: { conversationId: 'new-chat' },
+    }),
+  ];
+  const catalog = jest
+    .spyOn(require('../src/evidence-endpoint-catalog'), 'projectEvidenceCandidates')
+    .mockResolvedValue(candidates);
+  const read = jest
+    .spyOn(require('../src/tenant-evidence-sources'), 'readEvidenceSource')
+    .mockResolvedValue(null);
+  const message = 'Passen diese Angaben zu den vorhandenen Unterlagen?';
+  llm.generateStructured.mockResolvedValue({ sourceIds: candidates.map((item) => item.id) });
+  try {
+    await require('../src/project-manifest-evidence').projectManifestAnswer(ctx, message, {
+      contextual: 'only',
+      previousEvidence: { question },
+      currentConversationId: 'new-chat',
+    });
+    expect(read).toHaveBeenCalledTimes(2);
+    for (const call of read.mock.calls) {
+      expect(call[2]).toBe(message);
+      expect(call[3].combinedEvidence).toBe(true);
+    }
+    expect(new Set(read.mock.calls.map((call) => call[1].id))).toEqual(
+      new Set(candidates.map((item) => item.id))
+    );
   } finally {
     catalog.mockRestore();
     read.mockRestore();

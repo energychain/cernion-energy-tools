@@ -28,6 +28,12 @@ module.exports = new Set(
       )
     )
     .concat(
+      // Reviewed neutral vocabulary for the four synthetic RC3 scenarios.
+      'aber ablauf aktuelle anderen aufgabensatz aufnehmen autoren befassen before bekommen beteiligten beziehung bin content dass deckt dies dieses distractor eigenständigen einarbeiten einarbeitungsauftrag folgende früheren funktion funktionskorrektur ganzem geben grundlage gruppe hochgeladenes jahren kann kannst klasse kommenden konkreten meinst nder nun nutzer organisation other probleme pronoun rc3 record sentence setzen sprecherbezug stellen task unterlage vorhandener without zeilen zunächst nächsten übernehme'.split(
+        ' '
+      )
+    )
+    .concat(
       'ersten abgelegt zweiten n2025 daten herkunft hinterlegt letzte unpassende quellenwahl fallzuordnung material koordination'.split(
         ' '
       )
