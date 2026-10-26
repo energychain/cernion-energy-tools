@@ -119,3 +119,15 @@ Offen bleiben ausschließlich der ausdrücklich extern vorgesehene Vollauf und d
 Live-Nachtest. GitNexus kann wegen des alten Index keine belastbare symbolische
 Reichweite für diese Änderungen liefern; die lokale Aufrufanalyse und die
 Offline-Regressionen decken die betroffenen Pfade ab.
+
+## Abschluss in der aufrufenden Session (2026-10-25/26)
+
+- **Nachbesserung 1 (`38ca7a6d`):** Die Status-Erkennung war zu stark eingeschränkt. Dadurch legte eine Statusfrage mit Kennung („Wie ist der Stand bei ANON-0001?“) einen neuen Fall an (`case-linking.http`). Jetzt gilt eine Statusfrage mit Kennung oder Fall wieder als Status; allgemeine Fragen nach dem Stand eines Themas bleiben Inhaltsfragen. Die Unterscheidung ist als Test festgehalten.
+- **Nachbesserung 2 (`4c44ccf5`):** Live lieferte das Modell für denselben Aufgabensatz Bruchstücke wie Rolle „mich in das Thema“ oder Auftrag „in das Thema einarbeiten“. Eine Rolle mit Sprecherbezug ist keine Funktion. Ein Bruchstück, dem direkt ein Sprecherbezug vorausgeht, beschreibt eine Handlung an sich selbst. Ein Auftrag mit Substanz bleibt auch ohne Rolle gültig. Die Live-Varianten sind als Test festgehalten (rot ohne Fix).
+- **Live-Lauf 1** ([practice-evaluation-rc3-real-cases-live-1.md](practice-evaluation-rc3-real-cases-live-1.md), 9,84 EUR):
+  - Regressionssatz 12/12 (außer `project-a-unrelated` mit 10,5)
+  - `role-before-correction` und `table-record-reference` 12/12
+  - `task-without-role` noch deterministisch rot; behoben mit Nachbesserung 2
+- **Live-Lauf 2** ([practice-evaluation-rc3-real-cases-live-2.md](practice-evaluation-rc3-real-cases-live-2.md), 3,87 EUR): `task-without-role`, `role-before-correction`, `content-before-status` und `role-onboarding` je 12/12.
+- **Volle Unit-CI:** grün (26 Batches).
+- **Offener Befund (nicht durch diese Runde verursacht, an #891 übergeben):** In einem Lauf ordnete eine Antwort den Wert der Schätzung (95) dem Kostenrahmen in Abschnitt A zu (laut Dokument 80). Die Zahlenprüfung prüft, ob eine Zahl in den Belegen vorkommt, aber nicht, zu welcher Aussage und Fundstelle sie gehört.
