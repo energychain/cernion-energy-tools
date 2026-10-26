@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-10-26T11:37:35.337Z
+Generated: 2026-10-26T17:42:31.527Z
 
 ## Current measurable surface
 
@@ -13,13 +13,13 @@ Generated: 2026-10-26T11:37:35.337Z
 
 ## Domain term distribution
 
-- `evidence`: 26057 hits in 876 files
-- `tenant`: 19307 hits in 907 files
-- `broker`: 11598 hits in 692 files
+- `evidence`: 26097 hits in 880 files
+- `tenant`: 19383 hits in 911 files
+- `broker`: 11599 hits in 693 files
 - `grid`: 9869 hits in 657 files
-- `agent`: 8431 hits in 780 files
-- `decision`: 6980 hits in 454 files
-- `capability`: 6082 hits in 548 files
+- `agent`: 8432 hits in 781 files
+- `decision`: 6983 hits in 454 files
+- `capability`: 6083 hits in 549 files
 - `stadtwerk`: 5634 hits in 248 files
 - `forecast`: 4597 hits in 331 files
 - `vdmi`: 4528 hits in 293 files
@@ -28,10 +28,10 @@ Generated: 2026-10-26T11:37:35.337Z
 - `hitl`: 3707 hits in 447 files
 - `edm`: 2947 hits in 368 files
 - `regulator`: 2701 hits in 343 files
-- `mako`: 2494 hits in 308 files
+- `mako`: 2489 hits in 307 files
 - `receipt`: 2482 hits in 175 files
-- `routing`: 2393 hits in 394 files
-- `personal-agent`: 2034 hits in 313 files
+- `routing`: 2399 hits in 395 files
+- `personal-agent`: 2035 hits in 314 files
 - `workflow`: 1612 hits in 250 files
 - `willi`: 1536 hits in 113 files
 - `sidecar`: 1002 hits in 111 files
