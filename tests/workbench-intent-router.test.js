@@ -201,3 +201,23 @@ test('context does not override explicit continuation or a new named topic', () 
     'knowledge_query'
   );
 });
+
+test.each([
+  ['Wie ist der Stand bei ANON-0001?', 'status_query'],
+  ['Wie ist der Stand von F-12?', 'status_query'],
+  ['Status des Falls?', 'status_query'],
+  ['Kannst Du mir einen aktuellen Status geben, um was es geht?', 'decision_support'],
+  [
+    'Ich soll mich in das Thema einarbeiten. Kannst Du mir einen aktuellen Status geben, um was es geht?',
+    'decision_support',
+  ],
+  [
+    'Die nächste Befassung ist, dass ich mich zunächst mit dem Stand (s. hochgeladenes Dokument) befassen muss.',
+    'decision_support',
+  ],
+])(
+  'status wording is a case status query only with a case or identifier: %s',
+  (message, intent) => {
+    expect(classifyWorkbenchIntent(message)).toBe(intent);
+  }
+);
