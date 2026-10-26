@@ -1,6 +1,6 @@
 # Kunden-/Service-Klärfall
 
-Generated: 2026-10-26T17:42:36.981Z
+Generated: 2026-10-26T23:46:30.559Z
 
 Status: routable
 Priority: 3
@@ -132,8 +132,8 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 
 - `src/capability-catalog.js` (479 hits)
 - `docs/validation/813-live.json` (343 hits)
-- `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md` (301 hits)
-- `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md` (301 hits)
+- `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md` (299 hits)
+- `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md` (299 hits)
 - `agentic-architecture/reports/latest/architecture-scan.md` (272 hits)
 - `services/capability-broker.service.js` (261 hits)
 - `docs/validation/practice-evaluation-887-live-1.md` (227 hits)
