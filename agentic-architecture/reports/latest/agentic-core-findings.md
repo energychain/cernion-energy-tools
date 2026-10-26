@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-10-26T05:35:13.276Z
+Generated: 2026-10-26T11:37:35.337Z
 
 ## Current measurable surface
 
@@ -17,7 +17,7 @@ Generated: 2026-10-26T05:35:13.276Z
 - `tenant`: 19307 hits in 907 files
 - `broker`: 11598 hits in 692 files
 - `grid`: 9869 hits in 657 files
-- `agent`: 8429 hits in 780 files
+- `agent`: 8431 hits in 780 files
 - `decision`: 6980 hits in 454 files
 - `capability`: 6082 hits in 548 files
 - `stadtwerk`: 5634 hits in 248 files
@@ -36,7 +36,7 @@ Generated: 2026-10-26T05:35:13.276Z
 - `willi`: 1536 hits in 113 files
 - `sidecar`: 1002 hits in 111 files
 - `eog`: 792 hits in 101 files
-- `openwebui`: 640 hits in 106 files
+- `openwebui`: 642 hits in 106 files
 - `utility`: 613 hits in 94 files
 - `open-webui`: 425 hits in 77 files
 - `chatgpt`: 402 hits in 38 files
