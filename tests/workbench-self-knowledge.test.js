@@ -50,8 +50,10 @@ test('searches all four stores using existing tenant-scoped reads and reports re
     selfKnowledge: { query: 'System X' },
     retrievalTerms: ['System X'],
   });
-  expect(result.trace).toHaveLength(4);
-  expect(result.trace.every((entry) => entry.hitCount === 1)).toBe(true);
+  // The knowledge register (#997) is a further source; the four content stores are searched.
+  const stores = result.trace.filter((entry) => entry.source !== 'knowledge-register');
+  expect(stores).toHaveLength(4);
+  expect(stores.every((entry) => entry.hitCount === 1)).toBe(true);
   expect(router.visibleStates).toHaveBeenCalledWith(p);
   expect(loadDocuments).toHaveBeenCalledWith(
     service.store,
@@ -93,4 +95,34 @@ test('an unavailable case index marks the dependent document search unavailable'
   expect(result.trace.find((entry) => entry.source === 'documents').status).toBe('unavailable');
   expect(searchSummary(result.trace)).toContain('Dokumente (gerade nicht erreichbar)');
   expect(loadDocuments).not.toHaveBeenCalled();
+});
+
+test('"what do you know about us" lists known, disputed and open needs from the register (#997)', async () => {
+  const { service, ctx } = setup();
+  const needs = [
+    {
+      needId: 'need:a',
+      label: 'Kennung A',
+      state: 'answered',
+      answers: [{ value: 'SYN-1', actorId: 'person-a', at: '2026-10-27T10:00:00.000Z' }],
+    },
+    { needId: 'need:b', label: 'Kennung B', state: 'disputed', answers: [] },
+    { needId: 'need:c', label: 'Zuständigkeit C', state: 'unknown', answers: [] },
+  ];
+  const original = ctx.call;
+  ctx.call = jest.fn(async (name, params) =>
+    name === 'knowledge-needs.list' ? needs : original(name, params)
+  );
+  const result = await searchKnowledge(service, ctx, p, {
+    selfKnowledge: { query: 'Organisation' },
+    retrievalTerms: [],
+  });
+  const register = result.evidence
+    .filter((hit) => hit.source === 'knowledge-register')
+    .map((hit) => hit.value);
+  expect(register).toEqual([
+    'Bekannt: Kennung A = SYN-1 (Angabe von person-a, 2026-10-27)',
+    'Strittig: Kennung B',
+    'Noch offen (1), wichtigste: Zuständigkeit C',
+  ]);
 });

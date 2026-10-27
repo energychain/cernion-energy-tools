@@ -172,6 +172,43 @@ async function searchKnowledge(service, ctx, p, situation, scope = {}) {
       }
       return hits;
     }),
+    // Cold start (#997): what CET knows about the organisation, what is disputed, what is open.
+    read('knowledge-register', async () => {
+      if (!ctx.broker.getLocalService('knowledge-needs')) throw new Error('Register unavailable');
+      const needs = await ctx.call('knowledge-needs.list', { limit: 500 });
+      const latest = (need) =>
+        [...(need.answers || [])]
+          .filter((answer) => answer.value)
+          .sort((a, b) => String(b.at).localeCompare(String(a.at)))[0];
+      const known = needs
+        .filter((need) => ['answered', 'confirmed', 'disputed'].includes(need.state))
+        .map((need) => {
+          const answer = latest(need);
+          return hit(
+            'knowledge-register',
+            need.label,
+            `${need.state === 'disputed' ? 'Strittig' : need.state === 'confirmed' ? 'Bestätigt' : 'Bekannt'}: ${need.label}${answer ? ` = ${answer.value} (Angabe von ${answer.actorId || 'unbekannt'}, ${String(answer.at || '').slice(0, 10)})` : ''}`,
+            { needId: need.needId, state: need.state }
+          );
+        });
+      const open = needs.filter((need) => ['unknown', 'asked'].includes(need.state));
+      return [
+        ...known,
+        ...(open.length
+          ? [
+              hit(
+                'knowledge-register',
+                'Offene Wissensbedarfe',
+                `Noch offen (${open.length}), wichtigste: ${open
+                  .slice(0, 8)
+                  .map((need) => need.label)
+                  .join('; ')}`,
+                { openCount: open.length }
+              ),
+            ]
+          : []),
+      ];
+    }),
     read('datasets', async () => {
       if (!ctx.broker.getLocalService('datapoint')) throw new Error('Datasets unavailable');
       const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
