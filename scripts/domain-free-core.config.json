@@ -130,7 +130,8 @@
     "src/project-skill-*.js",
     "src/workbench-project-skills.js",
     "scripts/generate-knowledge-needs.js",
-    "services/knowledge-needs.service.js"
+    "services/knowledge-needs.service.js",
+    "src/knowledge-need-recognition.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

@@ -430,6 +430,15 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
       stats.accepted++;
       confirmations.push(`Hab ich festgehalten: ${fact.text}`);
     }
+    // Cold start (#997): new facts may answer open knowledge needs; matched off the answer path.
+    if (facts.length && ctx.broker?.getLocalService?.('knowledge-needs'))
+      ctx
+        .call('knowledge-needs.recognizeFacts', { factIds: facts.map((item) => item.id) })
+        .catch((error) =>
+          ctx.broker.logger.warn('Knowledge-need recognition unavailable', {
+            reason: String(error.message),
+          })
+        );
     return {
       facts,
       ids: facts.map((item) => item.id),

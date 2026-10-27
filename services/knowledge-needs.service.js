@@ -17,6 +17,7 @@ const TRANSITIONS = {
   stale: ['unknown', 'answered'],
 };
 const AUDIT_LIMIT = 50;
+const BACKFILL_FACTS = 100;
 
 function loadArtifact(file) {
   // A fresh read per version check keeps a regenerated artifact effective without restart.
@@ -104,7 +105,10 @@ module.exports = {
           ...doc,
           state: ctx.params.state,
           answers: ctx.params.answerRef
-            ? [...new Set([...(doc.answers || []), ctx.params.answerRef])]
+            ? [
+                ...(doc.answers || []).filter((answer) => answer.answerId !== ctx.params.answerRef),
+                { answerId: ctx.params.answerRef },
+              ]
             : doc.answers || [],
           audit: [
             ...(doc.audit || []),
@@ -127,8 +131,115 @@ module.exports = {
         return this.view(updated);
       },
     },
+    // Internal (#997 step 2): link newly captured tenant-memory facts to the needs they answer.
+    recognizeFacts: {
+      visibility: 'protected',
+      params: { factIds: { type: 'array', items: 'string', min: 1, max: 20 } },
+      async handler(ctx) {
+        const p = principal(ctx, ctx.params);
+        const store = require('../src/tenant-memory-store');
+        const facts = (
+          await Promise.all(
+            ctx.params.factIds.map((id) =>
+              store
+                .get(ctx, p, id)
+                .then((doc) => doc.payload)
+                .catch(() => null)
+            )
+          )
+        ).filter((fact) => fact?.status === 'valid');
+        const recorded = await this.recognize(ctx, p, facts);
+        await this.backfill(ctx, p);
+        return recorded;
+      },
+    },
   },
   methods: {
+    // Facts captured before the register existed are matched once per tenant and derivation.
+    async backfill(ctx, p) {
+      const marker = `kn-meta:${encodeURIComponent(p.tenantId)}`;
+      const meta = await this.db.get(marker).catch(() => null);
+      const version = this.artifact().sourceHash;
+      if (meta?.backfilled === version) return;
+      const facts = (
+        await require('../src/tenant-memory-store').query(ctx, p, {
+          'payload.type': 'tenant_memory_fact',
+        })
+      )
+        .filter((fact) => fact.status === 'valid')
+        .sort((a, b) => String(b.at).localeCompare(String(a.at)))
+        .slice(0, BACKFILL_FACTS);
+      const { MAX_FACTS } = require('../src/knowledge-need-recognition');
+      for (let start = 0; start < facts.length; start += MAX_FACTS)
+        await this.recognize(ctx, p, facts.slice(start, start + MAX_FACTS));
+      await this.db.put({
+        ...(meta || { _id: marker, type: 'knowledge_need_meta', tenantId: p.tenantId }),
+        backfilled: version,
+        updatedAt: new Date().toISOString(),
+      });
+    },
+    async recognize(ctx, p, facts) {
+      if (!facts.length) return [];
+      const docs = await this.tenantDocs(p.tenantId);
+      const open = docs.filter((doc) => ['unknown', 'asked', 'stale'].includes(doc.state));
+      const matches = await require('../src/knowledge-need-recognition').matchFacts(facts, open, {
+        tenantId: p.tenantId,
+        broker: this.broker,
+      });
+      const byFact = new Map(facts.map((fact) => [fact.id, fact]));
+      const recorded = [];
+      for (const match of matches) {
+        const doc = docs.find((item) => item.needId === match.needId);
+        // One answer per need and batch; a later fact can still update it in its own turn.
+        if (!doc || recorded.some((item) => item.needId === doc.needId)) continue;
+        const fact = byFact.get(match.factId);
+        const answer = {
+          answerId: `answer:${match.factId}`,
+          value: match.value.trim(),
+          confidence: match.confidence,
+          evidence: { quote: match.value.trim(), factId: fact.id },
+          storedAs: 'memory',
+          storeRef: fact.id,
+          actorId: fact.person?.actorId || fact.recoveryPrincipal?.actorId || null,
+          conversationId: fact.conversationId || null,
+          at: new Date().toISOString(),
+        };
+        const now = new Date().toISOString();
+        const updated = {
+          ...doc,
+          state: 'answered',
+          answers: [
+            ...(doc.answers || []).filter((item) => item.answerId !== answer.answerId),
+            answer,
+          ],
+          audit: [
+            ...(doc.audit || []),
+            {
+              at: now,
+              actorId: answer.actorId,
+              from: doc.state,
+              to: 'answered',
+              reason: 'recognized',
+            },
+          ].slice(-AUDIT_LIMIT),
+          updatedAt: now,
+        };
+        await this.db.put(updated);
+        this.broker.emit('knowledge.need.changed.v1', {
+          tenantId: p.tenantId,
+          needId: doc.needId,
+          state: 'answered',
+        });
+        this.broker.emit('knowledge.answered.v1', {
+          tenantId: p.tenantId,
+          needId: doc.needId,
+          answerId: answer.answerId,
+          storedAs: answer.storedAs,
+        });
+        recorded.push({ needId: doc.needId, answerId: answer.answerId, value: answer.value });
+      }
+      return recorded;
+    },
     artifact() {
       return loadArtifact(this.settings.artifactPath);
     },

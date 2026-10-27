@@ -139,7 +139,7 @@ describe('knowledge-need register', () => {
       (await call('list', {})).map((entry) => [entry.key, entry.state])
     );
     expect(states).toEqual({ a: 'answered', b: 'stale', c: 'unknown' });
-    expect((await call('get', { needId: 'need:a' })).answers).toEqual(['answer-1']);
+    expect((await call('get', { needId: 'need:a' })).answers).toEqual([{ answerId: 'answer-1' }]);
   });
 
   test('a foreign tenant cannot read another tenant record by id', async () => {
