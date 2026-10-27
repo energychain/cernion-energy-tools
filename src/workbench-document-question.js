@@ -112,7 +112,7 @@ async function documentQuestion(
         ...(requestedOutput?.requested
           ? {
               outputInstruction:
-                'requestedOutput beschreibt die ausdrücklich bestellte Form: jeden genannten Abschnitt als eigene Überschrift in genannter Reihenfolge, Schritte nummeriert; fehlt für einen Abschnitt ein Beleg, steht dort „nicht belegt“.',
+                'requestedOutput beschreibt die ausdrücklich bestellte Form: jeden genannten Abschnitt als eigene Überschrift in genannter Reihenfolge, Schritte nummeriert; ein Abschnitt ohne Beleg erhält den Text „nicht belegt“.',
               requestedOutput: {
                 kind: requestedOutput.kind,
                 parts: requestedOutput.parts || [],

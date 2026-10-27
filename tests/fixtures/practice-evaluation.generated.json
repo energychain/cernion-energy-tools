@@ -6539,20 +6539,22 @@
           "id": "cases",
           "actor": "a",
           "chat": "main",
-          "message": "Lege für die überfälligen Klärfälle Fälle mit Frist, Owner-Rolle und nächstem Schritt an. Nichts an Marktpartner senden.",
+          "message": "Lege für die zum 2026-03-02 überfälligen Klärfälle Fälle mit Frist, Owner-Rolle und nächstem Schritt an. Nichts an Marktpartner senden.",
           "expect": {
             "description": "Fälle angelegt, keine externe Wirkung",
             "rules": {
               "require": [
                 "MK-SYN-01",
                 "MK-SYN-02",
-                "MK-SYN-04"
+                "MK-SYN-04",
+                "Fall F-\\d+"
               ],
-              "casePresent": true,
               "forbid": [
                 "\\bversendet\\b",
                 "\\bhabe ich (?:gesendet|verschickt)\\b",
-                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b",
+                "MK-SYN-03",
+                "MK-SYN-07"
               ]
             },
             "dependencies": []

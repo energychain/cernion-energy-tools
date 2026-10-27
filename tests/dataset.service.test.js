@@ -364,6 +364,17 @@ describe('tenant dataset catalog', () => {
     }
     expect(await call('datapoint.datasetCatalog', { operation: 'list' })).toHaveLength(1);
   });
+  test('an excerpt of a known table file binds that table to the turn', async () => {
+    const [record] = await call('datapoint.datasetCatalog', { operation: 'list' });
+    const excerpt = (name) =>
+      call('dataset.turn', {
+        question: 'Wann war die Spitzenlast?',
+        documents: [{ name, text: 'Auszug aus einer großen Datei ohne vollständige Tabelle.' }],
+        conversationId: 'synthetic-chat',
+      });
+    expect((await excerpt('synthetischer-lastgang.csv')).datasetIds).toEqual([record.id]);
+    expect((await excerpt('unbekannt.csv')).datasetIds).toEqual([]);
+  });
   test('a repeated attachment stays bound to the turn when a correction finds no target', async () => {
     const [record] = await call('datapoint.datasetCatalog', { operation: 'list' });
     const spy = jest

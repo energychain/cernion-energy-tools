@@ -156,9 +156,12 @@ function generateNetzwirtschaftScenarios(scenario, turn) {
     item('mako-cases', 'WP4', 'Klärfälle als Fälle führen', [
       turn(
         'cases',
-        'Lege für die überfälligen Klärfälle Fälle mit Frist, Owner-Rolle und nächstem Schritt an. Nichts an Marktpartner senden.',
+        `Lege für die zum ${expected.referenceDate} überfälligen Klärfälle Fälle mit Frist, Owner-Rolle und nächstem Schritt an. Nichts an Marktpartner senden.`,
         'Fälle angelegt, keine externe Wirkung',
-        rules({ require: mako.overdue, casePresent: true }),
+        rules({
+          require: [...mako.overdue, 'Fall F-\\d+'],
+          forbid: ['MK-SYN-03', 'MK-SYN-07'],
+        }),
         { documents: MAKO, dataQuestion: true }
       ),
     ]),
