@@ -116,6 +116,11 @@ function generateNetzwirtschaftScenarios(scenario, turn) {
               value: kpi.processes.find((p) => p.process === kpi.slowest).averageHours,
               tolerance: 0.5,
             },
+            {
+              value: kpi.processes.find((p) => p.process === kpi.slowest).averageHours / 24,
+              tolerance: 0.01,
+              alternative: true,
+            },
           ],
         }),
         { documents: EVENTS, dataQuestion: true }
@@ -142,7 +147,7 @@ function generateNetzwirtschaftScenarios(scenario, turn) {
     item('mako-queue', 'WP4', 'MaKo-Arbeitsvorrat bereinigen', [
       turn(
         'queue',
-        `Wie viele Klärfälle sind offen, wie viele davon zum ${expected.referenceDate} überfällig, und gibt es Dubletten?`,
+        `Wie viele Klärfälle sind noch nicht erledigt, welche davon sind zum ${expected.referenceDate} überfällig, und gibt es Dubletten?`,
         'Deduplizierte Zählung und überfällige Fälle',
         rules({ require: [...mako.overdue, ...mako.duplicates, String(mako.pending)] }),
         { documents: MAKO, dataQuestion: true }

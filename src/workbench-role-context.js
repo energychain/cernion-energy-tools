@@ -21,6 +21,10 @@ function substantiveRole(value, basis) {
       .toLowerCase();
   const role = normalize(value);
   if (!role || role.split(/[\s/,;:()]+/u).some((token) => SPEAKER_TOKEN.test(token))) return false;
+  // A function is named by a noun ("Teamleitung …") or a responsibility ("zuständig für …");
+  // a trait or experience level ("neu im Team") is not a role.
+  const head = String(value).trim();
+  if (/^\p{Ll}/u.test(head) && !/^\p{Ll}+\s+für\s+\S/u.test(head)) return false;
   return role !== normalize(basis) || !selfSubject(basis);
 }
 

@@ -777,15 +777,30 @@ async function runCapabilityLoop(
           attempted.set(requestKey, { value: 'Bereits angefragt; keine erneute Abfrage.' });
           entry.called = true;
           entry.status = 'unavailable';
-          const result = await bounded(
-            () =>
-              ctx.call(candidate.operation.action, args.input, {
-                meta,
-                retries: 0,
-                timeout: Math.max(1, Math.round(deadline - performance.now())),
-              }),
-            deadline - performance.now()
-          );
+          const options = () => ({
+            meta,
+            retries: 0,
+            timeout: Math.max(1, Math.round(deadline - performance.now())),
+          });
+          // A list of records is read by a query over its columns, not as a series.
+          const recordTable =
+            candidate.operation.action === 'dataset.query' &&
+            datasetCandidates.find((item) => item.id === args.input.id);
+          const read = () =>
+            recordTable && require('./table-analysis').isRecordTable(recordTable)
+              ? ctx
+                  .call(
+                    'dataset.analyze',
+                    { ids: [recordTable.id], question: message, phrase: false },
+                    options()
+                  )
+                  .then((analysis) => ({
+                    responseText: `${analysis.answer}\n\n${analysis.provenance}`,
+                    rowCount: analysis.rows,
+                  }))
+                  .catch(() => ctx.call(candidate.operation.action, args.input, options()))
+              : ctx.call(candidate.operation.action, args.input, options());
+          const result = await bounded(read, deadline - performance.now());
           if (result?.success === false) throw new Error('Backend meldet fehlgeschlagene Abfrage');
           if (Buffer.byteLength(JSON.stringify(result)) > 2000000)
             throw new Error('Ergebnis überschreitet das Bytebudget (2000000)');

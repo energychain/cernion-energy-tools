@@ -30,6 +30,7 @@ const FUNCTIONS = new Set([
   'unicode',
   'like',
   'strftime',
+  'julianday',
   'cet_script_tick',
 ]);
 function rejectOrdinals(tokens) {
@@ -151,6 +152,15 @@ function authorize(db, sql, params, datasets) {
   return statement;
 }
 function deterministicTime(db) {
+  // Durations need day fractions; like strftime, only for an explicit timestamp, never "now".
+  db.function('julianday', { deterministic: true, varargs: true }, (...args) => {
+    if (args.length !== 1 || typeof args[0] !== 'string' || !/^\d{4}-\d\d-\d\d/.test(args[0]))
+      fail('SQL_REJECTED', 'julianday requires an explicit timestamp');
+    const date = new Date(
+      /(?:Z|[+-]\d\d:\d\d)$/.test(args[0]) ? args[0] : args[0].replace(' ', 'T') + 'Z'
+    );
+    return Number.isNaN(date.getTime()) ? null : date.getTime() / 86400000 + 2440587.5;
+  });
   db.function('strftime', { deterministic: true, varargs: true }, (...args) => {
     if (
       args.length !== 2 ||
