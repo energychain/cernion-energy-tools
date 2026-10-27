@@ -1387,14 +1387,15 @@ test('a count aggregation retains original extrema for the largest-entry follow-
   }
 });
 
-test('an unstable data-question flag does not hide a freshly attached dataset', () => {
+test('a graded data-question estimate opens the read; an attached table lowers the bar', () => {
   const { allowsDataRead } = require('../src/workbench-capability-loop');
-  const flagged = { dataQuestion: { requested: false, basis: '' } };
+  const situation = (confidence) => ({ dataQuestion: { requested: false, basis: '', confidence } });
   const question = 'Wann war die Spitzenlast?';
-  expect(allowsDataRead(flagged, question)).toBe(false);
-  expect(allowsDataRead(flagged, question, {}, { attachedData: true })).toBe(true);
-  // A conceptual question stays a knowledge question even with an attached table.
-  expect(allowsDataRead(flagged, 'Was bedeutet Spitzenlast?', {}, { attachedData: true })).toBe(
-    false
+  expect(allowsDataRead(situation(0.6), question)).toBe(true);
+  expect(allowsDataRead(situation(0.3), question)).toBe(false);
+  expect(allowsDataRead(situation(0.3), question, {}, { attachedData: true })).toBe(true);
+  expect(allowsDataRead(situation(0.1), question, {}, { attachedData: true })).toBe(false);
+  expect(allowsDataRead({ dataQuestion: { requested: true, basis: question } }, question)).toBe(
+    true
   );
 });
