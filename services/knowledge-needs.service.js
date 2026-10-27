@@ -18,6 +18,9 @@ const TRANSITIONS = {
 };
 const AUDIT_LIMIT = 50;
 const BACKFILL_FACTS = 100;
+const ASK_MIN_SCORE = Number(process.env.KNOWLEDGE_ASK_MIN_SCORE || 0.35);
+const ASK_COOLDOWN_ACTOR_MS = 7 * 24 * 3600 * 1000;
+const ASK_COOLDOWN_TENANT_MS = 24 * 3600 * 1000;
 
 function loadArtifact(file) {
   // A fresh read per version check keeps a regenerated artifact effective without restart.
@@ -129,6 +132,81 @@ module.exports = {
           state: updated.state,
         });
         return this.view(updated);
+      },
+    },
+    // Internal (#997 step 3): at most one open need that fits the current turn; recorded as asked.
+    selectAsk: {
+      visibility: 'protected',
+      params: {
+        conversationId: { type: 'string', max: 300 },
+        capabilities: { type: 'array', items: 'string', optional: true, default: [] },
+        operations: { type: 'array', items: 'string', optional: true, default: [] },
+        functionIds: { type: 'array', items: 'string', optional: true, default: [] },
+      },
+      async handler(ctx) {
+        const p = principal(ctx, ctx.params);
+        const docs = await this.tenantDocs(p.tenantId);
+        const now = Date.now();
+        const capabilities = new Set(ctx.params.capabilities);
+        const operations = new Set(ctx.params.operations);
+        const functions = new Set(ctx.params.functionIds);
+        const scored = docs
+          .filter((doc) => ['unknown', 'asked'].includes(doc.state) && doc.kind !== 'dataset')
+          .filter(
+            (doc) =>
+              !(doc.asks || []).some(
+                (ask) =>
+                  now - Date.parse(ask.askedAt) <
+                  (ask.actorId === p.actorId ? ASK_COOLDOWN_ACTOR_MS : ASK_COOLDOWN_TENANT_MS)
+              )
+          )
+          .map((doc) => {
+            // Fit to the current work: shared capabilities, operations or functions.
+            const overlap =
+              (doc.unlocks || []).filter(
+                (entry) => capabilities.has(entry.capabilityId) || operations.has(entry.operation)
+              ).length + (doc.functionIds || []).filter((id) => functions.has(id)).length;
+            return { doc, overlap, score: Math.min(1, overlap / 3) * 0.6 + doc.priority * 0.4 };
+          })
+          .filter((entry) => entry.overlap > 0 && entry.score >= ASK_MIN_SCORE)
+          .sort((a, b) => b.score - a.score || a.doc.key.localeCompare(b.doc.key));
+        const chosen = scored[0]?.doc;
+        if (!chosen) return null;
+        const askedAt = new Date().toISOString();
+        const ask = {
+          askId: `ask:${ctx.params.conversationId}:${askedAt}`,
+          actorId: p.actorId || null,
+          conversationId: ctx.params.conversationId,
+          mode: 'inline',
+          reason: 'current_task',
+          askedAt,
+          expiresAt: new Date(now + ASK_COOLDOWN_ACTOR_MS).toISOString(),
+          outcome: null,
+        };
+        const updated = {
+          ...chosen,
+          state: 'asked',
+          asks: [...(chosen.asks || []), ask].slice(-AUDIT_LIMIT),
+          audit: [
+            ...(chosen.audit || []),
+            {
+              at: askedAt,
+              actorId: ask.actorId,
+              from: chosen.state,
+              to: 'asked',
+              reason: 'inline',
+            },
+          ].slice(-AUDIT_LIMIT),
+          updatedAt: askedAt,
+        };
+        await this.db.put(updated);
+        this.broker.emit('knowledge.ask.v1', {
+          tenantId: p.tenantId,
+          needId: chosen.needId,
+          actorId: ask.actorId,
+          mode: ask.mode,
+        });
+        return { needId: chosen.needId, key: chosen.key, label: chosen.label, kind: chosen.kind };
       },
     },
     // Internal (#997 step 2): link newly captured tenant-memory facts to the needs they answer.

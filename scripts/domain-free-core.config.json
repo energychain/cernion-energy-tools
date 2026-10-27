@@ -131,7 +131,8 @@
     "src/workbench-project-skills.js",
     "scripts/generate-knowledge-needs.js",
     "services/knowledge-needs.service.js",
-    "src/knowledge-need-recognition.js"
+    "src/knowledge-need-recognition.js",
+    "src/knowledge-elicitation.js"
   ],
   "optionalPaths": [
     "src/function-model.js",
