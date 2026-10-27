@@ -2133,3 +2133,14 @@ test('preference activity follows the shared schema and ignores empty defaults',
     ))
       expect(hasConversationPreferences({ ...empty, [key]: value })).toBe(true);
 });
+
+test.each([
+  ['Ich bin neu im Team und komme nicht aus der Energiewirtschaft.', true],
+  ['Ich bin seit Kurzem Teamleitung Netzservice.', true],
+  ['Mein Kollege ist unzuverlässig.', false],
+  ['Ich glaube, Herr Beispiel blockiert das absichtlich.', false],
+  ['Ich finde, die Kollegin arbeitet nachlässig.', false],
+  ['Ich arbeite mit ihr zusammen, sie ist chaotisch.', false],
+])('only a pure self-description leaves the protective path: %s', (basis, self) => {
+  expect(require('../src/workbench-understanding').selfDescriptionOnly(basis)).toBe(self);
+});

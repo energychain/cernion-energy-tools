@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "3c638b7a7a21bf6d5c657261563d8256a6ab4a93ec6e6eec85d424440dd96a4c",
+  "sourceHash": "09b3308ce4429fe601d46fe350acbdcab3afeb5da3d0a31131e612980dbf1053",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -9354,6 +9354,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -9699,6 +9711,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -13215,6 +13231,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -13552,6 +13580,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -21750,6 +21782,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -22103,6 +22147,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -32640,6 +32688,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -32989,6 +33049,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -36803,6 +36867,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -37164,6 +37240,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -57074,6 +57154,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -57411,6 +57503,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -67600,6 +67696,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -67949,6 +68057,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -73479,6 +73591,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -73808,6 +73932,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -79134,6 +79262,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -79483,6 +79623,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -85394,6 +85538,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -85739,6 +85895,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -88580,6 +88740,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -88909,6 +89081,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -91439,6 +91615,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -91812,6 +92000,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -100478,6 +100670,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -100851,6 +101055,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -114441,6 +114649,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -114806,6 +115026,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -127249,6 +127473,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -127774,6 +128010,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -130670,6 +130910,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -130999,6 +131251,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -135998,6 +136254,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -136359,6 +136627,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -140707,6 +140979,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -141072,6 +141356,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -145568,6 +145856,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -145905,6 +146205,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -150464,6 +150768,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -150793,6 +151109,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -165130,6 +165450,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -165475,6 +165807,10 @@
         {
           "kind": "service",
           "ref": "src/shared-service-notices.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -175064,6 +175400,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -175481,6 +175829,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -182527,6 +182879,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -182884,6 +183248,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",
@@ -205103,6 +205471,18 @@
         },
         {
           "kind": "service",
+          "ref": "src/cet-script/sql-authorizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-checkpoints.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/cet-script/sql-lex.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/sql.js"
         },
         {
@@ -205464,6 +205844,10 @@
         {
           "kind": "service",
           "ref": "src/source-license-map.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/table-analysis.js"
         },
         {
           "kind": "service",

@@ -292,6 +292,20 @@ Object.assign(SITUATION_SCHEMA.properties, require('./workbench-communication').
 const validateSituation = ajv.compile(SITUATION_SCHEMA);
 const validateAnswer = ajv.compile(ARTIFACT_ANSWER_SCHEMA);
 
+// Conservative: the speaker is the grammatical subject and no other person is referenced, so a
+// remark about a colleague ("mein Kollege ist …") always keeps the protective path.
+function selfDescriptionOnly(basis) {
+  const text = String(basis || '');
+  return (
+    require('./workbench-role-context').selfSubject(text) &&
+    /(?:^|[.!?;,]\s*)(?:und\s+|aber\s+)?ich\b/iu.test(text) &&
+    !/\b(?:mein|meine|meinen|meinem|meiner|unser|unsere|unseren|unserem|unserer)\s+\p{Lu}/u.test(
+      text
+    ) &&
+    !/\b(?:er|sie|ihm|ihr|ihn|Herr|Herrn|Frau|Kollegin|Kollege|Kollegen)\b/u.test(text)
+  );
+}
+
 function llmOptions(tenantId, phase = 'understanding', followup = false) {
   const index = phase === 'answer' ? 1 : 0;
   const pair = (value) => {
@@ -1056,7 +1070,12 @@ async function understand({
   };
   require('./workbench-role-context').applyRoleContext(result, message, previous, asked);
   if (result.personAssessment?.applicable) {
-    if (!result.personAssessment.basis?.trim() || !message.includes(result.personAssessment.basis))
+    // The speaker describing themselves ("new to the team") is working context, not an assessment.
+    if (
+      !result.personAssessment.basis?.trim() ||
+      !message.includes(result.personAssessment.basis) ||
+      selfDescriptionOnly(result.personAssessment.basis)
+    )
       result.personAssessment.applicable = false;
     else {
       result.personAssessment.observations = result.personAssessment.observations.filter((value) =>
@@ -2364,6 +2383,7 @@ function routingRequest(situation) {
 }
 
 module.exports = {
+  selfDescriptionOnly,
   answerProviderSchema,
   artifactProviderSchema,
   restoreArtifactContract,

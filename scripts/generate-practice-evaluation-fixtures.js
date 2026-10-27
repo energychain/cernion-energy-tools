@@ -668,6 +668,12 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
     require('./generate-session-evidence-fixtures').sessionEvidenceScenario(scenario, turn, x)
   );
   catalog.push(...require('./generate-real-case-fixtures').realCaseScenarios(scenario, turn));
+  catalog.push(
+    ...require('./generate-netzwirtschaft-scenarios').generateNetzwirtschaftScenarios(
+      scenario,
+      turn
+    )
+  );
   return { schemaVersion: VERSION, scenarios: catalog };
 }
 
@@ -703,6 +709,8 @@ function practiceDocument(spec) {
     return `Sheet: Basis\n${tableQualityText({ decimalComma: true })}\n\nSheet: Variant\n${tableQualityText({ variant: true, decimalComma: true })}`;
   }
   if (spec.kind === 'invoic') return generateEdifactFixture();
+  if (spec.kind === 'netzwirtschaft')
+    return require('./generate-netzwirtschaft-fixtures').netzwirtschaftDocument(spec.name);
   return spec.text;
 }
 

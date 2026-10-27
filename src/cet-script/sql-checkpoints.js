@@ -142,7 +142,9 @@ function rejectCycles(graph) {
 }
 // Insert a checkpoint into each result projection and each grouping key.
 // SQLite still parses and compiles the transformed statement; ambiguous plans fail closed.
-function wrapPredicate(significant, n, sql, edits) {
+// A JOIN ... ON predicate runs once per inner row, like WHERE; it ends at the next clause or join.
+const JOIN_END = ['WHERE', 'JOIN', 'LEFT', 'INNER', 'CROSS', 'NATURAL', ','];
+function wrapPredicate(significant, n, sql, edits, terminators = []) {
   const item = significant[n];
   const end = significant
     .slice(n + 1)
@@ -151,6 +153,7 @@ function wrapPredicate(significant, n, sql, edits) {
         token.depth < item.depth ||
         (token.depth === item.depth &&
           [
+            ...terminators,
             'GROUP',
             'HAVING',
             'ORDER',
@@ -203,6 +206,33 @@ function wrapAggregate(tokens, n, sql, edits) {
   const start = inner[0]?.text === 'DISTINCT' ? inner[0].end : open.end;
   edits.push({ at: start, text: ' cet_script_tick(' }, { at: close.start, text: ') ' });
 }
+// A join without WHERE gets one, so every outer row passes a checkpoint even without inner matches.
+const SELECT_END = [
+  'GROUP',
+  'HAVING',
+  'ORDER',
+  'LIMIT',
+  'WINDOW',
+  'UNION',
+  'INTERSECT',
+  'EXCEPT',
+  ';',
+];
+function joinFilter(significant, n, sql, edits) {
+  const item = significant[n];
+  let join = false;
+  for (let j = n + 1; j < significant.length; j++) {
+    const token = significant[j];
+    if (token.depth > item.depth) continue;
+    if (token.depth < item.depth || SELECT_END.includes(token.text)) {
+      if (join) edits.push({ at: token.start, text: ' WHERE cet_script_tick(1) ' });
+      return;
+    }
+    if (token.text === 'WHERE') return;
+    if (token.text === 'JOIN') join = true;
+  }
+  if (join) edits.push({ at: sql.length, text: ' WHERE cet_script_tick(1)' });
+}
 function instrument(sql) {
   const edits = [];
   const significant = lexSql(sql);
@@ -216,7 +246,12 @@ function instrument(sql) {
         text: ' cet_script_tick() AS __cet_guard, ',
       });
     }
+    if (item.text === 'SELECT') joinFilter(significant, n, sql, edits);
     if (item.text === 'WHERE' || item.text === 'HAVING') wrapPredicate(significant, n, sql, edits);
+    // A separate constant checkpoint is evaluated once per row of the outermost join loop too.
+    // Pushed after the wrap: equal positions apply in order, so it lands in front of it.
+    if (item.text === 'WHERE') edits.push({ at: item.end, text: ' cet_script_tick(1) AND' });
+    if (item.text === 'ON') wrapPredicate(significant, n, sql, edits, JOIN_END);
     if (item.text === 'GROUP' && significant[n + 1]?.text === 'BY')
       wrapGroup(significant, n, sql, edits);
   }

@@ -227,3 +227,17 @@ test.each([
     expect(situation.conversationContext).toBeUndefined();
   }
 );
+
+test.each([
+  ['neu im Team', false],
+  ['zuständig für Netzservice', true],
+  ['Teamleitung Netzservice', true],
+])('a trait is no role, a function or responsibility is (%p)', (role, kept) => {
+  const { applyRoleContext } = require('../src/workbench-role-context');
+  const basis = `Ich bin ${role}.`;
+  const situation = {
+    roleStatement: { subject: 'self', firstPerson: true, basis, role, mandate: '', goal: '' },
+  };
+  applyRoleContext(situation, basis, null);
+  expect(situation.conversationContext?.role || '').toBe(kept ? role : '');
+});
