@@ -551,6 +551,7 @@ async function documentReply(
           internalContext: [situation.concern, situation.situation],
           conversationContext: situation.conversationContext,
           conversationPreferences: situation.conversationPreferences,
+          requestedOutput: situation.requestedOutput,
         });
     if (reply?.responseText)
       return {

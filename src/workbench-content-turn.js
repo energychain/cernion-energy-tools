@@ -264,6 +264,25 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
   if (fresh.length && !envelope.datasetConfirmations?.length) return null;
   const grounded = turnDatasetIds(p, envelope, pending);
   if (!grounded.length) return null;
+  const transfer = require('./table-case-transfer');
+  if (transfer.caseTransferRequested(envelope.userRequest)) {
+    const { isRecordTable } = require('./table-analysis');
+    try {
+      const listed = await ctx.call('datapoint.datasetCatalog', { operation: 'list' }, { meta });
+      const reply = await transfer.caseTransferReply(service, ctx, {
+        p,
+        envelope,
+        pending,
+        meta,
+        records: listed.filter((record) => grounded.includes(record.id) && isRecordTable(record)),
+      });
+      if (reply) return reply;
+    } catch (error) {
+      ctx.broker.logger.warn('Case transfer from table rows unavailable', {
+        reason: String(error.message),
+      });
+    }
+  }
   if (!datasetQuestion(envelope.userRequest)) {
     if (!fresh.length || !envelope.datasetConfirmations?.length) return null;
     await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
@@ -1232,6 +1251,17 @@ async function runContentTurn(
       metadata: { cetCaseId: item.cetCaseId },
     }))
   );
+  // Conversation state (#993): documents of earlier turns of this chat remain evidence for a
+  // follow-up; the answer weighs them like any other source and cites them.
+  if (!incomingDocuments)
+    retrieval.evidence.push(
+      ...(pending?.conversationDocuments || []).map((document) => ({
+        source: document.name,
+        retrievalSource: 'documents',
+        value: document.text,
+        metadata: { name: document.name, conversationState: true },
+      }))
+    );
   resolveMemoryRetrieval(retrieval);
   if (!memory.settled) {
     // Local checks and notice delivery use the turn budget, independently of source timeouts.
@@ -1411,10 +1441,13 @@ async function runContentTurn(
       .filter(Boolean)
       .join('\n\n')
   );
+  // The single-question limit governs CET's own follow-up questions; questions that a grounded
+  // document answer lists (e.g. for an interview) are its content.
   const guarded =
     situation.requestedOutput?.requested ||
     situation.caseSearch?.requested ||
-    situation.conversationPreferences?.questions === 'requested'
+    situation.conversationPreferences?.questions === 'requested' ||
+    reply.answerStatus === 'document_answer'
       ? { responseText: result.responseText, questions: reply.questions }
       : require('./workbench-conversation-shape').singleQuestion(
           result.responseText,

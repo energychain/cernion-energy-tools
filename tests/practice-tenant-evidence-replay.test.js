@@ -25,11 +25,11 @@ function model(schema, raw) {
     value = { contentRequested: !/^Bitte (?:ablegen|speichern)/u.test(input.question) };
   else if (input.task === 'evidence_reference_resolution')
     value = {
-      sourceIds:
-        input.question.includes('Depot West') ||
-        /^Bitte (?:ablegen|speichern)/u.test(input.question)
-          ? []
-          : input.currentSources.map((source) => source.id),
+      sources: (input.question.includes('Depot West') ||
+      /^Bitte (?:ablegen|speichern)/u.test(input.question)
+        ? []
+        : input.currentSources.map((source) => source.id)
+      ).map((id) => ({ id, relevance: 1 })),
     };
   else if (input.datasets && !input.nodes)
     value = {

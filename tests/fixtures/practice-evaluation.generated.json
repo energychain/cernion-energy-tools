@@ -5958,7 +5958,7 @@
             "description": "Priorisierung mit Begründung aus den Unterlagen",
             "rules": {
               "require": [
-                "Z10",
+                "(?:Z10|Klärfall)",
                 "(?:Rechnungskorrektur|Korrektur)"
               ],
               "forbid": [
@@ -6539,20 +6539,22 @@
           "id": "cases",
           "actor": "a",
           "chat": "main",
-          "message": "Lege für die überfälligen Klärfälle Fälle mit Frist, Owner-Rolle und nächstem Schritt an. Nichts an Marktpartner senden.",
+          "message": "Lege für die zum 2026-03-02 überfälligen Klärfälle Fälle mit Frist, Owner-Rolle und nächstem Schritt an. Nichts an Marktpartner senden.",
           "expect": {
             "description": "Fälle angelegt, keine externe Wirkung",
             "rules": {
               "require": [
                 "MK-SYN-01",
                 "MK-SYN-02",
-                "MK-SYN-04"
+                "MK-SYN-04",
+                "Fall F-\\d+"
               ],
-              "casePresent": true,
               "forbid": [
                 "\\bversendet\\b",
                 "\\bhabe ich (?:gesendet|verschickt)\\b",
-                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b",
+                "MK-SYN-03",
+                "MK-SYN-07"
               ]
             },
             "dependencies": []
@@ -6661,10 +6663,10 @@
                 "Fristen"
               ],
               "require": [
-                "E-1",
-                "E-2",
-                "R-1",
-                "R-2",
+                "Rechnungskorrektur",
+                "(?:externe|Kostenrahmen)",
+                "Z10",
+                "(?:Ruhestand|Wissen|Bilanzierung)",
                 "REK-SYN-01"
               ],
               "forbid": [
@@ -6905,7 +6907,7 @@
             "description": "Prüfregel mit Schwelle festgehalten",
             "rules": {
               "require": [
-                "5 ?%",
+                "5 ?(?:%|Prozent)",
                 "(?:Vormonat|Summenzeitreihe)"
               ],
               "forbid": [
@@ -6961,7 +6963,7 @@
             "description": "Prüfregel festgehalten",
             "rules": {
               "require": [
-                "5 ?%"
+                "5 ?(?:%|Prozent)"
               ],
               "forbid": [
                 "\\bversendet\\b",
@@ -6992,7 +6994,7 @@
             "rules": {
               "require": [
                 "(?:klär|prüf)",
-                "5 ?%"
+                "5 ?(?:%|Prozent)"
               ],
               "forbid": [
                 "\\bversendet\\b",

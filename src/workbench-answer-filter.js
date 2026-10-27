@@ -86,10 +86,12 @@ function isInternalDescription(value, internalContext = []) {
     .flatMap((text) => String(text || '').split(/(?<=[.!?])\s+|\n+/u))
     .filter(Boolean)
     .map((text) => ` ${normalizePhrase(text)} `);
+  // A heading or label that repeats a word of the request ("Risiken") is structure, not a leaked
+  // description; only statements of several words count.
   const sentences = String(value)
     .split(/(?<=[.!?])\s+|\n+/u)
     .map(normalizePhrase)
-    .filter(Boolean);
+    .filter((sentence) => sentence.split(/\s+/u).filter(Boolean).length >= 4);
   return (
     require('./workbench-conversation-shape').forbiddenMeta(String(value)) ||
     (sentences.length > 0 &&

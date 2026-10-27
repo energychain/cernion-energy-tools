@@ -93,7 +93,7 @@ test('joins two tables through readable views and answers only from the result',
     })
     .mockImplementationOnce(async (_schema, prompt) => {
       const input = JSON.parse(prompt);
-      expect(input.result).toEqual([
+      expect(input.result[0].rows).toEqual([
         { Nummer: 'R-2', Offen: 200 },
         { Nummer: 'R-3', Offen: 80 },
       ]);
@@ -113,7 +113,7 @@ test('durations use a deterministic julianday over explicit timestamps', async (
       sql: 'SELECT "Vorgang", round((julianday(max("Zeitpunkt")) - julianday(min("Zeitpunkt"))) * 24, 2) AS "Stunden" FROM ereignisse GROUP BY "Vorgang" ORDER BY "Vorgang"',
     })
     .mockImplementationOnce(async (_schema, prompt) => {
-      expect(JSON.parse(prompt).result).toEqual([
+      expect(JSON.parse(prompt).result[0].rows).toEqual([
         { Vorgang: 'V-1', Stunden: 36 },
         { Vorgang: 'V-2', Stunden: 6 },
       ]);
@@ -128,7 +128,7 @@ test('two-step aggregates run as materialized steps', async () => {
       sql: 'WITH je_vorgang AS (SELECT "Vorgang", (julianday(max("Zeitpunkt")) - julianday(min("Zeitpunkt"))) * 24 AS "Stunden" FROM ereignisse GROUP BY "Vorgang") SELECT count(*) AS "Vorgaenge", round(avg("Stunden"), 2) AS "Mittel" FROM je_vorgang',
     })
     .mockImplementationOnce(async (_schema, prompt) => {
-      expect(JSON.parse(prompt).result).toEqual([{ Vorgaenge: 2, Mittel: 21 }]);
+      expect(JSON.parse(prompt).result[0].rows).toEqual([{ Vorgaenge: 2, Mittel: 21 }]);
       return { answer: 'Im Mittel 21 Stunden.' };
     });
   await expect(run([events])).resolves.toMatchObject({ rows: 1 });
@@ -143,7 +143,9 @@ test.each([
   llm.generateStructured.mockResolvedValue({ sql });
   await expect(run([bills, advices])).rejects.toThrow();
   expect(llm.generateStructured).toHaveBeenCalledTimes(3);
-  expect(JSON.parse(llm.generateStructured.mock.calls[1][1]).previousAttempt.sql).toBe(sql);
+  expect(JSON.parse(llm.generateStructured.mock.calls[1][1]).previousAttempt.rejected[0].sql).toBe(
+    sql
+  );
 });
 
 test('record lists and measurement series are told apart by their time grid', () => {
@@ -180,8 +182,28 @@ test('a ranked aggregate over a two-step query runs and keeps its limit', async 
       sql: 'WITH je AS (SELECT "Vorgang", (julianday(max("Zeitpunkt")) - julianday(min("Zeitpunkt"))) * 24 AS "Stunden" FROM ereignisse GROUP BY "Vorgang") SELECT "Vorgang", round(avg("Stunden"), 2) AS "Mittel" FROM je GROUP BY "Vorgang" ORDER BY "Mittel" DESC LIMIT 1',
     })
     .mockImplementationOnce(async (_schema, prompt) => {
-      expect(JSON.parse(prompt).result).toEqual([{ Vorgang: 'V-1', Mittel: 36 }]);
+      expect(JSON.parse(prompt).result[0].rows).toEqual([{ Vorgang: 'V-1', Mittel: 36 }]);
       return { answer: 'V-1 dauerte am längsten.' };
     });
   await expect(run([events])).resolves.toMatchObject({ rows: 1 });
+});
+
+test('each part of a question may run as its own simple query', async () => {
+  llm.generateStructured
+    .mockResolvedValueOnce({
+      queries: [
+        {
+          purpose: 'offene Beträge',
+          sql: 'SELECT "Nummer", "Betrag" FROM rechnungen ORDER BY "Nummer"',
+        },
+        { purpose: 'Zahlungen', sql: 'SELECT count(*) AS "Avise" FROM avise' },
+      ],
+    })
+    .mockImplementationOnce(async (_schema, prompt) => {
+      const parts = JSON.parse(prompt).result;
+      expect(parts.map((part) => part.purpose)).toEqual(['offene Beträge', 'Zahlungen']);
+      expect(parts[1].rows).toEqual([{ Avise: 2 }]);
+      return { answer: 'Drei Rechnungen, zwei Avise.' };
+    });
+  await expect(run([bills, advices])).resolves.toMatchObject({ rows: 4 });
 });

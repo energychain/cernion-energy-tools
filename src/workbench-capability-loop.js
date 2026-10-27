@@ -197,16 +197,20 @@ function dataQuestionIntent(message) {
       !/^(?:mein|unser) (?:antwort)?entwurf\b|^(?:von|from)\b/u.test(text),
   };
 }
+// Graded (#993): a clear estimate opens the data read, a table in play lowers the bar.
+const DATA_READ_CONFIDENCE = 0.5;
+const ATTACHED_DATA_CONFIDENCE = 0.2;
 function allowsDataRead(situation, message, previous = {}, { attachedData = false } = {}) {
-  // A concrete question asked alongside a freshly attached dataset is a data question even when
-  // the semantic classification is unstable for that turn.
-  if (situation.dataQuestion)
+  if (situation.dataQuestion) {
+    const confidence = Number(situation.dataQuestion.confidence) || 0;
     return (
       situation.dataQuestion.requested === true ||
+      confidence >= DATA_READ_CONFIDENCE ||
       (attachedData &&
-        !require('./workbench-thread').isDocumentInput(message) &&
-        dataQuestionIntent(message).concrete)
+        confidence >= ATTACHED_DATA_CONFIDENCE &&
+        !require('./workbench-thread').isDocumentInput(message))
     );
+  }
   const material =
     situation.conversationShape === 'filing' ||
     situation.outputKind === 'correspondence' ||
