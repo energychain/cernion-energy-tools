@@ -448,6 +448,8 @@ describe('SQL, isolation, injection and reference equivalence', () => {
     'SELECT CURRENT_TIMESTAMP',
     "SELECT strftime('%Y')",
     "SELECT strftime('%Y','now')",
+    "SELECT julianday('now')",
+    'SELECT julianday()',
     "SELECT * FROM pragma_table_info('x')",
   ])('%s', async (sql) =>
     expect(run('return await cet.sql`' + sql + '`;', fixture)).rejects.toMatchObject({
@@ -1256,4 +1258,16 @@ test.each([
   'let process=1;return process;',
 ])('forbidden host names cannot be reintroduced as bindings: %s', async (body) => {
   await expect(run(body)).rejects.toMatchObject({ code: 'CET_SCRIPT_FORBIDDEN_SYNTAX' });
+});
+
+test('join predicates and outer join rows pass a checkpoint', () => {
+  const { instrument } = require('../src/cet-script/sql-checkpoints');
+  expect(instrument('SELECT a FROM t JOIN u ON t.k = u.k ORDER BY a')).toMatch(
+    /ON cet_script_tick\( t\.k = u\.k \) {2}WHERE cet_script_tick\(1\) ORDER BY a$/u
+  );
+  expect(instrument('SELECT a FROM t LEFT JOIN u ON t.k = u.k WHERE u.v > 1')).toMatch(
+    /WHERE cet_script_tick\(1\) AND cet_script_tick\( u\.v > 1\) $/u
+  );
+  // Statements without a join keep their shape.
+  expect(instrument('SELECT a FROM t')).not.toMatch(/WHERE/u);
 });

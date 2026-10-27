@@ -7,11 +7,16 @@ const EdmSqlitePool = require('./edm-sqlite-pool');
 
 // Reuse the native-error handling, WAL settings, connection cache and shutdown.
 class DatasetSqlitePool extends EdmSqlitePool {
-  tenant(tenantId) {
+  databasePath(tenantId) {
     const key = createHash('sha256').update(tenantId).digest('hex');
+    return path.join(this.basePath, `${key}.sqlite`);
+  }
+
+  tenant(tenantId) {
+    const key = this.databasePath(tenantId);
     if (!this.connections.has(key)) {
       fs.mkdirSync(this.basePath, { recursive: true });
-      const db = this.openDatabase(path.join(this.basePath, `${key}.sqlite`), '');
+      const db = this.openDatabase(key, '');
       db.pragma('secure_delete = ON');
       this.connections.set(key, db);
     }

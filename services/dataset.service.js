@@ -67,6 +67,45 @@ module.exports = {
     for (const pending of this.projectDatasetPools?.values() || []) (await pending).closeAll();
   },
   actions: {
+    // Internal: read-only analysis across the caller's own tables of one turn (#986).
+    analyze: {
+      params: {
+        ids: { type: 'array', items: 'string', min: 1, max: 6 },
+        question: { type: 'string', min: 1, max: 2000 },
+        phrase: { type: 'boolean', optional: true, default: true },
+        documents: {
+          type: 'array',
+          optional: true,
+          max: 3,
+          items: {
+            type: 'object',
+            props: { name: { type: 'string', max: 120 }, text: { type: 'string', max: 4000 } },
+          },
+        },
+      },
+      async handler(ctx) {
+        const p = principal(ctx, ctx.params);
+        const records = (await ctx.call('datapoint.datasetCatalog', { operation: 'list' })).filter(
+          (record) =>
+            ctx.params.ids.includes(record.id) &&
+            record.tenantId === p.tenantId &&
+            !record.quality?.unusable &&
+            !record.provenance?.projectId
+        );
+        if (records.length !== new Set(ctx.params.ids).size)
+          deny('Dataset is not accessible for this analysis');
+        this.datasetPool.tenant(p.tenantId);
+        return require('../src/table-analysis').analyzeTables({
+          filename: this.datasetPool.databasePath(p.tenantId),
+          records,
+          question: ctx.params.question,
+          tenantId: p.tenantId,
+          broker: ctx.broker,
+          phrase: ctx.params.phrase,
+          documents: ctx.params.documents || [],
+        });
+      },
+    },
     query: {
       rest: 'GET /query',
       params: {

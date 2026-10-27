@@ -1,0 +1,67 @@
+{
+  "referenceDate": "2026-03-02",
+  "nna": {
+    "openInvoices": [
+      "NNA-SYN-003",
+      "NNA-SYN-005",
+      "NNA-SYN-008",
+      "NNA-SYN-011"
+    ],
+    "openAmount": 5385,
+    "shortPaid": {
+      "id": "NNA-SYN-003",
+      "openAmount": 585
+    },
+    "rejectedWithoutCorrection": [
+      "NNA-SYN-005"
+    ],
+    "withoutPaymentAdvice": [
+      "NNA-SYN-011"
+    ],
+    "overdueComplaint": "REK-SYN-01"
+  },
+  "kpi": {
+    "processes": [
+      {
+        "process": "Lieferantenwechsel",
+        "cases": 6,
+        "averageHours": 27,
+        "errorRate": 0.1667
+      },
+      {
+        "process": "Stammdatenänderung",
+        "cases": 6,
+        "averageHours": 37,
+        "errorRate": 0.6667
+      },
+      {
+        "process": "Rechnungskorrektur",
+        "cases": 6,
+        "averageHours": 167,
+        "errorRate": 0.1667
+      },
+      {
+        "process": "Zählerwechsel",
+        "cases": 6,
+        "averageHours": 57,
+        "errorRate": 0.1667
+      }
+    ],
+    "slowest": "Rechnungskorrektur",
+    "highestErrorRate": "Stammdatenänderung"
+  },
+  "mako": {
+    "rows": 9,
+    "uniqueCases": 8,
+    "duplicates": [
+      "MK-SYN-02"
+    ],
+    "pending": 7,
+    "overdue": [
+      "MK-SYN-01",
+      "MK-SYN-02",
+      "MK-SYN-04"
+    ],
+    "mostFrequentCode": "Z10 ID unbekannt"
+  }
+}

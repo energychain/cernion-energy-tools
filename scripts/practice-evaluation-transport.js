@@ -100,9 +100,16 @@ function actorMeta(run, actor, { admin = false } = {}) {
     sharedServiceNoticesStructured: admin,
   };
 }
+function turnDocuments(turn) {
+  return [turn.document, ...(turn.documents || [])].filter(Boolean);
+}
 function documentMessage(turn) {
-  if (!turn.document) return turn.message;
-  return `<context><source name="${turn.document.name}">${practiceDocument(turn.document)}</source></context><user_query>${turn.message}</user_query>`;
+  const documents = turnDocuments(turn);
+  if (!documents.length) return turn.message;
+  const sources = documents
+    .map((document) => `<source name="${document.name}">${practiceDocument(document)}</source>`)
+    .join('');
+  return `<context>${sources}</context><user_query>${turn.message}</user_query>`;
 }
 
 async function createLocalTransport({ budget }) {
@@ -233,7 +240,8 @@ async function createLocalTransport({ budget }) {
       run.files.push({ actor, ref });
       if (spec.kind === 'load') run.datasets.push({ actor, name: spec.name, chat });
     }
-    if (turn.document) run.datasets.push({ actor, name: turn.document.name, chat });
+    for (const document of turnDocuments(turn))
+      run.datasets.push({ actor, name: document.name, chat });
     budget.assertReady();
     const reply = await app.broker.call(
       'workbench.chat',
@@ -536,7 +544,8 @@ async function createHttpTransport({ config, budget, fetchImpl = fetch }) {
       run.files.push({ actor, ref });
       if (spec.kind === 'load') run.datasets.push({ actor, name: spec.name, chat });
     }
-    if (turn.document) run.datasets.push({ actor, name: turn.document.name, chat });
+    for (const document of turnDocuments(turn))
+      run.datasets.push({ actor, name: document.name, chat });
     const data = await request('/v1/chat/completions', {
       method: 'POST',
       actor,

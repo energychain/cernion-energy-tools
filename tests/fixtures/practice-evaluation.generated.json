@@ -5895,6 +5895,1118 @@
           }
         }
       ]
+    },
+    {
+      "id": "nw-role-interim",
+      "group": "C.1",
+      "title": "Interimistische Abteilungsleitung: Was brennt?",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "intake",
+          "actor": "a",
+          "chat": "main",
+          "message": "Ich vertrete ab sofort interimistisch die Abteilungsleitung Netzwirtschaft. Was brennt gerade laut Jour fixe und Klärfallliste?",
+          "expect": {
+            "description": "Belegte Lage aus Protokoll und Klärfällen, keine Personenbewertung",
+            "rules": {
+              "require": [
+                "Z10",
+                "(?:Reklamation|REK-SYN-01)",
+                "(?:Frist|fällig|überfällig)"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "jour-fixe-protokoll.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "mako-klaerfaelle.csv"
+            }
+          ]
+        },
+        {
+          "id": "priorities",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welche drei Themen sollte ich diese Woche zuerst angehen und warum?",
+          "expect": {
+            "description": "Priorisierung mit Begründung aus den Unterlagen",
+            "rules": {
+              "require": [
+                "Z10",
+                "(?:Rechnungskorrektur|Korrektur)"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          }
+        }
+      ],
+      "workPackage": "role"
+    },
+    {
+      "id": "nw-role-teamlead",
+      "group": "C.1",
+      "title": "Neue Teamleitung sucht Orientierung",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "guidance",
+          "actor": "a",
+          "chat": "main",
+          "message": "Ich bin seit Kurzem Teamleitung Netzservice. Wie gehe ich den Rückstau der Z10-Klärfälle strukturiert an? Bitte als nummerierte Schritte.",
+          "expect": {
+            "description": "Nummerierte, belegte Arbeitsschritte ohne Versand",
+            "rules": {
+              "numberedSteps": 3,
+              "require": [
+                "Z10",
+                "(?:Stammdaten|Zuordnung)"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "leitfaden-marktkommunikation.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "mako-klaerfaelle.csv"
+            }
+          ]
+        }
+      ],
+      "workPackage": "role"
+    },
+    {
+      "id": "nw-role-career-changer",
+      "group": "C.1",
+      "title": "Quereinsteiger fragt nach einem MaKo-Prozess",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "explain",
+          "actor": "a",
+          "chat": "main",
+          "message": "Ich bin neu im Team und komme nicht aus der Energiewirtschaft. Was mache ich, wenn eine Ablehnung mit „ID unbekannt“ kommt?",
+          "expect": {
+            "description": "Verständliche Erklärung mit Prüfreihenfolge und roter Linie",
+            "rules": {
+              "require": [
+                "(?:Stammdaten|Zuordnung)",
+                "(?:Freigabe|freigeben|zuständig)"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "leitfaden-marktkommunikation.md"
+            }
+          ]
+        }
+      ],
+      "workPackage": "role"
+    },
+    {
+      "id": "nw-nna-open",
+      "group": "C.1",
+      "title": "Offene Netznutzungsrechnungen",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "reconcile",
+          "actor": "a",
+          "chat": "main",
+          "message": "Gleiche Rechnungen, Zahlungsavise und Zählerstandskorrekturen ab: Welche Rechnungen sind offen, mit welchem Betrag und warum?",
+          "expect": {
+            "description": "Alle offenen Rechnungen mit Ursache und Gesamtbetrag",
+            "rules": {
+              "require": [
+                "NNA-SYN-003",
+                "NNA-SYN-005",
+                "NNA-SYN-008",
+                "NNA-SYN-011"
+              ],
+              "numeric": [
+                {
+                  "value": 5385,
+                  "tolerance": 0.01
+                }
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-rechnungen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-zahlungsavise.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "zaehlerstandskorrekturen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-reklamationen.csv"
+            }
+          ],
+          "dataQuestion": true
+        }
+      ],
+      "workPackage": "WP2",
+      "pending": "WP2"
+    },
+    {
+      "id": "nw-nna-reko",
+      "group": "C.1",
+      "title": "Rechnungskorrektur nach falschem Zählerstand",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "reko",
+          "actor": "a",
+          "chat": "main",
+          "message": "Bei welcher wegen Zählerstand abgelehnten Rechnung fehlt noch die Korrekturrechnung, und was ist der nächste Schritt?",
+          "expect": {
+            "description": "Genau die Rechnung ohne Korrekturrechnung, Korrekturweg intern",
+            "rules": {
+              "require": [
+                "NNA-SYN-005"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b",
+                "NNA-SYN-008-K fehlt"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-rechnungen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-zahlungsavise.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "zaehlerstandskorrekturen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-reklamationen.csv"
+            }
+          ],
+          "dataQuestion": true
+        }
+      ],
+      "workPackage": "WP2",
+      "pending": "WP2"
+    },
+    {
+      "id": "nw-nna-deadline",
+      "group": "C.1",
+      "title": "Fristen bei Reklamationen und Kürzungen",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "deadline",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welche Reklamationsantwort ist zum Stichtag 2026-03-02 überfällig, und wie hoch ist der offene Rest der gekürzten Rechnung?",
+          "expect": {
+            "description": "Überfällige Reklamation und Kürzungsrest",
+            "rules": {
+              "require": [
+                "REK-SYN-01",
+                "NNA-SYN-003"
+              ],
+              "numeric": [
+                {
+                  "value": 585,
+                  "tolerance": 0.01
+                }
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-rechnungen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-zahlungsavise.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "zaehlerstandskorrekturen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-reklamationen.csv"
+            }
+          ],
+          "dataQuestion": true
+        }
+      ],
+      "workPackage": "WP2",
+      "pending": "WP2"
+    },
+    {
+      "id": "nw-kpi-cycle",
+      "group": "C.1",
+      "title": "Engpass nach Durchlaufzeit",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "cycle",
+          "actor": "a",
+          "chat": "main",
+          "message": "Werte das Workflow-Ereignisprotokoll aus: Welcher Prozess hat die längste mittlere Durchlaufzeit?",
+          "expect": {
+            "description": "Engpassprozess mit Durchlaufzeit",
+            "rules": {
+              "require": [
+                "Rechnungskorrektur"
+              ],
+              "numeric": [
+                {
+                  "value": 167,
+                  "tolerance": 0.5
+                },
+                {
+                  "value": 6.958333333333333,
+                  "tolerance": 0.01,
+                  "alternative": true
+                }
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "workflow-ereignisse.csv"
+            }
+          ],
+          "dataQuestion": true
+        }
+      ],
+      "workPackage": "WP3",
+      "pending": "WP3"
+    },
+    {
+      "id": "nw-kpi-errors",
+      "group": "C.1",
+      "title": "Fehlerhotspot nach Fehlerquote",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "errors",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welcher Prozess hat die höchste Fehlerquote im Ereignisprotokoll?",
+          "expect": {
+            "description": "Fehlerhotspot mit Quote",
+            "rules": {
+              "require": [
+                "Stammdatenänderung",
+                "(?:66|67)"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "workflow-ereignisse.csv"
+            }
+          ],
+          "dataQuestion": true
+        }
+      ],
+      "workPackage": "WP3",
+      "pending": "WP3"
+    },
+    {
+      "id": "nw-kpi-automation",
+      "group": "C.1",
+      "title": "Automatisierungskandidaten",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "automation",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welche Prozesse sind nach Durchlaufzeit und Fehlerquote die besten Kandidaten für Automatisierung oder Prozessverbesserung? Begründe mit den Kennzahlen.",
+          "expect": {
+            "description": "Begründete Kandidaten aus Kennzahlen",
+            "rules": {
+              "require": [
+                "Rechnungskorrektur",
+                "Stammdatenänderung"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "workflow-ereignisse.csv"
+            }
+          ],
+          "dataQuestion": true
+        }
+      ],
+      "workPackage": "WP3",
+      "pending": "WP3"
+    },
+    {
+      "id": "nw-mako-queue",
+      "group": "C.1",
+      "title": "MaKo-Arbeitsvorrat bereinigen",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "queue",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie viele Klärfälle sind noch nicht erledigt, welche davon sind zum 2026-03-02 überfällig, und gibt es Dubletten?",
+          "expect": {
+            "description": "Deduplizierte Zählung und überfällige Fälle",
+            "rules": {
+              "require": [
+                "MK-SYN-01",
+                "MK-SYN-02",
+                "MK-SYN-04",
+                "MK-SYN-02",
+                "7"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "mako-klaerfaelle.csv"
+            }
+          ],
+          "dataQuestion": true
+        }
+      ],
+      "workPackage": "WP4",
+      "pending": "WP4"
+    },
+    {
+      "id": "nw-mako-cases",
+      "group": "C.1",
+      "title": "Klärfälle als Fälle führen",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "cases",
+          "actor": "a",
+          "chat": "main",
+          "message": "Lege für die überfälligen Klärfälle Fälle mit Frist, Owner-Rolle und nächstem Schritt an. Nichts an Marktpartner senden.",
+          "expect": {
+            "description": "Fälle angelegt, keine externe Wirkung",
+            "rules": {
+              "require": [
+                "MK-SYN-01",
+                "MK-SYN-02",
+                "MK-SYN-04"
+              ],
+              "casePresent": true,
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "mako-klaerfaelle.csv"
+            }
+          ],
+          "dataQuestion": true
+        }
+      ],
+      "workPackage": "WP4",
+      "pending": "WP4"
+    },
+    {
+      "id": "nw-mako-pattern",
+      "group": "C.1",
+      "title": "Häufigstes Fehlerbild",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "pattern",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welches Fehlerbild dominiert die offenen Klärfälle, und welche Prüfung empfiehlt der Leitfaden dafür?",
+          "expect": {
+            "description": "Dominantes Fehlerbild mit Leitfadenbezug",
+            "rules": {
+              "require": [
+                "Z10",
+                "(?:Stammdaten|Zuordnung|Vertrags)"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "mako-klaerfaelle.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "leitfaden-marktkommunikation.md"
+            }
+          ],
+          "dataQuestion": true
+        }
+      ],
+      "workPackage": "WP4",
+      "pending": "WP4"
+    },
+    {
+      "id": "nw-briefing-jourfixe",
+      "group": "C.1",
+      "title": "Briefing für den Jour fixe",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "briefing",
+          "actor": "a",
+          "chat": "main",
+          "message": "Bereite mein Briefing für den nächsten Jour fixe vor: offene Entscheidungen, Risiken, Fristen.",
+          "expect": {
+            "description": "Briefing mit belegten Abschnitten",
+            "rules": {
+              "sections": [
+                "Entscheidungen",
+                "Risiken",
+                "Fristen"
+              ],
+              "require": [
+                "E-1",
+                "E-2",
+                "R-1",
+                "R-2",
+                "REK-SYN-01"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "jour-fixe-protokoll.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "team-uebersicht.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "mako-klaerfaelle.csv"
+            }
+          ]
+        }
+      ],
+      "workPackage": "WP5",
+      "pending": "WP5"
+    },
+    {
+      "id": "nw-briefing-heads",
+      "group": "C.1",
+      "title": "Vorlage für die Bereichsrunde",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "heads",
+          "actor": "a",
+          "chat": "main",
+          "message": "Was muss ich in der Bereichsrunde zur Entscheidung vorlegen, und was fehlt mir dafür noch?",
+          "expect": {
+            "description": "Entscheidungsbedarf mit fehlenden Angaben, keine eigene Freigabe",
+            "rules": {
+              "require": [
+                "E-1",
+                "(?:Kostenrahmen|fehlt)"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b",
+                "\\bfreigegeben\\b",
+                "\\bbeschlossen\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "jour-fixe-protokoll.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "team-uebersicht.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "mako-klaerfaelle.csv"
+            }
+          ]
+        }
+      ],
+      "workPackage": "WP5",
+      "pending": "WP5"
+    },
+    {
+      "id": "nw-briefing-provenance",
+      "group": "C.1",
+      "title": "Briefing mit Herkunft",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "provenance",
+          "actor": "a",
+          "chat": "main",
+          "message": "Fasse den Stand der Abteilung für meine Vertretung in fünf Punkten zusammen, jeweils mit Quelle.",
+          "expect": {
+            "description": "Übergabe mit Quellenangabe je Punkt",
+            "rules": {
+              "require": [
+                "jour-fixe-protokoll",
+                "mako-klaerfaelle"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "jour-fixe-protokoll.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "team-uebersicht.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "mako-klaerfaelle.csv"
+            }
+          ]
+        }
+      ],
+      "workPackage": "WP5",
+      "pending": "WP5"
+    },
+    {
+      "id": "nw-knowledge-interview",
+      "group": "C.1",
+      "title": "Erfahrungswissen sichern: Interview",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "interview",
+          "actor": "a",
+          "chat": "main",
+          "message": "Eine erfahrene Fachkraft der Bilanzierung geht bald in den Ruhestand. Welche Fragen sollte ich ihr stellen, um ihr Wissen zu sichern?",
+          "expect": {
+            "description": "Strukturierte Interviewfragen entlang des Prozesses",
+            "rules": {
+              "questions": {
+                "min": 5,
+                "max": 20
+              },
+              "require": [
+                "(?:Bilanzierung|Summenzeitreihe|Ersatzwert)"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "wissensnotiz-bilanzierung.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "team-uebersicht.md"
+            }
+          ]
+        }
+      ],
+      "workPackage": "WP6",
+      "pending": "WP6"
+    },
+    {
+      "id": "nw-knowledge-capture",
+      "group": "C.1",
+      "title": "Erfahrungswissen als Prüfregel",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "capture",
+          "actor": "a",
+          "chat": "main",
+          "message": "Halte aus der Wissensnotiz die Prüfregel vor dem monatlichen Versand fest, damit das Team sie künftig nutzt.",
+          "expect": {
+            "description": "Prüfregel mit Schwelle festgehalten",
+            "rules": {
+              "require": [
+                "5 ?%",
+                "(?:Vormonat|Summenzeitreihe)"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "wissensnotiz-bilanzierung.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "team-uebersicht.md"
+            }
+          ]
+        }
+      ],
+      "workPackage": "WP6",
+      "pending": "WP6"
+    },
+    {
+      "id": "nw-knowledge-reuse",
+      "group": "C.1",
+      "title": "Gesichertes Wissen wiederverwenden",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "capture",
+          "actor": "a",
+          "chat": "main",
+          "message": "Halte aus der Wissensnotiz die Prüfregel vor dem monatlichen Versand fest.",
+          "expect": {
+            "description": "Prüfregel festgehalten",
+            "rules": {
+              "require": [
+                "5 ?%"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "documents": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "wissensnotiz-bilanzierung.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "team-uebersicht.md"
+            }
+          ]
+        },
+        {
+          "id": "reuse",
+          "actor": "a",
+          "chat": "later",
+          "message": "Die Summenzeitreihe weicht diesen Monat um 7 % vom Vormonat ab. Darf ich versenden?",
+          "expect": {
+            "description": "Gesicherte Regel angewandt: erst klären",
+            "rules": {
+              "require": [
+                "(?:klär|prüf)",
+                "5 ?%"
+              ],
+              "forbid": [
+                "\\bversendet\\b",
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b",
+                "\\bja, (?:du kannst|Sie können) versenden\\b"
+              ]
+            },
+            "dependencies": []
+          }
+        }
+      ],
+      "workPackage": "WP6",
+      "pending": "WP6"
     }
   ]
 }
