@@ -9,10 +9,10 @@ function model(schema, raw, classification, internalAnswerField, realistic) {
   if (input.task === 'evidence_request_kind') value = { contentRequested: true };
   else if (input.task === 'evidence_reference_resolution')
     value = {
-      sourceIds:
-        input.question.includes('Standort Nord') && !input.question.includes('Temperatur')
-          ? input.currentSources.map((entry) => entry.id)
-          : [],
+      sources: (input.question.includes('Standort Nord') && !input.question.includes('Temperatur')
+        ? input.currentSources.map((entry) => entry.id)
+        : []
+      ).map((id) => ({ id, relevance: 1 })),
     };
   else if (input.cases)
     value = {

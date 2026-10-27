@@ -60,9 +60,10 @@ function installRealCaseStub() {
       value = { contentRequested: !input.question.startsWith('Bitte ablegen') };
     else if (input.task === 'evidence_reference_resolution')
       value = {
-        sourceIds: input.question.startsWith('Bitte ablegen')
+        sources: (input.question.startsWith('Bitte ablegen')
           ? []
-          : input.currentSources.map((source) => source.id),
+          : input.currentSources.map((source) => source.id)
+        ).map((id) => ({ id, relevance: 1 })),
       };
     else if (input.datasets && !input.nodes)
       value = { datasetIds: input.datasets.map((entry) => entry.id) };

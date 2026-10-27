@@ -121,6 +121,22 @@ const lifecycle = {
   },
 };
 
+// Conversation state (#993): documents of this chat stay at hand for follow-up turns, newest
+// first and bounded, whether or not a case was opened for them.
+const CONVERSATION_DOCUMENTS = 3;
+function conversationDocuments(envelope, existing) {
+  const fresh = (envelope.documents || [])
+    .filter((document) => typeof document?.text === 'string' && document.text.trim())
+    .map((document) => ({
+      name: String(document.name || 'Dokument').slice(0, 160),
+      text: document.text.slice(0, 6000),
+    }));
+  const earlier = (existing?.conversationDocuments || []).filter(
+    (document) => !fresh.some((item) => item.name === document.name)
+  );
+  return [...fresh, ...earlier].slice(0, CONVERSATION_DOCUMENTS);
+}
+
 async function saveTurn(db, p, envelope, patch, time = Date.now()) {
   const _id = turnKey(p, envelope);
   for (let attempt = 0; attempt < 4; attempt++) {
@@ -149,6 +165,7 @@ async function saveTurn(db, p, envelope, patch, time = Date.now()) {
               : {}),
           }),
       lastUserRequest: String(envelope.userRequest || '').slice(0, 2000),
+      conversationDocuments: conversationDocuments(envelope, existing),
       type: 'workbench_conversation_assistance',
       tenantId: p.tenantId,
       actorId: p.actorId,
