@@ -383,7 +383,10 @@ test('#898 administration overview is a read-only, tenant/member/clearance-scope
   expect(serialized).not.toMatch(
     /Restricted|secret|Foreign|tenant-b|"_rev"|"_id"|components|cleanupActions/
   );
-  expect(serialized).not.toContain('999');
+  // Random identifiers and timestamps may contain the digits by chance; the hidden value may not.
+  expect(
+    serialized.replace(/"(?:projectId|updatedAt|createdAt|lastActivityAt)":"[^"]*"/gu, '')
+  ).not.toContain('999');
 
   // Reads go only through the existing list path; nothing persists, audits, emits or cleans up.
   expect(recordOps.mock.calls.map(([, operation]) => operation)).toEqual(['list']);

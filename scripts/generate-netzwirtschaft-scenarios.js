@@ -50,7 +50,7 @@ function generateNetzwirtschaftScenarios(scenario, turn) {
         'priorities',
         'Welche drei Themen sollte ich diese Woche zuerst angehen und warum?',
         'Priorisierung mit Begründung aus den Unterlagen',
-        rules({ require: ['Z10', '(?:Rechnungskorrektur|Korrektur)'] })
+        rules({ require: ['(?:Z10|Klärfall)', '(?:Rechnungskorrektur|Korrektur)'] })
       ),
     ]),
     item('role-teamlead', 'role', 'Neue Teamleitung sucht Orientierung', [

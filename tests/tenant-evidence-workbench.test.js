@@ -59,12 +59,12 @@ function installStub() {
       };
     } else if (input.task === 'evidence_reference_resolution') {
       result = {
-        sourceIds:
-          input.question.includes('Depot West') ||
-          input.question.includes('Temperatur') ||
-          input.question === 'Bitte speichern.'
-            ? []
-            : input.currentSources.map((source) => source.id),
+        sources: (input.question.includes('Depot West') ||
+        input.question.includes('Temperatur') ||
+        input.question === 'Bitte speichern.'
+          ? []
+          : input.currentSources.map((source) => source.id)
+        ).map((id) => ({ id, relevance: 1 })),
       };
     } else if (input.nodes) {
       const sources = input.nodes
