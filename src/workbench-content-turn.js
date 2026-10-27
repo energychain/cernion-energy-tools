@@ -205,6 +205,49 @@ async function readTurnDataset(ctx, p, envelope, candidates, meta) {
   }
 }
 
+// Several tables or record lists need a combined read; a single measurement series
+// keeps the validated series query.
+async function tableAnalysisReply(ctx, p, envelope, candidates, meta) {
+  const { isRecordTable } = require('./table-analysis');
+  const variants =
+    candidates.length > 1 &&
+    candidates.every(
+      (record) => record.id === candidates[0].id || candidates[0].variants?.includes(record.id)
+    );
+  if (variants || (candidates.length === 1 && !isRecordTable(candidates[0]))) return null;
+  const ids = [...new Set(candidates.map((record) => record.id))];
+  try {
+    // Documents of the same turn may explain the figures (a guide, minutes); they are cited.
+    const documents = (envelope.documents || [])
+      .filter((document) => typeof document?.text === 'string' && document.text.trim())
+      .slice(0, 3)
+      .map((document) => ({
+        name: String(document.name || 'Dokument').slice(0, 120),
+        text: document.text.slice(0, 4000),
+      }));
+    const result = await ctx.call(
+      'dataset.analyze',
+      { ids, question: envelope.userRequest, ...(documents.length ? { documents } : {}) },
+      { meta }
+    );
+    const answer = `${result.answer}\n\n${result.provenance}`;
+    return {
+      answer,
+      evidence: [
+        {
+          source: 'dataset.analyze',
+          retrievalSource: 'capability-read',
+          value: answer,
+          metadata: { tenantId: p.tenantId, datasetIds: ids, rows: result.rows },
+        },
+      ],
+    };
+  } catch (error) {
+    ctx.broker.logger.warn('Table analysis unavailable', { reason: String(error.message) });
+    return null;
+  }
+}
+
 async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }) {
   const started = performance.now();
   if (
@@ -230,6 +273,8 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
         lastDatasetId: fresh.length === 1 ? fresh[0] : undefined,
       },
     });
+    // Documents of the same turn hold the request; a storage receipt would answer past them.
+    if (envelope.documents?.length) return null;
     const safe = memoryDocumentContext(ctx, meta);
     const proposal = await require('./workbench-tenant-evidence').uploadCaseProposal(
       service,
@@ -258,7 +303,16 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
     }
   );
   if (!candidates.length) return null;
-  const { answer, evidence } = await readTurnDataset(ctx, p, envelope, candidates, meta);
+  // Several tables attached together form one question context; the query picks what it needs.
+  const attached = records.filter((record) => fresh.includes(record.id));
+  const { answer, evidence } =
+    (await tableAnalysisReply(
+      ctx,
+      p,
+      envelope,
+      attached.length > 1 ? attached : candidates,
+      meta
+    )) || (await readTurnDataset(ctx, p, envelope, candidates, meta));
   const combined = await require('./workbench-project-manifest').supplementDatasetAnswer(
     service,
     ctx,

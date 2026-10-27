@@ -1,0 +1,10 @@
+Vorgang;Nachrichtentyp;Fehlercode;Eingang;Frist;Status;Team
+MK-SYN-01;UTILMD;Z10 ID unbekannt;2026-02-20;2026-02-27;offen;Netzservice
+MK-SYN-02;UTILMD;Z10 ID unbekannt;2026-02-21;2026-02-28;offen;Netzabrechnung
+MK-SYN-03;MSCONS;Z29 Wert unplausibel;2026-02-24;2026-03-03;offen;Netzservice
+MK-SYN-04;INVOIC;Z43 Referenz fehlt;2026-02-18;2026-02-25;in Klärung;Netzabrechnung
+MK-SYN-05;UTILMD;Z10 ID unbekannt;2026-02-26;2026-03-05;offen;Netzservice
+MK-SYN-06;PRICAT;Z43 Referenz fehlt;2026-02-27;2026-03-06;offen;Netzabrechnung
+MK-SYN-07;MSCONS;Z29 Wert unplausibel;2026-02-10;2026-02-17;erledigt;Netzservice
+MK-SYN-08;UTILMD;Z35 Frist überschritten;2026-02-25;2026-03-04;offen;Netzabrechnung
+MK-SYN-02;UTILMD;Z10 ID unbekannt;2026-02-21;2026-02-28;offen;Netzabrechnung

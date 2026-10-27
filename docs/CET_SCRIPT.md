@@ -175,6 +175,7 @@ Progress-Handler bereit. Die gleichwertige Beschränkung prüft deshalb **vor Au
    Persistente Schreibcursor und nicht explizit bekannte Opcodes sind verboten.
 4. Nur aufgelistete SQL-Funktionen sind zulässig. `strftime` verlangt einen expliziten
    Zeitwert und unterstützt die einfachen Formatmarker `%Y`, `%m`, `%d`, `%H`, `%M`, `%S`, `%%`.
+   `julianday` verlangt ebenfalls genau einen expliziten Zeitwert (für Dauern als Tagesdifferenz).
    `LIKE` nutzt eine begrenzte, unterbrechbare Implementierung. Erweiterungen, Zufall,
    SQL-Stringvergrößerung per Konkatenation und nicht begrenzte Formatfunktionen sind gesperrt.
 5. Interne Checkpoints in Projektion, Filtern und Gruppenschlüsseln sowie Checkpoints in den Argumenten nativer
