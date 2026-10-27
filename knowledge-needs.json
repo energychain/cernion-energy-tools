@@ -1,0 +1,2116 @@
+{
+  "schemaVersion": "1.0",
+  "generator": "scripts/generate-knowledge-needs.js",
+  "derivation": {
+    "version": 1,
+    "parameters": 1
+  },
+  "sourceHash": "c3526c1008ca74953181d488f8c8ef1f1be028d50f055f127b6c49bf7c0c7121",
+  "statistics": {
+    "needs": 52,
+    "byKind": {
+      "contact": 29,
+      "dataset": 13,
+      "fact": 3,
+      "identifier": 7
+    },
+    "bySource": {
+      "capability": 39,
+      "endpoint": 1,
+      "function": 29,
+      "semanticDomain": 13
+    }
+  },
+  "needs": [
+    {
+      "needId": "need:gridOperatorId",
+      "key": "gridOperatorId",
+      "label": "Netzbetreiber ID",
+      "kind": "identifier",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "agnes_bottleneck"
+        },
+        {
+          "source": "capability",
+          "ref": "altdaten_assessment"
+        },
+        {
+          "source": "capability",
+          "ref": "automatisierungsradar"
+        },
+        {
+          "source": "capability",
+          "ref": "bess_screening"
+        },
+        {
+          "source": "capability",
+          "ref": "capex_prioritization"
+        },
+        {
+          "source": "capability",
+          "ref": "connection_rejection_evidence"
+        },
+        {
+          "source": "capability",
+          "ref": "e2e_connection_check"
+        },
+        {
+          "source": "capability",
+          "ref": "energy_sharing_simulation_gate"
+        },
+        {
+          "source": "capability",
+          "ref": "evidence_grounding_confidence_audit"
+        },
+        {
+          "source": "capability",
+          "ref": "flexibilitaetskosten_raster"
+        },
+        {
+          "source": "capability",
+          "ref": "fnav_commercial_hedging"
+        },
+        {
+          "source": "capability",
+          "ref": "fnav_fast_track_contract_gate"
+        },
+        {
+          "source": "capability",
+          "ref": "gas_capacity_order_revision_gate"
+        },
+        {
+          "source": "capability",
+          "ref": "gas_grid_transformation_asset_cockpit"
+        },
+        {
+          "source": "capability",
+          "ref": "gas_network_decision_chain"
+        },
+        {
+          "source": "capability",
+          "ref": "gasnetz_waermeplanung"
+        },
+        {
+          "source": "capability",
+          "ref": "ghost_asset_alert"
+        },
+        {
+          "source": "capability",
+          "ref": "leadership_delta_cockpit"
+        },
+        {
+          "source": "capability",
+          "ref": "netzkoppelvertrag_workflow"
+        },
+        {
+          "source": "capability",
+          "ref": "nkp_reporting"
+        },
+        {
+          "source": "capability",
+          "ref": "redispatch_call_data_quality_gate"
+        },
+        {
+          "source": "capability",
+          "ref": "redispatch_settlement_sandbox"
+        },
+        {
+          "source": "capability",
+          "ref": "regulatorische_entgeltlogik"
+        },
+        {
+          "source": "capability",
+          "ref": "regulatory_risk_revenue_scenario"
+        },
+        {
+          "source": "capability",
+          "ref": "reinvest_signal"
+        },
+        {
+          "source": "capability",
+          "ref": "reporting_governance"
+        },
+        {
+          "source": "capability",
+          "ref": "transformation_financing_scenario_view"
+        },
+        {
+          "source": "capability",
+          "ref": "vdmi_governance_templates"
+        },
+        {
+          "source": "capability",
+          "ref": "vdmi_portfolio_gatekeeping"
+        },
+        {
+          "source": "capability",
+          "ref": "vnb_100_tage_assessment"
+        }
+      ],
+      "functionIds": [
+        "fn-agnes-bottleneck",
+        "fn-altdaten-assessment",
+        "fn-automatisierungsradar",
+        "fn-bess-screening",
+        "fn-budget-waterfall-governance",
+        "fn-capex-prioritization",
+        "fn-connection-rejection-evidence",
+        "fn-e2e-connection-check",
+        "fn-energy-sharing-42c-cutover-readiness",
+        "fn-evidence-grounding-confidence-audit",
+        "fn-flexibilitaetskosten-raster",
+        "fn-flexibility-conductor-role-model",
+        "fn-fnav-commercial-hedging",
+        "fn-fnav-fast-track-contract-gate",
+        "fn-gas-network-decision-chain",
+        "fn-ghost-asset-alert",
+        "fn-investment-budget-cap-exception-governance",
+        "fn-leadership-delta-cockpit",
+        "fn-load-profile-stream-monitor",
+        "fn-netzkoppelvertrag-workflow",
+        "fn-nkp-reporting",
+        "fn-redispatch-settlement-sandbox",
+        "fn-regulatorische-entgeltlogik",
+        "fn-regulatory-risk-revenue-scenario",
+        "fn-reinvest-signal",
+        "fn-reporting-governance",
+        "fn-vdmi-governance-templates",
+        "fn-vdmi-portfolio-gatekeeping",
+        "fn-vnb-100-tage-assessment"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "agnes_bottleneck"
+        },
+        {
+          "capabilityId": "altdaten_assessment"
+        },
+        {
+          "capabilityId": "automatisierungsradar"
+        },
+        {
+          "capabilityId": "bess_screening"
+        },
+        {
+          "capabilityId": "capex_prioritization"
+        },
+        {
+          "capabilityId": "connection_rejection_evidence"
+        },
+        {
+          "capabilityId": "e2e_connection_check"
+        },
+        {
+          "capabilityId": "energy_sharing_simulation_gate"
+        },
+        {
+          "capabilityId": "evidence_grounding_confidence_audit"
+        },
+        {
+          "capabilityId": "flexibilitaetskosten_raster"
+        },
+        {
+          "capabilityId": "fnav_commercial_hedging"
+        },
+        {
+          "capabilityId": "fnav_fast_track_contract_gate"
+        },
+        {
+          "capabilityId": "gas_capacity_order_revision_gate"
+        },
+        {
+          "capabilityId": "gas_grid_transformation_asset_cockpit"
+        },
+        {
+          "capabilityId": "gas_network_decision_chain"
+        },
+        {
+          "capabilityId": "gasnetz_waermeplanung"
+        },
+        {
+          "capabilityId": "ghost_asset_alert"
+        },
+        {
+          "capabilityId": "leadership_delta_cockpit"
+        },
+        {
+          "capabilityId": "netzkoppelvertrag_workflow"
+        },
+        {
+          "capabilityId": "nkp_reporting"
+        },
+        {
+          "capabilityId": "redispatch_call_data_quality_gate"
+        },
+        {
+          "capabilityId": "redispatch_settlement_sandbox"
+        },
+        {
+          "capabilityId": "regulatorische_entgeltlogik"
+        },
+        {
+          "capabilityId": "regulatory_risk_revenue_scenario"
+        },
+        {
+          "capabilityId": "reinvest_signal"
+        },
+        {
+          "capabilityId": "reporting_governance"
+        },
+        {
+          "capabilityId": "transformation_financing_scenario_view"
+        },
+        {
+          "capabilityId": "vdmi_governance_templates"
+        },
+        {
+          "capabilityId": "vdmi_portfolio_gatekeeping"
+        },
+        {
+          "capabilityId": "vnb_100_tage_assessment"
+        },
+        {
+          "operation": "agnes-bottleneck.assess"
+        },
+        {
+          "operation": "agnes-bottleneck.get"
+        },
+        {
+          "operation": "agnes-bottleneck.list"
+        },
+        {
+          "operation": "altdaten-assessment.assess"
+        },
+        {
+          "operation": "altdaten-assessment.get"
+        },
+        {
+          "operation": "altdaten-assessment.list"
+        },
+        {
+          "operation": "assets.all"
+        },
+        {
+          "operation": "assets.effective"
+        },
+        {
+          "operation": "automatisierungsradar.analyze"
+        },
+        {
+          "operation": "automatisierungsradar.get"
+        },
+        {
+          "operation": "automatisierungsradar.list"
+        },
+        {
+          "operation": "bess-screening.get"
+        },
+        {
+          "operation": "bess-screening.list"
+        },
+        {
+          "operation": "bess-screening.screen"
+        },
+        {
+          "operation": "capability-broker.recommend"
+        },
+        {
+          "operation": "capex-prioritization.analyze"
+        },
+        {
+          "operation": "capex-prioritization.get"
+        },
+        {
+          "operation": "capex-prioritization.list"
+        },
+        {
+          "operation": "connection-rejection-evidence.create"
+        },
+        {
+          "operation": "connection-rejection-evidence.get"
+        },
+        {
+          "operation": "connection-rejection-evidence.list"
+        },
+        {
+          "operation": "cookbook.get"
+        },
+        {
+          "operation": "cookbook.search"
+        },
+        {
+          "operation": "cya.generate"
+        },
+        {
+          "operation": "dashboard-api.energySharingSimulationGateStatus"
+        },
+        {
+          "operation": "dashboard-api.evidenceGroundingConfidenceAudit"
+        },
+        {
+          "operation": "dashboard-api.fnavFastTrackContractGateStatus"
+        },
+        {
+          "operation": "dashboard-api.gasGridTransformationAssetCockpitStatus"
+        },
+        {
+          "operation": "dashboard-api.gasNetworkDecisionChainStatus"
+        },
+        {
+          "operation": "dashboard-api.leadershipDeltaCockpitStatus"
+        },
+        {
+          "operation": "dashboard-api.loadProfileStreamMonitor"
+        },
+        {
+          "operation": "dashboard-api.redispatchCallQualityGate"
+        },
+        {
+          "operation": "dashboard-api.transformationFinancingScenarioViewStatus"
+        },
+        {
+          "operation": "dashboard-api.vnbOverview"
+        },
+        {
+          "operation": "datapoint.createSnapshot"
+        },
+        {
+          "operation": "datapoint.health"
+        },
+        {
+          "operation": "datasource-registry.get"
+        },
+        {
+          "operation": "decision-frame.create"
+        },
+        {
+          "operation": "decision-frame.get"
+        },
+        {
+          "operation": "decision-frame.list"
+        },
+        {
+          "operation": "e2e-connection-check.create"
+        },
+        {
+          "operation": "e2e-connection-check.list"
+        },
+        {
+          "operation": "e2e-connection-check.updateThread"
+        },
+        {
+          "operation": "edm-validation.validate"
+        },
+        {
+          "operation": "eog-calculator.calculate"
+        },
+        {
+          "operation": "eog-calculator.evaluate"
+        },
+        {
+          "operation": "eog-calculator.inputStatus"
+        },
+        {
+          "operation": "eog-calculator.scenario"
+        },
+        {
+          "operation": "evidence-planner.plan"
+        },
+        {
+          "operation": "finance-agent.analyze"
+        },
+        {
+          "operation": "finance-agent.fnavEconomics"
+        },
+        {
+          "operation": "flexibilitaetskosten-raster.create"
+        },
+        {
+          "operation": "flexibilitaetskosten-raster.get"
+        },
+        {
+          "operation": "flexibilitaetskosten-raster.list"
+        },
+        {
+          "operation": "fnav-commercial-hedging.createContract"
+        },
+        {
+          "operation": "fnav-commercial-hedging.createScenario"
+        },
+        {
+          "operation": "fnav-commercial-hedging.listContracts"
+        },
+        {
+          "operation": "forecast-engine.evaluateQuality"
+        },
+        {
+          "operation": "gas-capacity-order-revision-gate.evaluate"
+        },
+        {
+          "operation": "gas-capacity-order-revision-gate.getRevision"
+        },
+        {
+          "operation": "gas-capacity-order-revision-gate.getStatus"
+        },
+        {
+          "operation": "gas-capacity-order-revision-gate.listRevisions"
+        },
+        {
+          "operation": "gas-storage.countryStorage"
+        },
+        {
+          "operation": "gasnetz-waermeplanung.get"
+        },
+        {
+          "operation": "gasnetz-waermeplanung.list"
+        },
+        {
+          "operation": "gasnetz-waermeplanung.reconcile"
+        },
+        {
+          "operation": "ghost-asset-alert.get"
+        },
+        {
+          "operation": "ghost-asset-alert.list"
+        },
+        {
+          "operation": "ghost-asset-alert.scan"
+        },
+        {
+          "operation": "grid-connection.fnavValidate"
+        },
+        {
+          "operation": "hitl.list"
+        },
+        {
+          "operation": "hitl.summary"
+        },
+        {
+          "operation": "investment-planning.createPlan"
+        },
+        {
+          "operation": "knowledge-rag.query"
+        },
+        {
+          "operation": "netzkoppelvertrag-workflow.create"
+        },
+        {
+          "operation": "netzkoppelvertrag-workflow.list"
+        },
+        {
+          "operation": "netzkoppelvertrag-workflow.updateStatus"
+        },
+        {
+          "operation": "nkp-reporting.get"
+        },
+        {
+          "operation": "nkp-reporting.importReport"
+        },
+        {
+          "operation": "nkp-reporting.list"
+        },
+        {
+          "operation": "nova.listDecisions"
+        },
+        {
+          "operation": "presentation.generate"
+        },
+        {
+          "operation": "presentation.render"
+        },
+        {
+          "operation": "redispatch-expost.list"
+        },
+        {
+          "operation": "redispatch-settlement-sandbox.createScenario"
+        },
+        {
+          "operation": "redispatch-settlement-sandbox.getScenario"
+        },
+        {
+          "operation": "redispatch-settlement-sandbox.listScenarios"
+        },
+        {
+          "operation": "redispatch-settlement-sandbox.reconcile"
+        },
+        {
+          "operation": "regulatorische-entgeltlogik.getActive"
+        },
+        {
+          "operation": "regulatorische-entgeltlogik.list"
+        },
+        {
+          "operation": "regulatorische-entgeltlogik.registerRuleSet"
+        },
+        {
+          "operation": "reinvest-signal.analyze"
+        },
+        {
+          "operation": "reinvest-signal.get"
+        },
+        {
+          "operation": "reinvest-signal.list"
+        },
+        {
+          "operation": "reporting-governance.check"
+        },
+        {
+          "operation": "reporting-governance.get"
+        },
+        {
+          "operation": "reporting-governance.list"
+        },
+        {
+          "operation": "vdmi-governance-templates.instantiate"
+        },
+        {
+          "operation": "vdmi-governance-templates.listBaseTemplates"
+        },
+        {
+          "operation": "vdmi-governance-templates.listInstances"
+        },
+        {
+          "operation": "vdmi-portfolio-gatekeeping.gate"
+        },
+        {
+          "operation": "vdmi-portfolio-gatekeeping.get"
+        },
+        {
+          "operation": "vdmi-portfolio-gatekeeping.list"
+        },
+        {
+          "operation": "vdmi.dossier"
+        },
+        {
+          "operation": "vdmi.findings"
+        },
+        {
+          "operation": "vnb-100-tage-assessment.assess"
+        },
+        {
+          "operation": "vnb-100-tage-assessment.get"
+        },
+        {
+          "operation": "vnb-100-tage-assessment.list"
+        },
+        {
+          "operation": "znp.assessPortfolio"
+        }
+      ],
+      "basePriority": 1
+    },
+    {
+      "needId": "need:meteringScope",
+      "key": "meteringScope",
+      "label": "iMSys-/CLS-Messbereich",
+      "kind": "fact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "imsys_schedule_value_chain_readiness"
+        },
+        {
+          "source": "capability",
+          "ref": "off_balancing_metering_pruefmatrix"
+        },
+        {
+          "source": "capability",
+          "ref": "smart_meter_cls_data_governance_receipt"
+        }
+      ],
+      "functionIds": [
+        "fn-automation-requirements-decision-value",
+        "fn-budget-waterfall-governance",
+        "fn-smart-meter-cls-data-governance-receipt"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "imsys_schedule_value_chain_readiness"
+        },
+        {
+          "capabilityId": "off_balancing_metering_pruefmatrix"
+        },
+        {
+          "capabilityId": "smart_meter_cls_data_governance_receipt"
+        },
+        {
+          "operation": "dashboard-api.imsysScheduleValueChainReadinessStatus"
+        },
+        {
+          "operation": "dashboard-api.marketCommunicationEvidenceChainStatus"
+        },
+        {
+          "operation": "dashboard-api.offBalancingMeteringPruefmatrixStatus"
+        },
+        {
+          "operation": "dashboard-api.regulatoryChangeReadinessStatus"
+        },
+        {
+          "operation": "dashboard-api.regulatorySignalProcessTranslatorStatus"
+        },
+        {
+          "operation": "dashboard-api.smartMeterOffBalancingPurposeLockStatus"
+        },
+        {
+          "operation": "datapoint.health"
+        },
+        {
+          "operation": "datasource-registry.get"
+        },
+        {
+          "operation": "eog-calculator.scenario"
+        },
+        {
+          "operation": "finance-agent.analyze"
+        },
+        {
+          "operation": "flex.listDevices"
+        },
+        {
+          "operation": "forecast-engine.run"
+        },
+        {
+          "operation": "grid-operations.netzfahrplanGenerate"
+        },
+        {
+          "operation": "investment-planning.createPlan"
+        },
+        {
+          "operation": "mastr-quality.audit"
+        },
+        {
+          "operation": "presentation.generate"
+        },
+        {
+          "operation": "redispatch-expost.audit"
+        },
+        {
+          "operation": "vdmi.dossier"
+        }
+      ],
+      "basePriority": 0.6301
+    },
+    {
+      "needId": "need:division",
+      "key": "division",
+      "label": "Sparte",
+      "kind": "fact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "investment_data_review_queue"
+        },
+        {
+          "source": "capability",
+          "ref": "metering_rollout_process_indicator"
+        }
+      ],
+      "functionIds": [
+        "fn-investment-data-review-queue"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "investment_data_review_queue"
+        },
+        {
+          "capabilityId": "metering_rollout_process_indicator"
+        },
+        {
+          "operation": "dashboard-api.investmentDataReviewQueueStatus"
+        },
+        {
+          "operation": "dashboard-api.meteringRolloutProcessIndicatorStatus"
+        },
+        {
+          "operation": "datasource-cache.query"
+        },
+        {
+          "operation": "datasource-registry.list"
+        },
+        {
+          "operation": "edm.getTimeseriesSummary"
+        },
+        {
+          "operation": "hitl.summary"
+        },
+        {
+          "operation": "in-memory-join.join"
+        },
+        {
+          "operation": "investment-planning.createPlan"
+        },
+        {
+          "operation": "presentation.generate"
+        },
+        {
+          "operation": "vdmi.dossier"
+        }
+      ],
+      "basePriority": 0.5121
+    },
+    {
+      "needId": "need:region",
+      "key": "region",
+      "label": "ENTSO-E Region / Bidding Zone",
+      "kind": "fact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "cross_commodity_supply_security_lagebild"
+        },
+        {
+          "source": "endpoint",
+          "ref": "energy_market_prices"
+        },
+        {
+          "source": "endpoint",
+          "ref": "entsoe_day_ahead_prices"
+        },
+        {
+          "source": "endpoint",
+          "ref": "entsoe_load_forecast"
+        },
+        {
+          "source": "endpoint",
+          "ref": "entsoe_wind_solar_forecast"
+        }
+      ],
+      "functionIds": [
+        "fn-cross-commodity-supply-security-lagebild"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "cross_commodity_supply_security_lagebild"
+        },
+        {
+          "endpointId": "energy_market_prices"
+        },
+        {
+          "endpointId": "entsoe_day_ahead_prices"
+        },
+        {
+          "endpointId": "entsoe_load_forecast"
+        },
+        {
+          "endpointId": "entsoe_wind_solar_forecast"
+        },
+        {
+          "operation": "entsoe.dayAheadPrices"
+        },
+        {
+          "operation": "entsoe.loadForecast"
+        },
+        {
+          "operation": "entsoe.windSolarForecast"
+        },
+        {
+          "operation": "gas-storage.countryStorage"
+        },
+        {
+          "operation": "gas-storage.supplySecurityCheck"
+        }
+      ],
+      "basePriority": 0.485
+    },
+    {
+      "needId": "need:networkArea",
+      "key": "networkArea",
+      "label": "Netzgebiet",
+      "kind": "identifier",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "gas_capacity_booking_review_gate"
+        }
+      ],
+      "functionIds": [
+        "fn-gas-capacity-booking-review-gate"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "gas_capacity_booking_review_gate"
+        },
+        {
+          "operation": "dashboard-api.gasCapacityBookingReviewGateStatus"
+        },
+        {
+          "operation": "datapoint.health"
+        },
+        {
+          "operation": "decision-frame.get"
+        },
+        {
+          "operation": "gasnetz-waermeplanung.reconcile"
+        },
+        {
+          "operation": "presentation.render"
+        },
+        {
+          "operation": "vdmi-portfolio-gatekeeping.gate"
+        },
+        {
+          "operation": "vdmi.dossier"
+        }
+      ],
+      "basePriority": 0.4534
+    },
+    {
+      "needId": "need:bdew",
+      "key": "bdew",
+      "label": "BDEW-Code (13-stellig)",
+      "kind": "identifier",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "grid_operator_identity_resolution"
+        }
+      ],
+      "functionIds": [
+        "fn-grid-operator-identity-resolution"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "grid_operator_identity_resolution"
+        },
+        {
+          "operation": "grid-operations.marketPartners"
+        },
+        {
+          "operation": "grid-operations.vnbLookup"
+        },
+        {
+          "operation": "grid-operations.vnbLookupCodes"
+        }
+      ],
+      "basePriority": 0.368
+    },
+    {
+      "needId": "need:gridAreaId",
+      "key": "gridAreaId",
+      "label": "Grid area ID",
+      "kind": "identifier",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "re4de_variable_grid_fee_layer3"
+        }
+      ],
+      "functionIds": [
+        "fn-re4de-variable-grid-fee-layer3"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "re4de_variable_grid_fee_layer3"
+        },
+        {
+          "operation": "re4de-variable-grid-fee.calculate"
+        },
+        {
+          "operation": "re4de-variable-grid-fee.getCalculation"
+        },
+        {
+          "operation": "re4de-variable-grid-fee.getEvidence"
+        }
+      ],
+      "basePriority": 0.368
+    },
+    {
+      "needId": "need:balanceGroupId",
+      "key": "balanceGroupId",
+      "label": "Bilanzkreis",
+      "kind": "identifier",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "energy_sharing_42c_cutover_readiness"
+        }
+      ],
+      "functionIds": [
+        "fn-energy-sharing-42c-cutover-readiness"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "energy_sharing_42c_cutover_readiness"
+        },
+        {
+          "operation": "dashboard-api.energySharing42cCutoverReadinessStatus"
+        },
+        {
+          "operation": "presentation.generate"
+        }
+      ],
+      "basePriority": 0.3388
+    },
+    {
+      "needId": "need:contact:fn-controllability-asset-handover",
+      "key": "contact:fn-controllability-asset-handover",
+      "label": "Steuerbarkeit · Anlagen · Übergabe",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "controllability_asset_handover"
+        },
+        {
+          "source": "capability",
+          "ref": "controllability_data_alignment"
+        },
+        {
+          "source": "capability",
+          "ref": "gas_infrastructure_risk_governance"
+        },
+        {
+          "source": "function",
+          "ref": "fn-controllability-asset-handover"
+        }
+      ],
+      "functionIds": [
+        "fn-controllability-asset-handover"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "controllability_asset_handover"
+        },
+        {
+          "capabilityId": "controllability_data_alignment"
+        },
+        {
+          "capabilityId": "gas_infrastructure_risk_governance"
+        }
+      ],
+      "inputs": [
+        "lineOwnerRole",
+        "owner"
+      ],
+      "basePriority": 0.3388
+    },
+    {
+      "needId": "need:contact:fn-investment-budget-cap-exception-governance",
+      "key": "contact:fn-investment-budget-cap-exception-governance",
+      "label": "Anlagen · Bewertung · Umbau · Freigabeprüfung",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "gas_grid_transformation_asset_cockpit"
+        },
+        {
+          "source": "capability",
+          "ref": "investment_budget_cap_exception_governance"
+        },
+        {
+          "source": "capability",
+          "ref": "investment_committee_steering_cards"
+        },
+        {
+          "source": "function",
+          "ref": "fn-investment-budget-cap-exception-governance"
+        }
+      ],
+      "functionIds": [
+        "fn-investment-budget-cap-exception-governance"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "gas_grid_transformation_asset_cockpit"
+        },
+        {
+          "capabilityId": "investment_budget_cap_exception_governance"
+        },
+        {
+          "capabilityId": "investment_committee_steering_cards"
+        }
+      ],
+      "inputs": [
+        "owner",
+        "ownerRole"
+      ],
+      "basePriority": 0.3388
+    },
+    {
+      "needId": "need:vnbId",
+      "key": "vnbId",
+      "label": "VNB Identifier",
+      "kind": "identifier",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "blindflug_radar_anomaly_detection"
+        }
+      ],
+      "functionIds": [
+        "fn-blindflug-radar-anomaly-detection"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "blindflug_radar_anomaly_detection"
+        },
+        {
+          "operation": "v1.blindflug-radar.scan"
+        },
+        {
+          "operation": "znp.correlateDisturbance"
+        }
+      ],
+      "basePriority": 0.3388
+    },
+    {
+      "needId": "need:contact:fn-a2mdm-decision-object-meaning-preservation",
+      "key": "contact:fn-a2mdm-decision-object-meaning-preservation",
+      "label": "Entscheidung · Gegenstand · Bedeutung · Erhalt",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "a2mdm_decision_object_meaning_preservation"
+        },
+        {
+          "source": "capability",
+          "ref": "coordination_meaning_preservation_profile"
+        },
+        {
+          "source": "function",
+          "ref": "fn-a2mdm-decision-object-meaning-preservation"
+        }
+      ],
+      "functionIds": [
+        "fn-a2mdm-decision-object-meaning-preservation"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "a2mdm_decision_object_meaning_preservation"
+        },
+        {
+          "capabilityId": "coordination_meaning_preservation_profile"
+        }
+      ],
+      "inputs": [
+        "owner",
+        "ownerRole"
+      ],
+      "basePriority": 0.3043
+    },
+    {
+      "needId": "need:contact:fn-budget-waterfall-governance",
+      "key": "contact:fn-budget-waterfall-governance",
+      "label": "Finanzierung · Sorgfalt · Prüfung · Bewertung",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "investment_two_track_control"
+        },
+        {
+          "source": "capability",
+          "ref": "no_regret_measure_definition_gate"
+        },
+        {
+          "source": "function",
+          "ref": "fn-budget-waterfall-governance"
+        }
+      ],
+      "functionIds": [
+        "fn-budget-waterfall-governance"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "investment_two_track_control"
+        },
+        {
+          "capabilityId": "no_regret_measure_definition_gate"
+        }
+      ],
+      "inputs": [
+        "fundingOwner",
+        "tacticalOwner"
+      ],
+      "basePriority": 0.3043
+    },
+    {
+      "needId": "need:contact:fn-communication-break-process-risk",
+      "key": "contact:fn-communication-break-process-risk",
+      "label": "Kommunikation · Unterbrechung · Ablauf · Risiken",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "communication_break_process_risk"
+        },
+        {
+          "source": "capability",
+          "ref": "steering_artifact_acceptance_gate"
+        },
+        {
+          "source": "function",
+          "ref": "fn-communication-break-process-risk"
+        }
+      ],
+      "functionIds": [
+        "fn-communication-break-process-risk"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "communication_break_process_risk"
+        },
+        {
+          "capabilityId": "steering_artifact_acceptance_gate"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.3043
+    },
+    {
+      "needId": "need:contact:fn-controllability-submission-cockpit",
+      "key": "contact:fn-controllability-submission-cockpit",
+      "label": "Steuerbarkeit · Einreichung · Übersicht",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "controllability_submission_cockpit"
+        },
+        {
+          "source": "capability",
+          "ref": "e2e_controllability_check_governance"
+        },
+        {
+          "source": "function",
+          "ref": "fn-controllability-submission-cockpit"
+        }
+      ],
+      "functionIds": [
+        "fn-controllability-submission-cockpit"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "controllability_submission_cockpit"
+        },
+        {
+          "capabilityId": "e2e_controllability_check_governance"
+        }
+      ],
+      "inputs": [
+        "coordinator",
+        "owner"
+      ],
+      "basePriority": 0.3043
+    },
+    {
+      "needId": "need:contact:fn-crisis-decision-routine",
+      "key": "contact:fn-crisis-decision-routine",
+      "label": "Krise · Entscheidung · Routine",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "crisis_decision_routine"
+        },
+        {
+          "source": "capability",
+          "ref": "flex_strategic_demand_intake"
+        },
+        {
+          "source": "function",
+          "ref": "fn-crisis-decision-routine"
+        }
+      ],
+      "functionIds": [
+        "fn-crisis-decision-routine"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "crisis_decision_routine"
+        },
+        {
+          "capabilityId": "flex_strategic_demand_intake"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.3043
+    },
+    {
+      "needId": "need:contact:fn-cross-domain-special-topics-queue",
+      "key": "contact:fn-cross-domain-special-topics-queue",
+      "label": "Übergreifend · Fachbereiche · Sonderfälle · Themen · Aufgabenliste",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "cross_domain_special_topics_queue"
+        },
+        {
+          "source": "capability",
+          "ref": "vnb_special_topic_workstate"
+        },
+        {
+          "source": "function",
+          "ref": "fn-cross-domain-special-topics-queue"
+        }
+      ],
+      "functionIds": [
+        "fn-cross-domain-special-topics-queue"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "cross_domain_special_topics_queue"
+        },
+        {
+          "capabilityId": "vnb_special_topic_workstate"
+        }
+      ],
+      "inputs": [
+        "accountableRole",
+        "owner",
+        "ownerRole"
+      ],
+      "basePriority": 0.3043
+    },
+    {
+      "needId": "need:contact:fn-decision-readiness-matrix",
+      "key": "contact:fn-decision-readiness-matrix",
+      "label": "Entscheidung · Bereitschaft · Übersicht",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "decision_readiness_matrix"
+        },
+        {
+          "source": "capability",
+          "ref": "no_regret_measure_proof_gate"
+        },
+        {
+          "source": "function",
+          "ref": "fn-decision-readiness-matrix"
+        }
+      ],
+      "functionIds": [
+        "fn-decision-readiness-matrix"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "decision_readiness_matrix"
+        },
+        {
+          "capabilityId": "no_regret_measure_proof_gate"
+        }
+      ],
+      "inputs": [
+        "decisionOwner",
+        "owner"
+      ],
+      "basePriority": 0.3043
+    },
+    {
+      "needId": "need:contact:fn-evidence-freshness-guard",
+      "key": "contact:fn-evidence-freshness-guard",
+      "label": "Nachweise · Aktualität · Prüfung",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "evidence_freshness_guard"
+        },
+        {
+          "source": "capability",
+          "ref": "netzsignal_delta_gating"
+        },
+        {
+          "source": "function",
+          "ref": "fn-evidence-freshness-guard"
+        }
+      ],
+      "functionIds": [
+        "fn-evidence-freshness-guard"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "evidence_freshness_guard"
+        },
+        {
+          "capabilityId": "netzsignal_delta_gating"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.3043
+    },
+    {
+      "needId": "need:contact:fn-fnav-fast-track-contract-gate",
+      "key": "contact:fn-fnav-fast-track-contract-gate",
+      "label": "Übergreifend · Kommunikationswege · Verteilnetz · Hinweise · Aufgabenliste",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "cross_channel_vnb_signal_queue"
+        },
+        {
+          "source": "capability",
+          "ref": "fnav_fast_track_contract_gate"
+        },
+        {
+          "source": "function",
+          "ref": "fn-fnav-fast-track-contract-gate"
+        }
+      ],
+      "functionIds": [
+        "fn-fnav-fast-track-contract-gate"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "cross_channel_vnb_signal_queue"
+        },
+        {
+          "capabilityId": "fnav_fast_track_contract_gate"
+        }
+      ],
+      "inputs": [
+        "ownerContact",
+        "ownerRole"
+      ],
+      "basePriority": 0.3043
+    },
+    {
+      "needId": "need:contact:fn-investment-data-review-queue",
+      "key": "contact:fn-investment-data-review-queue",
+      "label": "Investitionen · Daten · Prüfung · Aufgabenliste",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "investment_data_review_queue"
+        },
+        {
+          "source": "capability",
+          "ref": "metering_rollout_process_indicator"
+        },
+        {
+          "source": "function",
+          "ref": "fn-investment-data-review-queue"
+        }
+      ],
+      "functionIds": [
+        "fn-investment-data-review-queue"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "investment_data_review_queue"
+        },
+        {
+          "capabilityId": "metering_rollout_process_indicator"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.3043
+    },
+    {
+      "needId": "need:gridOperatorMastrId",
+      "key": "gridOperatorMastrId",
+      "label": "Netzbetreiber MaStR-ID",
+      "kind": "identifier",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "renewable_generation_forecast"
+        }
+      ],
+      "functionIds": [
+        "fn-renewable-generation-forecast"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "renewable_generation_forecast"
+        },
+        {
+          "operation": "forecast.generationForecast"
+        }
+      ],
+      "basePriority": 0.3043
+    },
+    {
+      "needId": "need:contact:fn-anschlusskapazitaet-evidence-queue",
+      "key": "contact:fn-anschlusskapazitaet-evidence-queue",
+      "label": "Anschlusskapazität · Nachweise · Aufgabenliste",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "areal_network_integration_offer_gate"
+        },
+        {
+          "source": "function",
+          "ref": "fn-anschlusskapazitaet-evidence-queue"
+        }
+      ],
+      "functionIds": [
+        "fn-anschlusskapazitaet-evidence-queue"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "areal_network_integration_offer_gate"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-cost-review-committee-status",
+      "key": "contact:fn-cost-review-committee-status",
+      "label": "Kosten · Prüfung · Gremien · Stand",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "cost_review_committee_status"
+        },
+        {
+          "source": "function",
+          "ref": "fn-cost-review-committee-status"
+        }
+      ],
+      "functionIds": [
+        "fn-cost-review-committee-status"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "cost_review_committee_status"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-cross-system-variance-matrix",
+      "key": "contact:fn-cross-system-variance-matrix",
+      "label": "Übergreifend · Systeme · Abweichungen · Übersicht",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "cross_system_variance_matrix"
+        },
+        {
+          "source": "function",
+          "ref": "fn-cross-system-variance-matrix"
+        }
+      ],
+      "functionIds": [
+        "fn-cross-system-variance-matrix"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "cross_system_variance_matrix"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-direct-marketer-risk-gate",
+      "key": "contact:fn-direct-marketer-risk-gate",
+      "label": "Direkt · Vermarktung · Risiken · Freigabeprüfung",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "direct_marketer_risk_gate"
+        },
+        {
+          "source": "function",
+          "ref": "fn-direct-marketer-risk-gate"
+        }
+      ],
+      "functionIds": [
+        "fn-direct-marketer-risk-gate"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "direct_marketer_risk_gate"
+        }
+      ],
+      "inputs": [
+        "roleOwner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-gas-capacity-booking-review-gate",
+      "key": "contact:fn-gas-capacity-booking-review-gate",
+      "label": "Gas · Kapazität · Buchung · Prüfung · Freigabeprüfung",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "gas_capacity_booking_review_gate"
+        },
+        {
+          "source": "function",
+          "ref": "fn-gas-capacity-booking-review-gate"
+        }
+      ],
+      "functionIds": [
+        "fn-gas-capacity-booking-review-gate"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "gas_capacity_booking_review_gate"
+        }
+      ],
+      "inputs": [
+        "vdmiOwner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-gas-infrastructure-risk-governance",
+      "key": "contact:fn-gas-infrastructure-risk-governance",
+      "label": "Digital · Abbild · Regelkonformität · Freigabeprüfung",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "investment_owner_deadline_budget_gate"
+        },
+        {
+          "source": "function",
+          "ref": "fn-gas-infrastructure-risk-governance"
+        }
+      ],
+      "functionIds": [
+        "fn-gas-infrastructure-risk-governance"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "investment_owner_deadline_budget_gate"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-gas-network-decision-chain",
+      "key": "contact:fn-gas-network-decision-chain",
+      "label": "Gas · Netz · Entscheidung · Zusammenhänge",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "gas_network_decision_chain"
+        },
+        {
+          "source": "function",
+          "ref": "fn-gas-network-decision-chain"
+        }
+      ],
+      "functionIds": [
+        "fn-gas-network-decision-chain"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "gas_network_decision_chain"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-gas-transformation-dependency-map",
+      "key": "contact:fn-gas-transformation-dependency-map",
+      "label": "Gas · Stilllegung · Zeitplan · Stand",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "gas_decommissioning_roadmap_status"
+        },
+        {
+          "source": "function",
+          "ref": "fn-gas-transformation-dependency-map"
+        }
+      ],
+      "functionIds": [
+        "fn-gas-transformation-dependency-map"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "gas_decommissioning_roadmap_status"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-jour-fixe-decision-closure-tracker",
+      "key": "contact:fn-jour-fixe-decision-closure-tracker",
+      "label": "Regeltermin · Abstimmung · Entscheidung · Abschluss · Nachverfolgung",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "jour_fixe_decision_closure_tracker"
+        },
+        {
+          "source": "function",
+          "ref": "fn-jour-fixe-decision-closure-tracker"
+        }
+      ],
+      "functionIds": [
+        "fn-jour-fixe-decision-closure-tracker"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "jour_fixe_decision_closure_tracker"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-leadership-delta-cockpit",
+      "key": "contact:fn-leadership-delta-cockpit",
+      "label": "Führung · Änderungen · Übersicht",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "leadership_delta_cockpit"
+        },
+        {
+          "source": "function",
+          "ref": "fn-leadership-delta-cockpit"
+        }
+      ],
+      "functionIds": [
+        "fn-leadership-delta-cockpit"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "leadership_delta_cockpit"
+        }
+      ],
+      "inputs": [
+        "ownerRole"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-legal-clarification-operating-model",
+      "key": "contact:fn-legal-clarification-operating-model",
+      "label": "Datenquellen · Verzeichnis · Einordnung · Verantwortung",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "legal_clarification_operating_model"
+        },
+        {
+          "source": "function",
+          "ref": "fn-legal-clarification-operating-model"
+        }
+      ],
+      "functionIds": [
+        "fn-legal-clarification-operating-model"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "legal_clarification_operating_model"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-liquidity-planning-governance-module",
+      "key": "contact:fn-liquidity-planning-governance-module",
+      "label": "Liquidität · Planung · Verantwortung · Unterstützung",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "liquidity_planning_governance_module"
+        },
+        {
+          "source": "function",
+          "ref": "fn-liquidity-planning-governance-module"
+        }
+      ],
+      "functionIds": [
+        "fn-liquidity-planning-governance-module"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "liquidity_planning_governance_module"
+        }
+      ],
+      "inputs": [
+        "ownerRaci"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-non-escalation-control-evidence",
+      "key": "contact:fn-non-escalation-control-evidence",
+      "label": "Vermeidung · Eskalation · Prüfung · Nachweise",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "non_escalation_control_evidence"
+        },
+        {
+          "source": "function",
+          "ref": "fn-non-escalation-control-evidence"
+        }
+      ],
+      "functionIds": [
+        "fn-non-escalation-control-evidence"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "non_escalation_control_evidence"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-nova-decision-lifecycle-readiness",
+      "key": "contact:fn-nova-decision-lifecycle-readiness",
+      "label": "Entscheidung · Lebenszyklus · Bereitschaft",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "nova_decision_lifecycle_readiness"
+        },
+        {
+          "source": "function",
+          "ref": "fn-nova-decision-lifecycle-readiness"
+        }
+      ],
+      "functionIds": [
+        "fn-nova-decision-lifecycle-readiness"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "nova_decision_lifecycle_readiness"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-smart-meter-cls-data-governance-receipt",
+      "key": "contact:fn-smart-meter-cls-data-governance-receipt",
+      "label": "Intelligent · Messsysteme · Daten · Verantwortung · Nachweis",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "smart_meter_cls_data_governance_receipt"
+        },
+        {
+          "source": "function",
+          "ref": "fn-smart-meter-cls-data-governance-receipt"
+        }
+      ],
+      "functionIds": [
+        "fn-smart-meter-cls-data-governance-receipt"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "smart_meter_cls_data_governance_receipt"
+        }
+      ],
+      "inputs": [
+        "owner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-smgw-connector-readiness-status",
+      "key": "contact:fn-smgw-connector-readiness-status",
+      "label": "Anbindung · Bereitschaft · Stand",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "smgw_connector_readiness_status"
+        },
+        {
+          "source": "function",
+          "ref": "fn-smgw-connector-readiness-status"
+        }
+      ],
+      "functionIds": [
+        "fn-smgw-connector-readiness-status"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "smgw_connector_readiness_status"
+        }
+      ],
+      "inputs": [
+        "ownerRole"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:contact:fn-water-pricing-net-investment-alignment-gate",
+      "key": "contact:fn-water-pricing-net-investment-alignment-gate",
+      "label": "Wasser · Preisbildung · Netz · Investitionen · Abstimmung · Freigabeprüfung",
+      "kind": "contact",
+      "derivedFrom": [
+        {
+          "source": "capability",
+          "ref": "water_pricing_net_investment_alignment_gate"
+        },
+        {
+          "source": "function",
+          "ref": "fn-water-pricing-net-investment-alignment-gate"
+        }
+      ],
+      "functionIds": [
+        "fn-water-pricing-net-investment-alignment-gate"
+      ],
+      "unlocks": [
+        {
+          "capabilityId": "water_pricing_net_investment_alignment_gate"
+        }
+      ],
+      "inputs": [
+        "governanceOwner"
+      ],
+      "basePriority": 0.2621
+    },
+    {
+      "needId": "need:dataset:grid-assets",
+      "key": "dataset:grid-assets",
+      "label": "Grid Assets",
+      "kind": "dataset",
+      "derivedFrom": [
+        {
+          "source": "semanticDomain",
+          "ref": "grid-assets"
+        }
+      ],
+      "functionIds": [],
+      "unlocks": [
+        {
+          "endpointId": "asset_effective_record"
+        }
+      ],
+      "basePriority": 0.1311
+    },
+    {
+      "needId": "need:dataset:billing-overview",
+      "key": "dataset:billing-overview",
+      "label": "Billing Overview",
+      "kind": "dataset",
+      "derivedFrom": [
+        {
+          "source": "semanticDomain",
+          "ref": "billing-overview"
+        }
+      ],
+      "functionIds": [],
+      "unlocks": [],
+      "basePriority": 0
+    },
+    {
+      "needId": "need:dataset:customer-projects",
+      "key": "dataset:customer-projects",
+      "label": "Customer Projects",
+      "kind": "dataset",
+      "derivedFrom": [
+        {
+          "source": "semanticDomain",
+          "ref": "customer-projects"
+        }
+      ],
+      "functionIds": [],
+      "unlocks": [],
+      "basePriority": 0
+    },
+    {
+      "needId": "need:dataset:forecast-vs-actual",
+      "key": "dataset:forecast-vs-actual",
+      "label": "Forecast vs Actual",
+      "kind": "dataset",
+      "derivedFrom": [
+        {
+          "source": "semanticDomain",
+          "ref": "forecast-vs-actual"
+        }
+      ],
+      "functionIds": [],
+      "unlocks": [],
+      "basePriority": 0
+    },
+    {
+      "needId": "need:dataset:grid-incidents",
+      "key": "dataset:grid-incidents",
+      "label": "Grid Incidents",
+      "kind": "dataset",
+      "derivedFrom": [
+        {
+          "source": "semanticDomain",
+          "ref": "grid-incidents"
+        }
+      ],
+      "functionIds": [],
+      "unlocks": [],
+      "basePriority": 0
+    },
+    {
+      "needId": "need:dataset:mako-process-log",
+      "key": "dataset:mako-process-log",
+      "label": "MaKo Process Log",
+      "kind": "dataset",
+      "derivedFrom": [
+        {
+          "source": "semanticDomain",
+          "ref": "mako-process-log"
+        }
+      ],
+      "functionIds": [],
+      "unlocks": [],
+      "basePriority": 0
+    },
+    {
+      "needId": "need:dataset:mastr-local",
+      "key": "dataset:mastr-local",
+      "label": "Local MaStR Units",
+      "kind": "dataset",
+      "derivedFrom": [
+        {
+          "source": "semanticDomain",
+          "ref": "mastr-local"
+        }
+      ],
+      "functionIds": [],
+      "unlocks": [],
+      "basePriority": 0
+    },
+    {
+      "needId": "need:dataset:metering",
+      "key": "dataset:metering",
+      "label": "Metering Load Profile",
+      "kind": "dataset",
+      "derivedFrom": [
+        {
+          "source": "semanticDomain",
+          "ref": "metering"
+        }
+      ],
+      "functionIds": [],
+      "unlocks": [],
+      "basePriority": 0
+    },
+    {
+      "needId": "need:dataset:metering-point-master",
+      "key": "dataset:metering-point-master",
+      "label": "Metering Point Master",
+      "kind": "dataset",
+      "derivedFrom": [
+        {
+          "source": "semanticDomain",
+          "ref": "metering-point-master"
+        }
+      ],
+      "functionIds": [],
+      "unlocks": [],
+      "basePriority": 0
+    },
+    {
+      "needId": "need:dataset:other",
+      "key": "dataset:other",
+      "label": "Other / Custom Dataset",
+      "kind": "dataset",
+      "derivedFrom": [
+        {
+          "source": "semanticDomain",
+          "ref": "other"
+        }
+      ],
+      "functionIds": [],
+      "unlocks": [],
+      "basePriority": 0
+    },
+    {
+      "needId": "need:dataset:procurement",
+      "key": "dataset:procurement",
+      "label": "Energy Procurement",
+      "kind": "dataset",
+      "derivedFrom": [
+        {
+          "source": "semanticDomain",
+          "ref": "procurement"
+        }
+      ],
+      "functionIds": [],
+      "unlocks": [],
+      "basePriority": 0
+    },
+    {
+      "needId": "need:dataset:receivables",
+      "key": "dataset:receivables",
+      "label": "Receivables",
+      "kind": "dataset",
+      "derivedFrom": [
+        {
+          "source": "semanticDomain",
+          "ref": "receivables"
+        }
+      ],
+      "functionIds": [],
+      "unlocks": [],
+      "basePriority": 0
+    },
+    {
+      "needId": "need:dataset:redispatch-queue",
+      "key": "dataset:redispatch-queue",
+      "label": "Redispatch Queue",
+      "kind": "dataset",
+      "derivedFrom": [
+        {
+          "source": "semanticDomain",
+          "ref": "redispatch-queue"
+        }
+      ],
+      "functionIds": [],
+      "unlocks": [],
+      "basePriority": 0
+    }
+  ]
+}
