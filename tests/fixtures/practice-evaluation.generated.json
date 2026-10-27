@@ -5958,7 +5958,7 @@
             "description": "Priorisierung mit Begründung aus den Unterlagen",
             "rules": {
               "require": [
-                "Z10",
+                "(?:Z10|Klärfall)",
                 "(?:Rechnungskorrektur|Korrektur)"
               ],
               "forbid": [

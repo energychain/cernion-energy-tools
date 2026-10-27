@@ -1251,6 +1251,17 @@ async function runContentTurn(
       metadata: { cetCaseId: item.cetCaseId },
     }))
   );
+  // Conversation state (#993): documents of earlier turns of this chat remain evidence for a
+  // follow-up; the answer weighs them like any other source and cites them.
+  if (!incomingDocuments)
+    retrieval.evidence.push(
+      ...(pending?.conversationDocuments || []).map((document) => ({
+        source: document.name,
+        retrievalSource: 'documents',
+        value: document.text,
+        metadata: { name: document.name, conversationState: true },
+      }))
+    );
   resolveMemoryRetrieval(retrieval);
   if (!memory.settled) {
     // Local checks and notice delivery use the turn budget, independently of source timeouts.
