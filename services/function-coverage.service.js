@@ -129,6 +129,26 @@ module.exports = {
     },
   },
   methods: {
+    // Local helpers for routing open knowledge needs (#997 step 4): coverage scores only, no
+    // identities beyond actor ids, never exposed as an action.
+    async coverageRows(tenantId, { actorId, functionIds } = {}) {
+      const model = this.settings.model || modelApi.getFunctionModel();
+      const now = this.settings.clock();
+      const groups = new Map();
+      for (const doc of resolvedTouches(await this.documents(tenantId), model)) {
+        if (doc.expiresAt <= now || doc.at > now) continue;
+        if (actorId && doc.actorId !== actorId) continue;
+        if (functionIds && !functionIds.includes(doc.functionId)) continue;
+        const key = reference(doc.actorId, doc.functionId);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(doc);
+      }
+      return [...groups.values()]
+        .map((docs) => project(docs, now, this.config))
+        .filter(Boolean)
+        .map(({ actorId: actor, functionId, score }) => ({ actorId: actor, functionId, score }))
+        .sort((a, b) => b.score - a.score || compareCanonicalStrings(a.actorId, b.actorId));
+    },
     async correct(event, meta) {
       const { correctionPrincipal } = require('../src/shared-service-learning');
       correctionPrincipal(event, meta);
