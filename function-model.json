@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "c8680fd1a9254c12e9beb0c045300a7506bebea1fda4f977736efad756b33e0c",
+  "sourceHash": "d812d50ee97d075495b48d276e3292d75204d8da00269ade2b5d058d9b847bab",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -9526,6 +9526,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/knowledge-prefill.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/knowledge-rag-chunker.js"
         },
         {
@@ -13404,6 +13408,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-prefill.js"
         },
         {
           "kind": "service",
@@ -21967,6 +21975,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-prefill.js"
         },
         {
           "kind": "service",
@@ -32868,6 +32880,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/knowledge-prefill.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/knowledge-rag-chunker.js"
         },
         {
@@ -37052,6 +37068,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-prefill.js"
         },
         {
           "kind": "service",
@@ -57330,6 +57350,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/knowledge-prefill.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/knowledge-rag-chunker.js"
         },
         {
@@ -67876,6 +67900,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/knowledge-prefill.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/knowledge-rag-chunker.js"
         },
         {
@@ -73755,6 +73783,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/knowledge-prefill.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/knowledge-rag-chunker.js"
         },
         {
@@ -79443,6 +79475,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-prefill.js"
         },
         {
           "kind": "service",
@@ -85710,6 +85746,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/knowledge-prefill.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/knowledge-rag-chunker.js"
         },
         {
@@ -88904,6 +88944,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/knowledge-prefill.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/knowledge-rag-chunker.js"
         },
         {
@@ -91812,6 +91856,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-prefill.js"
         },
         {
           "kind": "service",
@@ -100863,6 +100911,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-prefill.js"
         },
         {
           "kind": "service",
@@ -114833,6 +114885,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/knowledge-prefill.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/knowledge-rag-chunker.js"
         },
         {
@@ -127741,6 +127797,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/knowledge-prefill.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/knowledge-rag-chunker.js"
         },
         {
@@ -131071,6 +131131,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-prefill.js"
         },
         {
           "kind": "service",
@@ -136442,6 +136506,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/knowledge-prefill.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/knowledge-rag-chunker.js"
         },
         {
@@ -141172,6 +141240,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-prefill.js"
         },
         {
           "kind": "service",
@@ -146021,6 +146093,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-prefill.js"
         },
         {
           "kind": "service",
@@ -150929,6 +151005,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-prefill.js"
         },
         {
           "kind": "service",
@@ -165622,6 +165702,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/knowledge-prefill.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/knowledge-rag-chunker.js"
         },
         {
@@ -175652,6 +175736,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/knowledge-prefill.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/knowledge-rag-chunker.js"
         },
         {
@@ -183068,6 +183156,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-prefill.js"
         },
         {
           "kind": "service",
@@ -205660,6 +205752,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-prefill.js"
         },
         {
           "kind": "service",

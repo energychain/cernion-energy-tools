@@ -233,6 +233,12 @@ module.exports = {
     },
   },
   methods: {
+    // Local read for prefills inside an authenticated turn of the same tenant (#997 step 5).
+    async answeredNeeds(tenantId) {
+      return (await this.tenantDocs(tenantId))
+        .filter((doc) => ['answered', 'confirmed'].includes(doc.state))
+        .map((doc) => this.view(doc));
+    },
     // Facts captured before the register existed are matched once per tenant and derivation.
     async backfill(ctx, p) {
       const marker = `kn-meta:${encodeURIComponent(p.tenantId)}`;
