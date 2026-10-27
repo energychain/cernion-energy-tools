@@ -6661,10 +6661,10 @@
                 "Fristen"
               ],
               "require": [
-                "E-1",
-                "E-2",
-                "R-1",
-                "R-2",
+                "Rechnungskorrektur",
+                "(?:externe|Kostenrahmen)",
+                "Z10",
+                "(?:Ruhestand|Wissen|Bilanzierung)",
                 "REK-SYN-01"
               ],
               "forbid": [
@@ -6905,7 +6905,7 @@
             "description": "Prüfregel mit Schwelle festgehalten",
             "rules": {
               "require": [
-                "5 ?%",
+                "5 ?(?:%|Prozent)",
                 "(?:Vormonat|Summenzeitreihe)"
               ],
               "forbid": [
@@ -6961,7 +6961,7 @@
             "description": "Prüfregel festgehalten",
             "rules": {
               "require": [
-                "5 ?%"
+                "5 ?(?:%|Prozent)"
               ],
               "forbid": [
                 "\\bversendet\\b",
@@ -6992,7 +6992,7 @@
             "rules": {
               "require": [
                 "(?:klär|prüf)",
-                "5 ?%"
+                "5 ?(?:%|Prozent)"
               ],
               "forbid": [
                 "\\bversendet\\b",

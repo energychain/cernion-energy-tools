@@ -178,7 +178,13 @@ function generateNetzwirtschaftScenarios(scenario, turn) {
         'Briefing mit belegten Abschnitten',
         rules({
           sections: ['Entscheidungen', 'Risiken', 'Fristen'],
-          require: ['E-1', 'E-2', 'R-1', 'R-2', 'REK-SYN-01'],
+          require: [
+            'Rechnungskorrektur',
+            '(?:externe|Kostenrahmen)',
+            'Z10',
+            '(?:Ruhestand|Wissen|Bilanzierung)',
+            'REK-SYN-01',
+          ],
         }),
         { documents: BRIEFING }
       ),
@@ -221,7 +227,7 @@ function generateNetzwirtschaftScenarios(scenario, turn) {
         'capture',
         'Halte aus der Wissensnotiz die Prüfregel vor dem monatlichen Versand fest, damit das Team sie künftig nutzt.',
         'Prüfregel mit Schwelle festgehalten',
-        rules({ require: ['5 ?%', '(?:Vormonat|Summenzeitreihe)'] }),
+        rules({ require: ['5 ?(?:%|Prozent)', '(?:Vormonat|Summenzeitreihe)'] }),
         { documents: KNOWLEDGE }
       ),
     ]),
@@ -230,7 +236,7 @@ function generateNetzwirtschaftScenarios(scenario, turn) {
         'capture',
         'Halte aus der Wissensnotiz die Prüfregel vor dem monatlichen Versand fest.',
         'Prüfregel festgehalten',
-        rules({ require: ['5 ?%'] }),
+        rules({ require: ['5 ?(?:%|Prozent)'] }),
         { documents: KNOWLEDGE }
       ),
       turn(
@@ -238,7 +244,7 @@ function generateNetzwirtschaftScenarios(scenario, turn) {
         'Die Summenzeitreihe weicht diesen Monat um 7 % vom Vormonat ab. Darf ich versenden?',
         'Gesicherte Regel angewandt: erst klären',
         rules({
-          require: ['(?:klär|prüf)', '5 ?%'],
+          require: ['(?:klär|prüf)', '5 ?(?:%|Prozent)'],
           forbid: ['\\bja, (?:du kannst|Sie können) versenden\\b'],
         }),
         { chat: 'later' }

@@ -20,7 +20,14 @@ function documentTable(text) {
 async function documentQuestion(
   documents,
   question,
-  { tenantId, logger, internalContext = [], conversationContext, conversationPreferences } = {}
+  {
+    tenantId,
+    logger,
+    internalContext = [],
+    conversationContext,
+    conversationPreferences,
+    requestedOutput,
+  } = {}
 ) {
   if (
     !question.trim() ||
@@ -101,6 +108,18 @@ async function documentQuestion(
           conversationContext,
           conversationPreferences,
         }),
+        // A requested structure (named sections, steps) shapes the answer; content stays grounded.
+        ...(requestedOutput?.requested
+          ? {
+              outputInstruction:
+                'requestedOutput beschreibt die ausdrücklich bestellte Form: jeden genannten Abschnitt als eigene Überschrift in genannter Reihenfolge, Schritte nummeriert; fehlt für einen Abschnitt ein Beleg, steht dort „nicht belegt“.',
+              requestedOutput: {
+                kind: requestedOutput.kind,
+                parts: requestedOutput.parts || [],
+                constraints: requestedOutput.constraints || [],
+              },
+            }
+          : {}),
         ...safe.value,
       }),
       { ...llmOptions(tenantId, 'answer', true), logger }

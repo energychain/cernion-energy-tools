@@ -1411,10 +1411,13 @@ async function runContentTurn(
       .filter(Boolean)
       .join('\n\n')
   );
+  // The single-question limit governs CET's own follow-up questions; questions that a grounded
+  // document answer lists (e.g. for an interview) are its content.
   const guarded =
     situation.requestedOutput?.requested ||
     situation.caseSearch?.requested ||
-    situation.conversationPreferences?.questions === 'requested'
+    situation.conversationPreferences?.questions === 'requested' ||
+    reply.answerStatus === 'document_answer'
       ? { responseText: result.responseText, questions: reply.questions }
       : require('./workbench-conversation-shape').singleQuestion(
           result.responseText,
