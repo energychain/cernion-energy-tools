@@ -1,0 +1,253 @@
+{
+  "version": 1,
+  "reviewed": "2026-10-27",
+  "defaultScope": "case",
+  "description": "Geprüfte Einordnung von Katalogeingaben: tenant = stabile Angabe über die eigene Organisation, perFunction = Zuständigkeit je Funktion, runtime = technischer CET-Kontext. Nicht aufgeführte Eingaben gelten als vorgangsbezogen (case) und sind kein Wissensbedarf.",
+  "parameters": {
+    "accountableRole": {
+      "scope": "perFunction",
+      "kind": "contact",
+      "rationale": "Benennt die zuständige und verantwortliche Rolle für ein Fachthema."
+    },
+    "authBoundary": {
+      "scope": "runtime",
+      "kind": "fact",
+      "rationale": "Technischer Parameter für Zugriffsgrenzen zur Laufzeit."
+    },
+    "balanceGroupId": {
+      "scope": "tenant",
+      "kind": "identifier",
+      "rationale": "Stabile Bilanzkreiskennung der eigenen Organisation."
+    },
+    "bdew": {
+      "scope": "tenant",
+      "kind": "identifier",
+      "rationale": "Eigene Marktpartnerkennung der Organisation; bleibt über alle Vorgänge gleich."
+    },
+    "caseId": {
+      "scope": "runtime",
+      "kind": "identifier",
+      "rationale": "Die Fall-ID ist eine Kennung des technischen Laufzeitkontexts."
+    },
+    "channels": {
+      "scope": "runtime",
+      "kind": "fact",
+      "rationale": "Technischer Parameter zur Steuerung der Echtzeit-Updates."
+    },
+    "coordinator": {
+      "scope": "perFunction",
+      "kind": "contact",
+      "rationale": "Zuständige Person oder Rolle (Koordinator) für den Fachbereich."
+    },
+    "datapointId": {
+      "scope": "runtime",
+      "kind": "identifier",
+      "rationale": "Laufzeit-ID zur Referenzierung eines expliziten Datenpunkts im Audit."
+    },
+    "datasourceId": {
+      "scope": "runtime",
+      "kind": "dataset",
+      "rationale": "Verweist zur Laufzeit auf die Herkunftsquelle der betrachteten Daten."
+    },
+    "decisionOwner": {
+      "scope": "perFunction",
+      "kind": "contact",
+      "rationale": "Benennt die Person oder Rolle, die eine langfristige Entscheidungsverantwortung traegt."
+    },
+    "division": {
+      "scope": "tenant",
+      "kind": "fact",
+      "rationale": "Sparten der eigenen Organisation; organisationsweit stabil."
+    },
+    "domains": {
+      "scope": "runtime",
+      "kind": "fact",
+      "rationale": "Technischer Parameter für abzudeckende fachliche Domänen zur Laufzeit."
+    },
+    "domainShape": {
+      "scope": "runtime",
+      "kind": "term",
+      "rationale": "Bestimmt die technische Form oder Struktur der zurueckgegebenen Domaenenergebnisse."
+    },
+    "evidenceGapId": {
+      "scope": "runtime",
+      "kind": "identifier",
+      "rationale": "Identifiziert im Laufzeitkontext eine spezifische Luecke in den Nachweisdaten."
+    },
+    "fallbackPollingPath": {
+      "scope": "runtime",
+      "kind": "fact",
+      "rationale": "Technischer Pfad für Fallback-Mechanismen zur Laufzeit."
+    },
+    "fundingOwner": {
+      "scope": "perFunction",
+      "kind": "contact",
+      "rationale": "Die übergeordnete Rolle, die das Budget oder die Finanzierung des Bereichs verantwortet."
+    },
+    "governanceOwner": {
+      "scope": "perFunction",
+      "kind": "contact",
+      "rationale": "Stabile Zuständigkeit für den Governance-Prozess."
+    },
+    "gridAreaId": {
+      "scope": "tenant",
+      "kind": "identifier",
+      "rationale": "Kennzeichnet dauerhaft das eigene Netzgebiet der Organisation."
+    },
+    "gridOperatorId": {
+      "scope": "tenant",
+      "kind": "identifier",
+      "rationale": "Stabile Netzbetreiberkennung der eigenen Organisation."
+    },
+    "gridOperatorMastrId": {
+      "scope": "tenant",
+      "kind": "identifier",
+      "rationale": "Dient als stabile, mandantenweite Kennung des eigenen Netzbetreibers im Marktstammdatenregister."
+    },
+    "includeHints": {
+      "scope": "runtime",
+      "kind": "fact",
+      "rationale": "Ein technischer Laufzeitparameter zur Aktivierung von Provider-Hinweisen."
+    },
+    "incomingRows": {
+      "scope": "runtime",
+      "kind": "dataset",
+      "rationale": "Rohdaten als technische Laufzeit-Eingabe zur Verarbeitung (Reconciliation)."
+    },
+    "intent": {
+      "scope": "runtime",
+      "kind": "term",
+      "rationale": "Repraesentiert die analysierte Absicht einer Laufzeitanfrage an den Router."
+    },
+    "limit": {
+      "scope": "runtime",
+      "kind": "fact",
+      "rationale": "Ein technischer Laufzeitparameter zur Begrenzung der abgerufenen Datensaetze."
+    },
+    "lineOwnerRole": {
+      "scope": "perFunction",
+      "kind": "contact",
+      "rationale": "Kennzeichnet die Linienorganisation-Rolle, die fuer die Anlagenuebergabe zustaendig ist."
+    },
+    "mappingVersion": {
+      "scope": "runtime",
+      "kind": "fact",
+      "rationale": "Technische Angabe der Version eines Mappings waehrend der Dateiverarbeitung."
+    },
+    "meteringScope": {
+      "scope": "tenant",
+      "kind": "fact",
+      "rationale": "Umfang des eigenen Messstellenbetriebs; organisationsweit stabil."
+    },
+    "networkArea": {
+      "scope": "tenant",
+      "kind": "identifier",
+      "rationale": "Kennung des eigenen Netzgebietes, die organisationsweit stabil ist."
+    },
+    "owner": {
+      "scope": "perFunction",
+      "kind": "contact",
+      "rationale": "Definiert den fachlich Zuständigen oder Owner für ein Fachgebiet."
+    },
+    "ownerContact": {
+      "scope": "perFunction",
+      "kind": "contact",
+      "rationale": "Benennt die stabile Kontaktperson oder den Zuständigen für ein Fachgebiet."
+    },
+    "ownerRaci": {
+      "scope": "perFunction",
+      "kind": "contact",
+      "rationale": "Stabile Zuständigkeit oder Rolle (Owner/RACI) für einen Aufgabenbereich."
+    },
+    "ownerRole": {
+      "scope": "perFunction",
+      "kind": "contact",
+      "rationale": "Bezeichnet die stabile zuständige Rolle je Fachgebiet."
+    },
+    "pilotTenantId": {
+      "scope": "runtime",
+      "kind": "identifier",
+      "rationale": "Technische Tenant-ID im Laufzeitkontext für den Piloten."
+    },
+    "preferredFormat": {
+      "scope": "runtime",
+      "kind": "fact",
+      "rationale": "Spezifiziert das gewuenschte technische Renderer-Format waehrend der Laufzeit."
+    },
+    "projectId": {
+      "scope": "runtime",
+      "kind": "identifier",
+      "rationale": "Eine Projekt-ID ist Teil des technischen Laufzeitkontexts."
+    },
+    "q": {
+      "scope": "runtime",
+      "kind": "fact",
+      "rationale": "Abfrage- oder Suchstring für die dynamische Verarbeitung zur Laufzeit."
+    },
+    "query": {
+      "scope": "runtime",
+      "kind": "fact",
+      "rationale": "Dynamischer Freitext zur Ausführung von Suchabfragen zur Laufzeit."
+    },
+    "region": {
+      "scope": "tenant",
+      "kind": "fact",
+      "rationale": "Region oder Gebotszone der eigenen Organisation; für Markt- und Prognosequellen einmal bekannt."
+    },
+    "requiresResume": {
+      "scope": "runtime",
+      "kind": "fact",
+      "rationale": "Technische Laufzeiteinstellung bezüglich Wiederaufnahmeprozessen."
+    },
+    "roleOwner": {
+      "scope": "perFunction",
+      "kind": "contact",
+      "rationale": "Die stabil zuständige Person oder Rolle für einen Fachbereich."
+    },
+    "scopeId": {
+      "scope": "runtime",
+      "kind": "identifier",
+      "rationale": "Filtert waehrend der Laufzeit den Scope eines Evidence-Grounding-Audits."
+    },
+    "sourceAction": {
+      "scope": "runtime",
+      "kind": "fact",
+      "rationale": "Beschreibt die im Laufzeitkontext ausgeführte technische Aktion."
+    },
+    "sourceService": {
+      "scope": "runtime",
+      "kind": "identifier",
+      "rationale": "Bezeichnet den anfragenden Service im technischen Laufzeitkontext."
+    },
+    "stubFamily": {
+      "scope": "runtime",
+      "kind": "term",
+      "rationale": "Definiert im Laufzeitkontext eine Gruppe von API-Stubs fuer externe Schnittstellen."
+    },
+    "tacticalOwner": {
+      "scope": "perFunction",
+      "kind": "contact",
+      "rationale": "Stabile personelle Zuständigkeit für das taktische Themengebiet."
+    },
+    "tenantId": {
+      "scope": "runtime",
+      "kind": "identifier",
+      "rationale": "Laufzeitspezifische Identifikation des Mandanten, unter dem das System operiert."
+    },
+    "tenantScope": {
+      "scope": "runtime",
+      "kind": "fact",
+      "rationale": "Gibt den technischen Laufzeitkontext bezogen auf den Tenant an."
+    },
+    "vdmiOwner": {
+      "scope": "perFunction",
+      "kind": "contact",
+      "rationale": "Zuständige Person oder Rolle für das Themengebiet VDMI."
+    },
+    "vnbId": {
+      "scope": "tenant",
+      "kind": "identifier",
+      "rationale": "Der VNB-Identifier ist eine stabile Kennung der eigenen Organisation."
+    }
+  }
+}

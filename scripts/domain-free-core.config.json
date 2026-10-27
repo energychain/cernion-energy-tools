@@ -128,7 +128,9 @@
     "src/workbench-tenant-evidence.js",
     "src/workbench-answer-outcome.js",
     "src/project-skill-*.js",
-    "src/workbench-project-skills.js"
+    "src/workbench-project-skills.js",
+    "scripts/generate-knowledge-needs.js",
+    "services/knowledge-needs.service.js"
   ],
   "optionalPaths": [
     "src/function-model.js",
@@ -141,11 +143,7 @@
   "genericPackageShare": 0.05,
   "referenceCorpus": {
     "maxFilesPerPackage": 40,
-    "extensions": [
-      ".js",
-      ".cjs",
-      ".mjs"
-    ],
+    "extensions": [".js", ".cjs", ".mjs"],
     "generatedAt": "2026-10-03T00:00:00.000Z"
   }
 }
