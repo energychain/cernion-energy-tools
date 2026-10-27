@@ -585,7 +585,8 @@ module.exports = {
             question
           )
         )
-          return { handled: false, documents: ordinary };
+          // Tables attached to this turn stay bound to it even when no correction applies.
+          return { handled: false, documents: ordinary, confirmations, datasetIds: ids };
       }
       if (confirmations.length && !ids.length)
         return {

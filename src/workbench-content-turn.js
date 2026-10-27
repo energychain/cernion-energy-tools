@@ -735,7 +735,9 @@ async function runContentTurn(
   const dataReadAllowed =
     !draftRequest &&
     !understandingFailed &&
-    toolLoop.allowsDataRead(situation, envelope.userRequest, previous);
+    toolLoop.allowsDataRead(situation, envelope.userRequest, previous, {
+      attachedData: Boolean(envelope.datasetIds?.length),
+    });
   const answerReserve = understanding.llmOptions(p.tenantId, 'answer', Boolean(previous)).timeoutMs;
   const turnBudget =
     Number(process.env.WORKBENCH_TURN_TIMEOUT_MS) ||
@@ -767,6 +769,7 @@ async function runContentTurn(
     model: service.settings.systemActivityModel || getFunctionModel(),
     datasetAvailable: Boolean(ctx.broker.getLocalService('dataset')),
     datasetCandidates,
+    attachedData: Boolean(envelope.datasetIds?.length),
     domainsAllowed: workbenchContext.userProfile?.domainsAllowed || mapping?.domainsAllowed || [],
     previous,
   };
