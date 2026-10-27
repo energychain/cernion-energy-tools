@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "3b966752b26bf4cc67835b2fc271ccc7d85db52922b20634a4d9f48171e01bc8",
+  "sourceHash": "c8680fd1a9254c12e9beb0c045300a7506bebea1fda4f977736efad756b33e0c",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -165615,6 +165615,10 @@
         {
           "kind": "service",
           "ref": "src/job-store/redis-compat-driver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-elicitation.js"
         },
         {
           "kind": "service",
