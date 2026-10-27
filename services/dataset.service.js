@@ -340,6 +340,19 @@ module.exports = {
       const replayed = [];
       const confirmations = [],
         ids = [];
+      // A chat client may pass only excerpts of a large table file; the file name of a current
+      // tenant table still binds that table to this turn.
+      for (const document of ordinary) {
+        const name = String(document.name || '').toLocaleLowerCase('de-DE');
+        if (!/\.(?:csv|tsv|xlsx?|ods)$/u.test(name)) continue;
+        const known = records.find(
+          (record) =>
+            record.current !== false &&
+            !record.quality?.unusable &&
+            String(record.sourceName || '').toLocaleLowerCase('de-DE') === name
+        );
+        if (known && !ids.includes(known.id)) ids.push(known.id);
+      }
       for (const table of tables) {
         const deletion = deleted.find((record) => record.hash === table.hash);
         if (deletion) {
