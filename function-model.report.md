@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `b44f5113d75dc684971d07dcaeac29fdd4b6897ad85fbc5730eded397cf2433a`
+Source SHA-256: `3b966752b26bf4cc67835b2fc271ccc7d85db52922b20634a4d9f48171e01bc8`
 
 Capabilities: 173; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
@@ -483,7 +483,7 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (103)
+## unresolvedStaticEvents (105)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:227: dynamic emission"}
@@ -532,6 +532,8 @@ None.
 - {"service":"grid-connection","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"grid-operations","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"job-status","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"knowledge-needs","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"knowledge-needs","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"knowledge-rag","ref":"services/knowledge-rag.service.js:137: dynamic emission"}
 - {"service":"knowledge-rag","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"knowledge-rag","ref":"src/llm-client.js:227: dynamic emission"}

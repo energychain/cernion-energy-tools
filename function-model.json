@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "b44f5113d75dc684971d07dcaeac29fdd4b6897ad85fbc5730eded397cf2433a",
+  "sourceHash": "3b966752b26bf4cc67835b2fc271ccc7d85db52922b20634a4d9f48171e01bc8",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -209815,6 +209815,14 @@
       {
         "service": "job-status",
         "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "knowledge-needs",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "knowledge-needs",
+        "ref": "src/llm-client.js:227: dynamic emission"
       },
       {
         "service": "knowledge-rag",
