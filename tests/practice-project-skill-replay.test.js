@@ -117,7 +117,8 @@ function model(schema, raw) {
         .join('\n'),
     };
   else if (input.task === 'evidence_request_kind') value = { contentRequested: true };
-  else if (input.task === 'evidence_reference_resolution') value = { sourceIds: [] };
+  else if (input.task === 'evidence_reference_resolution')
+    value = { sources: [].map((id) => ({ id, relevance: 1 })) };
   else if (schema.properties?.concern)
     value = {
       concern: 'Frage einordnen',

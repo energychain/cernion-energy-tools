@@ -101,10 +101,19 @@ function truncatedDatasetValue(value) {
   );
 }
 
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
 function restoreDelimitedPairs(raw) {
-  const lines = raw.split(/\r?\n/).filter((line) => line.trim());
-  const boundary = lines[0]?.indexOf(':') ?? -1;
-  const header = boundary >= 0 ? lines[0].slice(0, boundary) : '';
+  const split = raw.split(/\r?\n/).filter((line) => line.trim());
+  const boundary = split[0]?.indexOf(':') ?? -1;
+  const header = boundary >= 0 ? split[0].slice(0, boundary) : '';
+  // Some loader versions join a record with the next one on one line ("None: 4 <header>: …",
+  // or after an empty value); separate them before the strict reconstruction below.
+  const lines = header.includes(';')
+    ? split.flatMap((line) => line.split(new RegExp(` (?=${escapeRegExp(header)}:)`, 'u')))
+    : split;
   // Only the repeated header-before-colon pattern proves the loader split a CSV.
   // A lone labelled line or orphan None field provides no such evidence.
   const records = lines.filter((line) => !/^\s*None\s*:/i.test(line));
