@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-26T23:46:30.559Z",
+  "generatedAt": "2026-10-27T18:01:48.358Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261026T234522Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261027T180021Z",
   "counts": {
-    "files": 2195,
-    "candidateFiles": 1321,
+    "files": 2215,
+    "candidateFiles": 1329,
     "services": 165,
-    "srcFiles": 535,
-    "docs": 577,
+    "srcFiles": 536,
+    "docs": 584,
     "unclassifiedServices": 0
   },
   "clusters": {
@@ -15,7 +15,7 @@
       "label": "Fallarbeit und Assistenz",
       "files": 25,
       "services": 2,
-      "hits": 11138
+      "hits": 11139
     },
     "evidence-and-trust": {
       "label": "Evidence, Nachweis und Vertrauen",
@@ -63,7 +63,7 @@
       "label": "OpenWebUI und agentisches Routing",
       "files": 25,
       "services": 7,
-      "hits": 5061
+      "hits": 5063
     }
   },
   "ambiguousTerms": [
@@ -552,5 +552,5 @@
       "hits": 279
     }
   ],
-  "fingerprint": "0341d1d55b414a9c83d12efbc403422a93203aa701490f25fe049abaa8d72bf6"
+  "fingerprint": "a72e0e678bb4c1469503c8af5aca82af3025219200a36bac79e93d6c4a74be44"
 }

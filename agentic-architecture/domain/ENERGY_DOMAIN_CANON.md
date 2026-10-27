@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-26T23:46:30.559Z
+Generated: 2026-10-27T18:01:48.358Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -286,7 +286,7 @@ Zugeordnete Services nach Heuristik:
 - `company` — services/company.service.js (11 actions)
 - `cya` — services/cya.service.js (8 actions)
 - `dashboard-api` — services/dashboard-api.service.js
-- `dataset` — services/dataset.service.js (10 actions)
+- `dataset` — services/dataset.service.js (8 actions)
 - `decision-frame` — services/decision-frame.service.js (2 actions)
 - `energy-sharing-community` — services/energy-sharing-community.service.js (5 actions)
 - `evidence-requirement` — services/evidence-requirement.service.js (10 actions)

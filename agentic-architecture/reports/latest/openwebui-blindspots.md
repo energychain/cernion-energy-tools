@@ -1,6 +1,6 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-26T23:46:25.673Z
+Generated: 2026-10-27T18:01:42.521Z
 
 ## Observed adapter surface
 

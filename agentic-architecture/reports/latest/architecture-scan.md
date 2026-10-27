@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-26T23:46:25.673Z
+Generated: 2026-10-27T18:01:42.521Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 2195
+- Files scanned: 2215
 - Services: 165
-- src/*.js files: 469
-- Tests: 544
+- src/*.js files: 470
+- Tests: 547
 - Integrations files: 37
-- Markdown/docs files: 577
+- Markdown/docs files: 584
 
 ## Existing validation summary
 
@@ -26,11 +26,11 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 618 files
-- `src`: 537 files
-- `docs`: 449 files
+- `tests`: 634 files
+- `src`: 538 files
+- `docs`: 450 files
 - `services`: 201 files
-- `scripts`: 94 files
+- `scripts`: 96 files
 - `tools`: 85 files
 - `agentic-architecture`: 61 files
 - `integrations`: 37 files
@@ -130,7 +130,7 @@ Primary agentic files:
 - `cya` — services/cya.service.js (8 detected actions)
 - `dashboard-api` — services/dashboard-api.service.js (0 detected actions)
 - `datapoint` — services/datapoint.service.js (10 detected actions)
-- `dataset` — services/dataset.service.js (10 detected actions)
+- `dataset` — services/dataset.service.js (8 detected actions)
 - `datasource-cache` — services/datasource-cache.service.js (11 detected actions)
 - `datasource-classifier` — services/datasource-classifier.service.js (8 detected actions)
 - `datasource-connector` — services/datasource-connector.service.js (12 detected actions)
