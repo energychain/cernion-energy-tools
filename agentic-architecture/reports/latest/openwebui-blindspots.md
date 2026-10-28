@@ -1,6 +1,6 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-28T06:10:52.290Z
+Generated: 2026-10-28T12:15:18.185Z
 
 ## Observed adapter surface
 
@@ -163,6 +163,7 @@ Routing/capability/broker/manifest files:
 - `tests/fixtures/capability-routing-eval.json`
 - `tests/generate-operation-capability-index.test.js`
 - `tests/helpers/case-linking-broker.js`
+- `tests/knowledge-routing.test.js`
 - `tests/l3-broker.test.js`
 - `tests/llm-manifest.test.js`
 - `tests/mqtt-broker.service.test.js`
