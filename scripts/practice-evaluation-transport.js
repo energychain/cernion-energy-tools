@@ -127,6 +127,7 @@ async function createLocalTransport({ budget }) {
     'shared-service-notices',
     'tenant-memory-policy',
     'knowledge-needs',
+    'failure-signals',
     'datapoint',
     'dataset',
     'files',

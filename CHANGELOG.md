@@ -2,6 +2,11 @@
 
 ## Unreleased — RC3: Arbeitskontext und Quellenbezüge
 
+- Selbstverbesserung, Schritt 1 (#1010): Register `failure-signals` beobachtet
+  Fehlersignale, ohne etwas auszulösen. Quellen: Korrekturen, unbeantwortete und
+  degradierte Antworten, Quellen-Timeouts, wiederholte Fehlschläge und Rückfrage-
+  schleifen im selben Gespräch, herabgestufte Skills. Signale enthalten keinen
+  Nachrichtentext, bleiben im Tenant und verfallen nach 90 Tagen.
 - Sprecherbezüge und kopierte Aufgabensätze begründen keine Rolle; ein belegter
   Auftrag kann einen Arbeitskontext auch ohne Rollenbezeichnung setzen, ein bloßes Ziel nicht.
 - Mehrteilige eigene Rollenangaben erreichen die Kontextaktualisierung vor einer

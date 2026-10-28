@@ -147,11 +147,16 @@ module.exports = {
     },
     after: {
       chat: [
+        require('../src/failure-signals').afterTurn,
         coverageTurn.after,
         require('../src/tenant-memory').afterTurn,
         require('../src/workbench-project-manifest').projectManifestTrace,
       ],
-      query: [coverageTurn.after, require('../src/tenant-memory').afterTurn],
+      query: [
+        require('../src/failure-signals').afterTurn,
+        coverageTurn.after,
+        require('../src/tenant-memory').afterTurn,
+      ],
     },
     error: { chat: coverageTurn.error, query: coverageTurn.error },
   },

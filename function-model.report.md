@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `331bb6d92a3e8b4ca6f8418680db92ed82df6e39d1f0cc3c6a1cb6c1d9a8a335`
+Source SHA-256: `bb4a507a73a9b74820ba6e88423c56e0396084319d970d969f0f7a05d4e6d795`
 
 Capabilities: 173; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
@@ -483,7 +483,7 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (105)
+## unresolvedStaticEvents (107)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:227: dynamic emission"}
@@ -519,6 +519,8 @@ None.
 - {"service":"evidence-router","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"evidence-router","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"ewk-monitoring","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"failure-signals","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"failure-signals","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"finance-agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"finance-agent","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"forecast-sandbox","ref":"src/job-store.js:67: dynamic emission"}
