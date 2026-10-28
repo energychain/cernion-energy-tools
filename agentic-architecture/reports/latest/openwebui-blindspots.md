@@ -1,10 +1,10 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-27T18:01:42.521Z
+Generated: 2026-10-28T00:06:29.268Z
 
 ## Observed adapter surface
 
-- OpenWebUI/ChatGPT adapter files detected: 41
+- OpenWebUI/ChatGPT adapter files detected: 42
 - verify:open-webui npm script: present
 - verify:agent-shapes npm script: present
 
@@ -51,6 +51,7 @@ Detected files:
 - `tests/chatgpt-sidecar-session-policy.test.js`
 - `tests/chatgpt-sidecar-session-store.test.js`
 - `tests/chatgpt-sidecar.service.test.js`
+- `tests/dataset-input-openwebui.test.js`
 
 ## Blind-spot hypotheses for review
 
@@ -273,6 +274,7 @@ Service names that should be capability-mapped:
 - `job-status`
 - `journal`
 - `knowledge-continuity-governance-gate`
+- `knowledge-needs`
 - `knowledge-rag`
 - `mastr-monitor`
 - `mastr-quality`
@@ -303,4 +305,3 @@ Service names that should be capability-mapped:
 - `project-manifest`
 - `project-structure`
 - `project-upload`
-- `query`
