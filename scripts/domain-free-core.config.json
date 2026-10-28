@@ -132,7 +132,8 @@
     "scripts/generate-knowledge-needs.js",
     "services/knowledge-needs.service.js",
     "src/knowledge-need-recognition.js",
-    "src/knowledge-elicitation.js"
+    "src/knowledge-elicitation.js",
+    "src/knowledge-prefill.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

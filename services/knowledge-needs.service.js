@@ -21,6 +21,8 @@ const BACKFILL_FACTS = 100;
 const ASK_MIN_SCORE = Number(process.env.KNOWLEDGE_ASK_MIN_SCORE || 0.35);
 const ASK_COOLDOWN_ACTOR_MS = 7 * 24 * 3600 * 1000;
 const ASK_COOLDOWN_TENANT_MS = 24 * 3600 * 1000;
+const COVERAGE_MIN = Number(process.env.KNOWLEDGE_COVERAGE_MIN || 0.3);
+const CONFIRM_MIN_UNLOCKS = Number(process.env.KNOWLEDGE_CONFIRM_MIN_UNLOCKS || 10);
 
 function loadArtifact(file) {
   // A fresh read per version check keeps a regenerated artifact effective without restart.
@@ -55,6 +57,7 @@ module.exports = {
       },
       async handler(ctx) {
         const p = principal(ctx, ctx.params);
+        await this.reconcile(ctx, p);
         const docs = await this.tenantDocs(p.tenantId);
         return docs
           .filter((doc) => !ctx.params.state || doc.state === ctx.params.state)
@@ -150,6 +153,12 @@ module.exports = {
         const capabilities = new Set(ctx.params.capabilities);
         const operations = new Set(ctx.params.operations);
         const functions = new Set(ctx.params.functionIds);
+        // Functions this person covers: open needs there reach them, not everyone (#997 step 4).
+        const covered = new Set(
+          (await this.coverage(p.tenantId, { actorId: p.actorId }))
+            .filter((row) => row.score >= COVERAGE_MIN)
+            .map((row) => row.functionId)
+        );
         const scored = docs
           .filter((doc) => ['unknown', 'asked'].includes(doc.state) && doc.kind !== 'dataset')
           .filter(
@@ -166,19 +175,30 @@ module.exports = {
               (doc.unlocks || []).filter(
                 (entry) => capabilities.has(entry.capabilityId) || operations.has(entry.operation)
               ).length + (doc.functionIds || []).filter((id) => functions.has(id)).length;
-            return { doc, overlap, score: Math.min(1, overlap / 3) * 0.6 + doc.priority * 0.4 };
+            const coveredOverlap = (doc.functionIds || []).filter((id) => covered.has(id)).length;
+            const reason = overlap ? 'current_task' : 'neighbor_function';
+            const fit = overlap
+              ? Math.min(1, overlap / 3) * 0.6
+              : Math.min(1, coveredOverlap) * 0.5;
+            return {
+              doc,
+              overlap: overlap || coveredOverlap,
+              reason,
+              score: fit + doc.priority * 0.4,
+            };
           })
           .filter((entry) => entry.overlap > 0 && entry.score >= ASK_MIN_SCORE)
           .sort((a, b) => b.score - a.score || a.doc.key.localeCompare(b.doc.key));
         const chosen = scored[0]?.doc;
         if (!chosen) return null;
+        const reason = scored[0].reason;
         const askedAt = new Date().toISOString();
         const ask = {
           askId: `ask:${ctx.params.conversationId}:${askedAt}`,
           actorId: p.actorId || null,
           conversationId: ctx.params.conversationId,
-          mode: 'inline',
-          reason: 'current_task',
+          mode: reason === 'current_task' ? 'inline' : 'notice',
+          reason,
           askedAt,
           expiresAt: new Date(now + ASK_COOLDOWN_ACTOR_MS).toISOString(),
           outcome: null,
@@ -206,7 +226,13 @@ module.exports = {
           actorId: ask.actorId,
           mode: ask.mode,
         });
-        return { needId: chosen.needId, key: chosen.key, label: chosen.label, kind: chosen.kind };
+        return {
+          needId: chosen.needId,
+          key: chosen.key,
+          label: chosen.label,
+          kind: chosen.kind,
+          reason,
+        };
       },
     },
     // Internal (#997 step 2): link newly captured tenant-memory facts to the needs they answer.
@@ -228,11 +254,143 @@ module.exports = {
         ).filter((fact) => fact?.status === 'valid');
         const recorded = await this.recognize(ctx, p, facts);
         await this.backfill(ctx, p);
+        await this.requestConfirmations(ctx, p, recorded);
+        await this.reconcile(ctx, p);
         return recorded;
       },
     },
   },
   methods: {
+    async coverage(tenantId, filter) {
+      const service = this.broker.getLocalService('function-coverage');
+      if (typeof service?.coverageRows !== 'function') return [];
+      return service.coverageRows(tenantId, filter).catch(() => []);
+    },
+    // An answer with wide reach is confirmed by a second person with coverage, through the existing
+    // tenant-memory confirmation notice for the source fact.
+    async requestConfirmations(ctx, p, recorded) {
+      if (!recorded.length || !this.broker.getLocalService('shared-service-notices')) return;
+      const docs = await this.tenantDocs(p.tenantId);
+      for (const item of recorded) {
+        const doc = docs.find((entry) => entry.needId === item.needId);
+        const answer = doc?.answers?.find((entry) => entry.answerId === item.answerId);
+        if (!doc || !answer?.storeRef || (doc.unlocks || []).length < CONFIRM_MIN_UNLOCKS) continue;
+        const second = (await this.coverage(p.tenantId, { functionIds: doc.functionIds })).find(
+          (row) => row.score >= COVERAGE_MIN && row.actorId !== answer.actorId
+        );
+        if (!second) continue;
+        const queued = await ctx
+          .call('shared-service-notices.enqueueMemory', {
+            tenantId: p.tenantId,
+            actorId: second.actorId,
+            relationId: answer.storeRef,
+            factIds: [answer.storeRef],
+            confirmation: true,
+          })
+          .catch(() => ({ queued: false }));
+        if (!queued.queued) continue;
+        const now = new Date().toISOString();
+        await this.db.put({
+          ...doc,
+          asks: [
+            ...(doc.asks || []),
+            {
+              askId: `ask:confirm:${answer.answerId}`,
+              actorId: second.actorId,
+              mode: 'notice',
+              reason: 'confirmation',
+              askedAt: now,
+              outcome: null,
+            },
+          ].slice(-AUDIT_LIMIT),
+          updatedAt: now,
+        });
+        this.broker.emit('knowledge.ask.v1', {
+          tenantId: p.tenantId,
+          needId: doc.needId,
+          actorId: second.actorId,
+          mode: 'notice',
+        });
+      }
+    },
+    // The source fact decides: confirmed by another person, disputed by a conflict or a
+    // correction, open again when it was withdrawn. Uses the tenant-memory lifecycle as is.
+    async reconcile(ctx, p) {
+      const store = require('../src/tenant-memory-store');
+      const docs = (await this.tenantDocs(p.tenantId)).filter((doc) =>
+        ['answered', 'confirmed', 'disputed'].includes(doc.state)
+      );
+      for (const doc of docs) {
+        const answer = [...(doc.answers || [])]
+          .filter((entry) => entry.storeRef)
+          .sort((a, b) => String(b.at).localeCompare(String(a.at)))[0];
+        if (!answer) continue;
+        const fact = await store
+          .get(ctx, p, answer.storeRef)
+          .then((entry) => entry.payload)
+          .catch(() => null);
+        if (!fact) continue;
+        let next = doc.state;
+        if (!store.active(fact)) next = 'disputed';
+        else {
+          const relations = (
+            await Promise.all(
+              (fact.relationIds || []).map((id) =>
+                store
+                  .get(ctx, p, id)
+                  .then((entry) => entry.payload)
+                  .catch(() => null)
+              )
+            )
+          ).filter((relation) => relation?.type === 'tenant_memory_relation');
+          const others = async (relation) =>
+            (
+              await Promise.all(
+                relation.factIds
+                  .filter((id) => id !== fact.id)
+                  .map((id) =>
+                    store
+                      .get(ctx, p, id)
+                      .then((entry) => entry.payload)
+                      .catch(() => null)
+                  )
+              )
+            ).filter((other) => other && store.active(other));
+          for (const relation of relations) {
+            const linked = await others(relation);
+            if (relation.kind === 'conflict' && linked.length) next = 'disputed';
+            else if (
+              relation.kind === 'confirmation' &&
+              next !== 'disputed' &&
+              linked.some((other) => (other.person?.actorId || '') !== answer.actorId)
+            )
+              next = 'confirmed';
+          }
+        }
+        if (next === doc.state || !TRANSITIONS[doc.state].includes(next)) continue;
+        const now = new Date().toISOString();
+        await this.db.put({
+          ...doc,
+          state: next,
+          audit: [
+            ...(doc.audit || []),
+            { at: now, actorId: null, from: doc.state, to: next, reason: 'source_fact' },
+          ].slice(-AUDIT_LIMIT),
+          updatedAt: now,
+        });
+        this.broker.emit('knowledge.need.changed.v1', {
+          tenantId: p.tenantId,
+          needId: doc.needId,
+          state: next,
+        });
+      }
+    },
+    // Local read for prefills inside an authenticated turn of the same tenant (#997 step 5).
+    async answeredNeeds(tenantId) {
+      return (await this.tenantDocs(tenantId))
+        .filter((doc) => ['answered', 'confirmed'].includes(doc.state))
+        .map((doc) => this.view(doc));
+    },
     // Facts captured before the register existed are matched once per tenant and derivation.
     async backfill(ctx, p) {
       const marker = `kn-meta:${encodeURIComponent(p.tenantId)}`;
