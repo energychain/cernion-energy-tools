@@ -1,10 +1,10 @@
 # Agentic Core Findings
 
-Generated: 2026-10-27T18:01:42.521Z
+Generated: 2026-10-28T00:06:29.268Z
 
 ## Current measurable surface
 
-- Agentic files: 278
+- Agentic files: 279
 - Routing/capability files: 118
 - Evidence/HITL files: 100
 - Operation capability index: present
@@ -13,30 +13,30 @@ Generated: 2026-10-27T18:01:42.521Z
 
 ## Domain term distribution
 
-- `evidence`: 26100 hits in 882 files
-- `tenant`: 19405 hits in 914 files
-- `broker`: 11604 hits in 696 files
-- `grid`: 9874 hits in 660 files
-- `agent`: 8432 hits in 781 files
-- `decision`: 6984 hits in 455 files
-- `capability`: 6084 hits in 550 files
+- `evidence`: 26140 hits in 886 files
+- `tenant`: 19483 hits in 920 files
+- `broker`: 11616 hits in 699 files
+- `grid`: 9915 hits in 663 files
+- `agent`: 8435 hits in 782 files
+- `decision`: 7035 hits in 458 files
+- `capability`: 6305 hits in 554 files
 - `stadtwerk`: 5634 hits in 248 files
-- `forecast`: 4597 hits in 331 files
-- `vdmi`: 4528 hits in 293 files
-- `redispatch`: 4127 hits in 310 files
-- `market`: 3970 hits in 405 files
-- `hitl`: 3707 hits in 447 files
-- `edm`: 2947 hits in 368 files
-- `regulator`: 2701 hits in 343 files
-- `mako`: 2540 hits in 313 files
-- `receipt`: 2483 hits in 175 files
-- `routing`: 2399 hits in 395 files
+- `forecast`: 4615 hits in 333 files
+- `vdmi`: 4549 hits in 295 files
+- `redispatch`: 4144 hits in 312 files
+- `market`: 3980 hits in 406 files
+- `hitl`: 3710 hits in 448 files
+- `edm`: 2950 hits in 370 files
+- `regulator`: 2712 hits in 344 files
+- `mako`: 2545 hits in 315 files
+- `receipt`: 2492 hits in 176 files
+- `routing`: 2401 hits in 396 files
 - `personal-agent`: 2035 hits in 314 files
-- `workflow`: 1623 hits in 255 files
+- `workflow`: 1629 hits in 256 files
 - `willi`: 1536 hits in 113 files
 - `sidecar`: 1002 hits in 111 files
-- `eog`: 792 hits in 101 files
-- `openwebui`: 642 hits in 106 files
+- `eog`: 797 hits in 102 files
+- `openwebui`: 643 hits in 107 files
 - `utility`: 613 hits in 94 files
 - `open-webui`: 425 hits in 77 files
 - `chatgpt`: 402 hits in 38 files
