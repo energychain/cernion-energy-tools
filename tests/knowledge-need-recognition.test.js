@@ -1,7 +1,11 @@
 'use strict';
 
 jest.mock('../src/llm-client', () => ({ generateStructured: jest.fn() }));
-jest.mock('../src/tenant-memory-store', () => ({ get: jest.fn(), query: jest.fn() }));
+jest.mock('../src/tenant-memory-store', () => ({
+  get: jest.fn(),
+  query: jest.fn(),
+  active: jest.fn((fact) => fact.status === 'valid'),
+}));
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
