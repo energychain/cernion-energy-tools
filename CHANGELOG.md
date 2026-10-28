@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Netzwirtschaft Leadership Attention Workbench (#1000)
+
+- Additive `netzwirtschaft_leadership_attention_*` section group in the Stadtwerk-Mauer
+  Workbench manifest for `ROLE_NETZWIRTSCHAFT_LEAD`: exactly three synthetic topics,
+  `mako_deadline_and_evidence_gap` selected by default; unknown ids fall back to it with
+  `clarification_required`.
+- Eight scalar queries built only on the seven existing read-only dashboard GET bricks; no new
+  endpoint, briefing/case store, broker route, hydration rule, formatter or Personal-Agent rule.
+- Owner role family only, synthetic due date, evidence `unverified_input`, risk as context; no
+  score, ranking, escalation or inferred decision. Gaps get a positive follow-up and human gate.
+- Only refresh/detail enabled; writes, protected reads (#741), workflow/HITL, mail/connector,
+  Rundeck, MaKo, billing/tariff, dispatch and device control render as `not_called`.
+- Visible Budibase acceptance remains gated by #572. Tests: `tests/budibase-workbench.test.js`.
+
 ## Unreleased — RC3: Arbeitskontext und Quellenbezüge
 
 - Sprecherbezüge und kopierte Aufgabensätze begründen keine Rolle; ein belegter

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "622d5b71936b4de99dafb529896ad51187bae27d5d684e9ff7a84eb7d8d29b6f",
+  "sourceHash": "58cbfecedfd6fb1db1c528f4cf25456e8d59bf8effc981bff7172379ff339bc5",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -165699,6 +165699,10 @@
         {
           "kind": "service",
           "ref": "src/knowledge-elicitation.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/knowledge-need-recognition.js"
         },
         {
           "kind": "service",
