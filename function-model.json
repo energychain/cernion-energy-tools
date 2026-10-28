@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "9f0868f2f9ced0e67744a22c43e7de7bfdc3c4b7de4b3178c8ca89be331485d2",
+  "sourceHash": "9ee73d31c0a36d202e9e28bc1f84ae2961aa761dece465ec4c3afd5579bfc348",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -165618,6 +165618,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/knowledge-elicitation.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/knowledge-rag-chunker.js"
         },
         {
@@ -209815,6 +209819,14 @@
       {
         "service": "job-status",
         "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "knowledge-needs",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "knowledge-needs",
+        "ref": "src/llm-client.js:227: dynamic emission"
       },
       {
         "service": "knowledge-rag",
