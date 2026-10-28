@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-10-28T12:15:18.185Z
+Generated: 2026-10-28T18:18:40.643Z
 
 ## Current measurable surface
 
@@ -30,7 +30,7 @@ Generated: 2026-10-28T12:15:18.185Z
 - `regulator`: 2712 hits in 344 files
 - `mako`: 2545 hits in 315 files
 - `receipt`: 2492 hits in 176 files
-- `routing`: 2404 hits in 398 files
+- `routing`: 2405 hits in 398 files
 - `personal-agent`: 2035 hits in 314 files
 - `workflow`: 1629 hits in 256 files
 - `willi`: 1536 hits in 113 files
