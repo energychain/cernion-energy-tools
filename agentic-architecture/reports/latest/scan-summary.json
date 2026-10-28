@@ -1,23 +1,23 @@
 {
-  "generatedAt": "2026-10-28T06:10:52.290Z",
+  "generatedAt": "2026-10-28T12:15:18.185Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261028T060937Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261028T121403Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
     "version": "0.99.22"
   },
   "counts": {
-    "files": 2229,
+    "files": 2232,
     "services": 166,
-    "srcJs": 473,
-    "tests": 553,
+    "srcJs": 474,
+    "tests": 555,
     "integrations": 37,
     "docs": 585,
     "agentFiles": 279,
     "openWebUiFiles": 42,
     "evidenceFiles": 100,
-    "routingFiles": 118,
+    "routingFiles": 119,
     "servicesWithoutTests": 30
   },
   "artifacts": {
@@ -30,11 +30,11 @@
   "topDirectories": [
     {
       "dir": "tests",
-      "files": 640
+      "files": 642
     },
     {
       "dir": "src",
-      "files": 541
+      "files": 542
     },
     {
       "dir": "docs",
@@ -397,12 +397,12 @@
       "hits": 1002
     },
     "capability": {
-      "files": 558,
-      "hits": 6312
+      "files": 559,
+      "hits": 6313
     },
     "broker": {
-      "files": 703,
-      "hits": 11648
+      "files": 706,
+      "hits": 11666
     },
     "openwebui": {
       "files": 107,
@@ -418,7 +418,7 @@
     },
     "evidence": {
       "files": 888,
-      "hits": 26142
+      "hits": 26143
     },
     "receipt": {
       "files": 176,
@@ -429,24 +429,24 @@
       "hits": 3710
     },
     "routing": {
-      "files": 396,
-      "hits": 2401
+      "files": 398,
+      "hits": 2404
     },
     "workflow": {
       "files": 256,
       "hits": 1629
     },
     "tenant": {
-      "files": 923,
-      "hits": 19523
+      "files": 926,
+      "hits": 19573
     },
     "market": {
       "files": 406,
       "hits": 3980
     },
     "grid": {
-      "files": 663,
-      "hits": 9915
+      "files": 664,
+      "hits": 9926
     },
     "redispatch": {
       "files": 312,
@@ -457,8 +457,8 @@
       "hits": 4615
     },
     "edm": {
-      "files": 372,
-      "hits": 2952
+      "files": 373,
+      "hits": 2953
     },
     "mako": {
       "files": 315,
