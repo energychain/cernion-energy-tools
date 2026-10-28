@@ -385,6 +385,12 @@ module.exports = {
         });
       }
     },
+    // Local read of open needs for the second capture path inside an authenticated turn.
+    async openNeeds(tenantId) {
+      return (await this.tenantDocs(tenantId))
+        .filter((doc) => ['unknown', 'asked'].includes(doc.state))
+        .map((doc) => this.view(doc));
+    },
     // Local read for prefills inside an authenticated turn of the same tenant (#997 step 5).
     async answeredNeeds(tenantId) {
       return (await this.tenantDocs(tenantId))
@@ -417,6 +423,12 @@ module.exports = {
     async recognize(ctx, p, facts) {
       if (!facts.length) return [];
       const docs = await this.tenantDocs(p.tenantId);
+      // A fact that already answers a need is not reused for a neighbouring one.
+      const used = new Set(
+        docs.flatMap((doc) => (doc.answers || []).map((answer) => answer.storeRef).filter(Boolean))
+      );
+      facts = facts.filter((fact) => !used.has(fact.id));
+      if (!facts.length) return [];
       const open = docs.filter((doc) => ['unknown', 'asked', 'stale'].includes(doc.state));
       const matches = await require('../src/knowledge-need-recognition').matchFacts(facts, open, {
         tenantId: p.tenantId,

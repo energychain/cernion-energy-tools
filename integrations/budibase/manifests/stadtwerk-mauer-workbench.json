@@ -14250,6 +14250,785 @@
         "dataClass": { "type": "string" },
         "sourceClass": { "type": "string" }
       }
+    },
+    {
+      "name": "getNetzwirtschaftLeadershipTopicSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/leadership-delta-cockpit",
+      "queryString": "tenantId={{tenantId}}&topicId={{netzwirtschaftLeadershipTopicId}}&topic=Netzwirtschaft%20leadership%20attention%20(synthetic)&domain=netzwirtschaft_leadership_review&evidenceStatus=unverified_input&nextLever=read_only_validation&sourceSignals=smm-netzwirtschaft-leadership-{{netzwirtschaftLeadershipTopicId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "netzwirtschaftLeadershipTopicId",
+          "default": "mako_deadline_and_evidence_gap"
+        }
+      ],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const d=obj(data); const P='smm-netzwirtschaft-leadership-'; const TOPICS=[{topicId:'mako_deadline_and_evidence_gap',label:'MaKo-Frist und Nachweisluecke (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_MARKTKOMMUNIKATION',dueAt:'2026-11-04',missingDataPoint:'market_communication_deadline_evidence',enablesDossierAddition:'add_deadline_and_receipt_evidence_then_refresh',nextHumanGate:'human_jour_fixe_review'},{topicId:'metering_rollout_process_impact',label:'Messwesen-Rollout und Prozesswirkung (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_METERING_OPERATIONS',dueAt:'2026-11-11',missingDataPoint:'metering_rollout_process_evidence',enablesDossierAddition:'add_rollout_status_and_process_impact_evidence_then_refresh',nextHumanGate:'human_department_review'},{topicId:'automation_backlog_owner_gap',label:'Automatisierungs-Backlog ohne Owner (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_IT_OPERATIONS',dueAt:'2026-11-18',missingDataPoint:'automation_owner_deadline_and_stop_evidence',enablesDossierAddition:'add_owner_deadline_stop_and_rollback_evidence_then_refresh',nextHumanGate:'human_automation_governance_review'}]; const DEFAULT_TOPIC_ID='mako_deadline_and_evidence_gap'; const echoed=(((Array.isArray(d.topics)?d.topics:[])[0]||{}).topicId); const requested=typeof echoed==='string'?(echoed.indexOf(P)===0?echoed.slice(P.length):echoed):''; const known=TOPICS.find((t)=>t.topicId===requested); const topic=known||TOPICS.find((t)=>t.topicId===DEFAULT_TOPIC_ID); const selectionStatus=known?'allowlisted_topic_selected':'clarification_required'; const txt=(v)=>v==null||v===''||typeof v==='object'?'clarification_required':String(v); const names=(v)=>(Array.isArray(v)?v:[]).map((x)=>x&&typeof x==='object'?(x.missingDataPoint||x.code||x.id||null):x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v)=>{const a=names(v);return a.length?a.slice(0,8).join(', '):'none';}; const review=(v)=>{const s=txt(v);if(/^(ready|complete|completed|known|provided|closed|documented)$/.test(s))return 'ready_for_human_review';if(/(clarification|missing|stale|unknown|unverified|needs_|partial|degraded|open)/.test(s))return 'clarification_required';return 'human_review_required';}; const gate=(st,missing)=>selectionStatus==='clarification_required'||missing.length>0||review(st)==='clarification_required'?'clarification_required':'human_review_required'; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:netzwirtschaft-leadership-attention',roleTarget:'ROLE_NETZWIRTSCHAFT_LEAD',processFamily:'netzwirtschaft_leadership_review',topicId:topic.topicId,topicLabel:topic.label,selectionStatus:selectionStatus,dataClass:'synthetic_tenant_seed',sourceClass:topic.sourceClass,evidenceStatus:'unverified_input',ownerRoleFamily:topic.ownerRoleFamily,dueAt:topic.dueAt,missingDataPoint:topic.missingDataPoint,enablesDossierAddition:topic.enablesDossierAddition,safeNextAction:'refresh_selected_topic_read_only_after_evidence_is_supplied',nextHumanGate:topic.nextHumanGate}; return TOPICS.map((t,index)=>({...base,rowKey:'netzwirtschaft_leadership_topic_'+(index+1)+'_'+t.topicId,sectionClass:'netzwirtschaft_leadership_attention_selector',topicId:t.topicId,topicLabel:t.label,sourceClass:t.sourceClass,ownerRoleFamily:t.ownerRoleFamily,dueAt:t.dueAt,missingDataPoint:t.missingDataPoint,enablesDossierAddition:t.enablesDossierAddition,nextHumanGate:t.nextHumanGate,selectedLabel:t.topicId===topic.topicId?'selected':'available',selectionStatus:t.topicId===topic.topicId?selectionStatus:'available',roleQuestion:'Welches der drei synthetischen Bereichsthemen braucht vor dem naechsten Jour fixe bzw. der Bereichsleiterrunde menschliche Aufmerksamkeit, welche Evidenz/Owner-Rolle/Frist fehlt und welches menschliche Review-Gate ist als Naechstes sicher?'}));",
+      "schema": {
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "topicId": {
+          "type": "string"
+        },
+        "topicLabel": {
+          "type": "string"
+        },
+        "selectionStatus": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "ownerRoleFamily": {
+          "type": "string"
+        },
+        "dueAt": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        },
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "selectedLabel": {
+          "type": "string"
+        },
+        "roleQuestion": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzwirtschaftLeadershipContextRows",
+      "method": "GET",
+      "path": "/api/dashboard/leadership-delta-cockpit",
+      "queryString": "tenantId={{tenantId}}&topicId={{netzwirtschaftLeadershipTopicId}}&topic=Netzwirtschaft%20leadership%20attention%20(synthetic)&domain=netzwirtschaft_leadership_review&evidenceStatus=unverified_input&nextLever=read_only_validation&sourceSignals=smm-netzwirtschaft-leadership-{{netzwirtschaftLeadershipTopicId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "netzwirtschaftLeadershipTopicId",
+          "default": "mako_deadline_and_evidence_gap"
+        }
+      ],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const d=obj(data); const P='smm-netzwirtschaft-leadership-'; const TOPICS=[{topicId:'mako_deadline_and_evidence_gap',label:'MaKo-Frist und Nachweisluecke (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_MARKTKOMMUNIKATION',dueAt:'2026-11-04',missingDataPoint:'market_communication_deadline_evidence',enablesDossierAddition:'add_deadline_and_receipt_evidence_then_refresh',nextHumanGate:'human_jour_fixe_review'},{topicId:'metering_rollout_process_impact',label:'Messwesen-Rollout und Prozesswirkung (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_METERING_OPERATIONS',dueAt:'2026-11-11',missingDataPoint:'metering_rollout_process_evidence',enablesDossierAddition:'add_rollout_status_and_process_impact_evidence_then_refresh',nextHumanGate:'human_department_review'},{topicId:'automation_backlog_owner_gap',label:'Automatisierungs-Backlog ohne Owner (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_IT_OPERATIONS',dueAt:'2026-11-18',missingDataPoint:'automation_owner_deadline_and_stop_evidence',enablesDossierAddition:'add_owner_deadline_stop_and_rollback_evidence_then_refresh',nextHumanGate:'human_automation_governance_review'}]; const DEFAULT_TOPIC_ID='mako_deadline_and_evidence_gap'; const echoed=(((Array.isArray(d.topics)?d.topics:[])[0]||{}).topicId); const requested=typeof echoed==='string'?(echoed.indexOf(P)===0?echoed.slice(P.length):echoed):''; const known=TOPICS.find((t)=>t.topicId===requested); const topic=known||TOPICS.find((t)=>t.topicId===DEFAULT_TOPIC_ID); const selectionStatus=known?'allowlisted_topic_selected':'clarification_required'; const txt=(v)=>v==null||v===''||typeof v==='object'?'clarification_required':String(v); const names=(v)=>(Array.isArray(v)?v:[]).map((x)=>x&&typeof x==='object'?(x.missingDataPoint||x.code||x.id||null):x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v)=>{const a=names(v);return a.length?a.slice(0,8).join(', '):'none';}; const review=(v)=>{const s=txt(v);if(/^(ready|complete|completed|known|provided|closed|documented)$/.test(s))return 'ready_for_human_review';if(/(clarification|missing|stale|unknown|unverified|needs_|partial|degraded|open)/.test(s))return 'clarification_required';return 'human_review_required';}; const gate=(st,missing)=>selectionStatus==='clarification_required'||missing.length>0||review(st)==='clarification_required'?'clarification_required':'human_review_required'; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:netzwirtschaft-leadership-attention',roleTarget:'ROLE_NETZWIRTSCHAFT_LEAD',processFamily:'netzwirtschaft_leadership_review',topicId:topic.topicId,topicLabel:topic.label,selectionStatus:selectionStatus,dataClass:'synthetic_tenant_seed',sourceClass:topic.sourceClass,evidenceStatus:'unverified_input',ownerRoleFamily:topic.ownerRoleFamily,dueAt:topic.dueAt,missingDataPoint:topic.missingDataPoint,enablesDossierAddition:topic.enablesDossierAddition,safeNextAction:'refresh_selected_topic_read_only_after_evidence_is_supplied',nextHumanGate:topic.nextHumanGate}; const tp=obj((Array.isArray(d.topics)?d.topics:[])[0]); const delta=obj(tp.deltaSummary); const missing=names(d.missingEvidence); return [{...base,rowKey:'netzwirtschaft_leadership_context_'+topic.topicId,sectionClass:'netzwirtschaft_leadership_attention_context',endpoint:'/api/dashboard/leadership-delta-cockpit',endpointStatus:txt(tp.status||d.status),deltaSummary:txt(delta.summary),endpointMissingDataPoints:joined(d.missingEvidence),provenanceCaveat:'synthetic_tenant_seed_caller_supplied_not_a_verified_operational_fact',briefingBoundary:'not_the_986_wp5_authoritative_briefing_no_project_file_or_case_read',automaticEscalation:'disabled',status:gate(tp.status||d.status,missing)}];",
+      "schema": {
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "topicId": {
+          "type": "string"
+        },
+        "topicLabel": {
+          "type": "string"
+        },
+        "selectionStatus": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "ownerRoleFamily": {
+          "type": "string"
+        },
+        "dueAt": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        },
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "endpointStatus": {
+          "type": "string"
+        },
+        "deltaSummary": {
+          "type": "string"
+        },
+        "endpointMissingDataPoints": {
+          "type": "string"
+        },
+        "provenanceCaveat": {
+          "type": "string"
+        },
+        "briefingBoundary": {
+          "type": "string"
+        },
+        "automaticEscalation": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzwirtschaftLeadershipSignalRows",
+      "method": "GET",
+      "path": "/api/dashboard/cross-channel-vnb-signal-queue",
+      "queryString": "tenantId={{tenantId}}&signalId=smm-netzwirtschaft-leadership-{{netzwirtschaftLeadershipTopicId}}&channel=synthetic_tenant_seed&sourceSystem=synthetic_tenant_seed&sourceRef=smm-netzwirtschaft-leadership-{{netzwirtschaftLeadershipTopicId}}&affectedProcess=netzwirtschaft_leadership_review&processType=netzwirtschaft_leadership_review&evidenceStatus=unverified_input&status=open",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "netzwirtschaftLeadershipTopicId",
+          "default": "mako_deadline_and_evidence_gap"
+        }
+      ],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const d=obj(data); const P='smm-netzwirtschaft-leadership-'; const TOPICS=[{topicId:'mako_deadline_and_evidence_gap',label:'MaKo-Frist und Nachweisluecke (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_MARKTKOMMUNIKATION',dueAt:'2026-11-04',missingDataPoint:'market_communication_deadline_evidence',enablesDossierAddition:'add_deadline_and_receipt_evidence_then_refresh',nextHumanGate:'human_jour_fixe_review'},{topicId:'metering_rollout_process_impact',label:'Messwesen-Rollout und Prozesswirkung (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_METERING_OPERATIONS',dueAt:'2026-11-11',missingDataPoint:'metering_rollout_process_evidence',enablesDossierAddition:'add_rollout_status_and_process_impact_evidence_then_refresh',nextHumanGate:'human_department_review'},{topicId:'automation_backlog_owner_gap',label:'Automatisierungs-Backlog ohne Owner (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_IT_OPERATIONS',dueAt:'2026-11-18',missingDataPoint:'automation_owner_deadline_and_stop_evidence',enablesDossierAddition:'add_owner_deadline_stop_and_rollback_evidence_then_refresh',nextHumanGate:'human_automation_governance_review'}]; const DEFAULT_TOPIC_ID='mako_deadline_and_evidence_gap'; const echoed=(obj((Array.isArray(d.normalizedSignals)?d.normalizedSignals:[])[0]).signalId); const requested=typeof echoed==='string'?(echoed.indexOf(P)===0?echoed.slice(P.length):echoed):''; const known=TOPICS.find((t)=>t.topicId===requested); const topic=known||TOPICS.find((t)=>t.topicId===DEFAULT_TOPIC_ID); const selectionStatus=known?'allowlisted_topic_selected':'clarification_required'; const txt=(v)=>v==null||v===''||typeof v==='object'?'clarification_required':String(v); const names=(v)=>(Array.isArray(v)?v:[]).map((x)=>x&&typeof x==='object'?(x.missingDataPoint||x.code||x.id||null):x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v)=>{const a=names(v);return a.length?a.slice(0,8).join(', '):'none';}; const review=(v)=>{const s=txt(v);if(/^(ready|complete|completed|known|provided|closed|documented)$/.test(s))return 'ready_for_human_review';if(/(clarification|missing|stale|unknown|unverified|needs_|partial|degraded|open)/.test(s))return 'clarification_required';return 'human_review_required';}; const gate=(st,missing)=>selectionStatus==='clarification_required'||missing.length>0||review(st)==='clarification_required'?'clarification_required':'human_review_required'; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:netzwirtschaft-leadership-attention',roleTarget:'ROLE_NETZWIRTSCHAFT_LEAD',processFamily:'netzwirtschaft_leadership_review',topicId:topic.topicId,topicLabel:topic.label,selectionStatus:selectionStatus,dataClass:'synthetic_tenant_seed',sourceClass:topic.sourceClass,evidenceStatus:'unverified_input',ownerRoleFamily:topic.ownerRoleFamily,dueAt:topic.dueAt,missingDataPoint:topic.missingDataPoint,enablesDossierAddition:topic.enablesDossierAddition,safeNextAction:'refresh_selected_topic_read_only_after_evidence_is_supplied',nextHumanGate:topic.nextHumanGate}; const sig=obj((Array.isArray(d.normalizedSignals)?d.normalizedSignals:[])[0]); const missingSource=Array.isArray(sig.missing)?sig.missing:d.missingEvidence; return [{...base,rowKey:'netzwirtschaft_leadership_signal_'+topic.topicId,sectionClass:'netzwirtschaft_leadership_attention_signals',endpoint:'/api/dashboard/cross-channel-vnb-signal-queue',endpointStatus:txt(sig.status||d.status),channel:txt(sig.channel),sourceSystem:txt(sig.sourceSystem),affectedProcess:txt(sig.affectedProcess),sourceRefs:joined(sig.sourceRefs),evidenceRefs:joined(sig.evidenceRefs),endpointMissingDataPoints:joined(missingSource),contentPolicy:txt(sig.contentPolicy),provenanceHint:'caller_supplied_synthetic_signal_reference_only_not_verified',prioritization:'not_applied',status:gate(sig.status||d.status,names(missingSource))}];",
+      "schema": {
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "topicId": {
+          "type": "string"
+        },
+        "topicLabel": {
+          "type": "string"
+        },
+        "selectionStatus": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "ownerRoleFamily": {
+          "type": "string"
+        },
+        "dueAt": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        },
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "endpointStatus": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "sourceSystem": {
+          "type": "string"
+        },
+        "affectedProcess": {
+          "type": "string"
+        },
+        "sourceRefs": {
+          "type": "string"
+        },
+        "evidenceRefs": {
+          "type": "string"
+        },
+        "endpointMissingDataPoints": {
+          "type": "string"
+        },
+        "contentPolicy": {
+          "type": "string"
+        },
+        "provenanceHint": {
+          "type": "string"
+        },
+        "prioritization": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzwirtschaftLeadershipOwnerDeadlineRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "tenantId={{tenantId}}&signalId=smm-netzwirtschaft-leadership-{{netzwirtschaftLeadershipTopicId}}&sourceType=synthetic_tenant_seed&sourceRef=smm-netzwirtschaft-leadership-{{netzwirtschaftLeadershipTopicId}}&processType=netzwirtschaft_leadership_review&evidenceStatus=unverified_input",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "netzwirtschaftLeadershipTopicId",
+          "default": "mako_deadline_and_evidence_gap"
+        }
+      ],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const d=obj(data); const P='smm-netzwirtschaft-leadership-'; const TOPICS=[{topicId:'mako_deadline_and_evidence_gap',label:'MaKo-Frist und Nachweisluecke (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_MARKTKOMMUNIKATION',dueAt:'2026-11-04',missingDataPoint:'market_communication_deadline_evidence',enablesDossierAddition:'add_deadline_and_receipt_evidence_then_refresh',nextHumanGate:'human_jour_fixe_review'},{topicId:'metering_rollout_process_impact',label:'Messwesen-Rollout und Prozesswirkung (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_METERING_OPERATIONS',dueAt:'2026-11-11',missingDataPoint:'metering_rollout_process_evidence',enablesDossierAddition:'add_rollout_status_and_process_impact_evidence_then_refresh',nextHumanGate:'human_department_review'},{topicId:'automation_backlog_owner_gap',label:'Automatisierungs-Backlog ohne Owner (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_IT_OPERATIONS',dueAt:'2026-11-18',missingDataPoint:'automation_owner_deadline_and_stop_evidence',enablesDossierAddition:'add_owner_deadline_stop_and_rollback_evidence_then_refresh',nextHumanGate:'human_automation_governance_review'}]; const DEFAULT_TOPIC_ID='mako_deadline_and_evidence_gap'; const echoed=(obj(d.signalContext).signalId); const requested=typeof echoed==='string'?(echoed.indexOf(P)===0?echoed.slice(P.length):echoed):''; const known=TOPICS.find((t)=>t.topicId===requested); const topic=known||TOPICS.find((t)=>t.topicId===DEFAULT_TOPIC_ID); const selectionStatus=known?'allowlisted_topic_selected':'clarification_required'; const txt=(v)=>v==null||v===''||typeof v==='object'?'clarification_required':String(v); const names=(v)=>(Array.isArray(v)?v:[]).map((x)=>x&&typeof x==='object'?(x.missingDataPoint||x.code||x.id||null):x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v)=>{const a=names(v);return a.length?a.slice(0,8).join(', '):'none';}; const review=(v)=>{const s=txt(v);if(/^(ready|complete|completed|known|provided|closed|documented)$/.test(s))return 'ready_for_human_review';if(/(clarification|missing|stale|unknown|unverified|needs_|partial|degraded|open)/.test(s))return 'clarification_required';return 'human_review_required';}; const gate=(st,missing)=>selectionStatus==='clarification_required'||missing.length>0||review(st)==='clarification_required'?'clarification_required':'human_review_required'; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:netzwirtschaft-leadership-attention',roleTarget:'ROLE_NETZWIRTSCHAFT_LEAD',processFamily:'netzwirtschaft_leadership_review',topicId:topic.topicId,topicLabel:topic.label,selectionStatus:selectionStatus,dataClass:'synthetic_tenant_seed',sourceClass:topic.sourceClass,evidenceStatus:'unverified_input',ownerRoleFamily:topic.ownerRoleFamily,dueAt:topic.dueAt,missingDataPoint:topic.missingDataPoint,enablesDossierAddition:topic.enablesDossierAddition,safeNextAction:'refresh_selected_topic_read_only_after_evidence_is_supplied',nextHumanGate:topic.nextHumanGate}; const readiness=Array.isArray(d.readinessSignals)?d.readinessSignals:[]; const signalStatus=(code)=>obj(readiness.find((s)=>s&&s.code===code)).status; const oc=obj(d.ownerContext); return [{...base,rowKey:'netzwirtschaft_leadership_owner_deadline_'+topic.topicId,sectionClass:'netzwirtschaft_leadership_attention_owner_deadline',endpoint:'/api/dashboard/owner-deadline-evidence-gate',endpointStatus:txt(d.status),ownerScope:'role_family_only',ownerEvidenceStatus:review(signalStatus('owner')||(oc.ownerRole?'provided':null)),deadlineEvidenceStatus:review(signalStatus('deadline')||(oc.dueAt?'provided':null)),dueDateSource:'synthetic_tenant_seed_mapping_not_a_verified_deadline',endpointMissingDataPoints:joined(d.missingEvidence),personnelEvaluation:'not_performed',status:gate(d.status,names(d.missingEvidence))}];",
+      "schema": {
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "topicId": {
+          "type": "string"
+        },
+        "topicLabel": {
+          "type": "string"
+        },
+        "selectionStatus": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "ownerRoleFamily": {
+          "type": "string"
+        },
+        "dueAt": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        },
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "endpointStatus": {
+          "type": "string"
+        },
+        "ownerScope": {
+          "type": "string"
+        },
+        "ownerEvidenceStatus": {
+          "type": "string"
+        },
+        "deadlineEvidenceStatus": {
+          "type": "string"
+        },
+        "dueDateSource": {
+          "type": "string"
+        },
+        "endpointMissingDataPoints": {
+          "type": "string"
+        },
+        "personnelEvaluation": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzwirtschaftLeadershipAutomationRiskRows",
+      "method": "GET",
+      "path": "/api/dashboard/automation-risk-gate",
+      "queryString": "tenantId={{tenantId}}&processId=smm-netzwirtschaft-leadership-{{netzwirtschaftLeadershipTopicId}}&processName=Netzwirtschaft%20leadership%20attention%20(synthetic)&processClass=netzwirtschaft_leadership_review&sourceRef=smm-netzwirtschaft-leadership-{{netzwirtschaftLeadershipTopicId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "netzwirtschaftLeadershipTopicId",
+          "default": "mako_deadline_and_evidence_gap"
+        }
+      ],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const d=obj(data); const P='smm-netzwirtschaft-leadership-'; const TOPICS=[{topicId:'mako_deadline_and_evidence_gap',label:'MaKo-Frist und Nachweisluecke (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_MARKTKOMMUNIKATION',dueAt:'2026-11-04',missingDataPoint:'market_communication_deadline_evidence',enablesDossierAddition:'add_deadline_and_receipt_evidence_then_refresh',nextHumanGate:'human_jour_fixe_review'},{topicId:'metering_rollout_process_impact',label:'Messwesen-Rollout und Prozesswirkung (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_METERING_OPERATIONS',dueAt:'2026-11-11',missingDataPoint:'metering_rollout_process_evidence',enablesDossierAddition:'add_rollout_status_and_process_impact_evidence_then_refresh',nextHumanGate:'human_department_review'},{topicId:'automation_backlog_owner_gap',label:'Automatisierungs-Backlog ohne Owner (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_IT_OPERATIONS',dueAt:'2026-11-18',missingDataPoint:'automation_owner_deadline_and_stop_evidence',enablesDossierAddition:'add_owner_deadline_stop_and_rollback_evidence_then_refresh',nextHumanGate:'human_automation_governance_review'}]; const DEFAULT_TOPIC_ID='mako_deadline_and_evidence_gap'; const echoed=(obj(d.processContext).processId); const requested=typeof echoed==='string'?(echoed.indexOf(P)===0?echoed.slice(P.length):echoed):''; const known=TOPICS.find((t)=>t.topicId===requested); const topic=known||TOPICS.find((t)=>t.topicId===DEFAULT_TOPIC_ID); const selectionStatus=known?'allowlisted_topic_selected':'clarification_required'; const txt=(v)=>v==null||v===''||typeof v==='object'?'clarification_required':String(v); const names=(v)=>(Array.isArray(v)?v:[]).map((x)=>x&&typeof x==='object'?(x.missingDataPoint||x.code||x.id||null):x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v)=>{const a=names(v);return a.length?a.slice(0,8).join(', '):'none';}; const review=(v)=>{const s=txt(v);if(/^(ready|complete|completed|known|provided|closed|documented)$/.test(s))return 'ready_for_human_review';if(/(clarification|missing|stale|unknown|unverified|needs_|partial|degraded|open)/.test(s))return 'clarification_required';return 'human_review_required';}; const gate=(st,missing)=>selectionStatus==='clarification_required'||missing.length>0||review(st)==='clarification_required'?'clarification_required':'human_review_required'; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:netzwirtschaft-leadership-attention',roleTarget:'ROLE_NETZWIRTSCHAFT_LEAD',processFamily:'netzwirtschaft_leadership_review',topicId:topic.topicId,topicLabel:topic.label,selectionStatus:selectionStatus,dataClass:'synthetic_tenant_seed',sourceClass:topic.sourceClass,evidenceStatus:'unverified_input',ownerRoleFamily:topic.ownerRoleFamily,dueAt:topic.dueAt,missingDataPoint:topic.missingDataPoint,enablesDossierAddition:topic.enablesDossierAddition,safeNextAction:'refresh_selected_topic_read_only_after_evidence_is_supplied',nextHumanGate:topic.nextHumanGate}; const pc=obj(d.processContext); const rc=obj(d.riskContext); return [{...base,rowKey:'netzwirtschaft_leadership_automation_risk_'+topic.topicId,sectionClass:'netzwirtschaft_leadership_attention_automation_risk',endpoint:'/api/dashboard/automation-risk-gate',endpointStatus:txt(d.status),riskLevel:txt(rc.riskLevel),marketCommunicationImpact:txt(rc.marketCommunicationImpact),billingImpact:txt(rc.billingImpact),affectedDomains:joined(pc.affectedDomains),endpointMissingDataPoints:joined(d.missingEvidence),contextOnly:true,prioritization:'not_applied',recommendation:'not_derived',status:gate(d.status,names(d.missingEvidence))}];",
+      "schema": {
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "topicId": {
+          "type": "string"
+        },
+        "topicLabel": {
+          "type": "string"
+        },
+        "selectionStatus": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "ownerRoleFamily": {
+          "type": "string"
+        },
+        "dueAt": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        },
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "endpointStatus": {
+          "type": "string"
+        },
+        "riskLevel": {
+          "type": "string"
+        },
+        "marketCommunicationImpact": {
+          "type": "string"
+        },
+        "billingImpact": {
+          "type": "string"
+        },
+        "affectedDomains": {
+          "type": "string"
+        },
+        "endpointMissingDataPoints": {
+          "type": "string"
+        },
+        "contextOnly": {
+          "type": "boolean"
+        },
+        "prioritization": {
+          "type": "string"
+        },
+        "recommendation": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzwirtschaftLeadershipMarketEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/market-communication-evidence-chain",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-netzwirtschaft-leadership-{{netzwirtschaftLeadershipTopicId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "netzwirtschaftLeadershipTopicId",
+          "default": "mako_deadline_and_evidence_gap"
+        }
+      ],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const d=obj(data); const P='smm-netzwirtschaft-leadership-'; const TOPICS=[{topicId:'mako_deadline_and_evidence_gap',label:'MaKo-Frist und Nachweisluecke (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_MARKTKOMMUNIKATION',dueAt:'2026-11-04',missingDataPoint:'market_communication_deadline_evidence',enablesDossierAddition:'add_deadline_and_receipt_evidence_then_refresh',nextHumanGate:'human_jour_fixe_review'},{topicId:'metering_rollout_process_impact',label:'Messwesen-Rollout und Prozesswirkung (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_METERING_OPERATIONS',dueAt:'2026-11-11',missingDataPoint:'metering_rollout_process_evidence',enablesDossierAddition:'add_rollout_status_and_process_impact_evidence_then_refresh',nextHumanGate:'human_department_review'},{topicId:'automation_backlog_owner_gap',label:'Automatisierungs-Backlog ohne Owner (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_IT_OPERATIONS',dueAt:'2026-11-18',missingDataPoint:'automation_owner_deadline_and_stop_evidence',enablesDossierAddition:'add_owner_deadline_stop_and_rollback_evidence_then_refresh',nextHumanGate:'human_automation_governance_review'}]; const DEFAULT_TOPIC_ID='mako_deadline_and_evidence_gap'; const echoed=(obj(d.requestContext).caseId); const requested=typeof echoed==='string'?(echoed.indexOf(P)===0?echoed.slice(P.length):echoed):''; const known=TOPICS.find((t)=>t.topicId===requested); const topic=known||TOPICS.find((t)=>t.topicId===DEFAULT_TOPIC_ID); const selectionStatus=known?'allowlisted_topic_selected':'clarification_required'; const txt=(v)=>v==null||v===''||typeof v==='object'?'clarification_required':String(v); const names=(v)=>(Array.isArray(v)?v:[]).map((x)=>x&&typeof x==='object'?(x.missingDataPoint||x.code||x.id||null):x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v)=>{const a=names(v);return a.length?a.slice(0,8).join(', '):'none';}; const review=(v)=>{const s=txt(v);if(/^(ready|complete|completed|known|provided|closed|documented)$/.test(s))return 'ready_for_human_review';if(/(clarification|missing|stale|unknown|unverified|needs_|partial|degraded|open)/.test(s))return 'clarification_required';return 'human_review_required';}; const gate=(st,missing)=>selectionStatus==='clarification_required'||missing.length>0||review(st)==='clarification_required'?'clarification_required':'human_review_required'; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:netzwirtschaft-leadership-attention',roleTarget:'ROLE_NETZWIRTSCHAFT_LEAD',processFamily:'netzwirtschaft_leadership_review',topicId:topic.topicId,topicLabel:topic.label,selectionStatus:selectionStatus,dataClass:'synthetic_tenant_seed',sourceClass:topic.sourceClass,evidenceStatus:'unverified_input',ownerRoleFamily:topic.ownerRoleFamily,dueAt:topic.dueAt,missingDataPoint:topic.missingDataPoint,enablesDossierAddition:topic.enablesDossierAddition,safeNextAction:'refresh_selected_topic_read_only_after_evidence_is_supplied',nextHumanGate:topic.nextHumanGate}; return [{...base,rowKey:'netzwirtschaft_leadership_market_evidence_'+topic.topicId,sectionClass:'netzwirtschaft_leadership_attention_market_evidence',endpoint:'/api/dashboard/market-communication-evidence-chain',endpointStatus:txt(d.status),officialEvidence:joined(d.officialEvidence),hintsOnly:joined(d.hintsOnly),endpointMissingDataPoints:joined(d.missingEvidence),provenanceCaveat:'caller_supplied_unverified_input_hints_are_not_official_mako_proof',makoWrite:'not_called',status:gate(d.status,names(d.missingEvidence))}];",
+      "schema": {
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "topicId": {
+          "type": "string"
+        },
+        "topicLabel": {
+          "type": "string"
+        },
+        "selectionStatus": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "ownerRoleFamily": {
+          "type": "string"
+        },
+        "dueAt": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        },
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "endpointStatus": {
+          "type": "string"
+        },
+        "officialEvidence": {
+          "type": "string"
+        },
+        "hintsOnly": {
+          "type": "string"
+        },
+        "endpointMissingDataPoints": {
+          "type": "string"
+        },
+        "provenanceCaveat": {
+          "type": "string"
+        },
+        "makoWrite": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzwirtschaftLeadershipMeteringRows",
+      "method": "GET",
+      "path": "/api/dashboard/metering-rollout-process-indicator",
+      "queryString": "tenantId={{tenantId}}&indicatorId=smm-netzwirtschaft-leadership-{{netzwirtschaftLeadershipTopicId}}&division=netzwirtschaft&sourceType=synthetic_tenant_seed&sourceRef=smm-netzwirtschaft-leadership-{{netzwirtschaftLeadershipTopicId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "netzwirtschaftLeadershipTopicId",
+          "default": "mako_deadline_and_evidence_gap"
+        }
+      ],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const d=obj(data); const P='smm-netzwirtschaft-leadership-'; const TOPICS=[{topicId:'mako_deadline_and_evidence_gap',label:'MaKo-Frist und Nachweisluecke (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_MARKTKOMMUNIKATION',dueAt:'2026-11-04',missingDataPoint:'market_communication_deadline_evidence',enablesDossierAddition:'add_deadline_and_receipt_evidence_then_refresh',nextHumanGate:'human_jour_fixe_review'},{topicId:'metering_rollout_process_impact',label:'Messwesen-Rollout und Prozesswirkung (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_METERING_OPERATIONS',dueAt:'2026-11-11',missingDataPoint:'metering_rollout_process_evidence',enablesDossierAddition:'add_rollout_status_and_process_impact_evidence_then_refresh',nextHumanGate:'human_department_review'},{topicId:'automation_backlog_owner_gap',label:'Automatisierungs-Backlog ohne Owner (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_IT_OPERATIONS',dueAt:'2026-11-18',missingDataPoint:'automation_owner_deadline_and_stop_evidence',enablesDossierAddition:'add_owner_deadline_stop_and_rollback_evidence_then_refresh',nextHumanGate:'human_automation_governance_review'}]; const DEFAULT_TOPIC_ID='mako_deadline_and_evidence_gap'; const echoed=(obj(d.requestContext||d.indicatorContext).indicatorId); const requested=typeof echoed==='string'?(echoed.indexOf(P)===0?echoed.slice(P.length):echoed):''; const known=TOPICS.find((t)=>t.topicId===requested); const topic=known||TOPICS.find((t)=>t.topicId===DEFAULT_TOPIC_ID); const selectionStatus=known?'allowlisted_topic_selected':'clarification_required'; const txt=(v)=>v==null||v===''||typeof v==='object'?'clarification_required':String(v); const names=(v)=>(Array.isArray(v)?v:[]).map((x)=>x&&typeof x==='object'?(x.missingDataPoint||x.code||x.id||null):x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v)=>{const a=names(v);return a.length?a.slice(0,8).join(', '):'none';}; const review=(v)=>{const s=txt(v);if(/^(ready|complete|completed|known|provided|closed|documented)$/.test(s))return 'ready_for_human_review';if(/(clarification|missing|stale|unknown|unverified|needs_|partial|degraded|open)/.test(s))return 'clarification_required';return 'human_review_required';}; const gate=(st,missing)=>selectionStatus==='clarification_required'||missing.length>0||review(st)==='clarification_required'?'clarification_required':'human_review_required'; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:netzwirtschaft-leadership-attention',roleTarget:'ROLE_NETZWIRTSCHAFT_LEAD',processFamily:'netzwirtschaft_leadership_review',topicId:topic.topicId,topicLabel:topic.label,selectionStatus:selectionStatus,dataClass:'synthetic_tenant_seed',sourceClass:topic.sourceClass,evidenceStatus:'unverified_input',ownerRoleFamily:topic.ownerRoleFamily,dueAt:topic.dueAt,missingDataPoint:topic.missingDataPoint,enablesDossierAddition:topic.enablesDossierAddition,safeNextAction:'refresh_selected_topic_read_only_after_evidence_is_supplied',nextHumanGate:topic.nextHumanGate}; const pe=obj(d.processEvidence); const ic=obj(d.indicatorContext||d.requestContext); return [{...base,rowKey:'netzwirtschaft_leadership_metering_'+topic.topicId,sectionClass:'netzwirtschaft_leadership_attention_metering',endpoint:'/api/dashboard/metering-rollout-process-indicator',endpointStatus:txt(d.status),division:txt(ic.division),indicatorSourceType:txt(ic.sourceType),targetCount:txt(pe.targetCount),actualCount:txt(pe.actualCount),backlogCount:txt(pe.backlogCount),dataQualityStatus:txt(pe.dataQualityStatus),contractorLoad:txt(pe.contractorLoad),endpointMissingDataPoints:joined(d.missingEvidence),deviceControl:'not_called',status:gate(d.status,names(d.missingEvidence))}];",
+      "schema": {
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "topicId": {
+          "type": "string"
+        },
+        "topicLabel": {
+          "type": "string"
+        },
+        "selectionStatus": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "ownerRoleFamily": {
+          "type": "string"
+        },
+        "dueAt": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        },
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "endpointStatus": {
+          "type": "string"
+        },
+        "division": {
+          "type": "string"
+        },
+        "indicatorSourceType": {
+          "type": "string"
+        },
+        "targetCount": {
+          "type": "string"
+        },
+        "actualCount": {
+          "type": "string"
+        },
+        "backlogCount": {
+          "type": "string"
+        },
+        "dataQualityStatus": {
+          "type": "string"
+        },
+        "contractorLoad": {
+          "type": "string"
+        },
+        "endpointMissingDataPoints": {
+          "type": "string"
+        },
+        "deviceControl": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzwirtschaftLeadershipClosureRows",
+      "method": "GET",
+      "path": "/api/dashboard/jour-fixe-decision-closure",
+      "queryString": "tenantId={{tenantId}}&topicId={{netzwirtschaftLeadershipTopicId}}&topicTitle=Netzwirtschaft%20leadership%20attention%20(synthetic)&sourceSnapshotRef=smm-netzwirtschaft-leadership-{{netzwirtschaftLeadershipTopicId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "netzwirtschaftLeadershipTopicId",
+          "default": "mako_deadline_and_evidence_gap"
+        }
+      ],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const d=obj(data); const P='smm-netzwirtschaft-leadership-'; const TOPICS=[{topicId:'mako_deadline_and_evidence_gap',label:'MaKo-Frist und Nachweisluecke (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_MARKTKOMMUNIKATION',dueAt:'2026-11-04',missingDataPoint:'market_communication_deadline_evidence',enablesDossierAddition:'add_deadline_and_receipt_evidence_then_refresh',nextHumanGate:'human_jour_fixe_review'},{topicId:'metering_rollout_process_impact',label:'Messwesen-Rollout und Prozesswirkung (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_METERING_OPERATIONS',dueAt:'2026-11-11',missingDataPoint:'metering_rollout_process_evidence',enablesDossierAddition:'add_rollout_status_and_process_impact_evidence_then_refresh',nextHumanGate:'human_department_review'},{topicId:'automation_backlog_owner_gap',label:'Automatisierungs-Backlog ohne Owner (synthetisch)',sourceClass:'synthetic_tenant_seed',ownerRoleFamily:'ROLE_IT_OPERATIONS',dueAt:'2026-11-18',missingDataPoint:'automation_owner_deadline_and_stop_evidence',enablesDossierAddition:'add_owner_deadline_stop_and_rollback_evidence_then_refresh',nextHumanGate:'human_automation_governance_review'}]; const DEFAULT_TOPIC_ID='mako_deadline_and_evidence_gap'; const echoed=(obj(d.requestContext||d.topic).topicId); const requested=typeof echoed==='string'?(echoed.indexOf(P)===0?echoed.slice(P.length):echoed):''; const known=TOPICS.find((t)=>t.topicId===requested); const topic=known||TOPICS.find((t)=>t.topicId===DEFAULT_TOPIC_ID); const selectionStatus=known?'allowlisted_topic_selected':'clarification_required'; const txt=(v)=>v==null||v===''||typeof v==='object'?'clarification_required':String(v); const names=(v)=>(Array.isArray(v)?v:[]).map((x)=>x&&typeof x==='object'?(x.missingDataPoint||x.code||x.id||null):x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v)=>{const a=names(v);return a.length?a.slice(0,8).join(', '):'none';}; const review=(v)=>{const s=txt(v);if(/^(ready|complete|completed|known|provided|closed|documented)$/.test(s))return 'ready_for_human_review';if(/(clarification|missing|stale|unknown|unverified|needs_|partial|degraded|open)/.test(s))return 'clarification_required';return 'human_review_required';}; const gate=(st,missing)=>selectionStatus==='clarification_required'||missing.length>0||review(st)==='clarification_required'?'clarification_required':'human_review_required'; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:netzwirtschaft-leadership-attention',roleTarget:'ROLE_NETZWIRTSCHAFT_LEAD',processFamily:'netzwirtschaft_leadership_review',topicId:topic.topicId,topicLabel:topic.label,selectionStatus:selectionStatus,dataClass:'synthetic_tenant_seed',sourceClass:topic.sourceClass,evidenceStatus:'unverified_input',ownerRoleFamily:topic.ownerRoleFamily,dueAt:topic.dueAt,missingDataPoint:topic.missingDataPoint,enablesDossierAddition:topic.enablesDossierAddition,safeNextAction:'refresh_selected_topic_read_only_after_evidence_is_supplied',nextHumanGate:topic.nextHumanGate}; const ce=obj(d.closureEvidence); const steps=(Array.isArray(d.closureSteps)?d.closureSteps:[]).filter((s)=>s&&typeof s==='object').map((s)=>txt(s.id)+':'+txt(s.evidenceStatus)); const shared={...base,sectionClass:'netzwirtschaft_leadership_attention_closure',endpointStatus:'n/a',closureStatus:'n/a',closureSteps:'n/a',endpointMissingDataPoints:'n/a',automaticDecision:'not_inferred',safeAlternative:'render_existing_read_only_leadership_attention_rows_only'}; const readinessRow={...shared,rowKey:'netzwirtschaft_leadership_closure_readiness_'+topic.topicId,kind:'jour_fixe_closure_readiness',boundary:'/api/dashboard/jour-fixe-decision-closure',behavior:'read_only',disabled:false,endpointStatus:txt(d.status),closureStatus:txt(ce.closureStatus),closureSteps:steps.length?steps.slice(0,8).join(', '):'none',endpointMissingDataPoints:joined(d.missingEvidence),status:gate(d.status,names(d.missingEvidence))}; const enabledRows=['query_refresh','open_detail'].map((behavior)=>({...shared,rowKey:'netzwirtschaft_leadership_closure_enabled_'+behavior,kind:'enabled_read_only_behavior',boundary:behavior,behavior:'enabled',disabled:false,status:'enabled'})); const notCalled=names(obj(d.sourceActions).notCalled); const guards=Array.from(new Set(['budibase.table.write','workbench.protected.read','project-file.read','case.read','personal-agent.execute','workflow.execute','hitl.create','task.create','email.send','webhook.call','external.connector.call','rundeck.execute','mako.write','billing.release','settlement.prepareBilling','tariff.mutate','redispatch.dispatch','smgw-cls.execute','device-control.execute','production.mutate'].concat(notCalled))); const guardRows=guards.map((action,index)=>({...shared,rowKey:'netzwirtschaft_leadership_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),kind:'disabled_no_call_guard',boundary:String(action),behavior:'disabled',disabled:true,status:'not_called'})); return [readinessRow].concat(enabledRows).concat(guardRows);",
+      "schema": {
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "topicId": {
+          "type": "string"
+        },
+        "topicLabel": {
+          "type": "string"
+        },
+        "selectionStatus": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "ownerRoleFamily": {
+          "type": "string"
+        },
+        "dueAt": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "endpointStatus": {
+          "type": "string"
+        },
+        "closureStatus": {
+          "type": "string"
+        },
+        "closureSteps": {
+          "type": "string"
+        },
+        "endpointMissingDataPoints": {
+          "type": "string"
+        },
+        "automaticDecision": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "rowKey": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "behavior": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
     }
   ],
   "sections": [
@@ -16166,6 +16945,54 @@
       "title": "Domain Case Routing Attention No-Call Guards",
       "queryName": "getDomainCaseRoutingAttentionNoCallRows",
       "tableTitle": "Event-not-polled boundary plus disabled continue/ack/link guards"
+    },
+    {
+      "id": "netzwirtschaft_leadership_attention_selector",
+      "title": "Netzwirtschaft Leadership Attention Themenauswahl",
+      "queryName": "getNetzwirtschaftLeadershipTopicSelectorRows",
+      "tableTitle": "Drei synthetische Bereichsthemen: MaKo-Frist/Nachweisluecke (Standard), Messwesen-Rollout, Automatisierungs-Backlog ohne Owner"
+    },
+    {
+      "id": "netzwirtschaft_leadership_attention_context",
+      "title": "Netzwirtschaft Leadership Attention Kontext",
+      "queryName": "getNetzwirtschaftLeadershipContextRows",
+      "tableTitle": "Ausgewaehltes Thema, Owner-Rollenfamilie, Status, Quellklasse und Provenienz-Hinweis"
+    },
+    {
+      "id": "netzwirtschaft_leadership_attention_signals",
+      "title": "Netzwirtschaft Leadership Attention Signale & Evidenz",
+      "queryName": "getNetzwirtschaftLeadershipSignalRows",
+      "tableTitle": "Evidenz-/Lueckenstatus und Provenienz ohne Prioritaets-Score"
+    },
+    {
+      "id": "netzwirtschaft_leadership_attention_owner_deadline",
+      "title": "Netzwirtschaft Leadership Attention Owner-Rolle & Frist",
+      "queryName": "getNetzwirtschaftLeadershipOwnerDeadlineRows",
+      "tableTitle": "Owner-Rollenfamilie (keine Personen), Faelligkeit, fehlende Evidenz und Klaerungsstatus"
+    },
+    {
+      "id": "netzwirtschaft_leadership_attention_automation_risk",
+      "title": "Netzwirtschaft Leadership Attention Automatisierungsrisiko",
+      "queryName": "getNetzwirtschaftLeadershipAutomationRiskRows",
+      "tableTitle": "Qualitativer Risikokontext, keine Priorisierung oder Empfehlung"
+    },
+    {
+      "id": "netzwirtschaft_leadership_attention_market_evidence",
+      "title": "Netzwirtschaft Leadership Attention MaKo-Evidenz",
+      "queryName": "getNetzwirtschaftLeadershipMarketEvidenceRows",
+      "tableTitle": "Caller-supplied MaKo-Evidenzstatus mit Hinweis: unverifiziert, kein offizieller Nachweis"
+    },
+    {
+      "id": "netzwirtschaft_leadership_attention_metering",
+      "title": "Netzwirtschaft Leadership Attention Messwesen-Rollout",
+      "queryName": "getNetzwirtschaftLeadershipMeteringRows",
+      "tableTitle": "Rollout-/Prozesswirkung und fehlende Evidenz als skalare Labels"
+    },
+    {
+      "id": "netzwirtschaft_leadership_attention_closure",
+      "title": "Netzwirtschaft Leadership Attention Jour-fixe-Abschluss & No-Call Guards",
+      "queryName": "getNetzwirtschaftLeadershipClosureRows",
+      "tableTitle": "Readiness, positive Folgeaktion, naechstes menschliches Gate; nur Refresh/Detail aktiv, alles andere not_called"
     }
   ],
   "notes": [
@@ -16248,6 +17075,8 @@
     "Versandbatch Completion-Evidence Review panel (#517) is generated manifest composition, not a new Cernion endpoint, Versand-, Billing- or Workflow-Engine. It composes only the existing cross-channel-vnb-signal-queue, owner-deadline-evidence-gate, evidence-freshness-guard and automation-risk-gate read models for exactly three explicitly synthetic selector cases (release_ready_receipt_missing, manual_handover_owner_due_gap — default-selected, return_or_completion_evidence_stale); no new endpoint, alias, dashboard action/builder, service, persistence model, connector, import path, process command, scheduler, notification or second generic signal queue is introduced.",
     "Versandbatch Completion-Evidence Review rows stay scalar/generated and synthetic: Budibase renders batch/case-group id and explicitly synthetic source class, document version and release-evidence status, channel and shipment-status reference always as caller-supplied evidence rather than a verified delivery fact, manual handover state/owner role/due date, return/response freshness and snapshot-delta comparison, exception/missing-evidence/blocked-decision rows, a completion/receipt evidence pointer, an automation-risk summary rendered only as context, and positive human follow-up/next safe review gate rows. Missing or stale evidence always maps to clarification/human_review_required, never to automatic rejection, successful delivery, legal completion, billing correctness or settlement completion; no email/document sending, resend, delivery confirmation, billing, invoicing, posting, payment, settlement, MaKo, Redispatch dispatch, tariff/legal determination, mailbox/portal/ERP/CRM connector, customer contact, webhook, workflow/HITL/task creation, escalation, arbitrary Budibase table write, production data or Personal-Agent hardcoding is introduced.",
     "Domain Case Routing Attention panel (#599) is generated manifest composition, not a new Cernion endpoint or generic case service. It composes only the four named dashboard bricks (stadtwerk-mauer-workbench-selected-target, stadtwerk-mauer-case-detail, stadtwerk-mauer-case-actions, stadtwerk-mauer-role-workbench-catalog) plus the existing protected Domain Router explain and related-sessions.discover actions for exactly one explicitly synthetic case (cetCaseId cet-case-smm-budibase-workbench-001, linked Workbench case smm-budibase-workbench); no new backend endpoint, Capability Broker route or Hydration Registry rule is introduced.",
-    "Domain Case Routing Attention rows stay scalar/generated: Budibase renders the selected case identity, caseStateVersion, active domain, last routing decision (continue/reclassify/branch/clarify/handoff/fallback) and reason as advisory_reasoning, positively framed evidence/owner-gap rows (clarification or human_review_required, never an automatic negative conclusion), authorized related-case/session rows as evidence pointers only (never auto-linked from this panel), the responsible role family from the existing Role Workbench catalog, and an explicit event_attention_not_polled boundary row stating that GET /api/domain-router/events is never called from this panel because polling reconciles the case-event outbox and mutates pending events to delivered. continue, events.list, events.ack and related-sessions.link render only as disabled not_called guard rows with a safe alternative; no Budibase table write, workflow/HITL creation, external connector, MaKo/billing/settlement/tariff/device-control action, Personal-Agent hardcoding or production mutation is introduced."
+    "Domain Case Routing Attention rows stay scalar/generated: Budibase renders the selected case identity, caseStateVersion, active domain, last routing decision (continue/reclassify/branch/clarify/handoff/fallback) and reason as advisory_reasoning, positively framed evidence/owner-gap rows (clarification or human_review_required, never an automatic negative conclusion), authorized related-case/session rows as evidence pointers only (never auto-linked from this panel), the responsible role family from the existing Role Workbench catalog, and an explicit event_attention_not_polled boundary row stating that GET /api/domain-router/events is never called from this panel because polling reconciles the case-event outbox and mutates pending events to delivered. continue, events.list, events.ack and related-sessions.link render only as disabled not_called guard rows with a safe alternative; no Budibase table write, workflow/HITL creation, external connector, MaKo/billing/settlement/tariff/device-control action, Personal-Agent hardcoding or production mutation is introduced.",
+    "Netzwirtschaft Leadership Attention panel (#1000) is generated manifest composition (safety class read_only_synthetic_workbench_composition, non-consequential), not a new Cernion endpoint, briefing read model or case store. It composes only the seven existing read-only GET bricks leadership-delta-cockpit, cross-channel-vnb-signal-queue, owner-deadline-evidence-gate, automation-risk-gate, market-communication-evidence-chain, metering-rollout-process-indicator and jour-fixe-decision-closure for exactly three explicitly synthetic selector topics (mako_deadline_and_evidence_gap default-selected, metering_rollout_process_impact, automation_backlog_owner_gap) bound through the allowlisted netzwirtschaftLeadershipTopicId parameter; unknown values fail closed to the default topic with clarification_required. No backend endpoint, Capability Broker route, Hydration Registry rule, formatter or Personal-Agent hardcoding is introduced, and it does not implement the #986 WP5 authoritative briefing.",
+    "Netzwirtschaft Leadership Attention rows stay scalar/generated and synthetic_tenant_seed: owner fields are role families only (never personnel evaluation), due dates and evidence are unverified_input from the synthetic topic mapping, automation risk is context only, and readinessScore, finding severity, ranking, automatic escalation and inferred management decisions are never rendered. Missing or stale evidence maps to clarification_required/human_review_required with missingDataPoint, enablesDossierAddition, safeNextAction refresh_selected_topic_read_only_after_evidence_is_supplied and an allowlisted nextHumanGate. Only query_refresh and open_detail are enabled; Budibase table writes, protected Workbench/project-file/case reads (pending #741), Personal-Agent execution, workflow/HITL/task creation, mail/webhook/connector calls, direct Rundeck, MaKo writes, billing/settlement/tariff, Redispatch dispatch and SMGW/CLS/device control render as disabled not_called guards. Visible Budibase acceptance remains gated by #572."
   ]
 }

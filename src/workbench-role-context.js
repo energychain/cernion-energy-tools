@@ -38,6 +38,21 @@ function reflexive(value, basis) {
   return SPEAKER_TOKEN.test(before.toLowerCase().replace(/[^\p{L}]/gu, ''));
 }
 
+// "Wir sind <X>" describes the organisation the speaker belongs to, not the speaker's own role:
+// a first-person plural subject within the two words before the fragment.
+const PLURAL_SPEAKER = /^(?:wir|uns|unser\w*|we|us|our)$/u;
+function plural(value, basis) {
+  const text = String(basis || '');
+  const at = text.indexOf(String(value || ''));
+  if (!value || at < 0) return false;
+  return text
+    .slice(0, at)
+    .trim()
+    .split(/\s+/u)
+    .slice(-2)
+    .some((token) => PLURAL_SPEAKER.test(token.toLowerCase().replace(/[^\p{L}]/gu, '')));
+}
+
 function applyRoleContext(situation, message, previous, asked = []) {
   const statement = situation.roleStatement;
   if (!statement || statement.subject !== 'self') return;
@@ -60,7 +75,9 @@ function applyRoleContext(situation, message, previous, asked = []) {
   )
     return;
   const role =
-    substantiveRole(statement.role, statement.basis) && !reflexive(statement.role, statement.basis)
+    substantiveRole(statement.role, statement.basis) &&
+    !reflexive(statement.role, statement.basis) &&
+    !plural(statement.role, statement.basis)
       ? statement.role
       : '';
   const mandate =
