@@ -241,6 +241,7 @@ function searchSummary(trace) {
     'tenant-memory': 'Tenant-Gedächtnis',
     documents: 'Dokumente',
     datasets: 'Datensätze',
+    'knowledge-register': 'Wissensbedarfe',
   };
   return (
     'Nachgesehen: ' +

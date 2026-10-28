@@ -743,6 +743,22 @@ async function runContentTurn(
       ...new Set([...(state?.sensitivityFlags || []), ...(ctx.params.sensitivityFlags || [])]),
     ],
   });
+  // Cold start (#997): when the regular capture of this statement turn kept nothing, clear
+  // answers to open knowledge needs are captured off the answer path.
+  if (!understandingFailed && !draftRequest && !incomingDocuments)
+    Promise.resolve(memory.job)
+      .then(() =>
+        memory.ids.length
+          ? []
+          : require('./knowledge-need-recognition').captureFromMessage(memoryCtx, p, {
+              envelope,
+              situation,
+              mapping,
+            })
+      )
+      .catch((error) =>
+        service.logger.warn('Knowledge capture unavailable', { reason: String(error.message) })
+      );
   const memoryStatement =
     !understandingFailed &&
     !draftRequest &&

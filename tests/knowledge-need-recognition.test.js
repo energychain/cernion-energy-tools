@@ -65,6 +65,22 @@ describe('semantic matching', () => {
     ]);
   });
 
+  test('one stated value answers only the need it fits best', async () => {
+    llm.generateStructured.mockResolvedValue({
+      matches: [
+        { needId: 'need:a', factId: 'f1', value: 'SYN-7', confidence: 0.95 },
+        { needId: 'need:b', factId: 'f1', value: 'SYN-7', confidence: 0.7 },
+        { needId: 'need:c', factId: 'f1', value: 'Strom', confidence: 0.8 },
+      ],
+    });
+    const matches = await matchFacts(
+      [fact('f1', 'Kennung SYN-7, Sparte Strom.')],
+      [need('a'), need('b'), need('c')],
+      { tenantId: 'synthetic-a' }
+    );
+    expect(matches.map((match) => match.needId).sort()).toEqual(['need:a', 'need:c']);
+  });
+
   test('no open need or no fact means no model call', async () => {
     expect(await matchFacts([], [need('a')], { tenantId: 't' })).toEqual([]);
     expect(await matchFacts([fact('f1', 'x')], [], { tenantId: 't' })).toEqual([]);
@@ -158,6 +174,23 @@ describe('register recognition', () => {
     await call('recognizeFacts', { factIds: ['f-new'] });
     expect(store.query).toHaveBeenCalledTimes(1);
     expect(llm.generateStructured.mock.calls.length).toBe(calls);
+  });
+
+  test('a fact that already answers a need is not reused for a neighbouring one', async () => {
+    const stated = fact('f1', 'Die Kennung der Organisation ist SYN-123.');
+    store.get.mockResolvedValue({ payload: stated });
+    store.query.mockResolvedValue([stated]);
+    llm.generateStructured
+      .mockResolvedValueOnce({
+        matches: [{ needId: 'need:a', factId: 'f1', value: 'SYN-123', confidence: 0.9 }],
+      })
+      .mockResolvedValue({
+        matches: [{ needId: 'need:b', factId: 'f1', value: 'SYN-123', confidence: 0.9 }],
+      });
+    await call('recognizeFacts', { factIds: ['f1'] });
+    await call('recognizeFacts', { factIds: ['f1'] });
+    expect((await call('get', { needId: 'need:a' })).state).toBe('answered');
+    expect((await call('get', { needId: 'need:b' })).state).toBe('unknown');
   });
 
   test('another tenant keeps its own unanswered register', async () => {
