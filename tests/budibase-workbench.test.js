@@ -9388,7 +9388,10 @@ describe('Budibase Netzwirtschaft leadership attention panel (#1000)', () => {
         {
           topicId,
           status: 'known',
-          deltaSummary: { signalCount: 0, summary: 'No new signal supplied; baseline stays known.' },
+          deltaSummary: {
+            signalCount: 0,
+            summary: 'No new signal supplied; baseline stays known.',
+          },
           escalation: { state: 'none', escalated: false },
           evidenceStatus: 'unverified_input',
         },
@@ -9627,7 +9630,9 @@ describe('Budibase Netzwirtschaft leadership attention panel (#1000)', () => {
     expect(
       manifest.sections.filter((section) => section.id.startsWith('netzwirtschaft_leadership_'))
     ).toHaveLength(8);
-    expect(manifest.notes.join('\n')).toContain('Netzwirtschaft Leadership Attention panel (#1000)');
+    expect(manifest.notes.join('\n')).toContain(
+      'Netzwirtschaft Leadership Attention panel (#1000)'
+    );
     expect(manifest.notes.join('\n')).toContain('read_only_synthetic_workbench_composition');
   });
 
@@ -9751,7 +9756,8 @@ describe('Budibase Netzwirtschaft leadership attention panel (#1000)', () => {
     }
     const owner = runTransformer(
       'getNetzwirtschaftLeadershipOwnerDeadlineRows',
-      missingFixtures('metering_rollout_process_impact').getNetzwirtschaftLeadershipOwnerDeadlineRows
+      missingFixtures('metering_rollout_process_impact')
+        .getNetzwirtschaftLeadershipOwnerDeadlineRows
     )[0];
     expect(owner).toEqual(
       expect.objectContaining({
