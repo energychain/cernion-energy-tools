@@ -1,6 +1,6 @@
 # Kunden-/Service-Klärfall
 
-Generated: 2026-10-28T00:06:34.075Z
+Generated: 2026-10-28T06:10:57.823Z
 
 Status: routable
 Priority: 3
@@ -139,7 +139,7 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 - `docs/validation/practice-evaluation-887-live-1.md` (227 hits)
 - `docs/validation/issue-874-before.md` (214 hits)
 - `src/report-builder.js` (174 hits)
-- `function-model.report.md` (167 hits)
+- `function-model.report.md` (169 hits)
 - `services/chatgpt-sidecar.service.js` (156 hits)
 - `docs/validation/practice-evaluation-baseline.json` (151 hits)
 - `docs/validation/practice-evaluation-baseline-corrected.json` (149 hits)
