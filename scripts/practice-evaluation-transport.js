@@ -371,8 +371,8 @@ async function createLocalTransport({ budget }) {
   return {
     mode: 'local',
     // Read access for evaluation checks of local stores (e.g. the knowledge-need register).
-    call: (name, params, run, actor = run.actors[0]) =>
-      app.broker.call(name, params, { meta: actorMeta(run, actor) }),
+    call: (name, params, run, actor = run.actors[0], { admin = false } = {}) =>
+      app.broker.call(name, params, { meta: actorMeta(run, actor, { admin }) }),
     startRun,
     send,
     cleanup,

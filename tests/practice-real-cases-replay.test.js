@@ -241,3 +241,15 @@ test.each([
   applyRoleContext(situation, basis, null);
   expect(situation.conversationContext?.role || '').toBe(kept ? role : '');
 });
+
+test.each([
+  ['Wir sind Netzbetreiber und betreiben Strom und Gas.', 'Netzbetreiber', ''],
+  ['Ich bin Teamleitung Netzservice.', 'Teamleitung Netzservice', 'Teamleitung Netzservice'],
+])('an organisation described with "wir" is no personal role (%p)', (basis, role, kept) => {
+  const { applyRoleContext } = require('../src/workbench-role-context');
+  const situation = {
+    roleStatement: { subject: 'self', firstPerson: true, basis, role, mandate: '', goal: '' },
+  };
+  applyRoleContext(situation, basis, null);
+  expect(situation.conversationContext?.role || '').toBe(kept);
+});
