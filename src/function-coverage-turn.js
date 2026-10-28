@@ -60,6 +60,12 @@ function mapped(ctx, meta) {
   if (facts) facts.noticeMeta = meta;
 }
 
+// The tenant-mapped meta of a running turn, for other after-hooks that run before `after`.
+function mappedMeta(ctx) {
+  const facts = observations.get(ctx);
+  return facts?.noticeMeta || facts?.meta;
+}
+
 function release(ctx) {
   const facts = observations.get(ctx);
   if (facts) ctx.call = facts.call;
@@ -270,4 +276,4 @@ function error(ctx, failure) {
   throw failure;
 }
 
-module.exports = { before, after, error, collect, mapped };
+module.exports = { before, after, error, collect, mapped, mappedMeta };

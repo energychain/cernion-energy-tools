@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "cd38354a17d475d12e1568ec080a3cb02f9c47fa740c27fa8a2a5b3e726a106d",
+  "sourceHash": "37ab46afe9ec4d2d1aca5e078a9c56c8765def7b2d08daed39f08248b39a52e7",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -165634,6 +165634,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/failure-signals.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/file-channel-extract.js"
         },
         {
@@ -209867,6 +209871,14 @@
       {
         "service": "ewk-monitoring",
         "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "failure-signals",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "failure-signals",
+        "ref": "src/llm-client.js:227: dynamic emission"
       },
       {
         "service": "finance-agent",
