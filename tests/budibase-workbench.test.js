@@ -9341,3 +9341,558 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     );
   });
 });
+
+describe('Budibase Netzwirtschaft leadership attention panel (#1000)', () => {
+  const TOPIC_IDS = [
+    'mako_deadline_and_evidence_gap',
+    'metering_rollout_process_impact',
+    'automation_backlog_owner_gap',
+  ];
+  const GATES = [
+    'human_jour_fixe_review',
+    'human_department_review',
+    'human_automation_governance_review',
+  ];
+  const REF = (topicId) => `smm-netzwirtschaft-leadership-${topicId}`;
+  const QUERY_PATHS = {
+    getNetzwirtschaftLeadershipTopicSelectorRows: '/api/dashboard/leadership-delta-cockpit',
+    getNetzwirtschaftLeadershipContextRows: '/api/dashboard/leadership-delta-cockpit',
+    getNetzwirtschaftLeadershipSignalRows: '/api/dashboard/cross-channel-vnb-signal-queue',
+    getNetzwirtschaftLeadershipOwnerDeadlineRows: '/api/dashboard/owner-deadline-evidence-gate',
+    getNetzwirtschaftLeadershipAutomationRiskRows: '/api/dashboard/automation-risk-gate',
+    getNetzwirtschaftLeadershipMarketEvidenceRows:
+      '/api/dashboard/market-communication-evidence-chain',
+    getNetzwirtschaftLeadershipMeteringRows: '/api/dashboard/metering-rollout-process-indicator',
+    getNetzwirtschaftLeadershipClosureRows: '/api/dashboard/jour-fixe-decision-closure',
+  };
+  const SECTION_QUERIES = {
+    netzwirtschaft_leadership_attention_selector: 'getNetzwirtschaftLeadershipTopicSelectorRows',
+    netzwirtschaft_leadership_attention_context: 'getNetzwirtschaftLeadershipContextRows',
+    netzwirtschaft_leadership_attention_signals: 'getNetzwirtschaftLeadershipSignalRows',
+    netzwirtschaft_leadership_attention_owner_deadline:
+      'getNetzwirtschaftLeadershipOwnerDeadlineRows',
+    netzwirtschaft_leadership_attention_automation_risk:
+      'getNetzwirtschaftLeadershipAutomationRiskRows',
+    netzwirtschaft_leadership_attention_market_evidence:
+      'getNetzwirtschaftLeadershipMarketEvidenceRows',
+    netzwirtschaft_leadership_attention_metering: 'getNetzwirtschaftLeadershipMeteringRows',
+    netzwirtschaft_leadership_attention_closure: 'getNetzwirtschaftLeadershipClosureRows',
+  };
+
+  // Response shapes mirror the current builders (missing-evidence variant).
+  const missingFixtures = (topicId) => ({
+    getNetzwirtschaftLeadershipTopicSelectorRows: { topics: [{ topicId }] },
+    getNetzwirtschaftLeadershipContextRows: {
+      status: 'known',
+      topics: [
+        {
+          topicId,
+          status: 'known',
+          deltaSummary: { signalCount: 0, summary: 'No new signal supplied; baseline stays known.' },
+          escalation: { state: 'none', escalated: false },
+          evidenceStatus: 'unverified_input',
+        },
+      ],
+      missingEvidence: [
+        { missingDataPoint: 'missing_owner', enablesDossierAddition: 'adds owner' },
+        { missingDataPoint: 'missing_due_date', enablesDossierAddition: 'adds deadline' },
+      ],
+    },
+    getNetzwirtschaftLeadershipSignalRows: {
+      status: 'needs_owner',
+      normalizedSignals: [
+        {
+          signalId: REF(topicId),
+          channel: 'synthetic_tenant_seed',
+          sourceSystem: 'synthetic_tenant_seed',
+          sourceRefs: [REF(topicId)],
+          affectedProcess: 'netzwirtschaft_leadership_review',
+          riskSeverity: 'medium',
+          ownerPersonaId: null,
+          evidenceRefs: [],
+          status: 'needs_owner',
+          missing: ['owner', 'due_date'],
+          contentPolicy: 'references_and_summary_only_no_raw_private_content',
+        },
+      ],
+    },
+    getNetzwirtschaftLeadershipOwnerDeadlineRows: {
+      status: 'needs_owner',
+      signalContext: { signalId: REF(topicId), sourceType: 'synthetic_tenant_seed' },
+      ownerContext: { ownerRole: null, ownerContact: null, dueAt: null },
+      readinessSignals: [
+        { code: 'owner', status: 'missing' },
+        { code: 'deadline', status: 'missing' },
+      ],
+      missingEvidence: [
+        { missingDataPoint: 'owner', status: 'missing', value: null },
+        { missingDataPoint: 'deadline', status: 'missing', value: null },
+      ],
+    },
+    getNetzwirtschaftLeadershipAutomationRiskRows: {
+      status: 'needs_process_owner',
+      processContext: { processId: REF(topicId), affectedDomains: [] },
+      riskContext: { riskLevel: null },
+      missingEvidence: [{ missingDataPoint: 'process_owner', status: 'missing' }],
+    },
+    getNetzwirtschaftLeadershipMarketEvidenceRows: {
+      status: 'needs_official_evidence',
+      requestContext: { caseId: REF(topicId) },
+      officialEvidence: [],
+      hintsOnly: [],
+      missingEvidence: [{ missingDataPoint: 'malo_identity', label: 'MaLo identity' }],
+    },
+    getNetzwirtschaftLeadershipMeteringRows: {
+      status: 'needs_target_count',
+      readinessScore: 0.23,
+      requestContext: { indicatorId: REF(topicId), division: 'netzwirtschaft' },
+      processEvidence: { targetCount: null, actualCount: null },
+      missingEvidence: [{ missingDataPoint: 'target_count' }],
+      blockingFindings: [{ code: 'MRPI_TARGET_COUNT_MISSING', severity: 'high' }],
+    },
+    getNetzwirtschaftLeadershipClosureRows: {
+      status: 'needs_owner',
+      readinessScore: 0.2,
+      requestContext: { topicId },
+      closureEvidence: { owner: null, closureStatus: null },
+      closureSteps: [
+        { id: 'topic-intake', evidenceStatus: 'provided' },
+        { id: 'owner-kpi-check', evidenceStatus: 'missing' },
+      ],
+      missingEvidence: [{ missingDataPoint: 'topic_owner' }],
+      blockingFindings: [{ code: 'JFD_TOPIC_OWNER_MISSING', severity: 'high' }],
+      sourceActions: {
+        referenced: ['hitl.create'],
+        notCalled: ['meeting-transcription.ingest', 'calendar.connector.read'],
+      },
+    },
+  });
+
+  const completeFixtures = (topicId) => ({
+    getNetzwirtschaftLeadershipTopicSelectorRows: { topics: [{ topicId }] },
+    getNetzwirtschaftLeadershipContextRows: {
+      status: 'known',
+      topics: [{ topicId, status: 'known', deltaSummary: { summary: 'baseline' } }],
+      missingEvidence: [],
+    },
+    getNetzwirtschaftLeadershipSignalRows: {
+      status: 'ready_for_action',
+      normalizedSignals: [{ signalId: REF(topicId), status: 'ready', missing: [] }],
+    },
+    getNetzwirtschaftLeadershipOwnerDeadlineRows: {
+      status: 'ready',
+      signalContext: { signalId: REF(topicId) },
+      ownerContext: { ownerRole: 'ROLE_MARKTKOMMUNIKATION', dueAt: '2026-11-04' },
+      readinessSignals: [
+        { code: 'owner', status: 'ready' },
+        { code: 'deadline', status: 'ready' },
+      ],
+      missingEvidence: [],
+    },
+    getNetzwirtschaftLeadershipAutomationRiskRows: {
+      status: 'ready',
+      processContext: { processId: REF(topicId), affectedDomains: ['mako', 'messwesen'] },
+      riskContext: { riskLevel: 'medium', billingImpact: 'review-only' },
+      missingEvidence: [],
+    },
+    getNetzwirtschaftLeadershipMarketEvidenceRows: {
+      status: 'ready',
+      requestContext: { caseId: REF(topicId) },
+      officialEvidence: [{ id: 'malo_identity', value: '51238696781' }],
+      hintsOnly: [{ id: 'portal_screenshot', value: 'screenshot' }],
+      missingEvidence: [],
+    },
+    getNetzwirtschaftLeadershipMeteringRows: {
+      status: 'ready',
+      readinessScore: 1,
+      requestContext: { indicatorId: REF(topicId), division: 'netzwirtschaft' },
+      processEvidence: { targetCount: 100, actualCount: 0, backlogCount: 4 },
+      missingEvidence: [],
+    },
+    getNetzwirtschaftLeadershipClosureRows: {
+      status: 'ready',
+      readinessScore: 1,
+      requestContext: { topicId },
+      closureEvidence: { closureStatus: 'closed' },
+      closureSteps: [{ id: 'topic-intake', evidenceStatus: 'provided' }],
+      missingEvidence: [],
+    },
+  });
+
+  const staleFixtures = (topicId) => {
+    const fixtures = completeFixtures(topicId);
+    for (const fixture of Object.values(fixtures)) fixture.status = 'stale';
+    fixtures.getNetzwirtschaftLeadershipContextRows.topics[0].status = 'stale';
+    fixtures.getNetzwirtschaftLeadershipSignalRows.normalizedSignals[0].status = 'stale';
+    return fixtures;
+  };
+
+  const nestedFixtures = (topicId) => {
+    const nested = { deep: { value: 1 }, list: [{ a: 1 }] };
+    return {
+      getNetzwirtschaftLeadershipTopicSelectorRows: { topics: [{ topicId: { id: topicId } }] },
+      getNetzwirtschaftLeadershipContextRows: {
+        status: nested,
+        topics: [{ topicId, status: nested, deltaSummary: { summary: nested } }],
+        missingEvidence: [{ missingDataPoint: nested }, nested, 'owner', [1, 2]],
+      },
+      getNetzwirtschaftLeadershipSignalRows: {
+        normalizedSignals: [
+          { signalId: REF(topicId), channel: nested, sourceRefs: [nested, 'ref'], missing: nested },
+        ],
+        missingEvidence: [{ missingDataPoint: 'owner' }],
+      },
+      getNetzwirtschaftLeadershipOwnerDeadlineRows: {
+        status: nested,
+        signalContext: { signalId: REF(topicId) },
+        ownerContext: nested,
+        readinessSignals: nested,
+        missingEvidence: nested,
+      },
+      getNetzwirtschaftLeadershipAutomationRiskRows: {
+        processContext: { processId: REF(topicId), affectedDomains: [nested, 'mako'] },
+        riskContext: { riskLevel: nested },
+      },
+      getNetzwirtschaftLeadershipMarketEvidenceRows: {
+        requestContext: { caseId: REF(topicId) },
+        officialEvidence: [{ id: nested }],
+        hintsOnly: nested,
+      },
+      getNetzwirtschaftLeadershipMeteringRows: {
+        requestContext: { indicatorId: REF(topicId) },
+        processEvidence: { targetCount: nested, backlogCount: [1] },
+      },
+      getNetzwirtschaftLeadershipClosureRows: {
+        requestContext: { topicId },
+        closureEvidence: { closureStatus: nested },
+        closureSteps: [{ id: nested, evidenceStatus: nested }, 'raw'],
+        sourceActions: { notCalled: [nested, 'calendar.connector.read'] },
+      },
+    };
+  };
+
+  const allRows = (fixtures) =>
+    Object.keys(QUERY_PATHS).flatMap((name) => runTransformer(name, fixtures[name]));
+
+  function expectDisplaySafe(rows) {
+    expectScalarRows(rows);
+    expectNoRawObjectText(rows);
+    for (const row of rows) {
+      for (const value of Object.values(row)) {
+        const text = String(value);
+        expect(text).not.toMatch(/^\s*[[{]/);
+        expect(text).not.toContain('"');
+      }
+    }
+  }
+
+  it('composes only the seven existing read-only dashboard GET bricks with an allowlisted selector', () => {
+    const queries = manifest.queries.filter((query) =>
+      query.name.startsWith('getNetzwirtschaftLeadership')
+    );
+    expect(queries.map((query) => query.name).sort()).toEqual(Object.keys(QUERY_PATHS).sort());
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/leadership-delta-cockpit',
+        '/api/dashboard/cross-channel-vnb-signal-queue',
+        '/api/dashboard/owner-deadline-evidence-gate',
+        '/api/dashboard/automation-risk-gate',
+        '/api/dashboard/market-communication-evidence-chain',
+        '/api/dashboard/metering-rollout-process-indicator',
+        '/api/dashboard/jour-fixe-decision-closure',
+      ])
+    );
+    for (const query of queries) {
+      expect(query.method).toBe('GET');
+      expect(query.body).toBeUndefined();
+      expect(query.path).toBe(QUERY_PATHS[query.name]);
+      expect(query.parameters).toEqual([
+        { name: 'tenantId', default: 'stadtwerk-mauer' },
+        { name: 'netzwirtschaftLeadershipTopicId', default: 'mako_deadline_and_evidence_gap' },
+      ]);
+      expect(query.queryString).toMatch(/^tenantId=\{\{tenantId\}\}&/);
+      expect(query.queryString).toContain('{{netzwirtschaftLeadershipTopicId}}');
+      // #741: no caller-supplied actor/role/clearance, personnel or shared-user surrogate.
+      expect(query.queryString).not.toMatch(
+        /(^|&)(role|ownerRole|owner|ownerPersonaId|ownerContact|actor|actorId|userId|clearance|principal|processOwner|operationsOwner)=/
+      );
+      expect(query.queryString).not.toMatch(/includeMakoKnowledge|includeHints/);
+      expect(query.transformer).not.toMatch(/readinessScore|severity|fetch\(|require\(/);
+    }
+
+    for (const [sectionId, queryName] of Object.entries(SECTION_QUERIES)) {
+      const section = manifest.sections.find((item) => item.id === sectionId);
+      expect(section).toEqual(expect.objectContaining({ queryName }));
+    }
+    expect(
+      manifest.sections.filter((section) => section.id.startsWith('netzwirtschaft_leadership_'))
+    ).toHaveLength(8);
+    expect(manifest.notes.join('\n')).toContain('Netzwirtschaft Leadership Attention panel (#1000)');
+    expect(manifest.notes.join('\n')).toContain('read_only_synthetic_workbench_composition');
+  });
+
+  it('renders exactly three synthetic selector topics with exactly one selected and fails closed on unknown ids', () => {
+    const rows = runTransformer('getNetzwirtschaftLeadershipTopicSelectorRows', {
+      topics: [{ topicId: 'mako_deadline_and_evidence_gap' }],
+    });
+    expectDisplaySafe(rows);
+    expect(rows.map((row) => row.topicId)).toEqual(TOPIC_IDS);
+    expect(rows.filter((row) => row.selectedLabel === 'selected')).toEqual([
+      expect.objectContaining({
+        topicId: 'mako_deadline_and_evidence_gap',
+        selectionStatus: 'allowlisted_topic_selected',
+        ownerRoleFamily: 'ROLE_MARKTKOMMUNIKATION',
+        nextHumanGate: 'human_jour_fixe_review',
+      }),
+    ]);
+    expect(rows.filter((row) => row.selectedLabel === 'available')).toHaveLength(2);
+    for (const row of rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          roleTarget: 'ROLE_NETZWIRTSCHAFT_LEAD',
+          dataClass: 'synthetic_tenant_seed',
+          sourceClass: 'synthetic_tenant_seed',
+          evidenceStatus: 'unverified_input',
+        })
+      );
+      expect(row.dueAt).toMatch(/^2026-\d\d-\d\d$/);
+    }
+
+    const alternative = runTransformer('getNetzwirtschaftLeadershipTopicSelectorRows', {
+      topics: [{ topicId: 'automation_backlog_owner_gap' }],
+    });
+    expect(alternative.find((row) => row.selectedLabel === 'selected').topicId).toBe(
+      'automation_backlog_owner_gap'
+    );
+
+    for (const unknown of [
+      { topics: [{ topicId: 'fourth_topic' }] },
+      { topics: [] },
+      {},
+      null,
+      nestedFixtures('x').getNetzwirtschaftLeadershipTopicSelectorRows,
+    ]) {
+      const fallback = runTransformer('getNetzwirtschaftLeadershipTopicSelectorRows', unknown);
+      expectDisplaySafe(fallback);
+      expect(fallback.map((row) => row.topicId)).toEqual(TOPIC_IDS);
+      const selected = fallback.filter((row) => row.selectedLabel === 'selected');
+      expect(selected).toHaveLength(1);
+      expect(selected[0]).toEqual(
+        expect.objectContaining({
+          topicId: 'mako_deadline_and_evidence_gap',
+          selectionStatus: 'clarification_required',
+        })
+      );
+    }
+
+    // Detail queries fail closed to the default topic for an unknown echoed id.
+    const detail = runTransformer('getNetzwirtschaftLeadershipOwnerDeadlineRows', {
+      signalContext: { signalId: REF('fourth_topic') },
+    });
+    expect(detail[0]).toEqual(
+      expect.objectContaining({
+        topicId: 'mako_deadline_and_evidence_gap',
+        selectionStatus: 'clarification_required',
+        status: 'clarification_required',
+      })
+    );
+  });
+
+  it('keeps every row scalar and display-safe under complete, missing, stale, nested and empty responses', () => {
+    for (const topicId of TOPIC_IDS) {
+      for (const fixtures of [
+        missingFixtures(topicId),
+        completeFixtures(topicId),
+        staleFixtures(topicId),
+        nestedFixtures(topicId),
+      ]) {
+        const rows = allRows(fixtures);
+        expectDisplaySafe(rows);
+        for (const row of rows) {
+          expect(row.topicId).toBe(row.sectionClass.endsWith('_selector') ? row.topicId : topicId);
+        }
+      }
+    }
+    for (const empty of [{}, null, undefined, []]) {
+      for (const name of Object.keys(QUERY_PATHS)) {
+        const rows = runTransformer(name, empty);
+        expectDisplaySafe(rows);
+      }
+    }
+  });
+
+  it('never renders scores, ranking, escalation, personnel evaluation or inferred decisions', () => {
+    for (const topicId of TOPIC_IDS) {
+      for (const fixtures of [missingFixtures(topicId), completeFixtures(topicId)]) {
+        const rows = allRows(fixtures);
+        for (const row of rows) {
+          for (const key of Object.keys(row)) {
+            if (key === 'personnelEvaluation') {
+              expect(row[key]).toBe('not_performed');
+              continue;
+            }
+            expect(key).not.toMatch(
+              /score|rank|severity|persona|contact|employee|person|performance|riskSeverity/i
+            );
+          }
+          const text = JSON.stringify(row);
+          expect(text).not.toMatch(/readinessScore|"high"|escalated|MRPI_|JFD_/);
+          expect(text).not.toContain('hitl.create","status":"enabled');
+          expect(row.ownerRoleFamily).toMatch(/^ROLE_[A-Z_]+$/);
+          expect(row.evidenceStatus).toBe('unverified_input');
+          expect(row.dataClass).toBe('synthetic_tenant_seed');
+          for (const value of Object.values(row)) {
+            expect(String(value)).not.toMatch(
+              /^verified|(?<!_not)_verified$|approved|rejected|escalate_now/
+            );
+          }
+        }
+      }
+    }
+    const owner = runTransformer(
+      'getNetzwirtschaftLeadershipOwnerDeadlineRows',
+      missingFixtures('metering_rollout_process_impact').getNetzwirtschaftLeadershipOwnerDeadlineRows
+    )[0];
+    expect(owner).toEqual(
+      expect.objectContaining({
+        ownerScope: 'role_family_only',
+        ownerRoleFamily: 'ROLE_METERING_OPERATIONS',
+        personnelEvaluation: 'not_performed',
+        ownerEvidenceStatus: 'clarification_required',
+        deadlineEvidenceStatus: 'clarification_required',
+      })
+    );
+    const risk = runTransformer(
+      'getNetzwirtschaftLeadershipAutomationRiskRows',
+      completeFixtures('automation_backlog_owner_gap').getNetzwirtschaftLeadershipAutomationRiskRows
+    )[0];
+    expect(risk).toEqual(
+      expect.objectContaining({
+        contextOnly: true,
+        prioritization: 'not_applied',
+        recommendation: 'not_derived',
+        riskLevel: 'medium',
+        affectedDomains: 'mako, messwesen',
+      })
+    );
+    const context = runTransformer(
+      'getNetzwirtschaftLeadershipContextRows',
+      missingFixtures('mako_deadline_and_evidence_gap').getNetzwirtschaftLeadershipContextRows
+    )[0];
+    expect(context).toEqual(
+      expect.objectContaining({
+        automaticEscalation: 'disabled',
+        briefingBoundary: 'not_the_986_wp5_authoritative_briefing_no_project_file_or_case_read',
+      })
+    );
+  });
+
+  it('maps every missing, stale or unverified state to a positive follow-up and a human review gate', () => {
+    const expectedFollowUps = {
+      mako_deadline_and_evidence_gap: [
+        'market_communication_deadline_evidence',
+        'add_deadline_and_receipt_evidence_then_refresh',
+        'human_jour_fixe_review',
+      ],
+      metering_rollout_process_impact: [
+        'metering_rollout_process_evidence',
+        'add_rollout_status_and_process_impact_evidence_then_refresh',
+        'human_department_review',
+      ],
+      automation_backlog_owner_gap: [
+        'automation_owner_deadline_and_stop_evidence',
+        'add_owner_deadline_stop_and_rollback_evidence_then_refresh',
+        'human_automation_governance_review',
+      ],
+    };
+    for (const topicId of TOPIC_IDS) {
+      const [missingDataPoint, enablesDossierAddition, nextHumanGate] = expectedFollowUps[topicId];
+      for (const fixtures of [missingFixtures(topicId), staleFixtures(topicId)]) {
+        const rows = allRows(fixtures).filter(
+          (row) =>
+            !row.sectionClass.endsWith('_selector') &&
+            !['enabled_read_only_behavior', 'disabled_no_call_guard'].includes(row.kind)
+        );
+        expect(rows).toHaveLength(7);
+        for (const row of rows) {
+          expect(row).toEqual(
+            expect.objectContaining({
+              topicId,
+              status: 'clarification_required',
+              missingDataPoint,
+              enablesDossierAddition,
+              safeNextAction: 'refresh_selected_topic_read_only_after_evidence_is_supplied',
+              nextHumanGate,
+            })
+          );
+        }
+      }
+      // Complete caller-supplied evidence still ends in a human gate, never a verified fact.
+      const complete = allRows(completeFixtures(topicId)).filter(
+        (row) =>
+          !row.sectionClass.endsWith('_selector') &&
+          !['enabled_read_only_behavior', 'disabled_no_call_guard'].includes(row.kind)
+      );
+      for (const row of complete) {
+        expect(row.status).toBe('human_review_required');
+        expect(row.evidenceStatus).toBe('unverified_input');
+        expect(GATES).toContain(row.nextHumanGate);
+      }
+    }
+  });
+
+  it('enables only query refresh and open detail and renders every consequential action as a not_called guard', () => {
+    const rows = runTransformer(
+      'getNetzwirtschaftLeadershipClosureRows',
+      missingFixtures('mako_deadline_and_evidence_gap').getNetzwirtschaftLeadershipClosureRows
+    );
+    expectDisplaySafe(rows);
+    const enabled = rows.filter((row) => row.disabled === false && row.status === 'enabled');
+    expect(enabled.map((row) => row.boundary).sort()).toEqual(['open_detail', 'query_refresh']);
+    expect(rows.find((row) => row.kind === 'jour_fixe_closure_readiness')).toEqual(
+      expect.objectContaining({
+        boundary: '/api/dashboard/jour-fixe-decision-closure',
+        behavior: 'read_only',
+        closureSteps: 'topic-intake:provided, owner-kpi-check:missing',
+        automaticDecision: 'not_inferred',
+        status: 'clarification_required',
+      })
+    );
+    const guards = rows.filter((row) => row.kind === 'disabled_no_call_guard');
+    for (const guard of guards) {
+      expect(guard).toEqual(
+        expect.objectContaining({ disabled: true, behavior: 'disabled', status: 'not_called' })
+      );
+    }
+    expect(guards.map((row) => row.boundary)).toEqual(
+      expect.arrayContaining([
+        'budibase.table.write',
+        'workbench.protected.read',
+        'project-file.read',
+        'case.read',
+        'personal-agent.execute',
+        'workflow.execute',
+        'hitl.create',
+        'task.create',
+        'email.send',
+        'webhook.call',
+        'external.connector.call',
+        'rundeck.execute',
+        'mako.write',
+        'billing.release',
+        'settlement.prepareBilling',
+        'tariff.mutate',
+        'redispatch.dispatch',
+        'smgw-cls.execute',
+        'device-control.execute',
+        'production.mutate',
+        'meeting-transcription.ingest',
+        'calendar.connector.read',
+      ])
+    );
+    // Referenced-but-not-called actions are never rendered as enabled behavior.
+    expect(rows.filter((row) => row.disabled === false).map((row) => row.boundary)).not.toContain(
+      'hitl.create'
+    );
+  });
+});
