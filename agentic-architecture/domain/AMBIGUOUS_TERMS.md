@@ -1,6 +1,6 @@
 # Ambiguous Terms
 
-Generated: 2026-10-28T18:18:45.542Z
+Generated: 2026-10-29T00:23:17.639Z
 
 - `Evidenz` — Risk: Kann als Beweiszwang missverstanden werden und natürliche Fallarbeit blockieren. Directive: Unterscheide harte Nachweispflicht, fachliche Plausibilisierung und Arbeitsannahme.
 - `Freigabe` — Risk: Klingt nach finaler Entscheidung, obwohl CET oft nur vorbereitet oder prüft. Directive: Für unsichere fachliche Zwischenschritte Befassung, Klärpunkt, Prüfauftrag oder nächster Arbeitsschritt verwenden.
