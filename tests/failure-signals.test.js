@@ -1,5 +1,11 @@
 'use strict';
 
+jest.mock('../src/llm-client', () => ({
+  generateStructured: jest.fn(async () => {
+    throw new Error('offline');
+  }),
+}));
+
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');

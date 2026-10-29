@@ -16,6 +16,11 @@
 
 ## Unreleased — RC3: Arbeitskontext und Quellenbezüge
 
+- Selbstverbesserung, Schritt 2 (#1010): Gleichartige Fehlersignale werden zu einem
+  Fehlerfall gebündelt (Schwellwert je Signalart, 7-Tage-Fenster). Ein Klassifikator schlägt
+  die niedrigste wirksame Stufe A–D vor und sieht dabei nur strukturierte Falldaten, keinen
+  Chatinhalt. Behobene Fälle, die erneut auftreten, werden wieder geöffnet; ruhende werden
+  `stale`. Die Selbstauskunft nennt die selbst erkannten Fehlerfälle der letzten Woche.
 - Selbstverbesserung, Schritt 1 (#1010): Register `failure-signals` beobachtet
   Fehlersignale, ohne etwas auszulösen. Quellen: Korrekturen, unbeantwortete und
   degradierte Antworten, Quellen-Timeouts, wiederholte Fehlschläge und Rückfrage-
