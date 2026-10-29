@@ -1618,6 +1618,7 @@ async function runContentTurn(
     retrievalTrace: [...(retrieval.trace || []), reply.evidenceTrace],
     answerAttempts: reply.answerAttempts,
     answerStatus: reply.answerStatus,
+    ...(knowledgeAsk ? { contextQuestion: true } : {}),
     metadata: {
       ...reply.metadata,
       ...(understandingFailed || understandingRecoveryReason
