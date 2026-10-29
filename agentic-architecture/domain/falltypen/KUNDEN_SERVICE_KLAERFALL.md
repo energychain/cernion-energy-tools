@@ -1,6 +1,6 @@
 # Kunden-/Service-Klärfall
 
-Generated: 2026-10-29T06:27:39.137Z
+Generated: 2026-10-29T12:30:37.993Z
 
 Status: routable
 Priority: 3
@@ -134,7 +134,7 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 - `docs/validation/813-live.json` (343 hits)
 - `agentic-architecture/domain/ENERGY_DOMAIN_CANON.md` (299 hits)
 - `agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md` (299 hits)
-- `agentic-architecture/reports/latest/architecture-scan.md` (272 hits)
+- `agentic-architecture/reports/latest/architecture-scan.md` (274 hits)
 - `services/capability-broker.service.js` (261 hits)
 - `docs/validation/practice-evaluation-887-live-1.md` (227 hits)
 - `docs/validation/issue-874-before.md` (214 hits)
@@ -152,6 +152,6 @@ Ich fasse den Fall zuerst fachlich zusammen, benenne fehlende Informationen und 
 - `docs/v0.58-architecture/lagebild/roles_audit.md` (119 hits)
 - `docs/agent-responses/rd-audit.json` (118 hits)
 - `services/api.service.js` (114 hits)
-- `agentic-architecture/reports/latest/scan-summary.json` (108 hits)
-- `agentic-architecture/reports/latest/refactoring-backlog.md` (103 hits)
+- `agentic-architecture/reports/latest/scan-summary.json` (110 hits)
+- `agentic-architecture/reports/latest/refactoring-backlog.md` (105 hits)
 - `services/dashboard-api/methods-part-07-of-14.js` (99 hits)

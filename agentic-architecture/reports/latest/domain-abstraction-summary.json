@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-29T06:27:39.137Z",
+  "generatedAt": "2026-10-29T12:30:37.993Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261029T062631Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261029T122908Z",
   "counts": {
     "files": 2238,
     "candidateFiles": 1339,
@@ -232,7 +232,7 @@
         },
         {
           "path": "agentic-architecture/reports/latest/architecture-scan.md",
-          "hits": 272
+          "hits": 274
         },
         {
           "path": "services/capability-broker.service.js",
@@ -552,5 +552,5 @@
       "hits": 279
     }
   ],
-  "fingerprint": "5a4c2672ea9dfcc1df1a366f596dae58cb7126a7cf39b7fe19628a9e772c587c"
+  "fingerprint": "19a5782fe4238f11d1b742c856a94503c439a68b7d64314d72d18f46e7caf8ff"
 }
