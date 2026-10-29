@@ -1,6 +1,6 @@
 # Redispatch-/Steuerbarkeits-Readiness
 
-Generated: 2026-10-28T18:18:45.542Z
+Generated: 2026-10-29T00:23:17.639Z
 
 Status: observed
 Priority: 6
@@ -109,8 +109,8 @@ CET hält Unsicherheit sichtbar und macht den Fall arbeitsfähig.
 - `docs/use-cases/redispatch-test-readiness-akte.md` (109 hits)
 - `src/vdmi-blueprint-pack-seeds.js` (102 hits)
 - `services/dashboard-api/methods-part-13-of-14.js` (98 hits)
+- `integrations/budibase/README.md` (97 hits)
 - `services/znp.service.js` (96 hits)
-- `integrations/budibase/README.md` (95 hits)
 - `docs/validation/813-live.json` (86 hits)
 - `services/dashboard-api/actions-part-01-of-8.js` (78 hits)
 - `services/grid-operations.service.js` (77 hits)
