@@ -378,6 +378,10 @@ module.exports = {
       const recorded = [];
       if (outcome.unanswered)
         recorded.push(await this.record({ ...base, kind: 'unanswered', reason: outcome.reason }));
+      if (outcome.disagreement)
+        recorded.push(
+          await this.record({ ...base, kind: 'user_correction', reason: 'answer_rejected' })
+        );
       if (outcome.timeouts.length)
         recorded.push(
           await this.record({ ...base, kind: 'source_timeout', sources: outcome.timeouts })

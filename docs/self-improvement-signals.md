@@ -10,6 +10,7 @@ CET records situations where it probably failed. Step 1 only **observes**: no ca
 | `source_timeout` | Workbench turn | retrieval trace entries with status `timeout` |
 | `repeated_question` | conversation trail | 2 consecutive unanswered turns in the same conversation |
 | `clarification_loop` | conversation trail | 3 consecutive turns with open questions (without the optional cold-start context question) |
+| `user_correction` | Workbench turn | `situation.answerFeedback.disagreement` ≥ 0.6 (`FAILURE_SIGNAL_DISAGREEMENT`): understanding grades how clearly the message rejects the previous answer; only in follow-up turns and with a literal basis; reason `answer_rejected` |
 | `user_correction` | `shared-service.correction.v1` | every correction except attention preferences (`agent`), gap closure (`gap`) and undo |
 | `skill_degraded` | `project.skill.lifecycle.v1` | lifecycle `degraded` or `retired` |
 | `replay_divergence`, `harness_failure` | protected action `failure-signals.record` | reserved for replay and harness runs (later step) |

@@ -136,6 +136,25 @@ SITUATION_SCHEMA.properties.dataQuestion = object(
   },
   ['requested', 'basis']
 );
+// Graded (#993, #1010): how clearly the person rejects the previous answer of CET; a failure
+// signal, never a routing or access decision.
+SITUATION_SCHEMA.properties.answerFeedback = object(
+  {
+    disagreement: {
+      type: 'number',
+      minimum: 0,
+      maximum: 1,
+      description:
+        'Wahrscheinlichkeit 0 bis 1, dass die aktuelle Nachricht die vorherige Antwort des Assistenten als falsch, unvollständig oder an der Frage vorbei zurückweist. Eine neue Angabe, eine Ergänzung, eine Entwurfsänderung oder eine Folgefrage ist keine Zurückweisung. Beim Erstturn 0.',
+    },
+    basis: {
+      ...text,
+      description:
+        'Wörtliches Belegstück der Zurückweisung aus der aktuellen Nachricht, sonst leer.',
+    },
+  },
+  ['disagreement', 'basis']
+);
 SITUATION_SCHEMA.properties.dataNeeds = {
   ...text,
   description:
@@ -642,6 +661,17 @@ async function understand({
       confidence: Math.min(1, Math.max(0, Number(result.dataQuestion.confidence) || 0)),
     };
     result.dataNeeds = '';
+  }
+  // Without an earlier turn or a literal basis there is no answer to reject.
+  if (result.answerFeedback) {
+    const basis = String(result.answerFeedback.basis || '').trim();
+    const grounded = Boolean(previous) && basis && message.includes(basis);
+    result.answerFeedback = grounded
+      ? {
+          disagreement: Math.min(1, Math.max(0, Number(result.answerFeedback.disagreement) || 0)),
+          basis,
+        }
+      : { disagreement: 0, basis: '' };
   }
   if (result.requestedOutput?.requested) {
     const literal = ` ${normalizePhrase(message)} `;

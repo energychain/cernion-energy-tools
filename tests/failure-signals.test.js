@@ -39,6 +39,7 @@ describe('turn outcome (#1010 step 1)', () => {
       timeouts: [{ source: 'capability-read', name: 'Werkzeug A' }],
       openQuestions: 1,
       functionIds: ['fn-a'],
+      disagreement: false,
     });
   });
 
@@ -133,13 +134,17 @@ describe('failure signal register', () => {
     expect((await observe('chat-2', { openQuestions: 1 })).map((s) => s.kind)).toEqual([
       'clarification_loop',
     ]);
+    const rejected = await observe('chat-4', { disagreement: true });
+    expect(rejected.map((signal) => [signal.kind, signal.reason])).toEqual([
+      ['user_correction', 'answer_rejected'],
+    ]);
     const timeouts = await observe('chat-3', { timeouts: [{ source: 'capability-read' }] });
     expect(timeouts[0]).toMatchObject({
       kind: 'source_timeout',
       sources: [{ source: 'capability-read' }],
     });
     await new Promise((resolve) => setImmediate(resolve));
-    expect(emitted.length).toBe(6);
+    expect(emitted.length).toBe(7);
     expect(emitted.every((signal) => signal.tenantId === 'synthetic-a')).toBe(true);
   });
 
