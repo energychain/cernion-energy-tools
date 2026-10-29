@@ -1,6 +1,6 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-10-29T00:23:12.328Z
+Generated: 2026-10-29T06:27:34.256Z
 
 ## Observed adapter surface
 
@@ -247,6 +247,7 @@ Service names that should be capability-mapped:
 - `evidence-revalidation`
 - `evidence-router`
 - `ewk-monitoring`
+- `failure-signals`
 - `file-ingest-monitor`
 - `files`
 - `finance-agent`
@@ -305,4 +306,3 @@ Service names that should be capability-mapped:
 - `project-graph`
 - `project-manifest`
 - `project-structure`
-- `project-upload`

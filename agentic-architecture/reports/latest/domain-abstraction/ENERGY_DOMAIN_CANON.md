@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-10-29T00:23:17.639Z
+Generated: 2026-10-29T06:27:39.137Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -291,11 +291,11 @@ Zugeordnete Services nach Heuristik:
 - `energy-sharing-community` — services/energy-sharing-community.service.js (5 actions)
 - `evidence-requirement` — services/evidence-requirement.service.js (10 actions)
 - `evidence-revalidation` — services/evidence-revalidation.service.js (9 actions)
+- `failure-signals` — services/failure-signals.service.js (5 actions)
 - `flexibility-conductor-role-model` — services/flexibility-conductor-role-model.service.js (13 actions)
 - `fnav-commercial-hedging` — services/fnav-commercial-hedging.service.js (13 actions)
 - `activation` — services/function-activation.service.js (1 actions)
 - `function-coverage` — services/function-coverage.service.js (1 actions)
-- `gas-storage` — services/gas-storage.service.js (5 actions)
 
 ## OpenWebUI und agentisches Routing
 
