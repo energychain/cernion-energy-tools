@@ -1,6 +1,6 @@
 # Shepherd Refactoring Backlog
 
-Generated: 2026-10-29T00:23:12.328Z
+Generated: 2026-10-29T06:27:34.256Z
 
 ## Safe first work packages
 
@@ -26,6 +26,7 @@ Generated: 2026-10-29T00:23:12.328Z
 - `services/domain-router.service.js`, `src/domain-router.js`
 - `services/eeg-clawback-calculator.service.js`, `src/eeg-clawback-calculator.js`
 - `services/evidence-router.service.js`, `src/evidence-router.js`
+- `services/failure-signals.service.js`, `src/failure-signals.js`
 - `services/function-coverage.service.js`, `src/function-coverage.js`
 - `services/governance-cards.service.js`, `src/governance-cards.js`
 - `services/project-manifest.service.js`, `src/project-manifest.js`

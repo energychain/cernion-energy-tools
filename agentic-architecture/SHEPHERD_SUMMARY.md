@@ -1,16 +1,16 @@
 # Shepherd Summary
 
-Generated: 2026-10-29T00:23:17.708Z
-Run: 20261029T002203Z
-Branch: shepherd/runtime-refactor-20261029T002203Z
-Fingerprint: 464c3fbbca97d57a4362b8e60c47c13b953094d243998dfa6638a3090207c074
+Generated: 2026-10-29T06:27:39.203Z
+Run: 20261029T062631Z
+Branch: shepherd/runtime-refactor-20261029T062631Z
+Fingerprint: 57f788d66318f22bdc2295d12681dd9b61b4174dfc8d1e1c7cbe30285f420a16
 
 ## Current measurable surface
 
-- Files: 2234
-- Services: 166
-- src JS files: 474
-- Tests: 555
+- Files: 2238
+- Services: 167
+- src JS files: 475
+- Tests: 556
 - Agentic files: 279
 - OpenWebUI/ChatGPT files: 42
 - Evidence/HITL files: 100
@@ -27,10 +27,10 @@ Fingerprint: 464c3fbbca97d57a4362b8e60c47c13b953094d243998dfa6638a3090207c074
 
 ## Top directories
 
-- `tests`: 642 files
-- `src`: 542 files
-- `docs`: 451 files
-- `services`: 202 files
+- `tests`: 643 files
+- `src`: 543 files
+- `docs`: 452 files
+- `services`: 203 files
 - `scripts`: 98 files
 - `tools`: 85 files
 - `agentic-architecture`: 61 files
@@ -51,8 +51,8 @@ Fingerprint: 464c3fbbca97d57a4362b8e60c47c13b953094d243998dfa6638a3090207c074
 ## Domain abstraction
 
 - Domain abstraction: present
-- Domain fingerprint: dcd52f52f8da6ebb889f04d245f5728b6be651fa42da95d0b4063cfac22740e0
-- Candidate files: 1336
+- Domain fingerprint: 5a4c2672ea9dfcc1df1a366f596dae58cb7126a7cf39b7fe19628a9e772c587c
+- Candidate files: 1339
 - Unclassified services: 0
 
 Cluster counts:
@@ -64,7 +64,7 @@ Cluster counts:
 - `forecast-and-market` — Prognose, Markt und Portfolio: 18 services, 25 top files
 - `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files
 - `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files
-- `tenant-and-operation` — Tenant, Rollen und Betrieb: 54 services, 25 top files
+- `tenant-and-operation` — Tenant, Rollen und Betrieb: 55 services, 25 top files
 - `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files
 
 Case types:

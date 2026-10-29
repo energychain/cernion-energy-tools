@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-10-29T00:23:12.328Z
+Generated: 2026-10-29T06:27:34.256Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 2234
-- Services: 166
-- src/*.js files: 474
-- Tests: 555
+- Files scanned: 2238
+- Services: 167
+- src/*.js files: 475
+- Tests: 556
 - Integrations files: 37
-- Markdown/docs files: 586
+- Markdown/docs files: 587
 
 ## Existing validation summary
 
@@ -26,10 +26,10 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 642 files
-- `src`: 542 files
-- `docs`: 451 files
-- `services`: 202 files
+- `tests`: 643 files
+- `src`: 543 files
+- `docs`: 452 files
+- `services`: 203 files
 - `scripts`: 98 files
 - `tools`: 85 files
 - `agentic-architecture`: 61 files
@@ -158,6 +158,7 @@ Primary agentic files:
 - `evidence-revalidation` — services/evidence-revalidation.service.js (9 detected actions)
 - `evidence-router` — services/evidence-router.service.js (4 detected actions)
 - `ewk-monitoring` — services/ewk-monitoring.service.js (5 detected actions)
+- `failure-signals` — services/failure-signals.service.js (5 detected actions)
 - `file-ingest-monitor` — services/file-ingest-monitor.service.js (11 detected actions)
 - `files` — services/files.service.js (2 detected actions)
 - `finance-agent` — services/finance-agent.service.js (14 detected actions)
@@ -178,7 +179,6 @@ Primary agentic files:
 - `governance-cards` — services/governance-cards.service.js (0 detected actions)
 - `governance` — services/governance.service.js (6 detected actions)
 - `grid-connection` — services/grid-connection.service.js (18 detected actions)
-- `grid-operations` — services/grid-operations.service.js (6 detected actions)
 
 ## Naming/shape drift signals
 
@@ -188,6 +188,7 @@ Potential duplicate or overlapping slugs:
 - `services/domain-router.service.js`, `src/domain-router.js`
 - `services/eeg-clawback-calculator.service.js`, `src/eeg-clawback-calculator.js`
 - `services/evidence-router.service.js`, `src/evidence-router.js`
+- `services/failure-signals.service.js`, `src/failure-signals.js`
 - `services/function-coverage.service.js`, `src/function-coverage.js`
 - `services/governance-cards.service.js`, `src/governance-cards.js`
 - `services/project-manifest.service.js`, `src/project-manifest.js`
