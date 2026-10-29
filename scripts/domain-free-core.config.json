@@ -131,6 +131,8 @@
     "src/workbench-project-skills.js",
     "scripts/generate-knowledge-needs.js",
     "services/knowledge-needs.service.js",
+    "services/failure-signals.service.js",
+    "src/failure-signals.js",
     "src/knowledge-need-recognition.js",
     "src/knowledge-elicitation.js",
     "src/knowledge-prefill.js"
