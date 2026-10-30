@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-10-29T12:30:32.059Z
+Generated: 2026-10-30T12:46:27.954Z
 
 ## Current measurable surface
 
@@ -13,26 +13,26 @@ Generated: 2026-10-29T12:30:32.059Z
 
 ## Domain term distribution
 
-- `evidence`: 24792 hits in 887 files
-- `tenant`: 18622 hits in 931 files
-- `broker`: 11689 hits in 708 files
-- `grid`: 9607 hits in 665 files
-- `agent`: 8379 hits in 784 files
-- `decision`: 6642 hits in 457 files
-- `capability`: 6263 hits in 559 files
-- `forecast`: 4587 hits in 332 files
-- `stadtwerk`: 4535 hits in 247 files
+- `evidence`: 24813 hits in 887 files
+- `tenant`: 18635 hits in 931 files
+- `broker`: 11690 hits in 708 files
+- `grid`: 9610 hits in 665 files
+- `agent`: 8387 hits in 784 files
+- `decision`: 6644 hits in 457 files
+- `capability`: 6264 hits in 559 files
+- `forecast`: 4590 hits in 332 files
+- `stadtwerk`: 4543 hits in 247 files
 - `vdmi`: 4440 hits in 294 files
-- `redispatch`: 3926 hits in 311 files
-- `market`: 3745 hits in 406 files
-- `hitl`: 3668 hits in 447 files
-- `edm`: 2944 hits in 375 files
-- `regulator`: 2658 hits in 343 files
-- `mako`: 2516 hits in 314 files
-- `receipt`: 2490 hits in 175 files
+- `redispatch`: 3928 hits in 311 files
+- `market`: 3776 hits in 406 files
+- `hitl`: 3670 hits in 447 files
+- `edm`: 2953 hits in 376 files
+- `regulator`: 2686 hits in 343 files
+- `mako`: 2522 hits in 314 files
+- `receipt`: 2491 hits in 175 files
 - `routing`: 2338 hits in 397 files
-- `personal-agent`: 1988 hits in 313 files
-- `workflow`: 1590 hits in 255 files
+- `personal-agent`: 1991 hits in 313 files
+- `workflow`: 1592 hits in 255 files
 - `willi`: 1536 hits in 113 files
 - `sidecar`: 1002 hits in 111 files
 - `eog`: 721 hits in 101 files

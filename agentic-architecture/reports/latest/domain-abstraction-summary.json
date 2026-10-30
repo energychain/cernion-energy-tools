@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-29T12:30:37.993Z",
+  "generatedAt": "2026-10-30T12:46:33.741Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261029T122908Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261030T124515Z",
   "counts": {
     "files": 2238,
     "candidateFiles": 1339,
@@ -45,7 +45,7 @@
       "label": "Redispatch, Steuerbarkeit und Flexibilität",
       "files": 25,
       "services": 3,
-      "hits": 4728
+      "hits": 4730
     },
     "gas-heat-and-eog": {
       "label": "Gas, Wärme und EOG",
@@ -57,7 +57,7 @@
       "label": "Tenant, Rollen und Betrieb",
       "files": 25,
       "services": 55,
-      "hits": 9589
+      "hits": 9602
     },
     "openwebui-agentic-routing": {
       "label": "OpenWebUI und agentisches Routing",
@@ -552,5 +552,5 @@
       "hits": 279
     }
   ],
-  "fingerprint": "19a5782fe4238f11d1b742c856a94503c439a68b7d64314d72d18f46e7caf8ff"
+  "fingerprint": "f46bb0939a8a5de68c0dc7d29edaf187946de5dc534a8ea84b83e18a8307bcf9"
 }
