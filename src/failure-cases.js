@@ -5,6 +5,7 @@
 // That call only sees structured case data (kinds, counts, function ids, sources, reason
 // codes), never chat content, so a chat message cannot steer it.
 const llm = require('./llm-client');
+const { compareCanonicalStrings } = require('./canonical-order');
 
 const LEVELS = ['A', 'B', 'C', 'D'];
 const STATUSES = [
@@ -59,10 +60,10 @@ const MAX_SIGNALS = 50;
 const MAX_STEPS = 10;
 
 function dedupKey(signal) {
-  const ids = [...(signal.functionIds || [])].sort().join(',') || '-';
+  const ids = [...(signal.functionIds || [])].sort(compareCanonicalStrings).join(',') || '-';
   const sources =
     [...new Set((signal.sources || []).map((item) => `${item.source}:${item.name || ''}`))]
-      .sort()
+      .sort(compareCanonicalStrings)
       .join(',') || '-';
   return [signal.kind, ids, sources, signal.reason || '-'].join('|').slice(0, 500);
 }
