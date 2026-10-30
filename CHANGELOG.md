@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased — Public-Context Selected-Source Provenance & Freshness Workbench (#1013)
+
+- Additive `public_context_selected_source_*` section group in the Stadtwerk-Mauer Workbench
+  manifest for `ROLE_DATA_GOVERNANCE` (consumed by `ROLE_NETZPLANUNG`): exactly three source
+  families, `mastr_municipality_asset_context` selected by default; selection is presentation
+  state only and unknown ids fall back to it with `clarification_required`.
+- Ten scalar queries built only on the seven existing GET bricks (MaStR overlay, market snapshot,
+  quality summary, observability mini, evidence freshness guard, regulatory translator/readiness);
+  no new endpoint, service, persistence, source catalog, case-link store or Personal-Agent rule.
+- Public values stay immutable `public_context_layer`; platform quality/health is not source
+  truth; freshness/regulatory facts are caller-supplied and unverified; no score is rendered.
+  Linkage is never `linked`; #992-owned sources render as `integration_gap`. Every gap gets a
+  positive follow-up and a human Data-Governance gate, never automatic retry or escalation.
+- Only refresh/detail enabled; catalog/link/Budibase writes, connectors, workflow/HITL, Rundeck,
+  MaKo, billing/tariff, dispatch and device control render as `not_called`.
+- Visible Budibase acceptance remains gated by #572. Tests: `tests/budibase-workbench.test.js`.
+
 ## Unreleased — Netzwirtschaft Leadership Attention Workbench (#1000)
 
 - Additive `netzwirtschaft_leadership_attention_*` section group in the Stadtwerk-Mauer
