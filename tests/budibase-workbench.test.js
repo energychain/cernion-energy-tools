@@ -9902,3 +9902,583 @@ describe('Budibase Netzwirtschaft leadership attention panel (#1000)', () => {
     );
   });
 });
+
+describe('Budibase public-context selected-source provenance and freshness panel (#1013)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  // Pure dashboard-api builders, so fixtures follow the current response contracts.
+  const builders = {};
+  const methodsDir = path.join(__dirname, '../services/dashboard-api');
+  for (const file of fs.readdirSync(methodsDir).filter((name) => name.startsWith('methods-part'))) {
+    Object.assign(builders, require(path.join(methodsDir, file)));
+  }
+  const build = (name, params) => builders[name].call(builders, params);
+
+  const FAMILIES = [
+    'mastr_municipality_asset_context',
+    'market_price_co2_renewables_context',
+    'regulatory_signal_context',
+  ];
+  const TERMINAL = [
+    'review_ready',
+    'clarification',
+    'integration_gap',
+    'degraded',
+    'human_review_required',
+  ];
+  const ALLOWED_PATHS = [
+    '/api/dashboard/stadtwerk-mauer-mastr-data-overlay',
+    '/api/dashboard/market-snapshot',
+    '/api/dashboard/quality-summary',
+    '/api/dashboard/observability-mini',
+    '/api/dashboard/evidence-freshness-guard',
+    '/api/dashboard/regulatory-change-readiness',
+    '/api/dashboard/regulatory-signal-process-translator',
+  ];
+  const SECTION_QUERIES = {
+    public_context_selected_source_selector: 'getPublicContextSelectedSourceSelectorRows',
+    public_context_selected_source_mastr: 'getPublicContextSelectedSourceMastrRows',
+    public_context_selected_source_market: 'getPublicContextSelectedSourceMarketRows',
+    public_context_selected_source_quality_boundary:
+      'getPublicContextSelectedSourceQualityBoundaryRows',
+    public_context_selected_source_observability_boundary:
+      'getPublicContextSelectedSourceObservabilityBoundaryRows',
+    public_context_selected_source_freshness: 'getPublicContextSelectedSourceFreshnessRows',
+    public_context_selected_source_regulatory_translation:
+      'getPublicContextSelectedSourceRegulatoryTranslationRows',
+    public_context_selected_source_regulatory_readiness:
+      'getPublicContextSelectedSourceRegulatoryReadinessRows',
+    public_context_selected_source_next_gate: 'getPublicContextSelectedSourceNextGateRows',
+    public_context_selected_source_no_call: 'getPublicContextSelectedSourceNoCallRows',
+  };
+  const REF = (family) => `smm-public-context-${family}`;
+
+  const mastrOverlay = (caseId, errors = []) => {
+    const params = { tenantId: 'stadtwerk-mauer', caseId };
+    const missing = builders.buildMissingStadtwerkMauerMastrDataOverlayStatus.call(
+      builders,
+      'stadtwerk-mauer',
+      params
+    );
+    return {
+      ...missing,
+      publicContextRows: builders.buildStadtwerkMauerMastrPublicContextRows.call(builders, missing),
+      revalidationRows: builders.buildStadtwerkMauerMastrRevalidationRows.call(
+        builders,
+        missing,
+        params
+      ),
+      _errors: errors,
+    };
+  };
+  const readyMastr = () => ({
+    status: 'blended_overlay_ready',
+    municipality: 'Mauer',
+    postalCode: '69256',
+    assetCount: 12,
+    totalCapacityKw: 345.6,
+    originalGridOperators: [
+      { name: 'Syna GmbH', mastrId: 'SNB1', assetCount: 12, capacityKw: 345.6 },
+    ],
+    sampleAssets: [{ mastrId: 'SEE1', raw: { nested: true } }],
+    publicContextRows: [
+      {
+        rowKey: 'municipality',
+        label: 'Municipality',
+        value: 'Mauer',
+        sourceClass: 'public_context_layer',
+      },
+      { rowKey: 'asset_count', label: 'Public MaStR Assets', value: 12 },
+    ],
+    revalidationRows: [{ affectedCaseId: 'smm-public-context-selected-source-review-001' }],
+    evidenceQuality: 'real_mastr_baseline_with_virtual_operator_overlay',
+    missingEvidence: [],
+    positiveFollowUps: [],
+    resetBoundary: { deletesImportedMastrBaseline: false },
+    sourceActions: { notCalled: ['mako.dispatch', 'tenant.delete'] },
+    _errors: [],
+  });
+  const marketComplete = () => ({
+    spotPrice: {
+      current: 81.2,
+      avgToday: 70.4,
+      minToday: 41,
+      maxToday: 112.5,
+      trend: 'rising',
+      source: 'entsoe',
+    },
+    co2: { current: 312, avgToday: 298, signal: 'yellow', location: 'Deutschland' },
+    renewableForecast24h: {
+      solarPeakMW: 32500,
+      windPeakMW: 18200,
+      combinedPeakAt: '2026-10-30T12:00:00Z',
+    },
+    timestamp: '2026-10-30T07:00:00.000Z',
+    _errors: [],
+  });
+  const marketDegraded = () => ({
+    spotPrice: null,
+    co2: null,
+    renewableForecast24h: null,
+    timestamp: '2026-10-30T07:00:00.000Z',
+    _errors: ['entsoe.dayAheadPrices: timeout', 'energy-market.co2Intensity: unavailable'],
+  });
+  const freshness = (family, extra = {}) =>
+    build('buildEvidenceFreshnessGuardStatus', {
+      signalId: REF(family),
+      sourceKind: 'synthetic_tenant_seed',
+      processArea: 'public_context_governance',
+      ...extra,
+    });
+  const translator = () =>
+    build('buildRegulatorySignalProcessTranslatorStatus', {
+      signalId: 'smm-public-context-regulatory-signal-synthetic',
+      sourceName: 'synthetic_tenant_seed',
+      affectedDomain: 'public_context_governance',
+    });
+  const readiness = () =>
+    build('buildRegulatoryChangeReadinessStatus', {
+      changeId: 'smm-public-context-regulatory-change-synthetic',
+    });
+
+  const fixtureSet = (family, variant) => {
+    const overlay = variant === 'degraded' ? mastrOverlay(REF(family), ['timeout']) : readyMastr();
+    if (variant !== 'degraded') overlay.revalidationRows = [{ affectedCaseId: REF(family) }];
+    return {
+      getPublicContextSelectedSourceSelectorRows: overlay,
+      getPublicContextSelectedSourceMastrRows: overlay,
+      getPublicContextSelectedSourceMarketRows:
+        variant === 'degraded' ? marketDegraded() : marketComplete(),
+      getPublicContextSelectedSourceQualityBoundaryRows: {
+        agents: [{ id: 'a' }, { id: 'b' }],
+        _errors: variant === 'degraded' ? ['quality: timeout'] : [],
+      },
+      getPublicContextSelectedSourceObservabilityBoundaryRows: {
+        cards: builders.buildObservabilityMiniCards.call(
+          builders,
+          variant === 'degraded' ? { metrics: { overview: { errorCount: 3 } } } : null
+        ),
+        _errors: [],
+      },
+      getPublicContextSelectedSourceFreshnessRows: freshness(family),
+      getPublicContextSelectedSourceRegulatoryTranslationRows: translator(),
+      getPublicContextSelectedSourceRegulatoryReadinessRows: readiness(),
+      getPublicContextSelectedSourceNextGateRows: freshness(family),
+      getPublicContextSelectedSourceNoCallRows: overlay,
+    };
+  };
+  const nested = { deep: { value: 1 }, list: [{ a: 1 }] };
+  const nestedFixtures = () => ({
+    getPublicContextSelectedSourceSelectorRows: { revalidationRows: [{ affectedCaseId: nested }] },
+    getPublicContextSelectedSourceMastrRows: {
+      status: nested,
+      municipality: nested,
+      assetCount: nested,
+      originalGridOperators: [nested, { name: nested }],
+      publicContextRows: [{ rowKey: nested, label: nested, value: nested }, 'raw', [1]],
+      missingEvidence: nested,
+      positiveFollowUps: [nested],
+      resetBoundary: nested,
+      _errors: nested,
+    },
+    getPublicContextSelectedSourceMarketRows: {
+      spotPrice: { current: nested, trend: [1] },
+      co2: [nested],
+      renewableForecast24h: 'raw',
+      timestamp: nested,
+      _errors: nested,
+    },
+    getPublicContextSelectedSourceQualityBoundaryRows: { agents: nested, _errors: nested },
+    getPublicContextSelectedSourceObservabilityBoundaryRows: {
+      cards: { health: { status: nested }, incidents: nested, performance: [nested] },
+    },
+    getPublicContextSelectedSourceFreshnessRows: {
+      signalId: nested,
+      freshnessState: nested,
+      missingEvidence: [nested, { missingDataPoint: nested }],
+      positiveFollowUps: nested,
+    },
+    getPublicContextSelectedSourceRegulatoryTranslationRows: {
+      status: nested,
+      affectedProcesses: [nested],
+      decisionGates: nested,
+      missingEvidence: [nested],
+    },
+    getPublicContextSelectedSourceRegulatoryReadinessRows: {
+      status: nested,
+      readinessScore: nested,
+      evidenceItems: nested,
+      missingEvidence: [{ missingDataPoint: nested }],
+      blockingFindings: nested,
+    },
+    getPublicContextSelectedSourceNextGateRows: { signalId: nested, freshnessState: nested },
+    getPublicContextSelectedSourceNoCallRows: {
+      sourceActions: { notCalled: [nested, 'mako.dispatch', '{"raw":1}', 'x'.repeat(200)] },
+    },
+  });
+
+  const allRows = (fixtures) =>
+    Object.values(SECTION_QUERIES).flatMap((name) => runTransformer(name, fixtures[name]));
+  const isGuard = (row) =>
+    ['enabled_read_only_behavior', 'disabled_no_call_guard'].includes(row.kind);
+
+  function expectDisplaySafe(rows) {
+    expectScalarRows(rows);
+    expectNoRawObjectText(rows);
+    for (const row of rows) {
+      for (const value of Object.values(row)) {
+        const text = String(value);
+        expect(text).not.toMatch(/^\s*[[{]/);
+        expect(text).not.toContain('"');
+        expect(text.length).toBeLessThan(300);
+      }
+    }
+  }
+
+  it('composes only the seven named existing GET bricks in ten scalar sections', () => {
+    const queries = manifest.queries.filter((query) =>
+      query.name.startsWith('getPublicContextSelectedSource')
+    );
+    expect(queries.map((query) => query.name).sort()).toEqual(
+      Object.values(SECTION_QUERIES).sort()
+    );
+    expect(new Set(queries.map((query) => query.path))).toEqual(new Set(ALLOWED_PATHS));
+    for (const query of queries) {
+      expect(query.method).toBe('GET');
+      expect(query.body).toBeUndefined();
+      expect(query.transformer).not.toMatch(/readinessScore|severity|confidence|fetch\(|require\(/);
+      expect(query.transformer).not.toMatch(/sampleAssets|mastrQuery|operatorOverlay/);
+      expect(query.queryString).not.toMatch(
+        /(^|&)(role|owner|ownerHint|actor|actorId|userId|clearance|principal|token|apiKey|sourceTimestamp|currentSnapshotHash|knownSnapshotHash)=/
+      );
+      for (const type of Object.values(query.schema)) {
+        expect(['string', 'boolean']).toContain(type.type);
+      }
+    }
+    for (const [sectionId, queryName] of Object.entries(SECTION_QUERIES)) {
+      expect(manifest.sections.find((section) => section.id === sectionId)).toEqual(
+        expect.objectContaining({ queryName })
+      );
+    }
+    expect(
+      manifest.sections.filter((section) =>
+        section.id.startsWith('public_context_selected_source_')
+      )
+    ).toHaveLength(10);
+    const notes = manifest.notes.join('\n');
+    expect(notes).toContain('Public-Context Selected-Source Provenance & Freshness panel (#1013)');
+    expect(notes).toContain('read_only_public_context_workbench_composition');
+    expect(notes).toContain('#572');
+  });
+
+  it('renders exactly three source families with exactly one presentation selection and fails closed', () => {
+    const rows = runTransformer(
+      'getPublicContextSelectedSourceSelectorRows',
+      mastrOverlay(REF('mastr_municipality_asset_context'))
+    );
+    expectDisplaySafe(rows);
+    expect(rows.map((row) => row.sourceFamily)).toEqual(FAMILIES);
+    expect(rows.filter((row) => row.selected)).toEqual([
+      expect.objectContaining({
+        sourceFamily: 'mastr_municipality_asset_context',
+        selectionStatus: 'allowlisted_family_selected',
+      }),
+    ]);
+    for (const row of rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          dataClass: 'synthetic_tenant_seed',
+          publicContextClass: 'public_context_layer',
+          selectionPersistence: 'presentation_state_only_not_persisted',
+          roleTarget: 'ROLE_DATA_GOVERNANCE',
+          consumerRole: 'ROLE_NETZPLANUNG',
+        })
+      );
+      expect(row.linkageStatus).not.toBe('linked');
+    }
+    const selector = manifest.queries.find(
+      (query) => query.name === 'getPublicContextSelectedSourceSelectorRows'
+    );
+    expect(selector.parameters).toContainEqual({
+      name: 'publicContextSourceFamily',
+      default: 'mastr_municipality_asset_context',
+    });
+
+    for (const family of FAMILIES) {
+      const picked = runTransformer('getPublicContextSelectedSourceSelectorRows', {
+        revalidationRows: [{ affectedCaseId: REF(family) }],
+      });
+      expect(picked.filter((row) => row.selected).map((row) => row.sourceFamily)).toEqual([family]);
+      const gate = runTransformer('getPublicContextSelectedSourceNextGateRows', freshness(family));
+      expect(gate.filter((row) => row.selected).map((row) => row.sourceFamily)).toEqual([family]);
+    }
+    for (const unknown of [
+      { revalidationRows: [{ affectedCaseId: REF('smard_context') }] },
+      {},
+      null,
+      nestedFixtures().getPublicContextSelectedSourceSelectorRows,
+    ]) {
+      const fallback = runTransformer('getPublicContextSelectedSourceSelectorRows', unknown);
+      expectDisplaySafe(fallback);
+      expect(fallback).toHaveLength(3);
+      const selected = fallback.filter((row) => row.selected);
+      expect(selected).toHaveLength(1);
+      expect(selected[0]).toEqual(
+        expect.objectContaining({
+          sourceFamily: 'mastr_municipality_asset_context',
+          selectionStatus: 'clarification_required',
+        })
+      );
+    }
+  });
+
+  it('keeps every row scalar and display-safe for ready, degraded, nested and empty responses', () => {
+    for (const family of FAMILIES) {
+      for (const variant of ['ready', 'degraded']) {
+        expectDisplaySafe(allRows(fixtureSet(family, variant)));
+      }
+    }
+    expectDisplaySafe(allRows(nestedFixtures()));
+    for (const empty of [{}, null, undefined, []]) {
+      for (const name of Object.values(SECTION_QUERIES)) {
+        expectDisplaySafe(runTransformer(name, empty));
+      }
+    }
+    // No raw MaStR sample assets, operator ids or route payloads reach Budibase.
+    const text = JSON.stringify(allRows(fixtureSet(FAMILIES[0], 'ready')));
+    expect(text).not.toMatch(/SEE1|SNB1|nested|sampleAssets|mastrQuery/);
+    const noCall = runTransformer(
+      'getPublicContextSelectedSourceNoCallRows',
+      nestedFixtures().getPublicContextSelectedSourceNoCallRows
+    );
+    expect(noCall.map((row) => row.boundary)).toContain('mako.dispatch');
+    expect(noCall.some((row) => row.boundary.length > 80)).toBe(false);
+  });
+
+  it('labels public context as immutable public_context_layer and maps degraded MaStR/market reads to gaps', () => {
+    const mastr = runTransformer('getPublicContextSelectedSourceMastrRows', readyMastr());
+    for (const row of mastr) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          sourceFamily: 'mastr_municipality_asset_context',
+          dataClass: 'public_context_layer',
+          mutability: 'immutable_public_context_not_tenant_master_data',
+          linkageStatus: 'not_proven',
+          status: 'human_review_required',
+        })
+      );
+    }
+    expect(mastr.find((row) => row.rowKey === 'mastr_original_grid_operators').value).toBe(
+      '1 (Syna GmbH)'
+    );
+    expect(
+      mastr.find((row) => row.rowKey === 'mastr_reset_deletes_imported_mastr_baseline').value
+    ).toBe('false');
+
+    const degradedMastr = runTransformer(
+      'getPublicContextSelectedSourceMastrRows',
+      mastrOverlay('smm-public-context-selected-source-review-001', ['timeout'])
+    );
+    for (const row of degradedMastr) {
+      expect(row.status).toBe('degraded');
+      expect(row.degradedReason).not.toBe('none');
+      expect(row.positiveFollowUp).toMatch(/^confirm_mastr_overlay_provenance/);
+    }
+    // Missing assets never become a negative domain conclusion such as "0 assets exist".
+    expect(degradedMastr.every((row) => row.status !== 'human_review_required')).toBe(true);
+
+    const market = runTransformer('getPublicContextSelectedSourceMarketRows', marketComplete());
+    for (const row of market) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          provenanceCaveat: 'aggregate_cached_context_not_municipality_or_case_provenance',
+          dataClass: 'public_context_layer',
+          linkageStatus: 'not_proven',
+          status: 'human_review_required',
+        })
+      );
+    }
+    const degradedMarket = runTransformer(
+      'getPublicContextSelectedSourceMarketRows',
+      marketDegraded()
+    );
+    const spot = degradedMarket.find((row) => row.rowKey === 'market_spot_current');
+    expect(spot).toEqual(
+      expect.objectContaining({ value: 'integration_gap', status: 'integration_gap' })
+    );
+    expect(degradedMarket.find((row) => row.rowKey === 'market_read_errors')).toEqual(
+      expect.objectContaining({ value: '2', status: 'degraded' })
+    );
+    expect(degradedMarket.some((row) => row.value === '0')).toBe(false);
+  });
+
+  it('separates platform quality/health from source truth and keeps caller-supplied facts unverified', () => {
+    const fixtures = fixtureSet(FAMILIES[0], 'degraded');
+    const platform = [
+      ...runTransformer(
+        'getPublicContextSelectedSourceQualityBoundaryRows',
+        fixtures.getPublicContextSelectedSourceQualityBoundaryRows
+      ),
+      ...runTransformer(
+        'getPublicContextSelectedSourceObservabilityBoundaryRows',
+        fixtures.getPublicContextSelectedSourceObservabilityBoundaryRows
+      ),
+    ];
+    for (const row of platform) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          dataClass: 'platform_context',
+          sourceTruth: 'not_source_truth',
+          municipalityCompleteness: 'not_proven',
+          caseLinkage: 'not_proven',
+          status: 'degraded',
+        })
+      );
+      expect(['platform_wide_bounded_context_only', 'platform_health_not_source_truth']).toContain(
+        row.scope
+      );
+    }
+    // A healthy platform is still not source truth.
+    const healthy = runTransformer('getPublicContextSelectedSourceObservabilityBoundaryRows', {
+      cards: { health: { status: 'healthy' }, incidents: { errorCount: 0 } },
+    });
+    expect(healthy.every((row) => row.sourceTruth === 'not_source_truth')).toBe(true);
+
+    const fresh = runTransformer(
+      'getPublicContextSelectedSourceFreshnessRows',
+      freshness('mastr_municipality_asset_context')
+    )[0];
+    expect(fresh).toEqual(
+      expect.objectContaining({
+        freshnessState: 'freshness_unknown',
+        freshnessDisplay: 'freshness_unverified',
+        verification: 'caller_supplied_not_source_verified',
+        automaticEscalation: 'disabled',
+        status: 'clarification',
+      })
+    );
+    expect(Number(fresh.missingEvidenceCount)).toBeGreaterThan(0);
+
+    const translation = runTransformer(
+      'getPublicContextSelectedSourceRegulatoryTranslationRows',
+      translator()
+    )[0];
+    expect(translation).toEqual(
+      expect.objectContaining({
+        interpretation: 'operational_hint_only_not_legal_or_source_truth',
+        verification: 'caller_supplied_not_source_verified',
+        sourceAvailability: 'integration_gap',
+        linkageStatus: 'integration_gap',
+        status: 'integration_gap',
+        dataClass: 'synthetic_tenant_seed',
+      })
+    );
+    const ready = runTransformer(
+      'getPublicContextSelectedSourceRegulatoryReadinessRows',
+      readiness()
+    )[0];
+    expect(ready).toEqual(
+      expect.objectContaining({
+        readinessStatus: 'needs_data_contract',
+        firstMissingEvidence: 'data_contract',
+        scoreRendering: 'not_rendered_not_source_trust_or_compliance',
+        status: 'clarification',
+      })
+    );
+    for (const key of Object.keys(ready)) expect(key).not.toMatch(/score$|confidence|rank/i);
+  });
+
+  it('gives every non-ready state a positive follow-up and a human gate, never an automatic action', () => {
+    for (const family of FAMILIES) {
+      for (const variant of ['ready', 'degraded']) {
+        for (const row of allRows(fixtureSet(family, variant)).filter((item) => !isGuard(item))) {
+          expect(row.automaticAction).toBe('none');
+          expect(row.nextHumanGate).toMatch(/^human_data_governance_/);
+          if (row.sectionClass.endsWith('_selector')) continue;
+          expect(TERMINAL).toContain(row.status);
+          expect(row.positiveFollowUp).toMatch(/^[a-z0-9_]+$/);
+          expect(row.positiveFollowUp).not.toMatch(/retry|escalate|reject|decide|auto/);
+          expect(row.linkageStatus || row.caseLinkage).not.toBe('linked');
+        }
+      }
+      const gates = runTransformer('getPublicContextSelectedSourceNextGateRows', freshness(family));
+      expect(gates.map((row) => [row.sourceFamily, row.status])).toEqual([
+        ['mastr_municipality_asset_context', 'clarification'],
+        ['market_price_co2_renewables_context', 'clarification'],
+        ['regulatory_signal_context', 'integration_gap'],
+      ]);
+    }
+  });
+
+  it('enables only refresh/detail and renders writes, links and consequential actions as not_called', () => {
+    const rows = runTransformer('getPublicContextSelectedSourceNoCallRows', readyMastr());
+    expectDisplaySafe(rows);
+    expect(
+      rows
+        .filter((row) => row.disabled === false)
+        .map((row) => row.boundary)
+        .sort()
+    ).toEqual(['open_detail', 'query_refresh']);
+    const guards = rows.filter((row) => row.kind === 'disabled_no_call_guard');
+    for (const guard of guards) {
+      expect(guard).toEqual(
+        expect.objectContaining({ disabled: true, behavior: 'disabled', status: 'not_called' })
+      );
+    }
+    expect(guards.map((row) => row.boundary)).toEqual(
+      expect.arrayContaining([
+        'source_catalog.write',
+        'evidence_catalog.write',
+        'project_case_link.create',
+        'public_context.mutate',
+        'mastr.record.mutate',
+        'source.onboarding.create',
+        'source.subscription.create',
+        'source.retry.schedule',
+        'external.connector.configure',
+        'external.connector.call',
+        'budibase.table.write',
+        'workflow.execute',
+        'hitl.create',
+        'task.create',
+        'personal-agent.execute',
+        'agent.autonomous.wake',
+        'rundeck.execute',
+        'mako.write',
+        'billing.release',
+        'settlement.prepareBilling',
+        'tariff.mutate',
+        'redispatch.dispatch',
+        'smgw-cls.execute',
+        'device-control.execute',
+        'production.mutate',
+        'mako.dispatch',
+        'tenant.delete',
+      ])
+    );
+    const gaps = rows.filter((row) => row.kind === 'integration_gap_owned_by_992');
+    expect(gaps.map((row) => row.boundary)).toEqual([
+      'smard_public_context',
+      'netztransparenz_public_context',
+      'entsoe_additional_operations',
+      'evidence_catalog_graph_link',
+      'autonomous_agent_observation',
+    ]);
+    for (const gap of gaps) {
+      expect(gap).toEqual(
+        expect.objectContaining({
+          status: 'integration_gap',
+          disabled: true,
+          positiveFollowUp: 'track_authoritative_read_path_in_issue_992_before_workbench_claim',
+        })
+      );
+    }
+    // No Rundeck or operations-runbook query is composed by this panel.
+    const panel = manifest.queries.filter((query) =>
+      query.name.startsWith('getPublicContextSelectedSource')
+    );
+    for (const query of panel) {
+      expect(query.path).not.toMatch(/rundeck|operations-runbook|domain-router|budibase|tables/);
+    }
+  });
+});

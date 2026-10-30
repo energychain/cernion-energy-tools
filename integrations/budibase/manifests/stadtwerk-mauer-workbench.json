@@ -15029,6 +15029,725 @@
           "type": "string"
         }
       }
+    },
+    {
+      "name": "getPublicContextSelectedSourceSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-public-context-{{publicContextSourceFamily}}&limit=1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "publicContextSourceFamily",
+          "default": "mastr_municipality_asset_context"
+        }
+      ],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const arr=(v)=>Array.isArray(v)?v:[]; const d=obj(data); const txt=(v,f)=>v==null||v===''||typeof v==='object'?f:String(v); const num=(v)=>typeof v==='number'&&isFinite(v)?String(v):'unknown'; const names=(v,k)=>arr(v).map((x)=>x&&typeof x==='object'&&!Array.isArray(x)?x[k]:x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v,k,n)=>{const a=names(v,k);return a.length?a.slice(0,n||5).join(', '):'none';}; const firstFollowUp=(v)=>{const a=names(v,'enablesDossierAddition');return a.length?a[0]:'none';}; const FAMILIES=[{sourceFamily:'mastr_municipality_asset_context',label:'MaStR Gemeinde-Anlagenkontext Mauer',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay',provenanceCaveat:'real_mastr_baseline_with_virtual_operator_overlay_not_tenant_master_data',linkageStatus:'not_proven',missingEvidence:'authoritative_992_case_link, source_timestamp_or_snapshot_identity',positiveFollowUp:'confirm_mastr_overlay_provenance_and_request_992_case_link_before_case_use',nextHumanGate:'human_data_governance_provenance_review'},{sourceFamily:'market_price_co2_renewables_context',label:'Markt-, CO2- und EE-Prognosekontext (aggregiert)',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/market-snapshot',provenanceCaveat:'aggregate_cached_context_not_municipality_or_case_provenance',linkageStatus:'not_proven',missingEvidence:'municipality_or_case_scope, authoritative_992_case_link, source_timestamp',positiveFollowUp:'confirm_market_context_scope_and_timestamp_before_stadtwerk_decision_use',nextHumanGate:'human_data_governance_market_context_review'},{sourceFamily:'regulatory_signal_context',label:'Regulatorischer Signalkontext',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/regulatory-signal-process-translator',provenanceCaveat:'operational_hint_only_not_legal_or_source_truth',linkageStatus:'integration_gap',missingEvidence:'authoritative_992_regulatory_read_path, signal_provenance, authoritative_992_case_link',positiveFollowUp:'request_992_authoritative_regulatory_read_path_then_review_signal_provenance',nextHumanGate:'human_data_governance_regulatory_source_review'}]; const DEFAULT_FAMILY='mastr_municipality_asset_context'; const family=(id)=>FAMILIES.find((f)=>f.sourceFamily===id); const P='smm-public-context-'; const unprefix=(v)=>typeof v==='string'&&v.indexOf(P)===0?v.slice(P.length):''; const BASE={sectionClass:'public_context_selected_source_selector',processFamily:'public_context_governance',renderTarget:'budibase:stadtwerk-mauer-workbench:public-context-selected-source',roleTarget:'ROLE_DATA_GOVERNANCE',consumerRole:'ROLE_NETZPLANUNG',automaticAction:'none'}; const requested=unprefix(names(d.revalidationRows,'affectedCaseId')[0]); const known=family(requested); const selected=known||family(DEFAULT_FAMILY); const selectionStatus=known?'allowlisted_family_selected':'clarification_required'; return FAMILIES.map((f)=>({...BASE,rowKey:'public_context_selector_'+f.sourceFamily,sourceFamily:f.sourceFamily,label:f.label,selected:f.sourceFamily===selected.sourceFamily,selectedLabel:f.sourceFamily===selected.sourceFamily?'selected':'available',selectionStatus,selectionPersistence:'presentation_state_only_not_persisted',dataClass:'synthetic_tenant_seed',publicContextClass:f.publicContextClass,sourcePointer:f.sourcePointer,provenanceCaveat:f.provenanceCaveat,linkageStatus:f.linkageStatus,nextHumanGate:f.nextHumanGate}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "consumerRole": {
+          "type": "string"
+        },
+        "automaticAction": {
+          "type": "string"
+        },
+        "sourceFamily": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "selectedLabel": {
+          "type": "string"
+        },
+        "selectionStatus": {
+          "type": "string"
+        },
+        "selectionPersistence": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "publicContextClass": {
+          "type": "string"
+        },
+        "sourcePointer": {
+          "type": "string"
+        },
+        "provenanceCaveat": {
+          "type": "string"
+        },
+        "linkageStatus": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getPublicContextSelectedSourceMastrRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&limit=5",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-public-context-selected-source-review-001"
+        }
+      ],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const arr=(v)=>Array.isArray(v)?v:[]; const d=obj(data); const txt=(v,f)=>v==null||v===''||typeof v==='object'?f:String(v); const num=(v)=>typeof v==='number'&&isFinite(v)?String(v):'unknown'; const names=(v,k)=>arr(v).map((x)=>x&&typeof x==='object'&&!Array.isArray(x)?x[k]:x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v,k,n)=>{const a=names(v,k);return a.length?a.slice(0,n||5).join(', '):'none';}; const firstFollowUp=(v)=>{const a=names(v,'enablesDossierAddition');return a.length?a[0]:'none';}; const FAMILIES=[{sourceFamily:'mastr_municipality_asset_context',label:'MaStR Gemeinde-Anlagenkontext Mauer',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay',provenanceCaveat:'real_mastr_baseline_with_virtual_operator_overlay_not_tenant_master_data',linkageStatus:'not_proven',missingEvidence:'authoritative_992_case_link, source_timestamp_or_snapshot_identity',positiveFollowUp:'confirm_mastr_overlay_provenance_and_request_992_case_link_before_case_use',nextHumanGate:'human_data_governance_provenance_review'},{sourceFamily:'market_price_co2_renewables_context',label:'Markt-, CO2- und EE-Prognosekontext (aggregiert)',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/market-snapshot',provenanceCaveat:'aggregate_cached_context_not_municipality_or_case_provenance',linkageStatus:'not_proven',missingEvidence:'municipality_or_case_scope, authoritative_992_case_link, source_timestamp',positiveFollowUp:'confirm_market_context_scope_and_timestamp_before_stadtwerk_decision_use',nextHumanGate:'human_data_governance_market_context_review'},{sourceFamily:'regulatory_signal_context',label:'Regulatorischer Signalkontext',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/regulatory-signal-process-translator',provenanceCaveat:'operational_hint_only_not_legal_or_source_truth',linkageStatus:'integration_gap',missingEvidence:'authoritative_992_regulatory_read_path, signal_provenance, authoritative_992_case_link',positiveFollowUp:'request_992_authoritative_regulatory_read_path_then_review_signal_provenance',nextHumanGate:'human_data_governance_regulatory_source_review'}]; const DEFAULT_FAMILY='mastr_municipality_asset_context'; const family=(id)=>FAMILIES.find((f)=>f.sourceFamily===id); const P='smm-public-context-'; const unprefix=(v)=>typeof v==='string'&&v.indexOf(P)===0?v.slice(P.length):''; const BASE={sectionClass:'public_context_selected_source_mastr',processFamily:'public_context_governance',renderTarget:'budibase:stadtwerk-mauer-workbench:public-context-selected-source',roleTarget:'ROLE_DATA_GOVERNANCE',consumerRole:'ROLE_NETZPLANUNG',automaticAction:'none'}; const f=family('mastr_municipality_asset_context'); const errors=arr(d._errors); const st=txt(d.status,'clarification_required'); const quality=txt(d.evidenceQuality,'clarification_required'); const missing=names(d.missingEvidence,'missingDataPoint'); const degraded=errors.length>0||/(unavailable|failed|blocked)/.test(st+' '+quality); const status=degraded?'degraded':missing.length>0||quality!=='real_mastr_baseline_with_virtual_operator_overlay'?'clarification':'human_review_required'; const degradedReason=degraded?(errors.length?String(errors.length)+' read error(s); status '+st:'status '+st+'; evidence '+quality):'none'; const ops=arr(d.originalGridOperators); const reset=obj(d.resetBoundary); const facts=[['overlay_status','Overlay-Status',st],['municipality','Gemeinde',txt(d.municipality,'clarification_required')],['postal_code','PLZ',txt(d.postalCode,'clarification_required')],['asset_count','Oeffentliche MaStR-Anlagen',num(d.assetCount)],['total_capacity_kw','Installierte Leistung kW',num(d.totalCapacityKw)],['original_grid_operators','Original-Netzbetreiber laut MaStR',String(ops.length)+' ('+joined(ops,'name',3)+')']]; const pub=arr(d.publicContextRows).slice(0,8).map((r,i)=>{const row=obj(r);return ['public_'+txt(row.rowKey,String(i+1)),txt(row.label,'MaStR/OSM public context'),txt(row.value,'clarification_required')];}); const tail=[['evidence_quality','Evidenzqualitaet',quality],['missing_evidence','Fehlende Evidenz',missing.length?missing.slice(0,5).join(', '):'none'],['first_positive_follow_up','Erste positive Folgeaktion',firstFollowUp(d.positiveFollowUps)],['reset_deletes_imported_mastr_baseline','Reset loescht importierte MaStR-Baseline',reset.deletesImportedMastrBaseline===false?'false':'clarification_required']]; return [...facts,...pub,...tail].map(([k,label,value])=>({...BASE,rowKey:'mastr_'+k,sourceFamily:f.sourceFamily,label,value,dataClass:'public_context_layer',mutability:'immutable_public_context_not_tenant_master_data',status,degradedReason,provenanceCaveat:f.provenanceCaveat,linkageStatus:f.linkageStatus,positiveFollowUp:f.positiveFollowUp,nextHumanGate:f.nextHumanGate}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "consumerRole": {
+          "type": "string"
+        },
+        "automaticAction": {
+          "type": "string"
+        },
+        "sourceFamily": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "mutability": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "degradedReason": {
+          "type": "string"
+        },
+        "provenanceCaveat": {
+          "type": "string"
+        },
+        "linkageStatus": {
+          "type": "string"
+        },
+        "positiveFollowUp": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getPublicContextSelectedSourceMarketRows",
+      "method": "GET",
+      "path": "/api/dashboard/market-snapshot",
+      "queryString": "location=Deutschland&region=Deutschland",
+      "parameters": [],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const arr=(v)=>Array.isArray(v)?v:[]; const d=obj(data); const txt=(v,f)=>v==null||v===''||typeof v==='object'?f:String(v); const num=(v)=>typeof v==='number'&&isFinite(v)?String(v):'unknown'; const names=(v,k)=>arr(v).map((x)=>x&&typeof x==='object'&&!Array.isArray(x)?x[k]:x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v,k,n)=>{const a=names(v,k);return a.length?a.slice(0,n||5).join(', '):'none';}; const firstFollowUp=(v)=>{const a=names(v,'enablesDossierAddition');return a.length?a[0]:'none';}; const FAMILIES=[{sourceFamily:'mastr_municipality_asset_context',label:'MaStR Gemeinde-Anlagenkontext Mauer',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay',provenanceCaveat:'real_mastr_baseline_with_virtual_operator_overlay_not_tenant_master_data',linkageStatus:'not_proven',missingEvidence:'authoritative_992_case_link, source_timestamp_or_snapshot_identity',positiveFollowUp:'confirm_mastr_overlay_provenance_and_request_992_case_link_before_case_use',nextHumanGate:'human_data_governance_provenance_review'},{sourceFamily:'market_price_co2_renewables_context',label:'Markt-, CO2- und EE-Prognosekontext (aggregiert)',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/market-snapshot',provenanceCaveat:'aggregate_cached_context_not_municipality_or_case_provenance',linkageStatus:'not_proven',missingEvidence:'municipality_or_case_scope, authoritative_992_case_link, source_timestamp',positiveFollowUp:'confirm_market_context_scope_and_timestamp_before_stadtwerk_decision_use',nextHumanGate:'human_data_governance_market_context_review'},{sourceFamily:'regulatory_signal_context',label:'Regulatorischer Signalkontext',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/regulatory-signal-process-translator',provenanceCaveat:'operational_hint_only_not_legal_or_source_truth',linkageStatus:'integration_gap',missingEvidence:'authoritative_992_regulatory_read_path, signal_provenance, authoritative_992_case_link',positiveFollowUp:'request_992_authoritative_regulatory_read_path_then_review_signal_provenance',nextHumanGate:'human_data_governance_regulatory_source_review'}]; const DEFAULT_FAMILY='mastr_municipality_asset_context'; const family=(id)=>FAMILIES.find((f)=>f.sourceFamily===id); const P='smm-public-context-'; const unprefix=(v)=>typeof v==='string'&&v.indexOf(P)===0?v.slice(P.length):''; const BASE={sectionClass:'public_context_selected_source_market',processFamily:'public_context_governance',renderTarget:'budibase:stadtwerk-mauer-workbench:public-context-selected-source',roleTarget:'ROLE_DATA_GOVERNANCE',consumerRole:'ROLE_NETZPLANUNG',automaticAction:'none'}; const f=family('market_price_co2_renewables_context'); const errors=arr(d._errors); const block=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:null; const spot=block(d.spotPrice); const co2=block(d.co2); const re=block(d.renewableForecast24h); const val=(b,k)=>b?txt(b[k],'clarification_required'):'integration_gap'; const rows=[['spot_current','Spot aktuell EUR/MWh',spot,'current'],['spot_avg_today','Spot Tagesmittel EUR/MWh',spot,'avgToday'],['spot_min_today','Spot Tagesminimum EUR/MWh',spot,'minToday'],['spot_max_today','Spot Tagesmaximum EUR/MWh',spot,'maxToday'],['spot_trend','Spot Trend',spot,'trend'],['spot_source','Spot Quelle',spot,'source'],['co2_current','CO2 aktuell g/kWh',co2,'current'],['co2_avg_today','CO2 Tagesmittel g/kWh',co2,'avgToday'],['co2_signal','CO2 Signal',co2,'signal'],['co2_location','CO2 Ort',co2,'location'],['renewable_solar_peak_mw','Solar-Peak 24h MW',re,'solarPeakMW'],['renewable_wind_peak_mw','Wind-Peak 24h MW',re,'windPeakMW'],['renewable_combined_peak_at','Kombinierter Peak-Zeitpunkt',re,'combinedPeakAt']]; const out=rows.map(([k,label,b,field])=>{const value=val(b,field);return {rowKey:'market_'+k,label,value,status:!b?'integration_gap':errors.length>0?'degraded':value==='clarification_required'?'clarification':'human_review_required'};}); out.push({rowKey:'market_response_timestamp',label:'Antwort-Zeitstempel (Cache-Sicht)',value:txt(d.timestamp,'clarification_required'),status:errors.length>0?'degraded':typeof d.timestamp==='string'?'human_review_required':'clarification'}); out.push({rowKey:'market_read_errors',label:'Lese-Fehler',value:String(errors.length),status:errors.length>0?'degraded':'human_review_required'}); return out.map((r)=>({...BASE,...r,sourceFamily:f.sourceFamily,dataClass:'public_context_layer',mutability:'immutable_public_context_not_tenant_master_data',provenanceCaveat:f.provenanceCaveat,degradedReason:errors.length?String(errors.length)+' upstream read error(s)':r.status==='integration_gap'?'block_null_in_market_snapshot':'none',linkageStatus:f.linkageStatus,positiveFollowUp:f.positiveFollowUp,nextHumanGate:f.nextHumanGate}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "consumerRole": {
+          "type": "string"
+        },
+        "automaticAction": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sourceFamily": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "mutability": {
+          "type": "string"
+        },
+        "provenanceCaveat": {
+          "type": "string"
+        },
+        "degradedReason": {
+          "type": "string"
+        },
+        "linkageStatus": {
+          "type": "string"
+        },
+        "positiveFollowUp": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getPublicContextSelectedSourceQualityBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/quality-summary",
+      "queryString": "",
+      "parameters": [],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const arr=(v)=>Array.isArray(v)?v:[]; const d=obj(data); const txt=(v,f)=>v==null||v===''||typeof v==='object'?f:String(v); const num=(v)=>typeof v==='number'&&isFinite(v)?String(v):'unknown'; const names=(v,k)=>arr(v).map((x)=>x&&typeof x==='object'&&!Array.isArray(x)?x[k]:x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v,k,n)=>{const a=names(v,k);return a.length?a.slice(0,n||5).join(', '):'none';}; const firstFollowUp=(v)=>{const a=names(v,'enablesDossierAddition');return a.length?a[0]:'none';}; const BASE={sectionClass:'public_context_selected_source_quality_boundary',processFamily:'public_context_governance',renderTarget:'budibase:stadtwerk-mauer-workbench:public-context-selected-source',roleTarget:'ROLE_DATA_GOVERNANCE',consumerRole:'ROLE_NETZPLANUNG',automaticAction:'none'}; const agents=arr(d.agents); const errors=arr(d._errors); return [{...BASE,rowKey:'platform_quality_boundary',label:'Plattform-Pipeline-Qualitaet (keine Quellwahrheit, keine Gemeindevollstaendigkeit)',value:String(agents.length)+' Agent-Pipelines, '+String(errors.length)+' Fehler',scope:'platform_wide_bounded_context_only',dataClass:'platform_context',sourceTruth:'not_source_truth',municipalityCompleteness:'not_proven',caseLinkage:'not_proven',status:errors.length>0?'degraded':'human_review_required',positiveFollowUp:'do_not_present_pipeline_quality_as_source_truth_or_municipality_completeness',nextHumanGate:'human_data_governance_provenance_review'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "consumerRole": {
+          "type": "string"
+        },
+        "automaticAction": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceTruth": {
+          "type": "string"
+        },
+        "municipalityCompleteness": {
+          "type": "string"
+        },
+        "caseLinkage": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "positiveFollowUp": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getPublicContextSelectedSourceObservabilityBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/observability-mini",
+      "queryString": "sinceMinutes=60&slowActionThresholdMs=1000",
+      "parameters": [],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const arr=(v)=>Array.isArray(v)?v:[]; const d=obj(data); const txt=(v,f)=>v==null||v===''||typeof v==='object'?f:String(v); const num=(v)=>typeof v==='number'&&isFinite(v)?String(v):'unknown'; const names=(v,k)=>arr(v).map((x)=>x&&typeof x==='object'&&!Array.isArray(x)?x[k]:x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v,k,n)=>{const a=names(v,k);return a.length?a.slice(0,n||5).join(', '):'none';}; const firstFollowUp=(v)=>{const a=names(v,'enablesDossierAddition');return a.length?a[0]:'none';}; const BASE={sectionClass:'public_context_selected_source_observability_boundary',processFamily:'public_context_governance',renderTarget:'budibase:stadtwerk-mauer-workbench:public-context-selected-source',roleTarget:'ROLE_DATA_GOVERNANCE',consumerRole:'ROLE_NETZPLANUNG',automaticAction:'none'}; const cards=obj(d.cards); const health=obj(cards.health); const incidents=obj(cards.incidents); const perf=obj(cards.performance); const errors=arr(d._errors); const hs=txt(health.status,'unknown'); const status=hs==='degraded'||errors.length>0?'degraded':hs==='healthy'?'human_review_required':'clarification'; return [['health_status','Plattform-Health',hs],['incident_error_count','Incidents (Fehler)',num(incidents.errorCount)],['performance_p95_ms','Performance p95 ms',num(perf.p95DurationMs)],['performance_slow_call_count','Langsame Aufrufe',num(perf.slowCallCount)]].map(([k,label,value])=>({...BASE,rowKey:'platform_observability_'+k,label,value,scope:'platform_health_not_source_truth',dataClass:'platform_context',sourceTruth:'not_source_truth',municipalityCompleteness:'not_proven',caseLinkage:'not_proven',status,positiveFollowUp:'do_not_treat_platform_availability_as_source_authenticity_or_completeness',nextHumanGate:'human_data_governance_provenance_review'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "consumerRole": {
+          "type": "string"
+        },
+        "automaticAction": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceTruth": {
+          "type": "string"
+        },
+        "municipalityCompleteness": {
+          "type": "string"
+        },
+        "caseLinkage": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "positiveFollowUp": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getPublicContextSelectedSourceFreshnessRows",
+      "method": "GET",
+      "path": "/api/dashboard/evidence-freshness-guard",
+      "queryString": "signalId=smm-public-context-{{publicContextSourceFamily}}&sourceKind=synthetic_tenant_seed&processArea=public_context_governance",
+      "parameters": [
+        {
+          "name": "publicContextSourceFamily",
+          "default": "mastr_municipality_asset_context"
+        }
+      ],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const arr=(v)=>Array.isArray(v)?v:[]; const d=obj(data); const txt=(v,f)=>v==null||v===''||typeof v==='object'?f:String(v); const num=(v)=>typeof v==='number'&&isFinite(v)?String(v):'unknown'; const names=(v,k)=>arr(v).map((x)=>x&&typeof x==='object'&&!Array.isArray(x)?x[k]:x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v,k,n)=>{const a=names(v,k);return a.length?a.slice(0,n||5).join(', '):'none';}; const firstFollowUp=(v)=>{const a=names(v,'enablesDossierAddition');return a.length?a[0]:'none';}; const FAMILIES=[{sourceFamily:'mastr_municipality_asset_context',label:'MaStR Gemeinde-Anlagenkontext Mauer',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay',provenanceCaveat:'real_mastr_baseline_with_virtual_operator_overlay_not_tenant_master_data',linkageStatus:'not_proven',missingEvidence:'authoritative_992_case_link, source_timestamp_or_snapshot_identity',positiveFollowUp:'confirm_mastr_overlay_provenance_and_request_992_case_link_before_case_use',nextHumanGate:'human_data_governance_provenance_review'},{sourceFamily:'market_price_co2_renewables_context',label:'Markt-, CO2- und EE-Prognosekontext (aggregiert)',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/market-snapshot',provenanceCaveat:'aggregate_cached_context_not_municipality_or_case_provenance',linkageStatus:'not_proven',missingEvidence:'municipality_or_case_scope, authoritative_992_case_link, source_timestamp',positiveFollowUp:'confirm_market_context_scope_and_timestamp_before_stadtwerk_decision_use',nextHumanGate:'human_data_governance_market_context_review'},{sourceFamily:'regulatory_signal_context',label:'Regulatorischer Signalkontext',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/regulatory-signal-process-translator',provenanceCaveat:'operational_hint_only_not_legal_or_source_truth',linkageStatus:'integration_gap',missingEvidence:'authoritative_992_regulatory_read_path, signal_provenance, authoritative_992_case_link',positiveFollowUp:'request_992_authoritative_regulatory_read_path_then_review_signal_provenance',nextHumanGate:'human_data_governance_regulatory_source_review'}]; const DEFAULT_FAMILY='mastr_municipality_asset_context'; const family=(id)=>FAMILIES.find((f)=>f.sourceFamily===id); const P='smm-public-context-'; const unprefix=(v)=>typeof v==='string'&&v.indexOf(P)===0?v.slice(P.length):''; const BASE={sectionClass:'public_context_selected_source_freshness',processFamily:'public_context_governance',renderTarget:'budibase:stadtwerk-mauer-workbench:public-context-selected-source',roleTarget:'ROLE_DATA_GOVERNANCE',consumerRole:'ROLE_NETZPLANUNG',automaticAction:'none'}; const requested=unprefix(d.signalId); const known=family(requested); const selected=known||family(DEFAULT_FAMILY); const selectionStatus=known?'allowlisted_family_selected':'clarification_required'; const fs=txt(d.freshnessState,'freshness_unknown'); const verified=fs==='fresh_signal'||fs==='recent_context'; const missing=names(d.missingEvidence,'missingDataPoint'); const status=selectionStatus==='clarification_required'||!verified||missing.length>0?'clarification':'human_review_required'; return [{...BASE,rowKey:'freshness_'+selected.sourceFamily,sourceFamily:selected.sourceFamily,selectionStatus,label:'Frische/Delta der ausgewaehlten Quelle (caller-supplied)',guardStatus:txt(d.status,'clarification_required'),freshnessState:fs,freshnessDisplay:verified?'caller_supplied_freshness_hint':'freshness_unverified',deltaState:txt(d.deltaState,'delta_unknown'),stalenessDays:num(d.stalenessDays),missingEvidenceCount:String(missing.length),missingEvidence:missing.length?missing.slice(0,6).join(', '):'none',firstPositiveFollowUp:firstFollowUp(d.positiveFollowUps),nonEscalationReason:txt(d.nonEscalationReason,'none'),automaticEscalation:'disabled',verification:'caller_supplied_not_source_verified',dataClass:'synthetic_tenant_seed',status,positiveFollowUp:selected.positiveFollowUp,nextHumanGate:selected.nextHumanGate}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "consumerRole": {
+          "type": "string"
+        },
+        "automaticAction": {
+          "type": "string"
+        },
+        "sourceFamily": {
+          "type": "string"
+        },
+        "selectionStatus": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "guardStatus": {
+          "type": "string"
+        },
+        "freshnessState": {
+          "type": "string"
+        },
+        "freshnessDisplay": {
+          "type": "string"
+        },
+        "deltaState": {
+          "type": "string"
+        },
+        "stalenessDays": {
+          "type": "string"
+        },
+        "missingEvidenceCount": {
+          "type": "string"
+        },
+        "missingEvidence": {
+          "type": "string"
+        },
+        "firstPositiveFollowUp": {
+          "type": "string"
+        },
+        "nonEscalationReason": {
+          "type": "string"
+        },
+        "automaticEscalation": {
+          "type": "string"
+        },
+        "verification": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "positiveFollowUp": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getPublicContextSelectedSourceRegulatoryTranslationRows",
+      "method": "GET",
+      "path": "/api/dashboard/regulatory-signal-process-translator",
+      "queryString": "signalId=smm-public-context-regulatory-signal-synthetic&sourceName=synthetic_tenant_seed&affectedDomain=public_context_governance",
+      "parameters": [],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const arr=(v)=>Array.isArray(v)?v:[]; const d=obj(data); const txt=(v,f)=>v==null||v===''||typeof v==='object'?f:String(v); const num=(v)=>typeof v==='number'&&isFinite(v)?String(v):'unknown'; const names=(v,k)=>arr(v).map((x)=>x&&typeof x==='object'&&!Array.isArray(x)?x[k]:x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v,k,n)=>{const a=names(v,k);return a.length?a.slice(0,n||5).join(', '):'none';}; const firstFollowUp=(v)=>{const a=names(v,'enablesDossierAddition');return a.length?a[0]:'none';}; const FAMILIES=[{sourceFamily:'mastr_municipality_asset_context',label:'MaStR Gemeinde-Anlagenkontext Mauer',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay',provenanceCaveat:'real_mastr_baseline_with_virtual_operator_overlay_not_tenant_master_data',linkageStatus:'not_proven',missingEvidence:'authoritative_992_case_link, source_timestamp_or_snapshot_identity',positiveFollowUp:'confirm_mastr_overlay_provenance_and_request_992_case_link_before_case_use',nextHumanGate:'human_data_governance_provenance_review'},{sourceFamily:'market_price_co2_renewables_context',label:'Markt-, CO2- und EE-Prognosekontext (aggregiert)',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/market-snapshot',provenanceCaveat:'aggregate_cached_context_not_municipality_or_case_provenance',linkageStatus:'not_proven',missingEvidence:'municipality_or_case_scope, authoritative_992_case_link, source_timestamp',positiveFollowUp:'confirm_market_context_scope_and_timestamp_before_stadtwerk_decision_use',nextHumanGate:'human_data_governance_market_context_review'},{sourceFamily:'regulatory_signal_context',label:'Regulatorischer Signalkontext',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/regulatory-signal-process-translator',provenanceCaveat:'operational_hint_only_not_legal_or_source_truth',linkageStatus:'integration_gap',missingEvidence:'authoritative_992_regulatory_read_path, signal_provenance, authoritative_992_case_link',positiveFollowUp:'request_992_authoritative_regulatory_read_path_then_review_signal_provenance',nextHumanGate:'human_data_governance_regulatory_source_review'}]; const DEFAULT_FAMILY='mastr_municipality_asset_context'; const family=(id)=>FAMILIES.find((f)=>f.sourceFamily===id); const P='smm-public-context-'; const unprefix=(v)=>typeof v==='string'&&v.indexOf(P)===0?v.slice(P.length):''; const BASE={sectionClass:'public_context_selected_source_regulatory_translation',processFamily:'public_context_governance',renderTarget:'budibase:stadtwerk-mauer-workbench:public-context-selected-source',roleTarget:'ROLE_DATA_GOVERNANCE',consumerRole:'ROLE_NETZPLANUNG',automaticAction:'none'}; const f=family('regulatory_signal_context'); const missing=names(d.missingEvidence,'missingDataPoint'); return [{...BASE,rowKey:'regulatory_translation_hints',sourceFamily:f.sourceFamily,label:'Regulatorische Prozess-Hinweise (synthetische Eingaben)',translatorStatus:txt(d.status,'clarification_required'),firstAffectedProcess:joined(d.affectedProcesses,'label',1),missingEvidenceCount:String(missing.length),missingEvidence:missing.length?missing.slice(0,6).join(', '):'none',firstPositiveFollowUp:firstFollowUp(d.positiveFollowUps),firstDecisionGate:joined(d.decisionGates,'label',1),interpretation:'operational_hint_only_not_legal_or_source_truth',verification:'caller_supplied_not_source_verified',sourceAvailability:'integration_gap',dataClass:'synthetic_tenant_seed',linkageStatus:f.linkageStatus,status:'integration_gap',positiveFollowUp:f.positiveFollowUp,nextHumanGate:f.nextHumanGate}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "consumerRole": {
+          "type": "string"
+        },
+        "automaticAction": {
+          "type": "string"
+        },
+        "sourceFamily": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "translatorStatus": {
+          "type": "string"
+        },
+        "firstAffectedProcess": {
+          "type": "string"
+        },
+        "missingEvidenceCount": {
+          "type": "string"
+        },
+        "missingEvidence": {
+          "type": "string"
+        },
+        "firstPositiveFollowUp": {
+          "type": "string"
+        },
+        "firstDecisionGate": {
+          "type": "string"
+        },
+        "interpretation": {
+          "type": "string"
+        },
+        "verification": {
+          "type": "string"
+        },
+        "sourceAvailability": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "linkageStatus": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "positiveFollowUp": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getPublicContextSelectedSourceRegulatoryReadinessRows",
+      "method": "GET",
+      "path": "/api/dashboard/regulatory-change-readiness",
+      "queryString": "changeId=smm-public-context-regulatory-change-synthetic",
+      "parameters": [],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const arr=(v)=>Array.isArray(v)?v:[]; const d=obj(data); const txt=(v,f)=>v==null||v===''||typeof v==='object'?f:String(v); const num=(v)=>typeof v==='number'&&isFinite(v)?String(v):'unknown'; const names=(v,k)=>arr(v).map((x)=>x&&typeof x==='object'&&!Array.isArray(x)?x[k]:x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v,k,n)=>{const a=names(v,k);return a.length?a.slice(0,n||5).join(', '):'none';}; const firstFollowUp=(v)=>{const a=names(v,'enablesDossierAddition');return a.length?a[0]:'none';}; const FAMILIES=[{sourceFamily:'mastr_municipality_asset_context',label:'MaStR Gemeinde-Anlagenkontext Mauer',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay',provenanceCaveat:'real_mastr_baseline_with_virtual_operator_overlay_not_tenant_master_data',linkageStatus:'not_proven',missingEvidence:'authoritative_992_case_link, source_timestamp_or_snapshot_identity',positiveFollowUp:'confirm_mastr_overlay_provenance_and_request_992_case_link_before_case_use',nextHumanGate:'human_data_governance_provenance_review'},{sourceFamily:'market_price_co2_renewables_context',label:'Markt-, CO2- und EE-Prognosekontext (aggregiert)',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/market-snapshot',provenanceCaveat:'aggregate_cached_context_not_municipality_or_case_provenance',linkageStatus:'not_proven',missingEvidence:'municipality_or_case_scope, authoritative_992_case_link, source_timestamp',positiveFollowUp:'confirm_market_context_scope_and_timestamp_before_stadtwerk_decision_use',nextHumanGate:'human_data_governance_market_context_review'},{sourceFamily:'regulatory_signal_context',label:'Regulatorischer Signalkontext',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/regulatory-signal-process-translator',provenanceCaveat:'operational_hint_only_not_legal_or_source_truth',linkageStatus:'integration_gap',missingEvidence:'authoritative_992_regulatory_read_path, signal_provenance, authoritative_992_case_link',positiveFollowUp:'request_992_authoritative_regulatory_read_path_then_review_signal_provenance',nextHumanGate:'human_data_governance_regulatory_source_review'}]; const DEFAULT_FAMILY='mastr_municipality_asset_context'; const family=(id)=>FAMILIES.find((f)=>f.sourceFamily===id); const P='smm-public-context-'; const unprefix=(v)=>typeof v==='string'&&v.indexOf(P)===0?v.slice(P.length):''; const BASE={sectionClass:'public_context_selected_source_regulatory_readiness',processFamily:'public_context_governance',renderTarget:'budibase:stadtwerk-mauer-workbench:public-context-selected-source',roleTarget:'ROLE_DATA_GOVERNANCE',consumerRole:'ROLE_NETZPLANUNG',automaticAction:'none'}; const f=family('regulatory_signal_context'); const missing=names(d.missingEvidence,'missingDataPoint'); return [{...BASE,rowKey:'regulatory_readiness_gaps',sourceFamily:f.sourceFamily,label:'Regulatorische Readiness-Luecken (absichtlich unvollstaendige synthetische Eingaben)',readinessStatus:txt(d.status,'clarification_required'),providedEvidenceCount:String(arr(d.evidenceItems).length),missingEvidenceCount:String(missing.length),firstMissingEvidence:missing.length?missing[0]:'none',firstPositiveFollowUp:firstFollowUp(d.positiveFollowUps),blockingFindingCount:String(arr(d.blockingFindings).length),scoreRendering:'not_rendered_not_source_trust_or_compliance',verification:'caller_supplied_not_source_verified',dataClass:'synthetic_tenant_seed',linkageStatus:f.linkageStatus,status:missing.length>0?'clarification':'human_review_required',positiveFollowUp:f.positiveFollowUp,nextHumanGate:f.nextHumanGate}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "consumerRole": {
+          "type": "string"
+        },
+        "automaticAction": {
+          "type": "string"
+        },
+        "sourceFamily": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "readinessStatus": {
+          "type": "string"
+        },
+        "providedEvidenceCount": {
+          "type": "string"
+        },
+        "missingEvidenceCount": {
+          "type": "string"
+        },
+        "firstMissingEvidence": {
+          "type": "string"
+        },
+        "firstPositiveFollowUp": {
+          "type": "string"
+        },
+        "blockingFindingCount": {
+          "type": "string"
+        },
+        "scoreRendering": {
+          "type": "string"
+        },
+        "verification": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "linkageStatus": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "positiveFollowUp": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getPublicContextSelectedSourceNextGateRows",
+      "method": "GET",
+      "path": "/api/dashboard/evidence-freshness-guard",
+      "queryString": "signalId=smm-public-context-{{publicContextSourceFamily}}&sourceKind=synthetic_tenant_seed&processArea=public_context_governance",
+      "parameters": [
+        {
+          "name": "publicContextSourceFamily",
+          "default": "mastr_municipality_asset_context"
+        }
+      ],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const arr=(v)=>Array.isArray(v)?v:[]; const d=obj(data); const txt=(v,f)=>v==null||v===''||typeof v==='object'?f:String(v); const num=(v)=>typeof v==='number'&&isFinite(v)?String(v):'unknown'; const names=(v,k)=>arr(v).map((x)=>x&&typeof x==='object'&&!Array.isArray(x)?x[k]:x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v,k,n)=>{const a=names(v,k);return a.length?a.slice(0,n||5).join(', '):'none';}; const firstFollowUp=(v)=>{const a=names(v,'enablesDossierAddition');return a.length?a[0]:'none';}; const FAMILIES=[{sourceFamily:'mastr_municipality_asset_context',label:'MaStR Gemeinde-Anlagenkontext Mauer',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay',provenanceCaveat:'real_mastr_baseline_with_virtual_operator_overlay_not_tenant_master_data',linkageStatus:'not_proven',missingEvidence:'authoritative_992_case_link, source_timestamp_or_snapshot_identity',positiveFollowUp:'confirm_mastr_overlay_provenance_and_request_992_case_link_before_case_use',nextHumanGate:'human_data_governance_provenance_review'},{sourceFamily:'market_price_co2_renewables_context',label:'Markt-, CO2- und EE-Prognosekontext (aggregiert)',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/market-snapshot',provenanceCaveat:'aggregate_cached_context_not_municipality_or_case_provenance',linkageStatus:'not_proven',missingEvidence:'municipality_or_case_scope, authoritative_992_case_link, source_timestamp',positiveFollowUp:'confirm_market_context_scope_and_timestamp_before_stadtwerk_decision_use',nextHumanGate:'human_data_governance_market_context_review'},{sourceFamily:'regulatory_signal_context',label:'Regulatorischer Signalkontext',publicContextClass:'public_context_layer',sourcePointer:'GET /api/dashboard/regulatory-signal-process-translator',provenanceCaveat:'operational_hint_only_not_legal_or_source_truth',linkageStatus:'integration_gap',missingEvidence:'authoritative_992_regulatory_read_path, signal_provenance, authoritative_992_case_link',positiveFollowUp:'request_992_authoritative_regulatory_read_path_then_review_signal_provenance',nextHumanGate:'human_data_governance_regulatory_source_review'}]; const DEFAULT_FAMILY='mastr_municipality_asset_context'; const family=(id)=>FAMILIES.find((f)=>f.sourceFamily===id); const P='smm-public-context-'; const unprefix=(v)=>typeof v==='string'&&v.indexOf(P)===0?v.slice(P.length):''; const BASE={sectionClass:'public_context_selected_source_next_gate',processFamily:'public_context_governance',renderTarget:'budibase:stadtwerk-mauer-workbench:public-context-selected-source',roleTarget:'ROLE_DATA_GOVERNANCE',consumerRole:'ROLE_NETZPLANUNG',automaticAction:'none'}; const requested=unprefix(d.signalId); const known=family(requested); const selected=known||family(DEFAULT_FAMILY); const selectionStatus=known?'allowlisted_family_selected':'clarification_required'; const fs=txt(d.freshnessState,'freshness_unknown'); const verified=fs==='fresh_signal'||fs==='recent_context'; return FAMILIES.map((f)=>({...BASE,rowKey:'next_gate_'+f.sourceFamily,sourceFamily:f.sourceFamily,label:f.label,selected:f.sourceFamily===selected.sourceFamily,selectionStatus,freshnessDisplay:verified?'caller_supplied_freshness_hint':'freshness_unverified',linkageStatus:f.linkageStatus,missingEvidence:f.missingEvidence,status:f.linkageStatus==='integration_gap'?'integration_gap':!verified||selectionStatus==='clarification_required'?'clarification':'human_review_required',positiveFollowUp:f.positiveFollowUp,nextHumanGate:f.nextHumanGate,dataClass:'synthetic_tenant_seed'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "consumerRole": {
+          "type": "string"
+        },
+        "automaticAction": {
+          "type": "string"
+        },
+        "sourceFamily": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "selectionStatus": {
+          "type": "string"
+        },
+        "freshnessDisplay": {
+          "type": "string"
+        },
+        "linkageStatus": {
+          "type": "string"
+        },
+        "missingEvidence": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "positiveFollowUp": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getPublicContextSelectedSourceNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&limit=1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-public-context-selected-source-review-001"
+        }
+      ],
+      "transformer": "const obj=(v)=>v&&typeof v==='object'&&!Array.isArray(v)?v:{}; const arr=(v)=>Array.isArray(v)?v:[]; const d=obj(data); const txt=(v,f)=>v==null||v===''||typeof v==='object'?f:String(v); const num=(v)=>typeof v==='number'&&isFinite(v)?String(v):'unknown'; const names=(v,k)=>arr(v).map((x)=>x&&typeof x==='object'&&!Array.isArray(x)?x[k]:x).filter((x)=>x!=null&&x!==''&&typeof x!=='object').map(String); const joined=(v,k,n)=>{const a=names(v,k);return a.length?a.slice(0,n||5).join(', '):'none';}; const firstFollowUp=(v)=>{const a=names(v,'enablesDossierAddition');return a.length?a[0]:'none';}; const BASE={sectionClass:'public_context_selected_source_no_call',processFamily:'public_context_governance',renderTarget:'budibase:stadtwerk-mauer-workbench:public-context-selected-source',roleTarget:'ROLE_DATA_GOVERNANCE',consumerRole:'ROLE_NETZPLANUNG',automaticAction:'none'}; const enabled=[['query_refresh','Lesende Abfrage neu laden'],['open_detail','Detail oeffnen']].map(([boundary,label])=>({kind:'enabled_read_only_behavior',boundary,label,behavior:'read_only',disabled:false,status:'enabled',dataClass:'sandbox_runtime_artifact',positiveFollowUp:'refresh_selected_source_read_only_once_no_retry_loop',nextHumanGate:'human_data_governance_provenance_review'})); const FIXED=['source_catalog.write','evidence_catalog.write','project_case_link.create','public_context.mutate','mastr.record.mutate','source.onboarding.create','source.subscription.create','source.retry.schedule','external.connector.configure','external.connector.call','budibase.table.write','workflow.execute','hitl.create','task.create','personal-agent.execute','agent.autonomous.wake','rundeck.execute','mako.write','billing.release','settlement.prepareBilling','tariff.mutate','redispatch.dispatch','smgw-cls.execute','device-control.execute','production.mutate']; const fromRoute=names(obj(d.sourceActions).notCalled).filter((n)=>/^[a-zA-Z0-9_.:-]{1,80}$/.test(n)).slice(0,40); const all=[...FIXED,...fromRoute.filter((n)=>FIXED.indexOf(n)<0)]; const guards=all.map((boundary)=>({kind:'disabled_no_call_guard',boundary,label:'Nicht aufgerufen: '+boundary,behavior:'disabled',disabled:true,status:'not_called',dataClass:'sandbox_runtime_artifact',positiveFollowUp:'use_curated_operations_runbook_or_992_owned_path_after_human_review',nextHumanGate:'human_data_governance_provenance_review'})); const GAPS=[['smard_public_context','SMARD-Kontext'],['netztransparenz_public_context','Netztransparenz-Kontext'],['entsoe_additional_operations','Weitere ENTSO-E-Operationen'],['evidence_catalog_graph_link','Evidence-Catalog graphLink fuer MaStR/SMARD/ENTSO-E/Netztransparenz'],['autonomous_agent_observation','Autonome Signal-Beobachtung und Wake']].map(([boundary,label])=>({kind:'integration_gap_owned_by_992',boundary,label,behavior:'not_integrated',disabled:true,status:'integration_gap',dataClass:'sandbox_runtime_artifact',positiveFollowUp:'track_authoritative_read_path_in_issue_992_before_workbench_claim',nextHumanGate:'human_data_governance_provenance_review'})); return [...enabled,...guards,...GAPS].map((r)=>({...BASE,...r,rowKey:'no_call_'+r.boundary,linkageStatus:'not_proven'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "sectionClass": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "consumerRole": {
+          "type": "string"
+        },
+        "automaticAction": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "behavior": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "positiveFollowUp": {
+          "type": "string"
+        },
+        "nextHumanGate": {
+          "type": "string"
+        },
+        "linkageStatus": {
+          "type": "string"
+        }
+      }
     }
   ],
   "sections": [
@@ -16993,6 +17712,66 @@
       "title": "Netzwirtschaft Leadership Attention Jour-fixe-Abschluss & No-Call Guards",
       "queryName": "getNetzwirtschaftLeadershipClosureRows",
       "tableTitle": "Readiness, positive Folgeaktion, naechstes menschliches Gate; nur Refresh/Detail aktiv, alles andere not_called"
+    },
+    {
+      "id": "public_context_selected_source_selector",
+      "title": "Public-Context Quellenauswahl",
+      "queryName": "getPublicContextSelectedSourceSelectorRows",
+      "tableTitle": "Drei ausgewaehlte Quellfamilien: MaStR Gemeinde-Anlagenkontext (Standard), Markt/CO2/EE aggregiert, regulatorischer Signalkontext; Auswahl ist reiner Praesentationszustand"
+    },
+    {
+      "id": "public_context_selected_source_mastr",
+      "title": "Public-Context MaStR Provenienz & Detail",
+      "queryName": "getPublicContextSelectedSourceMastrRows",
+      "tableTitle": "public_context_layer, unveraenderlich, keine Tenant-Stammdaten; Fallbezug not_proven bis #992"
+    },
+    {
+      "id": "public_context_selected_source_market",
+      "title": "Public-Context Markt-, CO2- und EE-Kontext",
+      "queryName": "getPublicContextSelectedSourceMarketRows",
+      "tableTitle": "Aggregierte Cache-Sicht, keine Gemeinde- oder Fall-Provenienz; Null-Bloecke = integration_gap"
+    },
+    {
+      "id": "public_context_selected_source_quality_boundary",
+      "title": "Public-Context Plattform-Qualitaetsgrenze",
+      "queryName": "getPublicContextSelectedSourceQualityBoundaryRows",
+      "tableTitle": "Pipeline-Kontext, keine Quellwahrheit und keine Gemeindevollstaendigkeit"
+    },
+    {
+      "id": "public_context_selected_source_observability_boundary",
+      "title": "Public-Context Plattform-Health-Grenze",
+      "queryName": "getPublicContextSelectedSourceObservabilityBoundaryRows",
+      "tableTitle": "Plattform-Health, keine Quellauthentizitaet und keine Fallvollstaendigkeit"
+    },
+    {
+      "id": "public_context_selected_source_freshness",
+      "title": "Public-Context Frische der ausgewaehlten Quelle",
+      "queryName": "getPublicContextSelectedSourceFreshnessRows",
+      "tableTitle": "Caller-supplied Metadaten, nicht quellverifiziert; ohne autoritative Zeitstempel freshness_unverified"
+    },
+    {
+      "id": "public_context_selected_source_regulatory_translation",
+      "title": "Public-Context Regulatorische Prozess-Hinweise",
+      "queryName": "getPublicContextSelectedSourceRegulatoryTranslationRows",
+      "tableTitle": "Nur operative Hinweise, keine Rechts- oder Quellwahrheit; Quellverfuegbarkeit integration_gap"
+    },
+    {
+      "id": "public_context_selected_source_regulatory_readiness",
+      "title": "Public-Context Regulatorische Readiness-Luecken",
+      "queryName": "getPublicContextSelectedSourceRegulatoryReadinessRows",
+      "tableTitle": "Zaehler und erste Luecke; kein Score, keine Konfidenz, keine Compliance-Aussage"
+    },
+    {
+      "id": "public_context_selected_source_next_gate",
+      "title": "Public-Context Folgeaktion & naechstes menschliches Gate",
+      "queryName": "getPublicContextSelectedSourceNextGateRows",
+      "tableTitle": "Eine Zeile je Quellfamilie: Zustand, fehlende Evidenz, positive Folgeaktion, menschliches Gate"
+    },
+    {
+      "id": "public_context_selected_source_no_call",
+      "title": "Public-Context No-Call- & Verknuepfungsgrenze",
+      "queryName": "getPublicContextSelectedSourceNoCallRows",
+      "tableTitle": "Nur Refresh/Detail aktiv; Schreib-, Link-, Connector- und Folgeaktionen not_called; #992-Luecken integration_gap"
     }
   ],
   "notes": [
@@ -17077,6 +17856,8 @@
     "Domain Case Routing Attention panel (#599) is generated manifest composition, not a new Cernion endpoint or generic case service. It composes only the four named dashboard bricks (stadtwerk-mauer-workbench-selected-target, stadtwerk-mauer-case-detail, stadtwerk-mauer-case-actions, stadtwerk-mauer-role-workbench-catalog) plus the existing protected Domain Router explain and related-sessions.discover actions for exactly one explicitly synthetic case (cetCaseId cet-case-smm-budibase-workbench-001, linked Workbench case smm-budibase-workbench); no new backend endpoint, Capability Broker route or Hydration Registry rule is introduced.",
     "Domain Case Routing Attention rows stay scalar/generated: Budibase renders the selected case identity, caseStateVersion, active domain, last routing decision (continue/reclassify/branch/clarify/handoff/fallback) and reason as advisory_reasoning, positively framed evidence/owner-gap rows (clarification or human_review_required, never an automatic negative conclusion), authorized related-case/session rows as evidence pointers only (never auto-linked from this panel), the responsible role family from the existing Role Workbench catalog, and an explicit event_attention_not_polled boundary row stating that GET /api/domain-router/events is never called from this panel because polling reconciles the case-event outbox and mutates pending events to delivered. continue, events.list, events.ack and related-sessions.link render only as disabled not_called guard rows with a safe alternative; no Budibase table write, workflow/HITL creation, external connector, MaKo/billing/settlement/tariff/device-control action, Personal-Agent hardcoding or production mutation is introduced.",
     "Netzwirtschaft Leadership Attention panel (#1000) is generated manifest composition (safety class read_only_synthetic_workbench_composition, non-consequential), not a new Cernion endpoint, briefing read model or case store. It composes only the seven existing read-only GET bricks leadership-delta-cockpit, cross-channel-vnb-signal-queue, owner-deadline-evidence-gate, automation-risk-gate, market-communication-evidence-chain, metering-rollout-process-indicator and jour-fixe-decision-closure for exactly three explicitly synthetic selector topics (mako_deadline_and_evidence_gap default-selected, metering_rollout_process_impact, automation_backlog_owner_gap) bound through the allowlisted netzwirtschaftLeadershipTopicId parameter; unknown values fail closed to the default topic with clarification_required. No backend endpoint, Capability Broker route, Hydration Registry rule, formatter or Personal-Agent hardcoding is introduced, and it does not implement the #986 WP5 authoritative briefing.",
-    "Netzwirtschaft Leadership Attention rows stay scalar/generated and synthetic_tenant_seed: owner fields are role families only (never personnel evaluation), due dates and evidence are unverified_input from the synthetic topic mapping, automation risk is context only, and readinessScore, finding severity, ranking, automatic escalation and inferred management decisions are never rendered. Missing or stale evidence maps to clarification_required/human_review_required with missingDataPoint, enablesDossierAddition, safeNextAction refresh_selected_topic_read_only_after_evidence_is_supplied and an allowlisted nextHumanGate. Only query_refresh and open_detail are enabled; Budibase table writes, protected Workbench/project-file/case reads (pending #741), Personal-Agent execution, workflow/HITL/task creation, mail/webhook/connector calls, direct Rundeck, MaKo writes, billing/settlement/tariff, Redispatch dispatch and SMGW/CLS/device control render as disabled not_called guards. Visible Budibase acceptance remains gated by #572."
+    "Netzwirtschaft Leadership Attention rows stay scalar/generated and synthetic_tenant_seed: owner fields are role families only (never personnel evaluation), due dates and evidence are unverified_input from the synthetic topic mapping, automation risk is context only, and readinessScore, finding severity, ranking, automatic escalation and inferred management decisions are never rendered. Missing or stale evidence maps to clarification_required/human_review_required with missingDataPoint, enablesDossierAddition, safeNextAction refresh_selected_topic_read_only_after_evidence_is_supplied and an allowlisted nextHumanGate. Only query_refresh and open_detail are enabled; Budibase table writes, protected Workbench/project-file/case reads (pending #741), Personal-Agent execution, workflow/HITL/task creation, mail/webhook/connector calls, direct Rundeck, MaKo writes, billing/settlement/tariff, Redispatch dispatch and SMGW/CLS/device control render as disabled not_called guards. Visible Budibase acceptance remains gated by #572.",
+    "Public-Context Selected-Source Provenance & Freshness panel (#1013) is generated manifest composition (safety class read_only_public_context_workbench_composition, non-consequential), not a new Cernion endpoint, service, persistence model, source catalog, source-health store or case-link store. Ten scalar queries compose only the seven existing GET bricks stadtwerk-mauer-mastr-data-overlay, market-snapshot, quality-summary, observability-mini, evidence-freshness-guard, regulatory-signal-process-translator and regulatory-change-readiness for exactly three presentation-selected source families (mastr_municipality_asset_context default, market_price_co2_renewables_context, regulatory_signal_context) chosen through the allowlisted publicContextSourceFamily parameter; unknown ids fail closed to the default with clarification_required.",
+    "Public-Context Selected-Source rows stay scalar: public MaStR/market/regulatory values are public_context_layer and immutable (never tenant master data), selector/case/regulatory inputs are synthetic_tenant_seed, and no-call/apply receipts are sandbox_runtime_artifact. market-snapshot is an aggregate/cache view, quality-summary is pipeline context and observability-mini is platform health; none is rendered as source truth, municipality completeness or case linkage. Freshness and regulatory facts are caller_supplied_not_source_verified, readinessScore is never rendered, linkage stays not_proven and regulatory availability plus SMARD/Netztransparenz/additional ENTSO-E/graphLink/autonomous observation stay integration_gap owned by #992. Missing, stale, degraded or unsupported evidence maps to clarification/degraded/integration_gap/human_review_required with a positive follow-up and a human Data-Governance gate, never automatic retry, escalation, decision or rejection. Only query_refresh and open_detail are enabled; visible Budibase acceptance remains gated by #572."
   ]
 }
