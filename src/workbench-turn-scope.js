@@ -24,6 +24,7 @@ const TURN_SCOPED_FIELDS = Object.freeze([
   'requestedAction.externalEffect',
   'tenantMemory',
   'noticesRequested',
+  'answerFeedback',
 ]);
 
 function persistentSituation(situation) {

@@ -50,8 +50,11 @@ test('searches all four stores using existing tenant-scoped reads and reports re
     selfKnowledge: { query: 'System X' },
     retrievalTerms: ['System X'],
   });
-  // The knowledge register (#997) is a further source; the four content stores are searched.
-  const stores = result.trace.filter((entry) => entry.source !== 'knowledge-register');
+  // The knowledge register (#997) and the self-improvement register (#1010) are further sources;
+  // the four content stores are searched.
+  const stores = result.trace.filter(
+    (entry) => !['knowledge-register', 'self-improvement'].includes(entry.source)
+  );
   expect(stores).toHaveLength(4);
   expect(stores.every((entry) => entry.hitCount === 1)).toBe(true);
   expect(router.visibleStates).toHaveBeenCalledWith(p);
@@ -125,4 +128,48 @@ test('"what do you know about us" lists known, disputed and open needs from the 
     'Strittig: Kennung B',
     'Noch offen (1), wichtigste: Zuständigkeit C',
   ]);
+});
+
+test('"which failures did you recognise" reports cases of the own tenant with level and status (#1010)', async () => {
+  const { service, ctx } = setup();
+  const caseOverview = jest.fn(async () => ({
+    total: 2,
+    byLevel: { A: 0, B: 1, C: 1, D: 0 },
+    byStatus: { open: 1, resolved_runtime: 1 },
+    latest: [
+      {
+        caseId: 'c1',
+        level: 'C',
+        status: 'open',
+        count: 4,
+        summary: 'Eine Quelle antwortet zu spät',
+        levelReason: 'Zeitlimit im Katalog',
+      },
+    ],
+  }));
+  ctx.broker = {
+    getLocalService: (name) =>
+      name === 'failure-signals' ? { caseOverview } : name === 'domain-router' ? undefined : {},
+  };
+  const result = await searchKnowledge(service, ctx, p, {
+    selfKnowledge: { query: 'Fehler' },
+    retrievalTerms: [],
+  });
+  expect(caseOverview).toHaveBeenCalledWith(p.tenantId, expect.any(String));
+  const values = result.evidence
+    .filter((hit) => hit.source === 'self-improvement')
+    .map((hit) => hit.value);
+  expect(values[0]).toMatch(
+    /^Selbst erkannte Fehlerfälle seit \d{4}-\d{2}-\d{2}: 2 \(Stufen B: 1, C: 1; offen: 1, zur Laufzeit behoben: 1\)\.$/u
+  );
+  expect(values[1]).toBe(
+    'Fehlerfall (Stufe C, offen, 4 Signale): Eine Quelle antwortet zu spät – Zeitlimit im Katalog'
+  );
+  expect(searchSummary(result.trace)).toContain('Selbst erkannte Fehler (2 Treffer)');
+  // An unrelated self question does not list failure cases.
+  const other = await searchKnowledge(service, ctx, p, {
+    selfKnowledge: { query: 'Organisation' },
+    retrievalTerms: [],
+  });
+  expect(other.evidence.filter((hit) => hit.source === 'self-improvement')).toEqual([]);
 });

@@ -133,6 +133,7 @@
     "services/knowledge-needs.service.js",
     "services/failure-signals.service.js",
     "src/failure-signals.js",
+    "src/failure-cases.js",
     "src/knowledge-need-recognition.js",
     "src/knowledge-elicitation.js",
     "src/knowledge-prefill.js"
