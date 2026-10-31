@@ -209,6 +209,46 @@ async function searchKnowledge(service, ctx, p, situation, scope = {}) {
           : []),
       ];
     }),
+    // Self-improvement (#1010): which failures CET recognised itself and what became of them.
+    read('self-improvement', async () => {
+      const register = ctx.broker.getLocalService('failure-signals');
+      if (typeof register?.caseOverview !== 'function') throw new Error('Register unavailable');
+      const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+      const overview = await register.caseOverview(p.tenantId, since);
+      if (!overview.total) return [];
+      const status = {
+        open: 'offen',
+        resolved_runtime: 'zur Laufzeit behoben',
+        issue_filed: 'als Issue gemeldet',
+        pr_open: 'PR offen',
+        merged: 'behoben (gemergt)',
+        rejected: 'verworfen',
+        stale: 'ruhend',
+      };
+      const counts = (values, names = {}) =>
+        Object.entries(values)
+          .filter(([, value]) => value)
+          .map(([key, value]) => `${names[key] || key}: ${value}`)
+          .join(', ');
+      const found = [
+        hit(
+          'self-improvement',
+          'Selbst erkannte Fehlerfälle',
+          `Selbst erkannte Fehlerfälle seit ${since.slice(0, 10)}: ${overview.total} (Stufen ${counts(overview.byLevel)}; ${counts(overview.byStatus, status)}).`,
+          { caseCount: overview.total }
+        ),
+        ...overview.latest.map((item) =>
+          hit(
+            'self-improvement',
+            item.summary,
+            `Fehlerfall (Stufe ${item.level}, ${status[item.status] || item.status}, ${item.count} Signale): ${item.summary}${item.levelReason ? ` – ${item.levelReason}` : ''}`,
+            { caseId: item.caseId, level: item.level, status: item.status }
+          )
+        ),
+      ];
+      // Like the other stores: only when the question concerns these entries.
+      return matches(found.map((entry) => entry.value).join('\n'), terms) ? found : [];
+    }),
     read('datasets', async () => {
       if (!ctx.broker.getLocalService('datapoint')) throw new Error('Datasets unavailable');
       const records = await ctx.call('datapoint.datasetCatalog', { operation: 'list' });
@@ -242,6 +282,7 @@ function searchSummary(trace) {
     documents: 'Dokumente',
     datasets: 'Datensätze',
     'knowledge-register': 'Wissensbedarfe',
+    'self-improvement': 'Selbst erkannte Fehler',
   };
   return (
     'Nachgesehen: ' +
