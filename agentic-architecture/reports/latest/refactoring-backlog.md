@@ -1,6 +1,6 @@
 # Shepherd Refactoring Backlog
 
-Generated: 2026-10-30T12:46:27.954Z
+Generated: 2026-10-31T06:58:50.120Z
 
 ## Safe first work packages
 
