@@ -25,6 +25,11 @@ const CASE_WINDOW_MS = 7 * 24 * 3600 * 1000;
 const STALE_MS = 30 * 24 * 3600 * 1000;
 const CLASSIFY_PER_DAY = Number(process.env.FAILURE_CASE_CLASSIFY_PER_DAY || 20);
 const TERMINAL = new Set(['resolved_runtime', 'merged', 'rejected', 'stale']);
+const RESOLVED = new Set(['resolved_runtime', 'merged', 'rejected']);
+// Level B (step 3): shadow replays after new tenant data, capped per tenant and day and per case.
+const REPLAYS_PER_DAY = Number(process.env.FAILURE_CASE_REPLAYS_PER_DAY || 10);
+const REPLAYS_PER_EVENT = 3;
+const REPLAY_ATTEMPTS = 3;
 const BUNDLE_ATTEMPTS = 4;
 
 const short = (value, max = 200) =>
@@ -159,22 +164,38 @@ module.exports = {
         });
       },
     },
+    // Level A (step 3): skill learning (#889) already redesigns a degraded skill and validates the
+    // draft against the project evidence before activation; that validation is the replay. A
+    // retired skill is the fix itself. Either outcome resolves the cases naming the skill.
     'project.skill.lifecycle.v1': {
       async handler(ctx) {
         const event = ctx.params || {};
-        if (!event.tenantId || !DEGRADED_LIFECYCLES.has(event.lifecycle)) return;
-        await this.record({
-          tenantId: event.tenantId,
-          kind: 'skill_degraded',
-          sources: [{ source: 'projectSkill', name: short(event.skillId, 120) }],
-          reason: short(event.reason, 120),
-        });
+        if (!event.tenantId || !event.skillId) return;
+        if (DEGRADED_LIFECYCLES.has(event.lifecycle)) {
+          if (event.lifecycle === 'retired' && (await this.skillResolved(event))) return;
+          await this.record({
+            tenantId: event.tenantId,
+            kind: 'skill_degraded',
+            sources: [
+              {
+                source: 'projectSkill',
+                name: short(event.skillId, 120),
+                ref: short(event.projectId, 200),
+              },
+            ],
+            reason: short(event.reason, 120),
+          });
+          if (event.lifecycle === 'retired')
+            await this.resolveSkillCases(ctx, event, [event.skillId], 'skill_retired');
+        } else if (event.lifecycle === 'active' && event.derivedFrom?.length)
+          await this.resolveSkillCases(ctx, event, event.derivedFrom, 'skill_redesigned');
       },
     },
   },
   created() {
     this.inflight = new Set();
     this.classifyBudget = new Map();
+    this.replayBudget = new Map();
   },
   started() {
     this.pruneTimer = setInterval(() => {
@@ -187,7 +208,7 @@ module.exports = {
     await this.idle();
   },
   methods: {
-    async record(input) {
+    async record(input, { question } = {}) {
       const at = new Date().toISOString();
       const signal = {
         _id: `${prefix(input.tenantId)}${at}:${randomUUID()}`,
@@ -199,7 +220,11 @@ module.exports = {
         ...(input.turnRef ? { turnRef: input.turnRef } : {}),
         functionIds: (input.functionIds || []).filter((id) => typeof id === 'string').slice(0, 10),
         sources: (input.sources || [])
-          .map((item) => ({ source: short(item?.source, 80), name: short(item?.name, 120) }))
+          .map((item) => ({
+            source: short(item?.source, 80),
+            name: short(item?.name, 120),
+            ref: short(item?.ref, 200),
+          }))
           .filter((item) => item.source)
           .slice(0, 10),
         ...(input.reason ? { reason: input.reason } : {}),
@@ -210,13 +235,13 @@ module.exports = {
       await this.db.put(signal);
       const view = this.view(signal);
       await this.broker.emit('self-improvement.signal.v1', view);
-      await this.bundle(view).catch((error) =>
+      await this.bundle(view, question).catch((error) =>
         this.logger.warn('Failure signal not bundled', error.message)
       );
       return view;
     },
     // Merge a signal into the bundle of its key; at the threshold the bundle becomes a case.
-    async bundle(signal) {
+    async bundle(signal, question) {
       const key = cases.dedupKey(signal);
       const _id = bundleId(signal.tenantId, key);
       for (let attempt = 0; attempt < BUNDLE_ATTEMPTS; attempt++) {
@@ -272,6 +297,7 @@ module.exports = {
           if (error.status === 409) continue;
           throw error;
         }
+        if (question) await this.rememberQuestion(doc, signal, question);
         if (changed) {
           await this.caseChanged(doc);
           this.track(this.classifyCase(doc.tenantId, _id));
@@ -280,13 +306,96 @@ module.exports = {
       }
       throw new Error('Failure case update conflicted');
     },
+    // Per tenant and day; resets on restart, which only ever allows fewer calls than intended.
+    takeBudget(budget, tenantId, limit) {
+      const key = `${tenantId}\u0000${new Date().toISOString().slice(0, 10)}`;
+      const used = budget.get(key) || 0;
+      if (used >= limit) return false;
+      if (budget.size > 1000) budget.clear();
+      budget.set(key, used + 1);
+      return true;
+    },
+    // The latest failed question of a bundle, tenant-internal, only for its shadow replay.
+    async rememberQuestion(doc, signal, question) {
+      const _id = `replay:${doc._id}`;
+      const existing = await this.db.get(_id).catch(() => null);
+      await this.db
+        .put({
+          _id,
+          ...(existing ? { _rev: existing._rev } : {}),
+          type: 'failure_replay_question',
+          tenantId: doc.tenantId,
+          question,
+          at: signal.at,
+        })
+        .catch((error) => {
+          if (error.status !== 409) throw error;
+        });
+    },
+    async forgetQuestion(doc) {
+      const existing = await this.db.get(`replay:${doc._id}`).catch(() => null);
+      if (existing) await this.db.remove(existing).catch(() => {});
+    },
+    // New tenant facts: open level-B cases replay their question; a pass needs an answer that
+    // came about and uses one of the new facts as evidence.
+    async dataArrived(ctx, tenantId, factIds, since) {
+      const candidates = (await this.caseDocs(tenantId)).filter(
+        (doc) =>
+          doc.status === 'open' &&
+          doc.level === 'B' &&
+          (doc.runtime?.attempts || 0) < REPLAY_ATTEMPTS &&
+          (!since || String(doc.lastSignalAt) < since)
+      );
+      const results = [];
+      for (const doc of candidates.slice(0, REPLAYS_PER_EVENT)) {
+        const stored = await this.db.get(`replay:${doc._id}`).catch(() => null);
+        if (!stored?.question) continue;
+        if (!this.takeBudget(this.replayBudget, tenantId, REPLAYS_PER_DAY)) break;
+        const replay = await require('../src/failure-replay')
+          .shadowReplay(ctx, { tenantId, question: stored.question, newFactIds: factIds })
+          .catch((error) => ({
+            passed: false,
+            answered: false,
+            error: String(error.type || error.name || 'replay_failed').slice(0, 80),
+            at: new Date().toISOString(),
+          }));
+        let next;
+        for (let attempt = 0; attempt < BUNDLE_ATTEMPTS; attempt++) {
+          const latest = await this.db.get(doc._id);
+          next = {
+            ...latest,
+            runtime: {
+              ...(latest.runtime || {}),
+              level: 'B',
+              action: 'tenant_data_replay',
+              attempts: (latest.runtime?.attempts || 0) + 1,
+              replay: { kind: 'shadow_replay', ...replay },
+            },
+            ...(replay.passed ? { status: 'resolved_runtime', resolvedAt: replay.at } : {}),
+          };
+          try {
+            await this.db.put(next);
+            break;
+          } catch (error) {
+            if (error.status !== 409 || attempt === BUNDLE_ATTEMPTS - 1) throw error;
+          }
+        }
+        await this.caseChanged(next);
+        if (replay.passed) {
+          await this.forgetQuestion(next);
+          await this.journalResolution(ctx, next, {
+            action: 'tenant_data_replay',
+            summary:
+              'Selbst erkannter Fehlerfall zur Laufzeit behoben: neue Tenant-Angaben, Wiederholungslauf bestanden.',
+            refs: [{ kind: 'failureCase', id: next.caseId }],
+          });
+        }
+        results.push(this.caseView(next));
+      }
+      return results;
+    },
     async classifyCase(tenantId, _id) {
-      const day = new Date().toISOString().slice(0, 10);
-      const budgetKey = `${tenantId}\u0000${day}`;
-      const used = this.classifyBudget.get(budgetKey) || 0;
-      if (used >= CLASSIFY_PER_DAY) return null;
-      this.classifyBudget.set(budgetKey, used + 1);
-      if (this.classifyBudget.size > 1000) this.classifyBudget.clear();
+      if (!this.takeBudget(this.classifyBudget, tenantId, CLASSIFY_PER_DAY)) return null;
       const current = await this.db.get(_id);
       const proposal = await cases.classify(current, {
         tenantId,
@@ -335,6 +444,86 @@ module.exports = {
     async idle() {
       while (this.inflight.size) await Promise.all([...this.inflight]);
     },
+    async skillResolved(event) {
+      return (await this.caseDocs(event.tenantId)).some(
+        (doc) => doc.status === 'resolved_runtime' && doc.refs?.skillId === event.skillId
+      );
+    },
+    // Resolve open cases that name one of the skills; the journal records the provenance.
+    async resolveSkillCases(ctx, event, skillIds, action) {
+      const ids = new Set(skillIds);
+      const resolved = [];
+      const open = (await this.caseDocs(event.tenantId)).filter(
+        (doc) =>
+          !RESOLVED.has(doc.status) &&
+          doc.sources?.some((item) => item.source === 'projectSkill' && ids.has(item.name))
+      );
+      for (const candidate of open) {
+        const at = new Date().toISOString();
+        let next;
+        for (let attempt = 0; attempt < BUNDLE_ATTEMPTS; attempt++) {
+          const latest = await this.db.get(candidate._id);
+          next = {
+            ...latest,
+            status: 'resolved_runtime',
+            resolvedAt: at,
+            refs: { ...(latest.refs || {}), skillId: event.skillId },
+            runtime: {
+              level: 'A',
+              action,
+              replay:
+                action === 'skill_redesigned'
+                  ? { kind: 'skill_validation', passed: true, at }
+                  : { kind: 'none', passed: true, at },
+            },
+          };
+          try {
+            await this.db.put(next);
+            break;
+          } catch (error) {
+            if (error.status !== 409 || attempt === BUNDLE_ATTEMPTS - 1) throw error;
+          }
+        }
+        await this.caseChanged(next);
+        await this.forgetQuestion(next);
+        await this.journalResolution(ctx, next, {
+          action: `${action}-${event.skillId}`,
+          summary:
+            action === 'skill_redesigned'
+              ? 'Selbst erkannter Fehlerfall zur Laufzeit behoben: Check neu entworfen und automatisch gegen die Akte geprüft.'
+              : 'Selbst erkannter Fehlerfall zur Laufzeit behoben: Check zurückgezogen.',
+          refs: [
+            { kind: 'failureCase', id: next.caseId },
+            { kind: 'projectSkill', id: event.skillId, projectId: event.projectId },
+          ],
+          fallbackCapability: 'project_skill_learning',
+        });
+        resolved.push(this.caseView(next));
+      }
+      return resolved;
+    },
+    async journalResolution(ctx, doc, { action, summary, refs, fallbackCapability }) {
+      if (!this.broker.getLocalService('journal')) return;
+      const model = require('../src/function-model').getFunctionModel();
+      const known = new Set(model.functions.map((fn) => fn.functionId));
+      const functionId =
+        (doc.functionIds || []).find((id) => known.has(id)) ||
+        (fallbackCapability &&
+          model.functions.find((fn) => fn.capabilities?.includes(fallbackCapability))?.functionId);
+      if (!functionId) return;
+      try {
+        await ctx.call('journal.append', {
+          entryId: `failure-case-${doc.caseId}-${action}`.slice(0, 256),
+          functionId,
+          kind: 'decided',
+          summary: summary.slice(0, 280),
+          refs,
+        });
+      } catch (error) {
+        if (error.code !== 409 && error.status !== 409)
+          this.logger.warn('Failure case resolution not journaled', error.message);
+      }
+    },
     caseChanged(doc) {
       return this.broker.emit('self-improvement.case.changed.v1', this.caseView(doc));
     },
@@ -373,32 +562,66 @@ module.exports = {
       return { ...rest, signals: signals || [] };
     },
     // One turn: direct signals plus the conversation trail for repetitions and loops.
-    async observeTurn({ tenantId, conversationId, turnRef, outcome }) {
+    async observeTurn({
+      tenantId,
+      conversationId,
+      turnRef,
+      outcome,
+      question,
+      capturedFacts = [],
+      replayCtx,
+    }) {
+      const started = new Date().toISOString();
       const base = { tenantId, conversationId, turnRef, functionIds: outcome.functionIds };
+      // A rejection refers to the previous question; that one is what a replay has to answer.
+      const earlier = conversationId
+        ? await this.db.get(trailId(tenantId, conversationId)).catch(() => null)
+        : null;
+      const previousQuestion =
+        earlier && Date.now() - Date.parse(earlier.at) < TRAIL_TTL_MS
+          ? earlier.lastQuestion
+          : undefined;
+      const extra = { question };
       const recorded = [];
+      // New facts of this turn may fix earlier level-B cases (shadow replay, off the answer path).
+      if (capturedFacts.length && replayCtx)
+        this.track(this.dataArrived(replayCtx, tenantId, capturedFacts, started));
       if (outcome.unanswered)
-        recorded.push(await this.record({ ...base, kind: 'unanswered', reason: outcome.reason }));
+        recorded.push(
+          await this.record({ ...base, kind: 'unanswered', reason: outcome.reason }, extra)
+        );
       if (outcome.disagreement)
         recorded.push(
-          await this.record({ ...base, kind: 'user_correction', reason: 'answer_rejected' })
+          await this.record(
+            { ...base, kind: 'user_correction', reason: 'answer_rejected' },
+            { question: previousQuestion || question }
+          )
         );
       if (outcome.timeouts.length)
         recorded.push(
           await this.record({ ...base, kind: 'source_timeout', sources: outcome.timeouts })
         );
       if (!conversationId) return recorded;
-      const trail = await this.updateTrail(tenantId, conversationId, outcome);
+      const trail = await this.updateTrail(
+        tenantId,
+        conversationId,
+        outcome,
+        outcome.disagreement ? previousQuestion || question : question
+      );
       if (outcome.unanswered && trail.unanswered === REPEAT_TURNS)
         recorded.push(
-          await this.record({ ...base, kind: 'repeated_question', streak: trail.unanswered })
+          await this.record({ ...base, kind: 'repeated_question', streak: trail.unanswered }, extra)
         );
       if (outcome.openQuestions && trail.clarifications === CLARIFICATION_TURNS)
         recorded.push(
-          await this.record({ ...base, kind: 'clarification_loop', streak: trail.clarifications })
+          await this.record(
+            { ...base, kind: 'clarification_loop', streak: trail.clarifications },
+            extra
+          )
         );
       return recorded;
     },
-    async updateTrail(tenantId, conversationId, outcome) {
+    async updateTrail(tenantId, conversationId, outcome, question) {
       const _id = trailId(tenantId, conversationId);
       const now = Date.now();
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -411,6 +634,7 @@ module.exports = {
           tenantId,
           unanswered: outcome.unanswered ? (fresh ? existing.unanswered : 0) + 1 : 0,
           clarifications: outcome.openQuestions ? (fresh ? existing.clarifications : 0) + 1 : 0,
+          ...(question ? { lastQuestion: question } : {}),
           at: new Date(now).toISOString(),
         };
         try {
@@ -463,7 +687,22 @@ module.exports = {
             ? [{ ...doc, status: 'stale', updatedAt: new Date(now).toISOString() }]
             : [];
         });
-      const changes = [...expired, ...bundles];
+      // Stored replay questions go with their case, and never outlive the signal retention.
+      const docs = result.rows.map((row) => row.doc);
+      const live = new Set(
+        docs
+          .filter((doc) => doc.type === 'failure_case' && !RESOLVED.has(doc.status))
+          .map((doc) => doc._id)
+      );
+      for (const doc of bundles) if (doc._deleted || RESOLVED.has(doc.status)) live.delete(doc._id);
+      const questions = docs
+        .filter(
+          (doc) =>
+            doc.type === 'failure_replay_question' &&
+            (!live.has(doc._id.slice('replay:'.length)) || String(doc.at) < cutoff)
+        )
+        .map((doc) => ({ ...doc, _deleted: true }));
+      const changes = [...expired, ...bundles, ...questions];
       if (changes.length) await this.db.bulkDocs(changes);
       for (const doc of bundles.filter((item) => !item._deleted)) await this.caseChanged(doc);
       return changes.length;

@@ -33,6 +33,14 @@
 
 ## Unreleased — RC3: Arbeitskontext und Quellenbezüge
 
+- Selbstverbesserung, Schritt 3 (#1010): Fehlerfälle der Stufen A und B werden zur Laufzeit
+  behoben, ohne PR. Stufe A: Wird ein herabgestufter Check neu entworfen und besteht seine
+  automatische Prüfung gegen die Akte (oder wird er zurückgezogen), gilt der Fall als behoben;
+  das Journal nennt Fall und Check. Stufe B: Kommen neue Tenant-Angaben hinzu, läuft die
+  ursprünglich gescheiterte Frage als Schatten-Replay ohne Nebenwirkungen erneut; bestanden,
+  wenn die Antwort zustande kommt und die neue Angabe als Beleg nutzt. Die Frage bleibt
+  tenant-intern am Fall und wird danach gelöscht. Nebenbei: Hinweise zu Fakten, die eine Person
+  im selben Chat-Turn selbst nennt, werden jetzt wie vorgesehen unterdrückt.
 - Selbstverbesserung (#1010): Widerspricht eine Person in normaler Sprache der vorherigen
   Antwort („Das stimmt so nicht“, „Das war nicht meine Frage“), schätzt das Verständnis dies
   abgestuft (0–1, wörtlicher Beleg, nur in Folgeturns). Ab 0,6 entsteht ein Korrektursignal;

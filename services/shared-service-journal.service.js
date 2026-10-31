@@ -408,6 +408,13 @@ module.exports = {
           );
           return skills.some((skill) => skill.skillId === ref.id);
         }
+        // Self-improvement cases (#1010) are visible within their own tenant only.
+        if (ref.kind === 'failureCase') {
+          const register = this.broker.getLocalService('failure-signals');
+          return Boolean(
+            register && (await register.caseDocs(p.tenantId)).some((doc) => doc.caseId === ref.id)
+          );
+        }
         const router = this.broker.getLocalService('domain-router');
         if (ref.kind === 'case') {
           await router.loadCase(p, ref.id);

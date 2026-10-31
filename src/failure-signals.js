@@ -110,12 +110,24 @@ function afterTurn(ctx, result) {
       ctx.params?.conversationId ||
       ctx.params?.metadata?.chat_id ||
       undefined;
+    // Kept tenant-internally with a case for its shadow replay (step 3); never in a signal.
+    const question = [
+      ctx.params?.message,
+      ctx.params?.userRequest,
+      ctx.params?.messages?.findLast?.((turn) => turn.role === 'user')?.content,
+    ].find((value) => typeof value === 'string' && value.trim());
+    const capturedFacts = [...new Set(meta?.tenantMemoryCurrentFacts || [])].slice(0, 20);
     register
       .observeTurn({
         tenantId,
         conversationId: conversationId ? String(conversationId).slice(0, 200) : undefined,
         turnRef: String(ctx.id || '').slice(0, 120) || undefined,
         outcome: turnOutcome(result),
+        question: question ? question.slice(0, 2000) : undefined,
+        capturedFacts,
+        replayCtx: capturedFacts.length
+          ? require('./project-skill-learning').detachedContext({ broker: ctx.broker, meta })
+          : undefined,
       })
       .catch((error) => ctx.broker.logger.warn('Failure signal not recorded', error.message));
   } catch (error) {
