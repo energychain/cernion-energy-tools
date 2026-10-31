@@ -8,7 +8,7 @@ const llm = require('./llm-client');
 
 // Identifier shapes that never belong in a publication, whatever the original said.
 const BLOCKED = [
-  ['email', /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/gu],
+  ['email', /[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63}){1,6}/gu],
   ['url', /\bhttps?:\/\/\S+/giu],
   ['iban', /\b[A-Z]{2}\d{2}(?:\s?[A-Z\d]{4}){3,7}\b/gu],
   ['location_id', /\b\d{11}\b/gu],
@@ -21,7 +21,7 @@ const BLOCKED = [
   ['file_name', /\b[\w-]+\.(?:pdf|xlsx?|csv|docx?|pptx?|txt|json|xml|edi|zip|msg|eml)\b/giu],
   ['code_path', /\b(?:src|services|scripts|tests|config)\/[\w./-]+/gu],
   ['secret', /\b(?:ghp_|gho_|github_pat_|sk-|xox[abp]-|AKIA)[\w-]{6,}|\bBearer\s+[\w.-]{8,}/gu],
-  ['organization', /\b[\p{Lu}][\p{L}&.-]*\s+(?:GmbH|AG|eG|KG|SE|mbH)\b/gu],
+  ['organization', /\b\p{Lu}[\p{L}&.-]{0,60}\s(?:GmbH|AG|eG|KG|SE|mbH)\b/gu],
 ];
 // Generator values are allowed: SYN- identifiers and pseudonymous actors.
 const GENERATED = /\bSYN-[A-Z\d-]+\b/gu;
@@ -45,7 +45,7 @@ function common(token) {
     ]);
     const words = new Set((text.match(/\p{L}{4,}/gu) || []).map((word) => word.toLowerCase()));
     for (const word of FUNCTION_WORDS) words.add(word);
-    return { words, sorted: [...words].sort() };
+    return { words };
   })();
   if (/\d/u.test(token)) return false;
   if (publicWords.words.has(token)) return true;
@@ -66,27 +66,37 @@ function stripGenerated(text) {
 // file name or a URL). Ordinary capitalized nouns are left to the model check.
 const NAME_MARKS = [
   /\b(?:Herr|Herrn|Frau|Hr\.|Fr\.|Dr\.|Prof\.)\s+((?:\p{Lu}[\p{L}-]+\s?){1,2})/gu,
-  /((?:\p{Lu}[\p{L}&-]+\s){1,3})(?:GmbH|AG|eG|KG|SE|mbH)\b/gu,
-  /([\w.+-]+@[\w.-]+)/gu,
+  /((?:\p{Lu}[\p{L}&-]{1,40}\s){1,3})(?:GmbH|AG|eG|KG|SE|mbH)\b/gu,
+  /([\w.+-]{1,64}@[\w.-]{1,253})/gu,
   /\b([\w-]+\.(?:pdf|xlsx?|csv|docx?|pptx?|txt|json|xml|edi|zip|msg|eml))\b/giu,
   /\bhttps?:\/\/(\S+)/giu,
 ];
+// Trailing separators (Wert., Datei_) belong to punctuation, not to the token.
+function trimTrailing(token) {
+  let end = token.length;
+  while (end > 0 && '._/-'.includes(token[end - 1])) end--;
+  return token.slice(0, end);
+}
+const WORD = /[\p{L}\p{N}][\p{L}\p{N}._@/-]*/gu;
+function digitTokens(value) {
+  return [...value.matchAll(WORD)]
+    .map((match) => trimTrailing(match[0]))
+    .filter((token) => /\d/u.test(token));
+}
+function markedNames(value) {
+  return NAME_MARKS.flatMap((pattern) =>
+    [...value.matchAll(pattern)].flatMap((match) =>
+      match[1].split(/[^\p{L}\p{N}]+/u).filter((part) => part && !common(part.toLowerCase()))
+    )
+  );
+}
 function originalTokens(originals) {
   const tokens = new Set();
-  const add = (word) => {
-    const token = word.toLowerCase();
-    if (token.length >= MIN_TOKEN || /\d{3,}/u.test(token)) tokens.add(token);
-  };
-  for (const value of originals.filter((item) => typeof item === 'string' && item)) {
-    for (const match of value.matchAll(/[\p{L}\p{N}][\p{L}\p{N}._@/-]*/gu)) {
-      const token = match[0].replace(/[._/-]+$/u, '');
-      if (/\d/u.test(token)) add(token);
+  for (const value of originals.filter((item) => typeof item === 'string' && item))
+    for (const word of [...digitTokens(value), ...markedNames(value)]) {
+      const token = word.toLowerCase();
+      if (token.length >= MIN_TOKEN || /\d{3,}/u.test(token)) tokens.add(token);
     }
-    for (const pattern of NAME_MARKS)
-      for (const match of value.matchAll(pattern))
-        for (const part of match[1].split(/[^\p{L}\p{N}]+/u).filter(Boolean))
-          if (!common(part.toLowerCase())) add(part);
-  }
   return tokens;
 }
 
@@ -96,13 +106,11 @@ function scan(draftText, originals = []) {
   const findings = [];
   for (const [kind, pattern] of BLOCKED) {
     pattern.lastIndex = 0;
-    const count = (text.match(pattern) || []).length;
+    const count = [...text.matchAll(pattern)].length;
     if (count) findings.push({ kind, count });
   }
   const words = new Set(
-    (text.match(/[\p{L}\p{N}][\p{L}\p{N}._@/-]*/gu) || []).map((word) =>
-      word.replace(/[._/-]+$/u, '').toLowerCase()
-    )
+    [...text.matchAll(WORD)].map((match) => trimTrailing(match[0]).toLowerCase())
   );
   // Inflected forms of a name (Beispielwerke/Beispielwerken) are the same name.
   const draftWords = [...words];
