@@ -34,4 +34,13 @@ Detection reads only status fields the turn already reports. No signal word or w
 - **Self-report (#700):** the self-knowledge search lists the cases of the last 7 days with level, status and summary (source "Selbst erkannte Fehler").
 - Event: `self-improvement.case.changed.v1` on opening, classification, status change and staleness.
 
-Next step: levels A/B at runtime with replay proof.
+## Step 3: levels A and B at runtime
+
+No PR and no issue: the fix happens in the tenant runtime and is proven by a replay.
+
+- **Level A (skill):** skill learning (#889) already redesigns a degraded skill (user correction or failed revalidation) and validates the draft against the project evidence before activation; that validation is the replay. When `project.skill.lifecycle.v1` reports an active skill derived from the degraded one (`derivedFrom`, now part of the event), every open case naming the degraded skill becomes `resolved_runtime` with `refs.skillId`, `runtime.action = skill_redesigned` and `runtime.replay.kind = skill_validation`. A retired skill resolves its case with `skill_retired`. The journal records the resolution with refs to the failure case and the skill (`failureCase` refs are visible only within the tenant).
+- **Level B (tenant data):** the failed question is kept tenant-internally with its case (`replay:<case>`, never in signals, case views or summaries). For a rejection it is the previous question of the conversation, not the rejection itself. When a later turn captures new tenant-memory facts, open level-B cases replay their question as a **shadow replay** (`src/failure-replay.js`): understanding, evidence collection and answer run like a turn, but nothing is written (no case, conversation state, notice or memory capture) and mapping-bound sources stay off. A replay passes when the answer comes about and uses one of the new facts as evidence; the case becomes `resolved_runtime` (`runtime.action = tenant_data_replay`) and the question is deleted. At most 3 attempts per case, 3 replays per event and 10 per tenant and day (`FAILURE_CASE_REPLAYS_PER_DAY`). The answer text of a replay is only judged, never stored or shown.
+- Stored questions are deleted with their case and never outlive the signal retention; conversation trails (holding the last question for rejections) expire after 24 h.
+- The chat turn now maps one meta object for coverage, notices and failure signals, so the facts captured in a turn reach them (this also lets notices suppress memory notices about facts the person just stated, as intended).
+
+Next step: anonymization gate with negative tests.

@@ -1667,8 +1667,9 @@ module.exports = {
       async function (ctx) {
         const envelope = normalizeTaskEnvelope(ctx.params);
         let { p, mapping } = await this.resolveTurnPrincipal(ctx, envelope);
-        coverageTurn.mapped(ctx, this.metaForMapping(ctx, p, mapping));
         const correctionMeta = this.metaForMapping(ctx, p, mapping);
+        // One object for the turn: notices and failure signals then see the facts it captured.
+        coverageTurn.mapped(ctx, correctionMeta);
         p = principal({ meta: correctionMeta }, ctx.params);
         const fileReply = await require('../src/file-channel-turn').prepareFileTurn(
           this,
