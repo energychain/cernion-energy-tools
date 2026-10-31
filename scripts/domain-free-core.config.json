@@ -135,6 +135,7 @@
     "src/failure-signals.js",
     "src/failure-cases.js",
     "src/failure-replay.js",
+    "src/failure-anonymization.js",
     "src/knowledge-need-recognition.js",
     "src/knowledge-elicitation.js",
     "src/knowledge-prefill.js"
