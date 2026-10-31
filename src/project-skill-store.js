@@ -84,6 +84,7 @@ async function persistSkill(ctx, skill, kind, reason) {
       skillId: skill.skillId,
       lifecycle: skill.lifecycle,
       reason,
+      derivedFrom: (skill.derivedFrom || []).slice(0, 10),
     },
     { meta: ctx.meta }
   );
