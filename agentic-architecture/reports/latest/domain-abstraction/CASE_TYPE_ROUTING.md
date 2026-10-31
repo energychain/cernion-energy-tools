@@ -1,6 +1,6 @@
 # Case Type Routing
 
-Generated: 2026-10-31T13:02:20.857Z
+Generated: 2026-10-31T19:07:11.653Z
 
 OpenWebUI und Agentic Core sollen bei fachlichen Anfragen zuerst Falltypen erkennen, nicht direkt Tools auswählen.
 
