@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-31T06:58:55.456Z",
+  "generatedAt": "2026-10-31T13:02:20.857Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261031T065742Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261031T130054Z",
   "counts": {
     "files": 2241,
     "candidateFiles": 1340,
@@ -224,11 +224,11 @@
         },
         {
           "path": "agentic-architecture/domain/ENERGY_DOMAIN_CANON.md",
-          "hits": 299
+          "hits": 301
         },
         {
           "path": "agentic-architecture/reports/latest/domain-abstraction/ENERGY_DOMAIN_CANON.md",
-          "hits": 299
+          "hits": 301
         },
         {
           "path": "agentic-architecture/reports/latest/architecture-scan.md",
@@ -552,5 +552,5 @@
       "hits": 279
     }
   ],
-  "fingerprint": "a6a25baecd8f93b1649f553d077838480a009b2ff92001a87e3a9fe2e67440e6"
+  "fingerprint": "8ebf8fd01140efe98eedddee71db424a7e3b0846ceb859bc57c9e68ec3dbaf22"
 }
