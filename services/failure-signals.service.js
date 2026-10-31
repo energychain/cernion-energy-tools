@@ -30,6 +30,9 @@ const RESOLVED = new Set(['resolved_runtime', 'merged', 'rejected']);
 const REPLAYS_PER_DAY = Number(process.env.FAILURE_CASE_REPLAYS_PER_DAY || 10);
 const REPLAYS_PER_EVENT = 3;
 const REPLAY_ATTEMPTS = 3;
+// Step 4: only catalog and code cases may ever leave the tenant, and only through the gate.
+const PUBLISHABLE_LEVELS = new Set(['C', 'D']);
+const ANONYMIZE_PER_DAY = Number(process.env.FAILURE_CASE_ANONYMIZE_PER_DAY || 10);
 const BUNDLE_ATTEMPTS = 4;
 
 const short = (value, max = 200) =>
@@ -99,6 +102,29 @@ module.exports = {
           .sort((a, b) => String(b.lastSignalAt).localeCompare(String(a.lastSignalAt)))
           .slice(0, ctx.params.limit)
           .map((doc) => this.caseView(doc));
+      },
+    },
+    // The only way out of the tenant (for the development agent, step 5): cases that passed the
+    // anonymization gate, reduced to their rewritten draft and catalog references.
+    publicCases: {
+      visibility: 'protected',
+      params: { tenantId: { type: 'string', min: 1, max: 200 } },
+      async handler(ctx) {
+        return (await this.caseDocs(ctx.params.tenantId))
+          .filter(
+            (doc) =>
+              doc.status === 'open' &&
+              PUBLISHABLE_LEVELS.has(doc.level) &&
+              doc.anonymization?.state === 'passed' &&
+              doc.publication
+          )
+          .map((doc) => ({
+            caseId: doc.caseId,
+            kind: doc.kind,
+            level: doc.level,
+            functionIds: doc.functionIds || [],
+            publication: doc.publication,
+          }));
       },
     },
     // Internal: later steps (runtime fixes, issues, PRs) move cases through this.
@@ -196,6 +222,7 @@ module.exports = {
     this.inflight = new Set();
     this.classifyBudget = new Map();
     this.replayBudget = new Map();
+    this.anonymizeBudget = new Map();
   },
   started() {
     this.pruneTimer = setInterval(() => {
@@ -300,7 +327,9 @@ module.exports = {
         if (question) await this.rememberQuestion(doc, signal, question);
         if (changed) {
           await this.caseChanged(doc);
-          this.track(this.classifyCase(doc.tenantId, _id));
+          this.track(
+            this.classifyCase(doc.tenantId, _id).then(() => this.anonymizeCase(doc.tenantId, _id))
+          );
         }
         return doc;
       }
@@ -556,6 +585,67 @@ module.exports = {
           .slice(0, 5)
           .map((doc) => this.caseView(doc)),
       };
+    },
+    // Anonymization gate (step 4): a rewritten draft that passed both checks, or nothing.
+    async anonymizeCase(tenantId, _id) {
+      const current = await this.db.get(_id).catch(() => null);
+      if (
+        !current?.caseId ||
+        current.status !== 'open' ||
+        !PUBLISHABLE_LEVELS.has(current.level) ||
+        (current.anonymization?.state && current.anonymization.state !== 'pending')
+      )
+        return null;
+      if (!this.takeBudget(this.anonymizeBudget, tenantId, ANONYMIZE_PER_DAY)) return null;
+      const stored = await this.db.get(`replay:${_id}`).catch(() => null);
+      const result = await require('../src/failure-anonymization').anonymize({
+        tenantId,
+        broker: this.broker,
+        question: stored?.question,
+        caseInput: {
+          kind: current.kind,
+          level: current.level,
+          count: current.count,
+          reasons: current.reasons || [],
+          functions: (current.functionIds || []).map((id) => ({
+            id,
+            label: this.functionLabels([id])[id],
+          })),
+          summary: current.summary,
+          hypothesis: current.hypothesis,
+          expected: current.reproduction?.expected,
+        },
+        // Everything tenant-specific the draft must not echo.
+        originals: [
+          current.summary,
+          current.hypothesis,
+          current.levelReason,
+          tenantId,
+          ...(current.sources || []).flatMap((item) => [item.name, item.ref]),
+          ...(current.steps || []).flatMap((step) => [step.conversationId, step.turnRef]),
+        ],
+      });
+      for (let attempt = 0; attempt < BUNDLE_ATTEMPTS; attempt++) {
+        const latest = await this.db.get(_id);
+        const next = {
+          ...latest,
+          anonymization: {
+            state: result.state,
+            checks: result.checks,
+            reviewedAt: new Date().toISOString(),
+          },
+          ...(result.state === 'passed' ? { publication: result.draft } : {}),
+        };
+        if (result.state !== 'passed') delete next.publication;
+        try {
+          await this.db.put(next);
+          await this.caseChanged(next);
+          return next;
+        } catch (error) {
+          if (error.status !== 409) throw error;
+        }
+      }
+      return null;
     },
     caseView(doc) {
       const { _id, _rev, type, steps, signals, ...rest } = doc;
