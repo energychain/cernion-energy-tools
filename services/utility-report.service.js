@@ -35,7 +35,7 @@ const {
   normalizeMarketPartner,
   extractCandidates,
 } = require('../src/market-role-classifier');
-const { buildHtmlReport, summarizeForReport } = require('../src/report-builder');
+const { buildHtmlReport } = require('../src/report-builder');
 const { runAsync } = require('../src/async-job-runner');
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -1782,7 +1782,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         this.logger.info(`[UtilityReport] ${p.reportId} – Phase 1: Identification`);
 
         // If BDEW provided directly, skip the search step entirely.
-        let firstPartner = null;
+        const firstPartner = null;
         if (!bdew) {
           // Step 1a: try cernion_market_partners with each alternative query variant.
           // buildVnbSearchQueries generates: original + stripped city + "Stadtwerke <city>".
