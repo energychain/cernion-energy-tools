@@ -1,17 +1,17 @@
 {
-  "generatedAt": "2026-10-30T12:46:27.954Z",
+  "generatedAt": "2026-10-31T06:58:50.120Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261030T124515Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261031T065742Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
     "version": "0.99.22"
   },
   "counts": {
-    "files": 2238,
+    "files": 2241,
     "services": 167,
-    "srcJs": 475,
-    "tests": 556,
+    "srcJs": 476,
+    "tests": 558,
     "integrations": 37,
     "docs": 587,
     "agentFiles": 279,
@@ -30,11 +30,11 @@
   "topDirectories": [
     {
       "dir": "tests",
-      "files": 643
+      "files": 645
     },
     {
       "dir": "src",
-      "files": 543
+      "files": 544
     },
     {
       "dir": "docs",
@@ -402,12 +402,12 @@
       "hits": 1002
     },
     "capability": {
-      "files": 559,
-      "hits": 6264
+      "files": 561,
+      "hits": 6267
     },
     "broker": {
-      "files": 708,
-      "hits": 11690
+      "files": 710,
+      "hits": 11709
     },
     "openwebui": {
       "files": 108,
@@ -423,7 +423,7 @@
     },
     "evidence": {
       "files": 887,
-      "hits": 24813
+      "hits": 24815
     },
     "receipt": {
       "files": 175,
@@ -435,15 +435,15 @@
     },
     "routing": {
       "files": 397,
-      "hits": 2338
+      "hits": 2339
     },
     "workflow": {
       "files": 255,
       "hits": 1592
     },
     "tenant": {
-      "files": 931,
-      "hits": 18635
+      "files": 934,
+      "hits": 18686
     },
     "market": {
       "files": 406,
@@ -462,8 +462,8 @@
       "hits": 4590
     },
     "edm": {
-      "files": 376,
-      "hits": 2953
+      "files": 377,
+      "hits": 2955
     },
     "mako": {
       "files": 314,
@@ -495,7 +495,7 @@
     },
     "decision": {
       "files": 457,
-      "hits": 6644
+      "hits": 6645
     }
   },
   "validationSummary": "build: ok\nlint: ok\ntest-unit-ci: skipped (set SHEPHERD_FULL=1)\naudit-openapi: skipped (set SHEPHERD_FULL=1)\ncheck-llm: skipped (set SHEPHERD_FULL=1)\ngitnexus-analyze: skipped (set SHEPHERD_FULL=1)"

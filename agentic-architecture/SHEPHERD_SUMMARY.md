@@ -1,16 +1,16 @@
 # Shepherd Summary
 
-Generated: 2026-10-30T12:46:33.818Z
-Run: 20261030T124515Z
-Branch: shepherd/runtime-refactor-20261030T124515Z
-Fingerprint: cad4622446f8f2029d8eecfb1f6ffa792e05c01635a843004cd61cdf27167d2c
+Generated: 2026-10-31T06:58:55.534Z
+Run: 20261031T065742Z
+Branch: shepherd/runtime-refactor-20261031T065742Z
+Fingerprint: 3a0ef9b6c95592a60c90eb942163d2c833b31b78f85d282bbc9ec1a182a7de99
 
 ## Current measurable surface
 
-- Files: 2238
+- Files: 2241
 - Services: 167
-- src JS files: 475
-- Tests: 556
+- src JS files: 476
+- Tests: 558
 - Agentic files: 279
 - OpenWebUI/ChatGPT files: 42
 - Evidence/HITL files: 100
@@ -27,8 +27,8 @@ Fingerprint: cad4622446f8f2029d8eecfb1f6ffa792e05c01635a843004cd61cdf27167d2c
 
 ## Top directories
 
-- `tests`: 643 files
-- `src`: 543 files
+- `tests`: 645 files
+- `src`: 544 files
 - `docs`: 452 files
 - `services`: 203 files
 - `scripts`: 98 files
@@ -51,20 +51,20 @@ Fingerprint: cad4622446f8f2029d8eecfb1f6ffa792e05c01635a843004cd61cdf27167d2c
 ## Domain abstraction
 
 - Domain abstraction: present
-- Domain fingerprint: f46bb0939a8a5de68c0dc7d29edaf187946de5dc534a8ea84b83e18a8307bcf9
-- Candidate files: 1339
+- Domain fingerprint: a6a25baecd8f93b1649f553d077838480a009b2ff92001a87e3a9fe2e67440e6
+- Candidate files: 1340
 - Unclassified services: 0
 
 Cluster counts:
 
-- `casework-and-assistance` — Fallarbeit und Assistenz: 2 services, 25 top files
+- `casework-and-assistance` — Fallarbeit und Assistenz: 3 services, 25 top files
 - `evidence-and-trust` — Evidence, Nachweis und Vertrauen: 23 services, 25 top files
 - `mako-and-edm` — MaKo / EDM / Stammdaten: 8 services, 25 top files
 - `grid-and-connection` — Netz, Anschluss und Kapazität: 48 services, 25 top files
 - `forecast-and-market` — Prognose, Markt und Portfolio: 18 services, 25 top files
 - `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files
 - `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files
-- `tenant-and-operation` — Tenant, Rollen und Betrieb: 55 services, 25 top files
+- `tenant-and-operation` — Tenant, Rollen und Betrieb: 54 services, 25 top files
 - `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files
 
 Case types:
