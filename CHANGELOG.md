@@ -33,6 +33,15 @@
 
 ## Unreleased — RC3: Arbeitskontext und Quellenbezüge
 
+- Selbstverbesserung (#1010): Widerspricht eine Person in normaler Sprache der vorherigen
+  Antwort („Das stimmt so nicht“, „Das war nicht meine Frage“), schätzt das Verständnis dies
+  abgestuft (0–1, wörtlicher Beleg, nur in Folgeturns). Ab 0,6 entsteht ein Korrektursignal;
+  Folgefragen und neue Angaben zählen nicht. Kein Signalwort, kein zusätzlicher Modellaufruf.
+- Selbstverbesserung, Schritt 2 (#1010): Gleichartige Fehlersignale werden zu einem
+  Fehlerfall gebündelt (Schwellwert je Signalart, 7-Tage-Fenster). Ein Klassifikator schlägt
+  die niedrigste wirksame Stufe A–D vor und sieht dabei nur strukturierte Falldaten, keinen
+  Chatinhalt. Behobene Fälle, die erneut auftreten, werden wieder geöffnet; ruhende werden
+  `stale`. Die Selbstauskunft nennt die selbst erkannten Fehlerfälle der letzten Woche.
 - Selbstverbesserung, Schritt 1 (#1010): Register `failure-signals` beobachtet
   Fehlersignale, ohne etwas auszulösen. Quellen: Korrekturen, unbeantwortete und
   degradierte Antworten, Quellen-Timeouts, wiederholte Fehlschläge und Rückfrage-

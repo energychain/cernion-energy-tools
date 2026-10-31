@@ -22,6 +22,8 @@ const EXPECTED_REASONS = new Set([
 ]);
 const UNANSWERED_STATUSES = new Set(['fallback', 'error', 'unavailable']);
 const FUNCTION_CONFIDENCE = 0.5;
+// A clear rejection of the previous answer (graded by understanding, literal basis checked there).
+const DISAGREEMENT = Number(process.env.FAILURE_SIGNAL_DISAGREEMENT || 0.6);
 const MAX_ITEMS = 10;
 
 function reasonOf(result) {
@@ -89,6 +91,7 @@ function turnOutcome(result) {
     timeouts: timedOutSources(result),
     openQuestions: openQuestions(result),
     functionIds: functionIds(result),
+    disagreement: Number(result?.situation?.answerFeedback?.disagreement) >= DISAGREEMENT,
   };
 }
 
