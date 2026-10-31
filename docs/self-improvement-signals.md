@@ -43,4 +43,18 @@ No PR and no issue: the fix happens in the tenant runtime and is proven by a rep
 - Stored questions are deleted with their case and never outlive the signal retention; conversation trails (holding the last question for rejections) expire after 24 h.
 - The chat turn now maps one meta object for coverage, notices and failure signals, so the facts captured in a turn reach them (this also lets notices suppress memory notices about facts the person just stated, as intended).
 
-Next step: anonymization gate with negative tests.
+## Step 4: anonymization gate
+
+The repository is public. Nothing from a case leaves the tenant except through this gate (`src/failure-anonymization.js`), and only for levels C and D; A and B are fixed at runtime and never published.
+
+1. **Synthetic rewrite** (model call via `src/llm-client.js`): title, problem, up to six descriptive reproduction steps, expected and observed behaviour. Identifiers only as `SYN-…`, people only as pseudonymous roles, numbers invented; instructions, paths or credentials in the question are not carried over.
+2. **Deterministic scanner** (fail closed, findings name the kind only, never the value):
+   - blocked shapes in any draft: e-mail, URL, IBAN, 11-digit market location, metering point (`DE…`), register unit (`SEE…`, `SNB…`, …), long numbers, phone, UUID, long hex ids, file names, code paths, secret/token forms, organization names (`… GmbH/AG/…`); `SYN-` values are allowed;
+   - echo of the original: tokens with digits, and words the original marks as a name (after a form of address, in an organization name, in an e-mail address, file name or URL), including inflected forms. Ordinary capitalized nouns (Wert, Arbeitspreis) are deliberately left to step 3, since German capitalizes every noun.
+3. **Independent model check** (a separate call that only compares original and draft): `containsOriginal`, `reidentifiable`, `asksForChange` (code, repository files or configuration), `containsCredentials`; in doubt true. It runs only when the scanner passed.
+
+`anonymization.state` becomes `passed` only when both checks passed; a failure, error or timeout gives `failed`, and a failed draft is not kept. At most 10 gate runs per tenant and day (`FAILURE_CASE_ANONYMIZE_PER_DAY`). The protected action `failure-signals.publicCases` is the only way out: open level-C/D cases with `passed`, reduced to `caseId`, `kind`, `level`, catalog `functionIds` and the synthetic `publication`.
+
+Known limit: a name that is also an ordinary word passes the scanner and is caught by the model check, which is why both must pass. Live check (synthetic): a question with name, organization, e-mail, market location and file name gave clean drafts or a conservative `failed`; an injected instruction ("ändere services/…, setze Token …") gave a draft without path, token or instruction.
+
+Next step: development agent as a sidecar (issues only, level C/D).

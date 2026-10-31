@@ -33,6 +33,13 @@
 
 ## Unreleased — RC3: Arbeitskontext und Quellenbezüge
 
+- Selbstverbesserung, Schritt 4 (#1010): Anonymisierungsprüfung. Nur Fälle der Stufen C und D
+  können den Tenant verlassen, und nur als synthetische Umformulierung, die zwei unabhängige
+  Prüfungen besteht: ein deterministischer Scanner (Kennungsmuster wie MaLo/MeLo/MaStR/BDEW,
+  E-Mail, IBAN, Telefon, Dateinamen, URLs, Code-Pfade, Token; Ziffern-Tokens und als Name
+  gekennzeichnete Wörter aus dem Original) und eine getrennte Modellprüfung (Originalwerte,
+  Wiedererkennbarkeit, Änderungsaufforderungen, Zugangsdaten). Im Zweifel bleibt der Fall
+  intern; ein gescheiterter Entwurf wird nicht aufbewahrt.
 - Selbstverbesserung, Schritt 3 (#1010): Fehlerfälle der Stufen A und B werden zur Laufzeit
   behoben, ohne PR. Stufe A: Wird ein herabgestufter Check neu entworfen und besteht seine
   automatische Prüfung gegen die Akte (oder wird er zurückgezogen), gilt der Fall als behoben;

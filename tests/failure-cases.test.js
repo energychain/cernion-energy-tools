@@ -7,6 +7,11 @@ const path = require('node:path');
 const { ServiceBroker } = require('moleculer');
 const llm = require('../src/llm-client');
 const { dedupKey, classify, merge } = require('../src/failure-cases');
+// Level proposals only; level C cases also pass the anonymization gate (own tests).
+const levelCalls = () =>
+  llm.generateStructured.mock.calls.filter(
+    (call) => JSON.parse(call[1]).task === 'failure_case_level'
+  );
 
 describe('failure cases (#1010 step 2)', () => {
   test('the key bundles by kind, functions, sources and reason, in any order', () => {
@@ -136,16 +141,22 @@ describe('failure case register', () => {
       level: 'C',
       classifiedBy: 'model',
       summary: 'Eine Quelle antwortet regelmäßig zu spät',
-      anonymization: { state: 'pending', checks: [] },
+      // Fail closed: without a usable synthetic draft nothing may leave the tenant.
+      anonymization: { state: 'failed' },
       reproduction: {
         expected: 'Antwort mit Beleg ohne Zeitüberschreitung',
         steps: expect.arrayContaining([expect.objectContaining({ conversationId: 'chat-3' })]),
       },
     });
     expect(item.signals).toHaveLength(4);
-    expect(llm.generateStructured).toHaveBeenCalledTimes(1);
+    expect(levelCalls()).toHaveLength(1);
     await new Promise((resolve) => setImmediate(resolve));
-    expect(changes.map((change) => change.classifiedBy || 'opened')).toEqual(['opened', 'model']);
+    expect(changes.map((change) => change.classifiedBy || 'opened').slice(0, 2)).toEqual([
+      'opened',
+      'model',
+    ]);
+    // The mocked model returns no synthetic draft: the gate fails closed.
+    expect(changes.at(-1).anonymization.state).toBe('failed');
   });
 
   test('a severe signal opens a case at once; a closed case that fails again is reopened', async () => {
@@ -190,7 +201,7 @@ describe('failure case register', () => {
     const summary = await broker.call('failure-signals.summary', {}, { meta: meta(['ROLE_EDM']) });
     expect(summary.cases).toMatchObject({ total: 1, byLevel: { C: 1 }, byStatus: { open: 1 } });
     // The classifier call stayed per tenant.
-    expect(llm.generateStructured).toHaveBeenCalledTimes(2);
+    expect(levelCalls()).toHaveLength(2);
   });
 
   test('the classification budget per tenant and day falls back to the prior level', async () => {
@@ -204,7 +215,7 @@ describe('failure case register', () => {
     const [item] = await casesOf();
     expect(item).toMatchObject({ level: 'C', status: 'open' });
     expect(item.classifiedBy).toBeUndefined();
-    expect(llm.generateStructured).not.toHaveBeenCalled();
+    expect(levelCalls()).toHaveLength(0);
   });
 
   test('quiet open cases become stale', async () => {
