@@ -33,6 +33,10 @@
 
 ## Unreleased — RC3: Arbeitskontext und Quellenbezüge
 
+- Gesprächsverlauf (#993): Teilt jemand eine Kennung als Tatsache über die eigene Organisation mit
+  („Die BDEW-Codenummer … lautet …“), fragt CET nicht mehr nach der Bedeutung eines vermeintlichen
+  Codes, solange niemand danach fragt. Grundlage ist die Einordnung des Verständnisses (erfasste
+  Mitteilung, keine Bedeutungsfrage), kein Signalwort.
 - Selbstverbesserung, Schritt 8 (#1010): Kennzahlen je Zeitraum (`GET /api/failure-signals/metrics`:
   erkannte Fälle, Anteil je Stufe, ohne Code behoben, Anonymisierung; netto entfernte Gates und
   Regex folgen mit den Änderungsvorschlägen) sowie lesende REST-Routen für Signale, Übersicht und
