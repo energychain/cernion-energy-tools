@@ -33,6 +33,10 @@
 
 ## Unreleased — RC3: Arbeitskontext und Quellenbezüge
 
+- Gesprächsverlauf (#993): Teilt jemand eine Kennung als Tatsache über die eigene Organisation mit
+  („Die BDEW-Codenummer … lautet …“), fragt CET nicht mehr nach der Bedeutung eines vermeintlichen
+  Codes, solange niemand danach fragt. Grundlage ist die Einordnung des Verständnisses (erfasste
+  Mitteilung, keine Bedeutungsfrage), kein Signalwort.
 - Netzwirtschaft-Rolle (#986), Befunde der Live-Baseline vom 01.11.: Tabellen mit Einzeldatensätzen
   (Rechnungen, Klärfälle, Ereignisse) werden als Zeilen und Spalten abgelegt, nicht als Messreihe mit
   Raster und Einheit. Tabellenanalyse: doppelt erfasste Kennungen zählen einmal und werden einmal
