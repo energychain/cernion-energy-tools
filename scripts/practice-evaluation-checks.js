@@ -32,7 +32,8 @@ function numericValues(text) {
 }
 function sectionPresent(text, section) {
   return new RegExp(
-    `^\\s*(?:#{1,6}\\s*|\\*\\*|\\d+[.)]\\s*)?${escape(section)}[^\\n]*\\n(?=\\s*\\S)`,
+    // The requested wording may carry one qualifier ("offene Entscheidungen" for "Entscheidungen").
+    `^\\s*(?:#{1,6}\\s*|\\*\\*|\\d+[.)]\\s*)?(?:\\p{L}+\\s+)?${escape(section)}[^\\n]*\\n(?=\\s*\\S)`,
     'imu'
   ).test(text);
 }

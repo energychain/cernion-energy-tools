@@ -461,6 +461,17 @@ module.exports = {
         await registerDatasetVariants(ctx, this.datasetPool, record, records);
         records.push(record);
         ids.push(id);
+        // Lists of single records (invoices, cases, events) are no measurement series: no grid,
+        // intervals or unit (#986).
+        if (require('../src/table-analysis').isRecordTable(record)) {
+          const columnCount = Array.isArray(columns)
+            ? columns.length
+            : Object.keys(columns || {}).length;
+          confirmations.push(
+            `Hab ich abgelegt: ${record.title}, Version ${record.version}, ${record.rowCount.toLocaleString('de-DE')} Zeilen${columnCount ? ` mit ${columnCount} Spalten` : ''}${record.period.from ? `, Einträge von ${record.period.from} bis ${record.period.to || 'ungeklärt'}` : ''}.${controlConfirmation(record.quality.controls) ? ` ${controlConfirmation(record.quality.controls)}` : ''}${table.emptyColumns?.length ? ` ${table.emptyColumns.length} Spalten sind durchgehend leer und für Auswertungen nicht nutzbar.` : ''}`
+          );
+          continue;
+        }
         confirmations.push(
           `Hab ich abgelegt: ${record.title}, Version ${record.version}, ${record.period.from || 'Zeitraum ungeklärt'} bis ${record.period.to || 'ungeklärt'}, ${record.rowCount.toLocaleString('de-DE')} Werte, ${record.quality.missingValues} leere Werte und ${times.gaps} fehlende Intervalle, ${times.intervalMinutes || 'ungeklärtes'}-min-Raster${Object.values(semantic.units).filter(Boolean).length ? ' in ' + [...new Set(Object.values(semantic.units).filter(Boolean))].join(', ') : '; Einheit ungeklärt'}. ${semantic.assumptions.join(' ')}${controlConfirmation(record.quality.controls) ? ` ${controlConfirmation(record.quality.controls)}` : ''}${table.emptyColumns?.length ? ` ${table.emptyColumns.length} Spalten sind durchgehend leer und für Auswertungen nicht nutzbar.` : ''}`
         );

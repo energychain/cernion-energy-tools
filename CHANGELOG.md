@@ -33,6 +33,14 @@
 
 ## Unreleased — RC3: Arbeitskontext und Quellenbezüge
 
+- Netzwirtschaft-Rolle (#986), Befunde der Live-Baseline vom 01.11.: Tabellen mit Einzeldatensätzen
+  (Rechnungen, Klärfälle, Ereignisse) werden als Zeilen und Spalten abgelegt, nicht als Messreihe mit
+  Raster und Einheit. Tabellenanalyse: doppelt erfasste Kennungen zählen einmal und werden einmal
+  genannt, offene Beträge mit Teilzahlung sind Restbeträge, Anzahlen als Ziffern, bei Warum-Fragen
+  Gründe aus allen verknüpfbaren Tabellen. Antworten aus Dokumenten greifen den Gegenstand der Frage
+  auf, übernehmen Kennungen wörtlich, nennen bei Handlungsfragen Zuständigkeit und Freigabe, liefern
+  erbetene Fragen als nummerierte Liste direkter Fragen, nennen bei verlangter Quelle je Punkt die
+  Fundstelle und duzen ohne andere Anredevorgabe.
 - Selbstverbesserung (#1039): geschützte Leseaktion `failure-signals.case({ caseId })` für einen
   ausgewählten Fehlerfall, nur für Tenant-Admins des eigenen Tenants (unbekannte und fremde Fälle
   werden gleich abgelehnt). Sie liefert nur skalare Anzeigefakten in drei Gruppen: Beobachtung und
