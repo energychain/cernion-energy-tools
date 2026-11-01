@@ -176,7 +176,7 @@ recipes:
   utility-report-ewk "A grid operator needs a structured EWK…"
 resolve: GET /api/_agent/operations?domain=regulatory
 
-### governance (50 capabilities · 1 recipes · 104 operations)
+### governance (50 capabilities · 1 recipes · 106 operations)
 capabilities: a2mdm_decision_object_meaning_preservation, automation_requirements_decision_value, automation_risk_gate, communication_break_process_risk, coordination_meaning_preservation_profile, crisis_decision_routine, cross_domain_special_topics_queue, cross_system_variance_matrix, cya_assessment_briefing, e2e_controllability_check_governance, eic_code_lookup, financier_due_diligence_assessment, flexibility_conductor_role_model, gremiencoach_workbook_readiness, grossspeicher_anschluss_readiness_gate, interconnection_release_file, interface_placeholder, jour_fixe_decision_closure_tracker, ki_floorwalker_governance, knowledge_continuity_governance_gate, layer0_audit_drilldown_note, leadership_delta_cockpit, legal_clarification_operating_model, liquidity_planning_governance_module, model_viability_evidence_gate, netzkoppelvertrag_workflow, netzprozess_readiness_gate, nkp_reporting, no_regret_measure_proof_gate, nova_decision_lifecycle_readiness, off_balancing_metering_pruefmatrix, owner_deadline_evidence_gate, process_sensitization_readiness_map, project_skill_learning, regulatory_signal_process_translator, reporting_governance, role_permission_access_readiness_gate, scqa_decision_framing, smart_meter_off_balancing_purpose_lock, stadtwerk_mauer_capability_projection, stadtwerk_mauer_event_replay_preview, stadtwerk_mauer_vdmi_profile, steering_artifact_acceptance_gate, vdmi_asset_validation_governance, vdmi_governance_templates, vdmi_grid_connection_decision_governance, vdmi_portfolio_gatekeeping, vdmi_role_boundary_governance, vnb_kpi_benchmark_comparison, zaehlpark_finanzierung_szenario_cockpit
 recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
@@ -246,17 +246,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/vdmi-blueprint-pack-seeds.test.js` — 15 new tests for #591 covering the MaKo/M2C Resolution Value Review seed: catalog lookup/list registration, the six `source_hint_only` read-model references and `metadata_only` command hints, full validator coverage (required roles/evidence/data classes/forbidden actions), qualitative-only Resolution Value framing with positive missing-evidence follow-ups, the explicit HITL boundary/no-call guard, non-executing workbench-clarification-item mapping for `ROLE_MAKO_OWNER`, the exact four-row canonical matrix (roles, gate outcomes, pending downstream sync) via `buildDemoProcessMatrixSync`/`buildLandingRegistryDraftFromBlueprintSeed`, and five negative cases (missing required evidence key, non-role matrix cell, wrong `roleLegend.M`, an executable command hint, and a missing forbidden/consequential-action guard). Full suite: `tests/vdmi-blueprint-pack-seeds.test.js` — 1 suite / 87 tests pass.
 
 ## Source File Hashes
-- CHANGELOG.md: 482f421005f318dac7c329cfceaa300a0f9a557568082d2dcf70d4a6a7818ac2
+- CHANGELOG.md: ce9bec955380212ce8f81b711a92659528584933261032d5ac5e6b5c2b132ee6
 - README.md: 6928d66c5b662282824492ef8730244f9b17d03fd69b671088fc3dcdc81d3bdf
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: d8c6398f801cc233ea13bf66a2ae66598896bd94787c382ee248075ec60b74c5
-- openapi-export.json: 045bbf32e012440f2402a58c2c1e6ca0c24f395437d6b66ebcf537cb30a898d3
+- openapi-export.json: 0cc1c653ba2223d9d848035116c0cbab2aca0057c5040c1aedf089b7f8df9b8b
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 1159
-- operation_count: 1281
+- path_count: 1161
+- operation_count: 1283
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 5da8caf1a5884dd49eda3d3b47ed6b601417b672bd5b0e09bef8114d59a18ba4
+- llm_txt_sha256: 89272e762579e52d70271316024e825abb57c7a959c8c9364f04394d84e4dcdc

@@ -118,6 +118,10 @@ async function createLocalTransport({ budget }) {
   process.env.JOB_STORE_DIR = path.join(directory, 'jobs');
   process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
   process.env.TENANT_MEMORY_RECOVERY = 'off';
+  // Services that read their store path from the environment first stay inside the run directory.
+  process.env.VDMI_DB_PATH = path.join(directory, 'vdmi');
+  process.env.CET_FUNCTION_COVERAGE_DB_PATH = path.join(directory, 'function-coverage');
+  process.env.ROLE_PROPOSALS_DB_PATH = path.join(directory, 'role-proposals');
   process.env.CET_FILE_SIGNING_KEY = randomBytes(32).toString('hex');
   process.env.WORKBENCH_LLM_TIMEOUT_MS ||= '15000,45000';
   const { createLiveHarness, isolatedSettings } = require('./workbench-live-harness');
@@ -127,6 +131,9 @@ async function createLocalTransport({ budget }) {
     'shared-service-notices',
     'tenant-memory-policy',
     'knowledge-needs',
+    'function-coverage',
+    'role-proposals',
+    'vdmi',
     'failure-signals',
     'datapoint',
     'dataset',

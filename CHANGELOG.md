@@ -33,6 +33,13 @@
 
 ## Unreleased — RC3: Arbeitskontext und Quellenbezüge
 
+- Zuständigkeiten (#1019 A1–A3): Beobachtete Abdeckung und genannte Zuständigkeiten werden zu
+  Rollenvorschlägen je Funktion (V verantwortlich, D durchführend, M mitwirkend, I informiert) mit
+  Konfidenz und Herkunft. Jede Person bestätigt oder korrigiert ihre eigene Zeile im Chat: höchstens
+  eine Rückfrage pro Turn, Antwort abgestuft mit wörtlichem Beleg ausgewertet. Ein vollständig
+  beantworteter Vorschlag wird als VDMI-Ad-hoc-Matrix festgehalten. Das Wissensregister fragt Fakten
+  danach bei D, holt Bestätigungen bei V und informiert I; ohne Matrix bleibt die Abdeckung maßgeblich.
+  Gelernte Rollen sind keine Berechtigung.
 - Selbstverbesserung, Schritt 4 (#1010): Anonymisierungsprüfung. Nur Fälle der Stufen C und D
   können den Tenant verlassen, und nur als synthetische Umformulierung, die zwei unabhängige
   Prüfungen besteht: ein deterministischer Scanner (Kennungsmuster wie MaLo/MeLo/MaStR/BDEW,

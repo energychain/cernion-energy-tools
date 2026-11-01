@@ -2,14 +2,14 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "045bbf32e012440f2402a58c2c1e6ca0c24f395437d6b66ebcf537cb30a898d3",
+  "sourceOpenApiHash": "0cc1c653ba2223d9d848035116c0cbab2aca0057c5040c1aedf089b7f8df9b8b",
   "coverage": {
-    "rawOperationCount": 1281,
-    "operationCount": 1025,
-    "agentableCount": 1023,
+    "rawOperationCount": 1283,
+    "operationCount": 1027,
+    "agentableCount": 1025,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 445,
+      "data_read": 447,
       "admin": 24,
       "object_store_write": 273,
       "process_step": 27,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 1006,
+    "resolvedActionCount": 1008,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -79120,6 +79120,137 @@
           "ENTSO-E",
           "intraday",
           "wholesale market"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "role-proposals_list",
+      "method": "GET",
+      "path": "/api/role-proposals/",
+      "service": "role-proposals",
+      "action": "role-proposals.list",
+      "summary": "Role proposals per function with confidence and confirmation (admin)",
+      "tags": [
+        "Role proposals"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "role-proposals.list"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "role-proposals:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "state",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "role",
+          "proposals",
+          "list",
+          "per",
+          "function",
+          "with",
+          "confidence",
+          "confirmation",
+          "(admin)"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me role proposals per function with confidence and confirmation (admin)"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "role-proposals_mine",
+      "method": "GET",
+      "path": "/api/role-proposals/mine",
+      "service": "role-proposals",
+      "action": "role-proposals.mine",
+      "summary": "Role rows of the calling person",
+      "tags": [
+        "Role proposals"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "role-proposals.mine"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "role-proposals:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "role",
+          "proposals",
+          "mine",
+          "rows",
+          "calling",
+          "person"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me role rows of the calling person"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
         ],
         "curated": false
       },
