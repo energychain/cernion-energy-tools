@@ -37,6 +37,13 @@
   („Die BDEW-Codenummer … lautet …“), fragt CET nicht mehr nach der Bedeutung eines vermeintlichen
   Codes, solange niemand danach fragt. Grundlage ist die Einordnung des Verständnisses (erfasste
   Mitteilung, keine Bedeutungsfrage), kein Signalwort.
+- Zuständigkeiten (#1019 A1–A3): Beobachtete Abdeckung und genannte Zuständigkeiten werden zu
+  Rollenvorschlägen je Funktion (V verantwortlich, D durchführend, M mitwirkend, I informiert) mit
+  Konfidenz und Herkunft. Jede Person bestätigt oder korrigiert ihre eigene Zeile im Chat: höchstens
+  eine Rückfrage pro Turn, Antwort abgestuft mit wörtlichem Beleg ausgewertet. Ein vollständig
+  beantworteter Vorschlag wird als VDMI-Ad-hoc-Matrix festgehalten. Das Wissensregister fragt Fakten
+  danach bei D, holt Bestätigungen bei V und informiert I; ohne Matrix bleibt die Abdeckung maßgeblich.
+  Gelernte Rollen sind keine Berechtigung.
 - Selbstverbesserung, Schritt 8 (#1010): Kennzahlen je Zeitraum (`GET /api/failure-signals/metrics`:
   erkannte Fälle, Anteil je Stufe, ohne Code behoben, Anonymisierung; netto entfernte Gates und
   Regex folgen mit den Änderungsvorschlägen) sowie lesende REST-Routen für Signale, Übersicht und

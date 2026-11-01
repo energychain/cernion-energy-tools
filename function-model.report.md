@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `ae7d260be9f3ecb3844fd5db0eb6b7fddf5f11cd42877af34353e551b285a67a`
+Source SHA-256: `34eb0b8ada77713e07bb1d6be691425fcc872e33ec7b9c20859404ba75d0142b`
 
 Capabilities: 173; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
@@ -14,7 +14,7 @@ Maximum degree target: ≤ 0.25 × 107 = 26.75; met: yes.
 
 Candidate degree before mutual selection: {"minimum":0,"median":4,"maximum":37,"isolatedFraction":0.27102803738317754}; pruned directed edges: 86; peer limit: 26.
 
-Operation index entries without action: 19/1029.
+Operation index entries without action: 19/1031.
 
 All curated capabilities are assigned once, including entries without resolvable operations.
 Edges describe catalog evidence only; they grant no authorization.
@@ -483,7 +483,7 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (107)
+## unresolvedStaticEvents (109)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:227: dynamic emission"}
@@ -566,6 +566,8 @@ None.
 - {"service":"query","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"redispatch-expost","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"residual-load","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"role-proposals","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"role-proposals","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"shared-service-agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"shared-service-agent","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"journal","ref":"src/job-store.js:67: dynamic emission"}

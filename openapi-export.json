@@ -66659,6 +66659,57 @@
         ]
       }
     },
+    "/api/role-proposals/": {
+      "get": {
+        "operationId": "role-proposals_list",
+        "summary": "Role proposals per function with confidence and confirmation (admin)",
+        "tags": [
+          "Role proposals"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/role-proposals/mine": {
+      "get": {
+        "operationId": "role-proposals_mine",
+        "summary": "Role rows of the calling person",
+        "tags": [
+          "Role proposals"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/settlement/redispatch/calculate": {
       "post": {
         "operationId": "settlement_calculateRedispatch",
