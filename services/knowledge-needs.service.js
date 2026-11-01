@@ -159,8 +159,19 @@ module.exports = {
             .filter((row) => row.score >= COVERAGE_MIN)
             .map((row) => row.functionId)
         );
-        const scored = docs
-          .filter((doc) => ['unknown', 'asked'].includes(doc.state) && doc.kind !== 'dataset')
+        const openDocs = docs.filter(
+          (doc) => ['unknown', 'asked'].includes(doc.state) && doc.kind !== 'dataset'
+        );
+        // Facts come from the performing person once a role is known (#1019 A3).
+        const roles = await this.roles(
+          p.tenantId,
+          openDocs.flatMap((doc) => doc.functionIds || [])
+        );
+        const scored = openDocs
+          .filter((doc) => {
+            const performers = this.actorsWithRole(roles, doc.functionIds, 'D');
+            return !performers.length || performers.includes(p.actorId);
+          })
           .filter(
             (doc) =>
               !(doc.asks || []).some(
@@ -261,6 +272,22 @@ module.exports = {
     },
   },
   methods: {
+    async roles(tenantId, functionIds) {
+      const service = this.broker.getLocalService('role-proposals');
+      if (typeof service?.rolesFor !== 'function' || !functionIds?.length) return {};
+      return service.rolesFor(tenantId, [...new Set(functionIds)]).catch(() => ({}));
+    },
+    actorsWithRole(roles, functionIds, role) {
+      return [
+        ...new Set(
+          (functionIds || []).flatMap((functionId) =>
+            (roles[functionId] || [])
+              .filter((row) => row.role === role && row.actorRef.actorType === 'user')
+              .map((row) => row.actorRef.actorId)
+          )
+        ),
+      ];
+    },
     async coverage(tenantId, filter) {
       const service = this.broker.getLocalService('function-coverage');
       if (typeof service?.coverageRows !== 'function') return [];
@@ -275,9 +302,28 @@ module.exports = {
         const doc = docs.find((entry) => entry.needId === item.needId);
         const answer = doc?.answers?.find((entry) => entry.answerId === item.answerId);
         if (!doc || !answer?.storeRef || (doc.unlocks || []).length < CONFIRM_MIN_UNLOCKS) continue;
-        const second = (await this.coverage(p.tenantId, { functionIds: doc.functionIds })).find(
-          (row) => row.score >= COVERAGE_MIN && row.actorId !== answer.actorId
+        // The accountable person confirms (#1019 A3); without a role, a second covering person.
+        const roles = await this.roles(p.tenantId, doc.functionIds);
+        const accountable = this.actorsWithRole(roles, doc.functionIds, 'V').find(
+          (actorId) => actorId !== answer.actorId
         );
+        const second = accountable
+          ? { actorId: accountable }
+          : (await this.coverage(p.tenantId, { functionIds: doc.functionIds })).find(
+              (row) => row.score >= COVERAGE_MIN && row.actorId !== answer.actorId
+            );
+        // Informed people get the change as a notice, without being asked.
+        for (const informed of this.actorsWithRole(roles, doc.functionIds, 'I').filter(
+          (actorId) => actorId !== answer.actorId && actorId !== second?.actorId
+        ))
+          await ctx
+            .call('shared-service-notices.enqueueMemory', {
+              tenantId: p.tenantId,
+              actorId: informed,
+              relationId: answer.storeRef,
+              factIds: [answer.storeRef],
+            })
+            .catch(() => null);
         if (!second) continue;
         const queued = await ctx
           .call('shared-service-notices.enqueueMemory', {
