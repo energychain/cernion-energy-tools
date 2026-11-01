@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { ServiceBroker } = require('moleculer');
 const llm = require('../src/llm-client');
-const { dedupKey, classify, merge } = require('../src/failure-cases');
+const { dedupKey, classify, merge, changedEvent } = require('../src/failure-cases');
 // Level proposals only; level C cases also pass the anonymization gate (own tests).
 const levelCalls = () =>
   llm.generateStructured.mock.calls.filter(
@@ -24,6 +24,54 @@ describe('failure cases (#1010 step 2)', () => {
     expect(dedupKey(a)).toBe(dedupKey(b));
     expect(dedupKey(a)).not.toBe(dedupKey({ ...a, sources: [{ source: 'other' }] }));
     expect(dedupKey(a)).not.toBe(dedupKey({ ...a, kind: 'unanswered' }));
+  });
+
+  test('merging a signal already referenced is idempotent (#1026)', () => {
+    const signal = {
+      signalId: 's1',
+      kind: 'source_timeout',
+      functionIds: ['fn-a'],
+      sources: [{ source: 'capability-read' }],
+      at: '2026-10-29T00:00:00.000Z',
+    };
+    const once = merge({ kind: 'source_timeout' }, signal);
+    expect(merge(once, signal)).toBe(once);
+    expect(merge(once, { ...signal, signalId: 's2' })).toMatchObject({
+      count: 2,
+      signals: ['s1', 's2'],
+    });
+  });
+
+  test('the change event is redacted to codes and counts (#1026)', () => {
+    expect(
+      changedEvent({
+        tenantId: 'synthetic-a',
+        caseId: 'c1',
+        status: 'open',
+        kind: 'unanswered',
+        level: 'C',
+        count: 3,
+        reasons: ['no_result'],
+        summary: 'Text',
+        hypothesis: 'Text',
+        signals: ['s1'],
+        sources: [{ source: 'capability-read', name: 'Werkzeug A', ref: 'r' }],
+        reproduction: { steps: [{ conversationId: 'chat-1' }] },
+        publication: { question: 'Text' },
+        lastSignalAt: '2026-10-29T00:00:00.000Z',
+      })
+    ).toEqual({
+      tenantId: 'synthetic-a',
+      caseId: 'c1',
+      status: 'open',
+      kind: 'unanswered',
+      level: 'C',
+      count: 3,
+      reasons: ['no_result'],
+      classifiedBy: 'pending',
+      anonymizationState: 'pending',
+      lastSignalAt: '2026-10-29T00:00:00.000Z',
+    });
   });
 
   test('the classifier sees only structured case data and falls back to the prior level', async () => {
@@ -151,12 +199,28 @@ describe('failure case register', () => {
     expect(item.signals).toHaveLength(4);
     expect(levelCalls()).toHaveLength(1);
     await new Promise((resolve) => setImmediate(resolve));
-    expect(changes.map((change) => change.classifiedBy || 'opened').slice(0, 2)).toEqual([
-      'opened',
-      'model',
-    ]);
+    expect(changes.map((change) => change.classifiedBy).slice(0, 2)).toEqual(['pending', 'model']);
     // The mocked model returns no synthetic draft: the gate fails closed.
-    expect(changes.at(-1).anonymization.state).toBe('failed');
+    expect(changes.at(-1).anonymizationState).toBe('failed');
+    // The event carries codes and counts only (#1026).
+    for (const change of changes)
+      expect(Object.keys(change).sort()).toEqual(
+        [
+          'anonymizationState',
+          'caseId',
+          'classifiedBy',
+          'count',
+          'kind',
+          'lastSignalAt',
+          'level',
+          'reasons',
+          'status',
+          'tenantId',
+        ].sort()
+      );
+    const emitted = JSON.stringify(changes);
+    for (const text of ['chat-1', 'Werkzeug A', 'Eine Quelle', 'Zeitlimit', ...item.signals])
+      expect(emitted).not.toContain(text);
   });
 
   test('a severe signal opens a case at once; a closed case that fails again is reopened', async () => {
@@ -190,6 +254,37 @@ describe('failure case register', () => {
     [item] = await casesOf();
     expect(item).toMatchObject({ caseId: opened.caseId, status: 'open', count: 2 });
     expect(item.reopenedAt).toBeTruthy();
+  });
+
+  test('the overview keeps observed signals apart from cases below, at and above the threshold (#1026)', async () => {
+    const since = new Date(Date.now() - 3600 * 1000).toISOString();
+    const overview = () => service().caseOverview('synthetic-a', since);
+    await timeout();
+    await timeout();
+    expect(await overview()).toMatchObject({ observedSignals: 2, pendingSignals: 2, total: 0 });
+    await timeout();
+    await timeout('synthetic-b');
+    expect(await overview()).toMatchObject({
+      observedSignals: 3,
+      pendingSignals: 0,
+      total: 1,
+      byStatus: { open: 1 },
+    });
+    await timeout();
+    await service().idle();
+    expect(await overview()).toMatchObject({
+      observedSignals: 4,
+      pendingSignals: 0,
+      total: 1,
+      unclassified: 0,
+    });
+    const [item] = await casesOf();
+    expect(item.count).toBe(4);
+    // Reading the overview writes nothing.
+    const before = (await service().db.allDocs()).rows.map((row) => row.value.rev);
+    await overview();
+    await broker.call('failure-signals.summary', {}, { meta: meta() });
+    expect((await service().db.allDocs()).rows.map((row) => row.value.rev)).toEqual(before);
   });
 
   test('cases stay in their tenant; the summary counts them for every role, the list needs admin', async () => {

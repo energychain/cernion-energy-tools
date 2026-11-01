@@ -646,7 +646,7 @@ module.exports = {
       }
     },
     caseChanged(doc) {
-      return this.broker.emit('self-improvement.case.changed.v1', this.caseView(doc));
+      return this.broker.emit('self-improvement.case.changed.v1', cases.changedEvent(doc));
     },
     async caseDocs(tenantId) {
       const start = `case:${encodeURIComponent(tenantId)}:`;
@@ -668,7 +668,25 @@ module.exports = {
         Object.fromEntries(
           values.map((value) => [value, docs.filter((doc) => doc[field] === value).length])
         );
+      // Observed signals and pending bundles below the threshold, so a self-report can tell
+      // observed from bundled (#1026); counts only.
+      const signals = await this.signals(tenantId, since);
+      const start = `case:${encodeURIComponent(tenantId)}:`;
+      const pending = (
+        await this.db.allDocs({ include_docs: true, startkey: start, endkey: `${start}\uffff` })
+      ).rows
+        .map((row) => row.doc)
+        .filter(
+          (doc) =>
+            doc.tenantId === tenantId &&
+            doc.type === 'failure_case' &&
+            !doc.caseId &&
+            (!since || String(doc.lastSignalAt) >= since)
+        );
       return {
+        observedSignals: signals.length,
+        pendingSignals: pending.reduce((sum, doc) => sum + (doc.count || 0), 0),
+        unclassified: docs.filter((doc) => !['model', 'prior'].includes(doc.classifiedBy)).length,
         total: docs.length,
         byLevel: count('level', cases.LEVELS),
         byStatus: count('status', cases.STATUSES),

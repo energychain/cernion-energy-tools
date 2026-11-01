@@ -173,3 +173,31 @@ test('"which failures did you recognise" reports cases of the own tenant with le
   });
   expect(other.evidence.filter((hit) => hit.source === 'self-improvement')).toEqual([]);
 });
+
+test('observed failure signals without a case are reported apart from cases, never as fixed (#1026)', async () => {
+  const { service, ctx } = setup();
+  const caseOverview = jest.fn(async () => ({
+    observedSignals: 2,
+    pendingSignals: 2,
+    unclassified: 0,
+    total: 0,
+    byLevel: { A: 0, B: 0, C: 0, D: 0 },
+    byStatus: {},
+    latest: [],
+  }));
+  ctx.broker = {
+    getLocalService: (name) =>
+      name === 'failure-signals' ? { caseOverview } : name === 'domain-router' ? undefined : {},
+  };
+  const result = await searchKnowledge(service, ctx, p, {
+    selfKnowledge: { query: 'Fehler' },
+    retrievalTerms: [],
+  });
+  const values = result.evidence
+    .filter((hit) => hit.source === 'self-improvement')
+    .map((hit) => hit.value);
+  expect(values).toHaveLength(1);
+  expect(values[0]).toMatch(
+    /^Beobachtete Fehlersignale seit \d{4}-\d{2}-\d{2}: 2; noch keinem Fehlerfall zugeordnet: 2; gebündelte Fehlerfälle: 0 \(noch nicht eingestuft: 0\)\. Erkannt heißt nicht behoben oder veröffentlicht\.$/u
+  );
+});

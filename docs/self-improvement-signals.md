@@ -32,7 +32,9 @@ Detection reads only status fields the turn already reports. No signal word or w
 - **Reproduction:** the last 10 turn references (conversation id, turn reference, time), the observed kinds and reasons, and the expected behaviour from the classifier. Fixtures come with the anonymization gate (step 4); `anonymization.state` stays `pending` until then.
 - **Access:** `failure-signals.cases` requires an admin role; `failure-signals.summary` adds case counts per level and status for every role.
 - **Self-report (#700):** the self-knowledge search lists the cases of the last 7 days with level, status and summary (source "Selbst erkannte Fehler").
-- Event: `self-improvement.case.changed.v1` on opening, classification, status change and staleness.
+- Event: `self-improvement.case.changed.v1` on opening, classification, status change and staleness. It carries redacted metadata only (#1026): `tenantId`, `caseId`, `status`, `kind`, `level`, `count`, reason codes, `classifiedBy` (`model`, `prior` or `pending`), `anonymizationState` and `lastSignalAt`; no summary, hypothesis, reproduction steps, source names or refs, signal ids or publication draft.
+- **Idempotency (#1026):** a signal whose `signalId` the bundle already references is not counted again; the bundle keeps at most the last 50 signal ids.
+- **Observed vs. bundled (#1026):** the case overview (summary, self-report) also counts the observed signals of the period, the signals of bundles still below the threshold and the cases not yet classified. The self-report states these apart from the cases and that recognised does not mean fixed or published.
 
 ## Step 3: levels A and B at runtime
 
