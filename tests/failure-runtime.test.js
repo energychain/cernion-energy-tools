@@ -106,6 +106,27 @@ describe('level A at runtime (#1010 step 3)', () => {
     // No pull request, no issue: the fix happened at runtime.
     expect(item.refs.pr).toBeUndefined();
     expect(item.refs.issue).toBeUndefined();
+    // The selected-case view (#1039) shows the recorded evidence with its scope caveat only.
+    const read = () => broker.call('failure-signals.case', { caseId: item.caseId }, { meta });
+    const view = await read();
+    expect(view.observation).toMatchObject({ status: 'resolved_runtime', proposedLevel: 'A' });
+    expect(view.runtime).toMatchObject({
+      evidence: 'recorded_tenant_runtime_evidence',
+      runtimeLevel: 'A',
+      runtimeAction: 'skill_redesigned',
+      runtimeAttemptCount: 1,
+      replayKind: 'skill_validation',
+      replayResult: 'passed',
+      skillRef: 'skill-new',
+      scopeCaveat: expect.stringMatching(/keine globale Produktbehebung/),
+    });
+    expect(view.readiness).toMatchObject({
+      anonymizationState: 'not_applicable',
+      nextReviewGate: 'tenant_admin_runtime_evidence_review',
+    });
+    expect(JSON.stringify(view)).not.toContain('project-1');
+    expect(await read()).toEqual(view);
+    expect(journal).toHaveLength(1);
   });
 
   test('a retired skill resolves its case once, even when the retirement is reported twice', async () => {
