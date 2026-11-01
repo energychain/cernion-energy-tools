@@ -1,20 +1,20 @@
 # Shepherd Summary
 
-Generated: 2026-11-01T13:18:24.232Z
-Run: 20261101T131712Z
-Branch: shepherd/runtime-refactor-20261101T131711Z
-Fingerprint: 9b6222b1a4db55a2a2ed122e391b3bec0e5d56abc259ae75c5de2786a20a5ded
+Generated: 2026-11-01T19:22:57.322Z
+Run: 20261101T192142Z
+Branch: shepherd/runtime-refactor-20261101T192141Z
+Fingerprint: 94cc593bd6ceeb88e6dfdb672db5445668328fab0628fdab8b59e5b5d8350720
 
 ## Current measurable surface
 
-- Files: 2246
-- Services: 167
-- src JS files: 478
-- Tests: 561
+- Files: 2252
+- Services: 168
+- src JS files: 479
+- Tests: 564
 - Agentic files: 279
 - OpenWebUI/ChatGPT files: 42
 - Evidence/HITL files: 100
-- Routing/capability files: 119
+- Routing/capability files: 120
 - Services without obvious direct filename-mapped test: 30
 
 ## Artifact state
@@ -27,10 +27,10 @@ Fingerprint: 9b6222b1a4db55a2a2ed122e391b3bec0e5d56abc259ae75c5de2786a20a5ded
 
 ## Top directories
 
-- `tests`: 648 files
-- `src`: 546 files
-- `docs`: 452 files
-- `services`: 203 files
+- `tests`: 651 files
+- `src`: 547 files
+- `docs`: 453 files
+- `services`: 204 files
 - `scripts`: 98 files
 - `tools`: 85 files
 - `agentic-architecture`: 61 files
@@ -51,8 +51,8 @@ Fingerprint: 9b6222b1a4db55a2a2ed122e391b3bec0e5d56abc259ae75c5de2786a20a5ded
 ## Domain abstraction
 
 - Domain abstraction: present
-- Domain fingerprint: a9a79bb0d3299711465463be79af92983a01d9e5ad44d9d4258a68b90d544b47
-- Candidate files: 1342
+- Domain fingerprint: 2d36cbba3701230666eed3f84f114f3660aa8b2968e878c4ff24be81d899b755
+- Candidate files: 1345
 - Unclassified services: 0
 
 Cluster counts:
@@ -64,7 +64,7 @@ Cluster counts:
 - `forecast-and-market` — Prognose, Markt und Portfolio: 18 services, 25 top files
 - `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files
 - `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files
-- `tenant-and-operation` — Tenant, Rollen und Betrieb: 54 services, 25 top files
+- `tenant-and-operation` — Tenant, Rollen und Betrieb: 55 services, 25 top files
 - `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files
 
 Case types:

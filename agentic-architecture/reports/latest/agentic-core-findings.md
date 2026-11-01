@@ -1,11 +1,11 @@
 # Agentic Core Findings
 
-Generated: 2026-11-01T13:18:19.084Z
+Generated: 2026-11-01T19:22:52.010Z
 
 ## Current measurable surface
 
 - Agentic files: 279
-- Routing/capability files: 119
+- Routing/capability files: 120
 - Evidence/HITL files: 100
 - Operation capability index: present
 - OpenAPI export: present
@@ -13,24 +13,24 @@ Generated: 2026-11-01T13:18:19.084Z
 
 ## Domain term distribution
 
-- `evidence`: 24868 hits in 894 files
-- `tenant`: 18821 hits in 939 files
-- `broker`: 11763 hits in 715 files
-- `grid`: 9610 hits in 665 files
+- `evidence`: 24878 hits in 898 files
+- `tenant`: 18892 hits in 945 files
+- `broker`: 11817 hits in 720 files
+- `grid`: 9611 hits in 666 files
 - `agent`: 8391 hits in 786 files
 - `decision`: 6645 hits in 457 files
-- `capability`: 6274 hits in 563 files
+- `capability`: 6275 hits in 564 files
 - `forecast`: 4590 hits in 332 files
 - `stadtwerk`: 4544 hits in 248 files
-- `vdmi`: 4440 hits in 294 files
+- `vdmi`: 4466 hits in 299 files
 - `redispatch`: 3928 hits in 311 files
 - `market`: 3778 hits in 407 files
-- `hitl`: 3670 hits in 447 files
-- `edm`: 2958 hits in 378 files
+- `hitl`: 3672 hits in 448 files
+- `edm`: 2962 hits in 381 files
 - `regulator`: 2686 hits in 343 files
-- `mako`: 2522 hits in 314 files
+- `mako`: 2523 hits in 314 files
 - `receipt`: 2491 hits in 175 files
-- `routing`: 2339 hits in 397 files
+- `routing`: 2343 hits in 400 files
 - `personal-agent`: 1993 hits in 315 files
 - `workflow`: 1592 hits in 255 files
 - `willi`: 1536 hits in 113 files

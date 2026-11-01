@@ -1,6 +1,6 @@
 # OpenWebUI / Agentic Core Blind Spots
 
-Generated: 2026-11-01T13:18:19.084Z
+Generated: 2026-11-01T19:22:52.010Z
 
 ## Observed adapter surface
 
@@ -180,6 +180,7 @@ Routing/capability/broker/manifest files:
 - `tests/project-manifest.service.test.js`
 - `tests/project-manifest.test.js`
 - `tests/python/test_e2e_proxy_routes.py`
+- `tests/role-routing.test.js`
 - `tests/workbench-capability-loop.test.js`
 - `tests/workbench-intent-router.test.js`
 - `tests/workbench-project-manifest.test.js`

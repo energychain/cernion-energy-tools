@@ -1,6 +1,6 @@
 # Energy Domain Canon
 
-Generated: 2026-11-01T13:18:24.170Z
+Generated: 2026-11-01T19:22:57.241Z
 
 Status: deterministic Shepherd working model, not a legal/regulatory assertion. It describes recurring fachliche structures visible in code/docs and should guide agentic development.
 
@@ -49,7 +49,7 @@ Starke Code-/Doku-Signale:
 Zugeordnete Services nach Heuristik:
 
 - `domain-router` — services/domain-router.service.js (2 actions)
-- `failure-signals` — services/failure-signals.service.js (5 actions)
+- `failure-signals` — services/failure-signals.service.js (2 actions)
 - `personal-agent` — services/personal-agent.service.js
 
 ## Evidence, Nachweis und Vertrauen
