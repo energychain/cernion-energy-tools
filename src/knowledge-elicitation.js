@@ -33,11 +33,53 @@ function askText(need, register) {
   };
 }
 
+const ROLE_ANSWER_WINDOW_MS = 6 * 3600 * 1000;
+
+// Role rows (#1019): a reply right after a role question may confirm or correct it. Read off
+// the answer path; only when that question was the last one asked, and recently.
+function recognizeRoleAnswer(ctx, { envelope, pending, meta }) {
+  const last = (pending?.askedQuestions || []).at(-1);
+  if (
+    last?.kind !== 'role' ||
+    !String(last.key || '').startsWith('role:') ||
+    Date.now() - (pending?.lastKnowledgeAskAt || 0) > ROLE_ANSWER_WINDOW_MS ||
+    !ctx.broker.getLocalService?.('role-proposals')
+  )
+    return;
+  ctx
+    .call(
+      'role-proposals.answer',
+      { message: envelope.userRequest, functionIds: [last.key.slice('role:'.length)] },
+      { meta }
+    )
+    .catch((error) =>
+      ctx.broker.logger.warn('Role answer not read', { reason: String(error.message) })
+    );
+}
+
+async function roleAsk(ctx, { envelope, situation, signals, meta }) {
+  if (!ctx.broker.getLocalService?.('role-proposals')) return null;
+  return ctx.call(
+    'role-proposals.selectAsk',
+    {
+      conversationId: envelope.conversationId,
+      functionIds: signals.functionIds || [],
+      register: situation.conversationPreferences?.register,
+    },
+    { meta }
+  );
+}
+
 async function inlineAsk(
   ctx,
   { situation, envelope, pending, reply, result, retrieval, incomingDocuments, meta }
 ) {
-  if (!ctx.broker.getLocalService?.('knowledge-needs')) return null;
+  recognizeRoleAnswer(ctx, { envelope, pending, meta });
+  if (
+    !ctx.broker.getLocalService?.('knowledge-needs') &&
+    !ctx.broker.getLocalService?.('role-proposals')
+  )
+    return null;
   if (
     incomingDocuments ||
     envelope.datasetIds?.length ||
@@ -51,9 +93,14 @@ async function inlineAsk(
   )
     return null;
   try {
+    const signals = turnSignals(result, retrieval, situation);
+    // At most one context question per turn: an own role row first, then a knowledge need.
+    const role = await roleAsk(ctx, { envelope, situation, signals, meta }).catch(() => null);
+    if (role) return role;
+    if (!ctx.broker.getLocalService?.('knowledge-needs')) return null;
     const need = await ctx.call(
       'knowledge-needs.selectAsk',
-      { conversationId: envelope.conversationId, ...turnSignals(result, retrieval, situation) },
+      { conversationId: envelope.conversationId, ...signals },
       { meta }
     );
     if (!need) return null;

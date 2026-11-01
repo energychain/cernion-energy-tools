@@ -945,6 +945,14 @@ async function understand({
         [...primaryReferences, ...classified.references].map((entry) => [entry.value, entry])
       ).values(),
     ];
+    // A value the person states as a fact about the own organisation is that fact, not a code to
+    // explain, unless its meaning is asked for (#993: from the understanding, no wording gate).
+    if (!classified.meaningRequested && result.tenantMemory?.assertions?.length) {
+      const stated = result.tenantMemory.assertions.map((item) => item.basis || '').join('\n');
+      result.codeReferences = result.codeReferences.filter(
+        (entry) => !require('./workbench-codes').exactToken(stated, entry.value)
+      );
+    }
     result.internalSubjects = [
       ...new Set([
         ...(previous?.internalSubjects || []),
