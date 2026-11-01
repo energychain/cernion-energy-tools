@@ -33,6 +33,12 @@
 
 ## Unreleased — RC3: Arbeitskontext und Quellenbezüge
 
+- Selbstverbesserung, Schritt 8 (#1010): Kennzahlen je Zeitraum (`GET /api/failure-signals/metrics`:
+  erkannte Fälle, Anteil je Stufe, ohne Code behoben, Anonymisierung; netto entfernte Gates und
+  Regex folgen mit den Änderungsvorschlägen) sowie lesende REST-Routen für Signale, Übersicht und
+  Fälle. Neues Praxis-Szenario: Ein Widerspruch im Chat wird ein eingestufter Fehlerfall mit
+  Reproduktion. Die Fehlerbeobachtung eines Turns wird jetzt vollständig abgewartet (sauberes
+  Herunterfahren, verlässliche Prüfung).
 - Selbstverbesserung, Schritt 4 (#1010): Anonymisierungsprüfung. Nur Fälle der Stufen C und D
   können den Tenant verlassen, und nur als synthetische Umformulierung, die zwei unabhängige
   Prüfungen besteht: ein deterministischer Scanner (Kennungsmuster wie MaLo/MeLo/MaStR/BDEW,

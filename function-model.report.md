@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `6ae37b71bcb254f791d0e8b45a340871f38c0e1c35dea279cd403f6d2ef8a3ca`
+Source SHA-256: `b9ceffc963928cb6100c41536146ef4f5a8912725fbd67264fd023628a176012`
 
 Capabilities: 173; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
@@ -14,7 +14,7 @@ Maximum degree target: ≤ 0.25 × 107 = 26.75; met: yes.
 
 Candidate degree before mutual selection: {"minimum":0,"median":4,"maximum":37,"isolatedFraction":0.27102803738317754}; pruned directed edges: 86; peer limit: 26.
 
-Operation index entries without action: 19/1025.
+Operation index entries without action: 19/1029.
 
 All curated capabilities are assigned once, including entries without resolvable operations.
 Edges describe catalog evidence only; they grant no authorization.

@@ -87,7 +87,16 @@ describe('versioned generated practice catalog', () => {
     expect(c.scenarios.some((s) => s.turns.some((t) => t.document?.format === 'openwebui'))).toBe(
       true
     );
-    expect(c.scenarios.reduce((n, s) => n + (s.memory ? 10 : 3), 0)).toBe(202);
+    // Self-improvement (#1010): one scenario where a rejection becomes a failure case.
+    expect(c.scenarios.find((s) => s.id === 'self-correction')).toMatchObject({
+      group: 'B.4',
+      turns: [
+        { id: 'question' },
+        { id: 'rejection' },
+        { id: 'register', operation: 'failure-cases' },
+      ],
+    });
+    expect(c.scenarios.reduce((n, s) => n + (s.memory ? 10 : 3), 0)).toBe(205);
     const evidence = c.scenarios.find((item) => item.id === 'document-table');
     expect(evidence.turns.slice(0, 2).map((item) => item.chat)).toEqual(['first', 'second']);
     expect(evidence.turns.slice(2, 4).every((item) => item.expect.rules.numeric.length === 2)).toBe(
