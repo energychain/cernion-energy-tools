@@ -40,6 +40,15 @@
   beantworteter Vorschlag wird als VDMI-Ad-hoc-Matrix festgehalten. Das Wissensregister fragt Fakten
   danach bei D, holt Bestätigungen bei V und informiert I; ohne Matrix bleibt die Abdeckung maßgeblich.
   Gelernte Rollen sind keine Berechtigung.
+- Selbstverbesserung (#1039): geschützte Leseaktion `failure-signals.case({ caseId })` für einen
+  ausgewählten Fehlerfall, nur für Tenant-Admins des eigenen Tenants (unbekannte und fremde Fälle
+  werden gleich abgelehnt). Sie liefert nur skalare Anzeigefakten in drei Gruppen: Beobachtung und
+  Einstufung (Modellvorschlag, Vorschlag nach Signalart oder Einstufung ausstehend), bereits
+  aufgezeichneter Laufzeitnachweis (sonst `not_run`/`evidence_unavailable`, nie `failed`) und
+  Reife mit fehlenden Nachweisen, Anonymisierungsstand, nächstem Prüfschritt und dem Hinweis,
+  dass `resolved_runtime` keine globale Behebung, Anonymisierung oder Veröffentlichungsreife
+  belegt. Keine Signale, Schritte, Replay-Fragen, Quellnamen oder Entwürfe; das Lesen schreibt,
+  stuft ein, wiederholt, prüft und meldet nichts.
 - Selbstverbesserung, Schritt 4 (#1010): Anonymisierungsprüfung. Nur Fälle der Stufen C und D
   können den Tenant verlassen, und nur als synthetische Umformulierung, die zwei unabhängige
   Prüfungen besteht: ein deterministischer Scanner (Kennungsmuster wie MaLo/MeLo/MaStR/BDEW,
