@@ -145,8 +145,10 @@ async function classify(caseDoc, { tenantId, broker, functionLabels } = {}) {
   }
 }
 
-// Merge one signal into an existing case document (or the pending counter of a key).
+// Merge one signal into an existing case document (or the pending counter of a key). A signal
+// already referenced is not counted again, so a replay never duplicates membership (#1026).
 function merge(caseDoc, signal) {
+  if (signal.signalId && (caseDoc.signals || []).includes(signal.signalId)) return caseDoc;
   const sources = new Map(
     [...(caseDoc.sources || []), ...(signal.sources || [])].map((item) => [
       `${item.source}:${item.name || ''}`,
@@ -167,6 +169,25 @@ function merge(caseDoc, signal) {
         : []),
     ].slice(-MAX_STEPS),
     lastSignalAt: signal.at,
+  };
+}
+
+// Redacted metadata for self-improvement.case.changed.v1 (#1026): codes and counts only, no
+// summary, hypothesis, reproduction steps, source names or refs, signal ids or draft.
+function changedEvent(doc) {
+  return {
+    tenantId: doc.tenantId,
+    caseId: doc.caseId,
+    status: STATUSES.includes(doc.status) ? doc.status : 'open',
+    kind: doc.kind,
+    level: LEVELS.includes(doc.level) ? doc.level : undefined,
+    count: Number.isInteger(doc.count) ? doc.count : 0,
+    reasons: (doc.reasons || [])
+      .filter((item) => typeof item === 'string')
+      .map((item) => item.slice(0, 80)),
+    classifiedBy: ['model', 'prior'].includes(doc.classifiedBy) ? doc.classifiedBy : 'pending',
+    anonymizationState: doc.anonymization?.state || 'pending',
+    lastSignalAt: doc.lastSignalAt,
   };
 }
 
@@ -348,5 +369,6 @@ module.exports = {
   readable,
   classify,
   merge,
+  changedEvent,
   selectedCase,
 };

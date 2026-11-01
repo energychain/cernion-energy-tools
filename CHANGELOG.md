@@ -52,6 +52,12 @@
   beantworteter Vorschlag wird als VDMI-Ad-hoc-Matrix festgehalten. Das Wissensregister fragt Fakten
   danach bei D, holt Bestätigungen bei V und informiert I; ohne Matrix bleibt die Abdeckung maßgeblich.
   Gelernte Rollen sind keine Berechtigung.
+- Selbstverbesserung (#1026): Das Ereignis `self-improvement.case.changed.v1` trägt nur noch
+  Codes und Zahlen (Mandant, Fall, Status, Art, Stufe, Anzahl, Gründe, Einstufungs- und
+  Anonymisierungsstand), keine Zusammenfassung, Reproduktion, Quellennamen oder Signal-Kennungen.
+  Ein bereits zugeordnetes Signal wird nicht erneut gezählt. Die Selbstauskunft trennt beobachtete
+  Signale von gebündelten Fällen (noch keinem Fall zugeordnet, noch nicht eingestuft) und sagt
+  ausdrücklich, dass erkannt nicht behoben heißt.
 - Selbstverbesserung, Schritt 8 (#1010): Kennzahlen je Zeitraum (`GET /api/failure-signals/metrics`:
   erkannte Fälle, Anteil je Stufe, ohne Code behoben, Anonymisierung; netto entfernte Gates und
   Regex folgen mit den Änderungsvorschlägen) sowie lesende REST-Routen für Signale, Übersicht und

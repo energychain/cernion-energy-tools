@@ -215,7 +215,9 @@ async function searchKnowledge(service, ctx, p, situation, scope = {}) {
       if (typeof register?.caseOverview !== 'function') throw new Error('Register unavailable');
       const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
       const overview = await register.caseOverview(p.tenantId, since);
-      if (!overview.total) return [];
+      // Observed signals are not cases yet; the report keeps both apart (#1026).
+      const observed = Number.isInteger(overview.observedSignals) ? overview.observedSignals : 0;
+      if (!overview.total && !observed) return [];
       const status = {
         open: 'offen',
         resolved_runtime: 'zur Laufzeit behoben',
@@ -231,20 +233,34 @@ async function searchKnowledge(service, ctx, p, situation, scope = {}) {
           .map(([key, value]) => `${names[key] || key}: ${value}`)
           .join(', ');
       const found = [
-        hit(
-          'self-improvement',
-          'Selbst erkannte Fehlerfälle',
-          `Selbst erkannte Fehlerfälle seit ${since.slice(0, 10)}: ${overview.total} (Stufen ${counts(overview.byLevel)}; ${counts(overview.byStatus, status)}).`,
-          { caseCount: overview.total }
-        ),
-        ...overview.latest.map((item) =>
-          hit(
-            'self-improvement',
-            item.summary,
-            `Fehlerfall (Stufe ${item.level}, ${status[item.status] || item.status}, ${item.count} Signale): ${item.summary}${item.levelReason ? ` – ${item.levelReason}` : ''}`,
-            { caseId: item.caseId, level: item.level, status: item.status }
-          )
-        ),
+        ...(overview.total
+          ? [
+              hit(
+                'self-improvement',
+                'Selbst erkannte Fehlerfälle',
+                `Selbst erkannte Fehlerfälle seit ${since.slice(0, 10)}: ${overview.total} (Stufen ${counts(overview.byLevel)}; ${counts(overview.byStatus, status)}).`,
+                { caseCount: overview.total }
+              ),
+              ...overview.latest.map((item) =>
+                hit(
+                  'self-improvement',
+                  item.summary,
+                  `Fehlerfall (Stufe ${item.level}, ${status[item.status] || item.status}, ${item.count} Signale): ${item.summary}${item.levelReason ? ` – ${item.levelReason}` : ''}`,
+                  { caseId: item.caseId, level: item.level, status: item.status }
+                )
+              ),
+            ]
+          : []),
+        ...(observed
+          ? [
+              hit(
+                'self-improvement',
+                'Beobachtete Fehlersignale',
+                `Beobachtete Fehlersignale seit ${since.slice(0, 10)}: ${observed}; noch keinem Fehlerfall zugeordnet: ${overview.pendingSignals || 0}; gebündelte Fehlerfälle: ${overview.total} (noch nicht eingestuft: ${overview.unclassified || 0}). Erkannt heißt nicht behoben oder veröffentlicht.`,
+                { signalCount: observed, caseCount: overview.total }
+              ),
+            ]
+          : []),
       ];
       // Like the other stores: only when the question concerns these entries.
       return matches(found.map((entry) => entry.value).join('\n'), terms) ? found : [];
