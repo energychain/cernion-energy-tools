@@ -117,19 +117,23 @@ function afterTurn(ctx, result) {
       ctx.params?.messages?.findLast?.((turn) => turn.role === 'user')?.content,
     ].find((value) => typeof value === 'string' && value.trim());
     const capturedFacts = [...new Set(meta?.tenantMemoryCurrentFacts || [])].slice(0, 20);
-    register
-      .observeTurn({
-        tenantId,
-        conversationId: conversationId ? String(conversationId).slice(0, 200) : undefined,
-        turnRef: String(ctx.id || '').slice(0, 120) || undefined,
-        outcome: turnOutcome(result),
-        question: question ? question.slice(0, 2000) : undefined,
-        capturedFacts,
-        replayCtx: capturedFacts.length
-          ? require('./project-skill-learning').detachedContext({ broker: ctx.broker, meta })
-          : undefined,
-      })
-      .catch((error) => ctx.broker.logger.warn('Failure signal not recorded', error.message));
+    // Tracked like the register's own follow-ups, so idle() and shutdown wait for it.
+    const observed = register.observeTurn({
+      tenantId,
+      conversationId: conversationId ? String(conversationId).slice(0, 200) : undefined,
+      turnRef: String(ctx.id || '').slice(0, 120) || undefined,
+      outcome: turnOutcome(result),
+      question: question ? question.slice(0, 2000) : undefined,
+      capturedFacts,
+      replayCtx: capturedFacts.length
+        ? require('./project-skill-learning').detachedContext({ broker: ctx.broker, meta })
+        : undefined,
+    });
+    if (typeof register.track === 'function') register.track(observed);
+    else
+      observed.catch((error) =>
+        ctx.broker.logger.warn('Failure signal not recorded', error.message)
+      );
   } catch (error) {
     ctx.broker.logger.warn('Failure signal observation skipped', error.message);
   }

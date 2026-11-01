@@ -57,6 +57,16 @@ module.exports = {
   ],
   actions: {
     list: {
+      rest: 'GET /signals',
+      openapi: {
+        summary: 'List failure signals of the tenant (admin)',
+        tags: ['Self-improvement'],
+        parameters: [
+          { in: 'query', name: 'kind', schema: { type: 'string' } },
+          { in: 'query', name: 'since', schema: { type: 'string' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
+      },
       params: {
         kind: { type: 'enum', values: KINDS, optional: true },
         since: { type: 'string', optional: true, max: 40 },
@@ -71,6 +81,12 @@ module.exports = {
       },
     },
     summary: {
+      rest: 'GET /summary',
+      openapi: {
+        summary: 'Failure signals and cases per kind, level and status',
+        tags: ['Self-improvement'],
+        parameters: [{ in: 'query', name: 'since', schema: { type: 'string' } }],
+      },
       params: { since: { type: 'string', optional: true, max: 40 } },
       async handler(ctx) {
         const p = principal(ctx, ctx.params);
@@ -88,6 +104,16 @@ module.exports = {
       },
     },
     cases: {
+      rest: 'GET /cases',
+      openapi: {
+        summary: 'List failure cases of the tenant (admin)',
+        tags: ['Self-improvement'],
+        parameters: [
+          { in: 'query', name: 'status', schema: { type: 'string' } },
+          { in: 'query', name: 'level', schema: { type: 'string' } },
+          { in: 'query', name: 'limit', schema: { type: 'number' } },
+        ],
+      },
       params: {
         status: { type: 'enum', values: cases.STATUSES, optional: true },
         level: { type: 'enum', values: cases.LEVELS, optional: true },
@@ -140,6 +166,57 @@ module.exports = {
             functionIds: doc.functionIds || [],
             publication: doc.publication,
           }));
+      },
+    },
+    // Step 8: metrics per period (counts only, no case content).
+    metrics: {
+      rest: 'GET /metrics',
+      openapi: {
+        summary: 'Self-improvement metrics per period: cases, levels, fixes without code',
+        tags: ['Self-improvement'],
+        parameters: [{ in: 'query', name: 'since', schema: { type: 'string' } }],
+      },
+      params: { since: { type: 'string', optional: true, max: 40 } },
+      async handler(ctx) {
+        const p = principal(ctx, ctx.params);
+        const since = ctx.params.since || new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+        const signals = await this.signals(p.tenantId, since);
+        const docs = (await this.caseDocs(p.tenantId)).filter(
+          (doc) => String(doc.openedAt) >= since || String(doc.resolvedAt || '') >= since
+        );
+        const count = (predicate) => docs.filter(predicate).length;
+        const share = (part, whole) => (whole ? Math.round((part / whole) * 1000) / 1000 : null);
+        const runtime = count((doc) => doc.status === 'resolved_runtime');
+        const merged = count((doc) => doc.status === 'merged');
+        return {
+          since,
+          signals: signals.length,
+          cases: docs.length,
+          byLevel: Object.fromEntries(
+            cases.LEVELS.map((level) => [level, count((doc) => doc.level === level)])
+          ),
+          levelShare: Object.fromEntries(
+            cases.LEVELS.map((level) => [
+              level,
+              share(
+                count((doc) => doc.level === level),
+                docs.length
+              ),
+            ])
+          ),
+          byStatus: Object.fromEntries(
+            cases.STATUSES.map((status) => [status, count((doc) => doc.status === status)])
+          ),
+          fixedWithoutCode: runtime,
+          fixedWithoutCodeShare: share(runtime, runtime + merged),
+          anonymization: {
+            passed: count((doc) => doc.anonymization?.state === 'passed'),
+            failed: count((doc) => doc.anonymization?.state === 'failed'),
+          },
+          // Filled by change proposals (steps 6 and 7); null until they exist.
+          netRemovedGates: null,
+          netRemovedRegex: null,
+        };
       },
     },
     // Internal: later steps (runtime fixes, issues, PRs) move cases through this.
