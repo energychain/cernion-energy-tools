@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-11-01T01:11:22.659Z",
+  "generatedAt": "2026-11-01T13:18:19.084Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261101T011005Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261101T131712Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
@@ -403,11 +403,11 @@
     },
     "capability": {
       "files": 563,
-      "hits": 6272
+      "hits": 6274
     },
     "broker": {
-      "files": 714,
-      "hits": 11753
+      "files": 715,
+      "hits": 11763
     },
     "openwebui": {
       "files": 108,
@@ -422,8 +422,8 @@
       "hits": 402
     },
     "evidence": {
-      "files": 891,
-      "hits": 24836
+      "files": 894,
+      "hits": 24868
     },
     "receipt": {
       "files": 175,
@@ -443,7 +443,7 @@
     },
     "tenant": {
       "files": 939,
-      "hits": 18777
+      "hits": 18821
     },
     "market": {
       "files": 407,
@@ -463,7 +463,7 @@
     },
     "edm": {
       "files": 378,
-      "hits": 2956
+      "hits": 2958
     },
     "mako": {
       "files": 314,
