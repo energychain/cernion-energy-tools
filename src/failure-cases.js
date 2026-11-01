@@ -170,6 +170,173 @@ function merge(caseDoc, signal) {
   };
 }
 
+// Selected-case presenter (#1039): scalar, display-safe facts of one stored case for a tenant
+// admin. Pure: it reads the stored document only, never classifies, replays or writes, and
+// leaves out signals, steps, replay questions, names, refs of sources and the publication draft.
+const RUNTIME_LEVELS = new Set(['A', 'B']);
+const REPLAY_KINDS = new Set(['shadow_replay', 'skill_validation', 'none']);
+const ANONYMIZATION_STATES = new Set(['pending', 'passed', 'failed']);
+const RESOLVED_RUNTIME_CAVEAT =
+  'Laufzeitnachweis nur für diesen Tenant; belegt keine globale Produktbehebung, keine Anonymisierung und keine Veröffentlichungsreife.';
+const PASSED_GATE_CAVEAT =
+  'Nur der gespeicherte umformulierte Entwurf hat die Tenant-Ausgangsprüfung bestanden; das belegt keine Behebung, Freigabe, Veröffentlichung, Eignung für den Demo-Raum oder Produktionssicherheit.';
+const CLASSIFICATION = {
+  model: ['model_proposed', 'structured_case_data_model_proposal'],
+  prior: ['prior_fallback', 'signal_kind_prior'],
+};
+
+const label = (value, max = 80) =>
+  typeof value === 'string' && value ? value.slice(0, max) : undefined;
+const time = (value) =>
+  typeof value === 'string' && !Number.isNaN(Date.parse(value)) ? value.slice(0, 40) : undefined;
+const joined = (values, max = 300) =>
+  [...new Set(values.filter(Boolean))].join(', ').slice(0, max) || undefined;
+const compact = (object) =>
+  Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined));
+
+function replayResult(replay) {
+  if (!replay || typeof replay !== 'object') return 'evidence_unavailable';
+  if (replay.passed === true) return 'passed';
+  if (replay.error) return 'replay_error';
+  if (replay.answered === false) return 'not_answered';
+  return 'not_passed';
+}
+
+function followUp(doc, level, runtime, anonymizationState) {
+  if (doc.status === 'resolved_runtime')
+    return [
+      'tenant_admin_runtime_evidence_review',
+      'Laufzeitnachweis prüfen und beobachten, ob der Fall ruhig bleibt; tritt er erneut auf, öffnet er sich wieder.',
+    ];
+  if (doc.status === 'stale')
+    return [
+      'tenant_admin_stale_review',
+      'Seit 30 Tagen ohne neues Signal; prüfen, ob der Fall erledigt ist. Ein neues Signal öffnet ihn wieder.',
+    ];
+  if (doc.status !== 'open')
+    return [
+      'tenant_admin_development_review',
+      'Den verknüpften Entwicklungsschritt prüfen; der Fall bleibt bis dahin im Register sichtbar.',
+    ];
+  if (level === 'A')
+    return [
+      'tenant_admin_runtime_level_review',
+      'Den betroffenen Check im Projekt neu entwerfen oder zurückziehen; die automatische Prüfung erscheint hier als Laufzeitnachweis.',
+    ];
+  if (level === 'B')
+    return [
+      'tenant_admin_runtime_level_review',
+      runtime
+        ? 'Die fehlende Tenant-Angabe im Chat ergänzen; der nächste Wiederholungslauf erscheint hier als Laufzeitnachweis.'
+        : 'Die fehlende Tenant-Angabe im Chat ergänzen; ein Wiederholungslauf erscheint hier als Laufzeitnachweis.',
+    ];
+  if (anonymizationState === 'passed')
+    return [
+      'tenant_admin_egress_review',
+      'Den synthetischen Entwurf vor jeder Weitergabe durch eine Person prüfen lassen.',
+    ];
+  return [
+    'tenant_admin_anonymization_review',
+    'Fall intern prüfen; eine Weitergabe ist erst nach bestandener Anonymisierungsprüfung möglich.',
+  ];
+}
+
+function selectedCase(doc, { functionLabels = {} } = {}) {
+  const level = LEVELS.includes(doc.level) ? doc.level : undefined;
+  const [classificationState, classificationProvenance] = CLASSIFICATION[doc.classifiedBy] || [
+    'classification_unavailable',
+    'signal_kind_prior_pending',
+  ];
+  const runtime = doc.runtime && typeof doc.runtime === 'object' ? doc.runtime : null;
+  const replay = runtime?.replay && typeof runtime.replay === 'object' ? runtime.replay : null;
+  const stepCount = Array.isArray(doc.steps) ? doc.steps.length : 0;
+  const expected = Boolean(label(doc.reproduction?.expected));
+  const anonymization = doc.anonymization || {};
+  const anonymizationState =
+    level && RUNTIME_LEVELS.has(level)
+      ? 'not_applicable'
+      : ANONYMIZATION_STATES.has(anonymization.state)
+        ? anonymization.state
+        : 'pending';
+  const [nextReviewGate, positiveFollowUp] = followUp(doc, level, runtime, anonymizationState);
+  const missingEvidence = [
+    ...(stepCount ? [] : ['reproduction_steps']),
+    ...(expected ? [] : ['expected_behaviour']),
+    ...(classificationState === 'model_proposed' ? [] : ['model_classification']),
+    ...(runtime ? [] : ['runtime_evidence']),
+    ...(['pending', 'failed'].includes(anonymizationState) ? ['anonymization_gate'] : []),
+  ];
+  return {
+    safetyClass: 'protected_read_only_failure_case_inspection',
+    effectClass: 'none',
+    observation: compact({
+      caseId: label(doc.caseId, 100),
+      status: STATUSES.includes(doc.status) ? doc.status : 'open',
+      kind: label(doc.kind),
+      kindLabel: KIND_LABEL[doc.kind] || 'Fehlersignal',
+      signalCount: Number.isInteger(doc.count) ? doc.count : 0,
+      functionLabels: joined(
+        (doc.functionIds || []).slice(0, 10).map((id) => label(functionLabels[id] || id, 120))
+      ),
+      sourceLabels: joined((doc.sources || []).slice(0, 10).map((item) => label(item?.source))),
+      openedAt: time(doc.openedAt),
+      lastSignalAt: time(doc.lastSignalAt),
+      proposedLevel: level,
+      levelText: level && LEVEL_TEXT[level],
+      levelReason: label(doc.levelReason, 400),
+      classificationState,
+      classificationProvenance,
+      classifiedAt:
+        classificationState === 'classification_unavailable' ? undefined : time(doc.classifiedAt),
+    }),
+    runtime: runtime
+      ? compact({
+          evidence: 'recorded_tenant_runtime_evidence',
+          runtimeLevel: LEVELS.includes(runtime.level) ? runtime.level : undefined,
+          runtimeAction: label(runtime.action),
+          runtimeAttemptCount: Number.isInteger(runtime.attempts) ? runtime.attempts : 1,
+          replayKind: replay ? (REPLAY_KINDS.has(replay.kind) ? replay.kind : 'other') : 'not_run',
+          replayResult: replayResult(replay),
+          replayAt: time(replay?.at),
+          skillRef: label(doc.refs?.skillId, 120),
+          scopeCaveat: doc.status === 'resolved_runtime' ? RESOLVED_RUNTIME_CAVEAT : undefined,
+        })
+      : {
+          evidence: 'evidence_unavailable',
+          runtimeAction: 'not_run',
+          runtimeAttemptCount: 0,
+          replayKind: 'not_run',
+          replayResult: 'evidence_unavailable',
+        },
+    readiness: compact({
+      reproductionState: !stepCount
+        ? 'observation_only'
+        : expected
+          ? 'reproducible_with_expectation'
+          : 'expectation_pending',
+      reproductionStepCount: stepCount,
+      missingEvidence: missingEvidence.join(', ') || 'none',
+      anonymizationState,
+      anonymizationChecks: joined(
+        (Array.isArray(anonymization.checks) ? anonymization.checks : [])
+          .slice(0, 4)
+          .map(
+            (check) =>
+              label(check?.kind, 40) &&
+              `${label(check.kind, 40)}:${check.passed === true ? 'passed' : 'failed'}`
+          ),
+        120
+      ),
+      anonymizationReviewedAt:
+        anonymizationState === 'not_applicable' ? undefined : time(anonymization.reviewedAt),
+      anonymizationCaveat: anonymizationState === 'passed' ? PASSED_GATE_CAVEAT : undefined,
+      positiveFollowUp,
+      nextReviewGate,
+      scopeCaveat: RESOLVED_RUNTIME_CAVEAT,
+    }),
+  };
+}
+
 module.exports = {
   LEVELS,
   STATUSES,
@@ -181,4 +348,5 @@ module.exports = {
   readable,
   classify,
   merge,
+  selectedCase,
 };
