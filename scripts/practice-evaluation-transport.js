@@ -205,6 +205,16 @@ async function createLocalTransport({ budget }) {
     const chat = `practice-${run.prefix}-${turn.actor}-${turn.chat}`;
     if (!run.chats.has(chat)) await app.drainDescriptors();
     run.chats.set(chat, actor);
+    // Self-improvement (#1010): read the failure register after classification has settled.
+    if (turn.operation === 'failure-cases') {
+      await app.broker.getLocalService('failure-signals')?.idle();
+      const failureCases = await app.broker.call(
+        'failure-signals.cases',
+        {},
+        { meta: actorMeta(run, actor, { admin: true }) }
+      );
+      return { responseText: 'Fehlerregister gelesen.', failureCases };
+    }
     if (turn.operation === 'admin-cleanup') {
       const admin = actorMeta(run, actor, { admin: true });
       const { statements } = await app.broker.call(
@@ -522,6 +532,20 @@ async function createHttpTransport({ config, budget, fetchImpl = fetch }) {
     const actor = run.actors.find((item) => item.id === turn.actor);
     const chat = `practice-${run.prefix}-${turn.actor}-${turn.chat}`;
     run.chats.set(chat, actor);
+    if (turn.operation === 'failure-cases') {
+      // Classification runs off the answer path; wait for it on the running instance.
+      let failureCases = [];
+      for (
+        let attempt = 0;
+        attempt < 12 && !failureCases.some((item) => item.classifiedAt);
+        attempt++
+      ) {
+        failureCases = await request('/api/failure-signals/cases', { admin: true }).catch(() => []);
+        if (!failureCases.some((item) => item.classifiedAt))
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+      return { responseText: 'Fehlerregister gelesen.', failureCases };
+    }
     if (turn.operation === 'admin-cleanup') {
       const { statements } = await request('/api/tenant-memory-policy/statements', { admin: true });
       for (const fact of statements.filter(
