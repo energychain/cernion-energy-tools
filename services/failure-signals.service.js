@@ -104,6 +104,21 @@ module.exports = {
           .map((doc) => this.caseView(doc));
       },
     },
+    // One selected case as scalar display facts (#1039). Read only: no classification, replay,
+    // gate, journal, event or write; unknown and foreign cases are denied alike.
+    case: {
+      visibility: 'protected',
+      params: { caseId: { type: 'string', min: 1, max: 100 } },
+      async handler(ctx) {
+        const p = principal(ctx, ctx.params);
+        admin(p);
+        const doc = (await this.caseDocs(p.tenantId)).find(
+          (item) => item.caseId === ctx.params.caseId
+        );
+        if (!doc) deny('Failure case not available');
+        return cases.selectedCase(doc, { functionLabels: this.functionLabels(doc.functionIds) });
+      },
+    },
     // The only way out of the tenant (for the development agent, step 5): cases that passed the
     // anonymization gate, reduced to their rewritten draft and catalog references.
     publicCases: {

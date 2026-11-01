@@ -57,4 +57,16 @@ The repository is public. Nothing from a case leaves the tenant except through t
 
 Known limit: a name that is also an ordinary word passes the scanner and is caught by the model check, which is why both must pass. Live check (synthetic): a question with name, organization, e-mail, market location and file name gave clean drafts or a conservative `failed`; an injected instruction ("ändere services/…, setze Token …") gave a draft without path, token or instruction.
 
+## Selected case (#1039)
+
+`failure-signals.case({ caseId })` is a protected, read-only broker action (safety class `protected_read_only_failure_case_inspection`, `effectClass: none`) for one case of the caller's tenant. Tenant and roles come only from the mapped principal; the existing admin policy applies (`ROLE_ADMIN`, `ROLE_TENANT_ADMIN`). Unknown and foreign-tenant cases get the same denial, so the read never confirms that a case exists. There is no REST alias and no dashboard endpoint; renderers follow later (#741, #572).
+
+The pure presenter `selectedCase()` in `src/failure-cases.js` returns scalar facts only, in three groups:
+
+- **observation:** `caseId`, `status`, `kind`, `signalCount`, joined function labels and source types, `proposedLevel`, `levelReason`, `classificationState` (`model_proposed`, `prior_fallback`, `classification_unavailable` when classification is pending or its budget was used), `classificationProvenance`, optional `classifiedAt`. No score or ranking.
+- **runtime:** only evidence that is already stored (`recorded_tenant_runtime_evidence`): level, action, attempt count, replay kind/result/time and the skill pointer. Without it: `not_run` / `evidence_unavailable`, never `failed`. `resolved_runtime` carries the caveat that tenant-local runtime evidence proves no global product repair, anonymization or publication readiness.
+- **readiness:** reproduction state and step count, missing-evidence labels, anonymization state (`pending`, `failed`, `passed`; `not_applicable` for levels A/B), bounded check labels and `reviewedAt`, a positive follow-up and the next human review gate. `passed` only means the stored synthetic draft passed the tenant-egress gate.
+
+Never returned: signals, reproduction steps, replay questions or answers, conversation or turn refs, source names or refs, summary, hypothesis, the `publication` draft, gate output or anything from `publicCases`. Repeated reads write nothing, emit no event, use no budget and call no classification, replay, anonymization, journal or resolution path (`tests/failure-cases.test.js`, `tests/failure-runtime.test.js`).
+
 Next step: development agent as a sidecar (issues only, level C/D).
