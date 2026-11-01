@@ -8,6 +8,7 @@ const {
 } = require('./generate-practice-evaluation-fixtures');
 const { checkTurn, auditPracticeFixtures } = require('./practice-evaluation-checks');
 const { evaluateRubric } = require('./practice-evaluation-rubric');
+const INSPECTION_OPERATIONS = new Set(['failure-cases']);
 const {
   excerpt,
   writePracticeReport,
@@ -223,10 +224,12 @@ async function runPracticeEvaluation({
               evaluationError: reply.evaluationError || null,
               elapsedMs: Date.now() - start,
             });
-            transcript.push({
-              expectation: turn.expect.description,
-              answer: String(reply.responseText || ''),
-            });
+            // Read-only harness inspections are checked deterministically, not judged as a reply.
+            if (!INSPECTION_OPERATIONS.has(turn.operation))
+              transcript.push({
+                expectation: turn.expect.description,
+                answer: String(reply.responseText || ''),
+              });
             replies.push(reply);
             if (!context.caseId && reply.cetCaseId) context.caseId = reply.cetCaseId;
             context.caseDisplayRef ||= String(reply.responseText || '').match(/\bF-\d+\b/u)?.[0];

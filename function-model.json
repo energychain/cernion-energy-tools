@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "3a58ac8a944aba9452224acdbbdd57624f10917dfd7d3596e6f29c50eb0065ac",
+  "sourceHash": "da912f81f9d2b3926c64389d1e05d2113eae7b1b29ad0533cbbf2262fe9831dd",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -1128,7 +1128,7 @@
       "new": 1,
       "previousSourceHash": "8d0823a4a1911afe583659820bc5737bdcf21a32880da2cf72d4a275dc205dc5"
     },
-    "indexOperationCount": 1025,
+    "indexOperationCount": 1031,
     "indexOperationsWithoutAction": 19,
     "capabilityCount": 173,
     "functionCount": 107,
@@ -210059,6 +210059,14 @@
       {
         "service": "residual-load",
         "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "role-proposals",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "role-proposals",
+        "ref": "src/llm-client.js:227: dynamic emission"
       },
       {
         "service": "shared-service-agent",

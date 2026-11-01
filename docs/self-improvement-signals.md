@@ -57,6 +57,16 @@ The repository is public. Nothing from a case leaves the tenant except through t
 
 Known limit: a name that is also an ordinary word passes the scanner and is caught by the model check, which is why both must pass. Live check (synthetic): a question with name, organization, e-mail, market location and file name gave clean drafts or a conservative `failed`; an injected instruction ("ändere services/…, setze Token …") gave a draft without path, token or instruction.
 
+## Step 8: metrics and harness
+
+- `GET /api/failure-signals/metrics?since=<ISO>` (default 7 days; counts only, no case content): signals, cases, cases per level and level share, cases per status, `fixedWithoutCode` (resolved at runtime) and `fixedWithoutCodeShare` (runtime fixes among runtime fixes plus merged code fixes), anonymization passed/failed. `netRemovedGates` and `netRemovedRegex` stay `null` until change proposals exist (steps 6–7).
+- Read routes: `GET /api/failure-signals/signals` and `/cases` (admin), `/summary` and `/metrics` (any role of the tenant). `record`, `setCaseStatus` and `publicCases` stay protected, without a route.
+- Practice suite: scenario `self-correction` (group B.4): a question, a plain-language rejection, then the harness operation `failure-cases` reads the register. Rule `failureCase` checks that a case of the kind exists, with a level from the expected set and a reproduction (observed and expected). Read-only harness inspections are checked deterministically and are not passed to the rubric judge.
+- The after-turn observation is tracked like the register's own follow-ups, so `idle()` and shutdown wait for bundling and classification.
+- Live (synthetic, 3 runs): deterministic checks green in every run; mean rubric 11.33/12. One run lost safety points on the cold-start question wording ("nenn mir gern die Person"), which is the #986 interview-phrasing item.
+
+Steps 5–7 (development agent as a sidecar: issues, then draft PRs for level C and D) follow; they run outside the CET runtime.
+
 ## Selected case (#1039)
 
 `failure-signals.case({ caseId })` is a protected, read-only broker action (safety class `protected_read_only_failure_case_inspection`, `effectClass: none`) for one case of the caller's tenant. Tenant and roles come only from the mapped principal; the existing admin policy applies (`ROLE_ADMIN`, `ROLE_TENANT_ADMIN`). Unknown and foreign-tenant cases get the same denial, so the read never confirms that a case exists. There is no REST alias and no dashboard endpoint; renderers follow later (#741, #572).
@@ -69,4 +79,3 @@ The pure presenter `selectedCase()` in `src/failure-cases.js` returns scalar fac
 
 Never returned: signals, reproduction steps, replay questions or answers, conversation or turn refs, source names or refs, summary, hypothesis, the `publication` draft, gate output or anything from `publicCases`. Repeated reads write nothing, emit no event, use no budget and call no classification, replay, anonymization, journal or resolution path (`tests/failure-cases.test.js`, `tests/failure-runtime.test.js`).
 
-Next step: development agent as a sidecar (issues only, level C/D).

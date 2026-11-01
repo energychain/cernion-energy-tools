@@ -32,7 +32,8 @@ function numericValues(text) {
 }
 function sectionPresent(text, section) {
   return new RegExp(
-    `^\\s*(?:#{1,6}\\s*|\\*\\*|\\d+[.)]\\s*)?${escape(section)}[^\\n]*\\n(?=\\s*\\S)`,
+    // The requested wording may carry one qualifier ("offene Entscheidungen" for "Entscheidungen").
+    String.raw`^\s*(?:#{1,6}\s*|\*\*|\d+[.)]\s*)?(?:\p{L}+\s+)?${escape(section)}[^\n]*\n(?=\s*\S)`,
     'imu'
   ).test(text);
 }
@@ -324,6 +325,23 @@ function checkTurn(turn, reply, context = {}) {
         'notice-separated',
         /Hinweise für dich:[\s\S]+\n\n\S/u.test(text),
         'Hinweis klar von Hauptantwort abgesetzt'
+      )
+    );
+  }
+  // Self-improvement (#1010): the conversation produced a classified case with reproduction.
+  if (rules.failureCase) {
+    const found = (reply.failureCases || []).find((item) => item.kind === rules.failureCase.kind);
+    checks.push(
+      check('failure-case', Boolean(found), 'Fehlerfall aus dem Gespräch erkannt'),
+      check(
+        'failure-case-level',
+        found && rules.failureCase.levels.includes(found.level),
+        'Fehlerfall mit plausibler Stufe eingeordnet'
+      ),
+      check(
+        'failure-case-reproduction',
+        found?.reproduction?.observed && found.reproduction.expected,
+        'Fehlerfall mit Reproduktion (beobachtet und erwartet)'
       )
     );
   }

@@ -118,6 +118,10 @@ async function createLocalTransport({ budget }) {
   process.env.JOB_STORE_DIR = path.join(directory, 'jobs');
   process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
   process.env.TENANT_MEMORY_RECOVERY = 'off';
+  // Services that read their store path from the environment first stay inside the run directory.
+  process.env.VDMI_DB_PATH = path.join(directory, 'vdmi');
+  process.env.CET_FUNCTION_COVERAGE_DB_PATH = path.join(directory, 'function-coverage');
+  process.env.ROLE_PROPOSALS_DB_PATH = path.join(directory, 'role-proposals');
   process.env.CET_FILE_SIGNING_KEY = randomBytes(32).toString('hex');
   process.env.WORKBENCH_LLM_TIMEOUT_MS ||= '15000,45000';
   const { createLiveHarness, isolatedSettings } = require('./workbench-live-harness');
@@ -127,6 +131,9 @@ async function createLocalTransport({ budget }) {
     'shared-service-notices',
     'tenant-memory-policy',
     'knowledge-needs',
+    'function-coverage',
+    'role-proposals',
+    'vdmi',
     'failure-signals',
     'datapoint',
     'dataset',
@@ -198,6 +205,16 @@ async function createLocalTransport({ budget }) {
     const chat = `practice-${run.prefix}-${turn.actor}-${turn.chat}`;
     if (!run.chats.has(chat)) await app.drainDescriptors();
     run.chats.set(chat, actor);
+    // Self-improvement (#1010): read the failure register after classification has settled.
+    if (turn.operation === 'failure-cases') {
+      await app.broker.getLocalService('failure-signals')?.idle();
+      const failureCases = await app.broker.call(
+        'failure-signals.cases',
+        {},
+        { meta: actorMeta(run, actor, { admin: true }) }
+      );
+      return { responseText: 'Fehlerregister gelesen.', failureCases };
+    }
     if (turn.operation === 'admin-cleanup') {
       const admin = actorMeta(run, actor, { admin: true });
       const { statements } = await app.broker.call(
@@ -515,6 +532,20 @@ async function createHttpTransport({ config, budget, fetchImpl = fetch }) {
     const actor = run.actors.find((item) => item.id === turn.actor);
     const chat = `practice-${run.prefix}-${turn.actor}-${turn.chat}`;
     run.chats.set(chat, actor);
+    if (turn.operation === 'failure-cases') {
+      // Classification runs off the answer path; wait for it on the running instance.
+      let failureCases = [];
+      for (
+        let attempt = 0;
+        attempt < 12 && !failureCases.some((item) => item.classifiedAt);
+        attempt++
+      ) {
+        failureCases = await request('/api/failure-signals/cases', { admin: true }).catch(() => []);
+        if (!failureCases.some((item) => item.classifiedAt))
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+      return { responseText: 'Fehlerregister gelesen.', failureCases };
+    }
     if (turn.operation === 'admin-cleanup') {
       const { statements } = await request('/api/tenant-memory-policy/statements', { admin: true });
       for (const fact of statements.filter(

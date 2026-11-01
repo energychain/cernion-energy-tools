@@ -89,6 +89,9 @@ beforeEach(() => {
 test('AC-01/02: persistence, receipt, exact total and grouped sums exclude controls', async () => {
   const result = await upload();
   expect(result.confirmations[0]).toContain('3 Summenzeilen');
+  // A list of single records is filed as rows and columns, not as a measurement series (#986).
+  expect(result.confirmations[0]).toContain('4 Zeilen mit 3 Spalten');
+  expect(result.confirmations[0]).not.toMatch(/Raster|fehlende Intervalle|Einheit ungeklärt/u);
   expect(result.confirmations[0]).toContain('Summen stimmen mit der Datei überein');
   const [record] = await catalog();
   expect(record.rowCount).toBe(4);

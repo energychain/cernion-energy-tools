@@ -33,6 +33,31 @@
 
 ## Unreleased — RC3: Arbeitskontext und Quellenbezüge
 
+- Gesprächsverlauf (#993): Teilt jemand eine Kennung als Tatsache über die eigene Organisation mit
+  („Die BDEW-Codenummer … lautet …“), fragt CET nicht mehr nach der Bedeutung eines vermeintlichen
+  Codes, solange niemand danach fragt. Grundlage ist die Einordnung des Verständnisses (erfasste
+  Mitteilung, keine Bedeutungsfrage), kein Signalwort.
+- Netzwirtschaft-Rolle (#986), Befunde der Live-Baseline vom 01.11.: Tabellen mit Einzeldatensätzen
+  (Rechnungen, Klärfälle, Ereignisse) werden als Zeilen und Spalten abgelegt, nicht als Messreihe mit
+  Raster und Einheit. Tabellenanalyse: doppelt erfasste Kennungen zählen einmal und werden einmal
+  genannt, offene Beträge mit Teilzahlung sind Restbeträge, Anzahlen als Ziffern, bei Warum-Fragen
+  Gründe aus allen verknüpfbaren Tabellen. Antworten aus Dokumenten greifen den Gegenstand der Frage
+  auf, übernehmen Kennungen wörtlich, nennen bei Handlungsfragen Zuständigkeit und Freigabe, liefern
+  erbetene Fragen als nummerierte Liste direkter Fragen, nennen bei verlangter Quelle je Punkt die
+  Fundstelle und duzen ohne andere Anredevorgabe.
+- Zuständigkeiten (#1019 A1–A3): Beobachtete Abdeckung und genannte Zuständigkeiten werden zu
+  Rollenvorschlägen je Funktion (V verantwortlich, D durchführend, M mitwirkend, I informiert) mit
+  Konfidenz und Herkunft. Jede Person bestätigt oder korrigiert ihre eigene Zeile im Chat: höchstens
+  eine Rückfrage pro Turn, Antwort abgestuft mit wörtlichem Beleg ausgewertet. Ein vollständig
+  beantworteter Vorschlag wird als VDMI-Ad-hoc-Matrix festgehalten. Das Wissensregister fragt Fakten
+  danach bei D, holt Bestätigungen bei V und informiert I; ohne Matrix bleibt die Abdeckung maßgeblich.
+  Gelernte Rollen sind keine Berechtigung.
+- Selbstverbesserung, Schritt 8 (#1010): Kennzahlen je Zeitraum (`GET /api/failure-signals/metrics`:
+  erkannte Fälle, Anteil je Stufe, ohne Code behoben, Anonymisierung; netto entfernte Gates und
+  Regex folgen mit den Änderungsvorschlägen) sowie lesende REST-Routen für Signale, Übersicht und
+  Fälle. Neues Praxis-Szenario: Ein Widerspruch im Chat wird ein eingestufter Fehlerfall mit
+  Reproduktion. Die Fehlerbeobachtung eines Turns wird jetzt vollständig abgewartet (sauberes
+  Herunterfahren, verlässliche Prüfung).
 - Selbstverbesserung (#1039): geschützte Leseaktion `failure-signals.case({ caseId })` für einen
   ausgewählten Fehlerfall, nur für Tenant-Admins des eigenen Tenants (unbekannte und fremde Fälle
   werden gleich abgelehnt). Sie liefert nur skalare Anzeigefakten in drei Gruppen: Beobachtung und

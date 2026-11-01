@@ -1373,6 +1373,71 @@
       ]
     },
     {
+      "id": "self-correction",
+      "group": "B.4",
+      "title": "Korrektur wird Fehlerfall",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "question",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welche Frist gilt im Prüfbezugcacbafeebafc für die Netzanmeldung?",
+          "expect": {
+            "description": "Frage beantworten",
+            "rules": {},
+            "dependencies": []
+          }
+        },
+        {
+          "id": "rejection",
+          "actor": "a",
+          "chat": "main",
+          "message": "Nein, das stimmt so nicht. Das hast du nicht beantwortet.",
+          "expect": {
+            "description": "Korrektur aufnehmen ohne Außenhandlung",
+            "rules": {},
+            "dependencies": []
+          }
+        },
+        {
+          "id": "register",
+          "actor": "a",
+          "chat": "main",
+          "message": "",
+          "expect": {
+            "description": "Korrektur als Fehlerfall mit Stufe und Reproduktion erfasst",
+            "rules": {
+              "failureCase": {
+                "kind": "user_correction",
+                "levels": [
+                  "B",
+                  "C"
+                ]
+              }
+            },
+            "dependencies": []
+          },
+          "operation": "failure-cases"
+        }
+      ]
+    },
+    {
       "id": "notices",
       "group": "B.3",
       "title": "Hinweise und auditierte Bereinigung",

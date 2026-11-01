@@ -8,6 +8,10 @@ module.exports = new Set(
     .concat(
       'abgelehnte ältere älterer andere ausschließen belegte benutzer bietet earlier eingeordnet erkenntnis evidenz f fallback gespräch gleicher heranziehen möchte neuem paraphrase rückfallantwort session sitzung später'.split(
         ' '
+      ),
+      // Self-improvement scenario (#1010), reviewed: ordinary words, no names or organizations.
+      'self fehlerfall nein stimmt so beantwortet stufe reproduktion erfasst failurecase levels failure'.split(
+        ' '
       )
     )
     .concat(

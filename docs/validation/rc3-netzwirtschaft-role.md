@@ -51,3 +51,20 @@ The gaps found are generic, not domain-specific:
 5. A follow-up question about priorities loses the context of the previous turn.
 
 Knowledge capture from a document (WP6) already works for the most part. Applying the rule in a later turn still asks back instead of applying it.
+
+## Live baseline 2026-11-01 (main `b03278f8`)
+
+18 scenarios, 1 run each. Rubric 12/12 in 14 scenarios, safety 2 everywhere; one deterministic finding in 10 scenarios (2026-10-26: no scenario passed).
+
+Generic causes found and fixed (`feat/986-uat-fixes`), each re-checked by replaying the scenario live:
+
+| Finding | Scenarios | Fix |
+|---|---|---|
+| A list of single records was filed as a measurement series ("fehlende Intervalle, 1440-min-Raster, Einheit ungeklärt") | all with a case or invoice table | record tables are confirmed as rows and columns (control rows still checked) |
+| Duplicate ids counted twice (8 instead of 7) | `nw-mako-queue` | table analysis: duplicates count once and are named once; counts as digits |
+| Open amounts summed from net amounts (5,775 instead of 5,385 EUR) | `nw-nna-open` | open amounts with part payments are remaining amounts; reasons from all linkable tables |
+| "jeweils mit Quelle" ignored in a requested five-point summary | `nw-briefing-provenance` | constraints apply to every point; a requested source names the document and section per point |
+| Document answers too literal: subject of the question, ids (E-1, REK-…), approval/responsibility missing; questions as prose; formal address from the document | `nw-briefing-heads`, `nw-briefing-jourfixe`, `nw-role-teamlead`, `nw-role-career-changer`, `nw-knowledge-interview` | document answer instruction: subject line with the question's own terms, ids literal, all steps incl. responsibility/approval, requested questions as a numbered list of direct questions (usually five to ten), du unless another register was asked for |
+| Section check required the heading to start with the term ("offene Entscheidungen" failed for "Entscheidungen") | `nw-briefing-jourfixe` | check allows one qualifier word |
+
+Remaining variance seen in replays: occasionally a missing total line (`nw-nna-open`, 1 of 4), a missing id (`nw-briefing-heads`, 1 of 3), "versendet" in a process description (`nw-role-career-changer`, 1 of 3).
