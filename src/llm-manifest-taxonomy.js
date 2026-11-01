@@ -176,6 +176,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'shared-service-learning': 'platform',
   'Shared Service Notices': 'platform',
   'Tenant Memory Policy': 'platform',
+  'Role proposals': 'governance',
   'Self-improvement': 'platform',
   'Actor Personas': 'platform',
   'Agent Manifest': 'platform',
