@@ -467,9 +467,20 @@ module.exports = {
           const columnCount = Array.isArray(columns)
             ? columns.length
             : Object.keys(columns || {}).length;
-          confirmations.push(
-            `Hab ich abgelegt: ${record.title}, Version ${record.version}, ${record.rowCount.toLocaleString('de-DE')} Zeilen${columnCount ? ` mit ${columnCount} Spalten` : ''}${record.period.from ? `, Einträge von ${record.period.from} bis ${record.period.to || 'ungeklärt'}` : ''}.${controlConfirmation(record.quality.controls) ? ` ${controlConfirmation(record.quality.controls)}` : ''}${table.emptyColumns?.length ? ` ${table.emptyColumns.length} Spalten sind durchgehend leer und für Auswertungen nicht nutzbar.` : ''}`
-          );
+          const control = controlConfirmation(record.quality.controls);
+          const parts = [
+            `Hab ich abgelegt: ${record.title}, Version ${record.version}, ${record.rowCount.toLocaleString('de-DE')} Zeilen`,
+            columnCount ? ` mit ${columnCount} Spalten` : '',
+            record.period.from
+              ? `, Einträge von ${record.period.from} bis ${record.period.to || 'ungeklärt'}`
+              : '',
+            '.',
+            control ? ` ${control}` : '',
+            table.emptyColumns?.length
+              ? ` ${table.emptyColumns.length} Spalten sind durchgehend leer und für Auswertungen nicht nutzbar.`
+              : '',
+          ];
+          confirmations.push(parts.join(''));
           continue;
         }
         confirmations.push(
