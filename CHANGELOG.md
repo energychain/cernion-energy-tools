@@ -33,6 +33,14 @@
 
 ## Unreleased — RC3: Arbeitskontext und Quellenbezüge
 
+- Netzwirtschaft-Rolle (#986), Befunde der Live-Baseline vom 01.11.: Tabellen mit Einzeldatensätzen
+  (Rechnungen, Klärfälle, Ereignisse) werden als Zeilen und Spalten abgelegt, nicht als Messreihe mit
+  Raster und Einheit. Tabellenanalyse: doppelt erfasste Kennungen zählen einmal und werden einmal
+  genannt, offene Beträge mit Teilzahlung sind Restbeträge, Anzahlen als Ziffern, bei Warum-Fragen
+  Gründe aus allen verknüpfbaren Tabellen. Antworten aus Dokumenten greifen den Gegenstand der Frage
+  auf, übernehmen Kennungen wörtlich, nennen bei Handlungsfragen Zuständigkeit und Freigabe, liefern
+  erbetene Fragen als nummerierte Liste direkter Fragen, nennen bei verlangter Quelle je Punkt die
+  Fundstelle und duzen ohne andere Anredevorgabe.
 - Zuständigkeiten (#1019 A1–A3): Beobachtete Abdeckung und genannte Zuständigkeiten werden zu
   Rollenvorschlägen je Funktion (V verantwortlich, D durchführend, M mitwirkend, I informiert) mit
   Konfidenz und Herkunft. Jede Person bestätigt oder korrigiert ihre eigene Zeile im Chat: höchstens
