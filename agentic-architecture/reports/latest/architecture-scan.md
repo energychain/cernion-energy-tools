@@ -1,17 +1,17 @@
 # CET Architecture Shepherd Scan
 
-Generated: 2026-11-01T13:18:19.084Z
+Generated: 2026-11-01T19:22:52.010Z
 
 ## Repository snapshot
 
 - Package: cernion-energy-tools 0.99.22
 - Git HEAD marker: ref: refs/heads/release/v0.99.19
-- Files scanned: 2246
-- Services: 167
-- src/*.js files: 478
-- Tests: 561
+- Files scanned: 2252
+- Services: 168
+- src/*.js files: 479
+- Tests: 564
 - Integrations files: 37
-- Markdown/docs files: 587
+- Markdown/docs files: 588
 
 ## Existing validation summary
 
@@ -26,10 +26,10 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 
 ## Top-level shape
 
-- `tests`: 648 files
-- `src`: 546 files
-- `docs`: 452 files
-- `services`: 203 files
+- `tests`: 651 files
+- `src`: 547 files
+- `docs`: 453 files
+- `services`: 204 files
 - `scripts`: 98 files
 - `tools`: 85 files
 - `agentic-architecture`: 61 files
@@ -50,7 +50,7 @@ gitnexus-analyze: skipped (set SHEPHERD_FULL=1)
 ## Agentic surface
 
 - Agent/capability/sidecar related files: 279
-- Routing/capability/broker/manifest files: 119
+- Routing/capability/broker/manifest files: 120
 - Evidence/HITL/receipt/dossier files: 100
 - OpenWebUI/ChatGPT adapter files: 42
 
@@ -158,7 +158,7 @@ Primary agentic files:
 - `evidence-revalidation` — services/evidence-revalidation.service.js (9 detected actions)
 - `evidence-router` — services/evidence-router.service.js (4 detected actions)
 - `ewk-monitoring` — services/ewk-monitoring.service.js (5 detected actions)
-- `failure-signals` — services/failure-signals.service.js (5 detected actions)
+- `failure-signals` — services/failure-signals.service.js (2 detected actions)
 - `file-ingest-monitor` — services/file-ingest-monitor.service.js (11 detected actions)
 - `files` — services/files.service.js (2 detected actions)
 - `finance-agent` — services/finance-agent.service.js (14 detected actions)

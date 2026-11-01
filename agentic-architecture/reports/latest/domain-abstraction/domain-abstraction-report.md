@@ -1,22 +1,22 @@
 # Domain Abstraction Report
 
-Generated: 2026-11-01T13:18:24.170Z
+Generated: 2026-11-01T19:22:57.241Z
 
-- Candidate files scanned: 1342
-- Services classified: 167
+- Candidate files scanned: 1345
+- Services classified: 168
 - Unclassified services: 0
-- Fingerprint: a9a79bb0d3299711465463be79af92983a01d9e5ad44d9d4258a68b90d544b47
+- Fingerprint: 2d36cbba3701230666eed3f84f114f3660aa8b2968e878c4ff24be81d899b755
 
 ## Cluster counts
 
-- `casework-and-assistance` — Fallarbeit und Assistenz: 3 services, 25 top files, 11145 top-file hits
+- `casework-and-assistance` — Fallarbeit und Assistenz: 3 services, 25 top files, 11146 top-file hits
 - `evidence-and-trust` — Evidence, Nachweis und Vertrauen: 23 services, 25 top files, 19237 top-file hits
 - `mako-and-edm` — MaKo / EDM / Stammdaten: 8 services, 25 top files, 3682 top-file hits
 - `grid-and-connection` — Netz, Anschluss und Kapazität: 48 services, 25 top files, 11012 top-file hits
 - `forecast-and-market` — Prognose, Markt und Portfolio: 18 services, 25 top files, 4271 top-file hits
 - `redispatch-and-controllability` — Redispatch, Steuerbarkeit und Flexibilität: 3 services, 25 top files, 4730 top-file hits
 - `gas-heat-and-eog` — Gas, Wärme und EOG: 3 services, 25 top files, 4287 top-file hits
-- `tenant-and-operation` — Tenant, Rollen und Betrieb: 54 services, 25 top files, 9602 top-file hits
+- `tenant-and-operation` — Tenant, Rollen und Betrieb: 55 services, 25 top files, 9602 top-file hits
 - `openwebui-agentic-routing` — OpenWebUI und agentisches Routing: 7 services, 25 top files, 5065 top-file hits
 
 ## Case type coverage

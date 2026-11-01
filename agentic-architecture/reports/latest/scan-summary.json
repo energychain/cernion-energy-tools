@@ -1,23 +1,23 @@
 {
-  "generatedAt": "2026-11-01T13:18:19.084Z",
+  "generatedAt": "2026-11-01T19:22:52.010Z",
   "repoRoot": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/checkouts/cernion-energy-tools",
-  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261101T131712Z",
+  "runDir": "/home/clawd/.openclaw/workspace/cernion-energy-tools-shepherd/output/runs/20261101T192142Z",
   "gitHead": "ref: refs/heads/release/v0.99.19",
   "package": {
     "name": "cernion-energy-tools",
     "version": "0.99.22"
   },
   "counts": {
-    "files": 2246,
-    "services": 167,
-    "srcJs": 478,
-    "tests": 561,
+    "files": 2252,
+    "services": 168,
+    "srcJs": 479,
+    "tests": 564,
     "integrations": 37,
-    "docs": 587,
+    "docs": 588,
     "agentFiles": 279,
     "openWebUiFiles": 42,
     "evidenceFiles": 100,
-    "routingFiles": 119,
+    "routingFiles": 120,
     "servicesWithoutTests": 30
   },
   "artifacts": {
@@ -30,19 +30,19 @@
   "topDirectories": [
     {
       "dir": "tests",
-      "files": 648
+      "files": 651
     },
     {
       "dir": "src",
-      "files": 546
+      "files": 547
     },
     {
       "dir": "docs",
-      "files": 452
+      "files": 453
     },
     {
       "dir": "services",
-      "files": 203
+      "files": 204
     },
     {
       "dir": "scripts",
@@ -245,6 +245,7 @@
     "reinvest-signal",
     "reporting-governance",
     "residual-load",
+    "role-proposals",
     "settlement",
     "shared-service-agent",
     "shared-service-learning",
@@ -402,12 +403,12 @@
       "hits": 1003
     },
     "capability": {
-      "files": 563,
-      "hits": 6274
+      "files": 564,
+      "hits": 6275
     },
     "broker": {
-      "files": 715,
-      "hits": 11763
+      "files": 720,
+      "hits": 11817
     },
     "openwebui": {
       "files": 108,
@@ -422,36 +423,36 @@
       "hits": 402
     },
     "evidence": {
-      "files": 894,
-      "hits": 24868
+      "files": 898,
+      "hits": 24878
     },
     "receipt": {
       "files": 175,
       "hits": 2491
     },
     "hitl": {
-      "files": 447,
-      "hits": 3670
+      "files": 448,
+      "hits": 3672
     },
     "routing": {
-      "files": 397,
-      "hits": 2339
+      "files": 400,
+      "hits": 2343
     },
     "workflow": {
       "files": 255,
       "hits": 1592
     },
     "tenant": {
-      "files": 939,
-      "hits": 18821
+      "files": 945,
+      "hits": 18892
     },
     "market": {
       "files": 407,
       "hits": 3778
     },
     "grid": {
-      "files": 665,
-      "hits": 9610
+      "files": 666,
+      "hits": 9611
     },
     "redispatch": {
       "files": 311,
@@ -462,20 +463,20 @@
       "hits": 4590
     },
     "edm": {
-      "files": 378,
-      "hits": 2958
+      "files": 381,
+      "hits": 2962
     },
     "mako": {
       "files": 314,
-      "hits": 2522
+      "hits": 2523
     },
     "willi": {
       "files": 113,
       "hits": 1536
     },
     "vdmi": {
-      "files": 294,
-      "hits": 4440
+      "files": 299,
+      "hits": 4466
     },
     "eog": {
       "files": 101,

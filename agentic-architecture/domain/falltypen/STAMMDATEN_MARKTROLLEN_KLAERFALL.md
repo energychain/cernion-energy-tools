@@ -1,6 +1,6 @@
 # Stammdaten-/Marktrollen-Klärfall
 
-Generated: 2026-11-01T13:18:24.170Z
+Generated: 2026-11-01T19:22:57.241Z
 
 Status: observed
 Priority: 1
