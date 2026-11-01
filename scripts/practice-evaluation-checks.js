@@ -328,6 +328,23 @@ function checkTurn(turn, reply, context = {}) {
       )
     );
   }
+  // Self-improvement (#1010): the conversation produced a classified case with reproduction.
+  if (rules.failureCase) {
+    const found = (reply.failureCases || []).find((item) => item.kind === rules.failureCase.kind);
+    checks.push(
+      check('failure-case', Boolean(found), 'Fehlerfall aus dem Gespräch erkannt'),
+      check(
+        'failure-case-level',
+        found && rules.failureCase.levels.includes(found.level),
+        'Fehlerfall mit plausibler Stufe eingeordnet'
+      ),
+      check(
+        'failure-case-reproduction',
+        found?.reproduction?.observed && found.reproduction.expected,
+        'Fehlerfall mit Reproduktion (beobachtet und erwartet)'
+      )
+    );
+  }
   if (rules.noNotices)
     checks.push(
       check(

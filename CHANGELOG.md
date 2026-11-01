@@ -41,6 +41,12 @@
   auf, übernehmen Kennungen wörtlich, nennen bei Handlungsfragen Zuständigkeit und Freigabe, liefern
   erbetene Fragen als nummerierte Liste direkter Fragen, nennen bei verlangter Quelle je Punkt die
   Fundstelle und duzen ohne andere Anredevorgabe.
+- Selbstverbesserung, Schritt 8 (#1010): Kennzahlen je Zeitraum (`GET /api/failure-signals/metrics`:
+  erkannte Fälle, Anteil je Stufe, ohne Code behoben, Anonymisierung; netto entfernte Gates und
+  Regex folgen mit den Änderungsvorschlägen) sowie lesende REST-Routen für Signale, Übersicht und
+  Fälle. Neues Praxis-Szenario: Ein Widerspruch im Chat wird ein eingestufter Fehlerfall mit
+  Reproduktion. Die Fehlerbeobachtung eines Turns wird jetzt vollständig abgewartet (sauberes
+  Herunterfahren, verlässliche Prüfung).
 - Selbstverbesserung (#1039): geschützte Leseaktion `failure-signals.case({ caseId })` für einen
   ausgewählten Fehlerfall, nur für Tenant-Admins des eigenen Tenants (unbekannte und fremde Fälle
   werden gleich abgelehnt). Sie liefert nur skalare Anzeigefakten in drei Gruppen: Beobachtung und

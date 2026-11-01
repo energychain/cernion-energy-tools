@@ -40543,6 +40543,154 @@
         }
       }
     },
+    "/api/failure-signals/signals": {
+      "get": {
+        "operationId": "failure-signals_list",
+        "summary": "List failure signals of the tenant (admin)",
+        "tags": [
+          "Self-improvement"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ]
+      }
+    },
+    "/api/failure-signals/summary": {
+      "get": {
+        "operationId": "failure-signals_summary",
+        "summary": "Failure signals and cases per kind, level and status",
+        "tags": [
+          "Self-improvement"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/failure-signals/cases": {
+      "get": {
+        "operationId": "failure-signals_cases",
+        "summary": "List failure cases of the tenant (admin)",
+        "tags": [
+          "Self-improvement"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "level",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ]
+      }
+    },
+    "/api/failure-signals/metrics": {
+      "get": {
+        "operationId": "failure-signals_metrics",
+        "summary": "Self-improvement metrics per period: cases, levels, fixes without code",
+        "tags": [
+          "Self-improvement"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/file-ingest-monitor/schemas": {
       "post": {
         "operationId": "file-ingest-monitor_createSchema",

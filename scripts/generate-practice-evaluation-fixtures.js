@@ -447,6 +447,22 @@ function generatePracticeCatalog({ seed = 'catalog-v1' } = {}) {
         { boundary: true }
       ),
     ]),
+    // Self-improvement (#1010): a plain-language rejection becomes a classified failure case.
+    scenario('self-correction', 'B.4', 'Korrektur wird Fehlerfall', [
+      turn('question', `Welche Frist gilt im ${x} für die Netzanmeldung?`, 'Frage beantworten'),
+      turn(
+        'rejection',
+        'Nein, das stimmt so nicht. Das hast du nicht beantwortet.',
+        'Korrektur aufnehmen ohne Außenhandlung'
+      ),
+      turn(
+        'register',
+        '',
+        'Korrektur als Fehlerfall mit Stufe und Reproduktion erfasst',
+        { failureCase: { kind: 'user_correction', levels: ['B', 'C'] } },
+        { operation: 'failure-cases' }
+      ),
+    ]),
     scenario('notices', 'B.3', 'Hinweise und auditierte Bereinigung', [
       turn(
         'capture',

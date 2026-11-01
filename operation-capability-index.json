@@ -2,14 +2,14 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "045bbf32e012440f2402a58c2c1e6ca0c24f395437d6b66ebcf537cb30a898d3",
+  "sourceOpenApiHash": "d9adc76b8ca7611d6a1faa97cb2db6060f5b8ca28da328e1af82651ab68a6114",
   "coverage": {
-    "rawOperationCount": 1281,
-    "operationCount": 1025,
-    "agentableCount": 1023,
+    "rawOperationCount": 1285,
+    "operationCount": 1029,
+    "agentableCount": 1027,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 445,
+      "data_read": 449,
       "admin": 24,
       "object_store_write": 273,
       "process_step": 27,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 1006,
+    "resolvedActionCount": 1010,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -49436,6 +49436,315 @@
           "BNetzA",
           "EnWG",
           "compliance"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "failure-signals_cases",
+      "method": "GET",
+      "path": "/api/failure-signals/cases",
+      "service": "failure-signals",
+      "action": "failure-signals.cases",
+      "summary": "List failure cases of the tenant (admin)",
+      "tags": [
+        "Self-improvement"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "failure-signals.cases"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "failure-signals:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "status",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "number",
+            "description": null,
+            "extractionHint": "result_limit"
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "failure",
+          "signals",
+          "cases",
+          "list",
+          "tenant",
+          "(admin)",
+          "self",
+          "improvement"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list failure cases of the tenant (admin)"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "failure-signals_metrics",
+      "method": "GET",
+      "path": "/api/failure-signals/metrics",
+      "service": "failure-signals",
+      "action": "failure-signals.metrics",
+      "summary": "Self-improvement metrics per period: cases, levels, fixes without code",
+      "tags": [
+        "Self-improvement"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "failure-signals.metrics"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "failure-signals:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "since",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "failure",
+          "signals",
+          "metrics",
+          "self",
+          "improvement",
+          "per",
+          "period",
+          "cases,",
+          "levels,",
+          "fixes",
+          "without",
+          "code"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me self-improvement metrics per period: cases, levels, fixes without code"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "failure-signals_list",
+      "method": "GET",
+      "path": "/api/failure-signals/signals",
+      "service": "failure-signals",
+      "action": "failure-signals.list",
+      "summary": "List failure signals of the tenant (admin)",
+      "tags": [
+        "Self-improvement"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "failure-signals.list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "failure-signals:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "kind",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "number",
+            "description": null,
+            "extractionHint": "result_limit"
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "failure",
+          "signals",
+          "list",
+          "tenant",
+          "(admin)",
+          "self",
+          "improvement"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list failure signals of the tenant (admin)"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "failure-signals_summary",
+      "method": "GET",
+      "path": "/api/failure-signals/summary",
+      "service": "failure-signals",
+      "action": "failure-signals.summary",
+      "summary": "Failure signals and cases per kind, level and status",
+      "tags": [
+        "Self-improvement"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "failure-signals.summary"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "failure-signals:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "since",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "failure",
+          "signals",
+          "summary",
+          "cases",
+          "per",
+          "kind,",
+          "level",
+          "status",
+          "self",
+          "improvement"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me failure signals and cases per kind, level and status"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
         ],
         "curated": false
       },
