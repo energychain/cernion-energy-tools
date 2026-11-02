@@ -214,6 +214,24 @@ async function readTurnDataset(ctx, p, envelope, candidates, meta) {
 
 // Several tables or record lists need a combined read; a single measurement series
 // keeps the validated series query.
+// One table per source (file and sheet): the one attached in this turn, else the newest version.
+// Several versions of the same file would only repeat it and exceed the analysis limit.
+const MAX_ANALYSIS_TABLES = 6;
+const MAX_ANALYSIS_QUESTION = 2000;
+function analysisIds(candidates, attachedIds) {
+  const bySource = new Map();
+  for (const record of candidates) {
+    const key = `${record.sourceName || record.id}\u0000${record.sheet || ''}`;
+    const prior = bySource.get(key);
+    const better =
+      !prior ||
+      (attachedIds.includes(record.id) && !attachedIds.includes(prior.id)) ||
+      (attachedIds.includes(record.id) === attachedIds.includes(prior.id) &&
+        (record.version || 0) > (prior.version || 0));
+    if (better) bySource.set(key, record);
+  }
+  return [...bySource.values()].map((record) => record.id).slice(0, MAX_ANALYSIS_TABLES);
+}
 async function tableAnalysisReply(ctx, p, envelope, candidates, meta) {
   const { isRecordTable } = require('./table-analysis');
   const variants =
@@ -222,7 +240,7 @@ async function tableAnalysisReply(ctx, p, envelope, candidates, meta) {
       (record) => record.id === candidates[0].id || candidates[0].variants?.includes(record.id)
     );
   if (variants || (candidates.length === 1 && !isRecordTable(candidates[0]))) return null;
-  const ids = [...new Set(candidates.map((record) => record.id))];
+  const ids = analysisIds(candidates, envelope.datasetIds || []);
   try {
     // Documents of the same turn may explain the figures (a guide, minutes); they are cited.
     const documents = (envelope.documents || [])
@@ -234,7 +252,12 @@ async function tableAnalysisReply(ctx, p, envelope, candidates, meta) {
       }));
     const result = await ctx.call(
       'dataset.analyze',
-      { ids, question: envelope.userRequest, ...(documents.length ? { documents } : {}) },
+      {
+        ids,
+        // The analysis accepts a bounded question; its end carries the actual question.
+        question: String(envelope.userRequest).slice(-MAX_ANALYSIS_QUESTION),
+        ...(documents.length ? { documents } : {}),
+      },
       { meta }
     );
     const answer = `${result.answer}\n\n${result.provenance}`;
@@ -250,7 +273,16 @@ async function tableAnalysisReply(ctx, p, envelope, candidates, meta) {
       ],
     };
   } catch (error) {
-    ctx.broker.logger.warn('Table analysis unavailable', { reason: String(error.message) });
+    ctx.broker.logger.warn('Table analysis unavailable', {
+      reason: String(error.message),
+      // Validation names only the failing fields and rules, never values.
+      fields: (Array.isArray(error.data) ? error.data : [])
+        .map((item) => `${item.field}:${item.type}`)
+        .slice(0, 5),
+      tables: ids.length,
+      documents: (envelope.documents || []).length,
+      questionChars: String(envelope.userRequest || '').length,
+    });
     return null;
   }
 }
@@ -1798,7 +1830,13 @@ async function queuedContentTurn(service, ctx, input) {
   }
 }
 
-module.exports = { runContentTurn: queuedContentTurn, discard, selectChoice, incomingDatasetReply };
+module.exports = {
+  runContentTurn: queuedContentTurn,
+  discard,
+  selectChoice,
+  incomingDatasetReply,
+  analysisIds,
+};
 
 function memoryDocumentContext(ctx, meta) {
   return Object.assign(Object.create(ctx), {

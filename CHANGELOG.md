@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased — RC3 UAT: recall on questions, combined role tokens, analysis diagnostics
+
+- On any question, the person's own statements of the conversation are evidence, even when the
+  reading also suspects a new statement in the question (a correction was not recalled).
+- A combined token such as "V/D/M/I" whose parts the person's stored statement names is no code
+  whose meaning needs a source.
+- The cross-table analysis receives a bounded question; its failure log names the violated
+  parameter fields and the question length, never values.
+
+## Unreleased — RC3 UAT: table selection under load, restatement noise
+
+- Chat clients such as Open WebUI resend every attachment with each later message. A file this
+  conversation already received is no longer a new attachment of the turn, so statements,
+  corrections, role rows and recall work on follow-up turns again; the file stays reachable
+  through the conversation and its case.
+- The cross-table analysis receives one table per source (the one attached in this turn, else
+  the newest version, at most six); several versions of one file exceeded the analysis limit
+  ("Parameters validation error"). Its failure log names the table and document counts.
+
+- A failed or timed-out table selection keeps the tables attached to the current turn as
+  candidates instead of dropping the data question to the document answer (seen under production
+  load); without attached tables it still selects nothing.
+- A person's word-for-word restatement of their own statement in another conversation is no
+  longer assessed against itself (no "Duplikat konsolidieren?" notice).
+
 ## Unreleased — RC3 UAT stage A re-test in the real Open WebUI path
 
 - A table file already known to the tenant and uploaded again in another conversation joins that

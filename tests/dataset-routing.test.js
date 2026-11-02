@@ -102,6 +102,40 @@ test('catalog selection fails closed rather than falling back to all tables', as
   expect(await selectDatasetCandidates([record], 'Gibt es Auffälligkeiten?')).toEqual([]);
 });
 
+test('a failed selection keeps the tables attached to this turn, never other catalog tables', async () => {
+  llm.generateStructured.mockRejectedValue(new Error('timeout'));
+  const other = {
+    ...record,
+    id: 'synthetic-other',
+    title: 'Andere Tabelle',
+    sourceName: 'andere.csv',
+  };
+  const attached = [
+    {
+      ...record,
+      id: 'synthetic-a',
+      title: 'A',
+      sourceName: 'a.csv',
+      columns: [{ name: 'Rechnungsnummer', type: 'string' }],
+      semantic: { anchors: [], units: {} },
+    },
+    {
+      ...record,
+      id: 'synthetic-b',
+      title: 'B',
+      sourceName: 'b.csv',
+      columns: [{ name: 'Gezahlt', type: 'number' }],
+      semantic: { anchors: [], units: {} },
+    },
+  ];
+  const matches = await selectDatasetCandidates(
+    [other, ...attached],
+    'Welche Rechnungen sind offen und wie hoch ist der offene Gesamtbetrag?',
+    { conversationId: 'synthetic-upload', newDatasetIds: ['synthetic-a', 'synthetic-b'] }
+  );
+  expect(matches.map((item) => item.id).sort()).toEqual(['synthetic-a', 'synthetic-b']);
+});
+
 test('a matching dataset and another source can execute in the same capability loop', async () => {
   const candidates = candidatesFor(
     { ...situation, concern: 'MaStR installations', dataNeeds: 'MaStR installations' },

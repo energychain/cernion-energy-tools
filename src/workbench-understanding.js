@@ -1835,7 +1835,14 @@ function withoutStatedCodes(situation, evidence) {
     .map((hit) => hit.value);
   if (!stated.length || !situation.codeReferences?.length) return situation;
   const { exactToken } = require('./workbench-codes');
-  const kept = (entry) => !stated.some((text) => exactToken(text, entry.value));
+  // A combined token ("A/B/C") belongs to a statement that names each of its parts.
+  const inStatement = (text, value) => {
+    const parts = String(value).split('/').filter(Boolean);
+    return (
+      exactToken(text, value) || (parts.length > 1 && parts.every((part) => exactToken(text, part)))
+    );
+  };
+  const kept = (entry) => !stated.some((text) => inStatement(text, entry.value));
   const codeReferences = situation.codeReferences.filter(kept);
   if (codeReferences.length === situation.codeReferences.length) return situation;
   return {
@@ -2467,6 +2474,7 @@ function routingRequest(situation) {
 
 module.exports = {
   selfDescriptionOnly,
+  withoutStatedCodes,
   answerProviderSchema,
   artifactProviderSchema,
   restoreArtifactContract,

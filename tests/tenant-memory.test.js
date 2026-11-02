@@ -941,6 +941,24 @@ describe('tenant memory acceptance and lifecycle', () => {
     expect(recorded.filter((fact) => !fact.anchors[0].qualifier)).toHaveLength(3);
   });
 
+  test('a word-for-word restatement in another conversation is not weighed against itself', async () => {
+    const ctx = context(app),
+      p = principal();
+    const text = 'Für Projekt-R gilt der synthetische Grenzwert 7.';
+    const capture = (conversationId) =>
+      memory.capture(ctx, p, {
+        situation: situation(text, [
+          assertion(text, [{ value: 'Projekt-R', qualifier: '', aliases: [] }]),
+        ]),
+        envelope: { userRequest: text, channel: 'api', conversationId },
+      });
+    await capture('first');
+    const second = await capture('second');
+    llm.generateStructured.mockClear();
+    await memory.assess(ctx, p, second.facts[0], { evidence: [] });
+    expect(llm.generateStructured).not.toHaveBeenCalled();
+  });
+
   test('AC-06/07: audited revocation, expiry, tenant and clearance isolation', async () => {
     const ctx = context(app),
       p = principal();
