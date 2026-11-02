@@ -25,7 +25,7 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { appendLog } = require('../src/job-store');
 const { runAsync } = require('../src/async-job-runner');
 const { aggregateDeltas, joinByOeoClass } = require('../src/oep-delta-engine');
-const { CERNION_RELEVANT_OEP_TABLES, getOepTableConfig } = require('../src/oep-tables');
+const { CERNION_RELEVANT_OEP_TABLES } = require('../src/oep-tables');
 
 // ---------------------------------------------------------------------------
 // Configuration

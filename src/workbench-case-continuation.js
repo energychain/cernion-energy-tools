@@ -2,7 +2,7 @@
 
 const { randomUUID } = require('node:crypto');
 const conversationAssistance = require('./workbench-conversation');
-const { caseLabel, sameStrongSubject } = require('./case-continuation');
+const { sameStrongSubject } = require('./case-continuation');
 
 async function candidates(service, ctx, p, situation, meta) {
   const { items } = await ctx.call(
