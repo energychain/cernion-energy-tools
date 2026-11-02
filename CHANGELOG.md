@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — RC3 UAT: table selection under load, restatement noise
+
+- A failed or timed-out table selection keeps the tables attached to the current turn as
+  candidates instead of dropping the data question to the document answer (seen under production
+  load); without attached tables it still selects nothing.
+- A person's word-for-word restatement of their own statement in another conversation is no
+  longer assessed against itself (no "Duplikat konsolidieren?" notice).
+
 ## Unreleased — RC3 UAT stage A re-test in the real Open WebUI path
 
 - A table file already known to the tenant and uploaded again in another conversation joins that

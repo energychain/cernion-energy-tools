@@ -185,8 +185,10 @@ async function selectDatasetCandidates(
       selected.comparison === true
     );
   } catch (_error) {
-    // No arbitrary fallback to the only/most recent table when classification fails.
-    return [];
+    // No arbitrary fallback to the only/most recent table when classification fails; tables
+    // attached to this very turn are the person's explicit context, so they remain candidates
+    // (a slow or failed selection must not drop a data question to the document excerpts).
+    return newDatasetIds.length ? records : [];
   }
 }
 
