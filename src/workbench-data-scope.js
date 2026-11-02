@@ -31,7 +31,7 @@ function scopedDatasets(
       explicit ||
       tenantEvidenceIds.includes(record.id) ||
       newDatasetIds.includes(record.id) ||
-      (conversationId && record.provenance?.conversationId === conversationId) ||
+      datasetInConversation(record, conversationId) ||
       (caseId && record.provenance?.caseId === caseId) ||
       previousReads.some(
         (hit) =>
@@ -57,4 +57,14 @@ function scopedDataEvidence(hits, scope = {}) {
   });
 }
 
-module.exports = { scopedDatasets, scopedDataEvidence };
+// A table belongs to the conversation that uploaded it and to each later conversation into which
+// the same file was uploaded again.
+function datasetInConversation(record, conversationId) {
+  return Boolean(
+    conversationId &&
+    (record?.provenance?.conversationId === conversationId ||
+      record?.usedInConversations?.includes(conversationId))
+  );
+}
+
+module.exports = { scopedDatasets, scopedDataEvidence, datasetInConversation };

@@ -795,6 +795,19 @@ describe('additional boundary regressions', () => {
       (await run('return await cet.sql`SELECT ${"\'; -- /* quote"} AS "a\"\"b"`;', fixture)).result
     ).toEqual([{ 'a"b': "'; -- /* quote" }]);
   });
+  test('a common table expression used twice (OpenDup on its ephemeral table) is allowed', async () => {
+    const db = pool.tenant('t1');
+    const sql = `WITH x AS MATERIALIZED (SELECT c1, c2 FROM "${id}") SELECT a.c1 AS key, COUNT(*) AS pairs FROM x a JOIN x b ON a.c1 = b.c1 GROUP BY a.c1`;
+    expect(
+      db
+        .prepare(`EXPLAIN ${sql}`)
+        .all()
+        .some((row) => row.opcode === 'OpenDup')
+    ).toBe(true);
+    const { installCheckpoints, instrument } = require('../src/cet-script/sql-checkpoints');
+    installCheckpoints(db, Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
+    expect(() => authorize(db, instrument(sql), [], fixture.datasets)).not.toThrow();
+  });
   test('SQL authorization rejects unknown/root/virtual/write instructions before execution', () => {
     const db = pool.tenant('t1');
     expect(() => authorize(db, 'SELECT * FROM sqlite_schema', [], fixture.datasets)).toThrow(
@@ -1270,4 +1283,14 @@ test('join predicates and outer join rows pass a checkpoint', () => {
   );
   // Statements without a join keep their shape.
   expect(instrument('SELECT a FROM t')).not.toMatch(/WHERE/u);
+});
+
+test('expression subqueries keep their single column under instrumentation', () => {
+  const { instrument } = require('../src/cet-script/sql-checkpoints');
+  const guarded = instrument(
+    'SELECT a FROM t WHERE b IN (SELECT c FROM u WHERE c > 0) AND d = (SELECT max(e) FROM v)'
+  );
+  expect(guarded).toContain('IN (SELECT c FROM');
+  expect(guarded).toContain('= (SELECT max(');
+  expect(guarded.match(/__cet_guard/gu)).toHaveLength(1);
 });

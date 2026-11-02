@@ -342,7 +342,16 @@ function checkTurn(turn, reply, context = {}) {
         'failure-case-reproduction',
         found?.reproduction?.observed && found.reproduction.expected,
         'Fehlerfall mit Reproduktion (beobachtet und erwartet)'
-      )
+      ),
+      ...(rules.failureCase.status
+        ? [
+            check(
+              'failure-case-status',
+              found?.status === rules.failureCase.status,
+              `Fehlerfall im Status ${rules.failureCase.status}`
+            ),
+          ]
+        : [])
     );
   }
   if (rules.noNotices)

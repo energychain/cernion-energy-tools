@@ -233,13 +233,22 @@ function joinFilter(significant, n, sql, edits) {
   }
   if (join) edits.push({ at: sql.length, text: ' WHERE cet_script_tick(1)' });
 }
+// A subquery that is an expression (IN, EXISTS, a comparison, an arithmetic operand) must keep
+// its column count; its loops are guarded by the WHERE/ON/GROUP checkpoints, and the cycle check
+// still rejects any loop that stays unguarded.
+const EXPRESSION_CONTEXT = new Set(
+  'IN EXISTS = == < > <= >= <> != + - * / % || THEN ELSE WHEN AND OR NOT'.split(' ')
+);
+function expressionSubquery(significant, n) {
+  return significant[n - 1]?.text === '(' && EXPRESSION_CONTEXT.has(significant[n - 2]?.text || '');
+}
 function instrument(sql) {
   const edits = [];
   const significant = lexSql(sql);
   for (let n = 0; n < significant.length; n++) {
     const item = significant[n];
     wrapAggregate(significant, n, sql, edits);
-    if (item.text === 'SELECT') {
+    if (item.text === 'SELECT' && !expressionSubquery(significant, n)) {
       const next = significant[n + 1];
       edits.push({
         at: ['DISTINCT', 'ALL'].includes(next?.text) ? next.end : item.end,

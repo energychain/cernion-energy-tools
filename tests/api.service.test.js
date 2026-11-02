@@ -1553,6 +1553,61 @@ describe('API Gateway Service', () => {
       expect(chunkFrames[2].choices[0].finish_reason).toBe('stop');
     });
 
+    it('opens the stream before the answer, keeps it alive and ends a failed turn with an error frame', async () => {
+      jest.useFakeTimers();
+      try {
+        const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+        let fail;
+        const res = createSseCollectingRes();
+        const brokerCall = jest.fn(async (action) => {
+          if (action === 'token-manager.verify')
+            return {
+              valid: true,
+              tokenId: 'token-stream',
+              scope: 'full-access',
+              scopes: ['full-access'],
+              tenantId: 'tenant-stream',
+              userId: 'user-stream',
+            };
+          if (action === 'openai-compatible.chatCompletions') {
+            // The stream is open while the turn is still running.
+            expect(res.statusCode).toBe(200);
+            expect(res.headers['Content-Type']).toBe('text/event-stream; charset=utf-8');
+            return new Promise((_resolve, reject) => {
+              fail = reject;
+            });
+          }
+          throw new Error(`Unexpected action ${action}`);
+        });
+        const pending = v1Route.aliases['POST /chat/completions'].call(
+          { broker: { call: brokerCall, emit: jest.fn() }, logger: { debug: jest.fn() } },
+          {
+            headers: { authorization: 'Bearer ck_stream_token' },
+            method: 'POST',
+            body: {
+              model: 'cernion-agent-mvp',
+              stream: true,
+              messages: [{ role: 'user', content: 'Hallo' }],
+            },
+          },
+          res
+        );
+        await Promise.resolve();
+        await jest.advanceTimersByTimeAsync(25000);
+        expect(res.writes.filter((frame) => frame === ': keep-alive\n\n')).toHaveLength(2);
+        expect(res.headers['X-Cernion-Build']).toMatch(/^cet-/u);
+        fail(new Error('synthetic failure'));
+        await pending;
+        expect(res.ended).toBe(true);
+        expect(res.writes.at(-1)).toBe('data: [DONE]\n\n');
+        expect(JSON.parse(res.writes.at(-2).slice('data: '.length, -2))).toHaveProperty('error');
+        await jest.advanceTimersByTimeAsync(20000);
+        expect(res.writes.at(-1)).toBe('data: [DONE]\n\n');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
     it('should leave non-streaming JSON responses unchanged when stream is omitted', async () => {
       const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
       const brokerCall = jest.fn(async (action) => {

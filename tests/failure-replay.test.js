@@ -105,6 +105,7 @@ describe('level B shadow replay (#1010 step 3)', () => {
     expect(replay.shadowReplay).toHaveBeenCalledWith(expect.objectContaining({ meta }), {
       tenantId: 'synthetic-a',
       question: QUESTION,
+      conversationId: 'chat-1',
       newFactIds: ['fact-new'],
     });
     const [item] = await cases();
@@ -127,6 +128,42 @@ describe('level B shadow replay (#1010 step 3)', () => {
     ]);
     const docs = await service().db.allDocs({ include_docs: true });
     expect(docs.rows.some((row) => row.doc.type === 'failure_replay_question')).toBe(false);
+  });
+
+  test('a rejection that restates the right fact replays the rejected question in the same turn', async () => {
+    replay.shadowReplay.mockResolvedValue({
+      passed: true,
+      answered: true,
+      answerStatus: 'grounded',
+      usedFacts: ['fact-restated'],
+      timeouts: 0,
+      at: new Date().toISOString(),
+    });
+    await turn({ question: QUESTION, turnRef: 't0' });
+    await turn({
+      outcome: { disagreement: true },
+      question: 'Das stimmt so nicht. Ich habe es eben genannt.',
+      capturedFacts: ['fact-restated'],
+      turnRef: 't1',
+    });
+    await settle();
+    expect(replay.shadowReplay).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ question: QUESTION, newFactIds: ['fact-restated'] })
+    );
+    const [item] = await cases();
+    expect(item).toMatchObject({ status: 'resolved_runtime', level: 'B' });
+  });
+
+  test('a same-turn case never replays the question of that turn', async () => {
+    await turn({
+      outcome: { disagreement: true },
+      question: 'Nein, das stimmt so nicht.',
+      capturedFacts: ['fact-own'],
+      turnRef: 't1',
+    });
+    await settle();
+    expect(replay.shadowReplay).not.toHaveBeenCalled();
   });
 
   test('a failing replay keeps the case open and stops after three attempts', async () => {
