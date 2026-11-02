@@ -54,6 +54,22 @@ test('original workbook enters #774 with both sheets, cached formulas and confid
       meta
     );
     expect(envelope.documents[0].original.hash).toBe(ref.hash);
+    // A chat client resends the same attachment with the next message: no new attachment then;
+    // another conversation receives it as new.
+    const resent = { ...envelope, documents: undefined, userRequest: 'Danke.' };
+    const turn = (next) =>
+      prepareFileTurn(
+        app.workbench,
+        { call: (name, input, options) => app.broker.call(name, input, options) },
+        { tenantId: 'tenant-a' },
+        next,
+        meta
+      );
+    await turn(resent);
+    expect(resent.documents).toBeUndefined();
+    const elsewhere = { ...resent, conversationId: 'synthetic-dataset-2' };
+    await turn(elsewhere);
+    expect(elsewhere.documents).toHaveLength(1);
     await app.broker.call(
       'dataset.turn',
       {
