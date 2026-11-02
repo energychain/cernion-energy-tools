@@ -154,6 +154,13 @@ async function readTurnDataset(ctx, p, envelope, candidates, meta) {
       })),
     };
   }
+  // A sheet question only chooses between sheets of one file; tables of different files are
+  // read together on the regular path instead.
+  if (
+    candidates.length > 1 &&
+    new Set(candidates.map((record) => record.sourceName || record.familyId || record.id)).size > 1
+  )
+    return null;
   if (candidates.length > 1) {
     await require('./dataset-clarification').askDatasetSelection(
       ctx,
@@ -324,14 +331,20 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
   if (!candidates.length) return null;
   // Several tables attached together form one question context; the query picks what it needs.
   const attached = records.filter((record) => fresh.includes(record.id));
-  const { answer, evidence } =
-    (await tableAnalysisReply(
-      ctx,
-      p,
-      envelope,
-      attached.length > 1 ? attached : candidates,
-      meta
-    )) || (await readTurnDataset(ctx, p, envelope, candidates, meta));
+  const analysed = attached.length > 1 ? attached : candidates;
+  // One retry: a failed analysis must not leave a data question to the document excerpts.
+  let read =
+    (await tableAnalysisReply(ctx, p, envelope, analysed, meta)) ||
+    (await tableAnalysisReply(ctx, p, envelope, analysed, meta)) ||
+    (await readTurnDataset(ctx, p, envelope, candidates, meta));
+  if (!read && analysed.length > 1)
+    read = {
+      answer:
+        'Die tabellenübergreifende Auswertung ist gerade nicht zustande gekommen. Die Tabellen sind gespeichert; bitte stelle die Frage noch einmal.',
+      evidence: [],
+    };
+  if (!read) return null;
+  const { answer, evidence } = read;
   const combined = await require('./workbench-project-manifest').supplementDatasetAnswer(
     service,
     ctx,
@@ -684,13 +697,23 @@ async function runContentTurn(
     !situation.roleContextUpdated &&
     !situation.selfKnowledge?.requested &&
     situation.tenantMemory?.query?.requested
-  )
-    return tenantMemory.queryResponse(
+  ) {
+    const queried = await tenantMemory.queryResponse(
       memoryCtx,
       p,
       envelope.userRequest,
       situation.tenantMemory.query
     );
+    // Without an anchor match, the person's own statements of this conversation still answer
+    // the question on the regular path, where they are evidence.
+    if (
+      !queried ||
+      queried.statements?.length ||
+      queried.ambiguous ||
+      !(await tenantMemory.hasConversationFacts(memoryCtx, p, envelope))
+    )
+      return queried;
+  }
   if (
     !incomingDocuments &&
     !understandingFailed &&
@@ -702,7 +725,8 @@ async function runContentTurn(
       p,
       envelope,
       pending,
-      situation.tenantMemory?.correction
+      situation.tenantMemory?.correction,
+      situation.tenantMemory?.assertions || []
     );
     if (correction && !situation.tenantMemory?.assertions?.length) return correction;
   }
@@ -719,7 +743,11 @@ async function runContentTurn(
   const memoryContextJob = !incomingDocuments
     ? require('./workbench-capability-loop')
         .withinToolBudget(
-          () => tenantMemory.related(memoryCtx, p, situation, envelope.userRequest),
+          () =>
+            tenantMemory.related(memoryCtx, p, situation, envelope.userRequest, {
+              conversationId: envelope.conversationId,
+              channel: envelope.channel,
+            }),
           200
         )
         .catch(() => ({ evidence: [], text: '' }))
@@ -1289,7 +1317,11 @@ async function runContentTurn(
   if (memory.paragraphs.length && !incomingDocuments) {
     const current = await toolLoop
       .withinToolBudget(
-        () => tenantMemory.related(memoryCtx, p, situation, envelope.userRequest),
+        () =>
+          tenantMemory.related(memoryCtx, p, situation, envelope.userRequest, {
+            conversationId: envelope.conversationId,
+            channel: envelope.channel,
+          }),
         100
       )
       .catch(() => null);
@@ -1352,6 +1384,7 @@ async function runContentTurn(
       meta,
       access,
       selectedCapabilities: result.selectedCapabilities,
+      statementTurn: Boolean(memoryStatement && !incomingDocuments),
     });
     reply = documentResult
       ? documentResult.conversationReply || documentFlow.documentAnswer(documentResult)

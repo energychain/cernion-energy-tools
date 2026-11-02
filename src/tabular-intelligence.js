@@ -109,6 +109,9 @@ function parseDate(value) {
     );
     return Number.isNaN(date.getTime()) ? null : date;
   }
+  // The engine's own parser reads almost anything with digits as a date ("NNA-SYN-001" becomes
+  // 2001-01-01). A timestamp carries no letters beyond ISO's T and Z, so ids stay text.
+  if (/[A-SU-Ya-su-y]/u.test(raw) || !/^\d/u.test(raw)) return null;
   const parsed = new Date(raw);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }

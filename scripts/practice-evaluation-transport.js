@@ -100,6 +100,19 @@ function actorMeta(run, actor, { admin = false } = {}) {
     sharedServiceNoticesStructured: admin,
   };
 }
+// Originals for the file channel (one `upload` or several `uploads`), named per run.
+function turnUploads(run, turn) {
+  return [turn.upload, ...(turn.uploads || [])].filter(Boolean).map((spec) => ({
+    ...spec,
+    // Content is resolved by the fixture name before the per-run rename.
+    content: practiceDocument(spec),
+    name: spec.name.replace('.', `-${run.prefix.slice(0, 8)}.`),
+  }));
+}
+function uploadMimeType(spec) {
+  if (spec.kind === 'load' || spec.name.endsWith('.csv')) return 'text/csv';
+  return spec.name.endsWith('.md') ? 'text/markdown' : 'text/plain';
+}
 function turnDocuments(turn) {
   return [turn.document, ...(turn.documents || [])].filter(Boolean);
 }
@@ -241,23 +254,20 @@ async function createLocalTransport({ budget }) {
       };
     }
     let fileRefs;
-    if (turn.upload) {
-      const spec = {
-        ...turn.upload,
-        name: turn.upload.name.replace('.', `-${run.prefix.slice(0, 8)}.`),
-      };
+    for (const spec of turnUploads(run, turn)) {
       const ref = await app.broker.call(
         'files.upload',
         {
           name: spec.name,
-          mimeType: spec.kind === 'load' ? 'text/csv' : 'text/plain',
-          contentBase64: Buffer.from(practiceDocument(spec)).toString('base64'),
+          mimeType: uploadMimeType(spec),
+          contentBase64: Buffer.from(spec.content).toString('base64'),
         },
         { meta: actorMeta(run, actor) }
       );
-      fileRefs = [ref];
+      (fileRefs ||= []).push(ref);
       run.files.push({ actor, ref });
-      if (spec.kind === 'load') run.datasets.push({ actor, name: spec.name, chat });
+      if (spec.kind === 'load' || spec.name.endsWith('.csv'))
+        run.datasets.push({ actor, name: spec.name, chat });
     }
     for (const document of turnDocuments(turn))
       run.datasets.push({ actor, name: document.name, chat });
@@ -562,23 +572,20 @@ async function createHttpTransport({ config, budget, fetchImpl = fetch }) {
       return { responseText: 'Auditierte Bereinigung abgeschlossen.' };
     }
     let fileRefs;
-    if (turn.upload) {
-      const spec = {
-        ...turn.upload,
-        name: turn.upload.name.replace('.', `-${run.prefix.slice(0, 8)}.`),
-      };
+    for (const spec of turnUploads(run, turn)) {
       const ref = await request('/api/v1/files', {
         method: 'POST',
         actor,
         body: {
           name: spec.name,
-          mimeType: spec.kind === 'load' ? 'text/csv' : 'text/plain',
-          contentBase64: Buffer.from(practiceDocument(spec)).toString('base64'),
+          mimeType: uploadMimeType(spec),
+          contentBase64: Buffer.from(spec.content).toString('base64'),
         },
       });
-      fileRefs = [ref];
+      (fileRefs ||= []).push(ref);
       run.files.push({ actor, ref });
-      if (spec.kind === 'load') run.datasets.push({ actor, name: spec.name, chat });
+      if (spec.kind === 'load' || spec.name.endsWith('.csv'))
+        run.datasets.push({ actor, name: spec.name, chat });
     }
     for (const document of turnDocuments(turn))
       run.datasets.push({ actor, name: document.name, chat });

@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `9011448af5f67cd1d4af0c55d7e136753656ebf3101b2f809a4e3d67c4be2a5e`
+Source SHA-256: `3aa33bf7d024de05ea2c95e5dde6292d70f178807aea93af398ffd0f5e70f1be`
 
 Capabilities: 173; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
@@ -487,7 +487,7 @@ None.
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:227: dynamic emission"}
-- {"service":"api","ref":"services/api.service.js:536: dynamic emission"}
+- {"service":"api","ref":"services/api.service.js:537: dynamic emission"}
 - {"service":"api","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"api","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"assets","ref":"src/job-store.js:67: dynamic emission"}

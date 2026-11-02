@@ -80,13 +80,19 @@ test('every role duty has at least three scenarios with a named work package', (
     expect(byPackage.get(workPackage)).toBeGreaterThanOrEqual(3);
   // Capabilities that are not released yet stay visible as pending, never silently skipped.
   for (const scenario of scenarios())
-    expect(Boolean(scenario.pending)).toBe(scenario.workPackage !== 'role');
+    expect(Boolean(scenario.pending)).toBe(
+      !require('../scripts/generate-netzwirtschaft-scenarios').RELEASED.has(scenario.workPackage)
+    );
 });
 
 test('scenario attachments resolve to department fixtures', () => {
   const { practiceDocument } = require('../scripts/generate-practice-evaluation-fixtures');
   for (const scenario of scenarios())
     for (const turn of scenario.turns)
-      for (const document of [turn.document, ...(turn.documents || [])].filter(Boolean))
+      for (const document of [
+        turn.document,
+        ...(turn.documents || []),
+        ...(turn.uploads || []),
+      ].filter(Boolean))
         expect(practiceDocument(document).length).toBeGreaterThan(50);
 });

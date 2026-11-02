@@ -201,3 +201,14 @@ test('Office text extraction rejects nested and unterminated tags before documen
     await expect(extractOriginal(file)).rejects.toThrow('Beschädigtes Office-XML');
   }
 });
+
+test('Markdown is a UTF-8 text document in the file channel', async () => {
+  const bytes = Buffer.from('# Synthetische Notiz\n\n- Punkt A\n');
+  const checked = validateFile(original('Notiz.md', bytes));
+  expect(checked).toMatchObject({ extension: 'md', mimeType: 'text/markdown' });
+  const file = { ...checked, contentBase64: bytes.toString('base64'), fileId: 'b'.repeat(64) };
+  expect((await extractOriginal(file)).text).toContain('Punkt A');
+  expect(() => validateFile(original('Binär.md', Buffer.from([0x23, 0x00, 0x41])))).toThrow(
+    'Binärdaten'
+  );
+});

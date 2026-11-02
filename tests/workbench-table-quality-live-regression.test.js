@@ -307,6 +307,27 @@ test('an explicit assignment to both sheets overrides a prior sheet preference w
   expect(reply.responseText).not.toContain('Einheit ungeklärt');
 });
 
+test('a plain statement that mentions a column word neither changes a table nor asks for a sheet', async () => {
+  const scenario = scenarios.find((entry) => entry.id === 'table-quality');
+  await ingest(scenario.turns[0]);
+  const before = await catalog();
+  const statement = 'Für die Planung gilt: Amount und Team stimmen wir wöchentlich ab.';
+  structuredMock.mockImplementation(async (schema, raw) => {
+    if (schema.properties?.kind && schema.properties?.basis)
+      return {
+        kind: 'metadata',
+        basis: 'Amount und Team stimmen wir wöchentlich ab',
+        datasetId: '',
+        rowNumbers: [],
+        units: [],
+      };
+    return modelStub(schema, raw);
+  });
+  const reply = await chat(statement);
+  expect(reply.responseText).not.toMatch(/Bitte wähle den Datensatz|Semantik .* ist korrigiert/);
+  expect(await catalog()).toEqual(before);
+});
+
 test('an empty metadata correction cannot acknowledge an unsaved unit', async () => {
   const scenario = scenarios.find((entry) => entry.id === 'table-quality');
   await ingest(scenario.turns[0]);

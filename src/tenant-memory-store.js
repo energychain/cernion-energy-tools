@@ -412,7 +412,11 @@ function factText(fact) {
       : fact.checking === 'pending'
         ? ' Prüfung ausstehend.'
         : '';
-  return `${source(fact)}${fact.documentSource ? `; Quelle: ${fact.documentSource.title}, Version ${fact.documentSource.version}, ${fact.documentSource.location}` : ''}: „${fact.text}“ (${labels[active(fact) ? 'valid' : fact.status === 'valid' ? 'expired' : fact.status]}).${checking}`;
+  // The origin is named: a person's statement is a user statement, never a document finding.
+  const origin = fact.documentSource
+    ? `; Quelle: ${fact.documentSource.title}, Version ${fact.documentSource.version}, ${fact.documentSource.location}`
+    : '; Herkunft: Nutzerangabe';
+  return `${source(fact)}${origin}: „${fact.text}“ (${labels[active(fact) ? 'valid' : fact.status === 'valid' ? 'expired' : fact.status]}).${checking}`;
 }
 async function relationText(ctx, p, id, { includeFacts = true } = {}) {
   const relation = (await get(ctx, p, id)).payload;
