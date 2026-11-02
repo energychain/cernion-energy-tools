@@ -1,6 +1,6 @@
 # Energiewirtschaftliche Falltypen
 
-Generated: 2026-11-01T19:22:57.241Z
+Generated: 2026-11-02T01:25:46.579Z
 
 Dieses Verzeichnis beschreibt natürliche fachliche Falltypen für CET.
 
