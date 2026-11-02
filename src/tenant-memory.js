@@ -845,7 +845,8 @@ async function stopRecovery(service) {
   await service.tenantMemoryRecoveryJob;
 }
 // On a question, the person's own statements in this conversation stay answerable ("what did I
-// just say") without depending on an anchor match; a few recent ones are enough.
+// just say") without depending on an anchor match, even if the reading also suspects a new
+// statement in the question; a few recent ones are enough.
 const CONVERSATION_FACTS = 5;
 async function related(ctx, p, situation, message, { conversationId, channel } = {}) {
   if (!available(ctx)) return { evidence: [], text: '' };
@@ -857,9 +858,7 @@ async function related(ctx, p, situation, message, { conversationId, channel } =
     identifiers
   );
   const own =
-    conversationId &&
-    (situation.turnKind === 'knowledge' ||
-      (message.includes('?') && !situation.tenantMemory?.assertions?.length))
+    conversationId && (situation.turnKind === 'knowledge' || message.includes('?'))
       ? facts
           .filter(
             (fact) =>
