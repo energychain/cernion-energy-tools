@@ -42,7 +42,7 @@ async function matchingDatasets(records, question, conversationId) {
     if (preferred.length) return preferred;
     return records.filter(
       (record) =>
-        record.provenance.conversationId === conversationId ||
+        require('../src/workbench-data-scope').datasetInConversation(record, conversationId) ||
         record.projectRefs?.some((ref) => ref.conversationId === conversationId)
     );
   }
@@ -365,6 +365,24 @@ module.exports = {
         );
         if (duplicate) {
           ids.push(duplicate.id);
+          // The same file uploaded in another conversation joins this one; attachments that a
+          // client resends within its own conversation stay silent.
+          if (
+            conversationId &&
+            !require('../src/workbench-data-scope').datasetInConversation(duplicate, conversationId)
+          ) {
+            const joined = {
+              ...duplicate,
+              usedInConversations: [...(duplicate.usedInConversations || []), conversationId].slice(
+                -50
+              ),
+            };
+            await ctx.call('datapoint.datasetCatalog', { operation: 'put', record: joined });
+            Object.assign(duplicate, joined);
+            confirmations.push(
+              `Bereits abgelegt: ${duplicate.title}, Version ${duplicate.version}; für dieses Gespräch verwende ich diesen Stand.`
+            );
+          }
           continue;
         }
         const damage = datasetPlausibility(table, table.rows);

@@ -70,6 +70,15 @@ describe('role proposals (#1019 A1–A2)', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  test('a turn without a task of its own gets no role question about other work', async () => {
+    expect(await call('selectAsk', { conversationId: 'chat-a' })).toBeNull();
+    expect(
+      await call('selectAsk', { conversationId: 'chat-a', functionIds: ['fn-other'] })
+    ).toBeNull();
+    const asked = await call('selectAsk', { conversationId: 'chat-a', functionIds: [FN] });
+    expect(asked.text).not.toMatch(/[a-z]_[a-z]/u);
+  });
+
   test('each person is asked once about their own row; the answers confirm the proposal into VDMI', async () => {
     const asked = await call('selectAsk', { conversationId: 'chat-a', functionIds: [FN] });
     expect(asked.question).toMatchObject({ key: `role:${FN}`, kind: 'role' });

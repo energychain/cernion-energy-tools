@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — RC3 UAT stage A re-test in the real Open WebUI path
+
+- A table file already known to the tenant and uploaded again in another conversation joins that
+  conversation (`usedInConversations`, confirmation "Bereits abgelegt …"), so its rows are analysed
+  there; attachments a client resends within the same conversation stay silent.
+- A rejection with a new fact no longer asks "Welche festgehaltene Aussage meinst du?" when the
+  person stated nothing in this conversation; the verbatim recall safeguard uses only statements of
+  the current conversation.
+- Role questions (#1019) only concern a task of the current turn and use the German display label
+  of the function, never a technical label.
+
 ## Unreleased — RC3 UAT stage A findings (A-F01–A-F08)
 
 - Tables: identifiers with letters (`NNA-SYN-001`) are no longer read as dates; a table with a

@@ -577,6 +577,13 @@ async function documentReply(
           conversationPreferences: situation.conversationPreferences,
           requestedOutput: situation.requestedOutput,
           userStatements,
+          conversationStatements: [
+            ...new Set(
+              (retrieval?.evidence || [])
+                .filter((hit) => hit.metadata?.ownConversation && hit.value)
+                .map((hit) => hit.value)
+            ),
+          ],
         });
     if (reply?.responseText)
       return {
