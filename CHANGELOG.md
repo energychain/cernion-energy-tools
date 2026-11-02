@@ -2,6 +2,14 @@
 
 ## Unreleased — RC3 UAT: table selection under load, restatement noise
 
+- Chat clients such as Open WebUI resend every attachment with each later message. A file this
+  conversation already received is no longer a new attachment of the turn, so statements,
+  corrections, role rows and recall work on follow-up turns again; the file stays reachable
+  through the conversation and its case.
+- The cross-table analysis receives one table per source (the one attached in this turn, else
+  the newest version, at most six); several versions of one file exceeded the analysis limit
+  ("Parameters validation error"). Its failure log names the table and document counts.
+
 - A failed or timed-out table selection keeps the tables attached to the current turn as
   candidates instead of dropping the data question to the document answer (seen under production
   load); without attached tables it still selects nothing.
