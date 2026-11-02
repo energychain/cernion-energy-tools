@@ -42,7 +42,7 @@ async function matchingDatasets(records, question, conversationId) {
     if (preferred.length) return preferred;
     return records.filter(
       (record) =>
-        record.provenance.conversationId === conversationId ||
+        require('../src/workbench-data-scope').datasetInConversation(record, conversationId) ||
         record.projectRefs?.some((ref) => ref.conversationId === conversationId)
     );
   }
@@ -365,6 +365,24 @@ module.exports = {
         );
         if (duplicate) {
           ids.push(duplicate.id);
+          // The same file uploaded in another conversation joins this one; attachments that a
+          // client resends within its own conversation stay silent.
+          if (
+            conversationId &&
+            !require('../src/workbench-data-scope').datasetInConversation(duplicate, conversationId)
+          ) {
+            const joined = {
+              ...duplicate,
+              usedInConversations: [...(duplicate.usedInConversations || []), conversationId].slice(
+                -50
+              ),
+            };
+            await ctx.call('datapoint.datasetCatalog', { operation: 'put', record: joined });
+            Object.assign(duplicate, joined);
+            confirmations.push(
+              `Bereits abgelegt: ${duplicate.title}, Version ${duplicate.version}; für dieses Gespräch verwende ich diesen Stand.`
+            );
+          }
           continue;
         }
         const damage = datasetPlausibility(table, table.rows);
@@ -552,23 +570,24 @@ module.exports = {
         const mutating = Boolean(correction) || deleting;
         if (correction?.multipleSheets && candidates.length > 1) {
           const replies = [];
-          for (const record of candidates)
-            replies.push(
-              await require('../src/dataset-correction').correctDatasetSemantics(
-                this,
-                ctx,
-                p,
-                record,
-                correction,
-                question
-              )
+          for (const record of candidates) {
+            const reply = await require('../src/dataset-correction').correctDatasetSemantics(
+              this,
+              ctx,
+              p,
+              record,
+              correction,
+              question
             );
-          return {
-            handled: true,
-            datasetIds: candidates.map((record) => record.id),
-            selectionDatasetIds: [],
-            responseText: replies.map((reply) => reply.responseText).join('\n\n'),
-          };
+            if (reply) replies.push(reply);
+          }
+          if (replies.length)
+            return {
+              handled: true,
+              datasetIds: candidates.map((record) => record.id),
+              selectionDatasetIds: [],
+              responseText: replies.map((reply) => reply.responseText).join('\n\n'),
+            };
         }
         if (mutating && candidates.length > 1)
           return require('../src/dataset-clarification').askDatasetSelection(
@@ -605,7 +624,7 @@ module.exports = {
               responseText: `Der Datensatz ${record.title} und seine ${family.length} Version(en) sind physisch gelöscht. Die Löschung ist auditiert.`,
             };
           }
-          return require('../src/dataset-correction').correctDatasetSemantics(
+          const corrected = await require('../src/dataset-correction').correctDatasetSemantics(
             this,
             ctx,
             p,
@@ -613,6 +632,7 @@ module.exports = {
             correction,
             question
           );
+          if (corrected) return corrected;
         }
         if (
           !candidates.length ||

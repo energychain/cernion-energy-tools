@@ -1,5 +1,47 @@
 # Changelog
 
+## Unreleased — RC3 UAT stage A re-test in the real Open WebUI path
+
+- A table file already known to the tenant and uploaded again in another conversation joins that
+  conversation (`usedInConversations`, confirmation "Bereits abgelegt …"), so its rows are analysed
+  there; attachments a client resends within the same conversation stay silent.
+- A rejection with a new fact no longer asks "Welche festgehaltene Aussage meinst du?" when the
+  person stated nothing in this conversation; the verbatim recall safeguard uses only statements of
+  the current conversation.
+- Role questions (#1019) only concern a task of the current turn and use the German display label
+  of the function, never a technical label.
+
+## Unreleased — RC3 UAT stage A findings (A-F01–A-F08)
+
+- Tables: identifiers with letters (`NNA-SYN-001`) are no longer read as dates; a table with a
+  complete unique text key is a record table, so CSV files in the file channel are analysed as
+  rows and columns across tables (A-F01). A sheet question is only asked between sheets of one
+  file; a plain statement that mentions a column word is no dataset correction and never
+  changes a table (only unit/time semantics or a named or chosen table are corrected).
+- Organisation facts and corrections (A-F02, A-F03): a statement in a document case is confirmed
+  with origin „Nutzerangabe“ instead of being answered from excerpts; the person's own valid
+  statements of the conversation are evidence on questions and are repeated with their origin
+  (also in document answers); a word-for-word restatement after a rejection keeps the statement
+  valid and is this turn's statement. A rejection with the right fact in the same turn replays
+  the rejected question in the conversation scope; `resolved_runtime` only after a passed replay.
+- Role rows (A-F04): explicit V/D/M/I assignments are one organisation statement with all
+  assignments (no rights); a preference reading no longer drops them; recall is verbatim.
+- Questions (A-F05): no purpose/role question when stored statements answer the turn; the
+  assessment of one's own statement is shown once, not on every later mention; "wer ist für
+  <Gegenstand> zuständig" is a content question, not a case status query.
+- Open WebUI (A-F06): with `stream: true` the event stream opens once the request is authorized
+  and carries SSE keep-alive comments until the finished answer is framed; an error after that
+  ends the stream with an OpenAI error frame.
+- File channel (A-F07): Markdown (`.md`, `text/markdown`, aliases `text/plain`,
+  `text/x-markdown`) is an allowed UTF-8 text type. Deployments that set
+  `CET_FILE_ALLOWED_TYPES` must add `md`.
+- Traceability (A-F08): `src/build-info.js` reads the deployed commit (`CET_BUILD_COMMIT` or the
+  checkout's git metadata); chat completions carry `system_fingerprint` and `/v1` responses the
+  header `X-Cernion-Build` (`cet-<version>-<commit>`).
+- Acceptance: practice scenarios `nw-uat-r1-tables`, `nw-uat-r2-org-fact`,
+  `nw-uat-r3-correction`, `nw-uat-r4-role-row` upload the operative files as originals through
+  the file channel; expected values stay in the harness, never in a prompt.
+
 ## Unreleased — Public-Context Selected-Source Provenance & Freshness Workbench (#1013)
 
 - Additive `public_context_selected_source_*` section group in the Stadtwerk-Mauer Workbench

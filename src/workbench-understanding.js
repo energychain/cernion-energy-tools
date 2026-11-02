@@ -1028,6 +1028,13 @@ async function understand({
       preferences.preferenceOnly === true &&
       Boolean(preferences.basis?.trim()) &&
       message.includes(preferences.basis) &&
+      // An accepted organisation statement keeps the turn a statement, even when the preference
+      // reading covers the whole message.
+      !(result.tenantMemory?.assertions || []).some(
+        (item) =>
+          require('./tenant-memory').acceptedAssertion(item, message) &&
+          !require('./tenant-memory').glossaryDefinition(item, message)
+      ) &&
       !(
         previous?.conversationPreferences?.questions === 'requested' &&
         questionsFor(
@@ -1408,7 +1415,7 @@ function answerPrompt(
           ? 'Der erste claim in interpretation beantwortet unmittelbar die aktuelle Nutzerfrage, ohne Einleitung oder Zusammenfassung der alten Lage. Antworte knapp: ein kurzer Einordnungssatz, höchstens zwei nächste Schritte. Lasse expectation leer. Die Einordnung hilft bei der nächsten Handlung; wiederhole keinen vorhandenen Status als vermeintlich neue erledigte Handlung. Erzeuge keinen unveränderten proaktiven Entwurf erneut. Ein proaktives draftRequested im Lagebild ersetzt niemals die fachliche Antwort auf die aktuelle Frage.'
           : 'Ordne die neue Anfrage ein und unterstütze die nächsten Schritte.',
     provenanceInstruction:
-      'Setze origin=input für wörtlich übernommene Angaben aus Nutzertext/Lagebild (auch DAR, MaLo, Adressen), origin=evidence für belegte Quellenangaben, origin=model für Fachwissen. Eingabe-Angaben werden nie als Modellwissen markiert. supported bleibt evidence bei Quellen und model bei input/model. Keine erfundenen Personendaten. Bei vorhandener Evidenz nutze passende evidenceIds.',
+      'Setze origin=input für wörtlich übernommene Angaben aus Nutzertext/Lagebild (auch DAR, MaLo, Adressen), origin=evidence für belegte Quellenangaben, origin=model für Fachwissen. Eingabe-Angaben werden nie als Modellwissen markiert. supported bleibt evidence bei Quellen und model bei input/model. Keine erfundenen Personendaten. Bei vorhandener Evidenz nutze passende evidenceIds. Evidenz aus dem Tenant-Gedächtnis sind gespeicherte Angaben von Personen (Herkunft „Nutzerangabe“), keine Dokumentbelege: fragt die Person nach einer eigenen gespeicherten Angabe, gib sie vollständig mit allen Zuordnungen, Beteiligten und Werten wieder und nenne die Herkunft „Nutzerangabe“.',
     ...value,
   });
 }
@@ -1820,6 +1827,25 @@ function datasetQuestionAnswered(evidence, message) {
       /\d{2}[:.]\d{2}|\d{4}-\d{2}-\d{2}/u.test(canonical))
   );
 }
+// A value inside the person's own stored statement is asked about as that statement, not as a
+// code whose meaning needs a source (the statement is the evidence of this turn).
+function withoutStatedCodes(situation, evidence) {
+  const stated = evidence
+    .filter((hit) => hit.retrievalSource === 'tenant-memory' && typeof hit.value === 'string')
+    .map((hit) => hit.value);
+  if (!stated.length || !situation.codeReferences?.length) return situation;
+  const { exactToken } = require('./workbench-codes');
+  const kept = (entry) => !stated.some((text) => exactToken(text, entry.value));
+  const codeReferences = situation.codeReferences.filter(kept);
+  if (codeReferences.length === situation.codeReferences.length) return situation;
+  return {
+    ...situation,
+    codeReferences,
+    codeResolutions: (situation.codeResolutions || []).filter(kept),
+    codeMeaningQuestion: Boolean(situation.codeMeaningQuestion && codeReferences.length),
+  };
+}
+
 async function answer({
   situation,
   retrieval,
@@ -1835,6 +1861,7 @@ async function answer({
   lastAnswer = '',
   logger,
 }) {
+  situation = withoutStatedCodes(situation, retrieval?.evidence || []);
   const roleReply = require('./workbench-role-context').roleConfirmation(situation, message);
   if (roleReply && situation.roleStatement?.roleOnly && !situation.requestedOutput?.requested)
     return {

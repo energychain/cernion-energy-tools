@@ -10,7 +10,7 @@ const { turnOutcome } = require('./failure-signals');
 
 const FAILED = new Set(['fallback', 'error', 'unavailable']);
 
-async function shadowReplay(ctx, { tenantId, question, newFactIds = [] }) {
+async function shadowReplay(ctx, { tenantId, question, conversationId, newFactIds = [] }) {
   const situation = await understanding.understand({ message: question, tenantId });
   const meta = { ...ctx.meta, workbenchToolsManaged: true, workbenchEvidenceSources: null };
   const collected = await ctx
@@ -21,7 +21,9 @@ async function shadowReplay(ctx, { tenantId, question, newFactIds = [] }) {
     trace: [...(collected.trace || [])],
   };
   const memory = await require('./tenant-memory')
-    .related(ctx, require('./domain-router-policy').principal(ctx), situation, question)
+    .related(ctx, require('./domain-router-policy').principal(ctx), situation, question, {
+      conversationId,
+    })
     .catch(() => ({ evidence: [] }));
   retrieval.evidence.push(...(memory?.evidence || []));
   const reply = await understanding.answer({

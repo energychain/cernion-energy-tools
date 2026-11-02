@@ -68,3 +68,39 @@ test('chat document memory budget defaults to 50 and 0 disables the cap', async 
   const unlimited = chatMemoryBudget(0);
   for (let i = 0; i < 60; i += 1) expect(await unlimited.claimSection()).toBe(true);
 });
+
+test('a recalled user statement keeps its full wording and origin', async () => {
+  const stored =
+    'Abteilungsleitung A (Netzwirtschaft, 01.11.2026); Herkunft: Nutzerangabe: „Für Aufgabe X bin ich verantwortlich (V); Team Y führt durch (D).“ (gültig).';
+  llm.generateStructured.mockResolvedValueOnce({ answer: 'Abteilungsleitung A, V, Nutzerangabe.' });
+  const shortened = await documentQuestion(documents, 'Welche Rollenzeile habe ich genannt?', {
+    userStatements: [stored],
+    conversationStatements: [stored],
+  });
+  expect(shortened.responseText).toContain(
+    '„Für Aufgabe X bin ich verantwortlich (V); Team Y führt durch (D).“'
+  );
+  expect(llm.generateStructured.mock.calls[0][1]).toContain('userStatementInstruction');
+  llm.generateStructured.mockResolvedValueOnce({
+    answer:
+      'Du hast „Für Aufgabe X bin ich verantwortlich (V); Team Y führt durch (D)“ genannt (Nutzerangabe).',
+  });
+  const complete = await documentQuestion(documents, 'Welche Rollenzeile habe ich genannt?', {
+    userStatements: [stored],
+    conversationStatements: [stored],
+  });
+  expect(complete.responseText).not.toContain('Gespeicherte Angabe');
+});
+
+test('a statement from another conversation is never appended as the recalled wording', async () => {
+  const elsewhere =
+    'Abteilungsleitung A (Netzwirtschaft, 01.11.2026); Herkunft: Nutzerangabe: „Kennung Y lautet 42.“ (gültig).';
+  llm.generateStructured.mockResolvedValueOnce({
+    answer: 'Zu Kennung X liegen weder Dokumentbelege noch Nutzerangaben vor.',
+  });
+  const reply = await documentQuestion(documents, 'Welche Kennung X gilt?', {
+    userStatements: [elsewhere],
+    conversationStatements: [],
+  });
+  expect(reply.responseText).not.toContain('Kennung Y');
+});

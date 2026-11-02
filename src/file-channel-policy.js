@@ -12,10 +12,13 @@ const TYPES = Object.freeze({
   csv: 'text/csv',
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   txt: 'text/plain',
+  md: 'text/markdown',
   edi: 'application/edifact',
   edifact: 'application/edifact',
   eml: 'message/rfc822',
 });
+// Spellings clients send for the same type; the stored type stays the canonical one.
+const MIME_ALIASES = Object.freeze({ md: ['text/plain', 'text/x-markdown'] });
 function fileError(message, status = 422, type = 'FILE_CHANNEL_INVALID') {
   throw new Errors.MoleculerClientError(message, status, type);
 }
@@ -63,7 +66,9 @@ function validateFile(input) {
   if (
     !TYPES[extension] ||
     !allowed.includes(extension) ||
-    (mimeType && mimeType !== TYPES[extension])
+    (mimeType &&
+      mimeType !== TYPES[extension] &&
+      !(MIME_ALIASES[extension] || []).includes(mimeType))
   )
     fileError(
       'Dateityp nicht erlaubt. Erlaubt: ' + allowed.filter((type) => TYPES[type]).join(', ')
@@ -80,7 +85,7 @@ function validateFile(input) {
     fileError('Ungültige PDF-Datei.');
   if (['docx', 'xlsx', 'pptx'].includes(extension))
     require('./file-channel-extract').validateOffice(bytes, extension);
-  else if (['csv', 'txt', 'eml', 'edi', 'edifact'].includes(extension)) {
+  else if (['csv', 'txt', 'md', 'eml', 'edi', 'edifact'].includes(extension)) {
     try {
       new TextDecoder('utf-8', { fatal: true }).decode(bytes);
     } catch (_error) {

@@ -13,11 +13,28 @@ const FUNCTIONS =
   'abs avg sum total count min max round coalesce ifnull nullif iif length lower upper substr instr julianday strftime';
 
 // A measurement series has a regular time grid; lists of business records do not.
+// A text column whose value differs in every row is a key: one row per record (an invoice, a
+// case), not one row per point in time.
+function hasRecordKey(record) {
+  return (record.columns || []).some(
+    (column) =>
+      column.name !== record.semantic?.timeField &&
+      column.type === 'string' &&
+      column.distinctRatio === 1 &&
+      column.distinctCount >= 2 &&
+      column.nullCount === 0 &&
+      // An identifier carries digits ("XY-001"); unique labels ("Gruppe A") name no record.
+      (column.examples || []).length > 0 &&
+      column.examples.every((value) => /\p{L}/u.test(String(value)) && /\d/u.test(String(value)))
+  );
+}
+
 function isRecordTable(record) {
   const rows = Number(record?.rowCount) || 0;
   // Without a stored quality profile the validated series path stays in charge.
   if (!record?.quality) return false;
   if (!record.semantic?.timeField || !record.quality.intervalMinutes) return true;
+  if (hasRecordKey(record)) return true;
   const irregular = (record.quality.gaps || 0) + (record.quality.duplicates || 0);
   return rows > 0 && irregular > rows * 0.1;
 }

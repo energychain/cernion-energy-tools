@@ -48,4 +48,11 @@ module.exports = new Set(
         ' '
       )
     )
+    .concat(
+      // Reviewed neutral vocabulary for the UAT stage A regressions (R1–R4); "bdew" names the
+      // generic code type of the energy industry, not an organisation.
+      'uat r1 r2 r3 r4 tables fachtabellen tabellenübergreifend invoices rechnungsnummer restbetrag grund berechne berücksichtige teilzahlungen teilzahlungsrest mehreren tabellen uploads rows eindeutige vorgänge enthält doppelt dublette org fact organisationsfakt nutzerangabe dich synthetischen aufgenommen statement bdew codenummer unserer lautet bedeutungsfrage recall unsere synthetische genannt wiedergegeben wirkt angabe erfunden übernommen unserem worauf beruht bestandenem wiederholungslauf laufzeit behoben resolved runtime row v m i rollenzeile lernen erledigte neun acht sieben b7 b8 b9 verantwortlich marktprozesse führt abrechnung wirken höchstens berechtigung zugriff rechte erteilt vergeben freigeschaltet dir sowie'.split(
+        ' '
+      )
+    )
 );

@@ -12,6 +12,7 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const { version: packageVersion } = require('../package.json');
+const { buildInfo } = require('../src/build-info');
 const metrics = require('../src/metrics');
 const rateQuotaStore = require('../src/rate-quota-store');
 const tracing = require('../src/tracing');
@@ -749,7 +750,13 @@ function buildOpenAiStreamChunks(response) {
   const choice = Array.isArray(response?.choices) ? response.choices[0] : null;
   const content = typeof choice?.message?.content === 'string' ? choice.message.content : '';
   const finishReason = choice?.finish_reason || 'stop';
-  const base = { id, object: 'chat.completion.chunk', created, model };
+  const base = {
+    id,
+    object: 'chat.completion.chunk',
+    created,
+    model,
+    system_fingerprint: buildInfo().fingerprint,
+  };
 
   const noticeBlock = response?.cernion?.result?.noticeBlock;
   const prefix =
@@ -777,17 +784,35 @@ function buildOpenAiStreamChunks(response) {
   ];
 }
 
-function writeOpenAiChatCompletionStream(res, response) {
+// A turn can take longer than idle limits of proxies and clients. With stream=true the event
+// stream opens once the request is authorized and carries SSE comments (ignored by clients)
+// until the finished answer is framed, so a complete answer never arrives on a dropped line.
+const STREAM_KEEPALIVE_MS = 10000;
+function openOpenAiChatCompletionStream(res) {
+  if (res.cernionStreamOpen) return;
+  res.cernionStreamOpen = true;
   res.setHeader(CONTENT_TYPE_HEADER, 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
   res.writeHead(200);
+  const timer = setInterval(() => {
+    if (!res.writableEnded) res.write(': keep-alive\n\n');
+  }, STREAM_KEEPALIVE_MS);
+  timer.unref?.();
+  res.cernionStreamTimer = timer;
+}
+function closeOpenAiChatCompletionStream(res) {
+  clearInterval(res.cernionStreamTimer);
+  res.write('data: [DONE]\n\n');
+  res.end();
+}
+function writeOpenAiChatCompletionStream(res, response) {
+  openOpenAiChatCompletionStream(res);
   for (const chunk of buildOpenAiStreamChunks(response)) {
     res.write(`data: ${JSON.stringify(chunk)}\n\n`);
   }
-  res.write('data: [DONE]\n\n');
-  res.end();
+  closeOpenAiChatCompletionStream(res);
 }
 
 // Shared auth/rate-limit/broker-call core for the synchronous /v1 OpenAI
@@ -795,8 +820,9 @@ function writeOpenAiChatCompletionStream(res, response) {
 // rate-limit response headers and returns { requestBody, response } for the
 // caller to serialize; on failure, writes the full OpenAI-compatible error
 // response itself and returns null — callers must check for that and return.
-async function runOpenAiFacadeAction(service, req, res, { facadePath, brokerAction }) {
+async function runOpenAiFacadeAction(service, req, res, { facadePath, brokerAction, authorized }) {
   const requestBody = req?.body || req?.$params || {};
+  res.setHeader('X-Cernion-Build', buildInfo().fingerprint);
   try {
     const meta = await buildOpenAiFacadeMeta(service, req, facadePath);
     const tenantIdForQuota = meta.tenantId || 'default';
@@ -841,14 +867,21 @@ async function runOpenAiFacadeAction(service, req, res, { facadePath, brokerActi
     // fields while marking this nested broker path as internal.
     const synchronousMeta = { ...meta };
     delete synchronousMeta.$gateway;
-    const response = await service.broker.call(brokerAction, requestBody, {
-      meta: synchronousMeta,
-    });
     for (const [headerName, headerValue] of Object.entries(rateLimit.responseHeaders || {})) {
       if (headerValue != null) res.setHeader(headerName, String(headerValue));
     }
+    authorized?.(requestBody);
+    const response = await service.broker.call(brokerAction, requestBody, {
+      meta: synchronousMeta,
+    });
     return { requestBody, response };
   } catch (err) {
+    if (res.cernionStreamOpen) {
+      // The event stream is already open: end it with an OpenAI error frame.
+      res.write(`data: ${JSON.stringify(buildOpenAiErrorBody(err))}\n\n`);
+      closeOpenAiChatCompletionStream(res);
+      return null;
+    }
     const errorHeaders = err?.data?.responseHeaders || {};
     for (const [headerName, headerValue] of Object.entries(errorHeaders)) {
       if (headerValue != null) res.setHeader(headerName, String(headerValue));
@@ -864,6 +897,9 @@ async function handleOpenAiChatCompletions(req, res) {
   const result = await runOpenAiFacadeAction(this, req, res, {
     facadePath: '/v1/chat/completions',
     brokerAction: 'openai-compatible.chatCompletions',
+    authorized: (body) => {
+      if (body?.stream === true) openOpenAiChatCompletionStream(res);
+    },
   });
   if (!result) return;
   const { requestBody, response } = result;
@@ -873,7 +909,13 @@ async function handleOpenAiChatCompletions(req, res) {
   }
   res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
   res.writeHead(200);
-  res.end(JSON.stringify(response));
+  res.end(
+    JSON.stringify(
+      response && typeof response === 'object' && !response.system_fingerprint
+        ? { ...response, system_fingerprint: buildInfo().fingerprint }
+        : response
+    )
+  );
 }
 
 // Non-streaming OpenAI-compatible facade for POST /v1/images/generations,
@@ -934,6 +976,7 @@ async function handleOpenAiModels(req, res) {
           data: OPENAI_MODEL_CATALOG.data.filter((model) => model.id === GOVERNANCE_MODEL),
         }
       : OPENAI_MODEL_CATALOG;
+  res.setHeader('X-Cernion-Build', buildInfo().fingerprint);
   res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
   res.writeHead(200);
   res.end(JSON.stringify(catalog));

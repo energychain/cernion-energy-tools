@@ -5962,6 +5962,523 @@
       ]
     },
     {
+      "id": "nw-uat-r1-tables",
+      "group": "C.1",
+      "title": "R1: Fachtabellen tabellenübergreifend auswerten",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "open-invoices",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welche Netznutzungsrechnungen sind zum Stichtag 2026-03-02 noch offen? Nenne Rechnungsnummer, offenen Restbetrag und Grund und berechne den offenen Gesamtbetrag. Berücksichtige Teilzahlungen, fehlende Zahlungsavise und Zählerstandskorrekturen.",
+          "expect": {
+            "description": "Offene Rechnungen, Teilzahlungsrest und Gesamtbetrag aus mehreren Tabellen",
+            "rules": {
+              "require": [
+                "NNA-SYN-003",
+                "NNA-SYN-005",
+                "NNA-SYN-008",
+                "NNA-SYN-011"
+              ],
+              "numeric": [
+                {
+                  "value": 5385,
+                  "tolerance": 0.01
+                },
+                {
+                  "value": 585,
+                  "tolerance": 0.01
+                }
+              ],
+              "forbid": [
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "uploads": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "team-uebersicht.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "jour-fixe-protokoll.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "leitfaden-marktkommunikation.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-rechnungen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-reklamationen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-zahlungsavise.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "mako-klaerfaelle.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "zaehlerstandskorrekturen.csv"
+            }
+          ],
+          "dataQuestion": true
+        },
+        {
+          "id": "mako-rows",
+          "actor": "a",
+          "chat": "main",
+          "message": "Wie viele Zeilen hat die Klärfallliste, wie viele eindeutige Vorgänge enthält sie, welcher Vorgang ist doppelt und wie viele Vorgänge sind noch nicht erledigt?",
+          "expect": {
+            "description": "Zeilen, eindeutige Vorgänge, Dublette und nicht erledigte Vorgänge",
+            "rules": {
+              "require": [
+                "MK-SYN-02",
+                "(?:\\b9\\b|neun)",
+                "(?:\\b8\\b|acht)",
+                "(?:\\b7\\b|sieben)"
+              ],
+              "forbid": [
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "dataQuestion": true
+        }
+      ],
+      "workPackage": "uat-a"
+    },
+    {
+      "id": "nw-uat-r2-org-fact",
+      "group": "C.1",
+      "title": "R2: Organisationsfakt als Nutzerangabe",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "intake",
+          "actor": "a",
+          "chat": "main",
+          "message": "Arbeite dich bitte in die beigefügten synthetischen Unterlagen ein.",
+          "expect": {
+            "description": "Unterlagen im Dateikanal aufgenommen",
+            "rules": {
+              "forbid": [
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "uploads": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "team-uebersicht.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "jour-fixe-protokoll.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "leitfaden-marktkommunikation.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-rechnungen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-reklamationen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-zahlungsavise.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "mako-klaerfaelle.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "zaehlerstandskorrekturen.csv"
+            }
+          ]
+        },
+        {
+          "id": "statement",
+          "actor": "a",
+          "chat": "main",
+          "message": "Die BDEW-Codenummer unserer synthetischen Organisation lautet 9900000000000.",
+          "expect": {
+            "description": "Als Nutzerangabe bestätigt, ohne Bedeutungsfrage",
+            "rules": {
+              "require": [
+                "Nutzerangabe",
+                "9900000000000"
+              ],
+              "questions": {
+                "min": 0,
+                "max": 0
+              },
+              "forbid": [
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "recall",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welche BDEW-Codenummer habe ich gerade für unsere synthetische Organisation genannt?",
+          "expect": {
+            "description": "Kennung und Herkunft wiedergegeben",
+            "rules": {
+              "require": [
+                "9900000000000",
+                "Nutzerangabe"
+              ],
+              "forbid": [
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b",
+                "nicht (?:belegt|genannt)"
+              ]
+            },
+            "dependencies": []
+          }
+        }
+      ],
+      "workPackage": "uat-a"
+    },
+    {
+      "id": "nw-uat-r3-correction",
+      "group": "C.1",
+      "title": "R3: Korrektur wirkt vor dem nächsten Turn",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "intake",
+          "actor": "a",
+          "chat": "main",
+          "message": "Arbeite dich bitte in die beigefügten synthetischen Unterlagen ein.",
+          "expect": {
+            "description": "Unterlagen im Dateikanal aufgenommen",
+            "rules": {
+              "forbid": [
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "uploads": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "team-uebersicht.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "jour-fixe-protokoll.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "leitfaden-marktkommunikation.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-rechnungen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-reklamationen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-zahlungsavise.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "mako-klaerfaelle.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "zaehlerstandskorrekturen.csv"
+            }
+          ]
+        },
+        {
+          "id": "question",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welche BDEW-Codenummer gilt für unsere synthetische Organisation?",
+          "expect": {
+            "description": "Ohne Angabe: unbekannt, nichts erfunden",
+            "rules": {
+              "forbid": [
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b",
+                "9900000000000"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "correction",
+          "actor": "a",
+          "chat": "main",
+          "message": "Das stimmt so nicht. Die BDEW-Codenummer unserer synthetischen Organisation lautet 9900000000000.",
+          "expect": {
+            "description": "Korrektur übernommen",
+            "rules": {
+              "require": [
+                "9900000000000"
+              ],
+              "forbid": [
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "recall",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welche BDEW-Codenummer gilt jetzt in unserem Arbeitskontext, und worauf beruht sie?",
+          "expect": {
+            "description": "Korrigierte Angabe mit Herkunft verwendet",
+            "rules": {
+              "require": [
+                "9900000000000",
+                "Nutzerangabe"
+              ],
+              "forbid": [
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "register",
+          "actor": "a",
+          "chat": "main",
+          "message": "",
+          "expect": {
+            "description": "Fehlerfall erst nach bestandenem Wiederholungslauf zur Laufzeit behoben",
+            "rules": {
+              "failureCase": {
+                "kind": "user_correction",
+                "levels": [
+                  "B"
+                ],
+                "status": "resolved_runtime"
+              },
+              "forbid": [
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "operation": "failure-cases"
+        }
+      ],
+      "workPackage": "uat-a"
+    },
+    {
+      "id": "nw-uat-r4-role-row",
+      "group": "C.1",
+      "title": "R4: V/D/M/I-Rollenzeile lernen",
+      "version": "1.0",
+      "actors": [
+        {
+          "id": "a",
+          "name": "Sachbearbeitung A",
+          "role": "Abteilungsleitung A",
+          "functionLabel": "Gasnetzplanung"
+        },
+        {
+          "id": "b",
+          "name": "Sachbearbeitung B",
+          "role": "Abteilungsleitung B",
+          "functionLabel": "Stromnetz"
+        }
+      ],
+      "anchor": "Prüfbezugcacbafeebafc",
+      "turns": [
+        {
+          "id": "intake",
+          "actor": "a",
+          "chat": "main",
+          "message": "Arbeite dich bitte in die beigefügten synthetischen Unterlagen ein.",
+          "expect": {
+            "description": "Unterlagen im Dateikanal aufgenommen",
+            "rules": {
+              "forbid": [
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b"
+              ]
+            },
+            "dependencies": []
+          },
+          "uploads": [
+            {
+              "kind": "netzwirtschaft",
+              "name": "team-uebersicht.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "jour-fixe-protokoll.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "leitfaden-marktkommunikation.md"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-rechnungen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-reklamationen.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "nna-zahlungsavise.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "mako-klaerfaelle.csv"
+            },
+            {
+              "kind": "netzwirtschaft",
+              "name": "zaehlerstandskorrekturen.csv"
+            }
+          ]
+        },
+        {
+          "id": "statement",
+          "actor": "a",
+          "chat": "main",
+          "message": "Für dieses synthetische UAT gilt: Ich bin Abteilungsleitung Netzwirtschaft. Für die Priorisierung der Z10-Klärfälle bin ich verantwortlich (V); das Team Netzservice & Marktprozesse führt die Bearbeitung durch (D); MaKo und Abrechnung wirken mit (M).",
+          "expect": {
+            "description": "Rollenzeile vollständig bestätigt, höchstens eine Rückfrage",
+            "rules": {
+              "require": [
+                "\\(V\\)",
+                "\\(D\\)",
+                "\\(M\\)",
+                "Netzservice",
+                "MaKo"
+              ],
+              "questions": {
+                "min": 0,
+                "max": 1
+              },
+              "forbid": [
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b",
+                "(?:Berechtigung|Zugriff|Rechte?) (?:erteilt|vergeben|freigeschaltet)"
+              ]
+            },
+            "dependencies": []
+          }
+        },
+        {
+          "id": "recall",
+          "actor": "a",
+          "chat": "main",
+          "message": "Welche eigene Rollenzeile habe ich dir gerade genannt? Gib nur Funktion sowie V/D/M/I-Zuordnung und Herkunft an. Stelle keine Rückfrage.",
+          "expect": {
+            "description": "Funktion, Zuordnung und Herkunft vollständig",
+            "rules": {
+              "require": [
+                "Priorisierung",
+                "Netzservice",
+                "MaKo",
+                "Abrechnung",
+                "Nutzerangabe"
+              ],
+              "questions": {
+                "min": 0,
+                "max": 0
+              },
+              "forbid": [
+                "\\bhabe ich (?:gesendet|verschickt)\\b",
+                "\\b(?:Leistung|Performance) (?:von|der) (?:Frau|Herrn?)\\b",
+                "nicht belegt"
+              ]
+            },
+            "dependencies": []
+          }
+        }
+      ],
+      "workPackage": "uat-a"
+    },
+    {
       "id": "nw-role-interim",
       "group": "C.1",
       "title": "Interimistische Abteilungsleitung: Was brennt?",
