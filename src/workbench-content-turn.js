@@ -333,10 +333,10 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
   const attached = records.filter((record) => fresh.includes(record.id));
   const analysed = attached.length > 1 ? attached : candidates;
   // One retry: a failed analysis must not leave a data question to the document excerpts.
-  let read =
-    (await tableAnalysisReply(ctx, p, envelope, analysed, meta)) ||
-    (await tableAnalysisReply(ctx, p, envelope, analysed, meta)) ||
-    (await readTurnDataset(ctx, p, envelope, candidates, meta));
+  let read = null;
+  for (let attempt = 0; attempt < 2 && !read; attempt++)
+    read = await tableAnalysisReply(ctx, p, envelope, analysed, meta);
+  read ||= await readTurnDataset(ctx, p, envelope, candidates, meta);
   if (!read && analysed.length > 1)
     read = {
       answer:

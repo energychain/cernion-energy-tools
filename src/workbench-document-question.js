@@ -21,19 +21,20 @@ function documentTable(text) {
 // so a recalled statement is never shortened to a fragment.
 function withStatedWording(answer, userStatements) {
   if (!userStatements.length || !answer.includes('Nutzerangabe')) return answer;
-  const wordings = userStatements
-    .map((value) =>
-      String(value)
-        .match(/„([^“]+)“/u)?.[1]
-        ?.trim()
-    )
-    .filter(Boolean);
-  const normalize = (text) => text.replace(/[.\s]+$/u, '').toLocaleLowerCase('de-DE');
-  if (
-    !wordings.length ||
-    wordings.some((text) => answer.toLocaleLowerCase('de-DE').includes(normalize(text)))
-  )
-    return answer;
+  const quoted = (value) => {
+    const text = String(value);
+    const open = text.indexOf('„');
+    const close = open < 0 ? -1 : text.indexOf('“', open + 1);
+    return close > open ? text.slice(open + 1, close).trim() : '';
+  };
+  const core = (text) => {
+    let end = text.length;
+    while (end > 0 && '. '.includes(text[end - 1])) end--;
+    return text.slice(0, end).toLocaleLowerCase('de-DE');
+  };
+  const wordings = userStatements.map(quoted).filter(Boolean);
+  const lower = answer.toLocaleLowerCase('de-DE');
+  if (!wordings.length || wordings.some((text) => lower.includes(core(text)))) return answer;
   return `${answer}\n\nGespeicherte Angabe (Herkunft: Nutzerangabe): „${wordings[0]}“`;
 }
 

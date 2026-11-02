@@ -17,8 +17,11 @@ function gitDir(root) {
   if (!stat) return null;
   if (stat.isDirectory()) return entry;
   // A worktree checkout keeps "gitdir: <path>" in a .git file.
-  const pointer = fs.readFileSync(entry, 'utf8').match(/^gitdir:\s*(.+)$/mu);
-  return pointer ? path.resolve(root, pointer[1].trim()) : null;
+  const pointer = fs
+    .readFileSync(entry, 'utf8')
+    .split('\n')
+    .find((line) => line.startsWith('gitdir:'));
+  return pointer ? path.resolve(root, pointer.slice('gitdir:'.length).trim()) : null;
 }
 
 function refCommit(dir, ref) {
@@ -47,6 +50,7 @@ function gitCommit(root) {
     const commit = head.startsWith('ref: ') ? refCommit(dir, head.slice(5).trim()) : head;
     return SHA.test(commit) ? commit : '';
   } catch (_error) {
+    // Unreadable git metadata only means the commit is unknown; it never blocks a start.
     return '';
   }
 }

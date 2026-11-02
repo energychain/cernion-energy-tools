@@ -500,27 +500,7 @@ module.exports = {
             error: String(error.type || error.name || 'replay_failed').slice(0, 80),
             at: new Date().toISOString(),
           }));
-        let next;
-        for (let attempt = 0; attempt < BUNDLE_ATTEMPTS; attempt++) {
-          const latest = await this.db.get(doc._id);
-          next = {
-            ...latest,
-            runtime: {
-              ...(latest.runtime || {}),
-              level: 'B',
-              action: 'tenant_data_replay',
-              attempts: (latest.runtime?.attempts || 0) + 1,
-              replay: { kind: 'shadow_replay', ...replay },
-            },
-            ...(replay.passed ? { status: 'resolved_runtime', resolvedAt: replay.at } : {}),
-          };
-          try {
-            await this.db.put(next);
-            break;
-          } catch (error) {
-            if (error.status !== 409 || attempt === BUNDLE_ATTEMPTS - 1) throw error;
-          }
-        }
+        const next = await this.storeReplay(doc._id, replay);
         await this.caseChanged(next);
         if (replay.passed) {
           await this.forgetQuestion(next);
@@ -534,6 +514,30 @@ module.exports = {
         results.push(this.caseView(next));
       }
       return results;
+    },
+    // Records one replay attempt; a passed replay resolves the case at runtime.
+    async storeReplay(_id, replay) {
+      for (let attempt = 0; attempt < BUNDLE_ATTEMPTS; attempt++) {
+        const latest = await this.db.get(_id);
+        const next = {
+          ...latest,
+          runtime: {
+            ...(latest.runtime || {}),
+            level: 'B',
+            action: 'tenant_data_replay',
+            attempts: (latest.runtime?.attempts || 0) + 1,
+            replay: { kind: 'shadow_replay', ...replay },
+          },
+          ...(replay.passed ? { status: 'resolved_runtime', resolvedAt: replay.at } : {}),
+        };
+        try {
+          await this.db.put(next);
+          return next;
+        } catch (error) {
+          if (error.status !== 409 || attempt === BUNDLE_ATTEMPTS - 1) throw error;
+        }
+      }
+      return null;
     },
     async classifyCase(tenantId, _id) {
       if (!this.takeBudget(this.classifyBudget, tenantId, CLASSIFY_PER_DAY)) return null;

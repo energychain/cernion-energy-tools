@@ -416,7 +416,10 @@ function factText(fact) {
   const origin = fact.documentSource
     ? `; Quelle: ${fact.documentSource.title}, Version ${fact.documentSource.version}, ${fact.documentSource.location}`
     : '; Herkunft: Nutzerangabe';
-  return `${source(fact)}${origin}: „${fact.text}“ (${labels[active(fact) ? 'valid' : fact.status === 'valid' ? 'expired' : fact.status]}).${checking}`;
+  let status = fact.status;
+  if (active(fact)) status = 'valid';
+  else if (fact.status === 'valid') status = 'expired';
+  return `${source(fact)}${origin}: „${fact.text}“ (${labels[status]}).${checking}`;
 }
 async function relationText(ctx, p, id, { includeFacts = true } = {}) {
   const relation = (await get(ctx, p, id)).payload;

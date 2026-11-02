@@ -253,7 +253,7 @@ async function createLocalTransport({ budget }) {
         noticeBlock: queue.block || '',
       };
     }
-    let fileRefs;
+    const fileRefs = [];
     for (const spec of turnUploads(run, turn)) {
       const ref = await app.broker.call(
         'files.upload',
@@ -264,7 +264,7 @@ async function createLocalTransport({ budget }) {
         },
         { meta: actorMeta(run, actor) }
       );
-      (fileRefs ||= []).push(ref);
+      fileRefs.push(ref);
       run.files.push({ actor, ref });
       if (spec.kind === 'load' || spec.name.endsWith('.csv'))
         run.datasets.push({ actor, name: spec.name, chat });
@@ -278,7 +278,7 @@ async function createLocalTransport({ budget }) {
         channel: 'api',
         conversationId: chat,
         userRequest: documentMessage(turn),
-        ...(fileRefs ? { fileRefs } : {}),
+        ...(fileRefs.length ? { fileRefs } : {}),
         requestId: randomUUID(),
       },
       { meta: actorMeta(run, actor), timeout: 120000 }
@@ -571,7 +571,7 @@ async function createHttpTransport({ config, budget, fetchImpl = fetch }) {
         });
       return { responseText: 'Auditierte Bereinigung abgeschlossen.' };
     }
-    let fileRefs;
+    const fileRefs = [];
     for (const spec of turnUploads(run, turn)) {
       const ref = await request('/api/v1/files', {
         method: 'POST',
@@ -582,7 +582,7 @@ async function createHttpTransport({ config, budget, fetchImpl = fetch }) {
           contentBase64: Buffer.from(spec.content).toString('base64'),
         },
       });
-      (fileRefs ||= []).push(ref);
+      fileRefs.push(ref);
       run.files.push({ actor, ref });
       if (spec.kind === 'load' || spec.name.endsWith('.csv'))
         run.datasets.push({ actor, name: spec.name, chat });
@@ -604,7 +604,7 @@ async function createHttpTransport({ config, budget, fetchImpl = fetch }) {
           openWebuiConversationId: chat,
           requestId: randomUUID(),
         },
-        ...(fileRefs ? { cet_file_refs: fileRefs } : {}),
+        ...(fileRefs.length ? { cet_file_refs: fileRefs } : {}),
       },
     });
     if (

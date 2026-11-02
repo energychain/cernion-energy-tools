@@ -92,7 +92,7 @@ function generateNetzwirtschaftScenarios(scenario, turn) {
           require: [
             ...mako.duplicates,
             ...[mako.rows, mako.uniqueCases, mako.pending].map(
-              (value) => `(?:\\b${value}\\b|${NUMBER_WORDS[value]})`
+              (value) => String.raw`(?:\b${value}\b|${NUMBER_WORDS[value]})`
             ),
           ],
         }),
@@ -151,7 +151,7 @@ function generateNetzwirtschaftScenarios(scenario, turn) {
         'Für dieses synthetische UAT gilt: Ich bin Abteilungsleitung Netzwirtschaft. Für die Priorisierung der Z10-Klärfälle bin ich verantwortlich (V); das Team Netzservice & Marktprozesse führt die Bearbeitung durch (D); MaKo und Abrechnung wirken mit (M).',
         'Rollenzeile vollständig bestätigt, höchstens eine Rückfrage',
         uatRules({
-          require: ['\\(V\\)', '\\(D\\)', '\\(M\\)', 'Netzservice', 'MaKo'],
+          require: [String.raw`\(V\)`, String.raw`\(D\)`, String.raw`\(M\)`, 'Netzservice', 'MaKo'],
           questions: { min: 0, max: 1 },
           forbid: ['(?:Berechtigung|Zugriff|Rechte?) (?:erteilt|vergeben|freigeschaltet)'],
         })

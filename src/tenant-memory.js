@@ -270,6 +270,11 @@ function selectedAnchors(facts, message, identifiers = [], request = {}) {
   }
   return { facts: matched, ambiguous: '' };
 }
+// Statements recorded or restated in this turn (replay and coverage read them after the turn).
+function currentFacts(ctx) {
+  if (!ctx.meta.tenantMemoryCurrentFacts) ctx.meta.tenantMemoryCurrentFacts = [];
+  return ctx.meta.tenantMemoryCurrentFacts;
+}
 function observation(ctx) {
   ctx.meta.tenantMemoryObservation ||= {
     candidates: 0,
@@ -370,7 +375,7 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
       if (facts.some((fact) => fact.text === assertion.text)) continue;
       if (prior && store.active(prior)) {
         // A restated valid statement is this turn's statement too (e.g. for a replay).
-        (ctx.meta.tenantMemoryCurrentFacts ||= []).push(prior.id);
+        currentFacts(ctx).push(prior.id);
         continue;
       }
       // Restating a statement that was just corrected or has expired makes it the current one
@@ -434,7 +439,7 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
       existing.push(fact);
       corpus.push(fact);
       facts.push(fact);
-      (ctx.meta.tenantMemoryCurrentFacts ||= []).push(fact.id);
+      currentFacts(ctx).push(fact.id);
       stats.accepted++;
       confirmations.push(`Hab ich festgehalten: ${fact.text}`);
     }
@@ -1199,7 +1204,7 @@ async function correctFacts(ctx, p, envelope, pending, correction, assertions = 
     facts.length &&
     facts.every((fact) => assertions.some((item) => same(item.text, fact.text)))
   ) {
-    (ctx.meta.tenantMemoryCurrentFacts ||= []).push(...ids);
+    currentFacts(ctx).push(...ids);
     return null;
   }
   if (facts.length > 1 || facts.some((fact) => fact.person.actorId !== p.actorId))
