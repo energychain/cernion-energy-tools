@@ -217,6 +217,7 @@ async function readTurnDataset(ctx, p, envelope, candidates, meta) {
 // One table per source (file and sheet): the one attached in this turn, else the newest version.
 // Several versions of the same file would only repeat it and exceed the analysis limit.
 const MAX_ANALYSIS_TABLES = 6;
+const MAX_ANALYSIS_QUESTION = 2000;
 function analysisIds(candidates, attachedIds) {
   const bySource = new Map();
   for (const record of candidates) {
@@ -251,7 +252,12 @@ async function tableAnalysisReply(ctx, p, envelope, candidates, meta) {
       }));
     const result = await ctx.call(
       'dataset.analyze',
-      { ids, question: envelope.userRequest, ...(documents.length ? { documents } : {}) },
+      {
+        ids,
+        // The analysis accepts a bounded question; its end carries the actual question.
+        question: String(envelope.userRequest).slice(-MAX_ANALYSIS_QUESTION),
+        ...(documents.length ? { documents } : {}),
+      },
       { meta }
     );
     const answer = `${result.answer}\n\n${result.provenance}`;
@@ -269,8 +275,13 @@ async function tableAnalysisReply(ctx, p, envelope, candidates, meta) {
   } catch (error) {
     ctx.broker.logger.warn('Table analysis unavailable', {
       reason: String(error.message),
+      // Validation names only the failing fields and rules, never values.
+      fields: (Array.isArray(error.data) ? error.data : [])
+        .map((item) => `${item.field}:${item.type}`)
+        .slice(0, 5),
       tables: ids.length,
       documents: (envelope.documents || []).length,
+      questionChars: String(envelope.userRequest || '').length,
     });
     return null;
   }

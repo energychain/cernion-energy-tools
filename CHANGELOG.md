@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — RC3 UAT: recall on questions, combined role tokens, analysis diagnostics
+
+- On any question, the person's own statements of the conversation are evidence, even when the
+  reading also suspects a new statement in the question (a correction was not recalled).
+- A combined token such as "V/D/M/I" whose parts the person's stored statement names is no code
+  whose meaning needs a source.
+- The cross-table analysis receives a bounded question; its failure log names the violated
+  parameter fields and the question length, never values.
+
 ## Unreleased — RC3 UAT: table selection under load, restatement noise
 
 - Chat clients such as Open WebUI resend every attachment with each later message. A file this
