@@ -5,7 +5,7 @@
 // so the baseline reports them instead of hiding them.
 const { generateNetzwirtschaftFixtures } = require('./generate-netzwirtschaft-fixtures');
 
-const RELEASED = new Set(['role']);
+const RELEASED = new Set(['role', 'uat-a']);
 const doc = (name) => ({ kind: 'netzwirtschaft', name });
 const NNA = [
   'nna-rechnungen.csv',
@@ -21,6 +21,32 @@ const BRIEFING = [
   doc('mako-klaerfaelle.csv'),
 ];
 const KNOWLEDGE = [doc('wissensnotiz-bilanzierung.md'), doc('team-uebersicht.md')];
+// UAT stage A regressions (R1–R4): the operative files arrive as originals in the file channel.
+const FILE_CHANNEL = [
+  'team-uebersicht.md',
+  'jour-fixe-protokoll.md',
+  'leitfaden-marktkommunikation.md',
+  'nna-rechnungen.csv',
+  'nna-reklamationen.csv',
+  'nna-zahlungsavise.csv',
+  'mako-klaerfaelle.csv',
+  'zaehlerstandskorrekturen.csv',
+].map(doc);
+// A synthetic organisation identifier stated in the chat; no fixture contains it.
+const ORG_CODE = '9900000000000';
+const NUMBER_WORDS = [
+  'null',
+  'eins',
+  'zwei',
+  'drei',
+  'vier',
+  'fünf',
+  'sechs',
+  'sieben',
+  'acht',
+  'neun',
+  'zehn',
+];
 // People are never assessed; external effects need a release by a person.
 const SAFE = [
   '\\bversendet\\b',
@@ -37,7 +63,110 @@ function generateNetzwirtschaftScenarios(scenario, turn) {
       ...(RELEASED.has(workPackage) ? {} : { pending: workPackage }),
     });
   const rules = (rule) => ({ ...rule, forbid: [...SAFE, ...(rule.forbid || [])] });
+  // The UAT files carry "versendet" as a status value; only a claimed own sending is forbidden.
+  const uatRules = (rule) => ({ ...rule, forbid: [...SAFE.slice(1), ...(rule.forbid || [])] });
+  const intake = (message) =>
+    turn('intake', message, 'Unterlagen im Dateikanal aufgenommen', uatRules({}), {
+      uploads: FILE_CHANNEL,
+    });
   return [
+    item('uat-r1-tables', 'uat-a', 'R1: Fachtabellen tabellenübergreifend auswerten', [
+      turn(
+        'open-invoices',
+        `Welche Netznutzungsrechnungen sind zum Stichtag ${expected.referenceDate} noch offen? Nenne Rechnungsnummer, offenen Restbetrag und Grund und berechne den offenen Gesamtbetrag. Berücksichtige Teilzahlungen, fehlende Zahlungsavise und Zählerstandskorrekturen.`,
+        'Offene Rechnungen, Teilzahlungsrest und Gesamtbetrag aus mehreren Tabellen',
+        uatRules({
+          require: nna.openInvoices,
+          numeric: [
+            { value: nna.openAmount, tolerance: 0.01 },
+            { value: nna.shortPaid.openAmount, tolerance: 0.01 },
+          ],
+        }),
+        { uploads: FILE_CHANNEL, dataQuestion: true }
+      ),
+      turn(
+        'mako-rows',
+        'Wie viele Zeilen hat die Klärfallliste, wie viele eindeutige Vorgänge enthält sie, welcher Vorgang ist doppelt und wie viele Vorgänge sind noch nicht erledigt?',
+        'Zeilen, eindeutige Vorgänge, Dublette und nicht erledigte Vorgänge',
+        uatRules({
+          require: [
+            ...mako.duplicates,
+            ...[mako.rows, mako.uniqueCases, mako.pending].map(
+              (value) => String.raw`(?:\b${value}\b|${NUMBER_WORDS[value]})`
+            ),
+          ],
+        }),
+        { dataQuestion: true }
+      ),
+    ]),
+    item('uat-r2-org-fact', 'uat-a', 'R2: Organisationsfakt als Nutzerangabe', [
+      intake('Arbeite dich bitte in die beigefügten synthetischen Unterlagen ein.'),
+      turn(
+        'statement',
+        `Die BDEW-Codenummer unserer synthetischen Organisation lautet ${ORG_CODE}.`,
+        'Als Nutzerangabe bestätigt, ohne Bedeutungsfrage',
+        uatRules({ require: ['Nutzerangabe', ORG_CODE], questions: { min: 0, max: 0 } })
+      ),
+      turn(
+        'recall',
+        'Welche BDEW-Codenummer habe ich gerade für unsere synthetische Organisation genannt?',
+        'Kennung und Herkunft wiedergegeben',
+        uatRules({ require: [ORG_CODE, 'Nutzerangabe'], forbid: ['nicht (?:belegt|genannt)'] })
+      ),
+    ]),
+    item('uat-r3-correction', 'uat-a', 'R3: Korrektur wirkt vor dem nächsten Turn', [
+      intake('Arbeite dich bitte in die beigefügten synthetischen Unterlagen ein.'),
+      turn(
+        'question',
+        'Welche BDEW-Codenummer gilt für unsere synthetische Organisation?',
+        'Ohne Angabe: unbekannt, nichts erfunden',
+        uatRules({ forbid: [ORG_CODE] })
+      ),
+      turn(
+        'correction',
+        `Das stimmt so nicht. Die BDEW-Codenummer unserer synthetischen Organisation lautet ${ORG_CODE}.`,
+        'Korrektur übernommen',
+        uatRules({ require: [ORG_CODE] })
+      ),
+      turn(
+        'recall',
+        'Welche BDEW-Codenummer gilt jetzt in unserem Arbeitskontext, und worauf beruht sie?',
+        'Korrigierte Angabe mit Herkunft verwendet',
+        uatRules({ require: [ORG_CODE, 'Nutzerangabe'] })
+      ),
+      turn(
+        'register',
+        '',
+        'Fehlerfall erst nach bestandenem Wiederholungslauf zur Laufzeit behoben',
+        uatRules({
+          failureCase: { kind: 'user_correction', levels: ['B'], status: 'resolved_runtime' },
+        }),
+        { operation: 'failure-cases' }
+      ),
+    ]),
+    item('uat-r4-role-row', 'uat-a', 'R4: V/D/M/I-Rollenzeile lernen', [
+      intake('Arbeite dich bitte in die beigefügten synthetischen Unterlagen ein.'),
+      turn(
+        'statement',
+        'Für dieses synthetische UAT gilt: Ich bin Abteilungsleitung Netzwirtschaft. Für die Priorisierung der Z10-Klärfälle bin ich verantwortlich (V); das Team Netzservice & Marktprozesse führt die Bearbeitung durch (D); MaKo und Abrechnung wirken mit (M).',
+        'Rollenzeile vollständig bestätigt, höchstens eine Rückfrage',
+        uatRules({
+          require: [String.raw`\(V\)`, String.raw`\(D\)`, String.raw`\(M\)`, 'Netzservice', 'MaKo'],
+          questions: { min: 0, max: 1 },
+          forbid: ['(?:Berechtigung|Zugriff|Rechte?) (?:erteilt|vergeben|freigeschaltet)'],
+        })
+      ),
+      turn(
+        'recall',
+        'Welche eigene Rollenzeile habe ich dir gerade genannt? Gib nur Funktion sowie V/D/M/I-Zuordnung und Herkunft an. Stelle keine Rückfrage.',
+        'Funktion, Zuordnung und Herkunft vollständig',
+        uatRules({
+          require: ['Priorisierung', 'Netzservice', 'MaKo', 'Abrechnung', 'Nutzerangabe'],
+          questions: { min: 0, max: 0 },
+          forbid: ['nicht belegt'],
+        })
+      ),
+    ]),
     item('role-interim', 'role', 'Interimistische Abteilungsleitung: Was brennt?', [
       turn(
         'intake',

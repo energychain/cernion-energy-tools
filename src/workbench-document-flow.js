@@ -463,6 +463,7 @@ async function documentReply(
     meta = ctx.meta,
     access,
     selectedCapabilities = [],
+    statementTurn = false,
   }
 ) {
   if (!caseId) return null;
@@ -512,9 +513,32 @@ async function documentReply(
     situation.personAssessment?.applicable
   )
     return null;
+  // A statement for the working context is not answered from document excerpts as if it were a
+  // question about them; with a question in the same turn, the regular path answers.
+  if (
+    statementTurn &&
+    !isReviewRequest(question) &&
+    !documentDraftRequested(question) &&
+    !situation.requestedOutput?.requested
+  ) {
+    if (question.includes('?') || situation.dataQuestion?.requested) return null;
+    const polite = situation.conversationPreferences?.register === 'Sie';
+    return {
+      responseText: `Danke – das ist ${polite ? 'Ihre' : 'deine'} Angabe (Herkunft: Nutzerangabe); ich führe sie getrennt von den Dokumentbelegen.`,
+    };
+  }
+  // The person's stored statements answer questions about them; no purpose or role question then.
+  const userStatements = [
+    ...new Set(
+      (retrieval?.evidence || [])
+        .filter((hit) => hit.retrievalSource === 'tenant-memory' && hit.value)
+        .map((hit) => hit.value)
+    ),
+  ];
   if (
     !isReviewRequest(question) &&
     !documentDraftRequested(question) &&
+    !userStatements.length &&
     situation.missingInformation?.some(
       (item) => (item.reason === 'purpose' || item.kind === 'role') && !item.answered
     )
@@ -552,6 +576,7 @@ async function documentReply(
           conversationContext: situation.conversationContext,
           conversationPreferences: situation.conversationPreferences,
           requestedOutput: situation.requestedOutput,
+          userStatements,
         });
     if (reply?.responseText)
       return {

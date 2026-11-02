@@ -270,6 +270,11 @@ function selectedAnchors(facts, message, identifiers = [], request = {}) {
   }
   return { facts: matched, ambiguous: '' };
 }
+// Statements recorded or restated in this turn (replay and coverage read them after the turn).
+function currentFacts(ctx) {
+  if (!ctx.meta.tenantMemoryCurrentFacts) ctx.meta.tenantMemoryCurrentFacts = [];
+  return ctx.meta.tenantMemoryCurrentFacts;
+}
 function observation(ctx) {
   ctx.meta.tenantMemoryObservation ||= {
     candidates: 0,
@@ -358,16 +363,24 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
       const text = groundedAnchors.every((anchor) => matchesAnchor(anchor, assertion.text))
         ? assertion.text
         : basis;
-      const id = store.key([
+      const at = new Date().toISOString();
+      const statementKey = [
         'statement',
         p.actorId,
         envelope.channel,
         envelope.conversationId,
         assertion.text,
-      ]);
-      const prior = existing.find((item) => item.id === id);
-      if (prior) continue;
-      const at = new Date().toISOString();
+      ];
+      const prior = existing.find((item) => item.id === store.key(statementKey));
+      if (facts.some((fact) => fact.text === assertion.text)) continue;
+      if (prior && store.active(prior)) {
+        // A restated valid statement is this turn's statement too (e.g. for a replay).
+        currentFacts(ctx).push(prior.id);
+        continue;
+      }
+      // Restating a statement that was just corrected or has expired makes it the current one
+      // again; the earlier record keeps its history.
+      const id = store.key(prior ? [...statementKey, at] : statementKey);
       const glossary = glossaryDefinition(assertion, basis);
       const fact = {
         id,
@@ -426,7 +439,7 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
       existing.push(fact);
       corpus.push(fact);
       facts.push(fact);
-      (ctx.meta.tenantMemoryCurrentFacts ||= []).push(fact.id);
+      currentFacts(ctx).push(fact.id);
       stats.accepted++;
       confirmations.push(`Hab ich festgehalten: ${fact.text}`);
     }
@@ -825,7 +838,10 @@ async function stopRecovery(service) {
   clearInterval(service.tenantMemoryRecoveryTimer);
   await service.tenantMemoryRecoveryJob;
 }
-async function related(ctx, p, situation, message) {
+// On a question, the person's own statements in this conversation stay answerable ("what did I
+// just say") without depending on an anchor match; a few recent ones are enough.
+const CONVERSATION_FACTS = 5;
+async function related(ctx, p, situation, message, { conversationId, channel } = {}) {
   if (!available(ctx)) return { evidence: [], text: '' };
   const facts = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
   const identifiers = (situation.identifiers || []).map((entry) => entry.value);
@@ -834,12 +850,33 @@ async function related(ctx, p, situation, message) {
     message,
     identifiers
   );
-  const matched = selection.facts;
+  const own =
+    conversationId &&
+    (situation.turnKind === 'knowledge' ||
+      (message.includes('?') && !situation.tenantMemory?.assertions?.length))
+      ? facts
+          .filter(
+            (fact) =>
+              store.active(fact) &&
+              fact.person?.actorId === p.actorId &&
+              fact.conversationId === conversationId &&
+              (!channel || fact.channel === channel) &&
+              !selection.facts.includes(fact)
+          )
+          .sort((a, b) => b.at.localeCompare(a.at))
+          .slice(0, CONVERSATION_FACTS)
+      : [];
+  const matched = [...selection.facts, ...own];
   const stats = observation(ctx);
   stats.anchorHits += matched.length;
   if (selection.ambiguous) stats.rejected.ambiguous = (stats.rejected.ambiguous || 0) + 1;
-  const paragraphs = matched.flatMap((fact) => fact.plausibility || []);
-  for (const id of new Set(matched.flatMap((fact) => fact.relationIds))) {
+  // Assessments and relations stay with anchor matches; own statements only add evidence. The
+  // assessment of one's own statement was shown when it was recorded and is not repeated later.
+  const current = new Set(ctx.meta?.tenantMemoryCurrentFacts || []);
+  const paragraphs = selection.facts
+    .filter((fact) => fact.person?.actorId !== p.actorId || current.has(fact.id))
+    .flatMap((fact) => fact.plausibility || []);
+  for (const id of new Set(selection.facts.flatMap((fact) => fact.relationIds))) {
     try {
       const text = await store.relationText(ctx, p, id);
       if (text) paragraphs.push(text);
@@ -856,6 +893,17 @@ async function related(ctx, p, situation, message) {
     })),
     text: selection.ambiguous || paragraphs.join('\n\n'),
   };
+}
+// Whether the person stated something in this conversation that is still valid.
+async function hasConversationFacts(ctx, p, envelope) {
+  if (!available(ctx)) return false;
+  const own = await store.query(ctx, p, {
+    'payload.type': 'tenant_memory_fact',
+    'payload.person.actorId': p.actorId,
+    'payload.conversationId': envelope.conversationId,
+    'payload.channel': envelope.channel,
+  });
+  return own.some((fact) => store.active(fact));
 }
 async function queryResponse(ctx, p, message, selector = {}) {
   if (!available(ctx)) return null;
@@ -896,6 +944,7 @@ async function queryResponse(ctx, p, message, selector = {}) {
     state: 'tenant_memory_query',
     nonBinding: true,
     statements: matches,
+    ambiguous: Boolean(selection.ambiguous),
     responseText:
       selection.ambiguous ||
       lines.join('\n\n') ||
@@ -1107,7 +1156,7 @@ async function preturn(ctx, p, envelope, pending) {
   }
   return null;
 }
-async function correctFacts(ctx, p, envelope, pending, correction) {
+async function correctFacts(ctx, p, envelope, pending, correction, assertions = []) {
   if (
     !correction ||
     correction.kind === 'none' ||
@@ -1138,9 +1187,26 @@ async function correctFacts(ctx, p, envelope, pending, correction) {
       .slice(0, 1)
       .map((fact) => fact.id);
   }
-  if (!ids.length)
+  if (!ids.length) {
+    // Without any valid statement of this person, a rejection concerns the answer, not memory.
+    const stored = await store.query(ctx, p, {
+      'payload.type': 'tenant_memory_fact',
+      'payload.person.actorId': p.actorId,
+    });
+    if (!stored.some((fact) => store.active(fact))) return null;
     return { responseText: 'Welche festgehaltene Aussage meinst du?', nonBinding: true };
+  }
   const facts = await Promise.all(ids.map(async (id) => (await store.get(ctx, p, id)).payload));
+  // Restating the stored statement word for word rejects an answer, not the statement: it stays
+  // valid and counts as this turn's statement (e.g. for a replay of the rejected answer).
+  const same = (a, b) => store.normalizeAnchor(a || '') === store.normalizeAnchor(b || '');
+  if (
+    facts.length &&
+    facts.every((fact) => assertions.some((item) => same(item.text, fact.text)))
+  ) {
+    currentFacts(ctx).push(...ids);
+    return null;
+  }
   if (facts.length > 1 || facts.some((fact) => fact.person.actorId !== p.actorId))
     return requestCorrection(ctx, p, envelope, correction, facts);
   await serialized(p, async () => {
@@ -1175,6 +1241,7 @@ module.exports = {
   related,
   preturn,
   queryResponse,
+  hasConversationFacts,
   correctFacts,
   recoveryOptions,
   assessmentOptions,

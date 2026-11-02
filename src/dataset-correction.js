@@ -10,6 +10,26 @@ const { datasetSemantics } = require('./dataset-semantics');
 const { normalizeDatasetTimes } = require('./dataset-time');
 const { datasetUnits, columnUnit } = require('./dataset-unit-question');
 
+// A table is named by its title, sheet or source. Column words ("Team", "Status") also occur in
+// plain statements and name no table.
+function namesRecord(record, question) {
+  const text = question.toLocaleLowerCase('de-DE');
+  const stem = (value) => String(value || '').replace(/\.[a-z0-9]{2,5}$/iu, '');
+  return [
+    record.title,
+    stem(record.title),
+    record.sheet,
+    record.sourceName,
+    stem(record.sourceName),
+  ]
+    .map((value) =>
+      String(value || '')
+        .trim()
+        .toLocaleLowerCase('de-DE')
+    )
+    .some((name) => name.length >= 3 && text.includes(name));
+}
+
 // Extends the existing audited metadata-correction path with schema-bound intent.
 // Only metadata is supplied; control cell values never enter a prompt.
 async function datasetCorrection(records, question, tenantId, conversationId, selectionIds = []) {
@@ -142,6 +162,16 @@ async function datasetCorrection(records, question, tenantId, conversationId, se
     });
     if (!result.units.length && (result.kind === 'unit-answer' || proposedUnits.length))
       return null;
+    // A semantics change must name something of the table it changes; otherwise a plain
+    // statement in a conversation with several tables would turn into a sheet question.
+    if (
+      result.kind === 'metadata' &&
+      !result.units.length &&
+      targets.length > 1 &&
+      !targets.some((record) => namesRecord(record, question))
+    )
+      return null;
+    if (result.kind === 'restore-rows' && !result.rowNumbers.length) return null;
     result.datasetIds = targets.map((record) => record.id);
     result.multipleSheets = Boolean(multipleSheets && result.units.length);
     return result;
@@ -273,6 +303,21 @@ async function correctDatasetSemantics(service, ctx, p, record, correction, ques
         question,
         record.semantic
       );
+  // Without a unit, only a change of units or time semantics corrects a table that the message
+  // does not name and the conversation has not chosen; anything else (a description from a plain statement) is no correction.
+  const named =
+    namesRecord(record, question) ||
+    Boolean(record.selectedInConversations?.includes(ctx.params?.conversationId));
+  const unitsChanged = JSON.stringify(semantic.units) !== JSON.stringify(record.semantic.units);
+  const timeChanged = ['timeField', 'timezone', 'intervalConvention', 'intervalMinutes'].some(
+    (key) => semantic[key] !== record.semantic[key]
+  );
+  if (
+    !correction?.units.length &&
+    !named &&
+    (semantic.interpretationStatus !== 'interpreted' || (!unitsChanged && !timeChanged))
+  )
+    return null;
   // No new row version; metadata correction is audited independently.
   if (semantic.interpretationStatus !== 'interpreted')
     return {

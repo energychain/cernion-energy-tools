@@ -62,9 +62,15 @@ function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
     )
   )
     return 'case_followup';
+  // "Who handled it so far" asks for the case's status; "who is responsible for <subject>" is a
+  // content question about that subject.
   if (
     /\b(?:bearbeitet|bearbeiter|angelegt|zuständig)\b/iu.test(text) &&
-    /\b(?:wer|bisher|zuletzt)\b/iu.test(text)
+    (/\b(?:bisher|zuletzt)\b/iu.test(text) ||
+      (/\bwer\b/iu.test(text) &&
+        (explicitCase ||
+          /\b(?:case|fall|falls|vorgang)\b/iu.test(text) ||
+          !/\bfür\s+\S/iu.test(text))))
   )
     return 'status_query';
   if (isFunctionKnowledgeQuery(message)) return 'knowledge_query';

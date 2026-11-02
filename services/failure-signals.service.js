@@ -312,6 +312,7 @@ module.exports = {
   },
   created() {
     this.inflight = new Set();
+    this.classifying = new Map();
     this.classifyBudget = new Map();
     this.replayBudget = new Map();
     this.anonymizeBudget = new Map();
@@ -419,8 +420,16 @@ module.exports = {
         if (question) await this.rememberQuestion(doc, signal, question);
         if (changed) {
           await this.caseChanged(doc);
+          const classified = this.classifyCase(doc.tenantId, _id);
+          // A same-turn replay waits for the level; anonymization stays off its path.
+          this.classifying.set(
+            _id,
+            classified.catch(() => null)
+          );
           this.track(
-            this.classifyCase(doc.tenantId, _id).then(() => this.anonymizeCase(doc.tenantId, _id))
+            classified
+              .then(() => this.anonymizeCase(doc.tenantId, _id))
+              .finally(() => this.classifying.delete(_id))
           );
         }
         return doc;
@@ -447,6 +456,8 @@ module.exports = {
           type: 'failure_replay_question',
           tenantId: doc.tenantId,
           question,
+          // The replay reads with the conversation scope of the failed turn, like the turn did.
+          ...(signal.conversationId ? { conversationId: signal.conversationId } : {}),
           at: signal.at,
         })
         .catch((error) => {
@@ -459,48 +470,37 @@ module.exports = {
     },
     // New tenant facts: open level-B cases replay their question; a pass needs an answer that
     // came about and uses one of the new facts as evidence.
-    async dataArrived(ctx, tenantId, factIds, since) {
+    // A case of the same turn qualifies only when its stored question is an earlier one: a
+    // rejection followed by the right fact replays the rejected question, never this turn's own.
+    async dataArrived(ctx, tenantId, factIds, since, { sameTurn = [], question } = {}) {
+      const current = new Set(sameTurn);
       const candidates = (await this.caseDocs(tenantId)).filter(
         (doc) =>
           doc.status === 'open' &&
           doc.level === 'B' &&
           (doc.runtime?.attempts || 0) < REPLAY_ATTEMPTS &&
-          (!since || String(doc.lastSignalAt) < since)
+          (!since || String(doc.lastSignalAt) < since || current.has(doc._id))
       );
       const results = [];
       for (const doc of candidates.slice(0, REPLAYS_PER_EVENT)) {
         const stored = await this.db.get(`replay:${doc._id}`).catch(() => null);
         if (!stored?.question) continue;
+        if (current.has(doc._id) && stored.question === question) continue;
         if (!this.takeBudget(this.replayBudget, tenantId, REPLAYS_PER_DAY)) break;
         const replay = await require('../src/failure-replay')
-          .shadowReplay(ctx, { tenantId, question: stored.question, newFactIds: factIds })
+          .shadowReplay(ctx, {
+            tenantId,
+            question: stored.question,
+            conversationId: stored.conversationId,
+            newFactIds: factIds,
+          })
           .catch((error) => ({
             passed: false,
             answered: false,
             error: String(error.type || error.name || 'replay_failed').slice(0, 80),
             at: new Date().toISOString(),
           }));
-        let next;
-        for (let attempt = 0; attempt < BUNDLE_ATTEMPTS; attempt++) {
-          const latest = await this.db.get(doc._id);
-          next = {
-            ...latest,
-            runtime: {
-              ...(latest.runtime || {}),
-              level: 'B',
-              action: 'tenant_data_replay',
-              attempts: (latest.runtime?.attempts || 0) + 1,
-              replay: { kind: 'shadow_replay', ...replay },
-            },
-            ...(replay.passed ? { status: 'resolved_runtime', resolvedAt: replay.at } : {}),
-          };
-          try {
-            await this.db.put(next);
-            break;
-          } catch (error) {
-            if (error.status !== 409 || attempt === BUNDLE_ATTEMPTS - 1) throw error;
-          }
-        }
+        const next = await this.storeReplay(doc._id, replay);
         await this.caseChanged(next);
         if (replay.passed) {
           await this.forgetQuestion(next);
@@ -514,6 +514,30 @@ module.exports = {
         results.push(this.caseView(next));
       }
       return results;
+    },
+    // Records one replay attempt; a passed replay resolves the case at runtime.
+    async storeReplay(_id, replay) {
+      for (let attempt = 0; attempt < BUNDLE_ATTEMPTS; attempt++) {
+        const latest = await this.db.get(_id);
+        const next = {
+          ...latest,
+          runtime: {
+            ...(latest.runtime || {}),
+            level: 'B',
+            action: 'tenant_data_replay',
+            attempts: (latest.runtime?.attempts || 0) + 1,
+            replay: { kind: 'shadow_replay', ...replay },
+          },
+          ...(replay.passed ? { status: 'resolved_runtime', resolvedAt: replay.at } : {}),
+        };
+        try {
+          await this.db.put(next);
+          return next;
+        } catch (error) {
+          if (error.status !== 409 || attempt === BUNDLE_ATTEMPTS - 1) throw error;
+        }
+      }
+      return null;
     },
     async classifyCase(tenantId, _id) {
       if (!this.takeBudget(this.classifyBudget, tenantId, CLASSIFY_PER_DAY)) return null;
@@ -765,9 +789,6 @@ module.exports = {
           : undefined;
       const extra = { question };
       const recorded = [];
-      // New facts of this turn may fix earlier level-B cases (shadow replay, off the answer path).
-      if (capturedFacts.length && replayCtx)
-        this.track(this.dataArrived(replayCtx, tenantId, capturedFacts, started));
       if (outcome.unanswered)
         recorded.push(
           await this.record({ ...base, kind: 'unanswered', reason: outcome.reason }, extra)
@@ -783,6 +804,19 @@ module.exports = {
         recorded.push(
           await this.record({ ...base, kind: 'source_timeout', sources: outcome.timeouts })
         );
+      // New facts of this turn may fix level-B cases, including a rejection of this turn once
+      // classified (shadow replay, off the answer path).
+      if (capturedFacts.length && replayCtx) {
+        const sameTurn = recorded.map((signal) =>
+          bundleId(signal.tenantId, cases.dedupKey(signal))
+        );
+        const levels = sameTurn.map((id) => this.classifying.get(id)).filter(Boolean);
+        this.track(
+          Promise.all(levels).then(() =>
+            this.dataArrived(replayCtx, tenantId, capturedFacts, started, { sameTurn, question })
+          )
+        );
+      }
       if (!conversationId) return recorded;
       const trail = await this.updateTrail(
         tenantId,
