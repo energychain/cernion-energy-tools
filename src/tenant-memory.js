@@ -547,7 +547,13 @@ async function assess(ctx, p, fact, retrieval) {
         'payload.id': { $in: [...weighted] },
       })
     : [];
-  const selected = shared.filter((item) => weighted.has(item.id)).slice(0, 10);
+  // The person's own word-for-word restatement is no second claim to weigh against the first.
+  const restatement = (item) =>
+    item.person?.actorId === fact.person?.actorId &&
+    store.normalizeAnchor(item.text) === store.normalizeAnchor(fact.text);
+  const selected = shared
+    .filter((item) => weighted.has(item.id) && !restatement(item))
+    .slice(0, 10);
   const knowledge = store.compactEvidence(
     (retrieval.evidence || []).filter(
       (hit) => hit.retrievalSource !== 'tenant-memory' && hit.source !== 'tenant-memory'

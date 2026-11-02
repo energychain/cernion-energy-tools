@@ -17,8 +17,42 @@ function fileReferences(value) {
     };
   });
 }
-async function loadReferencedDocuments(ctx, envelope, meta) {
-  const refs = envelope.fileRefs || [];
+// Chat clients such as Open WebUI resend every attachment of a chat with each later message. A
+// file this conversation already received is context, not a new attachment of the turn; its
+// document and table stay reachable through the conversation and its case.
+const RECEIVED_FILES = 200;
+function receivedKey(p, envelope) {
+  return [
+    'received-files',
+    encodeURIComponent(p.tenantId),
+    encodeURIComponent(envelope.channel || ''),
+    encodeURIComponent(envelope.conversationId),
+  ].join(':');
+}
+async function newFileRefs(service, p, envelope, refs) {
+  const db = service?.conversationsDb;
+  if (!db || !envelope.conversationId || !refs.length) return refs;
+  const _id = receivedKey(p, envelope);
+  const existing = await db.get(_id).catch(() => null);
+  const known = new Set(existing?.fileIds || []);
+  const fresh = refs.filter((ref) => !known.has(ref.fileId));
+  if (fresh.length)
+    await db
+      .put({
+        _id,
+        ...(existing ? { _rev: existing._rev } : {}),
+        type: 'received_files',
+        tenantId: p.tenantId,
+        fileIds: [...known, ...fresh.map((ref) => ref.fileId)].slice(-RECEIVED_FILES),
+        at: new Date().toISOString(),
+      })
+      .catch((error) => {
+        if (error.status !== 409) throw error;
+      });
+  return fresh;
+}
+async function loadReferencedDocuments(service, ctx, p, envelope, meta) {
+  const refs = await newFileRefs(service, p, envelope, envelope.fileRefs || []);
   if (refs.length) {
     const documents = [];
     for (const ref of refs) {
@@ -39,7 +73,7 @@ async function loadReferencedDocuments(ctx, envelope, meta) {
 }
 async function prepareFileTurn(service, ctx, p, envelope, meta) {
   await require('./openwebui-project-context').excludeProjectContext(service, ctx, envelope, meta);
-  await loadReferencedDocuments(ctx, envelope, meta);
+  await loadReferencedDocuments(service, ctx, p, envelope, meta);
   const match = envelope.userRequest.match(
     /^(?:lösche|loesche)\s+(?:die\s+)?datei\s+([a-f0-9]{64})[.!]?$/i
   );
