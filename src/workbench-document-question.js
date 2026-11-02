@@ -18,7 +18,8 @@ function documentTable(text) {
 }
 
 // An answer that cites a stored statement but leaves its wording out gets the wording verbatim,
-// so a recalled statement is never shortened to a fragment.
+// so a recalled statement is never shortened to a fragment. Only statements of this conversation
+// qualify: a statement from elsewhere is evidence, not what the person just said.
 function withStatedWording(answer, userStatements) {
   if (!userStatements.length || !answer.includes('Nutzerangabe')) return answer;
   const quoted = (value) => {
@@ -49,6 +50,7 @@ async function documentQuestion(
     conversationPreferences,
     requestedOutput,
     userStatements = [],
+    conversationStatements = [],
   } = {}
 ) {
   if (
@@ -161,7 +163,10 @@ async function documentQuestion(
       !require('./workbench-answer-filter').isInternalDescription(answer, internalContext)
     )
       return {
-        responseText: withStatedWording(restoreContext(answer, safe.reidentMap), userStatements),
+        responseText: withStatedWording(
+          restoreContext(answer, safe.reidentMap),
+          conversationStatements
+        ),
       };
   } catch (error) {
     const errors = require('./workbench-llm-errors');

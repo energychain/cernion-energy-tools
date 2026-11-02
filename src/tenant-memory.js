@@ -889,7 +889,11 @@ async function related(ctx, p, situation, message, { conversationId, channel } =
       source: 'tenant-memory',
       retrievalSource: 'tenant-memory',
       value: store.factText(fact),
-      metadata: { namespace: store.namespace(p), key: fact.id },
+      metadata: {
+        namespace: store.namespace(p),
+        key: fact.id,
+        ...(own.includes(fact) ? { ownConversation: true } : {}),
+      },
     })),
     text: selection.ambiguous || paragraphs.join('\n\n'),
   };
@@ -1188,10 +1192,12 @@ async function correctFacts(ctx, p, envelope, pending, correction, assertions = 
       .map((fact) => fact.id);
   }
   if (!ids.length) {
-    // Without any valid statement of this person, a rejection concerns the answer, not memory.
+    // Without a valid statement of this person in this conversation, a rejection concerns the
+    // answer, not memory.
     const stored = await store.query(ctx, p, {
       'payload.type': 'tenant_memory_fact',
       'payload.person.actorId': p.actorId,
+      'payload.conversationId': envelope.conversationId,
     });
     if (!stored.some((fact) => store.active(fact))) return null;
     return { responseText: 'Welche festgehaltene Aussage meinst du?', nonBinding: true };

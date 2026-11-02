@@ -143,8 +143,9 @@ async function selectDatasetCandidates(
       anchors: record.semantic.anchors || [],
       units: record.semantic.units,
       period: record.period,
-      inConversation: Boolean(
-        conversationId && record.provenance.conversationId === conversationId
+      inConversation: require('./workbench-data-scope').datasetInConversation(
+        record,
+        conversationId
       ),
       previouslyQueried: previousReads.some((hit) => hit.metadata?.datasetId === record.id),
     })),

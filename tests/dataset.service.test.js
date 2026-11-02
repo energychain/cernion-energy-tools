@@ -364,6 +364,23 @@ describe('tenant dataset catalog', () => {
     }
     expect(await call('datapoint.datasetCatalog', { operation: 'list' })).toHaveLength(1);
   });
+  test('the same file uploaded in another conversation joins it once, with a confirmation', async () => {
+    const [record] = await call('datapoint.datasetCatalog', { operation: 'list' });
+    const again = () =>
+      call('dataset.turn', {
+        question: 'Gibt es Auffälligkeiten?',
+        documents: [{ name: 'synthetischer-lastgang.csv', text: generateDatasetFixture('csv') }],
+        conversationId: 'synthetic-chat-2',
+      });
+    const first = await again();
+    expect(first.datasetIds).toEqual([record.id]);
+    expect(first.confirmations.join(' ')).toContain('Bereits abgelegt');
+    const [joined] = await call('datapoint.datasetCatalog', { operation: 'list' });
+    expect(joined.usedInConversations).toEqual(['synthetic-chat-2']);
+    expect(joined.version).toBe(record.version);
+    // Within that conversation a resent attachment stays silent again.
+    expect((await again()).confirmations || []).toEqual([]);
+  });
   test('an excerpt of a known table file binds that table to the turn', async () => {
     const [record] = await call('datapoint.datasetCatalog', { operation: 'list' });
     const excerpt = (name) =>

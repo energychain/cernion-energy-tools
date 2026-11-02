@@ -96,12 +96,16 @@ module.exports = {
         );
         const now = Date.now();
         const current = new Set(ctx.params.functionIds);
+        // Only a role in the task of this turn is asked about; a question about unrelated work
+        // would open a new topic (one real question per turn, UAT A-F05).
+        if (!current.size) return null;
         const open = (await this.proposals(p.tenantId))
           .filter((doc) => doc.state === 'nominated')
           .flatMap((doc) =>
             doc.rows
               .filter(
                 (row) =>
+                  current.has(doc.functionId) &&
                   row.actorRef.actorType === 'user' &&
                   row.actorRef.actorId === p.actorId &&
                   row.confirmation.verdict === 'pending' &&
@@ -109,12 +113,8 @@ module.exports = {
               )
               .map((row) => ({ doc, row }))
           )
-          // The current task first, then the most certain proposal.
-          .sort(
-            (a, b) =>
-              Number(current.has(b.doc.functionId)) - Number(current.has(a.doc.functionId)) ||
-              b.row.confidence - a.row.confidence
-          );
+          // The most certain proposal of this turn's task first.
+          .sort((a, b) => b.row.confidence - a.row.confidence);
         if (!open.length) return null;
         const { doc, row } = open[0];
         await this.mutate(p.tenantId, doc.functionId, (latest) => ({
@@ -418,6 +418,8 @@ module.exports = {
       const fn = require('../src/function-model')
         .getFunctionModel()
         .functions.find((item) => item.functionId === functionId);
+      // The model's German display label, never the technical one.
+      if (fn?.displayLabel) return fn.displayLabel;
       return String(fn?.label || functionId)
         .replace(/^fn-/u, '')
         .replace(/[_-]+/gu, ' ')
