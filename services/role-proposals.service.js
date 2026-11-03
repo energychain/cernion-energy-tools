@@ -28,7 +28,7 @@ const PRESENTER = {
   contract: 'role_proposal_presenter_contract',
   safety: 'protected_read_only_role_proposal_projection',
   notice:
-    'Gelernte Rollen sind beratende organisatorische Hinweise – keine Berechtigung, keine Bewertung von Personen und keine Prozessfreigabe.',
+    'Gelernte Rollen sind beratende organisatorische Hinweise – keine Rechtevergabe, keine Bewertung von Personen und keine Prozessfreigabe.',
 };
 const MAX_PRESENTED = 200;
 const ROLE_ORDER = ['V', 'D', 'M', 'I'];
@@ -69,7 +69,7 @@ const rowFollowUp = (row, self) => {
   if (verdict === 'stated')
     return {
       positiveFollowUp:
-        'Genannte Zuständigkeit; die Bestätigung einer Person mit dieser Rolle macht sie belastbar.',
+        'Genannte Zuständigkeit; die Bestätigung einer Person mit dieser Rolle macht sie verlässlich.',
       nextSafeGate: 'human_review_of_stated_responsibility',
     };
   if (verdict === 'rejected')
@@ -88,12 +88,12 @@ const proposalFollowUp = (doc, pendingCount) => {
     return doc.vdmiMatrixId
       ? {
           positiveFollowUp:
-            'Als Ad-hoc-VDMI-Matrix festgehalten; die Übernahme als Vorlage bleibt eine menschliche Entscheidung.',
+            'Als Ad-hoc-VDMI-Matrix festgehalten; die Übernahme als Muster bleibt eine menschliche Entscheidung.',
           nextSafeGate: 'human_template_nomination',
         }
       : {
           positiveFollowUp:
-            'Bestätigt; das Festhalten als VDMI-Matrix ermöglicht die Übernahme als Vorlage.',
+            'Bestätigt; das Festhalten als VDMI-Matrix ermöglicht die Übernahme als Muster.',
           nextSafeGate: 'vdmi_record_review',
         };
   if (pendingCount)
@@ -133,7 +133,7 @@ module.exports = {
       openapi: {
         summary: 'Role proposals per function with confidence and confirmation (admin)',
         description:
-          'Protected read-only presenter (role_proposal_presenter_contract, tenant admin only): { contract, safety, scope: "tenant_admin", notice, proposals[], rows[] }, all scalar. A proposal is { proposalId, functionId, label, state, rowCount, pendingCount, answeredCount, statedCount, vdmiLinked, vdmiMatrixId, positiveFollowUp, nextSafeGate }; rows use the same row vocabulary as /mine. No actor ids, evidence refs, answer basis or conversation ids. Proposals are ordered by label and functionId, rows by V/D/M/I and display label – presentation only, never a ranking. Learned roles are advisory and grant no permission.',
+          'Protected read-only presenter (role_proposal_presenter_contract, tenant admin only): { contract, safety, scope: "tenant_admin", notice, proposals[], rows[] }, all scalar. A proposal is { proposalId, functionId, label, state, rowCount, pendingCount, answeredCount, statedCount, vdmiLinked, vdmiMatrixId, positiveFollowUp, nextSafeGate }; rows use the same row vocabulary as /mine. No actor ids, evidence refs, answer basis or conversation ids. Proposals are ordered by label and functionId, rows by V/D/M/I and display label – presentation only, never a ranking. Learned roles are advisory and grant no access rights.',
         tags: ['Role proposals'],
         parameters: [{ in: 'query', name: 'state', schema: { type: 'string' } }],
       },
@@ -160,7 +160,7 @@ module.exports = {
       openapi: {
         summary: 'Role rows of the calling person',
         description:
-          'Protected read-only presenter (role_proposal_presenter_contract): { contract, safety, scope: "own_rows", notice, rows[] } with the same scalar row vocabulary as the admin list, filtered server-side to the authenticated person. Learned roles are advisory and grant no permission.',
+          'Protected read-only presenter (role_proposal_presenter_contract): { contract, safety, scope: "own_rows", notice, rows[] } with the same scalar row vocabulary as the admin list, filtered server-side to the authenticated person. Learned roles are advisory and grant no access rights.',
         tags: ['Role proposals'],
       },
       async handler(ctx) {
