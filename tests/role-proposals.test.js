@@ -53,7 +53,7 @@ const ROW_KEYS = [
 const ENVELOPE = {
   contract: 'role_proposal_presenter_contract',
   safety: 'protected_read_only_role_proposal_projection',
-  notice: expect.stringContaining('keine Berechtigung'),
+  notice: expect.stringContaining('keine Rechtevergabe'),
 };
 const scalar = (record) =>
   Object.values(record).every((value) => value === null || typeof value !== 'object');

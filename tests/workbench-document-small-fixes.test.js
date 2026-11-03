@@ -104,3 +104,21 @@ test('a statement from another conversation is never appended as the recalled wo
   });
   expect(reply.responseText).not.toContain('Kennung Y');
 });
+
+test('a correction of this conversation is added when the answer only cites the documents', async () => {
+  const stored =
+    'Abteilungsleitung A (Netzwirtschaft, 03.11.2026); Herkunft: Nutzerangabe: „Die Kundennummer beim Messstellenbetreiber lautet MSB-SYN-0001.“ (gültig).';
+  llm.generateStructured.mockResolvedValueOnce({
+    answer: 'Zur Kundennummer beim Messstellenbetreiber enthalten die Dokumente keine Angabe.',
+  });
+  const reply = await documentQuestion(
+    documents,
+    'Welche Kundennummer beim Messstellenbetreiber gilt jetzt, und worauf beruht sie?',
+    { userStatements: [stored], conversationStatements: [stored] }
+  );
+  expect(reply.responseText).toContain(
+    '„Die Kundennummer beim Messstellenbetreiber lautet MSB-SYN-0001.“'
+  );
+  expect(reply.responseText).toContain('Herkunft: Nutzerangabe');
+  expect(llm.generateStructured.mock.calls[0][1]).toContain('gespeicherten Angaben der Person');
+});
