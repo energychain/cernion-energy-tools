@@ -22,7 +22,8 @@ CET learns who does what per function, in the four process roles of VDMI: **V** 
 
 ## Access
 
-- `GET /api/role-proposals` (admin): all proposals; `GET /api/role-proposals/mine`: the calling person's own rows only.
+- `GET /api/role-proposals` (admin): all proposals; `GET /api/role-proposals/mine`: the calling person's own rows only, filtered server-side.
+- Both are protected read-only presenters (#1058, `role_proposal_presenter_contract`) with one scalar vocabulary: rows carry `proposalId, functionId, label, state, vdmiLinked, rowOrdinal, actorDisplayLabel, actorDisplayStatus, actorType, role, roleLabel, confidenceBand, originLabel, originCount, confirmationVerdict, confirmationAt, evidenceCount, positiveFollowUp, nextSafeGate`; the admin read adds proposals with `rowCount, pendingCount, answeredCount, statedCount, vdmiLinked, vdmiMatrixId, positiveFollowUp, nextSafeGate`. Actor ids, evidence refs, the answer basis and conversation ids are never returned; other people appear redacted. The order (label, function; V/D/M/I) is presentation only, never a ranking. Reads change nothing and grant no permission.
 - `refresh`, `selectAsk` and `answer` are protected.
 
 ## Live check (synthetic)
