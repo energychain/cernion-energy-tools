@@ -3,7 +3,7 @@
 // Role proposals (#1019 A1–A3): coverage and stated responsibilities become graded role rows per
 // function; people confirm or correct their own row in the chat; a fully answered proposal becomes
 // a VDMI matrix. Coverage stays the signal, VDMI the record. Roles never grant access.
-const { randomUUID } = require('node:crypto');
+const { createHash, randomUUID } = require('node:crypto');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { principal, deny } = require('../src/domain-router-policy');
 const signals = require('../src/role-signals');
@@ -21,6 +21,98 @@ const admin = (p) => {
     deny('Admin role required');
 };
 
+// Presenter contract (#1058): the admin list and the own rows share one allowlisted scalar
+// vocabulary. Stored arrays become counts or joined labels; actor ids, evidence refs, the answer
+// basis, conversation ids and document ids never leave the service. Order is presentation only.
+const PRESENTER = {
+  contract: 'role_proposal_presenter_contract',
+  safety: 'protected_read_only_role_proposal_projection',
+  notice:
+    'Gelernte Rollen sind beratende organisatorische Hinweise – keine Berechtigung, keine Bewertung von Personen und keine Prozessfreigabe.',
+};
+const MAX_PRESENTED = 200;
+const ROLE_ORDER = ['V', 'D', 'M', 'I'];
+const ROLE_DISPLAY = {
+  V: 'V = Verantwortlich',
+  D: 'D = Durchführend',
+  M: 'M = Mitwirkend',
+  I: 'I = Informiert',
+};
+const ORIGIN_LABEL = {
+  coverage: 'Beobachtete Abdeckung',
+  knowledge_answer: 'Genannte Zuständigkeit',
+};
+const ANSWERED = ['confirmed', 'corrected', 'rejected'];
+const bounded = (value, max) => String(value ?? '').slice(0, max);
+const roleIndex = (role) => (ROLE_ORDER.includes(role) ? ROLE_ORDER.indexOf(role) : 4);
+const confidenceBand = (value) =>
+  value >= 0.75 ? 'high' : value >= NOMINATE_MIN ? 'medium' : 'low';
+// Tie-break for rows with the same display label; never returned.
+const subjectKey = (actorRef) =>
+  createHash('sha256').update(`${actorRef.actorType}:${actorRef.actorId}`).digest('hex');
+// Positive follow-up: what enables the next human review of this row (no bare negative verdict).
+const rowFollowUp = (row, self) => {
+  const verdict = row.confirmation?.verdict;
+  if (!(row.evidence || []).length && !(row.origins || []).length)
+    return {
+      positiveFollowUp:
+        'Ein belegter Hinweis (beobachtete Abdeckung oder genannte Zuständigkeit) ermöglicht die nächste Prüfung.',
+      nextSafeGate: 'role_bearing_evidence',
+    };
+  if (verdict === 'pending')
+    return {
+      positiveFollowUp: self
+        ? 'Ihre eigene Rückmeldung im Chat ordnet diese Rolle ein.'
+        : 'Die Rückmeldung der eingetragenen Person im Chat ordnet diese Rolle ein.',
+      nextSafeGate: 'own_confirmation_in_chat',
+    };
+  if (verdict === 'stated')
+    return {
+      positiveFollowUp:
+        'Genannte Zuständigkeit; die Bestätigung einer Person mit dieser Rolle macht sie belastbar.',
+      nextSafeGate: 'human_review_of_stated_responsibility',
+    };
+  if (verdict === 'rejected')
+    return {
+      positiveFollowUp: 'Weitere belegte Hinweise zur Rolle ermöglichen die nächste Prüfung.',
+      nextSafeGate: 'role_bearing_evidence',
+    };
+  return {
+    positiveFollowUp:
+      'Selbst eingeordnet; eine erneute Rückmeldung der Person kann die Rolle ändern.',
+    nextSafeGate: 'none_open',
+  };
+};
+const proposalFollowUp = (doc, pendingCount) => {
+  if (doc.state === 'confirmed')
+    return doc.vdmiMatrixId
+      ? {
+          positiveFollowUp:
+            'Als Ad-hoc-VDMI-Matrix festgehalten; die Übernahme als Vorlage bleibt eine menschliche Entscheidung.',
+          nextSafeGate: 'human_template_nomination',
+        }
+      : {
+          positiveFollowUp:
+            'Bestätigt; das Festhalten als VDMI-Matrix ermöglicht die Übernahme als Vorlage.',
+          nextSafeGate: 'vdmi_record_review',
+        };
+  if (pendingCount)
+    return {
+      positiveFollowUp: `${pendingCount} offene Rückmeldung(en) der eingetragenen Personen schließen den Vorschlag ab.`,
+      nextSafeGate: 'own_confirmation_in_chat',
+    };
+  if (doc.state === 'nominated')
+    return {
+      positiveFollowUp: 'Eine bestätigte oder genannte V- oder D-Rolle schließt den Vorschlag ab.',
+      nextSafeGate: 'accountable_or_performing_role',
+    };
+  return {
+    positiveFollowUp:
+      'Mehr beobachtete Abdeckung oder eine genannte Zuständigkeit macht daraus einen Vorschlag zur Rückfrage.',
+    nextSafeGate: 'role_bearing_evidence',
+  };
+};
+
 module.exports = {
   name: 'role-proposals',
   mixins: [
@@ -30,10 +122,18 @@ module.exports = {
     }),
   ],
   actions: {
+    // Protected presenter reads (#1058): side-effect free; tenant, admin and own-row scope stay
+    // server-owned. A row is { proposalId, functionId, label, state, vdmiLinked, rowOrdinal,
+    // actorDisplayLabel, actorDisplayStatus (self|stated_label|redacted), actorType, role,
+    // roleLabel, confidenceBand (high|medium|low), originLabel, originCount, confirmationVerdict,
+    // confirmationAt, evidenceCount, positiveFollowUp, nextSafeGate }. Confirmed and vdmiLinked
+    // are lifecycle readback only and grant nothing.
     list: {
       rest: 'GET /',
       openapi: {
         summary: 'Role proposals per function with confidence and confirmation (admin)',
+        description:
+          'Protected read-only presenter (role_proposal_presenter_contract, tenant admin only): { contract, safety, scope: "tenant_admin", notice, proposals[], rows[] }, all scalar. A proposal is { proposalId, functionId, label, state, rowCount, pendingCount, answeredCount, statedCount, vdmiLinked, vdmiMatrixId, positiveFollowUp, nextSafeGate }; rows use the same row vocabulary as /mine. No actor ids, evidence refs, answer basis or conversation ids. Proposals are ordered by label and functionId, rows by V/D/M/I and display label – presentation only, never a ranking. Learned roles are advisory and grant no permission.',
         tags: ['Role proposals'],
         parameters: [{ in: 'query', name: 'state', schema: { type: 'string' } }],
       },
@@ -41,31 +141,39 @@ module.exports = {
       async handler(ctx) {
         const p = principal(ctx, ctx.params);
         admin(p);
-        return (await this.proposals(p.tenantId))
-          .filter((doc) => !ctx.params.state || doc.state === ctx.params.state)
-          .map((doc) => this.view(doc));
+        const docs = this.presentationOrder(
+          (await this.proposals(p.tenantId)).filter(
+            (doc) => !ctx.params.state || doc.state === ctx.params.state
+          )
+        );
+        return {
+          ...PRESENTER,
+          scope: 'tenant_admin',
+          proposals: docs.map((doc) => this.presentProposal(doc)),
+          rows: docs.flatMap((doc) => this.presentRows(doc, doc.rows, p)),
+        };
       },
     },
     // Own rows only: "wofür bin ich eingetragen" without seeing other people's rows.
     mine: {
       rest: 'GET /mine',
-      openapi: { summary: 'Role rows of the calling person', tags: ['Role proposals'] },
+      openapi: {
+        summary: 'Role rows of the calling person',
+        description:
+          'Protected read-only presenter (role_proposal_presenter_contract): { contract, safety, scope: "own_rows", notice, rows[] } with the same scalar row vocabulary as the admin list, filtered server-side to the authenticated person. Learned roles are advisory and grant no permission.',
+        tags: ['Role proposals'],
+      },
       async handler(ctx) {
         const p = principal(ctx, ctx.params);
-        return (await this.proposals(p.tenantId)).flatMap((doc) =>
-          doc.rows
-            .filter(
-              (row) => row.actorRef.actorType === 'user' && row.actorRef.actorId === p.actorId
-            )
-            .map((row) => ({
-              functionId: doc.functionId,
-              label: doc.label,
-              role: row.role,
-              confidence: row.confidence,
-              confirmation: row.confirmation.verdict,
-              state: doc.state,
-            }))
-        );
+        const own = (row) =>
+          row.actorRef.actorType === 'user' && row.actorRef.actorId === p.actorId;
+        return {
+          ...PRESENTER,
+          scope: 'own_rows',
+          rows: this.presentationOrder(await this.proposals(p.tenantId)).flatMap((doc) =>
+            this.presentRows(doc, doc.rows.filter(own), p)
+          ),
+        };
       },
     },
     // Internal: refresh from coverage for the given functions (or all covered ones).
@@ -440,6 +548,83 @@ module.exports = {
     view(doc) {
       const { _id, _rev, type, tenantId, ...rest } = doc;
       return rest;
+    },
+    // Presentation order only (label, functionId), bounded; never a ranking.
+    presentationOrder(docs) {
+      return [...docs]
+        .sort(
+          (a, b) =>
+            String(a.label).localeCompare(String(b.label), 'de') ||
+            String(a.functionId).localeCompare(String(b.functionId))
+        )
+        .slice(0, MAX_PRESENTED);
+    },
+    presentProposal(doc) {
+      const count = (verdicts) =>
+        doc.rows.filter((row) => verdicts.includes(row.confirmation?.verdict)).length;
+      const pendingCount = count(['pending']);
+      return {
+        proposalId: doc.proposalId,
+        functionId: doc.functionId,
+        label: bounded(doc.label, 200),
+        state: doc.state,
+        rowCount: doc.rows.length,
+        pendingCount,
+        answeredCount: count(ANSWERED),
+        statedCount: count(['stated']),
+        vdmiLinked: Boolean(doc.vdmiMatrixId),
+        vdmiMatrixId: doc.vdmiMatrixId ? bounded(doc.vdmiMatrixId, 120) : null,
+        ...proposalFollowUp(doc, pendingCount),
+      };
+    },
+    // A person is shown as themself or redacted (no directory label is approved here); a stated
+    // responsibility is shown by its stated label.
+    actorDisplay(actorRef, p) {
+      if (actorRef.actorType === 'user')
+        return actorRef.actorId === p.actorId
+          ? { label: 'Sie selbst', status: 'self' }
+          : { label: 'Person (Anzeigename nicht freigegeben)', status: 'redacted' };
+      if (actorRef.actorType === 'label')
+        return { label: bounded(actorRef.actorId, 80), status: 'stated_label' };
+      return { label: 'Eintrag (nicht freigegeben)', status: 'redacted' };
+    },
+    presentRows(doc, rows, p) {
+      return rows
+        .map((row) => ({ row, display: this.actorDisplay(row.actorRef, p) }))
+        .sort(
+          (a, b) =>
+            roleIndex(a.row.role) - roleIndex(b.row.role) ||
+            a.display.label.localeCompare(b.display.label, 'de') ||
+            subjectKey(a.row.actorRef).localeCompare(subjectKey(b.row.actorRef))
+        )
+        .map(({ row, display }, index) => {
+          const origins = [...new Set(row.origins || [])];
+          return {
+            proposalId: doc.proposalId,
+            functionId: doc.functionId,
+            label: bounded(doc.label, 200),
+            state: doc.state,
+            vdmiLinked: Boolean(doc.vdmiMatrixId),
+            rowOrdinal: index + 1,
+            actorDisplayLabel: display.label,
+            actorDisplayStatus: display.status,
+            actorType: ['user', 'label'].includes(row.actorRef.actorType)
+              ? row.actorRef.actorType
+              : 'other',
+            role: ROLE_ORDER.includes(row.role) ? row.role : null,
+            roleLabel: ROLE_DISPLAY[row.role] || 'Rolle offen',
+            confidenceBand: confidenceBand(Number(row.confidence) || 0),
+            originLabel: origins
+              .map((origin) => ORIGIN_LABEL[origin] || 'Sonstige Quelle')
+              .sort((a, b) => a.localeCompare(b, 'de'))
+              .join(' + '),
+            originCount: origins.length,
+            confirmationVerdict: row.confirmation?.verdict || 'pending',
+            confirmationAt: row.confirmation?.at ? bounded(row.confirmation.at, 40) : null,
+            evidenceCount: (row.evidence || []).length,
+            ...rowFollowUp(row, display.status === 'self'),
+          };
+        });
     },
   },
 };
