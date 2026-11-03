@@ -12,6 +12,23 @@
   compound-select members). Subqueries used as values, such as `COALESCE((SELECT …), 0)` or a
   select-list subquery, keep their single column; before, the analysis was rejected with
   "sub-select returns 2 columns". The cycle check stays fail-closed.
+## Unreleased — Role proposals: protected scalar presenter contract (#1058)
+
+- `GET /api/role-proposals` (tenant admin) and `GET /api/role-proposals/mine` (own rows, filtered
+  server-side) now return one allowlisted scalar presenter vocabulary
+  (`role_proposal_presenter_contract`, safety `protected_read_only_role_proposal_projection`):
+  an envelope with `contract`, `safety`, `scope`, an advisory `notice` and scalar `rows[]`; the
+  admin read adds scalar `proposals[]` (counts, linked-VDMI status, positive follow-up, next safe
+  human gate). Breaking for raw consumers (only tests read them): the admin read no longer
+  returns stored nested rows, and `/mine` replaces the raw `confidence`/`confirmation` with
+  `confidenceBand`/`confirmationVerdict`.
+- Actor ids, origins/evidence arrays and refs, `statedBy`, the answer basis, `askedIn`/`askedAt`
+  and document ids stay inside the service. Other people are shown redacted, the caller as
+  „Sie selbst“, a stated responsibility by its stated label. Roles read
+  `V = Verantwortlich`, `D = Durchführend`, `M = Mitwirkend`, `I = Informiert`.
+- Order is presentation only (proposals by label and function, rows by V/D/M/I and display label),
+  never a ranking. Reads stay side-effect free; confirmed and linked VDMI are lifecycle readback
+  and grant no permission.
 
 ## Unreleased — RC3 UAT: recall on questions, combined role tokens, analysis diagnostics
 
