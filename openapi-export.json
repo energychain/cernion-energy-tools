@@ -66678,7 +66678,7 @@
             }
           }
         },
-        "description": "Protected read-only presenter (role_proposal_presenter_contract, tenant admin only): { contract, safety, scope: \"tenant_admin\", notice, proposals[], rows[] }, all scalar. A proposal is { proposalId, functionId, label, state, rowCount, pendingCount, answeredCount, statedCount, vdmiLinked, vdmiMatrixId, positiveFollowUp, nextSafeGate }; rows use the same row vocabulary as /mine. No actor ids, evidence refs, answer basis or conversation ids. Proposals are ordered by label and functionId, rows by V/D/M/I and display label – presentation only, never a ranking. Learned roles are advisory and grant no permission.",
+        "description": "Protected read-only presenter (role_proposal_presenter_contract, tenant admin only): { contract, safety, scope: \"tenant_admin\", notice, proposals[], rows[] }, all scalar. A proposal is { proposalId, functionId, label, state, rowCount, pendingCount, answeredCount, statedCount, vdmiLinked, vdmiMatrixId, positiveFollowUp, nextSafeGate }; rows use the same row vocabulary as /mine. No actor ids, evidence refs, answer basis or conversation ids. Proposals are ordered by label and functionId, rows by V/D/M/I and display label – presentation only, never a ranking. Learned roles are advisory and grant no access rights.",
         "parameters": [
           {
             "in": "query",
@@ -66709,7 +66709,7 @@
             }
           }
         },
-        "description": "Protected read-only presenter (role_proposal_presenter_contract): { contract, safety, scope: \"own_rows\", notice, rows[] } with the same scalar row vocabulary as the admin list, filtered server-side to the authenticated person. Learned roles are advisory and grant no permission."
+        "description": "Protected read-only presenter (role_proposal_presenter_contract): { contract, safety, scope: \"own_rows\", notice, rows[] } with the same scalar row vocabulary as the admin list, filtered server-side to the authenticated person. Learned roles are advisory and grant no access rights."
       }
     },
     "/api/settlement/redispatch/calculate": {
