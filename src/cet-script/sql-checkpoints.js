@@ -233,14 +233,27 @@ function joinFilter(significant, n, sql, edits) {
   }
   if (join) edits.push({ at: sql.length, text: ' WHERE cet_script_tick(1)' });
 }
-// A subquery that is an expression (IN, EXISTS, a comparison, an arithmetic operand) must keep
-// its column count; its loops are guarded by the WHERE/ON/GROUP checkpoints, and the cycle check
-// still rejects any loop that stays unguarded.
-const EXPRESSION_CONTEXT = new Set(
-  'IN EXISTS = == < > <= >= <> != + - * / % || THEN ELSE WHEN AND OR NOT'.split(' ')
-);
-function expressionSubquery(significant, n) {
-  return significant[n - 1]?.text === '(' && EXPRESSION_CONTEXT.has(significant[n - 2]?.text || '');
+// Only a SELECT that produces rows for its surroundings carries the guard column: the statement
+// itself (also after its CTE list), a CTE body (also MATERIALIZED), a FROM/JOIN source and the
+// members of a compound select. Any other SELECT is an expression (IN, EXISTS, a comparison, a
+// function argument, a select-list value) and must keep its column count; its loops are guarded
+// by the WHERE/ON/GROUP checkpoints, and the cycle check still rejects any unguarded loop.
+const ROW_SOURCE_BEFORE = new Set([
+  'AS',
+  'MATERIALIZED',
+  'FROM',
+  'JOIN',
+  'UNION',
+  'INTERSECT',
+  'EXCEPT',
+  'ALL',
+  ')',
+]);
+function rowSourceSelect(significant, n) {
+  let index = n - 1;
+  while (significant[index]?.text === '(') index--;
+  const before = significant[index]?.text;
+  return !before || ROW_SOURCE_BEFORE.has(before);
 }
 function instrument(sql) {
   const edits = [];
@@ -248,7 +261,7 @@ function instrument(sql) {
   for (let n = 0; n < significant.length; n++) {
     const item = significant[n];
     wrapAggregate(significant, n, sql, edits);
-    if (item.text === 'SELECT' && !expressionSubquery(significant, n)) {
+    if (item.text === 'SELECT' && rowSourceSelect(significant, n)) {
       const next = significant[n + 1];
       edits.push({
         at: ['DISTINCT', 'ALL'].includes(next?.text) ? next.end : item.end,

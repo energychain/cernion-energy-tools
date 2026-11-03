@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — RC3 UAT: subqueries in the cross-table analysis, recall of corrections
+
+- When the person's stored statements are evidence, the document answer names them as a source
+  next to the documents and lets a statement that answers the question take precedence; if the
+  answer still leaves out a statement of this conversation that shares a distinctive term with the
+  question, its wording is added with origin „Nutzerangabe“ (a correction was not recalled).
+
+- The SQL checkpoint instrumentation adds its guard column only to row-source selects (the
+  statement, also after its CTE list, CTE bodies including MATERIALIZED, FROM/JOIN sources and
+  compound-select members). Subqueries used as values, such as `COALESCE((SELECT …), 0)` or a
+  select-list subquery, keep their single column; before, the analysis was rejected with
+  "sub-select returns 2 columns". The cycle check stays fail-closed.
+
 ## Unreleased — RC3 UAT: recall on questions, combined role tokens, analysis diagnostics
 
 - On any question, the person's own statements of the conversation are evidence, even when the

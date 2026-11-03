@@ -1285,6 +1285,17 @@ test('join predicates and outer join rows pass a checkpoint', () => {
   expect(instrument('SELECT a FROM t')).not.toMatch(/WHERE/u);
 });
 
+test('only row-source selects carry the guard column', () => {
+  const { instrument } = require('../src/cet-script/sql-checkpoints');
+  const guards = (sql) => (instrument(sql).match(/__cet_guard/gu) || []).length;
+  expect(guards('SELECT COALESCE((SELECT max(c) FROM u), 0) AS v FROM t')).toBe(1);
+  expect(guards('SELECT a, (SELECT max(c) FROM u) AS m FROM t')).toBe(1);
+  expect(guards('WITH x AS (SELECT a FROM t) SELECT a FROM x')).toBe(2);
+  expect(guards('WITH x AS MATERIALIZED (SELECT a FROM t) SELECT a FROM x')).toBe(2);
+  expect(guards('SELECT a FROM (SELECT a FROM t) s')).toBe(2);
+  expect(guards('SELECT a FROM t UNION ALL SELECT b FROM u')).toBe(2);
+});
+
 test('expression subqueries keep their single column under instrumentation', () => {
   const { instrument } = require('../src/cet-script/sql-checkpoints');
   const guarded = instrument(
