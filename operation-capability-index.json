@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "b552177d27b61b29e259a4ccd2f3960c28ad86f369ce94f6652614706a58067a",
+  "sourceOpenApiHash": "25ac2cd4419fb5fada793a8318500a673ad973f5d5c8cfd4d8b3a97ba137d0c5",
   "coverage": {
     "rawOperationCount": 1287,
     "operationCount": 1031,
@@ -79458,7 +79458,9 @@
       "domains": [
         "governance"
       ],
-      "dataSources": [],
+      "dataSources": [
+        "VDMI"
+      ],
       "entityTypes": [],
       "requiredScopes": [
         "role-proposals:read"
