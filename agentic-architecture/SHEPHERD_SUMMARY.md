@@ -1,9 +1,9 @@
 # Shepherd Summary
 
-Generated: 2026-11-03T01:41:46.281Z
-Run: 20261103T014035Z
-Branch: shepherd/runtime-refactor-20261103T014035Z
-Fingerprint: 3980edf9b68022f53da340f34d31831c4968e422cee196275d48d2fb5525303f
+Generated: 2026-11-03T13:47:46.698Z
+Run: 20261103T134629Z
+Branch: shepherd/runtime-refactor-20261103T134628Z
+Fingerprint: efda92a7d4bd8c0bb2586a88bfbd2f532e6c0c32ff2446f9549467806f5bec3b
 
 ## Current measurable surface
 
