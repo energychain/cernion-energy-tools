@@ -2,7 +2,8 @@
 
 // Release traceability: the running build names its package version and the commit it was
 // deployed from. CET_BUILD_COMMIT wins (container builds); otherwise the checkout's git metadata
-// is read once without spawning git. Nothing here is secret: the repository is public.
+// is read once without spawning git; an immutable release directory named after its commit counts
+// as well. Nothing here is secret: the repository is public.
 const fs = require('node:fs');
 const path = require('node:path');
 const { version } = require('../package.json');
@@ -61,7 +62,10 @@ function buildInfo({ root = ROOT, env = process.env } = {}) {
   const configured = String(env.CET_BUILD_COMMIT || '')
     .trim()
     .toLowerCase();
-  const commit = /^[0-9a-f]{7,40}$/u.test(configured) ? configured : gitCommit(root);
+  // An immutable release directory carries no git metadata but is named after its commit.
+  const releaseDir = path.basename(root).toLowerCase();
+  let commit = gitCommit(root) || (SHA.test(releaseDir) ? releaseDir : '');
+  if (/^[0-9a-f]{7,40}$/u.test(configured)) commit = configured;
   const info = Object.freeze({
     version,
     commit: commit.slice(0, 12) || 'unknown',
