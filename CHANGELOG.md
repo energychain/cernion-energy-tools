@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — RC3: reliable CO₂ responses, capacity queries and MSCONS import
+
+- CO₂ requests surface upstream error payloads and missing/empty forecasts without scalar
+  measurements as unavailable instead of returning an apparent success.
+- Capacity/contract-risk cockpit GET queries accept numeric and boolean strings; utilization
+  is documented as a ratio (`0.75 = 75%`).
+- The forecast CLI imports a single MSCONS measurement series through the existing CET parser,
+  preserves source metadata through enrollment and prediction, and rejects ambiguous messages,
+  malformed quantities, mixed units and non-quarter-hour intervals before submitting history.
+  Existing HTTPS, API-route, job-ID and tenant checks are preserved.
+
 ## Unreleased — Build id in immutable releases
 
 - `X-Cernion-Build` and `system_fingerprint` name the deployed commit also in an immutable release

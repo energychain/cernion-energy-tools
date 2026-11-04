@@ -61,7 +61,15 @@ Qualitätsgarantie. Die Version wird nicht ohne Nachtraining auf bestehende Zäh
     "profile_available_at": "2026-07-01T00:00:00Z",
     "values": [
       {"timestamp": "2026-07-01T00:00:00Z", "value": 1.25, "reactive_power_kvar": 0.8}
-    ]
+    ],
+    "source": {
+      "format": "mscons",
+      "documentNumber": "DOC20261006001",
+      "sender": {"id": "9900992720003", "qualifier": "293"},
+      "receiver": {"id": "9907015000008", "qualifier": "293"},
+      "meloId": "DE0003966698900000000000052335107",
+      "obisEquivalent": "1-0:1.8.0"
+    }
   }
 }
 ```
@@ -73,6 +81,11 @@ Sie sind vor dem Import unter Berücksichtigung von Zählerwechseln/Resets in
 Viertelstundenenergie umzuwandeln. `value_semantics: "cumulative"` wird abgewiesen.
 Für kW gilt `value_semantics: "average_power"`. Ohne Angabe gelten die bisherigen
 Intervallwerte gemäß `unit`; der Server kann unmarkierte Zählerstände nicht zuverlässig erkennen.
+
+Auch MSCONS-basierte CLI-Imports werden vor dem REST-Aufruf in dieses Dataset-Format
+normalisiert. Die CLI übernimmt dabei Envelope-Metadaten aus `UNH`, `BGM`, `DTM+137`,
+`NAD`, `LOC+172` und CCI/OBIS in `source`/`source_envelope`; Server und CLI behandeln
+diese Felder als Provenienz, nicht als Anweisung zur MaKo-Erzeugung oder zum Versand.
 
 `reactive_power_kvar` ist optional, vorzeichenbehaftete **mittlere Blindleistung** derselben
 Viertelstunde in kvar; keine kumulierte Blindarbeit und keine kvarh. Fehlend oder `null`

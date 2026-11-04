@@ -8332,6 +8332,34 @@ describe('dashboard-api.service', () => {
         );
       });
 
+      it('accepts REST query-style numeric and boolean strings before handler normalization', async () => {
+        const result = await broker.call('dashboard-api.capacityContractRiskAssetCockpitStatus', {
+          gridOperatorId: 'vnb-query-safe-156',
+          utilization: '0.75',
+          bottleneck: 'none',
+          firmCapacityKW: '500',
+          flexibleCapacityKW: '100',
+          contractStatus: 'active',
+          legalStatus: 'compliant',
+          altvereinbarung: 'true',
+          capex: '150000',
+          opex: '12000',
+          owner: 'Assetmanagement Query Safe',
+          nextAction: 'regular_inspection',
+          forecast: 'false',
+          sourceRef: 'EnWG_14a,fNAV_V1',
+        });
+
+        expect(result.status).toBe('ready_with_no_risk');
+        expect(result.riskLevel).toBe('low');
+        expect(result.technicalCapacity.utilization).toBe(0.75);
+        expect(result.technicalCapacity.firmCapacityKW).toBe(500);
+        expect(result.technicalCapacity.flexibleCapacityKW).toBe(100);
+        expect(result.contractBoundary.altvereinbarung).toBe(true);
+        expect(result.financialImpact.capex).toBe(150000);
+        expect(result.financialImpact.opex).toBe(12000);
+      });
+
       it('identifies critical risk and rejects when utilization is overloaded', async () => {
         const result = await broker.call('dashboard-api.capacityContractRiskAssetCockpitStatus', {
           gridOperatorId: 'vnb-156',

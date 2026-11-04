@@ -268,6 +268,17 @@ describe('Energy Market Service', () => {
     }, 30000);
 
     it('should support forecast mode', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        co2_intensity_gco2eq_kwh: 300,
+        average_today_gco2eq_kwh: 290,
+        data: {
+          location: 'Heidelberg',
+          timestamp: '2026-03-04T10:00:00.000Z',
+          forecast_next_24h_gco2eq_kwh: [300, 280],
+        },
+      });
+
       const result = await broker.call('energy-market.co2Intensity', {
         location: 'Heidelberg',
         forecast: true,
@@ -437,6 +448,84 @@ describe('Energy Market Service', () => {
       expect(result.average_today_gco2eq_kwh).toBeNull();
       expect(result.data.forecast).toEqual([]);
       expect(result.warnings).toContain('co2_forecast_unavailable_no_numeric_source_field');
+    });
+
+    it('surfaces Corrently GSI upstream error payloads as unavailable', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        err: true,
+        message: {},
+        input: { zip: '69115' },
+        provisioning: {
+          warning: 'Deprecation of usage without token!',
+        },
+      });
+
+      const result = await broker.call('energy-market.co2Intensity', {
+        location: '69115',
+        forecast: true,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.status).toBe('unavailable');
+      expect(result.co2_intensity_gco2eq_kwh).toBeNull();
+      expect(result.average_today_gco2eq_kwh).toBeNull();
+      expect(result.data.location).toBe('69115');
+      expect(result.data.forecast).toEqual([]);
+      expect(result.warnings).toContain('co2_forecast_upstream_error');
+    });
+
+    it('surfaces missing forecast arrays as unavailable for forecast requests', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        co2_intensity_gco2eq_kwh: null,
+        average_today_gco2eq_kwh: null,
+        timestamp: null,
+        data: {
+          location: '67059',
+          timestamp: null,
+        },
+      });
+
+      const result = await broker.call('energy-market.co2Intensity', {
+        location: '67059',
+        forecast: true,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.status).toBe('unavailable');
+      expect(result.co2_intensity_gco2eq_kwh).toBeNull();
+      expect(result.average_today_gco2eq_kwh).toBeNull();
+      expect(result.data.location).toBe('67059');
+      expect(result.data.forecast).toEqual([]);
+      expect(result.warnings).toContain('co2_forecast_unavailable_missing_forecast');
+    });
+
+    it('surfaces empty forecast arrays with null scalar CO2 fields as unavailable', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        co2_intensity_gco2eq_kwh: null,
+        average_today_gco2eq_kwh: null,
+        timestamp: null,
+        data: {
+          location: '69115',
+          timestamp: null,
+          forecast_next_24h_gco2eq_kwh: [],
+        },
+      });
+
+      const result = await broker.call('energy-market.co2Intensity', {
+        location: '69115',
+        forecast: true,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.status).toBe('unavailable');
+      expect(result.co2_intensity_gco2eq_kwh).toBeNull();
+      expect(result.average_today_gco2eq_kwh).toBeNull();
+      expect(result.data.location).toBe('69115');
+      expect(result.data.forecast).toEqual([]);
+      expect(result.warnings).toContain('co2_forecast_unavailable_empty_forecast');
     });
   });
 

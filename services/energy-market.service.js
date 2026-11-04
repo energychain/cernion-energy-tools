@@ -105,11 +105,30 @@ function _co2UnavailableResult(result, mcpParams, warning) {
   };
 }
 
+function _co2HasUpstreamError(result) {
+  return result?.err === true || result?.data?.err === true;
+}
+
 function _co2NormalizeResult(result, mcpParams) {
   const forecastValues =
     result?.data?.forecast_next_24h_gco2eq_kwh || result?.forecast_next_24h_gco2eq_kwh || null;
+  const currentValue = _co2FiniteNumber(result?.co2_intensity_gco2eq_kwh);
+  const averageToday = _co2FiniteNumber(result?.average_today_gco2eq_kwh);
 
-  if (!Array.isArray(forecastValues)) return result;
+  if (_co2HasUpstreamError(result)) {
+    return _co2UnavailableResult(result, mcpParams, 'co2_forecast_upstream_error');
+  }
+
+  if (!Array.isArray(forecastValues)) {
+    if (mcpParams?.forecast && currentValue === null && averageToday === null) {
+      return _co2UnavailableResult(result, mcpParams, 'co2_forecast_unavailable_missing_forecast');
+    }
+    return result;
+  }
+
+  if (forecastValues.length === 0 && currentValue === null && averageToday === null) {
+    return _co2UnavailableResult(result, mcpParams, 'co2_forecast_unavailable_empty_forecast');
+  }
 
   const baseTimestamp = result?.data?.timestamp || result?.timestamp;
   const baseDate = baseTimestamp ? new Date(baseTimestamp) : null;
@@ -120,8 +139,6 @@ function _co2NormalizeResult(result, mcpParams) {
   const numericForecastValues = forecastValues
     .map(_co2FiniteNumber)
     .filter((value) => value !== null);
-  const currentValue = _co2FiniteNumber(result?.co2_intensity_gco2eq_kwh);
-  const averageToday = _co2FiniteNumber(result?.average_today_gco2eq_kwh);
   const allNumericForecastZeros =
     numericForecastValues.length > 0 && numericForecastValues.every((value) => value === 0);
 

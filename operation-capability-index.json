@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "75be7daa0b35fc7b87ff4a3bd1314402d6a85a19e123753311c44e0dda78e3cc",
+  "sourceOpenApiHash": "ab6704b0f79cae262c1b71e76977d1b7362664b76c0e3a89c56b39a3035aac57",
   "coverage": {
     "rawOperationCount": 1287,
     "operationCount": 1031,
@@ -17447,7 +17447,7 @@
             "name": "utilization",
             "in": "query",
             "type": "number",
-            "description": null,
+            "description": "Capacity utilization as a ratio/fraction: 0.75 = 75%, 1.0 = 100%, 1.45 = 145%. Percent-style values must be divided by 100 before calling.",
             "extractionHint": null
           },
           {

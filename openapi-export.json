@@ -21109,7 +21109,8 @@
             "name": "utilization",
             "schema": {
               "type": "number"
-            }
+            },
+            "description": "Capacity utilization as a ratio/fraction: 0.75 = 75%, 1.0 = 100%, 1.45 = 145%. Percent-style values must be divided by 100 before calling."
           },
           {
             "in": "query",
@@ -99565,7 +99566,8 @@
             "name": "utilization",
             "schema": {
               "type": "number"
-            }
+            },
+            "description": "Capacity utilization as a ratio/fraction: 0.75 = 75%, 1.0 = 100%, 1.45 = 145%. Percent-style values must be divided by 100 before calling."
           },
           {
             "in": "query",
