@@ -49,4 +49,18 @@ describe('related() relation notices', () => {
     const found = await memory.related(ctx(['own']), p, {}, 'Plane Nachberechnungen.');
     expect(found.text).toContain('Relation rel-own');
   });
+
+  test('statements of this conversation lead and are marked even when an anchor matched them', async () => {
+    store.query.mockResolvedValue([
+      { ...fact('old', 'actor-a', []), conversationId: 'c-0', at: '2026-11-03T10:00:00.000Z' },
+      fact('other', 'actor-b', []),
+      { ...fact('now', 'actor-a', []), conversationId: 'c-9', at: '2026-11-04T12:00:00.000Z' },
+    ]);
+    const found = await memory.related(ctx(), p, {}, 'Welche Nachberechnungen?', {
+      conversationId: 'c-9',
+      channel: 'api',
+    });
+    expect(found.evidence[0].metadata).toMatchObject({ key: 'now', ownConversation: true });
+    expect(found.evidence.filter((hit) => hit.metadata.ownConversation)).toHaveLength(1);
+  });
 });

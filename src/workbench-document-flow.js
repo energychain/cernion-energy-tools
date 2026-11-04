@@ -528,11 +528,16 @@ async function documentReply(
     };
   }
   // The person's stored statements answer questions about them; no purpose or role question then.
+  // Statements of this conversation lead, so the bounded answer context always keeps them.
+  const memoryHits = (retrieval?.evidence || []).filter(
+    (hit) => hit.retrievalSource === 'tenant-memory' && hit.value
+  );
+  const ownHits = memoryHits.filter((hit) => hit.metadata?.ownConversation);
   const userStatements = [
     ...new Set(
-      (retrieval?.evidence || [])
-        .filter((hit) => hit.retrievalSource === 'tenant-memory' && hit.value)
-        .map((hit) => hit.value)
+      [...ownHits, ...memoryHits.filter((hit) => !hit.metadata?.ownConversation)].map(
+        (hit) => hit.value
+      )
     ),
   ];
   if (
@@ -577,13 +582,7 @@ async function documentReply(
           conversationPreferences: situation.conversationPreferences,
           requestedOutput: situation.requestedOutput,
           userStatements,
-          conversationStatements: [
-            ...new Set(
-              (retrieval?.evidence || [])
-                .filter((hit) => hit.metadata?.ownConversation && hit.value)
-                .map((hit) => hit.value)
-            ),
-          ],
+          conversationStatements: [...new Set(ownHits.map((hit) => hit.value))],
         });
     if (reply?.responseText)
       return {

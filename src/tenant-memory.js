@@ -871,7 +871,18 @@ async function related(ctx, p, situation, message, { conversationId, channel } =
           .sort((a, b) => b.at.localeCompare(a.at))
           .slice(0, CONVERSATION_FACTS)
       : [];
-  const matched = [...selection.facts, ...own];
+  // Statements of this person in this conversation come first, newest first, and are marked as
+  // such even when an anchor matched them too; a long-used tenant must not crowd them out.
+  const fromConversation = (fact) =>
+    Boolean(conversationId) &&
+    fact.person?.actorId === p.actorId &&
+    fact.conversationId === conversationId &&
+    (!channel || fact.channel === channel);
+  const newest = (a, b) => String(b.at || '').localeCompare(String(a.at || ''));
+  const matched = [
+    ...[...selection.facts, ...own].filter(fromConversation).sort(newest),
+    ...selection.facts.filter((fact) => !fromConversation(fact)),
+  ];
   const stats = observation(ctx);
   stats.anchorHits += matched.length;
   if (selection.ambiguous) stats.rejected.ambiguous = (stats.rejected.ambiguous || 0) + 1;
@@ -899,7 +910,7 @@ async function related(ctx, p, situation, message, { conversationId, channel } =
       metadata: {
         namespace: store.namespace(p),
         key: fact.id,
-        ...(own.includes(fact) ? { ownConversation: true } : {}),
+        ...(fromConversation(fact) ? { ownConversation: true } : {}),
       },
     })),
     text: selection.ambiguous || paragraphs.join('\n\n'),
