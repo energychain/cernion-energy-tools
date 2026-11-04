@@ -228,6 +228,12 @@ function installModel({
             : 'knowledge',
         personAssessment: personFor(message, misclassified),
       };
+    } else if (input.task === 'message_statements') {
+      result = {
+        assertions: [],
+        correction: { kind: 'none', basis: '', factId: '' },
+        query: { requested: false, anchor: '', functionLabel: '' },
+      };
     } else {
       failures.push(input.task || Object.keys(input).join(','));
       throw new Error('Unexpected structured call');

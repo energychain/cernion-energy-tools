@@ -128,10 +128,10 @@ async function serialized(p, work) {
 function available(ctx) {
   return Boolean(ctx.broker?.getLocalService('object-store'));
 }
-function eligible(message, situation, envelope) {
+// Attached files do not block a statement in the same message: every assertion must be grounded
+// in the person's own text (anchors and basis), so document content is never captured here.
+function eligible(message, situation) {
   return (
-    !envelope.documents?.length &&
-    !envelope.datasetIds?.length &&
     !backgroundTask(message) &&
     !isDocumentInput(message) &&
     !documentReference(message) &&
@@ -339,7 +339,7 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
   const stats = observation(ctx);
   const candidates = situation.tenantMemory?.assertions || [];
   stats.candidates += candidates.length;
-  const allowed = Boolean(documentSource) || eligible(message, situation, envelope);
+  const allowed = Boolean(documentSource) || eligible(message, situation);
   for (const item of candidates) {
     const reason = allowed ? rejectionReason(item, message) : 'not_eligible';
     if (reason) stats.rejected[reason] = (stats.rejected[reason] || 0) + 1;
@@ -877,11 +877,13 @@ async function related(ctx, p, situation, message, { conversationId, channel } =
   if (selection.ambiguous) stats.rejected.ambiguous = (stats.rejected.ambiguous || 0) + 1;
   // Assessments and relations stay with anchor matches; own statements only add evidence. The
   // assessment of one's own statement was shown when it was recorded and is not repeated later.
+  // Relation notices follow the same rule: shown again for others' statements, not for one's own.
   const current = new Set(ctx.meta?.tenantMemoryCurrentFacts || []);
-  const paragraphs = selection.facts
-    .filter((fact) => fact.person?.actorId !== p.actorId || current.has(fact.id))
-    .flatMap((fact) => fact.plausibility || []);
-  for (const id of new Set(selection.facts.flatMap((fact) => fact.relationIds))) {
+  const assessed = selection.facts.filter(
+    (fact) => fact.person?.actorId !== p.actorId || current.has(fact.id)
+  );
+  const paragraphs = assessed.flatMap((fact) => fact.plausibility || []);
+  for (const id of new Set(assessed.flatMap((fact) => fact.relationIds))) {
     try {
       const text = await store.relationText(ctx, p, id);
       if (text) paragraphs.push(text);
