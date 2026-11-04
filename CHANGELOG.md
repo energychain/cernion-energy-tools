@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — RC3 UAT: a recalled statement is no leaked internal description
+
+- The document answer's internal-description check ignores the verbatim wording of the person's
+  stored statements. A recall answer quotes the statement word for word, and the turn's situation
+  repeats the same statement, so the check discarded every such recall („Document answer
+  discarded { reason: 'internal_description' }“ in UAT R4). Any other sentence of the internal
+  situation is still discarded.
+
 ## Unreleased — RC3 UAT: a discarded document answer keeps the person's statements
 
 - When the document answer is discarded by the answer filter (code fence, JSON or a repeated
