@@ -12,6 +12,27 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 import forecast_product as cli
 
+SAMPLE_MSCONS = ''.join([
+    "UNH+1+MSCONS:D:04B:UN:2.3e'",
+    "BGM+7+DOC20260401001+9'",
+    "DTM+137:20260401:102'",
+    "NAD+MS+9900992720003::293'",
+    "NAD+MR+9907015000008::293'",
+    "LOC+172+DE0003966698900000000000052335107'",
+    "DTM+163:202604010000:303'",
+    "DTM+164:202604012359:303'",
+    "CCI+11++Z06'",
+    "QTY+220:12.4:KWH'",
+    "DTM+163:202604010000:303'",
+    "DTM+164:202604010015:303'",
+    "STS+7++67'",
+    "QTY+220:11.8:KWH'",
+    "DTM+163:202604010015:303'",
+    "DTM+164:202604010030:303'",
+    "STS+7++79'",
+    "UNT+18+1'",
+])
+
 
 class ClientTests(unittest.TestCase):
     def setUp(self):
@@ -82,6 +103,177 @@ class ClientTests(unittest.TestCase):
         plan=cli.read(self.root/'plan/run.json')
         self.assertEqual(plan['request']['series_ids'],['meter-42'])
         self.assertEqual(plan['inputs'][0]['records'],4)
+
+    def mscons_fixture(self, count=96, melo='DE0003966698900000000000052335107'):
+        parts=["UNH+1+MSCONS:D:04B:UN:2.3e'","BGM+7+DOC20261006001+9'","DTM+137:20261007:102'",
+            "NAD+MS+9900992720003::293'","NAD+MR+9907015000008::293'",f"LOC+172+{melo}'","CCI+11++Z06'"]
+        start=dt.datetime(2026,10,6,tzinfo=cli.UTC)
+        for index in range(count):
+            a=start+dt.timedelta(minutes=15*index);b=a+dt.timedelta(minutes=15)
+            parts.extend([f"QTY+220:{1+index/100:.2f}:KWH'",f"DTM+163:{a:%Y%m%d%H%M}:303'",
+                f"DTM+164:{b:%Y%m%d%H%M}:303'","STS+7++67'"])
+        parts.append(f"UNT+{len(parts)+1}+1'")
+        return ''.join(parts)
+
+    def test_mscons_history_input_maps_daily_values_and_envelope(self):
+        file=self.root/'daily.mscons';file.write_text(self.mscons_fixture(),encoding='utf-8')
+        dataset,audit=cli.load_dataset(file,series_id='kunde-zaehler-42')
+        self.assertEqual(dataset['series_id'],'kunde-zaehler-42')
+        self.assertEqual(dataset['unit'],'kWh')
+        self.assertEqual(dataset['timezone'],'Europe/Berlin')
+        self.assertEqual(len(dataset['values']),96)
+        self.assertEqual(dataset['values'][0]['timestamp'],'2026-10-06T00:00:00+00:00')
+        self.assertEqual(dataset['values'][0]['quality'],'measured')
+        self.assertEqual(dataset['source']['format'],'mscons')
+        self.assertEqual(dataset['source']['documentNumber'],'DOC20261006001')
+        self.assertEqual(dataset['source']['sender']['id'],'9900992720003')
+        self.assertEqual(dataset['source']['receiver']['id'],'9907015000008')
+        self.assertEqual(dataset['source']['meloId'],'DE0003966698900000000000052335107')
+        self.assertEqual(dataset['source']['obisEquivalent'],'1-0:1.8.0')
+        self.assertEqual(audit['format'],'mscons')
+        self.assertEqual(audit['records'],96)
+
+    def test_mscons_dataset_preserves_envelope_provenance(self):
+        file=self.root/'meter.mscons';file.write_text(SAMPLE_MSCONS)
+        dataset,audit=cli.load_dataset(file)
+        self.assertEqual(dataset['series_id'],'DE0003966698900000000000052335107')
+        self.assertEqual(dataset['unit'],'kWh')
+        self.assertEqual(dataset['value_semantics'],'interval_energy')
+        self.assertEqual([v['value'] for v in dataset['values']],[12.4,11.8])
+        self.assertEqual(dataset['values'][0]['quality'],'measured')
+        self.assertEqual(dataset['values'][1]['quality'],'estimated')
+        self.assertEqual(dataset['source_envelope']['format'],'MSCONS')
+        self.assertEqual(dataset['source_envelope']['document_number'],'DOC20260401001')
+        self.assertEqual(dataset['source_envelope']['sender']['id'],'9900992720003')
+        self.assertEqual(dataset['source_envelope']['receiver']['id'],'9907015000008')
+        self.assertEqual(dataset['source_envelope']['location']['melo_id'],dataset['series_id'])
+        self.assertEqual(dataset['source_envelope']['obis'],'1-0:1.8.0')
+        self.assertEqual(audit['source_format'],'MSCONS')
+        self.assertEqual(audit['document_number'],'DOC20260401001')
+
+    def test_mscons_rejects_ambiguous_or_invalid_measurements(self):
+        cases = {
+            'multiple_messages': SAMPLE_MSCONS + SAMPLE_MSCONS,
+            'multiple_locations': SAMPLE_MSCONS.replace("UNT+18+1'", "LOC+172+OTHER'UNT+18+1'"),
+            'multiple_channels': SAMPLE_MSCONS.replace("UNT+18+1'", "CCI+11++Z07'UNT+18+1'"),
+            'wrong_location': SAMPLE_MSCONS.replace('LOC+172+', 'LOC+999+'),
+            'mixed_units': SAMPLE_MSCONS.replace('11.8:KWH', '11.8:KW'),
+            'unsupported_unit': SAMPLE_MSCONS.replace(':KWH', ':MWH'),
+            'non_numeric': SAMPLE_MSCONS.replace('12.4:KWH', 'unknown:KWH'),
+            'empty_quantity': SAMPLE_MSCONS.replace('12.4:KWH', ':KWH'),
+            'negative_quantity': SAMPLE_MSCONS.replace('12.4:KWH', '-12.4:KWH'),
+            'register_reading': SAMPLE_MSCONS.replace('202604010015:303', '202604010100:303', 1),
+            'duplicate': SAMPLE_MSCONS.replace('202604010015:303', '202604010000:303', 1)
+                .replace('202604010030:303', '202604010015:303'),
+        }
+        for name, raw in cases.items():
+            with self.subTest(name=name):
+                file = self.root / (name + '.mscons')
+                file.write_text(raw)
+                with self.assertRaises(ValueError):
+                    cli.load_dataset(file)
+
+    def test_mscons_power_units_zero_values_and_identity_are_preserved(self):
+        file = self.root / 'power.edifact'
+        file.write_text(SAMPLE_MSCONS.replace(':KWH', ':KW').replace('12.4:KW', '0:KW'))
+        dataset, _ = cli.load_dataset(file)
+        self.assertEqual(dataset['value_semantics'], 'average_power')
+        self.assertEqual(dataset['unit'], 'kW')
+        self.assertEqual(dataset['values'][0]['value'], 0)
+        self.assertEqual(dataset['source_envelope']['location']['loc_qualifier'], '172')
+        with self.assertRaisesRegex(ValueError, 'do not pass --unit'):
+            cli.load_dataset(file, unit='kWh')
+
+    def test_mscons_history_dry_run_keeps_input_provenance(self):
+        file=self.root/'meter.edi';file.write_text(SAMPLE_MSCONS)
+        self.assertEqual(cli.main(['history','--tenant-id','a','--series-id','DE0003966698900000000000052335107',
+            '--input',str(file),'--dry-run','--out',str(self.root/'mscons-plan')]),0)
+        plan=cli.read(self.root/'mscons-plan/run.json')
+        self.assertEqual(plan['inputs'][0]['source_format'],'MSCONS')
+        self.assertEqual(plan['input_provenance'][0]['document_number'],'DOC20260401001')
+        self.assertEqual(plan['input_provenance'][0]['obis'],'1-0:1.8.0')
+
+    def test_predict_copies_model_input_provenance_into_result(self):
+        day='2024-01-01';_,_=self.fixture(day=day)
+        model='a'*64;run='b'*64;secret='ck_test_secret'
+        model_file=self.root/'model.json'
+        cli.save(model_file,{'tenant_id':'a','result':{'model_version':model},
+            'input_provenance':[{'source_format':'MSCONS','document_number':'DOC20260401001','melo_id':'meter','obis':'1-0:1.8.0'}]})
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self,*args):pass
+            def answer(self):
+                _=self.rfile.read(int(self.headers.get('Content-Length',0)))
+                if self.path=='/api/tokens/verify': data={'valid':True,'tenantId':'a'}
+                elif self.path.endswith('/predict'): data={'jobId':'job','run_id':run}
+                elif self.path.endswith('/runs/'+run):
+                    pred=cli.read(Path(model_file).parent/'prediction.json')['result']
+                    data={'status':'completed','result':{**pred,'model_version':model}}
+                else: data={'status':'running'}
+                self.send_response(200);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(json.dumps(data).encode())
+            do_POST=answer;do_GET=answer
+        server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
+        thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        self.addCleanup(server.server_close);self.addCleanup(server.shutdown)
+        with patch.dict(os.environ,CET_API_TOKEN=secret):
+            self.assertEqual(cli.main(['predict','--tenant-id','a','--series-id','meter','--model-file',str(model_file),
+                '--forecast-for',day,'--base-url','http://127.0.0.1:'+str(server.server_port),'--out',str(self.root/'predict')]),0)
+        result=cli.read(self.root/'predict/result.json')
+        self.assertEqual(result['result']['input_provenance'][0]['source_format'],'MSCONS')
+        self.assertEqual(result['result']['input_provenance'][0]['document_number'],'DOC20260401001')
+
+    def test_local_provenance_does_not_replace_api_provenance(self):
+        from types import SimpleNamespace
+        server_source = {'input_format': 'verified-server-history'}
+        server_inputs = [{'document_number': 'SERVER'}]
+        local_inputs = [{'source_format': 'MSCONS', 'document_number': 'LOCAL'}]
+        result = {'status': 'completed', 'source_provenance': server_source,
+                  'input_provenance': server_inputs}
+        client = SimpleNamespace(tenant='a', base='https://cet.example.test')
+        state = {'operation': 'train', 'input_provenance': local_inputs}
+        with patch.object(cli, 'await_result', return_value=result):
+            cli.finish(client, state, SimpleNamespace(), self.root, {})
+        saved = cli.read(self.root / 'result.json')
+        self.assertEqual(saved['result']['source_provenance'], server_source)
+        self.assertEqual(saved['result']['input_provenance'], server_inputs)
+        self.assertEqual(saved['input_provenance'], local_inputs)
+
+    def test_mscons_enroll_and_predict_preserve_source_provenance(self):
+        file=self.root/'daily.mscons';file.write_text(self.mscons_fixture(),encoding='utf-8')
+        calls=[];secret='ck_test_secret';model='a'*64
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self,*args):pass
+            def answer(self):
+                payload=json.loads(self.rfile.read(int(self.headers.get('Content-Length',0))) or b'null')
+                calls.append((self.path,payload))
+                if self.path=='/api/tokens/verify': data={'valid':True,'tenantId':'a'}
+                elif self.path.endswith('/history'):data={'series_id':'kunde-zaehler-42','history_version':'b'*64}
+                elif self.path.endswith('/train'):data={'jobId':'job','run_id':model}
+                elif self.path.endswith('/predict'):data={'jobId':'job','run_id':model}
+                else:data={'status':'completed','result':{'status':'completed','series_id':'kunde-zaehler-42',
+                    'forecast_for':'2026-10-07','model_version':model,'forecast_values':[]}}
+                self.send_response(200);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(json.dumps(data).encode())
+            do_POST=answer
+            do_GET=answer
+        server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
+        thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        self.addCleanup(server.server_close);self.addCleanup(server.shutdown)
+        base='http://127.0.0.1:'+str(server.server_port)
+        with patch.dict(os.environ,CET_API_TOKEN=secret):
+            self.assertEqual(cli.main(['enroll','--series-id','kunde-zaehler-42','--input',str(file),
+                '--forecast-for','2026-10-07','--base-url',base,'--out',str(self.root/'enroll')]),0)
+        history_payload=calls[1][1]
+        self.assertEqual(history_payload['dataset']['source']['format'],'mscons')
+        self.assertEqual(history_payload['dataset']['source']['documentNumber'],'DOC20261006001')
+        enrolled=cli.read(self.root/'enroll/result.json')
+        self.assertEqual(enrolled['result']['source_provenance']['input_format'],'mscons')
+        self.assertEqual(enrolled['result']['source_provenance']['last_history_message']['documentNumber'],'DOC20261006001')
+        calls.clear()
+        with patch.dict(os.environ,CET_API_TOKEN=secret):
+            self.assertEqual(cli.main(['predict','--series-id','kunde-zaehler-42','--model-file',str(self.root/'enroll/result.json'),
+                '--forecast-for','2026-10-07','--base-url',base,'--out',str(self.root/'predict')]),0)
+        predicted=cli.read(self.root/'predict/result.json')
+        self.assertEqual(predicted['result']['source_provenance']['last_history_message']['meloId'],
+            'DE0003966698900000000000052335107')
 
     def test_http_contract_and_token_scrubbing(self):
         actual,_=self.fixture(day='2024-01-01')

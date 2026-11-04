@@ -246,12 +246,12 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/vdmi-blueprint-pack-seeds.test.js` — 15 new tests for #591 covering the MaKo/M2C Resolution Value Review seed: catalog lookup/list registration, the six `source_hint_only` read-model references and `metadata_only` command hints, full validator coverage (required roles/evidence/data classes/forbidden actions), qualitative-only Resolution Value framing with positive missing-evidence follow-ups, the explicit HITL boundary/no-call guard, non-executing workbench-clarification-item mapping for `ROLE_MAKO_OWNER`, the exact four-row canonical matrix (roles, gate outcomes, pending downstream sync) via `buildDemoProcessMatrixSync`/`buildLandingRegistryDraftFromBlueprintSeed`, and five negative cases (missing required evidence key, non-role matrix cell, wrong `roleLegend.M`, an executable command hint, and a missing forbidden/consequential-action guard). Full suite: `tests/vdmi-blueprint-pack-seeds.test.js` — 1 suite / 87 tests pass.
 
 ## Source File Hashes
-- CHANGELOG.md: ca3d3eb53de41c34407fa69f266ce10c00030f05596e53d085b1156fb5d4c41f
+- CHANGELOG.md: 25aadcf3925d309e5124cc9709af23cc84ea80da89698d20b7cd917705ca38a3
 - README.md: 6928d66c5b662282824492ef8730244f9b17d03fd69b671088fc3dcdc81d3bdf
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: d8c6398f801cc233ea13bf66a2ae66598896bd94787c382ee248075ec60b74c5
-- openapi-export.json: 75be7daa0b35fc7b87ff4a3bd1314402d6a85a19e123753311c44e0dda78e3cc
+- openapi-export.json: ab6704b0f79cae262c1b71e76977d1b7362664b76c0e3a89c56b39a3035aac57
 
 ## OpenAPI Surface (full contract, not embedded)
 - path_count: 1165
@@ -259,4 +259,4 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 037367447406c3ce83ecdb7e95de8ac7a6a1670f94df4cb0747872787ed68279
+- llm_txt_sha256: 486c1953b8dff04a4a041a958e7d2067305feeef845ecf34da03d5325f088559

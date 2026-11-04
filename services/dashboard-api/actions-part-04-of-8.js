@@ -874,19 +874,19 @@ module.exports = {
     rest: 'GET /capacity-contract-risk-asset-cockpit',
     params: {
       gridOperatorId: { type: 'string', min: 1 },
-      utilization: { type: 'number', optional: true },
+      utilization: { type: 'number', optional: true, convert: true },
       bottleneck: { type: 'string', optional: true, min: 1 },
-      firmCapacityKW: { type: 'number', optional: true },
-      flexibleCapacityKW: { type: 'number', optional: true },
+      firmCapacityKW: { type: 'number', optional: true, convert: true },
+      flexibleCapacityKW: { type: 'number', optional: true, convert: true },
       contractStatus: { type: 'string', optional: true, min: 1 },
       legalStatus: { type: 'string', optional: true, min: 1 },
-      altvereinbarung: { type: 'boolean', optional: true },
-      capex: { type: 'number', optional: true },
-      opex: { type: 'number', optional: true },
+      altvereinbarung: { type: 'boolean', optional: true, convert: true },
+      capex: { type: 'number', optional: true, convert: true },
+      opex: { type: 'number', optional: true, convert: true },
       priority: { type: 'string', optional: true, min: 1 },
       owner: { type: 'string', optional: true, min: 1 },
       nextAction: { type: 'string', optional: true, min: 1 },
-      forecast: { type: 'boolean', optional: true },
+      forecast: { type: 'boolean', optional: true, convert: true },
       date: { type: 'string', optional: true, min: 1 },
       sourceRef: {
         type: 'multi',
@@ -911,7 +911,14 @@ module.exports = {
 
       parameters: [
         { in: 'query', name: 'gridOperatorId', required: true, schema: { type: 'string' } },
-        { in: 'query', name: 'utilization', schema: { type: 'number' } },
+        {
+          in: 'query',
+          name: 'utilization',
+          schema: { type: 'number' },
+          description:
+            'Capacity utilization as a ratio/fraction: 0.75 = 75%, 1.0 = 100%, 1.45 = 145%. ' +
+            'Percent-style values must be divided by 100 before calling.',
+        },
         { in: 'query', name: 'bottleneck', schema: { type: 'string' } },
         { in: 'query', name: 'firmCapacityKW', schema: { type: 'number' } },
         { in: 'query', name: 'flexibleCapacityKW', schema: { type: 'number' } },

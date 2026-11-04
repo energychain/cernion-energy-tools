@@ -9,6 +9,7 @@ import math
 import os
 import re
 import shlex
+import subprocess
 from pathlib import Path
 import sys
 import time
@@ -19,6 +20,46 @@ from zoneinfo import ZoneInfo
 
 ROOT = '/api/forecast-sandbox/consumption/portfolio'
 UTC = dt.timezone.utc
+
+MSCONS_SUFFIXES = {'.mscons', '.edi', '.edifact'}
+
+
+def provenance_from_dataset(dataset):
+    envelope = dataset.get('source_envelope')
+    if not envelope:
+        source = dataset.get('source') or {}
+        if source.get('format') != 'mscons':
+            return None
+        envelope = dict(format='MSCONS', message_ref=source.get('messageRef'), document_number=source.get('documentNumber'),
+                        document_date=source.get('documentDate'), sender=source.get('sender'), receiver=source.get('receiver'),
+                        location={'melo_id': source.get('meloId'), 'loc_qualifier': source.get('locQualifier')},
+                        cci_code=source.get('cciCode'), obis=source.get('obisEquivalent'), parse_warnings=source.get('parseWarnings', []))
+    return dict(source_format=envelope.get('format', 'MSCONS'), message_ref=envelope.get('message_ref'),
+                document_number=envelope.get('document_number'), document_date=envelope.get('document_date'),
+                sender=envelope.get('sender'), receiver=envelope.get('receiver'),
+                melo_id=(envelope.get('location') or {}).get('melo_id'),
+                loc_qualifier=(envelope.get('location') or {}).get('loc_qualifier'),
+                obis=envelope.get('obis'), cci_code=envelope.get('cci_code'),
+                parse_warnings=envelope.get('parse_warnings', []))
+
+
+def model_input_provenance(args):
+    if not getattr(args, 'model_file', None):
+        return []
+    envelope = read(args.model_file)
+    explicit = envelope.get('input_provenance') or envelope.get('result', {}).get('input_provenance') or []
+    if explicit:
+        return explicit
+    source = envelope.get('source_provenance') or envelope.get('result', {}).get('source_provenance')
+    if not source:
+        return []
+    message = source.get('last_history_message') or {}
+    return [dict(source_format=str(source.get('input_format') or '').upper(),
+                 message_ref=message.get('messageRef'), document_number=message.get('documentNumber'),
+                 document_date=message.get('documentDate'), sender=message.get('sender'),
+                 receiver=message.get('receiver'), melo_id=message.get('meloId'),
+                 cci_code=message.get('cciCode'), obis=message.get('obisEquivalent'),
+                 parse_warnings=message.get('parseWarnings') or [])]
 
 
 def read(path):
@@ -57,6 +98,15 @@ def importer():
     return module
 
 
+def load_mscons_dataset(path, series_id=None):
+    script = Path(__file__).resolve().parent / 'mscons_dataset.js'
+    command = ['node', str(script), str(path)] + ([series_id] if series_id else [])
+    completed = subprocess.run(command, check=False, text=True, capture_output=True)
+    if completed.returncode != 0:
+        raise ValueError('MSCONS parse failed: ' + (completed.stderr.strip() or completed.stdout.strip()))
+    return json.loads(completed.stdout)
+
+
 def load_dataset(path, series_id=None, unit=None, basis='berlin'):
     path = Path(path)
     if path.suffix.lower() == '.xlsx':
@@ -65,6 +115,17 @@ def load_dataset(path, series_id=None, unit=None, basis='berlin'):
         legacy = importer()
         records, audit = legacy.read_workbook(path)
         dataset = legacy.dataset_from_records(records, audit, unit, basis)
+    elif path.suffix.lower() in MSCONS_SUFFIXES:
+        if unit is not None:
+            raise ValueError('MSCONS input derives the unit from QTY segments; do not pass --unit')
+        dataset = load_mscons_dataset(path, series_id)
+        audit = dict(format='mscons', source_format='MSCONS',
+                     document_number=(dataset.get('source_envelope') or {}).get('document_number'),
+                     message_ref=(dataset.get('source_envelope') or {}).get('message_ref'),
+                     melo_id=((dataset.get('source_envelope') or {}).get('location') or {}).get('melo_id'),
+                     obis=(dataset.get('source_envelope') or {}).get('obis'),
+                     cci_code=(dataset.get('source_envelope') or {}).get('cci_code'))
+        series_id = None
     else:
         dataset = read(path)
         dataset = dataset.get('dataset', dataset)
@@ -137,6 +198,27 @@ def model_version(args):
     if envelope.get('tenant_id') != args.tenant_id:
         raise ValueError('Model file belongs to a different tenant')
     return envelope['result']['model_version']
+
+
+def source_provenance(items):
+    items = [item for item in (items or []) if item]
+    if not items:
+        return None
+    first = items[-1]
+    return {
+        'input_format': str(first.get('source_format') or '').lower() or None,
+        'last_history_message': {
+            'messageRef': first.get('message_ref'),
+            'documentNumber': first.get('document_number'),
+            'documentDate': first.get('document_date'),
+            'sender': first.get('sender'),
+            'receiver': first.get('receiver'),
+            'meloId': first.get('melo_id'),
+            'cciCode': first.get('cci_code'),
+            'obisEquivalent': first.get('obis'),
+            'parseWarnings': first.get('parse_warnings') or [],
+        },
+    }
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -245,7 +327,19 @@ def finish(client, state, args, out, job):
         for field in ('series_id', 'forecast_for', 'model_version'):
             if result.get(field) != expected[field]:
                 raise ValueError('API prediction identity differs from request: ' + field)
-    save(out/'result.json', {'tenant_id': client.tenant, 'base_url': client.base, 'result': result})
+    provenance = state.get('input_provenance') or []
+    semantic_provenance = source_provenance(provenance)
+    if provenance and isinstance(result, dict):
+        result = dict(result)
+        result.setdefault('input_provenance', provenance)
+        if semantic_provenance:
+            result.setdefault('source_provenance', semantic_provenance)
+    envelope = {'tenant_id': client.tenant, 'base_url': client.base, 'result': result}
+    if provenance:
+        envelope['input_provenance'] = provenance
+    if semantic_provenance:
+        envelope['source_provenance'] = semantic_provenance
+    save(out/'result.json', envelope)
     state['status'] = 'completed'
     save(out/'run.json', state)
     print('Completed: ' + str(out/'result.json'))
@@ -383,6 +477,9 @@ def run(args):
         if args.command == 'seed' and len({(d['unit'], d['timezone']) for d, _ in datasets}) != 1:
             raise ValueError('Initial portfolio requires common unit and timezone')
         state['inputs'] = [audit for _, audit in datasets]
+        state['input_provenance'] = [p for p in (provenance_from_dataset(dataset) for dataset, _ in datasets) if p]
+    if args.command in ('predict', 'retrain'):
+        state['input_provenance'] = model_input_provenance(args)
     request = {}
     if args.command in ('seed', 'enroll', 'train'):
         request = dict(series_ids=[d['series_id'] for d, _ in datasets] if datasets else args.series_ids,

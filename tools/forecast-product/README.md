@@ -12,8 +12,8 @@ python3 -m pip install -r tools/forecast-product/requirements.txt
 | Script / Befehl | Zweck |
 |---|---|
 | `seed_baseline.py` / `forecast_product.py seed` | XLSX-Referenzzähler initial importieren und gemeinsam trainieren |
-| `enroll_meter.py` / `forecast_product.py enroll` | Einen neuen Zähler mit XLSX-/JSON-Historie importieren und trainieren |
-| `forecast_product.py history` | Historie ergänzen, optional Korrekturen übermitteln |
+| `enroll_meter.py` / `forecast_product.py enroll` | Einen neuen Zähler mit XLSX-/JSON-/MSCONS-Historie importieren und trainieren |
+| `forecast_product.py history` | Historie ergänzen, optional Korrekturen übermitteln; JSON, XLSX oder MSCONS |
 | `forecast_product.py train` | Bereits importierte Zähler trainieren |
 | `predict_meter.py` / `forecast_product.py predict` | Tagesprognose erzeugen und speichern |
 | `score_meter.py` / `forecast_product.py score` | Gespeicherte Prognose(n) gegen Istwerte auswerten |
@@ -117,7 +117,18 @@ python3 ../../tools/forecast-product/enroll_meter.py \
 Datum passend zu Datenende und Informationsursprung wählen. Benötigt werden mindestens
 28 verfügbare historische Tage, bei Lücken gegebenenfalls mehr; letzte zulässige Messung
 höchstens sieben Tage alt. Der Ursprung D−1 07:00 darf nicht in der Zukunft liegen.
-Alternativ akzeptiert `--input` ein Dataset-JSON mit `series_id`, `unit`, `timezone`, `values`.
+Alternativ akzeptiert `--input` ein Dataset-JSON mit `series_id`, `unit`, `timezone`, `values`
+oder eine MSCONS-Datei mit Endung `.mscons`, `.edi` oder `.edifact`. Bei MSCONS werden
+MeLo-ID aus `LOC+172`, OBIS-Mapping aus `CCI` (`Z06`, `Z07`; `Z10`/`Z11` bleiben Netznutzungsmetadaten), Viertelstundenwerte
+aus `QTY`, Intervallzeiten aus `DTM+163/164` und Qualitätskennzeichen aus `STS` übernommen.
+Envelope-Metadaten aus `UNH`, `BGM`, `DTM+137` und `NAD+MS/MR` werden als `source`,
+`source_envelope` und als Run-Provenienz archiviert. MSCONS-Dateien müssen für den Forecast-
+Import genau eine `LOC+172`-Messlokation und genau eine unterstützte CCI-Zeitreihe enthalten;
+mehrdeutige Dateien werden mit klarer Fehlermeldung abgewiesen. Erforderlich sind explizite
+15-Minuten-Intervalle mit Start und Ende sowie durchgehend kWh oder kW. Parse-Warnungen,
+leere Mengen und unpassende Intervalle werden vor jedem API-Schreibzugriff abgewiesen.
+Kumulierte Registerstände müssen vorher in Intervallwerte umgerechnet werden.
+Der Import benötigt Node.js für den gemeinsamen CET-MSCONS-Parser.
 Optionale Felder `reactive_power_kvar`, `profile_label` und deren Verfügbarkeitsangaben werden
 bei JSON unverändert an die API übergeben. XLSX verwendet das bestehende Ein-Kanal-Format.
 
@@ -140,6 +151,20 @@ python3 ../../tools/forecast-product/forecast_product.py history \
   --tenant-id "$CET_TENANT_ID" --series-id kunde-zaehler-42 \
   --input neue_messwerte.json --out kunde42_update
 ```
+
+Tägliche MSCONS-Nachlieferungen sind analog möglich, etwa mit den 96 Werten des Vortags:
+
+```bash
+python3 ../../tools/forecast-product/forecast_product.py history \
+  --tenant-id "$CET_TENANT_ID" --series-id DE0003966698900000000000052335107 \
+  --input MSCONS_20261006.edi --out kunde42_mscons_20261006
+```
+
+MSCONS-Provenienz landet in `run.json` unter `input_provenance`. Wenn ein daraus entstandenes
+`result.json` später als `--model-file` für `predict` verwendet wird, wird diese Provenienz in
+das Prognose-`result.json` übernommen (`result.input_provenance`, `result.source_provenance`
+und Top-Level-Kopien). Diese Angaben dokumentieren die vom Aufrufer gelieferten Quellen;
+sie sind kein Nachweis einer unabhängigen Prüfung. Das CLI erzeugt und versendet keine MSCONS-/MaKo-Ausgangsnachricht.
 
 Änderungen an bereits gespeicherten Werten erfordern zusätzlich `--allow-corrections`.
 Für eine Ersthistorie ohne anschließendes Training gibt es `history --historical-import`.
