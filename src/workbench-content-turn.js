@@ -17,6 +17,32 @@ const { resolveFunctions, normalizePhrase } = require('./function-resolver');
 const { safeTurnMemory } = require('./workbench-turn-memory');
 const { datasetQuestion } = require('./dataset-routing');
 
+// Stored statements are read from the tenant's object store; a tenant with many facts needs more
+// than a few hundred milliseconds, and a missed read silently drops what the person said.
+function memoryRetrievalMs() {
+  const configured = Number(process.env.WORKBENCH_MEMORY_RETRIEVAL_MS);
+  return Number.isFinite(configured) && configured > 0 ? configured : 1500;
+}
+function relatedMemory(ctx, memoryCtx, p, situation, envelope) {
+  const started = performance.now();
+  return require('./workbench-capability-loop')
+    .withinToolBudget(
+      () =>
+        require('./tenant-memory').related(memoryCtx, p, situation, envelope.userRequest, {
+          conversationId: envelope.conversationId,
+          channel: envelope.channel,
+        }),
+      memoryRetrievalMs()
+    )
+    .catch((error) => {
+      (ctx.broker || memoryCtx.broker)?.logger?.warn('Tenant memory retrieval unavailable', {
+        reason: String(error?.message || error).slice(0, 200),
+        elapsedMs: Math.round(performance.now() - started),
+      });
+      return null;
+    });
+}
+
 async function discard(service, ctx, p, envelope, pending, meta) {
   const conversation = await service.store.resolveConversation(
     { tenantId: p.tenantId, client: envelope.channel, conversationId: envelope.conversationId },
@@ -773,16 +799,9 @@ async function runContentTurn(
         })
       : null;
   const memoryContextJob = !incomingDocuments
-    ? require('./workbench-capability-loop')
-        .withinToolBudget(
-          () =>
-            tenantMemory.related(memoryCtx, p, situation, envelope.userRequest, {
-              conversationId: envelope.conversationId,
-              channel: envelope.channel,
-            }),
-          200
-        )
-        .catch(() => ({ evidence: [], text: '' }))
+    ? relatedMemory(ctx, memoryCtx, p, situation, envelope).then(
+        (found) => found || { evidence: [], text: '' }
+      )
     : Promise.resolve({ evidence: [], text: '' });
   let resolveMemoryRetrieval;
   const memoryRetrieval = new Promise((resolve) => {
@@ -1347,16 +1366,7 @@ async function runContentTurn(
   const memoryContext = await memoryContextJob;
   // Re-read local relations after a new assertion's assessment, using a separate local budget.
   if (memory.paragraphs.length && !incomingDocuments) {
-    const current = await toolLoop
-      .withinToolBudget(
-        () =>
-          tenantMemory.related(memoryCtx, p, situation, envelope.userRequest, {
-            conversationId: envelope.conversationId,
-            channel: envelope.channel,
-          }),
-        100
-      )
-      .catch(() => null);
+    const current = await relatedMemory(ctx, memoryCtx, p, situation, envelope);
     if (current) {
       Object.assign(memoryContext, current);
       // Fresh local facts include completed checks; discard the earlier pending rendering.

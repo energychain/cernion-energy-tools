@@ -207,3 +207,21 @@ test('each part of a question may run as its own simple query', async () => {
     });
   await expect(run([bills, advices])).resolves.toMatchObject({ rows: 4 });
 });
+
+test('an entirely empty result is redrafted once, then accepted', async () => {
+  const empty = { sql: 'SELECT "Nummer" FROM rechnungen WHERE "Betrag" < 0' };
+  llm.generateStructured
+    .mockResolvedValueOnce(empty)
+    .mockResolvedValueOnce(empty)
+    .mockImplementationOnce(async (_schema, prompt) => {
+      expect(JSON.parse(prompt).result[0].rows).toEqual([]);
+      return { answer: 'Die Tabellen enthalten dazu keinen Eintrag.' };
+    });
+  await expect(run([bills])).resolves.toMatchObject({ rows: 0 });
+  const redraft = JSON.parse(llm.generateStructured.mock.calls[1][1]).previousAttempt;
+  expect(redraft.rejected[0]).toMatchObject({
+    sql: empty.sql,
+    failure: 'Keine Abfrage lieferte Zeilen',
+  });
+  expect(llm.generateStructured).toHaveBeenCalledTimes(3);
+});
