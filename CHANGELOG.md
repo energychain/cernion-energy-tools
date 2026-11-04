@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Build id in immutable releases
+
+- `X-Cernion-Build` and `system_fingerprint` name the deployed commit also in an immutable release
+  directory without git metadata (`/opt/cernion/releases/<commit>`): a directory named after a
+  full commit counts when no `.git` is present; `CET_BUILD_COMMIT` still wins. Before, such a
+  release reported `cet-<version>-unknown`.
+
 ## Unreleased — RC3 UAT: subqueries in the cross-table analysis, recall of corrections
 
 - When the person's stored statements are evidence, the document answer names them as a source
