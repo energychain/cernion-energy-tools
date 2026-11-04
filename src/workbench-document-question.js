@@ -20,13 +20,18 @@ function documentTable(text) {
 // An answer that cites a stored statement but leaves its wording out gets the wording verbatim,
 // so a recalled statement is never shortened to a fragment. Only statements of this conversation
 // qualify: a statement from elsewhere is evidence, not what the person just said.
+// The verbatim wording of stored statements („…“ in their rendered text).
+function storedWordings(statements) {
+  return statements
+    .map((value) => {
+      const text = String(value);
+      const open = text.indexOf('„');
+      const close = open < 0 ? -1 : text.indexOf('“', open + 1);
+      return close > open ? text.slice(open + 1, close).trim() : '';
+    })
+    .filter(Boolean);
+}
 function withStatedWording(answer, userStatements, question = '') {
-  const quoted = (value) => {
-    const text = String(value);
-    const open = text.indexOf('„');
-    const close = open < 0 ? -1 : text.indexOf('“', open + 1);
-    return close > open ? text.slice(open + 1, close).trim() : '';
-  };
   const core = (text) => {
     let end = text.length;
     while (end > 0 && '. '.includes(text[end - 1])) end--;
@@ -40,7 +45,7 @@ function withStatedWording(answer, userStatements, question = '') {
       )
     );
   const asked = words(question);
-  const wordings = userStatements.map(quoted).filter(Boolean);
+  const wordings = storedWordings(userStatements);
   const lower = answer.toLocaleLowerCase('de-DE');
   if (!wordings.length || wordings.some((text) => lower.includes(core(text)))) return answer;
   const cited = answer.includes('Nutzerangabe');
@@ -171,11 +176,13 @@ async function documentQuestion(
       { ...llmOptions(tenantId, 'answer', true), logger }
     );
     const answer = typeof result?.answer === 'string' ? result.answer.trim() : '';
-    if (
-      answer &&
-      !/```|\{\s*"/u.test(answer) &&
-      !require('./workbench-answer-filter').isInternalDescription(answer, internalContext)
-    )
+    let discarded = '';
+    if (!answer) discarded = 'empty';
+    else if (answer.includes('```')) discarded = 'code_fence';
+    else if (/\{\s*"/u.test(answer)) discarded = 'json';
+    else if (require('./workbench-answer-filter').isInternalDescription(answer, internalContext))
+      discarded = 'internal_description';
+    if (!discarded)
       return {
         responseText: withStatedWording(
           restoreContext(answer, safe.reidentMap),
@@ -183,6 +190,8 @@ async function documentQuestion(
           question
         ),
       };
+    // Names only the rule and the size, never the answer text.
+    logger?.warn?.('Document answer discarded', { reason: discarded, chars: answer.length });
   } catch (error) {
     const errors = require('./workbench-llm-errors');
     errors.logLlmError(logger, 'document_answer', error);
@@ -190,6 +199,17 @@ async function documentQuestion(
     const notice = errors.quotaMessage(error);
     if (notice) return { responseText: notice };
   }
+  // The person's own statements of this conversation stay available, named as such, when the
+  // document answer did not come about; they are not presented as its answer.
+  const stated = storedWordings(conversationStatements).slice(0, 3);
+  if (stated.length)
+    return {
+      responseText: [
+        'Die Antwort aus den Dokumentabschnitten ist gerade nicht zustande gekommen. In diesem Gespräch hast du festgehalten:',
+        ...stated.map((wording) => `„${wording}“ (Herkunft: Nutzerangabe)`),
+      ].join('\n\n'),
+      metadata: { degraded: true, degradedReason: 'document_answer_stored_statements' },
+    };
   return {
     responseText:
       'Aus den verfügbaren Dokumentabschnitten lässt sich diese Frage gerade nicht zuverlässig beantworten. Die vollständige übermittelte Dokumentgrundlage ist gespeichert.',

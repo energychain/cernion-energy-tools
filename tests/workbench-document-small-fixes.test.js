@@ -122,3 +122,30 @@ test('a correction of this conversation is added when the answer only cites the 
   expect(reply.responseText).toContain('Herkunft: Nutzerangabe');
   expect(llm.generateStructured.mock.calls[0][1]).toContain('gespeicherten Angaben der Person');
 });
+
+test('a discarded document answer names the rule and keeps this conversation’s statements', async () => {
+  const warn = jest.fn();
+  const statement =
+    'Person (Netzwirtschaft, 04.11.2026); Herkunft: Nutzerangabe: „Für die Priorisierung der Aufgabe A bin ich verantwortlich (V).“ (gültig).';
+  llm.generateStructured.mockResolvedValue({ answer: 'Siehe {"a": 1}' });
+  const { responseText, metadata } = await documentQuestion(documents, 'Was habe ich genannt?', {
+    logger: { warn },
+    userStatements: [statement],
+    conversationStatements: [statement],
+  });
+  expect(warn).toHaveBeenCalledWith('Document answer discarded', { reason: 'json', chars: 14 });
+  expect(responseText).toContain('nicht zustande gekommen');
+  expect(responseText).toContain(
+    '„Für die Priorisierung der Aufgabe A bin ich verantwortlich (V).“ (Herkunft: Nutzerangabe)'
+  );
+  expect(metadata.degradedReason).toBe('document_answer_stored_statements');
+});
+
+test('without statements of this conversation the generic fallback stays', async () => {
+  llm.generateStructured.mockResolvedValue({ answer: '```json```' });
+  const { responseText } = await documentQuestion(documents, 'Worum geht es?', {
+    userStatements: ['Andere (03.11.2026); Herkunft: Nutzerangabe: „Fremde Angabe.“ (gültig).'],
+  });
+  expect(responseText).toContain('nicht zuverlässig beantworten');
+  expect(responseText).not.toContain('Fremde Angabe');
+});
