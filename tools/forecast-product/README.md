@@ -128,7 +128,10 @@ mehrdeutige Dateien werden mit klarer Fehlermeldung abgewiesen. Erforderlich sin
 15-Minuten-Intervalle mit Start und Ende sowie durchgehend kWh oder kW. Parse-Warnungen,
 leere Mengen und unpassende Intervalle werden vor jedem API-Schreibzugriff abgewiesen.
 Kumulierte Registerstände müssen vorher in Intervallwerte umgerechnet werden.
-Der Import benötigt Node.js für den gemeinsamen CET-MSCONS-Parser.
+Der Import benötigt Node.js für den gemeinsamen CET-MSCONS-Parser. MSCONS-Dateien müssen
+nach Auflösung von Symlinks im aktuellen Arbeitsverzeichnis (einschließlich Unterverzeichnissen)
+oder im System-Tempverzeichnis liegen. Der Adapter übergibt Inhalte und Serienkennung als
+JSON über Standardeingabe; diese Daten werden nicht als Prozessargumente ausgeführt.
 Optionale Felder `reactive_power_kvar`, `profile_label` und deren Verfügbarkeitsangaben werden
 bei JSON unverändert an die API übergeben. XLSX verwendet das bestehende Ein-Kanal-Format.
 

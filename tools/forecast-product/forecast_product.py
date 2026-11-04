@@ -10,6 +10,7 @@ import os
 import re
 import shlex
 import subprocess
+import tempfile
 from pathlib import Path
 import sys
 import time
@@ -100,8 +101,13 @@ def importer():
 
 def load_mscons_dataset(path, series_id=None):
     script = Path(__file__).resolve().parent / 'mscons_dataset.js'
-    command = ['node', str(script), str(path)] + ([series_id] if series_id else [])
-    completed = subprocess.run(command, check=False, text=True, capture_output=True)
+    source = Path(path).resolve(strict=True)
+    roots = (Path.cwd().resolve(), Path(tempfile.gettempdir()).resolve())
+    if not any(source.is_relative_to(root) for root in roots):
+        raise ValueError('MSCONS input must be inside the working directory or system temp directory')
+    payload = json.dumps({'raw': source.read_text(encoding='utf-8-sig'), 'seriesId': series_id})
+    completed = subprocess.run(['node', str(script)], input=payload,
+                               check=False, text=True, capture_output=True, timeout=30)
     if completed.returncode != 0:
         raise ValueError('MSCONS parse failed: ' + (completed.stderr.strip() or completed.stdout.strip()))
     return json.loads(completed.stdout)

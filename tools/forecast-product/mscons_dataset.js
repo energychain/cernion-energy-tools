@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const fs = require('fs');
+const fs = require('node:fs');
 const { parseMscons } = require('../../src/edm-mscons-parser');
 const { tokenizeSegments } = require('../../src/edifact-base');
 
@@ -26,9 +26,7 @@ function isoNoMillis(value) {
   return date.toISOString().replace('.000Z', '+00:00');
 }
 
-function buildDataset(inputPath, seriesId) {
-  const raw = fs.readFileSync(inputPath, 'utf8');
-  const segments = tokenizeSegments(raw);
+function validateSegments(segments) {
   if (segments.filter((segment) => segment.tag === 'UNH').length !== 1) {
     fail('MSCONS input must contain exactly one message');
   }
@@ -43,6 +41,10 @@ function buildDataset(inputPath, seriesId) {
       }
     }
   }
+}
+
+function buildDataset(raw, seriesId) {
+  validateSegments(tokenizeSegments(raw));
   const parsed = parseMscons(raw);
   if (parsed.parseWarnings?.length) {
     fail(`MSCONS input requires clarification: ${parsed.parseWarnings.join('; ')}`);
@@ -110,12 +112,13 @@ function buildDataset(inputPath, seriesId) {
   };
 }
 
-if (process.argv.length < 3 || process.argv.length > 4) {
-  fail('Usage: mscons_dataset.js input.mscons [series-id]');
+if (process.argv.length !== 2) {
+  fail('Usage: mscons_dataset.js < request.json (raw MSCONS and optional seriesId)');
 }
 
 try {
-  process.stdout.write(JSON.stringify(buildDataset(process.argv[2], process.argv[3] || null)));
+  const request = JSON.parse(fs.readFileSync(0, 'utf8'));
+  process.stdout.write(JSON.stringify(buildDataset(request.raw, request.seriesId || null)));
 } catch (error) {
-  fail(error && error.message ? error.message : String(error));
+  fail(error?.message || String(error));
 }

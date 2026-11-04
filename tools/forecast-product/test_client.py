@@ -163,7 +163,7 @@ class ClientTests(unittest.TestCase):
             'empty_quantity': SAMPLE_MSCONS.replace('12.4:KWH', ':KWH'),
             'negative_quantity': SAMPLE_MSCONS.replace('12.4:KWH', '-12.4:KWH'),
             'register_reading': SAMPLE_MSCONS.replace('202604010015:303', '202604010100:303', 1),
-            'duplicate': SAMPLE_MSCONS.replace('202604010015:303', '202604010000:303', 1)
+            'duplicate': SAMPLE_MSCONS.replace('DTM+163:202604010015:303', 'DTM+163:202604010000:303')
                 .replace('202604010030:303', '202604010015:303'),
         }
         for name, raw in cases.items():
@@ -183,6 +183,21 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(dataset['source_envelope']['location']['loc_qualifier'], '172')
         with self.assertRaisesRegex(ValueError, 'do not pass --unit'):
             cli.load_dataset(file, unit='kWh')
+
+    def test_mscons_paths_are_confined_after_symlink_resolution(self):
+        with self.assertRaisesRegex(ValueError, 'working directory or system temp'):
+            cli.load_mscons_dataset('/etc/hosts')
+        link = self.root / 'outside.mscons'
+        link.symlink_to('/etc/hosts')
+        with self.assertRaisesRegex(ValueError, 'working directory or system temp'):
+            cli.load_mscons_dataset(link)
+
+    def test_mscons_identifiers_are_data_not_process_arguments(self):
+        file = self.root / '--eval.mscons'
+        file.write_text(SAMPLE_MSCONS)
+        identity = '--eval=throw new Error("must never execute")'
+        dataset, _ = cli.load_dataset(file, series_id=identity)
+        self.assertEqual(dataset['series_id'], identity)
 
     def test_mscons_history_dry_run_keeps_input_provenance(self):
         file=self.root/'meter.edi';file.write_text(SAMPLE_MSCONS)
