@@ -798,6 +798,34 @@ async function runContentTurn(
           newDatasetIds: envelope.datasetIds || [],
         })
       : null;
+  // Attached files dominate the understanding of their turn; a statement written next to them
+  // is read once more from the message alone, so it is not lost.
+  if (
+    incomingDocuments &&
+    !understandingFailed &&
+    !draftRequest &&
+    !situation.tenantMemory?.assertions?.length &&
+    tenantMemory.eligible(envelope.userRequest, situation)
+  ) {
+    const assertions = await require('./workbench-document-knowledge')
+      .messageAssertions(p, envelope.userRequest)
+      .catch((error) => {
+        service.logger.warn('Statement beside documents unavailable', {
+          reason: String(error?.message || error).slice(0, 200),
+        });
+        return [];
+      });
+    if (assertions.length)
+      situation = {
+        ...situation,
+        tenantMemory: {
+          correction: { kind: 'none', basis: '', factId: '' },
+          query: { requested: false, anchor: '', functionLabel: '' },
+          ...situation.tenantMemory,
+          assertions,
+        },
+      };
+  }
   const memoryContextJob = !incomingDocuments
     ? relatedMemory(ctx, memoryCtx, p, situation, envelope).then(
         (found) => found || { evidence: [], text: '' }
@@ -809,9 +837,7 @@ async function runContentTurn(
   });
   const memory = tenantMemory.start(service, memoryCtx, p, {
     situation:
-      understandingFailed || draftRequest || incomingDocuments
-        ? { ...situation, tenantMemory: undefined }
-        : situation,
+      understandingFailed || draftRequest ? { ...situation, tenantMemory: undefined } : situation,
     envelope,
     mapping: {
       ...mapping,
@@ -841,7 +867,9 @@ async function runContentTurn(
   const memoryStatement =
     !understandingFailed &&
     !draftRequest &&
-    tenantMemory.eligible(envelope.userRequest, situation, envelope) &&
+    // Attached files still become the case basis; the statement beside them is captured anyway.
+    !incomingDocuments &&
+    tenantMemory.eligible(envelope.userRequest, situation) &&
     situation.tenantMemory?.assertions?.some((item) =>
       tenantMemory.acceptedAssertion(item, envelope.userRequest)
     );
@@ -1426,7 +1454,7 @@ async function runContentTurn(
       meta,
       access,
       selectedCapabilities: result.selectedCapabilities,
-      statementTurn: Boolean(memoryStatement && !incomingDocuments),
+      statementTurn: Boolean(memoryStatement),
     });
     reply = documentResult
       ? documentResult.conversationReply || documentFlow.documentAnswer(documentResult)

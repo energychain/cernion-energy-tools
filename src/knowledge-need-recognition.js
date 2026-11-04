@@ -82,10 +82,7 @@ async function captureFromMessage(ctx, p, { envelope, situation, mapping }) {
   const register = ctx.broker?.getLocalService?.('knowledge-needs');
   const tenantMemory = require('./tenant-memory');
   const message = String(envelope.userRequest || '');
-  if (
-    typeof register?.openNeeds !== 'function' ||
-    !tenantMemory.eligible(message, situation, envelope)
-  )
+  if (typeof register?.openNeeds !== 'function' || !tenantMemory.eligible(message, situation))
     return [];
   const open = await register.openNeeds(p.tenantId);
   const matches = (

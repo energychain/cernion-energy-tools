@@ -580,7 +580,7 @@ async function understand({
           );
         const invalidMemoryBasis =
           !attempt &&
-          memory.eligible(message, restored, { documents: [] }) &&
+          memory.eligible(message, restored) &&
           restored.tenantMemory?.assertions?.some(
             (item) =>
               !memory.acceptedAssertion(item, message) &&
@@ -1161,7 +1161,7 @@ async function understand({
     result.tenantMemory?.assertions?.some((item) =>
       require('./tenant-memory').acceptedAssertion(item, message)
     ) &&
-    require('./tenant-memory').eligible(message, result, { documents: [] })
+    require('./tenant-memory').eligible(message, result)
   ) {
     result.turnKind = 'work';
     if (result.conversationShape === 'filing') result.conversationShape = 'task';

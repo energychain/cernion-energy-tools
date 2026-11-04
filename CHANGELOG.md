@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased — RC3 UAT: statements beside uploads, document assertions, recall notices
+
+- A statement made in the same message as attached files is captured as „Nutzerangabe“. Before,
+  every upload turn skipped the capture so that document text could never become a statement; the
+  capture already grounds each assertion (anchors and basis) in the person's own message, so the
+  blanket lock only lost the person's statement (UAT R2). When the understanding of an upload turn
+  finds no statement, the message alone is read once more (`message_statements`). The attached
+  files still become the case basis.
+- Organisation-relevant statements are extracted from chat documents again: the extraction sent
+  the full memory schema, whose nested array limits the provider rejects („400 Invalid argument“,
+  logged as „Document assertions unavailable“ on every upload). It now sends the reduced provider
+  grammar the understanding uses; AJV still enforces every limit locally.
+- Recalling one's own earlier statement no longer repeats its relation notices; as before for
+  plausibility notes, they accompany others' statements and statements of the current turn. In a
+  long-used tenant a role-row recall repeated every earlier relation (UAT R4).
+
 ## Unreleased — Build id in immutable releases
 
 - `X-Cernion-Build` and `system_fingerprint` name the deployed commit also in an immutable release
