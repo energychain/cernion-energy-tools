@@ -45,8 +45,10 @@ const ORIGIN_LABEL = {
 const ANSWERED = ['confirmed', 'corrected', 'rejected'];
 const bounded = (value, max) => String(value ?? '').slice(0, max);
 const roleIndex = (role) => (ROLE_ORDER.includes(role) ? ROLE_ORDER.indexOf(role) : 4);
-const confidenceBand = (value) =>
-  value >= 0.75 ? 'high' : value >= NOMINATE_MIN ? 'medium' : 'low';
+const confidenceBand = (value) => {
+  if (value >= 0.75) return 'high';
+  return value >= NOMINATE_MIN ? 'medium' : 'low';
+};
 // Tie-break for rows with the same display label; never returned.
 const subjectKey = (actorRef) =>
   createHash('sha256').update(`${actorRef.actorType}:${actorRef.actorId}`).digest('hex');
