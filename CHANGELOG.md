@@ -7,6 +7,11 @@
   full commit counts when no `.git` is present; `CET_BUILD_COMMIT` still wins. Before, such a
   release reported `cet-<version>-unknown`.
 
+- The cross-table analysis redrafts once when every query returned no rows (usually a filter the
+  data never matches) and accepts an empty result after that; before, one over-strict draft
+  answered „keinen Eintrag“ for a question whose rows exist. Questions for grounds now fetch the
+  ground and status columns of linked tables, including their key, so a missing entry stays visible.
+
 ## Unreleased — RC3 UAT: subqueries in the cross-table analysis, recall of corrections
 
 - When the person's stored statements are evidence, the document answer names them as a source
