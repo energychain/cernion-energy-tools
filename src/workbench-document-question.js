@@ -31,6 +31,14 @@ function storedWordings(statements) {
     })
     .filter(Boolean);
 }
+// A verbatim stored statement is the person's own wording; the turn's situation may repeat it, so
+// it is no leaked internal description. Everything else in the answer is still checked.
+function withoutStoredWording(answer, userStatements) {
+  let text = String(answer);
+  for (const wording of storedWordings(userStatements).sort((a, b) => b.length - a.length))
+    text = text.split(wording).join(' ');
+  return text;
+}
 function withStatedWording(answer, userStatements, question = '') {
   const core = (text) => {
     let end = text.length;
@@ -180,7 +188,12 @@ async function documentQuestion(
     if (!answer) discarded = 'empty';
     else if (answer.includes('```')) discarded = 'code_fence';
     else if (/\{\s*"/u.test(answer)) discarded = 'json';
-    else if (require('./workbench-answer-filter').isInternalDescription(answer, internalContext))
+    else if (
+      require('./workbench-answer-filter').isInternalDescription(
+        withoutStoredWording(answer, userStatements),
+        internalContext
+      )
+    )
       discarded = 'internal_description';
     if (!discarded)
       return {
@@ -217,4 +230,4 @@ async function documentQuestion(
   };
 }
 
-module.exports = { documentTable, documentQuestion };
+module.exports = { documentTable, documentQuestion, withoutStoredWording };

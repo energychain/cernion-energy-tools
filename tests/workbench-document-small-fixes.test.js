@@ -149,3 +149,40 @@ test('without statements of this conversation the generic fallback stays', async
   expect(responseText).toContain('nicht zuverlässig beantworten');
   expect(responseText).not.toContain('Fremde Angabe');
 });
+
+describe('stored wording in the internal-description check', () => {
+  const row =
+    'Für die Priorisierung der Aufgabe B bin ich verantwortlich (V); das Team C führt sie durch (D).';
+  const statement = `Person (Netzwirtschaft, 04.11.2026); Herkunft: Nutzerangabe: „${row}“ (gültig).`;
+  const internalContext = [`Die Person nennt ihre Rolle. ${row}`, 'Der Stand wird intern geklärt.'];
+
+  test('quoting the stored statement that the situation repeats is no leak', async () => {
+    llm.generateStructured.mockResolvedValue({
+      answer: `Deine Rollenzeile:\n„${row}“\nHerkunft: Nutzerangabe.`,
+    });
+    const { responseText } = await documentQuestion(documents, 'Welche Rollenzeile?', {
+      internalContext,
+      userStatements: [statement],
+      conversationStatements: [statement],
+    });
+    expect(responseText).toContain(row);
+    expect(responseText).not.toContain('nicht zustande gekommen');
+  });
+
+  test('a sentence of the internal situation outside the statement is still discarded', async () => {
+    const warn = jest.fn();
+    llm.generateStructured.mockResolvedValue({
+      answer: `„${row}“\nDer Stand wird intern geklärt.`,
+    });
+    await documentQuestion(documents, 'Welche Rollenzeile?', {
+      logger: { warn },
+      internalContext,
+      userStatements: [statement],
+      conversationStatements: [statement],
+    });
+    expect(warn).toHaveBeenCalledWith(
+      'Document answer discarded',
+      expect.objectContaining({ reason: 'internal_description' })
+    );
+  });
+});
