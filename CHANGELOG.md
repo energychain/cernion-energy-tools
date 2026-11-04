@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — RC3 UAT: a discarded document answer keeps the person's statements
+
+- When the document answer is discarded by the answer filter (code fence, JSON or a repeated
+  internal description), the log names the rule and the answer length („Document answer
+  discarded“), never its text. If the person stated something in this conversation, the reply
+  says that the document answer did not come about and lists those statements verbatim with origin
+  „Nutzerangabe“ instead of only „lässt sich gerade nicht zuverlässig beantworten“ (UAT R4 recall
+  in Open WebUI ended in the generic fallback without any logged model error).
+
 ## Unreleased — RC3 UAT: this conversation's statements lead the recall
 
 - A recalled statement of the person from the current conversation comes first (newest first) and
