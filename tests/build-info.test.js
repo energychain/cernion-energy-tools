@@ -39,6 +39,15 @@ describe('build info (release traceability)', () => {
     expect(buildInfo({ root: checkout, env: {} }).commit).toBe(SHA.slice(0, 12));
   });
 
+  test('an immutable release directory named after its commit reports that commit', () => {
+    const release = path.join(dir, SHA);
+    fs.mkdirSync(release);
+    expect(buildInfo({ root: release, env: {} }).commit).toBe(SHA.slice(0, 12));
+    const other = path.join(dir, 'not-a-commit');
+    fs.mkdirSync(other);
+    expect(buildInfo({ root: other, env: {} }).commit).toBe('unknown');
+  });
+
   test('a configured commit wins; without metadata the commit is unknown', () => {
     expect(buildInfo({ root: dir, env: { CET_BUILD_COMMIT: 'ABCDEF1234567' } }).commit).toBe(
       'abcdef123456'
