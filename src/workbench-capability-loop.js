@@ -851,7 +851,7 @@ async function runCapabilityLoop(
           );
           const protectedResult = opaqueContext({ data: JSON.parse(value) });
           plannerValue = JSON.stringify(protectedResult.value.data);
-          let reference = 0;
+          const reference = 0;
           for (const [placeholder, original] of protectedResult.reidentMap) {
             const scoped = `[TOOL-REF-${calls}-${++reference}]`;
             plannerValue = plannerValue.replaceAll(placeholder, scoped);

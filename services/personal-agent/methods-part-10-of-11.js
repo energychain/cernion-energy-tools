@@ -573,7 +573,7 @@ module.exports = {
     const steps = [];
     let completedSteps = 0;
     let stopPoint = null;
-    let assumptions = [...(existingAssumptions || [])];
+    const assumptions = [...(existingAssumptions || [])];
 
     for (const plannedStep of plan.steps) {
       if (plannedStep?.action === ROUTING_CONTROL_ACTIONS.MISSING_CONTEXT) {

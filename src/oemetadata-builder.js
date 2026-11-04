@@ -22,7 +22,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const { resolveSourceMeta, collectUniqueLicenses } = require('./source-license-map');
+const { resolveSourceMeta } = require('./source-license-map');
 
 // ---------------------------------------------------------------------------
 // OEMetadata schema path (downloaded by npm run sync:oemetadata)

@@ -1,5 +1,7 @@
 'use strict';
 
+const { renderCaseTypeRoutingPromptLines } = require('./case-type-routing-context');
+
 /**
  * Backend-generated ChatGPT Sidecar prompt text (energychain/cernion-energy-tools#388).
  *
@@ -15,6 +17,7 @@ function buildPromptText({
   capabilityProfile,
   writeScope,
   ontologyEnabled,
+  caseTypeRoutingContext,
 }) {
   const lines = [
     'You are working inside a Cernion Fach-Sidecar session.',
@@ -33,6 +36,7 @@ function buildPromptText({
     '- Treat Cernion as the source of truth for Knowledge RAG, process knowledge, capabilities and execution results. Separate your own assumptions from Cernion-provided evidence in every answer.',
     `- This session's write scope is "${writeScope}". Write datapoints only through the session datapoints endpoint with POST, and only when it reports success. Never attempt writes through browserAsk/browserPlan GET URLs.`,
     '- If a policy response is blocked or requires confirmation, tell the user instead of retrying or working around it.',
+    ...renderCaseTypeRoutingPromptLines(caseTypeRoutingContext),
   ];
 
   if (ontologyEnabled) {

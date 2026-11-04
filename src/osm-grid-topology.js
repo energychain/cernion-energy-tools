@@ -81,7 +81,7 @@ const { compareCanonicalStrings } = require('./canonical-order');
 
 const axios = require('axios');
 const { haversineDistanceM } = require('./znp-clustering-heuristics');
-const { nearestPointOnPolyline, bboxAreaSqKm, padBbox } = require('./osm-geometry');
+const { bboxAreaSqKm, padBbox } = require('./osm-geometry');
 
 const OVERPASS_ENDPOINT =
   process.env.OVERPASS_ENDPOINT || 'https://overpass-api.de/api/interpreter';

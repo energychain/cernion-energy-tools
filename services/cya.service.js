@@ -17,7 +17,7 @@ const {
 const { appendLog } = require('../src/job-store');
 const { runAsync } = require('../src/async-job-runner');
 const { PERSONA_ENUM, validatePerspectives, getPersona } = require('../src/cya-agent-personas');
-const { getTemplate, listTemplates } = require('../src/cya-profile-templates');
+const { getTemplate } = require('../src/cya-profile-templates');
 const { buildCyaNarrativePdf } = require('../src/cya-report-builder');
 const { retrievePersonaContext, buildPersonaGrounding } = require('../src/cya-persona-memory');
 const { MAX_DIALOGUE_ROUNDS, detectConflicts } = require('../src/cya-conflict-detector');

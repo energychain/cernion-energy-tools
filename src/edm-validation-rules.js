@@ -97,7 +97,7 @@ const VALIDATION_RULES = [
       if (capacityKw <= 0) return true;
 
       const obis = String(context.obis || '');
-      let min = 0;
+      const min = 0;
       let max = capacityKw * 0.25 * 1.2;
 
       if (obis === '1-0:2.8.0') {

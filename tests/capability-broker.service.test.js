@@ -142,6 +142,119 @@ describe('Capability Broker Service', () => {
     expect(result.operationCandidates).toBeUndefined();
   });
 
+  it('classifies Stammdaten-/Marktrollen case type before tool routing', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'MaLo und MeLo passen nicht zur Adresse; der VNB und Lieferant sind unklar.',
+    });
+
+    expect(result.caseTypeRouting.schemaVersion).toBe('cernion.caseTypeRouting.v1');
+    expect(result.caseTypeRouting.primary.id).toBe('stammdaten_marktrollen_klaerfall');
+    expect(result.caseTypeRouting.primary.nextBestActions).toEqual(
+      expect.arrayContaining(['wahrscheinlichsten Klärpfad und Rückfrage vorbereiten'])
+    );
+    expect(result.recommendedCapabilities[0].caseTypeCandidates).toContain(
+      'stammdaten_marktrollen_klaerfall'
+    );
+  });
+
+  it('classifies Messwert-/EDM plausibility case type without requiring final evidence', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Der Lastgang hat eine Datenlücke und der Messwert wirkt als Ersatzwert unplausibel.',
+      knownContext: { meloId: 'DE0012345678901234567890123456789' },
+    });
+
+    expect(result.caseTypeRouting.primary.id).toBe('messwert_edm_plausibilitaetsfall');
+    expect(result.caseTypeRouting.assistancePrinciple).toMatch(
+      /blockiert nicht Fallstrukturierung/
+    );
+    expect(result.caseTypeRouting.primary.evidenceRequirements).toEqual(
+      expect.arrayContaining(['Messobjekt, Zeitraum und Wertstatus'])
+    );
+  });
+
+  it('classifies Kunden-/Service clarification case type as pre-routing context', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Kunde fragt zur Rechnung und zum Zählerstand, aber Vertragskonto und Zeitraum fehlen.',
+    });
+
+    expect(result.caseTypeRouting.primary.id).toBe('kunden_service_klaerfall');
+    expect(result.caseTypeRouting.primary.clarificationQuestions).toEqual(
+      expect.arrayContaining([
+        'Welche Identifikatoren fehlen: Vertragskonto, Zählpunkt, Zeitraum oder Adresse?',
+      ])
+    );
+  });
+
+  it('classifies Netzanschluss-/Kapazitäts-Klärfall as a domain case type', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte Netzanschluss und Anschlussleistung für eine PV-Einspeisung am Netzverknüpfungspunkt prüfen.',
+    });
+
+    expect(result.caseTypeRouting.candidates.map((candidate) => candidate.id)).toContain(
+      'netzanschluss_kapazitaets_klaerfall'
+    );
+  });
+
+  it('classifies Prognose-/Abweichungsfall as a domain case type', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Die Prognoseabweichung zwischen Lastprognose und Ist-Wert im Portfolio ist auffällig.',
+    });
+
+    expect(result.caseTypeRouting.candidates.map((candidate) => candidate.id)).toContain(
+      'prognose_abweichungsfall'
+    );
+  });
+
+  it('classifies Redispatch-/Steuerbarkeits-Readiness as a domain case type', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Redispatch Readiness und Steuerbarkeit der Anlage mit Flexibilität und Fernschaltung prüfen.',
+    });
+
+    expect(result.caseTypeRouting.candidates.map((candidate) => candidate.id)).toContain(
+      'redispatch_steuerbarkeits_readiness'
+    );
+  });
+
+  it('classifies Wärme-/Gas-/EOG-Szenariofall as a domain case type', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Wärmeplanung Gas EOG Szenario für ein Gebiet mit offenen Klärpunkten vorbereiten.',
+    });
+
+    expect(result.caseTypeRouting.candidates.map((candidate) => candidate.id)).toContain(
+      'waerme_gas_eog_szenariofall'
+    );
+  });
+
+  it('promotes unclear customer billing question to kunden_service_klaerfall', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ein Kunde fragt, warum seine Rechnung so hoch ist, Vertragskonto und Zählpunkt fehlen.',
+    });
+
+    expect(result.caseTypeRouting.primary.id).toBe('kunden_service_klaerfall');
+    expect(result.caseTypeRouting.primary.maturity).toMatch(/observed|routable/);
+    expect(result.caseTypeRouting.primary.clarificationQuestions.join(' ')).toMatch(
+      /Vertragskonto|Zählpunkt|Zeitraum/
+    );
+  });
+
+  it('keeps customer meter-reading requests as customer case with EDM secondary candidate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Kunde meldet falschen Zählerstand und unplausiblen Verbrauch auf der Rechnung.',
+    });
+
+    const ids = result.caseTypeRouting.candidates.map((candidate) => candidate.id);
+    expect(ids).toContain('kunden_service_klaerfall');
+    expect(ids).toContain('messwert_edm_plausibilitaetsfall');
+  });
+
+  it('routes customer tariff and contract help to kunden_service_klaerfall', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Ich brauche Hilfe zum Tarif und Vertrag eines Kunden im Kundenservice.',
+    });
+
+    expect(result.caseTypeRouting.primary.id).toBe('kunden_service_klaerfall');
+  });
+
   it('routes portfolio logic prompts to znp.assessPortfolio', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Bitte ZNP Portfolio-Logik für Projekt abc prüfen inkl. Layer 0/2/2.5 und fNAV',

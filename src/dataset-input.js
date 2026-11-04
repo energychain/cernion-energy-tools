@@ -2,7 +2,7 @@
 
 const { parseRecords, parseCsvLine } = require('./csv-text');
 const { Errors } = require('moleculer');
-const { profileRows, hashValue, parseNumber, parseDate } = require('./tabular-intelligence');
+const { parseDate } = require('./tabular-intelligence');
 
 function datasetSetting(name, fallback) {
   const value = Number(process.env[`WORKBENCH_DATASET_${name}`] || fallback);
@@ -291,7 +291,7 @@ function parseTableText(text, name) {
     // Score every delimiter: a weak parse that turns the real header into a
     // dropped row or a data row into the header must not win by list order.
     let best = null;
-    let failure = null;
+    const failure = null;
     for (const delimiter of [';', '\t', ',']) {
       let candidate;
       try {

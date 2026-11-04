@@ -1480,7 +1480,7 @@ fabricated all-zero forecast.
           }
         }
 
-        let allInstallations = [];
+        const allInstallations = [];
         let firstResult = null;
         let dataExhausted = true;
         let resultTruncated = false;
