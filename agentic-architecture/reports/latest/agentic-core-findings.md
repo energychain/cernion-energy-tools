@@ -1,6 +1,6 @@
 # Agentic Core Findings
 
-Generated: 2026-11-03T13:47:41.606Z
+Generated: 2026-11-04T20:05:58.493Z
 
 ## Current measurable surface
 
@@ -14,8 +14,8 @@ Generated: 2026-11-03T13:47:41.606Z
 ## Domain term distribution
 
 - `evidence`: 24905 hits in 899 files
-- `tenant`: 18929 hits in 946 files
-- `broker`: 11825 hits in 720 files
+- `tenant`: 18931 hits in 946 files
+- `broker`: 11827 hits in 720 files
 - `grid`: 9611 hits in 666 files
 - `agent`: 8392 hits in 786 files
 - `decision`: 6645 hits in 457 files
@@ -26,7 +26,7 @@ Generated: 2026-11-03T13:47:41.606Z
 - `redispatch`: 3928 hits in 311 files
 - `market`: 3778 hits in 407 files
 - `hitl`: 3672 hits in 448 files
-- `edm`: 2963 hits in 381 files
+- `edm`: 2967 hits in 381 files
 - `regulator`: 2686 hits in 343 files
 - `mako`: 2540 hits in 314 files
 - `receipt`: 2491 hits in 175 files

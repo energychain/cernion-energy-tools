@@ -1,15 +1,15 @@
 # Domain Abstraction Report
 
-Generated: 2026-11-03T13:47:46.640Z
+Generated: 2026-11-04T20:06:04.470Z
 
 - Candidate files scanned: 1346
 - Services classified: 168
 - Unclassified services: 0
-- Fingerprint: 3bd36cec25ca658dd0712a5fb187ca2ac2f8c3f6c1bd8e73469442aea9d457d1
+- Fingerprint: 8dae4253deba3cc642ab0b2fdbe43b6702c9d0e6a0fd016a8837702ac62cbf09
 
 ## Cluster counts
 
-- `casework-and-assistance` — Fallarbeit und Assistenz: 3 services, 25 top files, 11147 top-file hits
+- `casework-and-assistance` — Fallarbeit und Assistenz: 3 services, 25 top files, 11148 top-file hits
 - `evidence-and-trust` — Evidence, Nachweis und Vertrauen: 23 services, 25 top files, 19237 top-file hits
 - `mako-and-edm` — MaKo / EDM / Stammdaten: 8 services, 25 top files, 3682 top-file hits
 - `grid-and-connection` — Netz, Anschluss und Kapazität: 48 services, 25 top files, 11012 top-file hits
