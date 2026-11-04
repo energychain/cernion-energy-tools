@@ -49,8 +49,9 @@ function gitCommit(root) {
     const head = fs.readFileSync(path.join(dir, 'HEAD'), 'utf8').trim();
     const commit = head.startsWith('ref: ') ? refCommit(dir, head.slice(5).trim()) : head;
     return SHA.test(commit) ? commit : '';
-  } catch (_error) {
+  } catch (error) {
     // Unreadable git metadata only means the commit is unknown; it never blocks a start.
+    process.emitWarning(`Build commit unknown: ${error.code || error.message}`);
     return '';
   }
 }
