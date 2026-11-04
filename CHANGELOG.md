@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — RC3 UAT: this conversation's statements lead the recall
+
+- A recalled statement of the person from the current conversation comes first (newest first) and
+  is marked as the conversation's own even when an anchor search found it too. The document answer
+  passes at most 12 stored statements; in a long-used tenant the statement just made could be
+  crowded out by older ones with the same anchors, and the answer fell back to „lässt sich gerade
+  nicht zuverlässig beantworten“ (UAT R4 recall with 16 stored role rows).
+
 ## Unreleased — RC3 UAT: statements beside uploads, document assertions, recall notices
 
 - A statement made in the same message as attached files is captured as „Nutzerangabe“. Before,
