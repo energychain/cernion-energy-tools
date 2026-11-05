@@ -805,10 +805,11 @@ async function runContentTurn(
           newDatasetIds: envelope.datasetIds || [],
         })
       : null;
-  // Attached files dominate the understanding of their turn; a statement written next to them
-  // is read once more from the message alone, so it is not lost.
+  // Attached files dominate the understanding of their turn, and a first-person role statement can
+  // be taken for the role context alone; such a statement is read once more from the message
+  // alone, so it is not lost.
   if (
-    incomingDocuments &&
+    (incomingDocuments || situation.roleStatement?.firstPerson === true) &&
     !understandingFailed &&
     !draftRequest &&
     !situation.tenantMemory?.assertions?.length &&
