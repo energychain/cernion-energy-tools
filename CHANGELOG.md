@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Budibase existing-target delivery gate (#572)
+
+- `apply-stadtwerk-mauer-workbench.js --preflight-existing` resolves exactly one existing Budibase
+  Application and one Workspace App by the manifest names (and URLs when set) with two catalog GETs
+  after authentication, and reports `ready_existing`, `missing_application`,
+  `ambiguous_application`, `missing_workspace_app`, `ambiguous_workspace_app` or
+  `manifest_mismatch`. It exits 0 only for `ready_existing`.
+- `--require-existing` runs the same resolver first and stops before any write unless the target
+  is ready; it then applies datasource, queries and screen to the resolved IDs and never creates an
+  Application or Workspace App.
+- Both modes print an allowlisted JSON receipt and bounded errors (`boundary`, `code`, fixed
+  message) without upstream bodies, cookies, headers, passwords or tokens. The default apply run and
+  `--dry-run` are unchanged.
+
 ## Unreleased — RC3 UAT re-test 2: recall without notices, memory in upload turns, known tables
 
 - A question (recall or knowledge) gets stored statements of others as evidence only; their
