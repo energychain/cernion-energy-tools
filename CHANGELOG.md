@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — RC3 UAT: a role row is not lost to the role context
+
+- When the understanding recognises a first-person role statement (`roleStatement.firstPerson`)
+  but extracts no statement for the tenant memory, the message alone is read once more, as already
+  for upload turns. A V/D/M/I role row was sometimes taken for the role context only, not stored,
+  and its recall then had nothing to quote (UAT R4 on build 549f518).
+
 ## Unreleased — RC3 UAT re-test 2: recall without notices, memory in upload turns, known tables
 
 - A question (recall or knowledge) gets stored statements of others as evidence only; their
