@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased — RC3 UAT re-test 2: recall without notices, memory in upload turns, known tables
+
+- A question (recall or knowledge) gets stored statements of others as evidence only; their
+  assessment and relation notices are put in front of work or task turns they affect, not in front
+  of an answer. In a long-used tenant a role-row recall began with about 16,900 characters of older
+  rows and their questions (RT2-F02).
+- Stored statements are read in upload turns too, except for document reviews, and passed to the
+  document answer: a new chat with its files found nothing the person had stated in an earlier chat
+  (RT2-F03).
+- The answer of a data question confirms a table known from another chat as „Bereits abgelegt“ and
+  only tables stored now as „Hab ich abgelegt“; `dataset.turn` returns `datasetReceipts` for this.
+  Before, every attached table was confirmed as newly stored (RT2-F01).
+- Shadow replays for new tenant facts go first to open cases of the conversation that brought the
+  facts, then to the newest; older open cases of a long-used tenant took the replay budget, so a
+  successful correction left its case `open` (RT2-F06).
+
 ## Unreleased — RC3 UAT: a recalled statement is no leaked internal description
 
 - The document answer's internal-description check ignores the verbatim wording of the person's

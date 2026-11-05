@@ -889,9 +889,14 @@ async function related(ctx, p, situation, message, { conversationId, channel } =
   // Assessments and relations stay with anchor matches; own statements only add evidence. The
   // assessment of one's own statement was shown when it was recorded and is not repeated later.
   // Relation notices follow the same rule: shown again for others' statements, not for one's own.
+  // A question (recall or knowledge) gets the statements as evidence only: notices about others'
+  // statements belong to work they affect, not in front of an answer.
   const current = new Set(ctx.meta?.tenantMemoryCurrentFacts || []);
+  const work =
+    (situation.turnKind === 'work' || situation.conversationShape === 'task') &&
+    !pureQuestion(message);
   const assessed = selection.facts.filter(
-    (fact) => fact.person?.actorId !== p.actorId || current.has(fact.id)
+    (fact) => current.has(fact.id) || (work && fact.person?.actorId !== p.actorId)
   );
   const paragraphs = assessed.flatMap((fact) => fact.plausibility || []);
   for (const id of new Set(assessed.flatMap((fact) => fact.relationIds))) {

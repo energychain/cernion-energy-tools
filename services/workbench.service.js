@@ -1797,6 +1797,7 @@ module.exports = {
           }
           if (datasetTurn.documents) envelope.documents = datasetTurn.documents;
           envelope.datasetConfirmations = datasetTurn.confirmations || [];
+          envelope.datasetReceipts = datasetTurn.datasetReceipts || [];
           envelope.datasetIds = datasetTurn.datasetIds || [];
         }
         // The existing structural path already distinguishes storage receipts from data reads.

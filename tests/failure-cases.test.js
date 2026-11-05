@@ -523,6 +523,48 @@ describe('selected case (#1039)', () => {
       for (const secret of SECRETS) expect(text).not.toContain(secret);
     });
 
+    test('the replay budget goes first to the case of the conversation that brought the facts', async () => {
+      const register = service();
+      const replay = require('../src/failure-replay');
+      const asked = [];
+      const spy = jest.spyOn(replay, 'shadowReplay').mockImplementation(async (_ctx, input) => {
+        asked.push(input.question);
+        return { passed: false, answered: true, at: '2026-11-05T08:00:00.000Z' };
+      });
+      try {
+        const cases = [
+          ['older-1', 'chat-other', '2026-11-05T07:03:00Z'],
+          ['older-2', 'chat-other', '2026-11-05T07:02:00Z'],
+          ['older-3', 'chat-other', '2026-11-05T07:01:00Z'],
+          ['zz-here', 'chat-now', '2026-11-04T07:00:00Z'],
+        ];
+        for (const [name, conversationId, at] of cases) {
+          const { _rev, ...doc } = fixture({
+            _id: `case:synthetic-a:${name}`,
+            caseId: `case-${name}`,
+            level: 'B',
+            lastSignalAt: at,
+          });
+          await register.db.put(doc);
+          await register.db.put({
+            _id: `replay:case:synthetic-a:${name}`,
+            type: 'failure_replay_question',
+            tenantId: 'synthetic-a',
+            question: `Frage ${name}`,
+            conversationId,
+            at,
+          });
+        }
+        await register.dataArrived({}, 'synthetic-a', ['fact-1'], undefined, {
+          conversationId: 'chat-now',
+        });
+        expect(asked[0]).toBe('Frage zz-here');
+        expect(asked).toHaveLength(3);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
     test('unknown and foreign cases are denied alike; roles and tenant come from the principal', async () => {
       const denial = async (promise) => {
         const error = await promise.catch((caught) => caught);
