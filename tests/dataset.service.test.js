@@ -375,11 +375,15 @@ describe('tenant dataset catalog', () => {
     const first = await again();
     expect(first.datasetIds).toEqual([record.id]);
     expect(first.confirmations.join(' ')).toContain('Bereits abgelegt');
+    // The answer of a data question confirms it the same way, not as newly stored.
+    expect(first.datasetReceipts).toEqual([{ id: record.id, known: true }]);
     const [joined] = await call('datapoint.datasetCatalog', { operation: 'list' });
     expect(joined.usedInConversations).toEqual(['synthetic-chat-2']);
     expect(joined.version).toBe(record.version);
     // Within that conversation a resent attachment stays silent again.
-    expect((await again()).confirmations || []).toEqual([]);
+    const resent = await again();
+    expect(resent.confirmations || []).toEqual([]);
+    expect(resent.datasetReceipts || []).toEqual([]);
   });
   test('an excerpt of a known table file binds that table to the turn', async () => {
     const [record] = await call('datapoint.datasetCatalog', { operation: 'list' });

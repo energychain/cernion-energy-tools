@@ -36,13 +36,24 @@ describe('related() relation notices', () => {
   });
   afterEach(() => jest.restoreAllMocks());
 
-  test("an earlier own statement is recalled without its relation notice; others' keep theirs", async () => {
-    const found = await memory.related(ctx(), p, {}, 'Welche Nachberechnungen?');
+  test("work on an anchor recalls others' notices, never one's own earlier ones", async () => {
+    const found = await memory.related(ctx(), p, { turnKind: 'work' }, 'Plane Nachberechnungen.');
     expect(found.evidence).toHaveLength(2);
     expect(found.text).toContain('Relation rel-other');
     expect(found.text).toContain('Einschätzung other');
     expect(found.text).not.toContain('Relation rel-own');
     expect(found.text).not.toContain('Einschätzung own');
+  });
+
+  test("a question gets others' statements as evidence only, without their notices", async () => {
+    const found = await memory.related(
+      ctx(),
+      p,
+      { turnKind: 'knowledge' },
+      'Welche Nachberechnungen?'
+    );
+    expect(found.evidence).toHaveLength(2);
+    expect(found.text).toBe('');
   });
 
   test('a statement made in this turn shows its relation notice', async () => {

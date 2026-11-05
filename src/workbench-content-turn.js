@@ -410,11 +410,18 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
     { evidence }
   );
   if (combined) return combined;
+  // A table known from another chat is confirmed as such; one resent in this chat stays silent.
+  const receiptFor = new Map((envelope.datasetReceipts || []).map((item) => [item.id, item]));
   const receipts = envelope.datasetConfirmations?.length
     ? records
-        .filter((record) => fresh.includes(record.id))
+        .filter(
+          (record) =>
+            fresh.includes(record.id) && (!envelope.datasetReceipts || receiptFor.has(record.id))
+        )
         .map((record) =>
-          `Hab ich abgelegt: ${record.title}, Version ${record.version}. ${require('./dataset-table-quality').controlConfirmation(record.quality?.controls)}`.trim()
+          receiptFor.get(record.id)?.known
+            ? `Bereits abgelegt: ${record.title}, Version ${record.version}; für dieses Gespräch verwende ich diesen Stand.`
+            : `Hab ich abgelegt: ${record.title}, Version ${record.version}. ${require('./dataset-table-quality').controlConfirmation(record.quality?.controls)}`.trim()
         )
     : [];
   const responseText = [answer, ...receipts].filter(Boolean).join('\n\n');
@@ -826,11 +833,14 @@ async function runContentTurn(
         },
       };
   }
-  const memoryContextJob = !incomingDocuments
-    ? relatedMemory(ctx, memoryCtx, p, situation, envelope).then(
-        (found) => found || { evidence: [], text: '' }
-      )
-    : Promise.resolve({ evidence: [], text: '' });
+  // Stored statements are read in upload turns too: a new chat with its files must still know what
+  // the person stated before. A document review works from its documents alone.
+  const memoryContextJob =
+    !incomingDocuments || situation.turnKind !== 'review'
+      ? relatedMemory(ctx, memoryCtx, p, situation, envelope).then(
+          (found) => found || { evidence: [], text: '' }
+        )
+      : Promise.resolve({ evidence: [], text: '' });
   let resolveMemoryRetrieval;
   const memoryRetrieval = new Promise((resolve) => {
     resolveMemoryRetrieval = resolve;
@@ -1449,7 +1459,12 @@ async function runContentTurn(
       envelope,
       caseId: caseId || conversation?.cetCaseId,
       situation,
-      retrieval: incomingDocuments ? null : retrieval,
+      // Upload turns answer from their documents plus the person's stored statements only.
+      retrieval: incomingDocuments
+        ? memoryContext.evidence.length
+          ? { evidence: memoryContext.evidence }
+          : null
+        : retrieval,
       asked: pending?.askedQuestions || [],
       meta,
       access,

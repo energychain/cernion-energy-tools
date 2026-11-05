@@ -339,7 +339,9 @@ module.exports = {
         : [];
       const replayed = [];
       const confirmations = [],
-        ids = [];
+        ids = [],
+        // Which table of this turn was stored now and which was known and joined this chat.
+        receipts = [];
       // A chat client may pass only excerpts of a large table file; the file name of a current
       // tenant table still binds that table to this turn.
       for (const document of ordinary) {
@@ -379,6 +381,7 @@ module.exports = {
             };
             await ctx.call('datapoint.datasetCatalog', { operation: 'put', record: joined });
             Object.assign(duplicate, joined);
+            receipts.push({ id: duplicate.id, known: true });
             confirmations.push(
               `Bereits abgelegt: ${duplicate.title}, Version ${duplicate.version}; für dieses Gespräch verwende ich diesen Stand.`
             );
@@ -479,6 +482,7 @@ module.exports = {
         await registerDatasetVariants(ctx, this.datasetPool, record, records);
         records.push(record);
         ids.push(id);
+        receipts.push({ id, known: false });
         // Lists of single records (invoices, cases, events) are no measurement series: no grid,
         // intervals or unit (#986).
         if (require('../src/table-analysis').isRecordTable(record)) {
@@ -641,7 +645,13 @@ module.exports = {
           )
         )
           // Tables attached to this turn stay bound to it even when no correction applies.
-          return { handled: false, documents: ordinary, confirmations, datasetIds: ids };
+          return {
+            handled: false,
+            documents: ordinary,
+            confirmations,
+            datasetIds: ids,
+            datasetReceipts: receipts,
+          };
       }
       if (confirmations.length && !ids.length)
         return {
@@ -649,7 +659,13 @@ module.exports = {
           responseText: confirmations.join('\n\n'),
           documents: ordinary,
         };
-      return { handled: false, documents: ordinary, confirmations, datasetIds: ids };
+      return {
+        handled: false,
+        documents: ordinary,
+        confirmations,
+        datasetIds: ids,
+        datasetReceipts: receipts,
+      };
     },
   },
 };

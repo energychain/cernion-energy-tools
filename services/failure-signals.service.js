@@ -472,7 +472,13 @@ module.exports = {
     // came about and uses one of the new facts as evidence.
     // A case of the same turn qualifies only when its stored question is an earlier one: a
     // rejection followed by the right fact replays the rejected question, never this turn's own.
-    async dataArrived(ctx, tenantId, factIds, since, { sameTurn = [], question } = {}) {
+    async dataArrived(
+      ctx,
+      tenantId,
+      factIds,
+      since,
+      { sameTurn = [], question, conversationId } = {}
+    ) {
       const current = new Set(sameTurn);
       const candidates = (await this.caseDocs(tenantId)).filter(
         (doc) =>
@@ -481,10 +487,23 @@ module.exports = {
           (doc.runtime?.attempts || 0) < REPLAY_ATTEMPTS &&
           (!since || String(doc.lastSignalAt) < since || current.has(doc._id))
       );
+      // The replay budget goes first to cases of this conversation, then to the newest; in a
+      // long-used tenant older open cases must not take it from the one the new facts address.
+      const questions = new Map();
+      for (const doc of candidates)
+        questions.set(doc._id, await this.db.get(`replay:${doc._id}`).catch(() => null));
+      const here = (doc) =>
+        Boolean(conversationId) && questions.get(doc._id)?.conversationId === conversationId;
+      const ranked = candidates
+        .filter((doc) => questions.get(doc._id)?.question)
+        .sort(
+          (a, b) =>
+            Number(here(b)) - Number(here(a)) ||
+            String(b.lastSignalAt || '').localeCompare(String(a.lastSignalAt || ''))
+        );
       const results = [];
-      for (const doc of candidates.slice(0, REPLAYS_PER_EVENT)) {
-        const stored = await this.db.get(`replay:${doc._id}`).catch(() => null);
-        if (!stored?.question) continue;
+      for (const doc of ranked.slice(0, REPLAYS_PER_EVENT)) {
+        const stored = questions.get(doc._id);
         if (current.has(doc._id) && stored.question === question) continue;
         if (!this.takeBudget(this.replayBudget, tenantId, REPLAYS_PER_DAY)) break;
         const replay = await require('../src/failure-replay')
@@ -813,7 +832,11 @@ module.exports = {
         const levels = sameTurn.map((id) => this.classifying.get(id)).filter(Boolean);
         this.track(
           Promise.all(levels).then(() =>
-            this.dataArrived(replayCtx, tenantId, capturedFacts, started, { sameTurn, question })
+            this.dataArrived(replayCtx, tenantId, capturedFacts, started, {
+              sameTurn,
+              question,
+              conversationId,
+            })
           )
         );
       }

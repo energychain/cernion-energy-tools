@@ -1053,9 +1053,11 @@ describe('tenant memory acceptance and lifecycle', () => {
     const prompt = llm.generateText.mock.calls.at(-1)[0];
     expect(prompt).toContain('tenant-memory');
     expect(prompt).toContain('2034');
-    expect(await memory.related(ctx, p, {}, 'Hauptstraße')).toMatchObject({
+    // Work on the anchor recalls the relation; a question gets the statements as evidence only.
+    expect(await memory.related(ctx, p, { turnKind: 'work' }, 'Hauptstraße')).toMatchObject({
       text: expect.stringContaining('2030 bis 2034'),
     });
+    expect((await memory.related(ctx, p, { turnKind: 'knowledge' }, 'Hauptstraße?')).text).toBe('');
   });
 
   test('AC-11: slow assessment stays within the turn budget; both recipients receive one deferred notice', async () => {
