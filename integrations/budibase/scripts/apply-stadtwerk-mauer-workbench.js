@@ -9,6 +9,13 @@ const DEFAULT_MANIFEST = path.join(__dirname, '..', 'manifests', 'stadtwerk-maue
 function usage() {
   return `Usage:
   node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js [--manifest <file>] [--dry-run]
+  node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js [--manifest <file>] --preflight-existing
+  node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js [--manifest <file>] --require-existing
+
+Existing-target gate:
+  --preflight-existing  read-only; resolves exactly one existing Application and Workspace App
+  --require-existing    applies datasource/queries/screen only to that uniquely resolved target;
+                        never creates an Application or Workspace App
 
 Required authentication:
   BUDIBASE_BASE_URL=http://localhost:10000
@@ -24,11 +31,20 @@ Optional:
 }
 
 function parseArgs(argv) {
-  const args = { manifest: DEFAULT_MANIFEST, dryRun: false };
+  const args = {
+    manifest: DEFAULT_MANIFEST,
+    dryRun: false,
+    preflightExisting: false,
+    requireExisting: false,
+  };
   for (let i = 2; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--dry-run') {
       args.dryRun = true;
+    } else if (arg === '--preflight-existing') {
+      args.preflightExisting = true;
+    } else if (arg === '--require-existing') {
+      args.requireExisting = true;
     } else if (arg === '--manifest') {
       args.manifest = argv[++i];
     } else if (arg === '--help' || arg === '-h') {
@@ -36,6 +52,11 @@ function parseArgs(argv) {
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
+  }
+  if ([args.dryRun, args.preflightExisting, args.requireExisting].filter(Boolean).length > 1) {
+    throw new Error(
+      '--dry-run, --preflight-existing and --require-existing are mutually exclusive.'
+    );
   }
   return args;
 }
@@ -366,10 +387,359 @@ async function ensureScreen(client, appId, manifest, workspaceApp, queries) {
   return client.request('POST', '/api/screens', { appId, body });
 }
 
+async function authenticate(client, env) {
+  if (!client.cookie) {
+    const email = env.BUDIBASE_EMAIL;
+    const password = env.BUDIBASE_PASSWORD;
+    if (!email || !password) {
+      throw new Error(`Missing Budibase credentials.\n\n${usage()}`);
+    }
+    await client.login({ email, password });
+  }
+}
+
+const TARGET_STATES = Object.freeze([
+  'ready_existing',
+  'missing_application',
+  'ambiguous_application',
+  'missing_workspace_app',
+  'ambiguous_workspace_app',
+  'manifest_mismatch',
+]);
+
+const NEXT_SAFE_GATE = Object.freeze({
+  ready_existing: 'require_existing_apply',
+  missing_application: 'operator_provision_existing_target',
+  ambiguous_application: 'operator_resolve_duplicate_targets',
+  missing_workspace_app: 'operator_provision_existing_target',
+  ambiguous_workspace_app: 'operator_resolve_duplicate_targets',
+  manifest_mismatch: 'operator_reconcile_manifest_identity',
+});
+
+const PUBLIC_ERRORS = Object.freeze({
+  invalid_arguments: { boundary: 'arguments', message: 'Invalid command line arguments.' },
+  manifest_unreadable: { boundary: 'manifest', message: 'Manifest could not be read as JSON.' },
+  manifest_invalid: {
+    boundary: 'manifest',
+    message: 'Manifest lacks bounded identity fields for the existing-target gate.',
+  },
+  config_invalid: { boundary: 'config', message: 'Budibase or Cernion base URL is invalid.' },
+  auth_failed: { boundary: 'budibase_auth', message: 'Budibase authentication failed.' },
+  catalog_unreadable: {
+    boundary: 'budibase_catalog',
+    message: 'Budibase catalog lookup failed or returned an unexpected shape.',
+  },
+  mutation_blocked: {
+    boundary: 'existing_target_gate',
+    message: 'A non-GET request was blocked by the read-only preflight.',
+  },
+  apply_failed: {
+    boundary: 'budibase_apply',
+    message: 'Applying datasource, queries or screen to the existing target failed.',
+  },
+});
+
+class PublicGateError extends Error {
+  constructor(code) {
+    super(PUBLIC_ERRORS[code].message);
+    this.code = code;
+  }
+}
+
+function publicError(code) {
+  const entry = PUBLIC_ERRORS[code] || PUBLIC_ERRORS.catalog_unreadable;
+  return {
+    boundary: entry.boundary,
+    code: PUBLIC_ERRORS[code] ? code : 'catalog_unreadable',
+    message: entry.message,
+  };
+}
+
+const MAX_PUBLIC_STRING = 200;
+
+function boundedString(value) {
+  if (typeof value !== 'string') return null;
+  const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, '').trim();
+  if (!cleaned) return null;
+  return cleaned.slice(0, MAX_PUBLIC_STRING);
+}
+
+function validateExistingTargetManifest(manifest) {
+  const identity = {
+    applicationName: boundedString(manifest?.name),
+    applicationUrl: manifest?.url === undefined ? null : boundedString(manifest.url),
+    workspaceAppName: boundedString(manifest?.workspaceApp?.name),
+    workspaceAppUrl:
+      manifest?.workspaceApp?.url === undefined ? null : boundedString(manifest.workspaceApp.url),
+    screenRoute: boundedString(manifest?.screen?.route),
+  };
+  const urlsValid =
+    (manifest?.url === undefined || identity.applicationUrl) &&
+    (manifest?.workspaceApp?.url === undefined || identity.workspaceAppUrl);
+  if (
+    !identity.applicationName ||
+    !identity.workspaceAppName ||
+    !identity.screenRoute ||
+    !urlsValid ||
+    !Array.isArray(manifest?.queries)
+  ) {
+    throw new PublicGateError('manifest_invalid');
+  }
+  return identity;
+}
+
+// Read-only view of a Budibase client: any non-GET request is refused before it leaves the process.
+function readOnlyClient(client) {
+  return {
+    request(method, urlPath, options) {
+      if (String(method).toUpperCase() !== 'GET') {
+        return Promise.reject(new PublicGateError('mutation_blocked'));
+      }
+      return client.request('GET', urlPath, options);
+    },
+  };
+}
+
+function resolveUnique(items, expectedName, expectedUrl) {
+  const nameMatches = items.filter((item) => item && item.name === expectedName);
+  const urlMatches = expectedUrl ? items.filter((item) => item && item.url === expectedUrl) : [];
+  if (nameMatches.length === 1) {
+    const [match] = nameMatches;
+    const mismatch = Boolean(expectedUrl) && (match.url !== expectedUrl || urlMatches.length !== 1);
+    return { state: mismatch ? 'mismatch' : 'unique', match, nameMatches, urlMatches };
+  }
+  if (nameMatches.length > 1) return { state: 'ambiguous', nameMatches, urlMatches };
+  return { state: urlMatches.length ? 'mismatch' : 'missing', nameMatches, urlMatches };
+}
+
+function catalogArray(response, key) {
+  const items = key && response && !Array.isArray(response) ? response[key] : response;
+  if (!Array.isArray(items)) throw new PublicGateError('catalog_unreadable');
+  return items;
+}
+
+async function resolveExistingTarget(client, manifest) {
+  const identity = validateExistingTargetManifest(manifest);
+  const guarded = readOnlyClient(client);
+  const receipt = {
+    expected: {
+      applicationName: identity.applicationName,
+      applicationUrl: identity.applicationUrl,
+      workspaceAppName: identity.workspaceAppName,
+      workspaceAppUrl: identity.workspaceAppUrl,
+    },
+    matches: {
+      applicationByName: 0,
+      applicationByUrl: 0,
+      workspaceAppByName: 0,
+      workspaceAppByUrl: 0,
+    },
+    application: null,
+    workspaceApp: null,
+  };
+
+  const apps = catalogArray(await guarded.request('GET', '/api/applications?status=all'));
+  const appResult = resolveUnique(apps, identity.applicationName, identity.applicationUrl);
+  receipt.matches.applicationByName = appResult.nameMatches.length;
+  receipt.matches.applicationByUrl = appResult.urlMatches.length;
+  if (appResult.state !== 'unique') {
+    const state = {
+      missing: 'missing_application',
+      ambiguous: 'ambiguous_application',
+      mismatch: 'manifest_mismatch',
+    }[appResult.state];
+    return { targetState: state, receipt };
+  }
+  const appId = boundedString(appResult.match.appId);
+  if (!appId) throw new PublicGateError('catalog_unreadable');
+  receipt.application = {
+    appId,
+    name: boundedString(appResult.match.name),
+    url: boundedString(appResult.match.url),
+    status: boundedString(appResult.match.status),
+  };
+
+  const workspaceApps = catalogArray(
+    await guarded.request('GET', '/api/workspaceApp', { appId }),
+    'workspaceApps'
+  );
+  const wsResult = resolveUnique(
+    workspaceApps,
+    identity.workspaceAppName,
+    identity.workspaceAppUrl
+  );
+  receipt.matches.workspaceAppByName = wsResult.nameMatches.length;
+  receipt.matches.workspaceAppByUrl = wsResult.urlMatches.length;
+  if (wsResult.state !== 'unique') {
+    const state = {
+      missing: 'missing_workspace_app',
+      ambiguous: 'ambiguous_workspace_app',
+      mismatch: 'manifest_mismatch',
+    }[wsResult.state];
+    return { targetState: state, receipt };
+  }
+  const workspaceAppId = boundedString(wsResult.match._id);
+  if (!workspaceAppId) throw new PublicGateError('catalog_unreadable');
+  receipt.workspaceApp = {
+    id: workspaceAppId,
+    name: boundedString(wsResult.match.name),
+    url: boundedString(wsResult.match.url),
+  };
+  return {
+    targetState: 'ready_existing',
+    receipt,
+    bound: { app: { appId }, workspaceApp: { _id: workspaceAppId } },
+  };
+}
+
+function buildGateReceipt({
+  mode,
+  manifestPath,
+  manifest,
+  resolution,
+  mutationPerformed,
+  applied,
+}) {
+  const targetState = resolution?.targetState || null;
+  const receipt = {
+    mode,
+    manifest: {
+      path: boundedString(path.basename(String(manifestPath || ''))),
+      name: boundedString(manifest?.name),
+    },
+    screenRoute: boundedString(manifest?.screen?.route),
+    expected: resolution?.receipt?.expected || null,
+    matches: resolution?.receipt?.matches || null,
+    application: targetState === 'ready_existing' ? resolution.receipt.application : null,
+    workspaceApp: targetState === 'ready_existing' ? resolution.receipt.workspaceApp : null,
+    targetState,
+    mutationPerformed: Boolean(mutationPerformed),
+    nextSafeGate:
+      mode === 'require-existing' && targetState === 'ready_existing' && applied
+        ? 'budibase_visible_smoke'
+        : NEXT_SAFE_GATE[targetState] || 'operator_review',
+  };
+  if (applied) receipt.applied = applied;
+  return receipt;
+}
+
+async function runExistingTargetMode({
+  args,
+  env = process.env,
+  createClient = (options) => new BudibaseClient(options),
+  stdout = (text) => console.log(text),
+  stderr = (text) => console.error(text),
+}) {
+  const mode = args.preflightExisting ? 'preflight-existing' : 'require-existing';
+  let manifest = null;
+  let resolution = null;
+  let nonGetRequests = 0;
+  let stage = 'manifest_unreadable';
+  try {
+    try {
+      manifest = readJson(args.manifest);
+    } catch {
+      throw new PublicGateError('manifest_unreadable');
+    }
+    stage = 'manifest_invalid';
+    validateExistingTargetManifest(manifest);
+
+    stage = 'config_invalid';
+    const budibaseBaseUrl = normalizeBaseUrl(env.BUDIBASE_BASE_URL || 'http://localhost:10000');
+    const cernionBaseUrl = normalizeBaseUrl(
+      env[manifest.datasource?.urlEnv] || manifest.datasource?.defaultUrl
+    );
+
+    stage = 'auth_failed';
+    const cookie = env.BUDIBASE_COOKIE_FILE ? parseCookieJar(env.BUDIBASE_COOKIE_FILE) : '';
+    const rawClient = createClient({ baseUrl: budibaseBaseUrl, cookie });
+    await authenticate(rawClient, env);
+
+    stage = 'catalog_unreadable';
+    resolution = await resolveExistingTarget(rawClient, manifest);
+    if (!TARGET_STATES.includes(resolution.targetState)) {
+      throw new PublicGateError('catalog_unreadable');
+    }
+
+    if (mode === 'preflight-existing' || resolution.targetState !== 'ready_existing') {
+      stdout(
+        JSON.stringify(
+          buildGateReceipt({ mode, manifestPath: args.manifest, manifest, resolution }),
+          null,
+          2
+        )
+      );
+      return resolution.targetState === 'ready_existing' ? 0 : 3;
+    }
+
+    // Ready: bind the resolved IDs; ensureApp/ensureWorkspaceApp are never called here.
+    stage = 'apply_failed';
+    const client = {
+      request(method, urlPath, options) {
+        if (String(method).toUpperCase() !== 'GET') nonGetRequests += 1;
+        return rawClient.request(method, urlPath, options);
+      },
+    };
+    const { appId } = resolution.bound.app;
+    const datasource = await ensureDatasource(client, appId, manifest, cernionBaseUrl);
+    const queries = await ensureQueries(client, appId, manifest, datasource, cernionBaseUrl);
+    const screen = await ensureScreen(
+      client,
+      appId,
+      manifest,
+      resolution.bound.workspaceApp,
+      queries
+    );
+    stdout(
+      JSON.stringify(
+        buildGateReceipt({
+          mode,
+          manifestPath: args.manifest,
+          manifest,
+          resolution,
+          mutationPerformed: nonGetRequests > 0,
+          applied: {
+            datasourceId: boundedString(datasource?._id),
+            queryCount: queries.length,
+            screenId: boundedString(screen?._id),
+            screenRoute: boundedString(screen?.routing?.route),
+          },
+        }),
+        null,
+        2
+      )
+    );
+    return 0;
+  } catch (error) {
+    const code = error instanceof PublicGateError ? error.code : stage;
+    stderr(
+      JSON.stringify(
+        {
+          ...buildGateReceipt({
+            mode,
+            manifestPath: args.manifest,
+            manifest,
+            resolution,
+            mutationPerformed: nonGetRequests > 0,
+          }),
+          error: publicError(code),
+        },
+        null,
+        2
+      )
+    );
+    return 1;
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv);
   if (args.help) {
     console.log(usage());
+    return;
+  }
+  if (args.preflightExisting || args.requireExisting) {
+    process.exitCode = await runExistingTargetMode({ args });
     return;
   }
   const manifest = readJson(args.manifest);
@@ -403,14 +773,7 @@ async function main() {
     ? parseCookieJar(process.env.BUDIBASE_COOKIE_FILE)
     : '';
   const client = new BudibaseClient({ baseUrl: budibaseBaseUrl, cookie });
-  if (!client.cookie) {
-    const email = process.env.BUDIBASE_EMAIL;
-    const password = process.env.BUDIBASE_PASSWORD;
-    if (!email || !password) {
-      throw new Error(`Missing Budibase credentials.\n\n${usage()}`);
-    }
-    await client.login({ email, password });
-  }
+  await authenticate(client, process.env);
 
   const app = await ensureApp(client, manifest);
   const workspaceApp = await ensureWorkspaceApp(client, app.appId, manifest);
@@ -444,7 +807,18 @@ async function main() {
   );
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  TARGET_STATES,
+  parseArgs,
+  resolveExistingTarget,
+  runExistingTargetMode,
+  ensureApp,
+  ensureWorkspaceApp,
+};

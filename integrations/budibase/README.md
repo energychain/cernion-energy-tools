@@ -363,6 +363,47 @@ The script is idempotent for the local spike:
 4. upserts the REST queries with explicit schemas,
 5. upserts the generated screen with query-backed table blocks.
 
+## Existing-Target Delivery Gate
+
+The default apply run finds or creates the Budibase app and workspace app. For delivery into an
+environment where the target must already exist, use the fail-closed existing-target modes
+instead. Both use the same authentication (`BUDIBASE_EMAIL`/`BUDIBASE_PASSWORD` or
+`BUDIBASE_COOKIE_FILE`) and cannot be combined with each other or with `--dry-run`.
+
+```bash
+# read-only: after authentication only two catalog GETs, no writes
+node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js --preflight-existing
+
+# apply datasource, queries and screen only to the uniquely resolved existing target
+node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js --require-existing
+```
+
+The resolver matches the Budibase Application by manifest `name` (and `url` when set), then the
+Workspace App inside it by `workspaceApp.name` (and `workspaceApp.url` when set). The manifest
+stays portable: it holds no environment IDs. Exactly one match is required at each level:
+
+| `targetState`             | Meaning                                             | Exit |
+| ------------------------- | --------------------------------------------------- | ---- |
+| `ready_existing`          | exactly one Application and one Workspace App match | 0    |
+| `missing_application`     | no Application with the expected identity           | 3    |
+| `ambiguous_application`   | more than one Application with the expected name    | 3    |
+| `missing_workspace_app`   | no Workspace App with the expected identity         | 3    |
+| `ambiguous_workspace_app` | more than one Workspace App with the expected name  | 3    |
+| `manifest_mismatch`       | name and URL point to different or drifted targets  | 3    |
+
+`--require-existing` runs the same resolver before any write. Every non-ready state exits before a
+POST/PUT/PATCH/DELETE; in the ready state it binds the resolved app and workspace-app IDs and never
+enters the create branches of `ensureApp`/`ensureWorkspaceApp`. There is no first create in these
+modes — a missing target is an operator task.
+
+Stdout carries an allowlisted JSON receipt: `mode`, `manifest` (file name, app name),
+`screenRoute`, `expected` names/URLs, exact `matches` counts, the resolved `application`
+(`appId`, `name`, `url`, `status`) and `workspaceApp` (`id`, `name`, `url`) only when unique,
+`targetState`, `mutationPerformed` and `nextSafeGate`; `--require-existing` adds `applied`
+(datasource ID, query count, screen ID and route). Errors (exit 1) go to stderr as the same receipt
+plus `error: { boundary, code, message }` with fixed messages. Upstream bodies, error causes,
+headers, cookies, passwords, tokens and login responses are never printed.
+
 ## Dev Loop Apply Gate
 
 For Budibase workbench issues, repo changes alone are not enough for a visible demo update.
