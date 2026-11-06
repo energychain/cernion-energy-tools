@@ -522,6 +522,16 @@ module.exports = {
           delete metadata.openWebuiUserEmail;
         }
 
+        // Pasted screenshots arrive as image parts; they join the turn's files and are read there.
+        if (gateway && requestedModel === GOVERNANCE_MODEL) {
+          const imageRefs = await require('../src/openai-image-parts').storeImageParts(
+            ctx,
+            ctx.params.messages,
+            metadata
+          );
+          if (imageRefs.length) metadata.fileRefs = [...(metadata.fileRefs || []), ...imageRefs];
+        }
+
         if (requestedModel === GOVERNANCE_MODEL) {
           const latestUserIndex = findLatestUserMessageIndex(messages);
           const documentInput = require('../src/workbench-document-input');

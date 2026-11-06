@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased — Screenshots are read
+
+- CET reads screenshots and scans like a colleague: the visible text verbatim (tables row by row,
+  „Feld: Wert“, illegible parts marked) and a short description of what the screen shows
+  (`src/image-understanding.js`). The image is read through the LLM facade
+  (`llm-client.describeImage`: PNG/JPEG/WebP up to 10 MB, scrubbed instruction, quota, tracing,
+  retries); the Gemini adapter reports vision. **Data protection:** a screenshot cannot be
+  PII-scrubbed and reaches the LLM provider unchanged (operator decision of 2026-11-06); text
+  derived from it follows the usual scrubbed paths.
+- Open WebUI: a pasted or attached screenshot arrives as an image part of the user's message and
+  was dropped by the text normalisation. The images of the current message are now stored as
+  originals in the file channel and read from there (transcript as document, deduplication,
+  document context). The file channel accepts PNG/JPEG/WebP with a signature check.
+- Personal-agent chat: attached screenshots are transcribed before processing; the transcript
+  replaces the former placeholder extract and reaches the turn like a text attachment. A failed
+  reading keeps the placeholder and never fails the turn.
+
 ## Unreleased — Personal-agent chat accepts file turns
 
 - `POST /api/personal-agent/chat` accepts `multipart/form-data` turns (fields plus
