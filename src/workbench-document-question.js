@@ -40,6 +40,7 @@ function withoutStoredWording(answer, userStatements) {
   return text;
 }
 const MIN_PRUNED_ANSWER = 80;
+const CONVERSATION_MARK = '[in diesem Gespräch]';
 // Lines keep their layout; within a line each sentence is checked on its own.
 function withoutInternalSentences(answer, internalContext, userStatements) {
   const { isInternalDescription } = require('./workbench-answer-filter');
@@ -166,7 +167,12 @@ async function documentQuestion(
     sections: selected.slice(0, 6),
     conversationContext,
     conversationPreferences,
-    userStatements: userStatements.slice(0, 12),
+    // Statements of this conversation are marked; the others come from earlier conversations.
+    userStatements: userStatements
+      .slice(0, 12)
+      .map((value) =>
+        conversationStatements.includes(value) ? `${CONVERSATION_MARK} ${value}` : value
+      ),
   });
   try {
     const result = await llm.generateStructured(
@@ -185,8 +191,7 @@ async function documentQuestion(
         // Statements the person made stay answerable next to the documents, with their origin.
         ...(userStatements.length
           ? {
-              userStatementInstruction:
-                'userStatements sind gespeicherte Angaben der Person mit Herkunft „Nutzerangabe“, keine Dokumentbelege. Fragt die Person nach eigenen oder im Arbeitskontext geltenden Angaben, antworte daraus und nenne die Herkunft „Nutzerangabe“; Dokumentbelege getrennt davon nennen. Eine gespeicherte Angabe nie als unbelegt bezeichnen, nur weil die Dokumente sie nicht enthalten. Fragt die Person nach einer eigenen gespeicherten Angabe, gib sie wörtlich und vollständig in Anführungszeichen wieder, mit allen darin genannten Zuordnungen, Beteiligten und Werten, auch wenn nur ein Teil die Person selbst betrifft; danach die Herkunft „Nutzerangabe“.',
+              userStatementInstruction: `userStatements sind gespeicherte Angaben der Person mit Herkunft „Nutzerangabe“, keine Dokumentbelege. Fragt die Person nach eigenen oder im Arbeitskontext geltenden Angaben, antworte daraus und nenne die Herkunft „Nutzerangabe“; Dokumentbelege getrennt davon nennen. Eine gespeicherte Angabe nie als unbelegt bezeichnen, nur weil die Dokumente sie nicht enthalten. Fragt die Person nach einer eigenen gespeicherten Angabe, gib sie wörtlich und vollständig in Anführungszeichen wieder, mit allen darin genannten Zuordnungen, Beteiligten und Werten, auch wenn nur ein Teil die Person selbst betrifft; danach die Herkunft „Nutzerangabe“. Angaben mit dem Vermerk ${CONVERSATION_MARK} stammen aus diesem Gespräch, alle anderen aus früheren Gesprächen. Fragt die Person nach dem, was sie gerade oder in diesem Gespräch genannt hat, antworte ausschließlich aus den so vermerkten Angaben und zähle ältere nicht auf; eine Angabe ohne Vermerk nie als in diesem Gespräch genannt bezeichnen. Den Vermerk selbst nicht ausgeben.`,
             }
           : {}),
         communicationInstruction: require('./workbench-communication').answerInstruction({
@@ -236,7 +241,7 @@ async function documentQuestion(
     if (!discarded)
       return {
         responseText: withStatedWording(
-          restoreContext(reply, safe.reidentMap),
+          restoreContext(reply, safe.reidentMap).split(CONVERSATION_MARK).join('').trim(),
           conversationStatements,
           question
         ),

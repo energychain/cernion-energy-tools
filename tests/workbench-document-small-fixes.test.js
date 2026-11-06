@@ -207,3 +207,20 @@ describe('stored wording in the internal-description check', () => {
     );
   });
 });
+
+test('statements of this conversation are marked for the answer, the mark never shows', async () => {
+  const own = 'P (05.11.2026); Herkunft: Nutzerangabe: „Neue Zeile A (V).“ (gültig).';
+  const older = 'P (01.11.2026); Herkunft: Nutzerangabe: „Ältere Zeile B (V).“ (gültig).';
+  llm.generateStructured.mockResolvedValue({
+    answer: '[in diesem Gespräch] Du hast „Neue Zeile A (V).“ genannt (Herkunft: Nutzerangabe).',
+  });
+  const { responseText } = await documentQuestion(documents, 'Was habe ich gerade genannt?', {
+    userStatements: [own, older],
+    conversationStatements: [own],
+  });
+  const input = JSON.parse(llm.generateStructured.mock.calls[0][1]);
+  expect(input.userStatements).toEqual([`[in diesem Gespräch] ${own}`, older]);
+  expect(input.userStatementInstruction).toContain('[in diesem Gespräch]');
+  expect(responseText).not.toContain('[in diesem Gespräch]');
+  expect(responseText).toContain('Neue Zeile A');
+});

@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — RC3 UAT re-test 3: own-chat recall, replay of the correction's case, more queries
+
+- The document answer marks the person's stored statements of this conversation; asked for what
+  the person just stated, it answers only from those and never calls an earlier statement one of
+  this conversation. A role-row recall listed older rows of earlier runs and cut the target row
+  (RT3-F05); a new chat called a statement from an earlier chat „in diesem Gespräch genannt“.
+- A shadow replay of a case from the conversation that brought the new facts no longer counts
+  against the tenant's daily replay budget (per event and per case the limits stay); every replay
+  attempt and every budget skip is logged without content (RT3-F04: the correction's case stayed
+  `open` in a tenant whose daily budget other runs had used up).
+- The cross-table analysis drafts up to 8 queries per question instead of 4 and returns the
+  identifier of a repeated entry. A message that combined the invoice question with four questions
+  about the Klärfallliste ran out of queries and answered the counts as unavailable (RT3-F01).
+
 ## Unreleased — RC3 UAT: the analysis sees repeated identifiers
 
 - The cross-table analysis passes each column's number of distinct values (`distinctValues`, a
