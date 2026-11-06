@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Notices never replace the answer; case remarks stay with the case
+
+- A work turn gets assessment and relation notices for at most 3 stored statements (this turn's
+  first, then the newest) and at most about 1,500 characters. A long case description matched many
+  statements through general terms and its answer consisted only of notices, cut at 6,000
+  characters (real-case pilot, cases 1 and 3).
+- The capture's scope rule names reminders, hypotheses and next steps about a single process,
+  identifier or message to a counterpart as case content, not as organisation memory. A case
+  remark had been stored tenant-wide and then appeared as evidence in an unrelated case.
+
 ## Unreleased — RC3 UAT re-test 3: own-chat recall, replay of the correction's case, more queries
 
 - The document answer marks the person's stored statements of this conversation; asked for what
