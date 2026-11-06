@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — Personal-agent chat accepts file turns
+
+- `POST /api/personal-agent/chat` accepts `multipart/form-data` turns (fields plus
+  `fileAttachments`). The gateway only had JSON body parsers for this alias, so a file turn arrived
+  without its message and was rejected with 422; the existing upload checks (allowlist, sizes,
+  session storage) never ran. A route middleware now parses exactly this request into generated
+  temporary files and hands them to those checks; JSON turns are unchanged.
+- Plain-text attachments `.txt` and `.edi` (e.g. an original EDIFACT message) are accepted and
+  their content reaches the turn context like other text attachments. Images keep the metadata
+  extract for now.
+
 ## Unreleased — RC3 UAT: a statement naming a check is no review request
 
 - The deterministic review detection for uploads matched the word part „plausib“ inside nouns, so a

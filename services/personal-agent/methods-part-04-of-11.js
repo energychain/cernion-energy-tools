@@ -511,6 +511,17 @@ module.exports = {
       return extractDocumentText(file.tempPath);
     }
 
+    if (typeInfo.category === 'text') {
+      // The content itself reaches the turn as in-house data; the extract only describes it.
+      const text = readTextContent(file.tempPath);
+      return {
+        type: 'text_extract',
+        summary: text
+          ? `Textdatei mit ${text.content.split(/\r?\n/u).length} Zeilen${text.truncated ? ' (gekürzt)' : ''}.`
+          : 'Textdatei ohne lesbaren Inhalt.',
+      };
+    }
+
     return {
       type: 'unsupported',
       summary: `Dateityp ${typeInfo.mimeType} wird in dieser Version nicht unterstützt.`,
