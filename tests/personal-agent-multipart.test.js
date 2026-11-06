@@ -62,6 +62,15 @@ describe('personal-agent multipart chat', () => {
     expect(path.basename(seen.body.fileAttachments[0].path)).not.toContain('nachricht');
   });
 
+  test('the documented field name fileAttachments[] is accepted', async () => {
+    const form = new FormData();
+    form.append('message', 'Mit Klammern.');
+    form.append('fileAttachments[]', new Blob(['UNH+1+UTILMD\n']), 'a.txt');
+    form.append('fileAttachments[1]', new Blob(['UNH+2+UTILMD\n']), 'b.txt');
+    await send(server, form);
+    expect(seen.body.fileAttachments.map((file) => file.originalname)).toEqual(['a.txt', 'b.txt']);
+  });
+
   test('a JSON turn and other paths pass through unparsed', () => {
     expect(
       isChatMultipart({
@@ -93,6 +102,7 @@ describe('personal-agent multipart chat', () => {
     const middleware = personalAgentMultipart(limits);
     let ctx;
     let stored;
+    let seenParams;
     const gateway = await serve((req, res) =>
       middleware(req, res, async (error) => {
         if (error) throw error;
@@ -112,6 +122,7 @@ describe('personal-agent multipart chat', () => {
           res
         );
         stored = ctx.params.fileAttachments.map((file) => fs.existsSync(file.tempPath));
+        seenParams = req.$params;
         res.setHeader('Content-Type', 'application/json');
         res.end('{}');
       })
@@ -129,6 +140,11 @@ describe('personal-agent multipart chat', () => {
     expect(ctx.params.fileAttachments).toHaveLength(1);
     expect(ctx.params.fileAttachments[0].fileName).toBe('aperak.txt');
     expect(stored).toEqual([true]);
+    // The action receives req.$params: the checked and stored files, not the raw upload.
+    expect(seenParams.fileAttachments[0]).toMatchObject({
+      fileName: 'aperak.txt',
+      tempPath: ctx.params.fileAttachments[0].tempPath,
+    });
     fs.rmSync(path.dirname(path.dirname(ctx.params.fileAttachments[0].tempPath)), {
       recursive: true,
       force: true,

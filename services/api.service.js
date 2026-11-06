@@ -3144,6 +3144,8 @@ module.exports = {
               toolContext: parseOptionalJsonObject(fields.toolContext, {}),
               fileAttachments: processedFiles,
             };
+            // moleculer-web calls the action with req.$params, not ctx.params.
+            req.$params = ctx.params;
           }
 
           const tenantIdForQuota = ctx.meta.tenantId || 'default';
