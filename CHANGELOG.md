@@ -7,6 +7,8 @@
   without its message and was rejected with 422; the existing upload checks (allowlist, sizes,
   session storage) never ran. A route middleware now parses exactly this request into generated
   temporary files and hands them to those checks; JSON turns are unchanged.
+  The documented array field `fileAttachments[]` (also `fileAttachments[n]`) is accepted next to
+  `fileAttachments`; before, a client following the OpenAPI lost its files silently.
 - Plain-text attachments `.txt` and `.edi` (e.g. an original EDIFACT message) are accepted and
   their content reaches the turn context like other text attachments. Images keep the metadata
   extract for now.

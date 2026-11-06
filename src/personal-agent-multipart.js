@@ -64,7 +64,9 @@ function personalAgentMultipart({ maxFiles, maxFileSize, maxFields }) {
           stream.pipe(out);
         })
       );
-      if (['fileAttachments', 'files'].includes(fieldname)) files.push(file);
+      // The documented field is `fileAttachments[]`; the bracket suffix of array fields is optional.
+      const field = String(fieldname || '').replace(/\[\d*\]$/u, '');
+      if (['fileAttachments', 'files'].includes(field)) files.push(file);
     });
     busboy.on('filesLimit', () => {
       failure ||= Object.assign(new Error('Too many files.'), {
