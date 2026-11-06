@@ -24,6 +24,11 @@
   without its message and was rejected with 422; the existing upload checks (allowlist, sizes,
   session storage) never ran. A route middleware now parses exactly this request into generated
   temporary files and hands them to those checks; JSON turns are unchanged.
+  The documented array field `fileAttachments[]` (also `fileAttachments[n]`) is accepted next to
+  `fileAttachments`; before, a client following the OpenAPI lost its files silently.
+  The checked and stored files now reach the action: the gateway set them on `ctx.params`, but
+  moleculer-web calls the action with `req.$params`, so the agent got the raw upload objects and
+  reported `FILE_NOT_FOUND` (seen in production after the multipart fix).
 - Plain-text attachments `.txt` and `.edi` (e.g. an original EDIFACT message) are accepted and
   their content reaches the turn context like other text attachments. Images keep the metadata
   extract for now.
