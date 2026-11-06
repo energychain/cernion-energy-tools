@@ -39,6 +39,32 @@ function withoutStoredWording(answer, userStatements) {
     text = text.split(wording).join(' ');
   return text;
 }
+const MIN_PRUNED_ANSWER = 80;
+// Lines keep their layout; within a line each sentence is checked on its own.
+function withoutInternalSentences(answer, internalContext, userStatements) {
+  const { isInternalDescription } = require('./workbench-answer-filter');
+  let removed = 0;
+  const lines = String(answer)
+    .split('\n')
+    .map((line) =>
+      line
+        .split(/(?<=[.!?])\s+/u)
+        .filter((sentence) => {
+          const leaked = isInternalDescription(
+            withoutStoredWording(sentence, userStatements),
+            internalContext
+          );
+          if (leaked) removed++;
+          return !leaked;
+        })
+        .join(' ')
+    );
+  const text = lines
+    .join('\n')
+    .replace(/\n{3,}/gu, '\n\n')
+    .trim();
+  return { text, removed };
+}
 function withStatedWording(answer, userStatements, question = '') {
   const core = (text) => {
     let end = text.length;
@@ -185,6 +211,7 @@ async function documentQuestion(
     );
     const answer = typeof result?.answer === 'string' ? result.answer.trim() : '';
     let discarded = '';
+    let reply = answer;
     if (!answer) discarded = 'empty';
     else if (answer.includes('```')) discarded = 'code_fence';
     else if (/\{\s*"/u.test(answer)) discarded = 'json';
@@ -193,12 +220,23 @@ async function documentQuestion(
         withoutStoredWording(answer, userStatements),
         internalContext
       )
-    )
-      discarded = 'internal_description';
+    ) {
+      // Only the sentences that repeat the internal situation are removed; an answer that keeps
+      // enough of its own content is still given, a leaked sentence never.
+      const pruned = withoutInternalSentences(answer, internalContext, userStatements);
+      if (pruned.removed && pruned.text.length >= MIN_PRUNED_ANSWER) {
+        reply = pruned.text;
+        logger?.warn?.('Document answer pruned', {
+          reason: 'internal_description',
+          removedSentences: pruned.removed,
+          chars: answer.length,
+        });
+      } else discarded = 'internal_description';
+    }
     if (!discarded)
       return {
         responseText: withStatedWording(
-          restoreContext(answer, safe.reidentMap),
+          restoreContext(reply, safe.reidentMap),
           conversationStatements,
           question
         ),

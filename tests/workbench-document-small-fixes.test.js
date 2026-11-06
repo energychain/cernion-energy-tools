@@ -169,17 +169,38 @@ describe('stored wording in the internal-description check', () => {
     expect(responseText).not.toContain('nicht zustande gekommen');
   });
 
-  test('a sentence of the internal situation outside the statement is still discarded', async () => {
+  test('a sentence of the internal situation is removed, the rest of the answer stays', async () => {
     const warn = jest.fn();
     llm.generateStructured.mockResolvedValue({
       answer: `„${row}“\nDer Stand wird intern geklärt.`,
     });
-    await documentQuestion(documents, 'Welche Rollenzeile?', {
+    const { responseText } = await documentQuestion(documents, 'Welche Rollenzeile?', {
       logger: { warn },
       internalContext,
       userStatements: [statement],
       conversationStatements: [statement],
     });
+    expect(responseText).toContain(row);
+    expect(responseText).not.toContain('intern geklärt');
+    expect(warn).toHaveBeenCalledWith(
+      'Document answer pruned',
+      expect.objectContaining({ reason: 'internal_description', removedSentences: 1 })
+    );
+  });
+
+  test('too little left after removing leaked sentences keeps the fallback', async () => {
+    const warn = jest.fn();
+    llm.generateStructured.mockResolvedValue({
+      answer: 'Kurz gesagt: ja.\nDer Stand wird intern geklärt.',
+    });
+    const { responseText } = await documentQuestion(documents, 'Welche Rollenzeile?', {
+      logger: { warn },
+      internalContext,
+      userStatements: [statement],
+      conversationStatements: [statement],
+    });
+    expect(responseText).not.toContain('intern geklärt');
+    expect(responseText).toContain('nicht zustande gekommen');
     expect(warn).toHaveBeenCalledWith(
       'Document answer discarded',
       expect.objectContaining({ reason: 'internal_description' })
