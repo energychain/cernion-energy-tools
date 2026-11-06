@@ -11,6 +11,13 @@
   their content reaches the turn context like other text attachments. Images keep the metadata
   extract for now.
 
+## Unreleased — RC3 UAT: a statement naming a check is no review request
+
+- The deterministic review detection for uploads matched the word part „plausib“ inside nouns, so a
+  role row about a „Plausibilisierungsplan“ sent together with files started a document review
+  instead of being captured (UAT R4). It now matches the verb „plausibilisieren“, the adjective
+  „plausibel“ and the noun „Plausibilität“ as words; other review words are unchanged.
+
 ## Unreleased — Notices never replace the answer; case remarks stay with the case
 
 - A work turn gets assessment and relation notices for at most 3 stored statements (this turn's
