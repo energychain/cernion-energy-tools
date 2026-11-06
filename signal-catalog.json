@@ -1,8 +1,8 @@
 {
  "version": 2,
  "generatedAt": "2026-01-01T00:00:00.000Z",
- "modelSourceHash": "8749e299aa3c1fa1834efeb40aa23d933894e3c3e880025844cd5b0761aeb38d",
- "sourceHash": "f24886142efb89d0cba2b96a45db66315b4a8a34e516e7129d6987a9e8556566",
+ "modelSourceHash": "b11372327fa00286014440300b7766e8025e910f1f23a581921f088ad715b84a",
+ "sourceHash": "9332de9f9f661e2a95ae06bb332e47ef09cad8fd9d70ca386c257c9a45c5aa5f",
  "probeEnvironment": {
   "tenantId": "stadtwerk-mauer",
   "services": [
