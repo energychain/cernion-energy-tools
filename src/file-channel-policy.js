@@ -16,6 +16,11 @@ const TYPES = Object.freeze({
   edi: 'application/edifact',
   edifact: 'application/edifact',
   eml: 'message/rfc822',
+  // Screenshots and scans: read by the vision model into a transcript (operator decision).
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
 });
 // Spellings clients send for the same type; the stored type stays the canonical one.
 const MIME_ALIASES = Object.freeze({ md: ['text/plain', 'text/x-markdown'] });
@@ -48,6 +53,16 @@ function guardFileStore(ctx) {
   )
     fileError('Dateien sind nur über den Dateikanal zugänglich.', 403);
 }
+// The declared image type must match the file's own signature.
+function imageSignature(bytes, mimeType) {
+  if (mimeType === 'image/png') return bytes.subarray(0, 8).equals(PNG_SIGNATURE);
+  if (mimeType === 'image/jpeg') return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  return (
+    bytes.subarray(0, 4).toString('latin1') === 'RIFF' &&
+    bytes.subarray(8, 12).toString('latin1') === 'WEBP'
+  );
+}
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 function validateFile(input) {
   const { name, contentBase64, mimeType } = input;
   if (
@@ -83,6 +98,8 @@ function validateFile(input) {
     fileError(`Datei leer oder zu groß. Grenze: ${max} Bytes.`, 413, 'FILE_CHANNEL_LIMIT');
   if (extension === 'pdf' && bytes.subarray(0, 5).toString() !== '%PDF-')
     fileError('Ungültige PDF-Datei.');
+  if (TYPES[extension]?.startsWith('image/') && !imageSignature(bytes, TYPES[extension]))
+    fileError('Ungültige Bilddatei.');
   if (['docx', 'xlsx', 'pptx'].includes(extension))
     require('./file-channel-extract').validateOffice(bytes, extension);
   else if (['csv', 'txt', 'md', 'eml', 'edi', 'edifact'].includes(extension)) {

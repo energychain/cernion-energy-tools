@@ -504,6 +504,15 @@ module.exports = {
     }
 
     if (typeInfo.category === 'image') {
+      // A screenshot read in this turn carries its transcript; without one the placeholder stays.
+      if (file.visionTranscript?.text)
+        return {
+          type: 'vision_transcript',
+          recognizedText: file.visionTranscript.text,
+          truncated: Boolean(file.visionTranscript.truncated),
+          summary: `Bild gelesen: ${file.visionTranscript.text.length} Zeichen sichtbarer Text und Beschreibung.`,
+          language: 'de',
+        };
       return ocrExtractImage(file.tempPath);
     }
 
@@ -543,6 +552,18 @@ module.exports = {
       if (!successIds.has(attachmentId)) continue;
       if (!file?.tempPath) continue;
 
+      if (file.visionTranscript?.text) {
+        result.push({
+          attachmentId,
+          fileName: String(file.fileName || 'attachment'),
+          mimeType: 'text/plain',
+          content: file.visionTranscript.text,
+          truncated: Boolean(file.visionTranscript.truncated),
+          originalSizeBytes: Number(file.sizeBytes || 0),
+          source: 'vision_transcript',
+        });
+        continue;
+      }
       try {
         const textContent = readTextContent(file.tempPath);
         if (!textContent) continue; // non-text format, silently skip
@@ -560,6 +581,31 @@ module.exports = {
       }
     }
     return result;
+  },
+
+  // Screenshots are read before the attachments are processed; a failed reading keeps the
+  // placeholder extract and never fails the turn.
+  async transcribeImageAttachments(files = [], { tenantId, logger } = {}) {
+    const { transcribeImage, visionMimeType } = require('../../src/image-understanding');
+    for (const file of Array.isArray(files) ? files : []) {
+      const mimeType = visionMimeType(file?.fileName, file?.mimeType);
+      if (!mimeType || !file?.tempPath) continue;
+      try {
+        file.visionTranscript = await transcribeImage(
+          {
+            data: require('node:fs').readFileSync(file.tempPath),
+            mimeType,
+            fileName: file.fileName,
+          },
+          { tenantId, logger }
+        );
+      } catch (error) {
+        logger?.warn?.('Attachment image not read', {
+          reason: String(error?.code || error?.type || error?.message || error).slice(0, 120),
+        });
+      }
+    }
+    return files;
   },
 
   processFileAttachments(session, files = []) {

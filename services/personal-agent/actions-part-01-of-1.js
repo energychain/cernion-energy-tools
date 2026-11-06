@@ -2422,6 +2422,10 @@ module.exports = {
         });
       }
 
+      await this.transcribeImageAttachments(
+        Array.isArray(ctx.params.fileAttachments) ? ctx.params.fileAttachments : [],
+        { tenantId: ctx.meta?.tenantId, logger: this.logger }
+      );
       const fileProcessing = this.processFileAttachments(
         session,
         Array.isArray(ctx.params.fileAttachments) ? ctx.params.fileAttachments : []

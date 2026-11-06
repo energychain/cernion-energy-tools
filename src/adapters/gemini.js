@@ -153,6 +153,20 @@ async function embeddings(texts, options = {}) {
   return vectors;
 }
 
+// Reads an image next to a text instruction (screenshots, scans). The image travels as an
+// inline part; the instruction is the already scrubbed prompt.
+async function describeImage(image, prompt, options = {}) {
+  const result = await contentWithThinkingFallback(
+    {
+      model: options.model || getModelName(),
+      generationConfig: generationOptions(options),
+    },
+    [{ inlineData: { data: image.base64, mimeType: image.mimeType } }, { text: prompt }],
+    options
+  );
+  return result.response.text();
+}
+
 // Requests both modalities: Gemini image-generation models only return image
 // parts when TEXT is also requested (an IMAGE-only request is rejected).
 const IMAGE_GENERATION_CONFIG = { responseModalities: ['TEXT', 'IMAGE'] };
@@ -340,7 +354,7 @@ function capabilities() {
   return {
     structured: true,
     embeddings: true,
-    vision: false,
+    vision: true,
     imageGeneration: true,
     toolCalling: true,
     contextWindow: null,
@@ -354,6 +368,7 @@ module.exports = {
   generateStructured,
   embeddings,
   generateImage,
+  describeImage,
   generateChat,
   capabilities,
 };

@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `d79670df8e6e781d9851a987a0f261ee0fb8409a86a0fe1987ab9f0fd8f41028`
+Source SHA-256: `7cfb2bd4fb06afd2368f10a497926cb0ceb112eb9bb0694468406b22bb89db46`
 
 Capabilities: 173; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
@@ -483,7 +483,7 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (109)
+## unresolvedStaticEvents (112)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:227: dynamic emission"}
@@ -521,6 +521,8 @@ None.
 - {"service":"ewk-monitoring","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"failure-signals","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"failure-signals","ref":"src/llm-client.js:227: dynamic emission"}
+- {"service":"files","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"files","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"finance-agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"finance-agent","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"forecast-sandbox","ref":"src/job-store.js:67: dynamic emission"}
@@ -563,6 +565,7 @@ None.
 - {"service":"project-structure","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"project-structure","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"project-upload","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"project-upload","ref":"src/llm-client.js:227: dynamic emission"}
 - {"service":"query","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"redispatch-expost","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"residual-load","ref":"src/job-store.js:67: dynamic emission"}

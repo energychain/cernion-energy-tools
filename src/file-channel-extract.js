@@ -120,6 +120,19 @@ function createPdfParser(options) {
   const { PDFParse } = require('pdf-parse');
   return new PDFParse(options);
 }
+// A screenshot becomes its transcript, marked as such; an unreadable image says so instead of
+// failing the turn.
+async function imageTranscript(file, bytes) {
+  try {
+    const { text } = await require('./image-understanding').transcribeImage(
+      { data: bytes, mimeType: file.mimeType, fileName: file.name },
+      { tenantId: file.tenantId }
+    );
+    return `Bildabschrift von „${file.name}“ (Screenshot, maschinell gelesen):\n\n${text}`;
+  } catch (_error) {
+    return `Bild „${file.name}“: Der Bildinhalt konnte gerade nicht gelesen werden.`;
+  }
+}
 async function extractOriginal(file) {
   const bytes = Buffer.from(file.contentBase64, 'base64');
   let text;
@@ -170,6 +183,8 @@ async function extractOriginal(file) {
     } finally {
       await parser.destroy();
     }
+  } else if (/^image\//u.test(String(file.mimeType || ''))) {
+    text = await imageTranscript(file, bytes);
   } else text = bytes.toString('utf8');
   if (!text?.trim())
     fileError(

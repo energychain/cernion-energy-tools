@@ -501,6 +501,48 @@ async function embeddings(texts, options = {}) {
   );
 }
 
+const VISION_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const MAX_VISION_BYTES = Number(process.env.LLM_VISION_MAX_BYTES || 10 * 1024 * 1024);
+
+/**
+ * Read an image (e.g. a screenshot) together with a text instruction.
+ * The instruction is PII-scrubbed like every prompt. The image itself cannot be scrubbed and
+ * reaches the provider unchanged (operator decision for screenshots, 2026-11-06).
+ *
+ * @param {{data: Buffer|string, mimeType: string}} image  Raw bytes or base64.
+ * @param {string} prompt  The instruction (may contain PII — will be scrubbed).
+ * @param {object} [options] Optional provider call options.
+ * @returns {Promise<string>}  The model's text.
+ * @throws {MoleculerError} 503 LLM_CAPABILITY_MISSING if the provider cannot read images.
+ */
+async function describeImage(image, prompt, options = {}) {
+  const adapter = getAdapter();
+  const caps = typeof adapter.capabilities === 'function' ? adapter.capabilities() : {};
+  if (!caps.vision || typeof adapter.describeImage !== 'function') {
+    throw new MoleculerError(
+      `LLM provider "${adapter.id || getProviderId()}" cannot read images.`,
+      503,
+      'LLM_CAPABILITY_MISSING'
+    );
+  }
+  const mimeType = String(image?.mimeType || '').toLowerCase();
+  if (!VISION_MIME_TYPES.has(mimeType))
+    throw new MoleculerError('Unsupported image type for vision.', 400, 'INVALID_IMAGE_TYPE');
+  const bytes = Buffer.isBuffer(image?.data)
+    ? image.data
+    : Buffer.from(String(image?.data || ''), 'base64');
+  if (!bytes.length || bytes.length > MAX_VISION_BYTES)
+    throw new MoleculerError('Image is empty or too large for vision.', 413, 'IMAGE_TOO_LARGE');
+  const input = { base64: bytes.toString('base64'), mimeType };
+  const scrubbedPrompt = scrubPrompt(prompt);
+  return await observeLlmCall(adapter, 'describe_image', options, scrubbedPrompt, () =>
+    withRetries(
+      (attemptOptions) => adapter.describeImage(input, scrubbedPrompt, attemptOptions),
+      options
+    )
+  );
+}
+
 /**
  * Generate an image from a text prompt.
  * PII is scrubbed from the prompt before the call (EU AI Act Art. 12).
@@ -590,6 +632,7 @@ function embeddingConfiguration() {
 }
 
 module.exports = {
+  describeImage,
   retryDelayMs,
   SchemaType,
   embeddingConfiguration,

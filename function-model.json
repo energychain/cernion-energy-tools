@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "d79670df8e6e781d9851a987a0f261ee0fb8409a86a0fe1987ab9f0fd8f41028",
+  "sourceHash": "7cfb2bd4fb06afd2368f10a497926cb0ceb112eb9bb0694468406b22bb89db46",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -9502,6 +9502,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/image-understanding.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/job-store.js"
         },
         {
@@ -13380,6 +13384,10 @@
         {
           "kind": "service",
           "ref": "src/governance-policy-evaluator.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/image-understanding.js"
         },
         {
           "kind": "service",
@@ -21943,6 +21951,10 @@
         {
           "kind": "service",
           "ref": "src/governance-policy-evaluator.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/image-understanding.js"
         },
         {
           "kind": "service",
@@ -32852,6 +32864,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/image-understanding.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/interface-placeholder-schema.js"
         },
         {
@@ -37040,6 +37056,10 @@
         {
           "kind": "service",
           "ref": "src/governance-policy-evaluator.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/image-understanding.js"
         },
         {
           "kind": "service",
@@ -57322,6 +57342,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/image-understanding.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/interface-placeholder-schema.js"
         },
         {
@@ -67872,6 +67896,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/image-understanding.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/interface-placeholder-schema.js"
         },
         {
@@ -73759,6 +73787,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/image-understanding.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/job-store.js"
         },
         {
@@ -79447,6 +79479,10 @@
         {
           "kind": "service",
           "ref": "src/governance-policy-evaluator.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/image-understanding.js"
         },
         {
           "kind": "service",
@@ -85722,6 +85758,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/image-understanding.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/job-store.js"
         },
         {
@@ -88920,6 +88960,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/image-understanding.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/job-store.js"
         },
         {
@@ -91824,6 +91868,10 @@
         {
           "kind": "service",
           "ref": "src/governance-policy-evaluator.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/image-understanding.js"
         },
         {
           "kind": "service",
@@ -100879,6 +100927,10 @@
         {
           "kind": "service",
           "ref": "src/governance-policy-evaluator.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/image-understanding.js"
         },
         {
           "kind": "service",
@@ -114853,6 +114905,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/image-understanding.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/interface-placeholder-schema.js"
         },
         {
@@ -127773,6 +127829,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/image-understanding.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/job-store.js"
         },
         {
@@ -131107,6 +131167,10 @@
         {
           "kind": "service",
           "ref": "src/governance-policy-evaluator.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/image-understanding.js"
         },
         {
           "kind": "service",
@@ -136478,6 +136542,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/image-understanding.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/interface-placeholder-schema.js"
         },
         {
@@ -141208,6 +141276,10 @@
         {
           "kind": "service",
           "ref": "src/governance-policy-evaluator.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/image-understanding.js"
         },
         {
           "kind": "service",
@@ -146069,6 +146141,10 @@
         {
           "kind": "service",
           "ref": "src/governance-policy-evaluator.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/image-understanding.js"
         },
         {
           "kind": "service",
@@ -150981,6 +151057,10 @@
         {
           "kind": "service",
           "ref": "src/governance-policy-evaluator.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/image-understanding.js"
         },
         {
           "kind": "service",
@@ -165678,6 +165758,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/image-understanding.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/job-store.js"
         },
         {
@@ -175720,6 +175804,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/image-understanding.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/job-store.js"
         },
         {
@@ -183136,6 +183224,10 @@
         {
           "kind": "service",
           "ref": "src/governance-policy-evaluator.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/image-understanding.js"
         },
         {
           "kind": "service",
@@ -205731,6 +205823,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/image-understanding.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/interface-placeholder-schema.js"
         },
         {
@@ -209881,6 +209977,14 @@
         "ref": "src/llm-client.js:227: dynamic emission"
       },
       {
+        "service": "files",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "files",
+        "ref": "src/llm-client.js:227: dynamic emission"
+      },
+      {
         "service": "finance-agent",
         "ref": "src/job-store.js:67: dynamic emission"
       },
@@ -210047,6 +210151,10 @@
       {
         "service": "project-upload",
         "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "project-upload",
+        "ref": "src/llm-client.js:227: dynamic emission"
       },
       {
         "service": "query",

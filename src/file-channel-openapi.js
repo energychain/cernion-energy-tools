@@ -7,7 +7,7 @@ const referenceSchema = {
     fileId: { type: 'string', pattern: '^[a-f0-9]{64}$' },
     hash: { type: 'string', pattern: '^[a-f0-9]{64}$' },
     name: { type: 'string', maxLength: 200 },
-    mimeType: { type: 'string', enum: Object.values(TYPES) },
+    mimeType: { type: 'string', enum: [...new Set(Object.values(TYPES))] },
     size: { type: 'integer', minimum: 1 },
     duplicate: { type: 'boolean' },
   },
@@ -65,7 +65,10 @@ function fileOpenApi(kind, summary) {
       description: 'Signed seven-day capability; current tenant authentication is also required.',
     });
     common.responses[200].content = Object.fromEntries(
-      Object.values(TYPES).map((type) => [type, { schema: { type: 'string', format: 'binary' } }])
+      [...new Set(Object.values(TYPES))].map((type) => [
+        type,
+        { schema: { type: 'string', format: 'binary' } },
+      ])
     );
   }
   return common;
