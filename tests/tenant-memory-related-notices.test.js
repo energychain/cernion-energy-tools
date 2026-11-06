@@ -74,4 +74,20 @@ describe('related() relation notices', () => {
     expect(found.evidence[0].metadata).toMatchObject({ key: 'now', ownConversation: true });
     expect(found.evidence.filter((hit) => hit.metadata.ownConversation)).toHaveLength(1);
   });
+
+  test('a work turn matching many statements gets a bounded set of notices', async () => {
+    store.query.mockResolvedValue(
+      Array.from({ length: 6 }, (_, index) => ({
+        ...fact(`other-${index}`, 'actor-b', [`rel-${index}`]),
+        at: `2026-11-0${index + 1}T10:00:00.000Z`,
+        plausibility: [`Einschätzung ${index} `.padEnd(400, '.')],
+      }))
+    );
+    const found = await memory.related(ctx(), p, { turnKind: 'work' }, 'Plane Nachberechnungen.');
+    expect(found.evidence).toHaveLength(6);
+    expect(found.text.length).toBeLessThanOrEqual(1500 + 2 * 6);
+    // The newest statements contribute first; the oldest ones do not.
+    expect(found.text).toContain('Einschätzung 5');
+    expect(found.text).not.toContain('Einschätzung 0');
+  });
 });

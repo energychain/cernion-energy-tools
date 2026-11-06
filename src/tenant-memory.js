@@ -848,6 +848,8 @@ async function stopRecovery(service) {
 // just say") without depending on an anchor match, even if the reading also suspects a new
 // statement in the question; a few recent ones are enough.
 const CONVERSATION_FACTS = 5;
+const MAX_NOTICE_FACTS = 3;
+const MAX_NOTICE_CHARS = 1500;
 async function related(ctx, p, situation, message, { conversationId, channel } = {}) {
   if (!available(ctx)) return { evidence: [], text: '' };
   const facts = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
@@ -895,14 +897,28 @@ async function related(ctx, p, situation, message, { conversationId, channel } =
   const work =
     (situation.turnKind === 'work' || situation.conversationShape === 'task') &&
     !pureQuestion(message);
-  const assessed = selection.facts.filter(
-    (fact) => current.has(fact.id) || (work && fact.person?.actorId !== p.actorId)
-  );
-  const paragraphs = assessed.flatMap((fact) => fact.plausibility || []);
+  // Notices accompany an answer, they never replace it: a long message matches many statements
+  // through general terms, so only the few most relevant ones (this turn's first, then the newest)
+  // contribute, within a bounded length.
+  const assessed = selection.facts
+    .filter((fact) => current.has(fact.id) || (work && fact.person?.actorId !== p.actorId))
+    .sort(
+      (a, b) =>
+        Number(current.has(b.id)) - Number(current.has(a.id)) ||
+        String(b.at || '').localeCompare(String(a.at || ''))
+    )
+    .slice(0, MAX_NOTICE_FACTS);
+  const paragraphs = [];
+  let length = 0;
+  const add = (text) => {
+    if (!text || paragraphs.includes(text) || length + text.length > MAX_NOTICE_CHARS) return;
+    paragraphs.push(text);
+    length += text.length;
+  };
+  for (const text of assessed.flatMap((fact) => fact.plausibility || [])) add(text);
   for (const id of new Set(assessed.flatMap((fact) => fact.relationIds))) {
     try {
-      const text = await store.relationText(ctx, p, id);
-      if (text) paragraphs.push(text);
+      add(await store.relationText(ctx, p, id));
     } catch (error) {
       if (![403, 404].includes(error.code)) throw error;
     }
