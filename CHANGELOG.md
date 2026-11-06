@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — RC3 UAT: the analysis sees repeated identifiers
+
+- The cross-table analysis passes each column's number of distinct values (`distinctValues`, a
+  statistic, no cell value) next to the row count. With repeated identifiers (fewer distinct values
+  than rows) counts use the identifiers (COUNT(DISTINCT …)). Without it the draft could not tell a
+  duplicated case from a second one and sometimes counted rows: „8 noch nicht erledigt“ instead of
+  7 in the Klärfallliste (UAT R1, second chat).
+
 ## Unreleased — RC3 UAT: leaked sentences are removed, the document answer stays
 
 - The document answer's internal-description check removes the sentences that repeat the turn's

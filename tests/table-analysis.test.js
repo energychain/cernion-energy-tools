@@ -225,3 +225,14 @@ test('an entirely empty result is redrafted once, then accepted', async () => {
   });
   expect(llm.generateStructured).toHaveBeenCalledTimes(3);
 });
+
+test('views carry the distinct-value count of each column, never a cell value', () => {
+  const [view] = tableViews([
+    {
+      ...bills,
+      columns: bills.columns.map((column, index) => ({ ...column, distinctCount: index + 1 })),
+    },
+  ]);
+  expect(view.columns.map((column) => column.distinctValues)).toEqual([1, 2]);
+  expect(JSON.stringify(view.columns)).not.toMatch(/R-1/u);
+});
