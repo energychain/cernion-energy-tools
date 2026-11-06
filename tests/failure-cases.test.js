@@ -565,6 +565,48 @@ describe('selected case (#1039)', () => {
       }
     });
 
+    test("an exhausted daily budget still replays the case of the correction's conversation", async () => {
+      const register = service();
+      const replay = require('../src/failure-replay');
+      const asked = [];
+      const spy = jest.spyOn(replay, 'shadowReplay').mockImplementation(async (_ctx, input) => {
+        asked.push(input.question);
+        return { passed: true, answered: true, usedFacts: ['fact-1'], at: '2026-11-06T08:00:00Z' };
+      });
+      try {
+        for (const [name, conversationId] of [
+          ['other', 'chat-other'],
+          ['mine', 'chat-now'],
+        ]) {
+          const { _rev, ...doc } = fixture({
+            _id: `case:synthetic-a:${name}`,
+            caseId: `case-${name}`,
+            level: 'B',
+            lastSignalAt: '2026-11-06T07:00:00Z',
+          });
+          await register.db.put(doc);
+          await register.db.put({
+            _id: `replay:case:synthetic-a:${name}`,
+            type: 'failure_replay_question',
+            tenantId: 'synthetic-a',
+            question: `Frage ${name}`,
+            conversationId,
+            at: '2026-11-06T07:00:00Z',
+          });
+        }
+        const day = `synthetic-a\u0000${new Date().toISOString().slice(0, 10)}`;
+        register.replayBudget.set(day, Number.MAX_SAFE_INTEGER);
+        await register.dataArrived({}, 'synthetic-a', ['fact-1'], undefined, {
+          conversationId: 'chat-now',
+        });
+        expect(asked).toEqual(['Frage mine']);
+        expect((await register.db.get('case:synthetic-a:mine')).status).toBe('resolved_runtime');
+        expect((await register.db.get('case:synthetic-a:other')).status).toBe('open');
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
     test('unknown and foreign cases are denied alike; roles and tenant come from the principal', async () => {
       const denial = async (promise) => {
         const error = await promise.catch((caught) => caught);

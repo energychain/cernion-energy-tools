@@ -505,7 +505,12 @@ module.exports = {
       for (const doc of ranked.slice(0, REPLAYS_PER_EVENT)) {
         const stored = questions.get(doc._id);
         if (current.has(doc._id) && stored.question === question) continue;
-        if (!this.takeBudget(this.replayBudget, tenantId, REPLAYS_PER_DAY)) break;
+        // The person's own correction resolving a case of this conversation is not limited by
+        // the tenant's daily replay budget; per event and per case the limits still apply.
+        if (!here(doc) && !this.takeBudget(this.replayBudget, tenantId, REPLAYS_PER_DAY)) {
+          this.logger.info('Failure case replay skipped', { reason: 'daily_budget', tenantId });
+          break;
+        }
         const replay = await require('../src/failure-replay')
           .shadowReplay(ctx, {
             tenantId,
@@ -520,6 +525,16 @@ module.exports = {
             at: new Date().toISOString(),
           }));
         const next = await this.storeReplay(doc._id, replay);
+        // Names the outcome only: no question, answer or fact text.
+        this.logger.info('Failure case replay', {
+          tenantId,
+          caseId: next?.caseId,
+          sameConversation: here(doc),
+          passed: Boolean(replay.passed),
+          answered: Boolean(replay.answered),
+          usedFacts: (replay.usedFacts || []).length,
+          ...(replay.error ? { error: replay.error } : {}),
+        });
         await this.caseChanged(next);
         if (replay.passed) {
           await this.forgetQuestion(next);
