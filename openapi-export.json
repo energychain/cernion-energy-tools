@@ -79616,8 +79616,10 @@
                         "text/plain",
                         "text/markdown",
                         "application/edifact",
-                        "application/edifact",
-                        "message/rfc822"
+                        "message/rfc822",
+                        "image/png",
+                        "image/jpeg",
+                        "image/webp"
                       ]
                     },
                     "size": {
@@ -79676,8 +79678,10 @@
                       "text/plain",
                       "text/markdown",
                       "application/edifact",
-                      "application/edifact",
-                      "message/rfc822"
+                      "message/rfc822",
+                      "image/png",
+                      "image/jpeg",
+                      "image/webp"
                     ]
                   },
                   "sensitivityLevel": {
@@ -79760,6 +79764,24 @@
                 }
               },
               "message/rfc822": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/webp": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
