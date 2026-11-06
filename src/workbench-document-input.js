@@ -50,8 +50,9 @@ function documentInput(input) {
   };
 }
 
+// A request to assess; word parts inside nouns (e.g. a plan named after a check) are no request.
 function isReviewRequest(question) {
-  return /\b(?:bewert\w*|prüf(?:e|en|st|t|ung)?|pruef(?:e|en|st|t|ung)?|review|peer[ -]?review|stellungnahme|gutachten|plausib\w*|realistisch|stimmig)\b/i.test(
+  return /\b(?:bewert\w*|prüf(?:e|en|st|t|ung)?|pruef(?:e|en|st|t|ung)?|review|peer[ -]?review|stellungnahme|gutachten|plausibilisier(?:e|en|st|t)|plausib(?:el|le|len|ler|les|ilität)|realistisch|stimmig)\b/i.test(
     String(question)
   );
 }

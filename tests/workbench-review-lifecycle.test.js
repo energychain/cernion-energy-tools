@@ -283,3 +283,19 @@ test('the generated onboarding request is a content request; standalone review i
   ])
     expect(isReviewRequest(question)).toBe(true);
 });
+
+test('a statement naming a plan after a check is no review request', () => {
+  const { isReviewRequest } = require('../src/workbench-document-input');
+  expect(
+    isReviewRequest(
+      'Für die Erstellung des Plausibilisierungsplans bin ich verantwortlich (V); das Team Messwertprüfung führt sie durch (D).'
+    )
+  ).toBe(false);
+  for (const request of [
+    'Bitte plausibilisiere die Unterlagen.',
+    'Ist der Zeitplan plausibel?',
+    'Prüf die Plausibilität der Zahlen.',
+    'Bewerte die Unterlagen.',
+  ])
+    expect(isReviewRequest(request)).toBe(true);
+});
