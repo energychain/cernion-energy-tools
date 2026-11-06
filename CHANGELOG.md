@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — RC3 UAT: leaked sentences are removed, the document answer stays
+
+- The document answer's internal-description check removes the sentences that repeat the turn's
+  internal situation instead of discarding the whole answer; an answer with at least 80 characters
+  of its own content left is given („Document answer pruned“ with the number of removed
+  sentences), otherwise the fallback stays. A role-row recall that listed function and task next
+  to the verbatim row was discarded every time (UAT R4 on build dd5e97b).
+
 ## Unreleased — RC3 UAT: a role row is not lost to the role context
 
 - When the understanding recognises a first-person role statement (`roleStatement.firstPerson`)
