@@ -60,6 +60,8 @@ const PERSONAL_AGENT_ALLOWED_EXTENSIONS = new Set([
   '.jpg',
   '.jpeg',
   '.pdf',
+  '.txt',
+  '.edi',
 ]);
 const DEFAULT_API_CORS_ORIGINS = [
   'https://energychain.github.io',
@@ -1662,7 +1664,14 @@ module.exports = {
           maxAge: 3600,
         },
 
-        use: [],
+        // Multipart turns of the personal-agent chat are parsed here; JSON turns pass through.
+        use: [
+          require('../src/personal-agent-multipart').personalAgentMultipart({
+            maxFiles: PERSONAL_AGENT_MAX_FILES,
+            maxFileSize: PERSONAL_AGENT_MAX_FILE_SIZE_BYTES,
+            maxFields: PERSONAL_AGENT_MAX_FIELDS,
+          }),
+        ],
 
         mergeParams: true,
 
@@ -3073,7 +3082,7 @@ module.exports = {
 
               if (!PERSONAL_AGENT_ALLOWED_EXTENSIONS.has(ext)) {
                 throw new Errors.MoleculerClientError(
-                  'Das Dateiformat wird nicht unterstützt. Erlaubt: CSV, Excel, PNG, JPG, PDF.',
+                  'Das Dateiformat wird nicht unterstützt. Erlaubt: CSV, Excel, PNG, JPG, PDF, TXT/EDIFACT.',
                   400,
                   'INVALID_FILE_TYPE'
                 );

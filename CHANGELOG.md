@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — Personal-agent chat accepts file turns
+
+- `POST /api/personal-agent/chat` accepts `multipart/form-data` turns (fields plus
+  `fileAttachments`). The gateway only had JSON body parsers for this alias, so a file turn arrived
+  without its message and was rejected with 422; the existing upload checks (allowlist, sizes,
+  session storage) never ran. A route middleware now parses exactly this request into generated
+  temporary files and hands them to those checks; JSON turns are unchanged.
+- Plain-text attachments `.txt` and `.edi` (e.g. an original EDIFACT message) are accepted and
+  their content reaches the turn context like other text attachments. Images keep the metadata
+  extract for now.
+
 ## Unreleased — Notices never replace the answer; case remarks stay with the case
 
 - A work turn gets assessment and relation notices for at most 3 stored statements (this turn's

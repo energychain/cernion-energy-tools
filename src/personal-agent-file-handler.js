@@ -15,7 +15,11 @@ const FILE_TYPE_MAP = Object.freeze({
   '.jpg': { mimeType: 'image/jpeg', category: 'image' },
   '.jpeg': { mimeType: 'image/jpeg', category: 'image' },
   '.pdf': { mimeType: 'application/pdf', category: 'document' },
+  // Plain text, e.g. an original EDIFACT message: read as text into the turn context.
+  '.txt': { mimeType: 'text/plain', category: 'text' },
+  '.edi': { mimeType: 'text/plain', category: 'text' },
 });
+const ALLOWED_LABEL = 'CSV, Excel, PNG, JPG, PDF, TXT/EDIFACT';
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const MAX_SAMPLE_ROWS = 5;
@@ -46,7 +50,7 @@ function recognizeFileType(filePath) {
   if (!meta) {
     throw buildError(
       'INVALID_FILE_TYPE',
-      'Das Dateiformat wird nicht unterstützt. Erlaubt: CSV, Excel, PNG, JPG, PDF.',
+      `Das Dateiformat wird nicht unterstützt. Erlaubt: ${ALLOWED_LABEL}.`,
       { allowed: Object.keys(FILE_TYPE_MAP) }
     );
   }
@@ -56,7 +60,7 @@ function recognizeFileType(filePath) {
     if (!preview.includes(',') && !preview.includes(';') && !preview.includes('\t')) {
       throw buildError(
         'INVALID_FILE_TYPE',
-        'Das Dateiformat wird nicht unterstützt. Erlaubt: CSV, Excel, PNG, JPG, PDF.'
+        `Das Dateiformat wird nicht unterstützt. Erlaubt: ${ALLOWED_LABEL}.`
       );
     }
   }
@@ -174,14 +178,14 @@ function extractDocumentText(filePath) {
 
 /**
  * Read plain-text content from a file and return it with truncation metadata.
- * Only supports text-based formats: .csv, .json, .txt
+ * Only supports text-based formats: .csv, .json, .txt, .edi
  * Returns null for unsupported extensions.
  */
 function readTextContent(filePath, options = {}) {
   const maxBytes = options.maxBytes || MAX_INGEST_BYTES;
   const maxLines = options.maxLines || MAX_INGEST_LINES;
 
-  const supportedExts = new Set(['.csv', '.json', '.txt']);
+  const supportedExts = new Set(['.csv', '.json', '.txt', '.edi']);
   const ext = path.extname(filePath).toLowerCase();
   if (!supportedExts.has(ext)) {
     return null;
