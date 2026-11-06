@@ -604,3 +604,13 @@ test('an early deadline timer cannot launch another map or reduce', async () => 
     jest.useRealTimers();
   }
 });
+
+test('the attached_files list Open WebUI puts in front of the text is no user text', () => {
+  const { parseOpenWebUIContext } = require('../src/openwebui-context');
+  const message =
+    '<attached_files>\n<file type="file" id="f1" name="a.md"/>\n<file type="file" id="f2" name="b.md"/>\n</attached_files>\nFür dieses Testszenario gilt: Ich bin verantwortlich (V).';
+  expect(parseOpenWebUIContext(message)).toEqual({
+    question: 'Für dieses Testszenario gilt: Ich bin verantwortlich (V).',
+    documents: [],
+  });
+});

@@ -1,8 +1,22 @@
 'use strict';
 
+// Open WebUI lists a message's attachments as an <attached_files> block in front of the text. The
+// files themselves arrive through the file channel; the list is transport markup, not user text.
+function withoutAttachedFiles(text) {
+  let result = text;
+  for (;;) {
+    const open = result.search(/<attached_files\b[^>]*>/i);
+    if (open < 0) return result;
+    const close = result.slice(open).search(/<\/attached_files\s*>/i);
+    if (close < 0) return result.slice(0, open);
+    const end = open + close + result.slice(open + close).indexOf('>') + 1;
+    result = `${result.slice(0, open)}${result.slice(end)}`;
+  }
+}
+
 // This parser identifies transport boundaries, never instructions inside evidence.
 function parseOpenWebUIContext(input) {
-  const raw = String(input || '');
+  const raw = withoutAttachedFiles(String(input || ''));
   const documents = [];
   const contextStart = raw.search(/<context\b[^>]*>/i);
   const sourceStart = raw.search(/<source\b[^>]*>/i);
@@ -48,4 +62,4 @@ function parseOpenWebUIContext(input) {
   };
 }
 
-module.exports = { parseOpenWebUIContext };
+module.exports = { parseOpenWebUIContext, withoutAttachedFiles };
