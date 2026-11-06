@@ -17,6 +17,13 @@
   replaces the former placeholder extract and reaches the turn like a text attachment. A failed
   reading keeps the placeholder and never fails the turn.
 
+## Unreleased — Open WebUI attachment markup is no user text
+
+- Open WebUI 0.12.5 puts an `<attached_files>` list in front of the user's text when files are
+  attached. CET took it for part of the message; a role row stated together with files was stored
+  and recalled with that list in front (UAT R4). The block is removed as transport markup when the
+  Open WebUI message is parsed; the files arrive through the file channel as before.
+
 ## Unreleased — Personal-agent chat accepts file turns
 
 - `POST /api/personal-agent/chat` accepts `multipart/form-data` turns (fields plus
