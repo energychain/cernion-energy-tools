@@ -563,6 +563,8 @@ function buildPersistableSessionState(input = {}) {
       activeSynthesisPolicy,
       activeStickinessStartTurn,
       criticalStepCheckpoints,
+      caseState:
+        input?.l3?.caseState && typeof input.l3.caseState === 'object' ? input.l3.caseState : null,
     },
     createdAt: input.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
