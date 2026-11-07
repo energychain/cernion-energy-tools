@@ -1458,6 +1458,16 @@ async function runContentTurn(
     situation.actorContext &&
     JSON.stringify([previous.actorContext?.role, previous.actorContext?.organization]) !==
       JSON.stringify([situation.actorContext.role, situation.actorContext.organization]);
+  const workbenchCaseState = require('./workbench-case-state');
+  const caseStateStarted = performance.now();
+  const caseState = await workbenchCaseState.updateTurnCaseState({
+    previous: pending?.caseState,
+    envelope,
+    retrieval,
+    tenantId: p.tenantId,
+    logger: service.logger,
+  });
+  phaseTimes.caseStateMs = Math.max(1, Math.round(performance.now() - caseStateStarted));
   const answerStarted = performance.now();
   let reply;
   let documentResult;
@@ -1497,8 +1507,13 @@ async function runContentTurn(
           nextStepOnly: Boolean(previous && nextStepRequest),
           skipModel: false,
           lastAnswer: pending?.lastAnswer || '',
+          caseView: caseState ? workbenchCaseState.caseStateView(caseState) : null,
           logger: service.logger,
         });
+    reply = await workbenchCaseState.reviewTurnReply(reply, caseState, {
+      tenantId: p.tenantId,
+      logger: service.logger,
+    });
   } finally {
     phaseTimes.answerMs = Math.max(1, Math.round(performance.now() - answerStarted));
   }
@@ -1693,6 +1708,7 @@ async function runContentTurn(
     offeredContent: '',
     lastQuestion: '',
     lastAnswer: reply.responseText.slice(0, 600),
+    ...(caseState ? { caseState } : {}),
     askedQuestions: [...(pending?.askedQuestions || []), ...reply.questions],
     ...(knowledgeAsk ? { lastKnowledgeAskAt: Date.now() } : {}),
   });

@@ -363,6 +363,16 @@ function caseStateView(state) {
   };
 }
 
+// How an answer uses the case-state view; shared by every answer path that receives the view.
+const CASE_VIEW_RULES = [
+  'Bediene den Auftrag aus workIntent (task, requestedOutcome) für die genannte Rolle.',
+  'Ist workIntent.ambiguous gesetzt, stelle zuerst die separatingQuestion und lege dich nicht fest.',
+  'Mögliche Ursachen nur aus activeHypotheses; Einträge aus noLongerValid nie wieder als aktive Ursache oder gleichwertige Möglichkeit nennen, höchstens als überholt mit Grund.',
+  'Kennzeichne die Herkunft wesentlicher Aussagen nach claims.basis: user_reported als Angabe der Person, source_observed als in der genannten Quelle gesehen, derived als Ableitung, hypothesis als Annahme. Nichts als gesichert oder geprüft darstellen, was nicht source_observed oder confirmed ist.',
+  'Nenne entscheidungsrelevante Unterschiede aus sourceComparison ausdrücklich mit Auswirkung und nötiger Klärung.',
+  'Schließe mit dem nächsten ausführbaren Schritt aus nextActions (Input, Rolle, erwartetes Ergebnis, Abschlusskriterium) und höchstens den Rückfragen aus openQuestions.',
+];
+
 const str = (max) => ({ type: 'string', maxLength: max });
 const arr = (items, max) => ({ type: 'array', maxItems: max, items });
 const obj = (properties, required = Object.keys(properties)) => ({
@@ -599,6 +609,7 @@ async function reviewAnswer(reply, state, options = {}) {
 
 module.exports = {
   CASE_STATE_VERSION,
+  CASE_VIEW_RULES,
   CASE_UPDATE_SCHEMA,
   EVIDENCE_KINDS,
   HYPOTHESIS_STATES,

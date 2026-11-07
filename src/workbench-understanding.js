@@ -1439,6 +1439,7 @@ async function generateAnswerResult({
   nextStepOnly,
   filterCounts,
   run,
+  caseView = null,
 }) {
   const options = {
     ...llmOptions(tenantId, 'answer', followup),
@@ -1469,6 +1470,10 @@ async function generateAnswerResult({
           evidence: evidence.filter((hit) => hit.retrievalSource === 'capability-read'),
         },
         ...(followup ? { lastAnswer: lastAnswer.slice(0, 600) } : {}),
+        // Consolidated case state of the conversation (BK-01..04); the answer follows it.
+        ...(caseView
+          ? { caseState: caseView, caseStateRules: require('./case-state').CASE_VIEW_RULES }
+          : {}),
       });
       safe.value.evidence = safe.value.evidence.map((hit) => ({
         ...hit,
@@ -1866,6 +1871,7 @@ async function answer({
   skipModel = false,
   suppressDraft = false,
   lastAnswer = '',
+  caseView = null,
   logger,
 }) {
   situation = withoutStatedCodes(situation, retrieval?.evidence || []);
@@ -2131,6 +2137,7 @@ async function answer({
       nextStepOnly,
       filterCounts,
       run,
+      caseView,
     });
     result = parsed;
     const hasContent = [
