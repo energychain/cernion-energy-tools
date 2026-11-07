@@ -130,8 +130,11 @@ module.exports = {
       };
     };
 
+    // The attached files belong to the request in both consultation paths (agentic and direct).
+    const turnMessage = this.withAttachmentContent(message, input.inhouseData);
     const agenticConsultation = await this.handleConsultationTurnAgentic(ctx, {
       ...input,
+      message: turnMessage,
       responseStrategy,
       recentHistoryWindow,
       consultationDebugSink,
@@ -193,7 +196,7 @@ module.exports = {
 
       const raw = await this.callLlmGenerate(ctx, {
         system: systemPrompt,
-        user: this.withAttachmentContent(message, input.inhouseData),
+        user: turnMessage,
         schema: CONSULTATION_OUTPUT_SCHEMA,
         timeoutMs: synthesisTimeoutMs,
         trace: {
