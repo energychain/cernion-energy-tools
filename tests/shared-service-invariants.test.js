@@ -428,6 +428,29 @@ describe('invariant oracle self-tests', () => {
     s.handoffs[0].agents[0].lifecycle = 'active';
     expect(() => assertInvariants(s, ['I-9'])).toThrow('I-9');
   });
+  test('I-9 fails closed when no matching tenant/function agent exists', () => {
+    const s = observations['I-9']();
+    s.handoffs[0].agents = [];
+    expect(() => assertInvariants(s, ['I-9'])).toThrow('no matching tenant/function agent');
+  });
+  test('I-9 fails closed when only an unrelated-tenant agent is present', () => {
+    const s = observations['I-9']();
+    s.handoffs[0].agents = [{ ...agent(), lifecycle: 'sleeping', tenantId: 'tenant-b' }];
+    expect(() => assertInvariants(s, ['I-9'])).toThrow('no matching tenant/function agent');
+  });
+  test('I-9 fails closed when only an unrelated-function agent is present', () => {
+    const s = observations['I-9']();
+    s.handoffs[0].agents = [{ ...agent(), lifecycle: 'sleeping', functionId: 'fn-b' }];
+    expect(() => assertInvariants(s, ['I-9'])).toThrow('no matching tenant/function agent');
+  });
+  test('I-9 ignores an unrelated agent lifecycle when a matching agent is valid', () => {
+    const s = observations['I-9']();
+    s.handoffs[0].agents = [
+      { ...agent(), lifecycle: 'sleeping' },
+      { ...agent(), lifecycle: 'active', tenantId: 'tenant-b', functionId: 'fn-b' },
+    ];
+    expect(() => assertInvariants(s, ['I-9'])).not.toThrow();
+  });
 });
 
 test.each(['coverage', 'activation', 'agent', 'neighbor'])(

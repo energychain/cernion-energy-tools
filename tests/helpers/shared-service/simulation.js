@@ -5,6 +5,56 @@ const { assertInvariants } = require('./invariants');
 const ROOT = path.resolve(__dirname, '../../..');
 const FIXED_SEEDS = [702, 693, 20261003];
 
+// Required #693 Function shape: functionId, label, sources ({kind, ref}),
+// capabilities, operations, dataSources, entityTypes (string arrays),
+// events ({emits, listens}), neighbors ({functionId, weight, evidence}), derivation.
+const isNonEmptyString = (value) => typeof value === 'string' && value.length > 0;
+const isStringArray = (value) =>
+  Array.isArray(value) && value.every((item) => typeof item === 'string');
+const isValidSource = (source) =>
+  !!source &&
+  typeof source === 'object' &&
+  isNonEmptyString(source.kind) &&
+  isNonEmptyString(source.ref);
+const isValidNeighbor = (neighbor) =>
+  !!neighbor &&
+  typeof neighbor === 'object' &&
+  isNonEmptyString(neighbor.functionId) &&
+  Number.isFinite(neighbor.weight) &&
+  neighbor.weight >= 0 &&
+  neighbor.weight <= 1 &&
+  Array.isArray(neighbor.evidence);
+const isValidEvents = (events) =>
+  !!events &&
+  typeof events === 'object' &&
+  isStringArray(events.emits) &&
+  isStringArray(events.listens);
+const isValidDerivation = (derivation) =>
+  !!derivation &&
+  typeof derivation === 'object' &&
+  !Array.isArray(derivation) &&
+  isNonEmptyString(derivation.version) &&
+  isNonEmptyString(derivation.generatedAt);
+
+function isValidFunctionShape(item) {
+  return (
+    !!item &&
+    typeof item === 'object' &&
+    isNonEmptyString(item.functionId) &&
+    isNonEmptyString(item.label) &&
+    Array.isArray(item.sources) &&
+    item.sources.every(isValidSource) &&
+    isStringArray(item.capabilities) &&
+    isStringArray(item.operations) &&
+    isStringArray(item.dataSources) &&
+    isStringArray(item.entityTypes) &&
+    isValidEvents(item.events) &&
+    Array.isArray(item.neighbors) &&
+    item.neighbors.every(isValidNeighbor) &&
+    isValidDerivation(item.derivation)
+  );
+}
+
 function loadFunctions(root = ROOT) {
   const real = path.join(root, 'function-model.json');
   const file = fs.existsSync(real)
@@ -12,7 +62,11 @@ function loadFunctions(root = ROOT) {
     : path.join(ROOT, 'tests/fixtures/shared-service/function-model.json');
   const data = JSON.parse(fs.readFileSync(file, 'utf8'));
   const functions = Array.isArray(data) ? data : data.functions;
-  if (!Array.isArray(functions) || !functions.length || functions.some((item) => !item.functionId))
+  if (
+    !Array.isArray(functions) ||
+    !functions.length ||
+    functions.some((item) => !isValidFunctionShape(item))
+  )
     throw new Error(`Invalid function model: ${file}`);
   if (new Set(functions.map((item) => item.functionId)).size !== functions.length)
     throw new Error('Duplicate functionId');
