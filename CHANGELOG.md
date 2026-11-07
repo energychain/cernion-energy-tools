@@ -220,7 +220,6 @@
   compound-select members). Subqueries used as values, such as `COALESCE((SELECT …), 0)` or a
   select-list subquery, keep their single column; before, the analysis was rejected with
   "sub-select returns 2 columns". The cycle check stays fail-closed.
-
 ## Unreleased — Role proposals: protected scalar presenter contract (#1058)
 
 - `GET /api/role-proposals` (tenant admin) and `GET /api/role-proposals/mine` (own rows, filtered
@@ -828,7 +827,6 @@
 - Belege wörtlich erweitern; auditierte, idempotente Migration `anchor-canonical-v3` samt optionaler geprüfter Originalquelle.
 - Neue Wechselwirkungen als kurze empfängerbezogene Hinweise, dauerhaft einmalig und ohne eigene Same-Turn-Aussagen.
 - Synthetische Unit-Abnahme und zehn echte lokale Live-Läufe für alle fünf Muster in beiden Reihenfolgen.
-
 ## RC3 – Teamgedächtnis und Mail-Verläufe (#863)
 
 - Bezugsanker aus dem wörtlichen Beleg deterministisch vervollständigen und ergänzen; alle Bezüge vor Festhaltebestätigung wieder lesen.
@@ -837,6 +835,7 @@
 - Entwurfssignaturen mit gemapptem Anzeigenamen auch bei leerem Gruß und fehlendem optionalem Displayfeld.
 - Synthetische Abnahmetests und wiederholbare budgetierte lokale Live-Abnahme für #863.
 
+
 ## Unreleased — Teamgedächtnis mit kanonischen Basisankern (#861)
 
 - Der Store zerlegt zusammengesetzte Anker deterministisch über konfigurierbare Präpositionen und Artikel. Basisfragen und Wechselwirkungen berücksichtigen alle Qualifier; ausdrücklich qualifizierte Fragen behalten ihre Filterung.
@@ -844,6 +843,7 @@
 - Auditierte, idempotente Tenant-Admin-Migration normalisiert Altdaten, bereinigt interne Funktionslabels und doppelte Prüfbelege und plant neu verbundene Aussagen zur erneuten Prüfung ein; Betreiberaufruf im Tenant-Gedächtnis-Runbook.
 - Entwürfe verwenden den gemappten Anzeigenamen für die Signatur. Vollständig beantwortete Fragen zu einem eindeutigen Datensatz erhalten keine zusätzliche Bereichs- oder Zeitraumfrage.
 - Synthetische Generator-Daten und Tests für alle elf Abnahmeszenarien. Die vorhandene Nichtproduktions-Live-Validierung ist um Szenarien 1, 2 und 7 ergänzt; sie wurde nicht ausgeführt.
+
 
 ## Unreleased — RC3: Tenant-Wissen aus Dokumenten (#789)
 
@@ -906,6 +906,7 @@
 - Korrektur, Widerruf, Gültigkeitsende und aktuelle Clearance gelten auch für spätere Evidenz und Notices. Langsame Prüfungen bleiben im bestehenden Turn-Budget und liefern Ergebnisse im Hintergrund.
 - Synthetische Abnahme- und HTTP-Tests sichern beide Akteursreihenfolgen, Quellen, Tenant-Trennung, Sensitivität, Arbeitsrückwirkung und Ausschlüsse für Fragen, Smalltalk und Dokumentablage ab.
 
+
 All notable changes to the Cernion Energy Tools project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
@@ -954,7 +955,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reconciled six reviewed dependency PRs and compatible dependency security patches; regenerated OpenAPI and the operation-capability index and refreshed the architecture review with explicit PR/issue boundaries.
 
 ### Added
-
 - RC3 Shared Service gap findings (#727, part of #693): bundle context-bound missing information into bounded deterministic gap lists, deliver visible `L-` notices, confirm ignore/completion reactions through the existing correction loop, and refresh attention with once-only feedback after verified closure; no extra operations, LLM calls or Dashboard changes.
 - RC3 Shared Service correction learning (#701, part of #693): adds confirmed conversation-bound corrections for coverage, responsibility, attention tiers and tenant neighbor overlays; reversible journaled changes, guarded admin actions, one existing proposal feedback path, proposal inbox visibility and the #723 notice contract seam. Activates I-7/I-8 against real services without widening permissions or applying model overrides.
 - RC3 Shared Service system activity (#700, part of #693): adds a reusable model-label/keyword/alias resolver and a bounded read-only Workbench presenter for activation, attention, journal digests, agent lifecycle and management-visible coverage. Unknown or ambiguous functions ask for clarification; unavailable sources give an explicit notice without Knowledge/RAG fallback. Existing mapped identity and visibility stay authoritative, Coverage observation is skipped for these pure state reads, and real-service I-5 becomes active.
@@ -992,7 +992,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generic Governance Cards (#663): adds a tenant-scoped `governance-cards` lifecycle service for reusable regulated-process cards (`trigger -> review -> owner/deadline -> next gate -> follow-up`). The service exposes typed card definitions, strict required-field validation with positive missing-field guidance, create/read/list/update/evidence/comment/transition actions and scalar-safe dossier summaries. Cards are advisory/internal only and do not execute external filings, market messages, billing, dispatch, device control or production workflow actions.
 
 ### Testing
-
 - RC3 Shared Service invariant and domain-free harness (#702, part of #693): adds catalog-derived core scanning with justified exceptions, positive/negative I-1–I-9 oracle tests, explicit upstream-service todos, seeded contract simulations with fake time and failure minimization, and fixed-seed/nightly CI with a 59-second runtime deadline. The real function model is used automatically when available.
 - Added RC3 Workbench coverage for admin tenant/user mapping, delivery-client registration, CET-led classify/continue conversation resume, UI-safe event presentation, EvidenceRef attach and the OpenAI-compatible `cernion-governance-assistant` mode. Targeted regression suite: `tests/workbench.service.test.js`, `tests/openai-compatible.service.test.js`, `tests/domain-router.service.test.js`, `tests/domain-router-shadow.test.js`, `tests/agent-sidecar.service.test.js`, `tests/energy-sidecar-connector.test.js`, `tests/token-manager.service.test.js`.
 - Extended `tests/workbench.service.test.js` for #621 with EvidenceRef contract regressions: unknown evidence/source/sensitivity values fail closed, secret-like metadata and oversized labels are rejected, restricted evidence requires sensitivity clearance and renders redacted without it, duplicate source fingerprints are idempotent and do not emit duplicate events, and Willi-MaKo APERAK Z18 references remain supporting diagnostic evidence with no raw payload/token leakage.
@@ -1016,8 +1015,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Workbench Context and Case Inbox (#627/#636): adds CET-owned user/workspace context profiles, playbook registry, and persisted inbox tasks so Open WebUI clients receive role-aware task guidance without storing raw chat history.
 
+- Workbench Context and Case Inbox (#627/#636): adds CET-owned user/workspace context profiles, playbook registry, and persisted inbox tasks so Open WebUI clients receive role-aware task guidance without storing raw chat history.
 ### Added
 
 - Workbench understand-first (#739): structured situations select catalog-configured knowledge sources, grounded answers precede background cases, repeated questions are suppressed, and “Kein Fall” withdraws the case. Retains mapped access and no-call guards; explicit external wishes produce notices and internal drafts.
@@ -1046,7 +1045,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`energy-market.co2Intensity` no longer publishes fabricated all-zero CO₂ forecasts when the GrünstromIndex/Corrently source shape contains nullable standard CO₂ fields.** The CET wrapper now accepts raw forecast rows with `co2_avg:null` and `co2_g_standard:null`, falls back to populated `co2_g_oekostrom` values with `degraded:true`/`fallback_co2_field:"co2_g_oekostrom"`, and returns a structured `success:false`, `status:"unavailable"` response with warnings when no numeric CO₂ field is available. This preserves integrator trust for EV charging and load-shifting consumers while avoiding claims that the upstream field behavior is intentionally deprecated.
 
 ### Testing
-
 - Added `tests/workbench.service.test.js` coverage for #640 (`describe('Tenant skills/playbooks governed lifecycle (#640)')`): create-as-draft with draft/proposed/deprecated skills excluded from chat/routing while active skills are included; propose/activate append-only audit entries that are idempotent on retry; activation/deprecation denied without `ROLE_TENANT_ADMIN`/`ROLE_PROCESS_OWNER`/`ROLE_ADMIN`/`ROLE_UTILITY_HQ`; `propose-from-case` writes only for a same-tenant resolved/confirmed case (unresolved, missing, cross-tenant and unauthorized cases perform no write) and is itself idempotent; secret-like, nested and oversized skill content is rejected and never persisted; activated skills always inherit and cannot subtract the domain's baseline no-call guards/blocked actions; active skill application renders as a safe `appliedPlaybooks` case-summary/dossier entry with no raw case text; deprecation preserves prior version/audit history without deleting it; and the skill lifecycle never invokes any tool run or mail-account side effect.
 - Extended `tests/workbench.service.test.js` for #656 to prove `GET /api/workbench/inbox/tasks` is now a non-mutating snapshot: pure list/refresh does not persist inbox tasks, does not bump projected `updatedAt`, does not acknowledge or deliver events, and exposes scalar `eventCount`/`eventIdsDisplay` render fields while explicit assign/resolve commands still materialize and complete a selected task without touching event delivery state.
 - `tests/budibase-workbench.test.js` — 6 new tests for #599: (1) structural — the panel composes exactly the six named queries against exactly the four existing dashboard-brick endpoints plus the two existing Domain Router `explain`/`related-sessions.discover` endpoints and never `/api/domain-router/events`, and the sections/notes are registered; (2) the selector renders the synthetic `cetCaseId`/linked Workbench case as `selected`/`bound`, or `blocked_outside_sandbox_tenant` outside the sandbox tenant; (3) the summary renders `cetCaseId`/`caseStateVersion`/active-domain/last-routing-decision/next-safe-gate rows, falls back to `fallback`/`clarification` labels when no case state exists yet, and renders no data for a Domain Router policy-denied (foreign/hidden) case; (4) evidence/owner-gap rows always resolve to `clarification` or `human_review_required`, never an automatic rejection; (5) related-case/session rows from `discover` render as scalar evidence pointers only (never auto-linked) and render no data for a policy-denied case; (6) the responsible-role-family row and the event-not-polled boundary plus disabled `continue`/`events.ack`/`related-sessions.link` guard rows render correctly with no `[object Object]` or raw nested JSON. Existing `tests/domain-router.service.test.js` regressions (tenant spoofing, missing role, hidden case/discovery/event placeholders, optimistic version guard, polling delivery and acknowledgement) remain unchanged and green. Full suites: `tests/budibase-workbench.test.js` — 1 suite / 67 tests pass; `tests/domain-router.service.test.js` — 1 suite / 44 tests pass.
@@ -1060,56 +1058,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.23] — 2026-08-18
 
 ### Added
-
 - **Netzanschluss Transparenz Readiness Matrix Workbench panel (#530) — a dedicated, additive `netzanschluss_transparenz_*` section group over existing read-only Netzanschluss/Kapazitaets/Governance bricks.** Extends `integrations/budibase/manifests/stadtwerk-mauer-workbench.json` with an 11-panel selectable-target section for `ROLE_NETZPLANUNG` and `ROLE_ANSCHLUSSWESEN` so, for one synthetic connection case `smm-netzanschluss-transparenz-review-001`, they can answer in under a minute which capacity, technical, deadline and communication evidence is present or missing, who owns clarification, and what safe read-only refresh/verify gate follows. Composes only the eight read models named in the accepted plan: `GET /api/dashboard/grossspeicher-anschluss-readiness-gate` (Anschlussfall/Status, NAP/MaStR, fNAV contract boundary, Steuerbarkeit, Kontrollraum-Uebergabe), `GET /api/dashboard/anschlusskapazitaet-evidence-queue` (Kapazitaetsauskunft), `GET /api/dashboard/grid-connection-transformation-gate` (technische Pruefung/Datenqualitaet), `GET /api/dashboard/fnav-fast-track-contract-gate` (Fristen/fNAV-Rechtssicherheit — the valid route; the earlier `/fnav-fast-track-vertragsgate` spelling is never used), `GET /api/dashboard/areal-network-integration-offer-gate` (Zielnetzpfad/CAPEX/Angebotsfenster), `GET /api/dashboard/cross-domain-special-topics-queue` (Kommunikationsbausteine), and `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` / `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` reusing the existing `stadtwerk-mauer-grid-connection-transformation-gate-v1` Blueprint-Pack seed (no new seed, no second `demoProcessMatrix`) for the canonical four-row V/D/M/I matrix (`roleLegend.M = Mitwirkend`) and owner/audit transfer-readiness rows. No new backend endpoint, service action, Capability Broker route, Hydration Registry rule, formatter, Personal-Agent hardcoding, external connector, capacity reservation, connection approval/rejection, GIS/ERP/MDM/MaStR/ZNP write, MaKo/billing/settlement/tariff/dispatch/device-control, workflow/HITL, Rundeck execution or Budibase table write is introduced — this is manifest composition only.
 - Eleven new scalar Budibase queries (`getNetzanschlussTransparenz{Case,Capacity,Technical,Deadline,Offer,Communication,Verify,Matrix,Evidence,Transfer,NoCall}Rows`) render case identity/status, capacity/technical/deadline/offer evidence-or-gap rows, cross-domain communication topic and gap rows, the reused canonical V/D/M/I matrix, the seed's own missing-evidence rows, and the honest downstream sync legs (`Blueprint-Pack/Cernion-Energy-Tools = complete`, `Landing-Registry = pending`, `Produktivseite = pending`).
 
 ### Testing
-
 - `tests/budibase-workbench.test.js` — 2 new tests: (1) structural — the panel composes exactly the eight named endpoints and no others, never references the invalid `/fnav-fast-track-vertragsgate` spelling, the Blueprint-verify/transfer-readiness queries target the reused `stadtwerk-mauer-grid-connection-transformation-gate-v1` seed and `smm-netzanschluss-transparenz-review-001` case, and the sections/notes are registered; (2) behavioral — all eleven transformers produce scalar/display-safe rows with no `[object Object]` or raw nested JSON, present vs. missing evidence renders correctly per facet (capacity/technical/deadline/offer/communication), the matrix carries `roleLegendM: 'Mitwirkend'` with role-only cells, transfer-readiness keeps synthetic-seed/production-boundary data classes distinct, and the no-call rows cover capacity-reservation/connection-approval/GIS-ERP-write/Rundeck/Budibase-table-write guards. Full suite: `tests/budibase-workbench.test.js` — 1 suite / 51 tests pass.
 
 ## [0.99.22] — 2026-08-17
 
 ### Added
-
 - **New internal `mqtt-edm-ingest` service (#503) — a deterministic MQTT-shaped measurement ingest contract, not an external MQTT broker.** Adds `services/mqtt-edm-ingest.service.js` with four actions (`ingestMessage`, `ingestBatch`, `getStatus`, `listDeadLetters`) that validate and normalize MQTT-topic-shaped messages and delegate all persistence to the existing `edm.importTimeseries` action with `overwriteExisting: false` — no direct SQLite access, no PouchDB registry, no REST alias/OpenAPI surface, and no external MQTT network listener/connector in this MVP slice. Supports only the self-describing topic schema `cernion/edm/{tenantId}/{meloId}/{obis}` plus single-reading or `values[]`-batch payloads. Rejects and dead-letters `INVALID_TOPIC`, `INVALID_TENANT`, `INVALID_TIMESTAMP`, `VALUE_NOT_NUMERIC`, `OBIS_CONFLICT` (topic/payload identifier mismatch) and `UNKNOWN_MELO` (sanitized, no stack trace leak) without ever writing an unrecognized MeLo. Dead letters are process-local, in-memory and bounded (default 500, ring-buffer eviction of the oldest), storing only `id`, `topic`, `reason`, `receivedAt`, `source` and a `payloadHash` — never the raw payload. `getStatus` reports `received`/`imported`/`skipped`/`deadLettered`/`lastReceivedAt` counters. `services/mqtt-broker.service.js` (command/QoS §14a-flex semantics) is unchanged and untouched.
 
 ### Testing
-
 - New `tests/mqtt-edm-ingest.service.test.js` — 13 tests covering: single-message import via `edm.importTimeseries`, topic decomposition into `tenantId`/`meloId`/`obis`, `values[]` batch normalization into multiple EDM rows, idempotent duplicate `(meloId, obis, ts)` handling (`skipped` via EDM's existing `INSERT OR IGNORE`), `INVALID_TIMESTAMP`/`VALUE_NOT_NUMERIC`/`OBIS_CONFLICT` (meloId and obis variants)/`UNKNOWN_MELO`/`INVALID_TOPIC` dead-lettering with bounded hash-only metadata (no raw payload retained, no stack trace leaked), `getStatus` counters, `ingestBatch` aggregation across multiple envelope messages, and an assertion that no `/edm/mqtt/` REST route exists in `services/api.service.js`. Full suite: `tests/mqtt-edm-ingest.service.test.js` + `tests/edm.service.test.js` — 2 suites / 41 tests pass.
 
 ## [0.99.21] — 2026-08-15
 
 ### Added
-
 - **Municipality Public-Context Scope Readiness Workbench panel (#555) — the narrow renderer/composition slice over #554's canonical seed.** Extends `integrations/budibase/manifests/stadtwerk-mauer-workbench.json` with a municipality-selector/readiness section for `ROLE_DATA_GOVERNANCE`, `ROLE_NETZPLANUNG` and `ROLE_MUNICIPAL_STRATEGY` so, after selecting one bounded demo municipality (`Mauer`, `Sandhausen`, `Wiesloch`, as a transfer parameter, not a product constant), they can answer in under a minute whether municipality identity, AGS and the complete `postalCodes[]` scope are unambiguous, which MaStR/OSM/municipal-value context is public, derived, heuristic or degraded, which evidence is missing, who owns clarification, and what safe human review gate follows. Composes only the six read models named in the accepted plan: `GET /api/dashboard/municipal-energy-value-analysis` (municipality identity/AGS/complete `postalCodes[]`/derived-load/missing-evidence), `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay` (public vs. derived/heuristic MaStR/OSM classification and revalidation state, kept separate from synthetic rows), `GET /api/dashboard/quality-summary` and `GET /api/dashboard/observability-mini` (bounded platform-quality/service-availability context, explicitly never presented as municipality-specific completeness), and `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` / `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` for the canonical `stadtwerk-mauer-municipality-public-context-readiness-v1` seed and synthetic case `smm-municipality-public-context-review-001`. `GET /api/municipality/lookup`, `POST /api/osm-geo/landuse-areas` and `GET /api/grid-operations/market-actor-directory` are rendered only as `source_hint_only` / `not_called` no-call guard rows; Budibase never calls them ad hoc, and a market-actor directory hit is never rendered as proof of municipal service or VNB assignment. A timeout/degraded source response renders as missing-evidence/clarification, never a negative fact.
 - Nine new scalar Budibase queries (`getMunicipalityPublicContextReadiness{Selector,Mastr,QualityBoundary,ObservabilityBoundary,Verify,Matrix,Evidence,Transfer,NoCall}Rows`) render the exact canonical four-row V/D/M/I matrix (`roleLegend.M = Mitwirkend`, role cells are role ids only), the missing-evidence and positive-follow-up rows from the seed, and the honest downstream sync legs (`Blueprint-Pack/Cernion-Energy-Tools = complete`, `Landing-Registry = pending`, `Produktivseite = pending`). No new backend endpoint, service action, Capability Broker route, Hydration Registry rule, formatter, Personal-Agent hardcoding, external connector, production action, Landing Registry write or secret/key work is introduced — this is manifest composition only.
 
 ### Testing
-
 - `tests/budibase-workbench.test.js` — 2 new tests: (1) structural — the panel composes exactly the six named endpoints and no others (asserts no query path touches `/municipality/lookup`, `/osm-geo/` or `/market-actor-directory`), the Blueprint-pack/transfer-readiness queries target the correct seed/case ids, and the sections/notes are registered; (2) behavioral — all nine transformers produce scalar/display-safe rows with no `[object Object]` or raw nested JSON, municipality identity/AGS/complete `postalCodes[]` render correctly (and as `missing-evidence`/`clarification` when unresolved, never an empty negative fact), MaStR public-context and synthetic revalidation rows stay on distinct data classes, quality/observability rows stay explicitly bounded and non-municipality-specific, the matrix is exactly four canonical rows (plus one sync-summary row) with `roleLegendM: 'Mitwirkend'` and role-only cells, the downstream sync string reads `complete -> pending -> pending`, transfer-readiness rows keep public/synthetic/sandbox/safe-gate/production-boundary data classes distinct, and the no-call rows cover the market-actor/VNB-assignment and municipality-resolver-write guards plus the three source-hint operations. Full suite: `tests/budibase-workbench.test.js` — 1 suite / 49 tests pass.
 
 ## [0.99.20] — 2026-08-15
 
 ### Added
-
 - **New `stadtwerk-mauer-municipality-public-context-readiness-v1` VDMI Blueprint-Pack seed (#554) — governs whether a municipality scope is unambiguous and provenance-safe before a later Workbench panel is cut.** Building on v0.99.17's complete `postalCodes[]` municipality scope, v0.99.15's read-only OSM land-use evidence and v0.99.16's read-only market-actor directory, this seed answers in under a minute whether the selected municipality scope is unambiguous (AGS plus complete PLZ set), which context is public versus derived/heuristic, which provenance/freshness evidence is missing, and what safe review gate follows — without turning public context into tenant master data or upgrading heuristic evidence into fact. Four-row VDMI matrix: (1) municipality identity + AGS + complete `postalCodes[]` scope, (2) MaStR/OSM public-context classification with freshness/boundary evidence, (3) derived load-split/land-use evidence bounded as heuristic, never official, (4) review-readiness status with an explicit no-retry/no-call boundary and pending downstream Landing-Registry/Produktivseite sync — the phase-4 safe next gate is `refresh_or_verify_existing_read_only_context`. `GET /api/dashboard/municipal-energy-value-analysis`, `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay`, `GET /api/dashboard/quality-summary`, `GET /api/dashboard/observability-mini`, `GET /api/municipality/lookup`, `POST /api/osm-geo/landuse-areas` and `GET /api/grid-operations/market-actor-directory` are referenced as metadata-only source hints; none is invoked by this seed.
 - Seed/helper only: registered in `src/vdmi-blueprint-pack-seeds.js` alongside the existing 18 seeds (new `REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE`/`REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_ROLE_IDS` constants, `SEED_VALIDATION_REQUIREMENTS` entry, `buildWorkbenchClarificationItems` role hint). No new endpoint, Budibase panel, service action, external connector call, mutation, tenant provisioning, market-actor assignment, workflow/HITL or production action is introduced — `forbiddenActions`/`decisionPolicy.mustNotTrigger` explicitly list `ad_hoc_retry_execution`, `external_connector_call`, `market_actor_assignment`, `market_actor_binding`, `public_context_correction`, `mastr_mutation`, `osm_mutation` and `public_context_mutation`.
 
 ### Testing
-
 - `tests/vdmi-blueprint-pack-seeds.test.js` — 11 new tests covering: seed exposure, metadata-only source-hint references (no execution), full validator pass, the three data classes and immutable public-context boundary, complete-`postalCodes[]` scope represented as a list fact (not one hardcoded PLZ), that no row claims MaStR/OSM/postal-code/market-actor/municipal-value context is complete or decision-ready without evidence, the six required positive follow-up mappings, no-call guards plus pending downstream Landing-Registry/Produktivseite sync, workbench clarification-item mapping, and Demo-Raum matrix sync/draft derivation. Full suite: `tests/vdmi-blueprint-pack-seeds.test.js` — 1 suite / 75 tests pass.
 
 ## [0.99.19] — 2026-08-14
 
 ### Fixed
-
 - **`dashboard-api/municipal-energy-value-analysis` hung completely (30-60s, `HTTP:000` — no response at all, not even headers) for some municipalities, reported live for Berlin and Hamburg, and correlating with 2,708 failed municipality lookups in a nationwide sweep.** Live investigation (timing the actual underlying `vnbdigital_search`/`vnbdigital_lookup` MCP calls directly) found the slowness is **not** deterministically tied to any specific municipality — a repeat test hung on München instead, one of the cities originally reported as reliably fast, while Berlin/Hamburg resolved quickly. The real, local, fixable defect: `dashboard-api`'s shared `safeCall()` helper had no timeout at all — a slow/hanging upstream `grid-operations.vnbdigitalSearch`/`vnbdigitalLookup` call (itself a thin proxy to an external MCP tool) blocked the entire endpoint for as long as the underlying MCP SDK transport allowed (120s per attempt, more with retries), while the calling client's own proxy/timeout gave up first with a bare connection-level `HTTP:000`.
 - Added an optional `timeoutMs` parameter to `safeCall()` (`services/dashboard-api/methods-part-01-of-14.js`) — unset by default, so every other one of its many existing call sites is unaffected. `resolveMunicipalVnbdigitalOperator()` (`services/dashboard-api/methods-part-13-of-14.js`) now bounds both its `vnbdigitalSearch` and `vnbdigitalLookup` calls to 12s each. On timeout, the existing `missing-evidence` degraded-response shape (already used for every other VNBdigital failure mode on this endpoint) is returned instead of hanging — matching this endpoint's own documented philosophy ("missing data is surfaced in missingEvidence and sourceRows, not as errors").
 - `osm-geo.service.js` already solved this exact problem for its own MCP calls (`_callMcpWithTimeout`) but the pattern had never been extended to `dashboard-api`; `safeCall`'s new parameter makes the same bounded-call capability available to its many other call sites without requiring each to hand-roll its own `Promise.race` wrapper.
 
 ### Testing
-
 - New test in `tests/dashboard-api.test.js`: a mocked `vnbdigitalLookup` that resolves after 60s (well past the new 12s bound) — asserts the endpoint still responds in well under 20s with the correct `missing-evidence` degraded shape, not a hang.
 - Caught during test development: the initial `safeCall` timeout implementation never cleared its `setTimeout` on the fast/normal path, leaking a dangling timer on every timeout-bounded call (harmless in production, but surfaced immediately as a Jest "did not exit" warning once run across the full 456-test suite, each exercising `resolveMunicipalVnbdigitalOperator`'s two now-bounded calls). Fixed with `clearTimeout` in a `finally` block.
 - Full suite: `tests/dashboard-api.test.js` — 1 suite / 456 tests pass, clean exit (no dangling handles).
@@ -1117,14 +1105,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.18] — 2026-08-13
 
 ### Fixed
-
 - **MCP calls that failed with JSON-RPC `-32001 "Session not found"` were never retried, even though the retry mechanism needed to fix them already existed.** Reported live: `osm-geo/substation-finder` intermittently returned `success:false` with a `-32001 "Session not found"` error at HTTP 200 (not a clean HTTP error — only visible via the body), for bounding boxes that returned real data seconds later via a different endpoint — i.e. not geodata-dependent, purely a transient server-side session/connection-pool condition. A separately-documented sustained multi-minute `assets/all` outage (every call timing out) shares the same underlying client code path (`src/async-job-poller.js` also calls `CernionMCPClient.callWithNewSession`).
 - Root cause: `callTool()`'s own catch block (`src/mcp-client.js`) converts a thrown transport error into a returned `{success:false, error:{...}}` object rather than re-throwing, so `callWithNewSession`'s retry-decision check (`_isQuotaError`, matching only "quota"/"rate limit"/"too many requests") never saw a `-32001`/"Session not found" message as retryable — it was returned immediately on the first attempt. The retry loop itself already builds a brand-new `CernionMCPClient` (and therefore a brand-new session) on every attempt, exactly the "expliziter Session-Neuaufbau" fix a drafted external bug report to Cernion was going to ask about — no external change needed for this part.
 - Added `CernionMCPClient._isSessionError()` (matches "session not found" / "-32001") and a combined `_isRetryableError()` gate used at all three retry-decision sites (the inner `connect()` retry-break, the per-attempt result check, and the catch-block check) in `callWithNewSession`. Exhausting all retries on a session-only error now returns `error.code: 'SESSION_ERROR_EXHAUSTED'` (previously indistinguishable from `QUOTA_EXHAUSTED`, or, before this fix, whatever ad-hoc code the SDK's transport error happened to carry — `404` in the reported case).
 - `services/osm-geo.service.js`'s shared `_classifyDegradedReason()` (used by all `osm-geo.*` actions) gained a `SESSION_ERROR` category (checked before the pre-existing `NOT_FOUND` match, since "Session not found" would otherwise be misclassified as `GEOCODING_FAILED`) so a caller's exhausted-retry session failure is distinguishable from a real "no data in this area" response and from the generic `SERVICE_ABORT` bucket it fell into before.
 
 ### Testing
-
 - `tests/mcp-client.test.js` — 3 new tests: retries and succeeds on a `-32001` result returned from `callTool()` (the actual reported code path — a returned object, not a thrown exception), returns `SESSION_ERROR_EXHAUSTED` (not `QUOTA_EXHAUSTED`) after all retries fail, and retries when the session error instead surfaces as a thrown `connect()` exception (symmetry with the existing quota-error tests).
 - `tests/osm-geo.service.test.js` — 1 new test: an exhausted session error is classified as `SESSION_ERROR`, not `SERVICE_ABORT`.
 - Full suite: `mcp-client.test.js` + `osm-geo.service.test.js` + `async-job-poller.test.js` + `assets.service.test.js` + `grid-operations.service.test.js` (every direct/known consumer of the changed retry path) — 5 suites / 208 tests pass.
@@ -1133,26 +1119,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.17] — 2026-08-10
 
 ### Fixed
-
-- **`municipality-resolver.js` (backing `municipality.lookup` and `dashboard-api/municipal-energy-value-analysis`'s `postalCodes` field) only ever returned a single postal code per municipality, even for large multi-PLZ cities.** Reported live for Mannheim (14 real PLZ, only `68159` returned) and, separately, Frankfurt am Main (`postalCodes` empty entirely — a distinct GV100-vs.-`german-zip-codes` name-format mismatch, intentionally **not** addressed by this fix, per explicit scoping). Root cause of the multi-PLZ truncation: the Layer 2 (`german-zip-codes`) name→PLZ index (`l2NameToPlz`/`l2NameStateToPlz`) kept only the _first_ PLZ row encountered per municipality name and silently discarded the rest, even though the underlying dataset already has the complete list (confirmed live: 14 rows for Mannheim in the raw package data).
+- **`municipality-resolver.js` (backing `municipality.lookup` and `dashboard-api/municipal-energy-value-analysis`'s `postalCodes` field) only ever returned a single postal code per municipality, even for large multi-PLZ cities.** Reported live for Mannheim (14 real PLZ, only `68159` returned) and, separately, Frankfurt am Main (`postalCodes` empty entirely — a distinct GV100-vs.-`german-zip-codes` name-format mismatch, intentionally **not** addressed by this fix, per explicit scoping). Root cause of the multi-PLZ truncation: the Layer 2 (`german-zip-codes`) name→PLZ index (`l2NameToPlz`/`l2NameStateToPlz`) kept only the *first* PLZ row encountered per municipality name and silently discarded the rest, even though the underlying dataset already has the complete list (confirmed live: 14 rows for Mannheim in the raw package data).
 - Replaced the single-value maps with array-collecting `l2NameToPlzList`/`l2NameStatePlzList` plus a new `allPostalCodesForName(nameKey, state)` helper (state-scoped list preferred, full-name list as fallback) that both `buildFullProfile()` and the Layer-2-only fallback path now use to populate a complete, deduplicated, sorted `postalCodes[]` array. The existing singular `postalCode` field is unchanged in both value and semantics (the specifically-resolved/first PLZ) — this is a strictly additive completeness fix to the array field, not a behavior change to the singular one.
 - Live-verified via direct resolver calls: Mannheim 14 PLZ, Stuttgart 35, Karlsruhe 13, Mainz 11, Heidelberg 8 (previously all count 1) — while a genuinely single-PLZ town (Hockenheim, `68766`) and the still-open Frankfurt am Main gap are both unchanged, confirming no regression.
 
 ### Testing
-
 - **New `tests/municipality-resolver.test.js`** (8 tests) — this module had no dedicated test file before, only indirect coverage via `dashboard-api.test.js`/`municipality.service.test.js`. Covers: full multi-PLZ list for Mannheim and four other known multi-PLZ Großstädte, singular `postalCode` staying a member of `postalCodes[]`, single-PLZ towns unaffected, AGS-based and PLZ-based resolution returning the same complete list, state-scoped disambiguation not bleeding postal codes across same-named municipalities in different Bundesländer, and the documented still-open Frankfurt am Main gap (explicitly asserted as a known, out-of-scope limitation, not silently left untested).
 - Full suite, scoped to real repo paths (stray `.worktrees`/`.claude/worktrees` duplicate test files excluded): `tests/dashboard-api.test.js` + `tests/municipality.service.test.js` — 2 suites / 471 tests pass unchanged. New `tests/municipality-resolver.test.js` — 1 suite / 8 tests pass.
 
 ## [0.99.16] — 2026-08-10
 
 ### Added
-
 - **New `grid-operations.marketActorDirectory` action (`GET /grid-operations/market-actor-directory`) — bulk, paginated German market actor directory.** Requested explicitly as a discovery-seed replacement for consumers who would otherwise need the ~3GB MaStR full export or MaStR web-UI scraping. Investigated the existing lookup family first (`marketPartners`, `vnbdigitalSearch`, `vnbdigitalLookup`, `vnbLookup`, `vnbLookupCodes`) — all proxy to external `mcp.cernion.de` MCP tools with no local data backing, and `marketPartners`'s `offset` parameter was found live to be silently ignored by the underlying `cernion_market_partners` tool (identical results at `offset:0` and `offset:50000`) — genuine bulk enumeration was not possible through any existing capability. The Cernion MCP-side team subsequently shipped a dedicated `cernion_market_actor_directory` tool with real pagination; this action is a thin, verified proxy to it, matching the requester's exact proposed shape (`entityId`, `companyName`, `bdewCodes[]`, `marketRoles[]`, `address.{city,postalCode,state}`, `website`, `mastrId`, `lastUpdated`, plus `pagination.{limit,offset,total}`).
 - Live-verified before shipping: `offset=0` vs `offset=5` return fully disjoint result sets (0 overlap) with an honest `pagination.total` (2123 across all 3 roles); `marketRoles` filtering (`VNB`/`LIEFERANT`/`MSB`) works server-side; `website` coverage ~89% in a 100-entry sample (close to the ~93–96% reported by the MCP-side team). `address.state` and `mastrId` are documented as known, currently near-always-null data gaps in the underlying source (not a bug in this proxy) per the MCP-side team's own findings.
 - `limit` capped at 500 (the underlying tool's own server-side cap, confirmed live — requesting 1000 silently returns 500).
 
 ### Testing
-
 - `tests/grid-operations.service.test.js` extended (7 new tests) — param pass-through incl. defaults, unwrapping the tool's double-nested response shape (verified live before writing the fixture) into a clean single-level result, `marketRoles`/`limit` validation, MCP-failure → clean 502, and pagination-fallback synthesis when the tool omits it.
 - Full suite: `tests/grid-operations.service.test.js` — 11 suites / 634 tests pass.
 - Live-verified end-to-end through a real Moleculer broker (not just mocked tests) with `marketRoles: ['VNB','LIEFERANT','MSB']` — correct shape, correct data, correct pagination.
@@ -1160,12 +1142,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.15] — 2026-08-10
 
 ### Added
-
 - **New `osm-geo.landuseAreas` action (`POST /osm-geo/landuse-areas`) — OSM `landuse=*` polygon areas by type, sector-split evidence for municipal load estimation.** Requested explicitly: `src/municipal-load-estimator.js`'s `sectorFractionsForProfile()` currently falls back to a population/density proxy (`evidenceStatus: 'heuristic-fallback'`) for the commercial/public/residential split, and its own `nextGateLabel` names the fix — "OSM-Gebäudenutzung, MaStR-Anlagenstandorte und kommunale Liegenschaften für lokalen Lastsplit verbinden." `src/osm-landuse-areas.js` fetches `landuse=residential|commercial|retail|industrial|institutional` way polygons (default set, filterable via `landuseTypes`) via the same Overpass data source and conventions as `osm-geo.gridTopology` (`location`/`postalCode`/`boundingBox` scope, same geocoding, same area guard), computing each polygon's area (shoelace formula) and centroid entirely locally — no external MCP dependency. **Scope limitation, documented rather than silently miscalculated:** only simple closed `way` polygons are handled in v1; multipolygon `relation`s (areas with excluded inner holes) are not fetched, understating totals for whichever areas happen to be relation-mapped.
 - **New `src/osm-geometry.js`** — the planar-projection geometry helpers (`projectXY`, `pointToSegment`, `bboxAreaSqKm`, `padBbox`, plus new `polygonAreaM2`/`polygonCentroid`) extracted from `src/osm-grid-topology.js` so `osm-landuse-areas.js` reuses the same local-metres projection instead of duplicating it, per this repo's shared-utility convention. `osm-grid-topology.js`'s own behavior and public API (`nearestPointOnWay`, `bboxAreaSqKm`, `padBbox`, etc.) are unchanged — pure internal refactor, verified via the full existing `osm-grid-topology`/`osm-geo.service` test suites passing unchanged.
 
 ### Testing
-
 - `tests/osm-geometry.test.js` (new, 14 tests) — `polygonAreaM2` verified exactly against a known 100m × 100m square (10000 m² ±10m²), winding-direction independence, unclosed-ring handling, degenerate-input safety; `polygonCentroid`, `bboxAreaSqKm`, `padBbox`, `pointToSegment`, `nearestPointOnPolyline`.
 - `tests/osm-landuse-areas.test.js` (new, 11 tests) — way-polygon parsing into areas with computed area/centroid, default vs. filtered `landuseTypes` query construction, degenerate-geometry and non-way-element skipping, User-Agent header, error propagation, `summarizeLanduseAreas` aggregation.
 - `tests/osm-geo.service.test.js` extended (10 new tests) — `landuseAreas` action: scope resolution (bbox/location/postalCode, matching `gridTopology`'s conventions), `landuseTypes` enum validation, `GEOCODING_FAILED`/`AREA_TOO_BROAD`/Overpass-failure degraded responses, empty-result summary shape.
@@ -1175,12 +1155,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.14] — 2026-08-09
 
 ### Added
-
-- **`osm-geo.gridTopology`: nearest-substation fallback for unattached distribution transformers, plus a padded Overpass fetch — the combination that finally produces real edges for both pilot areas (Hockenheim and Weinheim).** Requested explicitly after the v0.99.13 spatial-proximity model still returned `edges: 0` for Weinheim: German MS (~20kV) distribution cables are almost always underground and not mapped in OSM, but every `power=transformer` must physically be fed from _some_ substation — German MS networks are predominantly radial from a local Umspannwerk. A `power=transformer` node left with zero mapped-line attachment is now paired with the nearest `power=substation` node (straight-line distance, bounded by `MAX_NEAREST_SUBSTATION_DISTANCE_M`, 5 km), tagged `evidenceType: 'nearest_substation_inferred'` (vs. `'mapped_line'` for real OSM-derived edges) so callers can tell the two apart. Deliberately **not** applied to orphaned `power=substation` nodes — pairing two substations just because they're geographically close is a much weaker assumption than the transformer→local-substation one, and could fabricate connections that don't exist.
+- **`osm-geo.gridTopology`: nearest-substation fallback for unattached distribution transformers, plus a padded Overpass fetch — the combination that finally produces real edges for both pilot areas (Hockenheim and Weinheim).** Requested explicitly after the v0.99.13 spatial-proximity model still returned `edges: 0` for Weinheim: German MS (~20kV) distribution cables are almost always underground and not mapped in OSM, but every `power=transformer` must physically be fed from *some* substation — German MS networks are predominantly radial from a local Umspannwerk. A `power=transformer` node left with zero mapped-line attachment is now paired with the nearest `power=substation` node (straight-line distance, bounded by `MAX_NEAREST_SUBSTATION_DISTANCE_M`, 5 km), tagged `evidenceType: 'nearest_substation_inferred'` (vs. `'mapped_line'` for real OSM-derived edges) so callers can tell the two apart. Deliberately **not** applied to orphaned `power=substation` nodes — pairing two substations just because they're geographically close is a much weaker assumption than the transformer→local-substation one, and could fabricate connections that don't exist.
 - **`fetchGridElements()` now pads the queried bbox by `FETCH_PADDING_M` (4 km) on every side before calling Overpass.** Live-diagnosed: Weinheim's 32 real substation/transformer nodes all happened to be tagged `power=substation` (not `transformer`), so the fallback above didn't apply to them at all until the fetch was widened — a substation's real feeding HS/EHS line, or a transformer's real nearest substation, can be just outside a caller's exact bbox purely by where the box happened to be drawn, not because the infrastructure is unmapped. Sized above the largest real gap measured in this investigation (a substation up to 3.4 km from the nearest mapped line). Live-verified after both changes: Weinheim now returns 155 nodes / 7 edges (1 mapped, 6 inferred) and Hockenheim 37 nodes / 16 edges (2 mapped, 14 inferred) — up from 0 edges each.
 
 ### Testing
-
 - `tests/osm-grid-topology.test.js` — 10 new tests: nearest-substation fallback (pairs the nearer of two substations, respects `MAX_NEAREST_SUBSTATION_DISTANCE_M`, does not re-pair an already-connected transformer, requires at least one substation to exist, respects `voltageLevelFilter`, does not apply to orphaned substations) and `padBbox` (expands on every side, pads by approximately the requested metres, zero padding is a no-op) plus a `fetchGridElements` test confirming the padded coordinates are actually sent to Overpass.
 - Full suite: `osm-geo.service.test.js` + `osm-grid-topology.test.js` — 12 suites / 559 tests pass.
 - Live-verified against both real pilot bboxes post-fix (see above) — the first successful non-zero-edge result across this entire multi-release investigation.
@@ -1188,14 +1166,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.13] — 2026-08-09
 
 ### Changed
-
-- **`osm-geo.gridTopology`'s edge-derivation model replaced: spatial proximity instead of exact OSM node-ID membership.** The original model (a topology node must be a literal way-member of the line) matched the pilot bbox (Hockenheim) by coincidence — that area happens to be mapped with lines traced topologically through the transformer points. A second real bbox (Weinheim) proved this isn't the general OSM convention: 32 real, fully-fetched substation/transformer nodes, 0 way-members of 65 real nearby line ways, `edges: 0` every time regardless of node-fetch completeness (unlike the three prior regressions, this failure was deterministic, not Overpass flakiness). The community had mapped Weinheim's transformers as geometrically close but topologically separate point features — the more common OSM style for German distribution infrastructure. Retrospective across the _entire_ investigation (the original `mcp.cernion.de` proxy through all of v0.99.9–v0.99.12): not a single real edge was ever returned, independent of node-selection issues — the edge-derivation model itself was too narrow.
+- **`osm-geo.gridTopology`'s edge-derivation model replaced: spatial proximity instead of exact OSM node-ID membership.** The original model (a topology node must be a literal way-member of the line) matched the pilot bbox (Hockenheim) by coincidence — that area happens to be mapped with lines traced topologically through the transformer points. A second real bbox (Weinheim) proved this isn't the general OSM convention: 32 real, fully-fetched substation/transformer nodes, 0 way-members of 65 real nearby line ways, `edges: 0` every time regardless of node-fetch completeness (unlike the three prior regressions, this failure was deterministic, not Overpass flakiness). The community had mapped Weinheim's transformers as geometrically close but topologically separate point features — the more common OSM style for German distribution infrastructure. Retrospective across the *entire* investigation (the original `mcp.cernion.de` proxy through all of v0.99.9–v0.99.12): not a single real edge was ever returned, independent of node-selection issues — the edge-derivation model itself was too narrow.
 - `buildGraph()` now attaches a topology node to a way when it falls within `PROXIMITY_THRESHOLD_M` (50 m) of the line's geometry (point-to-polyline distance, not just to the nearest vertex), ordered by position along the line so multiple attachments to one way chain correctly. Exact node-ID membership (distance 0) is a proper subset of this model, so no separate code path was kept.
 - **New plausibility gate, requested explicitly:** proximity alone is not sufficient — `isVoltageCompatible()` rejects an attachment unless the node's voltage level is the same as or adjacent to the way's (a transformer/substation bridges exactly two adjacent levels, e.g. HS/MS or MS/NS). A node with no voltage tag of its own (the common case for plain `power=transformer` points — overwhelmingly small distribution transformers in practice) is restricted to NS/MS ways only, never auto-attached to HS/EHS transmission lines merely because it's geometrically closest; `power=substation` nodes span the full range and are left unrestricted when their own voltage is unknown.
 - **German railway traction power lines excluded**, also requested explicitly: `Bahnstrom`/DB Energie infrastructure (reliably tagged `frequency=16.7` vs. 50 Hz for the public grid, with an operator-name regex as a defensive backup) is out of scope for VNB/distribution-grid topology and is now filtered at the Overpass query level.
 
 ### Testing
-
 - `tests/osm-grid-topology.test.js` — 16 new tests: `isVoltageCompatible` (unknown-voltage transformer rejected near HS/EHS, allowed near NS/MS; unknown-voltage substation allowed everywhere; known-voltage same/adjacent-bucket allowed, 2+ buckets away rejected; unclassified way allowed), `nearestPointOnWay` (on-vertex, offset, multi-segment ordering), `buildGraph` proximity cases mirroring the exact Weinheim pattern (connects a ~22 m-offset non-way-member node, rejects a ~218 m-offset one, rejects an implausible EHS/unknown-voltage-transformer pairing even at 2 m, accepts the same pairing for a substation), and the railway-exclusion query filter. Existing `buildGraph`/service-level fixtures updated where node type (`transformer` → `substation`) no longer matched realistic voltage-plausibility for their paired way, per the new gate.
 - Full suite: `osm-geo.service.test.js` + `osm-grid-topology.test.js` — 12 suites / 549 tests pass.
 - Live verification against the real Weinheim/Hockenheim bboxes was not possible for this release — the public Overpass instance returned clean `504`s on every attempt, consistent with sustained rate-limiting from this whole investigation's cumulative load across many prior point releases. Correctness rests on the deterministic unit tests above, which directly encode the real, live-verified Weinheim data shape (32 nodes / 65 ways / 0 exact way-membership matches) that motivated this change.
@@ -1203,26 +1179,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.12] — 2026-08-09
 
 ### Fixed
-
-- **v0.99.11's fix still missed a third variant of the same failure: line ways present, but _zero_ tagged substation/transformer nodes at all — not wrong ones, none.** A user regression report reproduced `osm-geo.gridTopology` returning `NO_NODES` deterministically 5/5 times (3× `boundingBox`, 1× `postalCode`, consistent ~5s response time matching the full 3-attempt retry budget being exhausted every time) — unlike the earlier reports, not randomly alternating between success and failure. Root cause: `fetchAndBuildGraph()`'s "partially truncated" retry clause required `nodes.length > 0` (v0.99.9's pattern: wrong-but-present nodes), and the "totally empty" clause required `ways.length === 0` (v0.99.10's pattern: nothing at all) — a response with ways present but zero tagged nodes fell through both and was accepted as final without ever retrying.
-- **Fix:** the two clauses are now a single unified rule — if line ways were returned, _any_ zero-edge result is implausible and retried, regardless of node count; if no ways were returned, only a fully empty response (no nodes either) is implausible. An isolated transformer with no nearby line in the queried bbox is a legitimate, non-implausible result and correctly does not cost an extra retry. Verified exhaustively against all 5 reachable `(ways, nodes, edges)` combinations, not just the specific case from each bug report.
+- **v0.99.11's fix still missed a third variant of the same failure: line ways present, but *zero* tagged substation/transformer nodes at all — not wrong ones, none.** A user regression report reproduced `osm-geo.gridTopology` returning `NO_NODES` deterministically 5/5 times (3× `boundingBox`, 1× `postalCode`, consistent ~5s response time matching the full 3-attempt retry budget being exhausted every time) — unlike the earlier reports, not randomly alternating between success and failure. Root cause: `fetchAndBuildGraph()`'s "partially truncated" retry clause required `nodes.length > 0` (v0.99.9's pattern: wrong-but-present nodes), and the "totally empty" clause required `ways.length === 0` (v0.99.10's pattern: nothing at all) — a response with ways present but zero tagged nodes fell through both and was accepted as final without ever retrying.
+- **Fix:** the two clauses are now a single unified rule — if line ways were returned, *any* zero-edge result is implausible and retried, regardless of node count; if no ways were returned, only a fully empty response (no nodes either) is implausible. An isolated transformer with no nearby line in the queried bbox is a legitimate, non-implausible result and correctly does not cost an extra retry. Verified exhaustively against all 5 reachable `(ways, nodes, edges)` combinations, not just the specific case from each bug report.
 - The public Overpass instance itself was also observed to be under unusually heavy load at the time of this report (the user's `substation-finder` — the still-external `mcp.cernion.de` path — failed 3/3 times in the same session, atypical for that endpoint; a live retest here also hit a clean `504`). Both things were true at once: a real, now-fixed logic gap, and a genuinely saturated shared public instance that no amount of retrying alone fully compensates for — the existing recommendation to point `OVERPASS_ENDPOINT` at a private instance for production load stands.
 
 ### Testing
-
-- `tests/osm-grid-topology.test.js` extended (2 new tests) — retry-and-recover for "ways present, zero tagged nodes" (the exact v0.99.11 regression pattern), and a new explicit non-regression case: no ways but a real isolated tagged node does _not_ trigger a retry.
+- `tests/osm-grid-topology.test.js` extended (2 new tests) — retry-and-recover for "ways present, zero tagged nodes" (the exact v0.99.11 regression pattern), and a new explicit non-regression case: no ways but a real isolated tagged node does *not* trigger a retry.
 - Full suite: `osm-geo.service.test.js` + `osm-grid-topology.test.js` — 12 suites / 533 tests pass.
 - Exhaustive manual sweep of all 5 reachable `(ways, nodes, edges)` combinations against the actual implausibility check, confirming correct retry/no-retry behavior for each — done specifically to catch further gaps before shipping, given the pattern of the previous two fixes each missing an adjacent case.
 
 ## [0.99.11] — 2026-08-09
 
 ### Fixed
-
-- **v0.99.10's implausible-result retry had a gap: it only triggered when Overpass returned real line ways but zero derivable edges, not when the whole response came back completely empty.** A user regression report reproduced `osm-geo.gridTopology` returning 0 nodes/0 edges (`coverageLabel: "NO_NODES"`) 3x in a row for the same known-populated Hockenheim bbox — including with `voltageLevel` filters and `postalCode` scope — while `osm-geo.substationFinder` reliably found 75 real substations for the identical bbox in the same test session, proving the underlying data was available and this was not a data gap. Root cause: `fetchAndBuildGraph()`'s implausibility check (`ways.length > 0 && nodes.length > 0 && edges.length === 0`) required `ways.length > 0`, so a totally empty Overpass response (0 ways _and_ 0 nodes — an even more severe version of the same silent-truncation failure mode fixed in v0.99.10) never entered the retry path at all.
+- **v0.99.10's implausible-result retry had a gap: it only triggered when Overpass returned real line ways but zero derivable edges, not when the whole response came back completely empty.** A user regression report reproduced `osm-geo.gridTopology` returning 0 nodes/0 edges (`coverageLabel: "NO_NODES"`) 3x in a row for the same known-populated Hockenheim bbox — including with `voltageLevel` filters and `postalCode` scope — while `osm-geo.substationFinder` reliably found 75 real substations for the identical bbox in the same test session, proving the underlying data was available and this was not a data gap. Root cause: `fetchAndBuildGraph()`'s implausibility check (`ways.length > 0 && nodes.length > 0 && edges.length === 0`) required `ways.length > 0`, so a totally empty Overpass response (0 ways *and* 0 nodes — an even more severe version of the same silent-truncation failure mode fixed in v0.99.10) never entered the retry path at all.
 - **Fix:** the retry condition now also covers a completely empty response (`ways.length === 0 && nodesById.size === 0`), and `maxRetries` default raised from 1 to 2 given how persistently degraded the public Overpass instance has been observed to be across this investigation (up to 3 attempts total). A genuinely empty area (no power infrastructure at all in the bbox) now pays for one extra retry before settling — an acceptable cost, since this platform only ever queries real German municipality areas.
 
 ### Testing
-
 - `tests/osm-grid-topology.test.js` — the "does not retry a genuinely empty area" test (encoding the old, now-wrong behavior) replaced with two tests: retry-and-recover on a totally-empty-then-good sequence (the exact v0.99.10 regression pattern), and honest give-up after exhausting retries on a persistently empty area.
 - Full suite: `osm-geo.service.test.js` + `osm-grid-topology.test.js` — 12 suites / 531 tests pass.
 - Live verification against the real Overpass instance was not possible for this fix — the public instance was still returning clean `504`s from this investigation's own preceding load at the time of shipping (itself confirmation that the error path added in v0.99.10 continues to surface real failures honestly rather than silently). Correctness rests on the deterministic unit tests above.
@@ -1230,13 +1202,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.10] — 2026-08-09
 
 ### Fixed
-
 - **`osm-geo.gridTopology` (v0.99.9's local implementation) regressed to 0 edges on a follow-up test — root-caused to the public Overpass instance itself, not the graph logic.** A user regression report reproduced only 2 (unconnected) nodes instead of the expected 8, with the 6 previously-confirmed-connected node IDs missing entirely. Investigated by replaying the exact same query multiple times back to back with the exact deployed User-Agent: results alternated between fully correct (8 nodes/106 ways, matching the original bug investigation exactly) and a clean 504, with no case of a wrong-but-successful response reproducing in that session — but the way count stayed constant at 106 every time, while node counts varied, consistent with the public Overpass instance silently truncating the node portion of a compound node+way query under load (no error, no `remark` field) while the way portion stays complete. This is a known-flaky characteristic of the shared public instance under the heavy repeated querying this investigation itself generated, not a bug in `buildGraph()` (unchanged, still covered by its existing deterministic unit tests).
 - **Fix: `osm-grid-topology.js` now retries once when a fetch result is topologically implausible** (`fetchAndBuildGraph()`) — real line ways present, at least one topology node present, but zero derivable edges is exactly the truncation signature observed live, and essentially never occurs for a complete fetch of a real mapped area. A short-backoff retry resolves this in practice; if it recurs, the caller still gets the honest "no line connectivity could be derived" `dataQuality` message from v0.99.9 rather than a fabricated explanation. Hard fetch errors (timeouts, 5xx, 429) are surfaced immediately as a proper `degradedReason` and are not retried by this mechanism — confirmed live during this fix: the public instance returned clean `504`/`429` responses that came through correctly as `SERVICE_ABORT` degraded responses rather than silently wrong data, itself a real improvement over the pre-v0.99.9 behavior.
 - Correction for anyone tracking this thread: this is no longer a `mcp.cernion.de` issue to report externally — `gridTopology`'s edge derivation has been fully local since v0.99.9 (`src/osm-grid-topology.js`), so this class of bug is now ours to fix directly, which is what this release does.
 
 ### Testing
-
 - `tests/osm-grid-topology.test.js` extended (5 new tests) — `fetchAndBuildGraph()`: no retry on a plausible result, retry-and-recover on an implausible one, honest zero-edges result after exhausting retries, no retry for a genuinely empty area (no ways at all), and no retry on a hard fetch error (propagates immediately). Retry backoff is configurable (`backoffMs` option) so these run at full unit-test speed, not the real 2s production backoff.
 - `tests/osm-geo.service.test.js` — unchanged; the handler's external response contract didn't change, so existing `gridTopology` tests continue to cover it via the same fixtures.
 - Full suite: `osm-geo.service.test.js` + `osm-grid-topology.test.js` — 12 suites / 530 tests pass.
@@ -1244,13 +1214,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.9] — 2026-08-09
 
 ### Fixed
-
 - **`osm-geo.gridTopology` reported 0 edges for well-mapped areas, with a misleading "~0% OSM coverage" warning that directly contradicted the endpoint's own documented "40-60% coverage" expectation.** Found via a user report for the Hockenheim pilot bbox: the public Overpass API independently confirmed 106 real power-line ways there (380kV/220kV TransnetBW/Amprion transmission, 110kV Netze BW/DB Energie, 20kV distribution), and 6 of 7 sampled substation/transformer node IDs were confirmed to be actual way-members of those lines — proving the topological connectivity existed in the raw data and the failure was not a data gap. Root cause: `osm-geo.gridTopology` was a thin proxy to an external `mcp.cernion.de` MCP tool (`src/mcp-client.js`) whose edge-derivation logic is not part of this repository — reproduced live (job `status: "succeeded"`, no timeout, no error marker) with a real token, ruling out a silent timeout as the cause.
 - **Fix: `osm-geo.gridTopology` no longer depends on mcp.cernion.de.** Re-implemented locally against the same Overpass data source this platform already uses elsewhere (`src/osm-grid-topology.js`, same pattern as `src/znp-osm-buildings.js`): nodes = `power=substation`/`power=transformer` OSM elements, edges = derived by walking each `power=line|cable|minor_line` way's node list and connecting consecutive matched nodes (correctly skipping intermediate tower/pole nodes — this is exactly the connectivity pattern confirmed present in the Hockenheim data). Graph metrics (avg node degree, RADIAL/MIXED/RING classification via a documented cyclomatic-number heuristic, NS/MS/HS/EHS voltage breakdown from the OSM `voltage` tag) and Dijkstra path analysis are computed locally; `location`/`postalCode`/`gridOperator` scope inputs are forward-geocoded to a bounding box via Nominatim (reusing the User-Agent-header lesson from the Overpass 406 fix in 0.99.8 — sent from the start this time). `dataQuality` no longer asserts a specific coverage percentage when 0 edges are derived — that number was itself part of the original bug; it now explains the tower/pole modelling limitation honestly instead. The other 3 `osm-geo` actions (`validate`, `infrastructureNearby`, `substationFinder`) are unchanged and still proxy to mcp.cernion.de — they were not reported broken, and rewriting them was out of scope.
 - Requested explicitly to remove the mcp.cernion.de dependency for this endpoint: the team already runs its own Overpass access as infrastructure, and keeping a second, unfixable external proxy in the same code path was judged to only add a dependency and complicate debugging going forward.
 
 ### Testing
-
 - `tests/osm-grid-topology.test.js` (new, 25 tests) — voltage bucket classification incl. shared-tower ";"-separated values, bbox area guard, Nominatim geocoding (incl. User-Agent header and no-match handling), Overpass element parsing (incl. User-Agent header), edge derivation walking past non-topology (tower) nodes, voltage-level filtering, node degree counting, connected-component counting, RADIAL vs RING classification at both ends of the heuristic, Dijkstra path analysis including disconnected/unknown-node cases.
 - `tests/osm-geo.service.test.js` — `gridTopology` action tests rewritten to mock `axios` (Overpass/Nominatim) instead of the removed `mcp-client` dependency for this action; the two Meckesheim-regression (`issue #273`) `gridTopology` cases updated to match. All other actions' tests unchanged.
 - Full suite: `osm-geo.service.test.js` + `osm-grid-topology.test.js` — 12 suites / 525 tests pass.
@@ -1258,21 +1226,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.8] — 2026-08-09
 
 ### Added
-
 - **`municipality` service — dedicated Amtlicher Gemeindeschlüssel (AGS) lookup**, requested after a user asked whether the platform could resolve the AGS by name, PLZ, or geo-coordinates. `resolveMunicipalityProfile()` (`src/municipality-resolver.js`, offline against Destatis Gemeindegrenzen 2022/GV100) already covered name/PLZ/AGS, but was only reachable indirectly through `dashboard-api.municipalEnergyValueAnalysisStatus` — a much heavier economic Lagebild endpoint with mandatory year/scenario params. `GET /api/municipality/lookup` (`services/municipality.service.js`) exposes it directly with no extra computation.
 - **`GET /api/municipality/reverse-geocode` — coordinates to AGS**, closing a gap that didn't exist in any form before: no reverse-geocoding or point-in-polygon capability against municipality boundaries existed anywhere in the codebase (`src/data/gemeinden-2022.json` has no polygon geometry, only attributes). `src/municipality-geocoder.js` reverse-geocodes via OpenStreetMap Nominatim (`extratags['de:amtlicher_gemeindeschluessel']`, verified live against both a Kreisfreie Stadt and a regular Gemeinde before implementing), then joins the resolved AGS back through the same `resolveMunicipalityProfile()` used by `lookup` for a full profile. Sends an explicit `User-Agent` header from the start — Nominatim's usage policy requires one, and axios sends none by default in Node (the same class of bug fixed for Overpass below). `NOMINATIM_ENDPOINT` env var for a private mirror under sustained load, mirroring the existing `OVERPASS_ENDPOINT`/`OEP_API_BASE_URL` pattern.
 
 ### Fixed
-
 - **`znp.addLayer1` (OSM building-clustering job) failed at the first tile fetch with a 406 from Overpass** — `src/znp-osm-buildings.js`'s `fetchBuildingTile()` sent no `User-Agent` header; overpass-api.de's Apache front-end rejects User-Agent-less requests with 406 rather than a more obvious 403. Reproduced live against the real endpoint before and after the fix.
 - **`oep.search` threw an unhandled `AxiosError` (404) in production** whenever called without a `schema` filter. Root cause: it built its candidate set via `oep.listSchemas` → `oep.listTables`, both of which call OEP REST routes (`/schema/`, `/schema/:schema/tables/`) that no longer exist on the live Open Energy Platform (confirmed live: both consistently return OEP's themed HTML 404 page, not JSON, across many schema names — a permanent upstream removal, not an outage). `oep.search` now searches the curated `CERNION_RELEVANT_OEP_TABLES` catalog directly instead, with the same response shape and no external call. `oep.listSchemas` also gets the same 404 → clean `MoleculerClientError` handling `listTables`/`getTableMeta`/`query` already had, so a direct call now fails cleanly instead of leaking a raw axios stack trace.
 
 ### Data
-
 - **`society.destatis_zensus_population_per_bkg_vg250_6_gem` added to `CERNION_RELEVANT_OEP_TABLES`** (`src/oep-tables.js`) — Zensus 2011 population per municipality (`ags_0`, `census_sum`/`census_count`/`census_density`), enabling an OSM-independent consumption-estimation path via `oep.query`/`oep.getTableMeta`/`oep.energyTables` as an alternative to Layer 1 OSM building clustering. Verified live against the real OEP `society` schema; not discoverable via `oep.search` before the fix above existed, since that schema's real table names aren't derivable from the (broken) discovery endpoints.
 
 ### Testing
-
 - `tests/municipality.service.test.js` (new, 16 tests) — name/PLZ/AGS lookup, coordinate reverse-geocoding including the User-Agent header, Nominatim 404/outage/no-match handling, and the case where a geocoded AGS isn't in the local GV100 snapshot.
 - `tests/oep.service.test.js` extended (5 new tests) — `oep.search` catalog-based matching (name, description, schema filter, no-match, and an explicit assertion that `axios.get` is never called) and `oep.listSchemas` 404 handling.
 - Full regression: `tests/oep.service.test.js`, `tests/agent.service.test.js`, `tests/api.service.test.js`, `tests/municipality.service.test.js` — all pass.
@@ -1280,16 +1244,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.7] — 2026-08-04
 
 ### Security
-
 - **Fixed a real gap: `cernion_execute_read` could silently execute 3 write operations misclassified as read-only.** Found while scoping "full capability exposure via MCP" (see below): `operation-capability-index.json`'s classifier heuristic treats any POST operation whose summary starts with "resolve" as a read query — correct for genuine cases (`chatgpt-sidecar.plan`: "Resolve a request to a route, no execution") but wrong for `vdmi.resolveFinding`, `interface-placeholder.resolveGap`, and `job-status.resolveAlarm`, which all persist real state changes. All 3 were classified `data_read`/`direct` and reachable through the supposedly read-only MCP tool before this fix. Not fixed in the shared classifier (used by other consumers beyond MCP) — overridden with an explicit deny in `src/mcp-execute-read-policy.js` the same way v0.99.5 handled `znp_deleteProject`'s misclassification. See `docs/mcp-server.md`'s "Full capability exposure" section.
 
 ### Added
-
 - **Full parameter/request-body schema now surfaced by `cernion_describe(kind=operation)`.** Previously returned only `{method, path, operationId, summary, tags, aliases}` — no way for an MCP client to discover what to filter/pass before calling `execute_read`, even though the schema always existed in `openapi-export.json`. `services/agent-manifest.service.js`'s `loadOperations()`/`dedupeOperations()` now carry `description`, `parameters`, and `requestBody` through; `describe` already spread the full operation object, so no further change was needed there. `search` results are untouched (still lean, unaffected).
 - **2 new reserved `operationFamily` values for `cernion_prepare_process`/`execute_process`: `vdmiFindingMitigation` and `vdmiFindingResolution`** (`services/copilot-process.service.js`: `prepareVdmiFindingMitigation`, `prepareVdmiFindingResolution`, plus `_executeIntent` dispatch cases; `src/mcp-reserved-families.js`). The highest-value, lowest-risk pair of ~19 previously-unwired VDMI write operations — `vdmiFindingResolution` is also the proper write path for the operation flagged in the Security section above. The remaining VDMI write operations (and VDMI nomination, whose Phase 3 execute path isn't implemented server-side yet at all) are deliberately deferred to a future release with their own per-action review rather than wired in bulk — see `docs/mcp-server.md`'s "Full capability exposure" section for the full reasoning.
 
 ### Testing
-
 - `tests/mcp-execute-read-policy.test.js` — regression tests for all 3 misclassified-write denials plus a sanity check that the override doesn't over-match unrelated `/resolve`-suffixed paths.
 - `tests/agent-manifest.service.test.js` (new) — parameter/requestBody/description exposure, run against the real generated `openapi-export.json`.
 - `tests/mcp-server.service.test.js`, `tests/copilot-process-phase3.service.test.js` — describe-schema pass-through, and full prepare→execute coverage for both new reserved families (intent creation, dispatch, 404s, missing-field validation, `x-openai-isConsequential: false`).
@@ -1297,30 +1258,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.6] — 2026-08-03
 
 ### Changed
-
-- **Tool-selection steering for structured/quantitative questions** — found via a third real-world report (after Syna GmbH's BDEW/EIC code and a CO₂-intensity question): "wie voll im Augenblick die Gasspeicher sind" was answered by `cernion_ask` falling back to generic document/knowledge-RAG search instead of finding the matching structured operation (`gas-storage.countryStorage`), even though that operation is correctly classified and reachable — verified directly: `checkExecuteReadPolicy('POST', '/api/gas-storage/country-storage')` returns `{ allowed: true }`, and the operation is `data_read`/`agentable=true` in `operation-capability-index.json`. The routing decision itself (`personal-agent.service.js`'s internal RAG-vs-tool arbitration) is out of MCP-server scope and untouched; the only lever available here is steering which _MCP tool_ an external client picks in the first place. Reworded `cernion_ask`, `cernion_search`, and `cernion_execute_read`'s tool descriptions in `src/mcp-transport.js` so an MCP client is explicitly pointed at `cernion_search` (kind=operation) + `cernion_execute_read` first for a specific structured data point tied to a known entity, falling back to `cernion_ask` only when no matching operation exists or the question is genuinely open-ended/explanatory. Also refreshed `cernion_execute_read`'s description, which still referenced the pre-v0.99.5 "small allowlist" instead of the current index-driven (~556 operation) classification. See `docs/mcp-server.md`'s "Tool-selection steering" section.
+- **Tool-selection steering for structured/quantitative questions** — found via a third real-world report (after Syna GmbH's BDEW/EIC code and a CO₂-intensity question): "wie voll im Augenblick die Gasspeicher sind" was answered by `cernion_ask` falling back to generic document/knowledge-RAG search instead of finding the matching structured operation (`gas-storage.countryStorage`), even though that operation is correctly classified and reachable — verified directly: `checkExecuteReadPolicy('POST', '/api/gas-storage/country-storage')` returns `{ allowed: true }`, and the operation is `data_read`/`agentable=true` in `operation-capability-index.json`. The routing decision itself (`personal-agent.service.js`'s internal RAG-vs-tool arbitration) is out of MCP-server scope and untouched; the only lever available here is steering which *MCP tool* an external client picks in the first place. Reworded `cernion_ask`, `cernion_search`, and `cernion_execute_read`'s tool descriptions in `src/mcp-transport.js` so an MCP client is explicitly pointed at `cernion_search` (kind=operation) + `cernion_execute_read` first for a specific structured data point tied to a known entity, falling back to `cernion_ask` only when no matching operation exists or the question is genuinely open-ended/explanatory. Also refreshed `cernion_execute_read`'s description, which still referenced the pre-v0.99.5 "small allowlist" instead of the current index-driven (~556 operation) classification. See `docs/mcp-server.md`'s "Tool-selection steering" section.
 
 ### Testing
-
 - No behavioral/runtime code changed (description-text only); existing `tests/mcp-transport.test.js` and `tests/mcp-server.service.test.js` (45 tests) re-run clean against the updated tool definitions.
 
 ## [0.99.5] — 2026-08-02
 
 ### Fixed
-
 - **`cernion_execute_read`'s allowlist was structurally too narrow, refusing genuinely read-only operations** — found via real-world testing (an MCP client via claude.ai asked a CO₂-intensity question; `energy-market.co2Intensity` was refused because it's POST and the ~10-entry hand-curated allowlist didn't cover it, even though it's a side-effect-free query). Every read-shaped POST across the platform (energy-market, entsoe, gas-storage, german-grid, oep, osm-geo, residual-load, tabular, and more) had the same gap. `execute_read` now consults `operation-capability-index.json` — the same deterministic classification (`src/operation-capability-classifier.js`) already computed for all ~880 operations and relied on elsewhere in the platform — as its primary source of truth (~556 operations now correctly recognized as read-safe, vs. ~10 before), with the original GET-by-convention + small POST allowlist kept only as a fallback for anything not yet in the index. See `docs/mcp-server.md`'s "The allowlist redesign" section for the exact per-`operationKind` rule, including a real misclassification (`znp_deleteProject`, a `DELETE`, incorrectly labeled `advisory_plan` in the index) that the redesign deliberately still catches via a stricter per-kind execution-mode check.
 - **A real, independent bug found while investigating the report above**: the execute_read denylist targeted `/token-manager/*`, but `services/token-manager.service.js` is actually mounted at `/tokens` — so `GET /api/tokens` (token metadata: masked values, but names/tenant-user IDs/scopes/active status, potentially beyond the caller's own tenant) was never actually blocked despite that clearly being the intent. Fixed alongside the allowlist redesign.
 - **`cernion_search`/`cernion_describe`'s `blueprint` kind couldn't resolve built-in blueprints** — also found via the CO₂ report: `cernion_ask`'s response mentioned a blueprint (`ev-charging-co2-optimization-v1`) by name (its own internal L3-broker routing already knew about it), but `cernion_describe` reported it as unresolvable. Root cause: `search`/`describe` queried `blueprint-management` (the PouchDB-backed draft/promote governance workflow) instead of `src/blueprint-registry.js` — the actual unified view `cernion_ask`'s own routing consults, merging static repo blueprints (`src/blueprints/*.json`, most of the 20 shipped blueprints) with governance-promoted ones. Switched `search`/`describe` to call `blueprint-registry.js` directly (a plain module, no service call needed).
 
 ### Testing
-
 - `tests/mcp-execute-read-policy.test.js` (new, 16 tests) — the CO₂-intensity fix, the token-manager path-prefix fix, the `znp_deleteProject` misclassification edge case, denylist coverage, and a mocked-missing-index fallback scenario.
 - `tests/mcp-server.service.test.js` extended with real (not stubbed) blueprint-registry data, including a 404 case for a nonexistent blueprint id.
 
 ## [0.99.4] — 2026-08-02
 
 ### Added
-
 - **OAuth 2.1 (authorization code + mandatory PKCE) authorization server fronting `/api/mcp`**, for MCP clients that can only authenticate via OAuth rather than a raw Bearer token (e.g. claude.ai's remote connector UI). Does not introduce a second identity system: the issued `access_token` **is** the same `ck_...`/`csess_...` token a Bearer-auth caller would use directly — the `/oauth/authorize` consent step is "paste an existing CET API token to authorize this client," verified via the same `token-manager.verify`/`auth.verify` calls the REST gateway already uses. `src/mcp-auth.js` needed zero changes as a result. See `docs/oauth.md` for the full design, endpoint table, and known v1 limitations (in-memory-only authorization codes/dynamic clients, no per-grant revocation, no refresh tokens).
   - `src/oauth-server.js` — the protocol/HTTP layer: RFC 9728 protected-resource metadata, RFC 8414 authorization-server metadata, RFC 7591 Dynamic Client Registration (auto-accepted), the consent form, and the authorization-code/PKCE token exchange. Registered as raw handlers on the root `/` route in `services/api.service.js` (same pattern as `/metrics` and the `/api/mcp` MCP transport handlers).
   - `src/oauth-store.js` — in-memory authorization-code and dynamic-client state, mirroring `copilot-process.service.js`'s `ProcessIntentStore` pattern (short-lived records, single-process).
@@ -1331,24 +1287,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Self-healing guard for `mcp-server` actions** (`src/mcp-transport.js`): a production instance was observed answering `initialize`/`tools/list` correctly (served from this file's static tool definitions) while every actual tool call failed with `SERVICE_NOT_FOUND` — the `mcp-server` service itself hadn't been loaded into that process's broker, despite shipping in the same deploy. Each session now checks the broker's action registry at connect time and lazily loads `services/mcp-server.service.js` if it's missing, turning a silent, confusing failure into either a working call or a specific error if the service is registered but genuinely broken.
 
 ### Testing
-
 - `tests/oauth-server.test.js` (14 tests) — a real HTTP server exercising the full authorization-code + PKCE flow end to end (metadata discovery, dynamic registration, consent rejection/acceptance, single-use code consumption, PKCE verifier mismatch, `csess_` session tokens, `/oauth/client-info` with and without a static client configured), including a direct check that the resulting `access_token` authenticates successfully through the real `resolveMcpAuth` (`src/mcp-auth.js`) — proving the OAuth and Bearer paths converge on the same auth resolution.
 - `tests/mcp-transport.test.js` extended with real end-to-end coverage of `resources/list`, `resources/read`, `prompts/list`, `prompts/get`, and a dedicated self-healing scenario (a broker that never registered `mcp-server` at boot, proving a real tool call still succeeds instead of `SERVICE_NOT_FOUND`).
 
 ## [0.99.3] — 2026-08-02
 
 ### Added
-
 - **MCP server: full execution for the 4 reserved operation families** (`vdmi`, `gridConnection`, `znp`, `connectionRejectionEvidence`), closing the gap noted in v0.99.2's `docs/mcp-server.md`. `cernion_prepare_process` now routes these 4 `operationFamily` values to their dedicated `prepare*` actions in `services/copilot-process.service.js` instead of the generic `prepareProcessIntent` (which explicitly rejects them) — their intents execute for real through `cernion_execute_process`, since `_executeIntent`'s dispatch table already had real cases for exactly these 4. `src/mcp-reserved-families.js` maps each family's MCP-facing `payload` shape onto the dedicated action's actual params and validates required fields up front, returning a clear `422` instead of letting a malformed request reach the REST action. No changes were needed for `cernion_execute_process` (already handles these intents correctly) or for the families' read-only context endpoints (`getVdmiContext`, `listOpenResponsibilities`, `getZnpProjectStatus`, `getGridConnectionValidation` — plain GET routes, already reachable via `cernion_search`/`describe`/`execute_read`).
 
 ### Fixed
-
 - **`cernion_prepare_process` now catches a pre-existing validation gap in `prepareConnectionRejectionEvidence` before it reaches the REST action**: that action validates `decision` as a plain string rather than against the target action's real enum (`GO`/`CONDITIONAL`/`NO_GO`/`PENDING`) — existing tests even use `'REJECTED'`, an invalid value that would only fail later, at `executeProcessIntent` time, after a human has already confirmed the intent. `src/mcp-reserved-families.js` validates `decision` against the real enum itself. Not fixed at the source (`copilot-process.service.js`) to avoid touching existing call sites/tests for a fix that's only load-bearing through the new MCP path — see `docs/mcp-server.md`'s "Reserved operation families" section.
 
 ## [0.99.2] — 2026-08-02
 
 ### Added
-
 - **Real MCP server** (`POST/GET/DELETE /api/mcp`, JSON-RPC 2.0 over the streamable-HTTP transport, `@modelcontextprotocol/sdk`'s server-side `McpServer`/`StreamableHTTPServerTransport`) exposing 9 layer-based meta-tools (`cernion_ask`, `cernion_search`, `cernion_describe`, `cernion_execute_read`, `cernion_run_receipt`, `cernion_prepare_process`, `cernion_execute_process`, `cernion_process_status`, `cernion_get_context`) instead of a 1:1 mapping over the platform's ~1,100 REST operations. Authenticates with the same Bearer tokens as the REST API (`ck_...` API tokens, `csess_...` session tokens, legacy passthrough). See `docs/mcp-server.md` for the full design, including explicit, evidence-based deviations from the original design concept found while wiring it against the real codebase (no `confirmation_token` field exists anywhere in `copilot-process`; generic process intents have no wired auto-execution by design — only 4 reserved operation families do; agent receipts have no direct execution path, only dry-run planning).
 - `services/mcp-server.service.js` — the 9 meta-tool actions (also reachable individually over plain REST at `POST /api/mcp-server/<action>` for debugging), each orchestrating existing services (`agent-manifest`, `personal-agent`, `agent-receipts`, `blueprint-management`, `cookbook`, `copilot-process`, `job-status`, `hitl`, `agent-sidecar`, `tenant-quota`) rather than reimplementing them.
 - `src/mcp-transport.js` — the MCP wire-protocol layer: one `StreamableHTTPServerTransport` + one dedicated `McpServer` per session, tool callbacks closed over that session's resolved auth.
@@ -1358,18 +1310,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `'MCP Server'` OpenAPI tag registered in `src/llm-manifest-taxonomy.js` (→ `platform` domain) so the new operations don't fall into `llm.txt`'s unmapped-taxonomy-gap check.
 
 ### Testing
-
 - `tests/mcp-server.service.test.js` (22 tests) — the 9 actions against stubbed dependency services (matches this repo's existing `ServiceBroker`-with-stub-services convention), including the RBAC gate's allow/deny paths.
 - `tests/mcp-transport.test.js` (6 tests) — a genuine end-to-end round trip: a real Node HTTP server running the actual transport handlers, a real `@modelcontextprotocol/sdk` client connecting over `StreamableHTTPClientTransport`, `tools/list` returning exactly the 9 documented tools, and both the legacy-token and `ck_` full-access/read-only auth paths exercised for real.
 
 ## [0.99.1] — 2026-08-02
 
 ### Added
-
 - **`knowledge-rag.federatedSearch` action** (`POST /api/knowledge-rag/federated-search`): a new async (job-pattern, same convention as `query`/`semantic`) wrapper for the new internal MCP tool `cernion_willi_federated_search`, which searches in parallel across multiple collections optimized for Marktkommunikation (MaKo/EDIFACT) and regulatory (BNetzA/EnWG/EEG) content. Minimal input contract (`query` + optional `limit`), consistent with the codebase's existing job-based RAG-action conventions. Registered in the API Gateway's compute-tier rate-limit classification and explicit REST alias table (both previously missing an entry for this new path).
 - **Two new standalone microservices, modeled on the existing `services/willi-mako.service.js`**: `services/willi-regulatorik.service.js` (wraps `cernion_willi_regulatorik_search` — regulatory-only knowledge search) and `services/willi-federated.service.js` (wraps `cernion_willi_federated_search` directly, synchronous single-call convention). Both expose the same `search`/`resolveStructure` action pair, read-only/advisory contract and no-call-boundaries pattern as Willi-Mako, adapted for their respective domain (regulatory-only vs. combined MaKo+regulatory no-call-boundary text). Both are auto-discovered by `index.js`'s `services/*.service.js` glob loader — no manual registration needed.
-- **Capability Broker registration for the new federated capability**: `willi-regulatorik.search`/`resolveStructure` and `willi-federated.search`/`resolveStructure` added as additional `preferredActions`/`fallbackActions` on the existing `market_communication_evidence_chain` capability (`src/capability-catalog.js`), alongside default-param builders in `services/capability-broker.service.js` mirroring the existing Willi-Mako query-population logic. Deliberately did not extend the capability's routing _keyword_ signals (which are MaKo/EDIFACT-specific) to cover generic regulatory terms — doing so risked hijacking the routing of several other existing regulatory-domain capabilities that were out of scope for this change.
-- **Additive, opt-in `federatedSearch` integration across existing knowledge-rag consumers** — in every case, default behavior is provably unchanged (verified with dedicated tests asserting the federated path is _not_ called unless explicitly requested):
+- **Capability Broker registration for the new federated capability**: `willi-regulatorik.search`/`resolveStructure` and `willi-federated.search`/`resolveStructure` added as additional `preferredActions`/`fallbackActions` on the existing `market_communication_evidence_chain` capability (`src/capability-catalog.js`), alongside default-param builders in `services/capability-broker.service.js` mirroring the existing Willi-Mako query-population logic. Deliberately did not extend the capability's routing *keyword* signals (which are MaKo/EDIFACT-specific) to cover generic regulatory terms — doing so risked hijacking the routing of several other existing regulatory-domain capabilities that were out of scope for this change.
+- **Additive, opt-in `federatedSearch` integration across existing knowledge-rag consumers** — in every case, default behavior is provably unchanged (verified with dedicated tests asserting the federated path is *not* called unless explicitly requested):
   - `src/personal-agent-knowledge-rag.js`: new `queryFederatedEvidence()` adapter function, mirroring `queryKnowledgeEvidence()`'s safety wrapping (timeout handling, sanitized hits) exactly.
   - `personal-agent.askCernionAgent`: new optional `includeFederatedKnowledge` param (default `false`); when `true`, additionally calls a new `collectCopilotFederatedKnowledgeEvidence` collector (mirroring the existing `collectCopilotMakoKnowledgeEvidence`/`collectCopilotKnowledgeEvidence` collectors) and surfaces it as an advisory `evidenceBySource.federatedKnowledge` entry.
   - `agent-receipts`: a `knowledgeQueries[]` entry may set `source: 'federated'` (validated in `src/agent-receipts-schema.js` against a new `KNOWLEDGE_QUERY_SOURCES` whitelist) to use `knowledge-rag.federatedSearch` for that specific query instead of the default `knowledge-rag.query`.
@@ -1377,7 +1327,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `dashboard-api.evidenceGroundingConfidenceAudit`: new optional `includeFederatedKnowledge` param (default `false`); when `true`, additionally probes `knowledge-rag.federatedSearch` health/availability and surfaces it as an isolated `federatedKnowledgeProbe` field, using its own error-tracking array so a probe failure can never degrade the core audit's `answerStatus`/`evidenceConfidence` scoring (a real coupling bug caught by a dedicated test before release — see Fixed below).
 
 ### Fixed
-
 - **Regression caught before release**: the dashboard-api federated-search probe initially shared the same `errors` accumulator array as the core audit's other tool calls, so a federated-search failure incorrectly degraded `answerStatus` to `tool_degraded` and lowered `evidenceConfidence` even though the probe is optional/advisory. Fixed by giving the probe its own isolated errors array; verified with a dedicated test asserting the core audit outcome is unaffected by a federated-probe failure.
 - **`src/agent-receipts-schema.js`'s `normalizeKnowledgeQuery` silently dropped unknown fields**: discovered while implementing the `source: 'federated'` opt-in — the existing per-field whitelist normalizer (already in place for `queryType`/`query`/`limit`/etc.) has no fallback/passthrough for unrecognized keys, so a naively-added `source` field on a `knowledgeQueries` entry was silently stripped before ever reaching the retrieval executor. Fixed by explicitly whitelisting and validating the new field (`KNOWLEDGE_QUERY_SOURCES`) in the normalizer, the same way every other field there is handled.
 
@@ -1389,12 +1338,10 @@ observability, TODO debt, coverage gates) and a general open-source-readiness
 pass, with zero behavioural changes to any external API surface.
 
 ### Security
-
 - **Gated OIDC/SAML "foundation mode" behind an explicit opt-in flag**: `services/auth.service.js`'s `oidcCallback` and `samlAcs` actions built a session directly from caller-supplied claims/payload with no authorization-code exchange, no ID-token signature validation and no SAML assertion signature check — a full authentication bypass if ever reachable with a real OIDC/SAML provider configured in production. Both actions now refuse to run (`501 AUTH_FOUNDATION_MODE_DISABLED`) unless `AUTH_FOUNDATION_MODE=true` is explicitly set (default `false`); OpenAPI docs and the `.env.example` template updated with explicit warnings. `src/auth/oidc.js` and `src/auth/saml.js` each carry a `TODO` documenting the real remaining gap (no `openid-client` PKCE/discovery flow; no SAML assertion/XML-signature verification) for a future full SSO implementation.
 - **Closed all outstanding dependency CVEs — `npm audit` now reports 0 vulnerabilities** (previously 13, including 2 high-severity): `xlsx` (SheetJS) had 2 high-severity advisories (`GHSA-4r6h-8v6p-xvw6`, `GHSA-5pgg-2g8v-p4x9`) with no fix published to the npm registry — migrated to SheetJS's own version-pinned CDN tarball (`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`), same library, zero code changes, `services/assets.service.js`'s duplicate local `convertToXLSX` removed in favor of the shared `src/format-response.js` helper. `pouchdb`/`pouchdb-find`'s moderate advisories were transitive from `uuid@8.3.2`, not the pouchdb version itself — fixed via a package.json `overrides` pin to `uuid@^11.1.1` (pouchdb itself untouched, verified with a direct PouchDB `.post()`/`.find()` smoke test). Remaining advisories (`brace-expansion`, `js-yaml`, `@babel/core`, `@hono/node-server`) fixed via targeted `overrides` pins; `@modelcontextprotocol/sdk` bumped within its existing semver range. `SECURITY.md`'s "Known Dependency Exceptions" section (previously documenting the now-fixed `xlsx` issue as open) and its stale `0.18.x`–`0.20.x` supported-version table updated to reflect current reality.
 
 ### Changed
-
 - **Split the two largest files in the repo into navigable per-domain modules, with zero behavioural change**: `services/dashboard-api.service.js` (47,471 lines, 127 actions, 221 methods) and `services/personal-agent.service.js` (17,236 lines, 10 actions, 152 methods) are now thin shells (`services/dashboard-api.service.js`, `services/personal-agent.service.js`) that compose chunk files from new `services/dashboard-api/` and `services/personal-agent/` directories via `require`. Same Moleculer service name and action namespace as before — zero caller-visible API impact, no test/capability-catalog/OpenAPI/Budibase-manifest changes needed. Split via exact AST-boundary source-slicing (`@babel/parser` node offsets sliced from the original raw text, never re-serialized), verified with structural JSON deep-equal diffs plus a byte-for-byte `function.toString()` comparison of every extracted function against the pre-split original, and the full test suite.
 - **Cleaned up all 216 pre-existing `no-unused-vars` ESLint warnings — `npm run lint` is now 0 errors, 0 warnings**: 116 were a missing ESLint config option (`no-unused-vars` only had `argsIgnorePattern: '^_'`, missing the separate `caughtErrorsIgnorePattern`/`varsIgnorePattern` options needed to recognize already-`_`-prefixed catch bindings and plain variables); the remaining ~100 were fixed case-by-case — genuinely-unused destructured properties/params removed from their destructuring pattern (not renamed, since renaming a shorthand-destructured property changes which value is extracted rather than marking it unused) and genuinely-unused plain variables removed outright.
 - **Added warn-level diagnostic logging to 89 previously-silent `catch` blocks** across `services/` and `src/` that discarded the caught error with no log line, no returned error field and no explanatory comment — an operator investigating a production issue had zero signal that these fallback paths had even been hit. Insert-only change (a single new first statement per catch body; no existing logic touched): `this.logger?.warn(...)` where the enclosing function is a bound service method, `process.stderr.write(...)` for standalone `src/` helpers with no reliable `this`, matching this codebase's two pre-existing logging conventions.
@@ -1402,31 +1349,26 @@ pass, with zero behavioural changes to any external API surface.
 - **Open-source beta-readiness pass**: `SECURITY.md` version table and dependency-exception section corrected (see Security above); `CONTRIBUTING.md`'s "Ensure all tests pass (when available)" hedge replaced with a direct `npm test` instruction; added a `package.json` `engines.node: ">=22"` field matching the Node version already pinned in CI (`.github/workflows/*.yml`) but previously undeclared to contributors/npm; verified every doc link in `README.md`'s Documentation Map resolves to an existing file; verified `.gitignore`, `CODE_OF_CONDUCT.md`, issue templates, PR template and `dependabot.yml` were already in good shape. `README.md`'s service/OpenAPI-path/test-file counts and version string refreshed to match this release.
 
 ### Fixed
-
 - **3 stale/inaccurate `TODO` markers resolved**: `services/assets.service.js`'s "extract to a shared module when used by other handlers" TODO removed outright — the extraction condition was never met (still only used in one place), so the TODO itself was premature-abstraction noise rather than pending work. `src/auth/oidc.js`'s TODO referenced a long-passed version target (`v0.48.x`, several major/minor releases ago) — reworded to describe the actual current state (gated behind `AUTH_FOUNDATION_MODE`) instead of a stale promise. `src/validation-findings.js`'s TODO to sync 37 finding codes' `recommendation`/`recommendationDe` UI text from `docs/ui-contracts/14-finding-code-recommendations.md` was left unsynced by design — that source document explicitly states the German legal/compliance wording (referencing EnWG/EEG provisions) is an unreviewed draft, and this project does not put unreviewed compliance guidance in front of grid-operator users; the TODO comment now says so explicitly instead of citing a stale version tag. `src/auth/saml.js` gained a matching TODO documenting its own real, previously-undocumented gap (no SAML assertion/XML-signature verification), making the pre-existing cross-reference comment in `services/auth.service.js` accurate.
-- **Regression from the unused-vars cleanup, caught before release**: an automated rename pass fixing `no-unused-vars` warnings blindly renamed flagged identifiers to a `_`-prefix by source position; for ordinary variables this is safe, but for two patterns it isn't — (a) a shorthand-destructured property (`const { name } = source`) or object-rest-spread-to-exclude idiom (`const { unwanted, ...rest } = obj`), where renaming changes _which_ property is extracted rather than marking it unused, and (b) a write-only variable (`let n = 0; n += 1;`, which ESLint flags as unused since it's never _read_) whose increment site wasn't renamed along with its declaration, leaving a `ReferenceError`. One real functional bug was found this way (`services/dashboard-api/methods-part-08-of-14.js`'s `categories.map(({ items, ...category }) => category)` — the rename would have leaked `items` into the response instead of excluding it) and one test-breaking `ReferenceError` (`tests/personal-agent.service.test.js`'s unread `llmCallCount` counter) — both fixed before this release by removing the property from its destructuring pattern (rather than renaming) and removing the genuinely-dead counter, respectively. All ~15 other renamed-but-not-yet-reviewed sites were cross-checked and confirmed cosmetically-renamed-but-functionally-harmless (the binding was genuinely never read elsewhere).
+- **Regression from the unused-vars cleanup, caught before release**: an automated rename pass fixing `no-unused-vars` warnings blindly renamed flagged identifiers to a `_`-prefix by source position; for ordinary variables this is safe, but for two patterns it isn't — (a) a shorthand-destructured property (`const { name } = source`) or object-rest-spread-to-exclude idiom (`const { unwanted, ...rest } = obj`), where renaming changes *which* property is extracted rather than marking it unused, and (b) a write-only variable (`let n = 0; n += 1;`, which ESLint flags as unused since it's never *read*) whose increment site wasn't renamed along with its declaration, leaving a `ReferenceError`. One real functional bug was found this way (`services/dashboard-api/methods-part-08-of-14.js`'s `categories.map(({ items, ...category }) => category)` — the rename would have leaked `items` into the response instead of excluding it) and one test-breaking `ReferenceError` (`tests/personal-agent.service.test.js`'s unread `llmCallCount` counter) — both fixed before this release by removing the property from its destructuring pattern (rather than renaming) and removing the genuinely-dead counter, respectively. All ~15 other renamed-but-not-yet-reviewed sites were cross-checked and confirmed cosmetically-renamed-but-functionally-harmless (the binding was genuinely never read elsewhere).
 
 ## [0.67.15] — 2026-07-29
 
 ### Added
-
 - **Audited CHANGELOG.md from v0.1.0 forward for orphaned early business domains, and closed 3 real gaps in `src/capability-catalog.js`**: v0.1.0's 11 initial services and v0.5.0's forecast service were checked against three surfaces the user specifically named — Capability Broker (`CURATED_CAPABILITIES`), Chat Agent (`src/personal-agent-routing.js`'s `findBestCapability` semantic fallback, which reads the same catalog), and the OpenAI Interface (`/v1/chat/completions`'s plain-chat consultation path, which routes through the same `personal-agent.chat` → `personal-agent-routing.js` mechanism). All 11 v0.1.0 services and the assets service (v0.3.0) still exist and are fully REST/OpenAPI-reachable (verified against `openapi-export.json`), but 3 domains had zero entries in `CURATED_CAPABILITIES` and were therefore invisible to `findBestCapability`'s semantic chat routing and to `capability-broker.recommend` (the mechanism the ChatGPT-sidecar/tool-discovery surfaces call into): `eic-codes.*` (EIC code search/validation/statistics), `german-grid.*` (EPEX/EEX spotmarket prices, negative-price/redispatch/forecast data with automatic ENTSO-E fallback), and `forecast.generationForecast` (weather-based renewable generation forecasting, IEC 61853/61400) — the latter was already reachable via the Chat Agent's deterministic routing matrix and used as a supporting evidence source by other capabilities, just missing its own standalone Broker entry. Added three new curated capability entries (`eic_code_lookup`, `german_grid_market_data`, `renewable_generation_forecast`) following the established schema; verified end-to-end with `findBestCapability` against realistic German-language questions (e.g. "Welcher EIC Code gehört zu Stadtwerke München?" now correctly routes to `eic_code_lookup`) and confirmed a control question continues to route to its existing, unrelated capability (no routing hijacking introduced). `query.*` (natural-language ask/ask-learned) and `system.*` (status/health/job-polling) were investigated and found to be deliberately, not accidentally, absent: 25+ existing capability entries explicitly list `query.ask`/`query.askLearned` in their `avoid` field (a documented product policy of steering toward specific curated capabilities over the generic query tool), and `system.*` is operational/infrastructure tooling rather than a business ("fachliches") domain — neither was added. Purely additive (deep-equal diff confirms all 168 pre-existing entries byte-identical); `npm run lint` (0 errors) and the full capability-catalog-dependent test suite (469 tests across 7 suites) pass.
 
 ## [0.67.14] — 2026-07-28
 
 ### Fixed
-
 - **Root-caused and fixed a long-standing intermittent test failure**: several PouchDB-backed test suites (e.g. `decision-frame.service.test.js` + `object-store.service.test.js` run together) would intermittently fail with `OpenError: IO error: <path>/LOCK: No such file or directory`, previously assumed to be unexplained environmental flakiness (worked around by manually re-running suites in isolation). Root cause: when several services' `created()` hooks run back to back during `broker.start()` and their PouchDB paths share a not-yet-existing parent directory (e.g. the repo-root `./data/`), leveldown's own internal directory creation can race. `src/pouchdb-lifecycle-mixin.js`'s `created()` now unconditionally `mkdirSync`s the target directory (synchronously, before opening the db) instead of only doing so when an opt-in `ensureDirectory` flag was set — reproduced the failure in isolation (100% reproducible across repeated runs of the same two-file combination) and confirmed the fix both in that isolated repro and across the full test suite (every LevelDB LOCK failure gone; only the two pre-existing, unrelated live-server-dependent REST-usecase tests remain).
 
 ### Changed
-
 - **Stale onboarding materials that actively risked re-introducing the just-removed duplication**: `templates/skeleton.service.js` (the base for `npm run create` and manual `cp` scaffolding), `create-service.js` (the AI-based service generator — feeds the skeleton directly into its Gemini prompt), `CONTRIBUTING.md`, and `CLAUDE.md` had no mention of `src/pouchdb-lifecycle-mixin.js`, `src/llm-client.js`, or `src/gateway-request-classifiers.js` at all. A new service created via any of these three paths would have had no signal to reuse them, silently reintroducing the same hand-copied PouchDB lifecycle boilerplate that the last two duplication-cleanup rounds removed from 60+ services. All four now explicitly document these shared utilities and where to find examples; `create-service.js`'s LLM prompt now instructs the generator to use them instead of hand-rolling persistence/LLM-call code. Also fixed: the skeleton's example LLM call bypassed the entire centralized `src/llm-client.js` facade (PII scrubbing, quota enforcement, tracing, retries) by calling `@google/generative-ai` directly with a deprecated `gemini-pro` model name (not used anywhere else in the codebase; the real default is `gemini-2.0-flash`) — replaced with a call through `src/llm-client.js`. `CONTRIBUTING.md`'s "25 services" count (actual: 138) and its stale `version: 1` skeleton example (only 4 of 138 real services set a version field) were also corrected. `CLAUDE.md` gained a new "Project-Specific Conventions" section (outside the GitNexus auto-generated markers, so it survives regeneration) — this is the highest-leverage location for this guidance since it's loaded into every agent's context automatically.
 
 ## [0.67.13] — 2026-07-28
 
 ### Changed
-
-- **Duplication cleanup, round 2 — remaining PouchDB lifecycle special cases**: Extended `src/pouchdb-lifecycle-mixin.js` with two opt-in options (`ensureDirectory`, `settingsKey`) needed to safely cover the special-case services deliberately skipped in round 1, then migrated 6 of the 8: `services/mqtt-broker.service.js` (had a `fs.mkdirSync` prerequisite before opening the db — now `ensureDirectory: true`), `services/governance.service.js` (used a non-standard `decisionAuditDbPath` settings key that two tests override directly for per-test DB isolation — preserved via `settingsKey: 'decisionAuditDbPath'`, verified the override still resolves correctly through Moleculer's mixin/settings merge), and the four VDMI class-based services (`vdmi-spectator`, `vdmi-evidence`, `vdmi-findings`, `vdmi-human-override` — confirmed the mixin also works correctly with ES6-class `parseServiceSchema()`-based services, not just plain-object schemas). Discovered and worked around a real hazard along the way: `vdmi-evidence`/`vdmi-findings`/`vdmi-human-override` each independently open a PouchDB handle onto the _same_ shared `data/vdmi-audit-trail` path — closing one handle to a shared PouchDB path hangs the sibling handles (verified with a standalone repro), so that shared db is deliberately left outside the mixin's auto-close lifecycle, unlike each service's own unique primary db.
+- **Duplication cleanup, round 2 — remaining PouchDB lifecycle special cases**: Extended `src/pouchdb-lifecycle-mixin.js` with two opt-in options (`ensureDirectory`, `settingsKey`) needed to safely cover the special-case services deliberately skipped in round 1, then migrated 6 of the 8: `services/mqtt-broker.service.js` (had a `fs.mkdirSync` prerequisite before opening the db — now `ensureDirectory: true`), `services/governance.service.js` (used a non-standard `decisionAuditDbPath` settings key that two tests override directly for per-test DB isolation — preserved via `settingsKey: 'decisionAuditDbPath'`, verified the override still resolves correctly through Moleculer's mixin/settings merge), and the four VDMI class-based services (`vdmi-spectator`, `vdmi-evidence`, `vdmi-findings`, `vdmi-human-override` — confirmed the mixin also works correctly with ES6-class `parseServiceSchema()`-based services, not just plain-object schemas). Discovered and worked around a real hazard along the way: `vdmi-evidence`/`vdmi-findings`/`vdmi-human-override` each independently open a PouchDB handle onto the *same* shared `data/vdmi-audit-trail` path — closing one handle to a shared PouchDB path hangs the sibling handles (verified with a standalone repro), so that shared db is deliberately left outside the mixin's auto-close lifecycle, unlike each service's own unique primary db.
 - The remaining 2 of 8 (`services/backup-orchestrator.service.js`, `services/vdmi.service.js`) were re-verified rather than assumed and confirmed correctly out of scope: `backup-orchestrator` has no service-level db lifecycle at all (it's a utility operating on arbitrary paths for other services' backups); `vdmi.service.js`'s own test suite requires the module once but changes `VDMI_DB_PATH` per describe-block, relying on a `created()`-time re-check of the env var for per-test isolation that the mixin's require-time resolution would break.
 - **Surveyed `services/dashboard-api.service.js`** (47k lines, the largest file in the repo, 128 actions) for duplication: SonarCloud reports 0% duplication density for this file, confirmed by direct inspection of two similarly-named actions (`controllabilityAssetHandoverStatus` vs. `controllabilityDataAlignmentStatus`) — both follow the same architectural convention (evidence-gate params → status/readiness fields → owner/deadline) but with genuinely different field names and business logic per domain, i.e. real, non-duplicated content rather than copy-paste waste. No changes made; splitting this file by domain is a separate, much larger service-decomposition question outside the scope of a duplication pass.
 - Verified via deep-equal action-schema diffs (all migrated services byte-identical before/after except the disclosed close-hang workaround), a standalone repro test for the shared-audit-trail close hazard, `npm run lint` (0 errors), and the full test suite (7114+ passing; all remaining failures pre-existing and independently reproduced against the original pre-session code, unrelated to this round's changes).
@@ -1434,37 +1376,32 @@ pass, with zero behavioural changes to any external API surface.
 ## [0.67.12] — 2026-07-28
 
 ### Changed
-
-- **Codebase-wide duplication cleanup — Single Source of Truth pass**: A full-repo review (SonarCloud duplication metrics cross-checked against actual source, since the raw density% is a known false positive on uniform-schema data catalogs) found the highest-value cross-cutting duplication was the PouchDB service-lifecycle boilerplate (`settings.dbPath` / `created()` instantiating `new PouchDB(...)` / `async started()` running `createIndex` calls plus a ready-log line / `async stopped()` closing the db) hand-copied across **60 separate services**. Extracted into a new shared Moleculer mixin, `src/pouchdb-lifecycle-mixin.js` (`createPouchDbLifecycleMixin({dbPathEnvVar, defaultDbPath, indexes, dbProperty, logLabel})`), relying on Moleculer's documented hook-chaining (mixin's `created`/`started` run before the service's own; the service's own `stopped` runs before the mixin's, so timers/background jobs are torn down before the db closes — verified with a standalone ServiceBroker smoke test before migrating any service). Each service now only keeps whatever _extra_ init/teardown logic it actually has beyond the shared boilerplate (timers, runtime-overlay restore, receipt seeding, etc.); services with a genuinely different shape (directory-creation prerequisite before opening the db, multiple ad-hoc-named PouchDB instances, or a runtime-computed path resolved later than module load) were deliberately left untouched rather than force-fit. Verified behaviour-preserving via a deep-equal diff of every migrated service's `actions` schema before/after (byte-identical), a standalone lifecycle smoke test per service (db instance created, indexes usable, clean shutdown), and the full existing test suite (1430+ tests across 51 dedicated suites, all passing unchanged).
+- **Codebase-wide duplication cleanup — Single Source of Truth pass**: A full-repo review (SonarCloud duplication metrics cross-checked against actual source, since the raw density% is a known false positive on uniform-schema data catalogs) found the highest-value cross-cutting duplication was the PouchDB service-lifecycle boilerplate (`settings.dbPath` / `created()` instantiating `new PouchDB(...)` / `async started()` running `createIndex` calls plus a ready-log line / `async stopped()` closing the db) hand-copied across **60 separate services**. Extracted into a new shared Moleculer mixin, `src/pouchdb-lifecycle-mixin.js` (`createPouchDbLifecycleMixin({dbPathEnvVar, defaultDbPath, indexes, dbProperty, logLabel})`), relying on Moleculer's documented hook-chaining (mixin's `created`/`started` run before the service's own; the service's own `stopped` runs before the mixin's, so timers/background jobs are torn down before the db closes — verified with a standalone ServiceBroker smoke test before migrating any service). Each service now only keeps whatever *extra* init/teardown logic it actually has beyond the shared boilerplate (timers, runtime-overlay restore, receipt seeding, etc.); services with a genuinely different shape (directory-creation prerequisite before opening the db, multiple ad-hoc-named PouchDB instances, or a runtime-computed path resolved later than module load) were deliberately left untouched rather than force-fit. Verified behaviour-preserving via a deep-equal diff of every migrated service's `actions` schema before/after (byte-identical), a standalone lifecycle smoke test per service (db instance created, indexes usable, clean shutdown), and the full existing test suite (1430+ tests across 51 dedicated suites, all passing unchanged).
 - **`services/assets.service.js`**: the six near-identical single-asset-type actions (`solar`/`wind`/`storage`/`biomass`/`hydro`/`combustion`, each ~130 hand-copied lines differing only in asset type, OEO ontology class and description copy) are now generated from a small `ASSET_TYPE_CATALOG` data table via `buildAssetTypeAction()`. Also fills in a previously-inconsistent gap: `operationId` and the `responses` schema were missing from `biomass`/`hydro`/`combustion`'s OpenAPI docs (present on the other three) — pure documentation completeness, no runtime behaviour change; every other field verified diff-identical against the pre-refactor output.
 - **`services/entsoe.service.js`**: the nine ENTSO-E query actions' identical handler bodies (forward to `CernionMCPClient.callWithNewSession`, then `applyFormat`) are now generated via `buildEntsoeQueryHandler(mcpToolName, pathSlug, label)` instead of hand-copied per action.
 - **`services/api.service.js` / `services/token-manager.service.js`**: `isReadOnlySidecarInvocation` and `isOperationsRunbookInvocation` were byte-identical functions independently defined in both files; extracted to a new shared `src/gateway-request-classifiers.js` (also folds `isReadMethod`/`isWriteMethod` into a single `isReadMethod`, since the latter was just its logical negation).
-- **`src/capability-catalog.js` / `src/evidence-registry.js`**: extracted the handful of small `avoid`/`fallbackActions`/evidence-source fragments that recur verbatim across the ~60/~90 curated entries (`AVOID_QUERY_TOOLS`, `FALLBACK_MARK_GAP`, `GRID_OPERATOR_IDENTITY_SOURCE`, …) into named constants. Note: the bulk of both files' high SonarCloud duplication score (62.6% / 38.1%) is a known false-positive of the CPD tool matching the _structural_ shape of a uniform, intentionally-consistent data-catalog schema (same field names, different per-entry content) rather than real copy-paste waste — verified by cross-referencing exact-value frequency at runtime (796 of 799 evidence-source objects are fully unique; only ~110 of 168 `avoid` arrays repeat at all, and only in 1–2-line fragments). Forcing a bigger rewrite there would reduce readability without reducing real duplication, so it was deliberately left alone beyond the genuine small extractions.
+- **`src/capability-catalog.js` / `src/evidence-registry.js`**: extracted the handful of small `avoid`/`fallbackActions`/evidence-source fragments that recur verbatim across the ~60/~90 curated entries (`AVOID_QUERY_TOOLS`, `FALLBACK_MARK_GAP`, `GRID_OPERATOR_IDENTITY_SOURCE`, …) into named constants. Note: the bulk of both files' high SonarCloud duplication score (62.6% / 38.1%) is a known false-positive of the CPD tool matching the *structural* shape of a uniform, intentionally-consistent data-catalog schema (same field names, different per-entry content) rather than real copy-paste waste — verified by cross-referencing exact-value frequency at runtime (796 of 799 evidence-source objects are fully unique; only ~110 of 168 `avoid` arrays repeat at all, and only in 1–2-line fragments). Forcing a bigger rewrite there would reduce readability without reducing real duplication, so it was deliberately left alone beyond the genuine small extractions.
 - Verified behaviour-preserving throughout via targeted deep-equal diffs (every migrated action/registry/catalog schema byte-identical before/after), `npm run lint` (0 errors, pre-existing warning count unchanged), and the project's full test suite.
 
 ### Added
-
 - **OpenAI-compatible `/v1/embeddings` facade**: Adds `openai-compatible.embeddings` (`services/openai-compatible.service.js`) and its gateway wiring (`handleOpenAiEmbeddings` in `services/api.service.js`, registered alongside `/v1/chat/completions` and `/v1/images/generations`), forwarding one or more input strings to the already-existing `llm-client.embeddings()` (Gemini/`gemini-embedding-001` by default) and returning the standard OpenAI `{object:"list", data:[{object:"embedding", index, embedding}], model, usage}` shape. Only `encoding_format: "float"` is supported; `"base64"` is rejected with a 400. `scripts/export-openapi.js`'s static `/v1` function-alias-to-action map (previously a growing ternary chain) was refactored into a lookup table (`V1_FUNCTION_ALIAS_ACTIONS`) and extended with the new route.
 - **OpenAI-compatible tool/function calling on `/v1/chat/completions`**: `openai-compatible.chatCompletions` now accepts optional `tools` (OpenAI function-calling declarations) and `tool_choice`. When `tools` is supplied, the action takes a separate path — a direct call to the configured background LLM (default Gemini) via a new `llm-client.generateChat(messages, options)`, entirely bypassing the Personal-Agent evidence/consultation pipeline used by the plain-chat path — and returns either a normal text reply or a standard OpenAI `tool_calls` array (`finish_reason:"tool_calls"`) for the caller to execute; Cernion itself never invokes a tool. Added `src/adapters/gemini.js`'s `generateChat` (translates OpenAI-shaped messages/tools/tool_choice into Gemini `contents`/`functionDeclarations`/`toolConfig`, and Gemini `functionCalls()`/text back into the OpenAI shape, including round-tripping a prior assistant `tool_calls` turn and a subsequent `tool`-role response message), `src/adapters/openai-compat.js`'s `generateChat` (thin forward — the upstream is already OpenAI-shaped), and `src/adapters/ollama.js`'s `generateChat` (503 `TOOL_CALLING_NOT_SUPPORTED`). `services/openai-compatible.service.js`'s existing `normalizeMessages` now preserves `tool_calls`/`tool_call_id`/`name` and allows `content:null` on tool-call-carrying assistant messages (the plain-chat path and its existing tests are unaffected).
 
 ## [0.67.11] — 2026-07-26
 
 ### Added
-
 - **OpenAI-compatible `/v1/images/generations` facade, forwarded to the configured background LLM (default Gemini)**: Adds `openai-compatible.imageGenerations` (`services/openai-compatible.service.js`) and its gateway wiring (`handleOpenAiImageGenerations` in `services/api.service.js`, registered alongside the existing `/v1/chat/completions` facade), plus a new `generateImage(prompt, options)` entry point on the shared LLM client (`src/llm-client.js`) with per-provider adapter implementations: `src/adapters/gemini.js` (real image generation via `gemini-2.5-flash-image`, requesting `responseModalities: ['TEXT', 'IMAGE']` and extracting `inlineData` parts), `src/adapters/openai-compat.js` (thin forward to the upstream's own `/images/generations`), and `src/adapters/ollama.js` (503 `IMAGE_GENERATION_NOT_SUPPORTED`). Only `response_format: "b64_json"` is supported (no object-storage-backed public URL is provisioned by this facade; `"url"` is rejected with a 400). `n` is capped at 4 and satisfied via one provider call per image. Authenticated the same way as `/v1/chat/completions` (Cernion `ck_`/session bearer token, rate-limited as `endpointClass: 'compute'`); `buildOpenAiFacadeMeta` now accepts the calling facade path so token-usage tracking correctly attributes `/v1/images/generations` instead of always logging `/v1/chat/completions`. `openapi-export.json` (`scripts/export-openapi.js`'s static `/v1` alias-to-action mapping needed the same `POST /images/generations` → `openai-compatible.imageGenerations` translation already used for chat completions), `operation-capability-index.json` and `llm.txt` regenerated. No object storage, Budibase, Landing-Registry, or production-tenant write of any kind.
 - **Route Willi-Mako MaKo context through Capability Broker, CoPilot and Sidecar** (`src/capability-catalog.js`, `services/capability-broker.service.js`, `services/personal-agent.service.js`, `tests/capability-broker.service.test.js`, `tests/agent-sidecar-willi-mako-routing.test.js`, `tests/personal-agent-willi-mako-evidence.test.js`, #498): Extends the existing read-only `market_communication_evidence_chain` capability so generic MaKo/EDIFACT code-context questions (`APERAK`, `UTILMD`, `MSCONS`, `EDIFACT`, Fehlercode/Prüfidentifikator/Nachrichtentyp/Segmentstruktur) can surface `willi-mako.resolveStructure` / `willi-mako.search` through Capability Broker recommendations and existing Sidecar discovery (`cernion.recommend_capability`). `personal-agent.askCernionAgent` now optionally enriches CoPilot answers with advisory Willi-Mako evidence via `ctx.call('willi-mako.resolveStructure', ...)`, capped at conservative limits and failing open to `unavailable` without failing the answer. The routing is deliberately generic — `Z17` is only an acceptance-test example, not a special case — and preserves no-call boundaries: no APERAK/UTILMD/MSCONS/EDIFACT message creation, validation, dispatch, mutation, legal final decision, HITL/workflow, billing/settlement/tariff/device-control or external connector action is performed.
 
 ## [0.67.9] — 2026-07-24
 
 ### Fixed
-
 - **Harden Tabular Intelligence evidence contract for #458 readiness** (`src/tabular-intelligence.js`, `src/operation-capability-classifier.js`, `tests/tabular-intelligence.service.test.js`, `tests/operation-capability-classifier.test.js`, `docs/architecture/tabular-intelligence-layer.md`, #459): `canonicalize()` now tags valid `Date` instances as `{ "$date": "<ISO-8601>" }` before sorted-object traversal instead of collapsing them to `{}`, so equal instants hash identically, different instants never collide, and a `Date` stays distinct from an identical ISO string; an invalid `Date` fails closed with a thrown error instead of entering an evidence hash. `validateAndBindPlan` now rejects `detectMissingIntervals.intervalMinutes` outside a bounded positive integer `1..10080` (mirroring the existing `qualityReport` Moleculer schema bound) and rejects filter operations with a missing/type-incompatible `value` — including non-array, empty, or oversized (>100) `in` arrays, non-scalar `eq`/`neq` values, non-numeric/empty `gt`/`gte`/`lt`/`lte` values, empty `contains` strings, a supplied `value` on `isNull`/`notNull`, and filter strings over 500 characters — before any execution loop runs, instead of silently producing a misleadingly empty result. The `operation-capability-classifier.js` comment for the `tabular` service POST read-only exception now documents that it covers all six current tabular routes (not just `executePlan`), with no change to the `serviceName === 'tabular' && method === 'POST'` scope itself. No new endpoint, operation, dashboard, Budibase, connector, or Blueprint seed; `services/tabular-intelligence.service.js` is unchanged.
 - **Restore Prettier/ESLint quality baseline on `main`** (27 files across `services/`, `src/`, `scripts/`, `tests/`): `npm run lint` was failing with 861 `prettier/prettier` formatting errors on `main`, blocking the `quality` CI gate for every open PR and Dependabot bump (formatting-only diff, no behavioural change; full test suite verified green).
 - **Fix `npm run audit:openapi` failures hidden behind the broken lint/test gates** (#467): `chatgpt-sidecar.service.js`'s `browserAsk`/`browserPlan` GET facades and `dashboard-api.service.js`'s `interconnectionReleaseFileStatus` accepted query params (`question`/`query`/`q`/`context`/`inputs`/`capability`/`parentTurnId`, `task`, and `reviewerRole` respectively) that were never declared in their `openapi.parameters`, so the audit script exited non-zero on `main` independent of any PR's own changes. Declared the missing parameters to match the existing Moleculer `params` schemas; regenerated `openapi-export.json`, `operation-capability-index.json` and `llm.txt` accordingly.
 - **Fix 5 pre-existing `quality` CI test failures exposed by the lint-baseline restore** (#467): `tests/tenant-context.test.js`'s `makeService()` mock bound `loadTokens`/`saveTokens` but not the newer `_doCreateToken` method, so all `token-manager` integration tests crashed with `this._doCreateToken is not a function`; `tests/mcp-client.test.js` still asserted the pre-#466-era "prefer custom token" behavior that commit `8068d97` deliberately reversed for security (ck_* REST Bearer tokens must never be forwarded as MCP credentials), so the test now asserts the intended env-token-always-wins behavior; `tests/datasource-classifier.service.test.js`'s fixture-directory glob picked up the unrelated `tabular-*.fixture.json` fixtures added for `tabular-intelligence.service.test.js` (different schema, no `label`/matching `.csv`), now excluded by requiring a matching `.csv` file; `tests/blindflug-radar.service.test.js`'s signal-generation fixture used fixed 2026-03/2026-04 calendar dates that aged out of the service's rolling time window as wall-clock time advanced, now expressed as `daysAgo(n)` offsets from `Date.now()`; `tests/llm-manifest.test.js`'s hard 3,500-token/14,000-char manifest budget was exceeded (14,552 chars) by organic capability/domain growth with no single redundant block to cut, so the budget was raised to 4,000 tokens (see #467 for the open question on a longer-term strategy).
 
 ### Added
-
 - **Workflow Completion Evidence Review use-case doc** (`docs/use-cases/workflow-completion-evidence-review.md`, #454): Adds a documentation-only, reuse-only use-case contract for a read-only workflow-completion evidence review over synthetic cases, mapping case/requirement scope, sanitized-plausibility-preview, gap-owner/due-date and completion-review-gate concepts to the existing `stadtwerk-mauer-case-detail`, `stadtwerk-mauer-case-actions`, `owner-deadline-evidence-gate`, `decision-readiness-matrix`, `evidence-grounding-confidence-audit` and `receipt-grounded-presentation-contract` read-only bricks (Blueprint verify/transfer-readiness as optional context). References the now-merged `hitl.completionPlausibility` (#452/PR #453) strictly as `source_hint_only`; never invokes it. No new endpoint, service code, Blueprint-Pack seed/registry entry, Budibase manifest, or write path; explicitly distinguishes a completion-evidence review from workflow completion, HITL/task creation, owner assignment, status mutation and final decision.
 - **Budibase MSCONS Identifikatorwechsel Readiness-Gate Workbench panel** (`integrations/budibase/manifests/stadtwerk-mauer-workbench.json`, `tests/budibase-workbench.test.js`, #476): Adds a generated, read-only `mscons-identifikatorwechsel-readiness-gate-panel` composing only the existing `GET /api/dashboard/owner-deadline-evidence-gate` brick (`dashboard-api.ownerDeadlineEvidenceGateStatus`), scoped to a synthetic MaLo/technical-reference-id switch case. Renders scalar status/source-type/target-identifier summary, source/target-identifier, process, owner and readiness-signal rows, missing-evidence, positive-follow-up and no-call-guard rows for `ROLE_METERING`, per the accepted dashboard-projection product cut. No MSCONS importer, EDM mutation flow or MaKo production decision path; no Budibase writes.
 - **Budibase Risikowert Validierungs-Gate Workbench panel** (`integrations/budibase/manifests/stadtwerk-mauer-workbench.json`, `tests/budibase-workbench.test.js`, #486): Adds a generated, read-only `risikowert-validierungs-gate-panel` composing only the existing `GET /api/dashboard/decision-readiness-matrix` brick (`dashboard-api.decisionReadinessMatrixStatus`), scoped to a synthetic cross-Sparte risk-calibration case. Renders scalar status/decision-ready-count/gap-count summary, measure/Herkunft/Sparte/Owner/Ergebniswirkung/Entscheidungsgremium rows, missing-evidence, positive-follow-up and no-call-guard rows for `ROLE_CERNION_GOVERNANCE`, per the accepted dashboard-projection product cut. No new risk/regulatory calculation engine, budget approval or ERP write; no Budibase writes.
@@ -1495,57 +1432,48 @@ pass, with zero behavioural changes to any external API surface.
 ## [0.67.18] — 2026-07-01
 
 ### Added
-
 - **`portfolioBacktest` plausibility block** (`services/energy-market.service.js`, #359): Every asset result and the top-level `portfolio` object now include a `plausibility` sub-object with `specificYieldKwhPerKw` (actual backtest yield), `orientationYieldKwhPerKw` (reference yield for the asset type — 950 kWh/kW for solar, 1800 for wind onshore), `yieldRatio` (actual / reference, 1.0 = matches reference), and `generationCoverage` (fraction of price timestamps where generation > 0 — useful to distinguish night-hour zeros from data gaps). The portfolio-level `orientationYieldKwhPerKw` is capacity-weighted across all asset types. The `methodology` block is enriched with `commissioningDatePolicy` (explaining that the full backtest period is used when no commissioning date is supplied), `generationModel` (documenting that `mastr_generation_forecast` is used in historical reconstruction mode and that the orientation yield is a south-30° reference, not a guarantee), and `orientationYieldBasis`. These fields allow frontends to surface the reason for deviations between backtest results and simple capacity-factor estimates without needing additional API calls.
 
 ## [0.67.17] — 2026-07-01
 
 ### Added
-
 - **MaStR generation forecast cache in Object Store** (`services/energy-market.service.js`, #357): `mastr_generation_forecast` MCP calls are now cached by 14-day batch under namespace `mastr_gen_cache` / key = `{mastrId}:{batchStartDate}`. A batch is written to cache only when its last day is strictly before today (immutability guarantee: past forecasts never change). On subsequent `portfolioBacktest` runs every fully-past batch is served from cache before falling back to an MCP call. Cache writes are fire-and-forget (a degraded Object Store never blocks the response). Progress logs include per-asset cache hit ratios (e.g. `3/4 gen batches cached`). Combined with the EPEX Spot price cache, a warm-cache backtest over historical data requires zero MCP round-trips.
 
 ## [0.67.16] — 2026-07-01
 
 ### Changed
-
 - **`portfolioBacktest` runs as async background job** (`services/energy-market.service.js`): The endpoint now uses the shared Job Pattern (`jobStore.startJob`). REST gateway calls return **202** immediately with `{ jobId, statusUrl, resultUrl }`; progress is available at `GET /api/jobs/:jobId/progress` (phases: prices → assets → aggregate). Validation errors (UNSUPPORTED_REGION, INVALID_DATE_RANGE, DATE_RANGE_TOO_LARGE) are still returned synchronously before the job is created, so they do not occupy a job slot. Internal Moleculer callers (no `ctx.meta.$gateway`) continue to receive the synchronous result directly — no behavioural change for service-to-service calls. The `timeout: 120000` override is removed; the handler now returns in milliseconds.
 
 ## [0.67.15] — 2026-07-01
 
 ### Added
-
 - **EPEX Spot price cache in Object Store** (`services/energy-market.service.js`): Day-ahead prices are immutable once the EPEX Spot auction closes, so they are now cached persistently in the Object Store under namespace `epex_spot_prices` / key = ISO date. On `portfolioBacktest`, each past day is served from cache before falling back to `entsoe_day_ahead_prices` MCP calls. The cache write is fire-and-forget — a degraded Object Store never blocks the backtest response. Today's date is never cached (auction price may still change). For a warm-cache 365-day backtest the MCP calls drop from 365 to 0 (first run still pays full cost).
 
 ## [0.67.14] — 2026-07-01
 
 ### Fixed
-
 - **Portfolio backtest: full price coverage for multi-month periods** (`services/energy-market.service.js`, #357): `entsoe_day_ahead_prices` MCP tool ignores `dateTo` and always returns exactly one German calendar day per call. For a 365-day backtest the previous single call produced only 96 price points (one day), leaving all months except the first with zero generation and market value. Price fetch is now a day-by-day loop that runs in parallel batches of 30, yielding ~8 760 hourly price slots for a full year. Deduplication by timestamp removes the UTC midnight overlap between adjacent day batches.
 
 ## [0.67.13] — 2026-07-01
 
 ### Fixed
-
 - **MCP always uses `CERNION_TOKEN` from environment** (`src/mcp-client.js`): `callWithNewSession` was accepting a `customToken` parameter and using it as the MCP authentication credential. In practice every service passed `ctx.meta.cernionToken` — the `ck_*` Bearer token from the HTTP request — which is a REST-API credential, not a valid MCP credential. This caused `{"error":"Unauthorized","message":"Invalid access token"}` from the MCP server for all endpoints that fetch data via MCP (e.g. `portfolioBacktest`, ENTSO-E price queries, MaStR forecasts). The parameter is now renamed `_customToken` and ignored; MCP always authenticates with `process.env.CERNION_TOKEN`. The parameter signature is preserved for call-site backward compatibility — no call-site changes required.
 
 ## [0.67.12] — 2026-07-01
 
 ### Added
-
 - **`token-manager.createCli` action** (`services/token-manager.service.js`): Permanent, non-REST-exposed action for CLI token provisioning. Shares all validation logic with the existing `create` action via the extracted `_doCreateToken()` method, but carries no REST route and must never acquire a sunset gate. Called exclusively by `scripts/provision-token.js`. The `create` action (HTTP path) can be independently sunset/gated in a future hardening cut without affecting CLI operators.
 - **CLI always defaults to `full-access` scope** (`scripts/provision-token.js`): `npm run token:create` now defaults `--scope` to `full-access` instead of `read-only`, matching the stated requirement that the CLI must always be capable of issuing a valid full-access token.
 
 ## [0.67.11] — 2026-07-01
 
 ### Fixed
-
 - **Portfolio backtest monthly aggregation** (`services/energy-market.service.js`, #357): `monthly` array now always contains exactly the calendar months intersecting `period.dateFrom`–`period.dateTo`, even when generation is zero for a month. Previously only months with data appeared, leaving the series incomplete for multi-month requests. Month grouping now uses German local time (Europe/Berlin, CET/CEST) instead of UTC, eliminating the phantom entry (`2025-06`) caused by ENTSO-E returning the first German price slot at `22:00Z` of the preceding UTC day.
 - **Price normaliser: `r.hour` timestamp field** (`services/energy-market.service.js`, #357): restored support for the `hour` key in price row objects so that both the legacy `{ hour, price }` format and the ENTSO-E `{ timestamp, priceEURperMWh }` format are handled correctly by `_btNormalisePrices`.
 
 ## [0.67.10] — 2026-07-01
 
 ### Added
-
 - **Historical portfolio market value backtest** (`services/energy-market.service.js`, #357): New endpoint `POST /api/energy-market/portfolio-backtest` computes the Day-Ahead spot market value for an asset portfolio over a selectable period (default: last 365 complete days). Highlights:
   - Per-interval revenue calculation — each hourly slot is valued at its actual spot price, never at an average.
   - Four data-quality tiers per asset, applied in priority order: `uploaded_timeseries` (inline generation series in request) → `mastr_historical_reconstruction` (solar/wind via `mastr_generation_forecast` historical weather model) → `assumption` (biomass 7 500 h/a, hydro 4 200 h/a, combustion 3 500 h/a, flat profile) → `missing_profile` (storage/unknown: generation = 0, warning emitted).
@@ -1555,21 +1483,18 @@ pass, with zero behavioural changes to any external API surface.
   - Limits: max 50 assets per request, max 365-day range, `region: "Deutschland"` only in v1.
 
 ### Security
-
 - **Legacy/global admin token sunset decision** (`docs/architecture/legacy-global-admin-token-sunset.md`, `docs/AUTH_OIDC_SAML.md`, `docs/ui-contracts/12-auth.md`, #252): documented the compatibility-only policy for tenant-neutral legacy `ck_` tokens, aligned the sunset date with the runtime `Sunset: Wed, 31 Dec 2026 23:59:59 GMT` header, and defined the migration path to tenant-/user-bound replacement tokens. No runtime restriction is introduced in this cut; post-sunset rejection requires a separate tested token-manager/API change.
 - **Support-token operational hardening** (#252): updated bootstrap/runbook examples to prefer environment/TTY-provided `CERNION_SUPPORT_TOKEN_INPUT` instead of putting support secrets into `--support-token` command arguments. The local CLI compatibility argument remains accepted, but is no longer the recommended runbook path.
 
 ## [0.67.9] — 2026-06-28
 
 ### Added
-
 - **Budibase VDMI profile and synthetic event preview panel** (`integrations/budibase/manifests/stadtwerk-mauer-workbench.json`, #337): The generated `Cernion Stadtwerk Mauer Workbench` now renders the existing read-only dashboard bricks for `stadtwerk-mauer-vdmi-profile`, `stadtwerk-mauer-capability-projection` and `stadtwerk-mauer-event-replay-preview` as scalar Budibase table sections for profile summary, sparten, role model, evidence gaps, capability classifications, synthetic event templates, deterministic replay preview and no-call boundaries.
 - Focused manifest tests (`tests/budibase-workbench.test.js`) prove the new transformers keep operator-facing rows display-safe and keep consequential event/capability follow-ups non-executable.
 
 ## [0.67.8] — 2026-06-27
 
 ### Added
-
 - **Abgeleitetes kommunales Lastprofil** (`src/municipal-load-estimator.js`, `services/dashboard-api.service.js`, #332): Replaces blanket `missingEvidence: local_load_profile` with a drei-Ebenen Evidenzmodell:
   - Wenn Bevölkerung (EWZ) bekannt: Bevölkerungsbasierte Jahres-Lastkurve (H0-Haushalt + G0-Gewerbe + kommunale Gebäude) wird automatisch abgeleitet.
   - `derivedLoadProfileRows` im Response: Aufschlüsselung der Lastbuckets (H0, G0, Gebäude) mit Jahres-kWh, SLP-Profil-ID und Konfidenz.
@@ -1583,7 +1508,6 @@ pass, with zero behavioural changes to any external API surface.
 ## [0.67.7] — 2026-06-27
 
 ### Changed
-
 - **Vollständige Gemeindedaten** (`src/municipality-resolver.js`, `src/data/gemeinden-2022.json`, #331 Nachbesserung): Der Resolver basiert jetzt auf dem Destatis Gemeindeverzeichnis 2022 mit Einwohnerzahl (GV100, ArcGIS Hub Item 60eb682c95f44ba7b10fee66d871859d) — **10.990 Gemeinden** mit AGS, Einwohnerzahl (EWZ) und Fläche (KFL km²), nicht mehr auf einer manuell gepflegten Teilliste.
   - `src/data/gemeinden-2022.json` (1,1 MB): generiertes Read-only-Fixture aus dem Destatis-Download; enthält alle deutschen Gemeinden.
   - Drei-Schichten-Design: Layer 1 = Destatis GV100 (AGS + EWZ + Fläche für 10.990 Gemeinden), Layer 2 = `german-zip-codes` npm-Paket (PLZ→Ortsname für 19.670 PLZ), Layer 3 = `ENERGY_OVERLAY` (MaStR-nahe Erzeugungskapazitäten für ausgewählte Gemeinden, gelistet per AGS).
@@ -1595,7 +1519,6 @@ pass, with zero behavioural changes to any external API surface.
 ## [0.67.6] — 2026-06-27
 
 ### Added
-
 - **Echter PLZ/Name/AGS-Resolver** (`src/municipality-resolver.js`, #331): Ersetzt das eingebettete `KNOWN`/`PLZ_TO_KEY`-Demo-Map in `buildMunicipalEnergyValueAnalysisStatus` durch ein eigenständiges, read-only Resolver-Modul mit ~280 deutschen Gemeinden aus allen 16 Bundesländern.
   - Neu aufgelöste Gemeinden: Rommerskirchen (`41569`, AGS `05162036`, Rhein-Erft-Kreis NRW), alle Großstädte, Landes- und Kreisstädte sowie Kleingemeinden quer durch Deutschland.
   - `resolveMunicipalityProfile({ municipality, ags })`: akzeptiert Gemeindename, 5-stellige PLZ oder AGS; gibt vollständiges Profil zurück (name, ags, postalCode, state, district, population, areaSqKm, pvCapacityKw, biomassCapacityKw, windCapacityKw, gridOperatorLabel, konzessionsabgabeKategorie, kavRateNsCtPerKwh, avgHouseholdConsumptionKwh, avgHouseholdsPerEinwohner, sourceLabel, sourceStatus).
@@ -1605,17 +1528,14 @@ pass, with zero behavioural changes to any external API surface.
   - Alle Regressionspfade (#324: Mauer, Heidelberg; #329: Wiesloch, Walldorf, Sandhausen, PLZ 69168/69190/69207) unverändert erhalten.
 
 ### Refactored
-
 - `buildMunicipalEnergyValueAnalysisStatus` in `services/dashboard-api.service.js`: Resolver-Aufruf ersetzt inline `KNOWN`/`PLZ_TO_KEY`; Profilfelder (`einwohner` → `population`, `displayName` → `name`, `bundesland` → `state`) auf Resolver-Schema umgestellt; alle `if (profile)` Guards → `if (profile.found)`.
 
 ### Tests
-
 - 10 neue Fälle (#331): Rommerskirchen nach Name (non-null ags), Rommerskirchen nach PLZ 41569, KAV-Rate 1.59 ct/kWh (25k–100k-Bracket), scalar valueRows/budgetImpactRows/riskRows für Rommerskirchen, Wiesloch nach Name und PLZ 69168 (Regression), Mauer PLZ 69256 (Regression), Heidelberg PLZ 69115 (Regression), Unknown → `lagebild_municipality_unresolved`, Unit-Test `resolveMunicipalityProfile` direkt.
 
 ## [0.67.5] — 2026-06-27
 
 ### Added
-
 - **Zeitreihen-EUR-Korrelationsschicht und No-Autarky-Guardrails** (`services/dashboard-api.service.js#buildMunicipalEnergyValueAnalysisStatus`, #330): Der Endpunkt `GET /api/dashboard/municipal-energy-value-analysis` gibt jetzt zwei neue Zeilengruppen zurück und verhindert öffentliche Autarkie-/Haushaltsäquivalent-Aussagen:
   - **`timeSeriesValueRows[]`**: Zeitreihen-Korrelationszeilen je Technologie (`ts_pv_annual`, `ts_biomass_annual`, `ts_wind_annual`) mit `marketValueEur`, `localCorrelationValueEur` (null — Lastprofil fehlt), `unmatchedGenerationValueEur`, `importExposureEur` (null), `confidence`, `evidenceStatus` und `sourceLabel`. Wind-heavy-Fixture (Heidelberg) wird explizit als `missing-evidence` für lokale Korrelation gekennzeichnet.
   - **`euroKpiRows[]`**: Vier EUR-KPI-Zeilen (`euro_kpi_gross_market_value`, `euro_kpi_local_value_capture`, `euro_kpi_municipal_budget_effect`, `euro_kpi_import_exposure`) für öffentliche Bürgermeister-/Politiker-Kommunikation. MW/MWh sind Zwischengrößen; EUR ist der primäre KPI.
@@ -1625,13 +1545,11 @@ pass, with zero behavioural changes to any external API surface.
   - **`assumptionRows`**: `local_retention_bilanziell` durch `local_value_capture_basis` (Evidenzstatus: missing-evidence) ersetzt.
 
 ### Tests
-
 - 6 neue Fälle: `timeSeriesValueRows` Pflichtfelder + keine Autarkie-Korrelation, `euroKpiRows` EUR-Felder + missing-evidence für lokale Werterfassung, `noAutarkyGuardrails` vollständig, `missingEvidence` neue Gaps, Wind-heavy-Fixture (Heidelberg) `unmatchedGenerationValueEur` > 0 bei null `localCorrelationValueEur`, `valueRows`-Textfelder enthalten keine Prozent-Deckungsaussagen.
 
 ## [0.67.4] — 2026-06-27
 
 ### Added
-
 - **Generischer PLZ/Ortsname-Resolver für das kommunale Energie-Lagebild** (`services/dashboard-api.service.js#buildMunicipalEnergyValueAnalysisStatus`, #329): Der Endpunkt `GET /api/dashboard/municipal-energy-value-analysis` löst jetzt Gemeinden über Ortsnamen **und** Postleitzahlen auf — nicht mehr nur Mauer und Heidelberg. Neu:
   - **Wiesloch** (AGS 08226087, PLZ 69168, 27.000 Einwohner, KAV-Rate 1,59 ct/kWh NS-Haushalt)
   - **Walldorf** (AGS 08226088, PLZ 69190)
@@ -1641,13 +1559,11 @@ pass, with zero behavioural changes to any external API surface.
 - **Öffentliche HTML-Anwendung bereinigt** (`src/municipal-value.html`, #329): Beispiel-Buttons für Heidelberg und Mauer PLZ sowie der `.examples`-Chip-Bereich entfernt. Nur noch ein Freitexteingabefeld (Ort oder PLZ) und der Szenario-Selektor. `KNOWN_PLZ`-Karte um Wiesloch (69168), Walldorf (69190) und Sandhausen (69207) erweitert. Verwaister `data-example`-Event-Listener entfernt.
 
 ### Tests
-
 - 5 neue Fälle in `tests/dashboard-api.test.js`: Wiesloch nach Ortsname (AGS, scalar rows, PV-Kapazität), Wiesloch nach PLZ 69168, Mauer nach PLZ 69256 (Regression), Heidelberg nach PLZ 69115 (Regression), Wiesloch KAV-Rate 1,59 ct/kWh in budgetImpactRows.
 
 ## [0.67.3] — 2026-06-26
 
 ### Added
-
 - **Municipal Energy Value Lagebild Endpoint** (`services/dashboard-api.service.js#municipalEnergyValueAnalysisStatus`, `GET /api/dashboard/municipal-energy-value-analysis`, #324): generischer, read-only kommunaler Strom-Wertschöpfungs-Lagebild-Endpunkt für deutsche Gemeinden. Der Endpunkt akzeptiert `municipality`, `ags`, `year` und `scenario` und gibt ein vollständig Budibase-renderbares Lagebild mit scalar Zeilen zurück — keine verschachtelten Objekte, keine `[object Object]`-Renders. Enthält:
   - **`valueRows`**: Erzeugungswert je Technologie (PV, Biomasse, Wind) mit `installedCapacityKw`, `assumedFullLoadHours`, `estimatedGenerationKwhPerYear`, `assumedMarketPriceEurPerMwh`, `grossMarketValueEurPerYear`, `localRetentionIndicator`, `evidenceStatus`, `assumptionLabel`, `sourceLabel` plus bilanzielle Deckungsquoten-Zeile.
   - **`riskRows`**: EWK/Anschlussdauer-Risiko, Digitalisierungsindex-Risiko, iMSys/SMGW-Rollout-Bereitschaft und Kapazitätsengpass — je mit `riskKey`, `severity` (`low`/`medium`/`high`), `severityScore`, `valueAtRiskEurPerYear`, `economicImpactEurPerYear`, `delayRiskDays`, `evidenceStatus`, `sourceLabel`, `assumptionLabel`, `nextGateLabel`.
@@ -1660,13 +1576,11 @@ pass, with zero behavioural changes to any external API surface.
   - Cache-TTL 5 min; Cache-Key aus `municipality + ags + year + scenario`; vollständige OpenAPI-Dokumentation.
 
 ### Tests
-
 - 10 neue Fälle in `tests/dashboard-api.test.js` (`municipalEnergyValueAnalysisStatus`-Describe-Block): Mauer baseline Pflichtfelder, scalar/display-safe `valueRows`, `riskRows` mit EWK/iMSys/Kapazität, `budgetImpactRows` mit Konzessionsabgabe, Heidelberg generischer Pfad mit Evidence-Gaps, AGS-Lookup ohne Municipality-Name, unbekannte Gemeinde stabile 200-Antwort, Szenario `high-price` Preisanpassung, `noCallGuards` vollständig, `_errors: []`.
 
 ## [0.67.2] — 2026-06-26
 
 ### Added
-
 - **Budibase Stadtwerk Mauer Tenant Databrowser** (`services/dashboard-api.service.js#stadtwerkMauerTenantDatabrowserStatus`, `GET /api/dashboard/stadtwerk-mauer-tenant-databrowser`, #320): read-only bounded Administrator Databrowser for the generated demo tenant. The response exposes scalar `categoryRows`, `itemRows`, `traceRows`, `detailRows` and `sourceRows` across public context, synthetic seed, runtime artifacts, workbench items, case evidence, process traces, artifacts and runbook readiness. Budibase manifest/apply surfaces now include visible Databrowser category/item/trace/detail/source tables. No unrestricted tenant dump/export, trace replay, seed import/delete/reset/provisioning, public-context mutation, Budibase-as-system-of-record behavior, arbitrary table writes, setup/reset/provisioning, Rundeck execution, MaKo, billing, settlement, tariff, device-control, HITL, external connector, wallet/key-material or Personal-Agent shortcut.
 - **Budibase Stadtwerk Mauer Selected Hub Target Focus** (`services/dashboard-api.service.js#stadtwerkMauerWorkbenchSelectedTargetStatus`, `GET /api/dashboard/stadtwerk-mauer-workbench-selected-target`, #319): read-only selected/focus projection for Hub and role Workbench targets. The response maps supported targets such as Hub, Administrator, selected case, Zielnetzplanung/grid-planning, Vertrieb/Key Account and role catalog into scalar `selectedRows`, `focusRows` and `helperRows` so Budibase can visibly focus a section without owning persistent state. Budibase manifest/apply surfaces now include visible Selected Hub Target, Selected Target Focus and Selected Target Helpers tables. Unknown targets and outside-sandbox tenants return safe fallback rows/gaps. No role assignment writes, permission rewrites, Budibase-as-system-of-record behavior, arbitrary table writes, setup/reset/provisioning, Rundeck execution, public-context mutation, MaKo, billing, settlement, tariff, device-control, HITL, external connector, wallet/key-material or Personal-Agent shortcut.
 - **Budibase Stadtwerk Mauer Zielnetzplanung Role Queue** (`services/dashboard-api.service.js#stadtwerkMauerGridPlanningRoleQueueStatus`, `GET /api/dashboard/stadtwerk-mauer-grid-planning-role-queue`, #317): read-only role-specific queue/evidence-handover projection for the generated `grid-planning` / `ROLE_NETZPLANUNG` target. The response exposes scalar `queueRows` and `evidenceHandoverRows` for the synthetic Stadtwerk-Mauer PV missing-NAP case, data-class/source separation, positive follow-ups and no-call guards. Budibase manifest/apply surfaces now include visible Zielnetzplanung Role Queue and Evidence Handover tables. No role assignment writes, generic case editing, grid-capacity engine, Budibase-as-system-of-record behavior, arbitrary table writes, MaKo, billing, settlement, tariff, device-control, HITL, external connector, wallet/key-material or Personal-Agent shortcut.
@@ -1678,17 +1592,14 @@ pass, with zero behavioural changes to any external API surface.
 - **Wegbereiter für Agentic Governance (#276):** Mit diesem Schema kann ein künftiger Impact Analyzer abfragen "welche Entscheidungen verwendeten MaStR-Asset X?" und bei `mastr-monitor.delta.detected`-Events gezielt Re-Validierungen auslösen. Das ist die Datenstruktur-Grundlage, die bisher fehlte.
 
 ### Breaking Change (schema v2)
-
 Bestehende Audit-Einträge, die **vor dieser Version** persistiert wurden, werden von `verifyDecisionAuditTrail` als **nicht verifiziert** (`verified: false`) zurückgegeben — ihr `entryHash` wurde ohne das `sources: []`-Feld berechnet. Einträge, die mit v0.67.2+ erstellt werden, verifizieren korrekt. Für eine Neuberechnung der Hashes alter Einträge ist eine Migration nötig (außerhalb dieses Slice nicht enthalten). In Test- und Entwicklungsumgebungen ist kein Handlungsbedarf (ephemere DBs).
 
 ### Tests
-
 - 7 neue Fälle in `tests/decision-evidence-audit-trail.test.js`: `KNOWN_SOURCE_TYPES`-Taxonomie, `normalizeSources`-Bereinigung (ungültige Einträge gefiltert), Speichern und Zurückgeben von Sources, Hash-Kette mit Sources verifiziert erfolgreich, Source-Manipulation bricht Verifikation (tamper-evidence), Entry ohne Sources → `sources: []` (kein Fehler), Custom-sourceType außerhalb Taxonomie unterstützt.
 
 ## [0.67.1] — 2026-06-25
 
 ### Added
-
 - **Budibase Stadtwerk Mauer Case Detail** (`services/dashboard-api.service.js#stadtwerkMauerCaseDetailStatus`, `GET /api/dashboard/stadtwerk-mauer-case-detail`, #304): read-only Workbench/detail projection for selectable synthetic Stadtwerk-Mauer PV missing-NAP cases. The response separates public context, synthetic tenant seed and sandbox runtime artifacts; summarizes Blueprint evidence, role-workbench hints, trace/artifact references, operations-runbook links and explicit no-call guards. No arbitrary Budibase table writes, runtime Budibase API call, Rundeck execution, setup/reset/provisioning, public-context mutation, MaKo, billing, settlement, tariff, device-control, HITL, external connector, wallet/key-material or Personal-Agent shortcut.
 - **VDMI Blueprint Pack Verify Runbook** (`services/operations-runbook.service.js#verifyVdmiBlueprintPackSeed`, `GET /api/operations-runbook/vdmi-blueprint-packs/verify`, #303): read-only `rundeck-read` endpoint to verify the `stadtwerk-mauer-pv-missing-nap-v1` Blueprint seed for Rundeck/Budibase consumption. The response separates public context, synthetic tenant seed and sandbox runtime artifacts; exposes required evidence, role relations, Workbench/Budibase hints and explicit forbidden-action/no-call guards. No seed loading, tenant provisioning, reset/delete, Rundeck execution, Budibase API call, HITL, connector, MaKo, billing, settlement, tariff, device-control, wallet/key-material or Personal-Agent shortcut.
 - **VDMI Blueprint Pack Seed** (`src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json`, `src/vdmi-blueprint-pack-seeds.js`, #302): versionierter, maschinenlesbarer `vdmi_blueprint_pack_seed` fuer den Control Case `pv_registration_electrician_missing_nap`. Der Seed trennt Public-Context-Layer (MaStR/OSM), synthetischen Tenant-Seed (`stadtwerk-mauer`) und resettable Sandbox-Runtime-Artefakte; enthaelt Rollenbeziehungen, Pflicht-Evidenzen, positive Follow-up-Mappings und explizite Write-/Connector-/Device-Control-Verbote. Keine REST-API, kein Rundeck-Start, keine Budibase-Erweiterung, keine Personal-Agent-Sonderlogik.
@@ -1698,13 +1609,11 @@ Bestehende Audit-Einträge, die **vor dieser Version** persistiert wurden, werde
 - `Governance` OpenAPI-Tag zu `src/llm-manifest-taxonomy.js` ergänzt (war bisher unmapped; behebt latenten Build-Fehler der durch den neuen Endpoint sichtbar wurde).
 
 ### Tests
-
 - 15 neue Fälle in `tests/role-workbench-projector.test.js` (Suite 1: Pure Unit Tests für den Projektor; Suite 2: Broker-Integration mit Mock-VDMI-Service): `verantwortlich`/`durchfuehrend`/`mitwirkend`/`information`-Erkennung, mehrere Matrizen, fehlende Evidenz erzeugt sichtbare Clarification-Projektion, completed Matrizen werden gefiltert, leere Rolle liefert saubere leere Workbench, VDMI-Service nicht erreichbar degradiert graceful.
 
 ## [0.67.0] — 2026-06-25
 
 ### Added
-
 - **Referenzprozess 1: Technischer Steuerbarkeits-/Redispatch-Prozess** (`tests/reference-process-redispatch.test.js`, #295, sub-issue of #275 — schließt die gesamte #275-Sub-Issue-Kette ab): End-to-End-Validierung des Governance-Stacks für einen technischen Netz-Steuerungsfall. Dokumentiert explizit die Unterschiede zum kommerziellen Referenzprozess (#296):
   - `controlCase: 'redispatch'` — Netzbetriebs-Scope: §14a EnWG Steuerbarkeit, Redispatch-Abrechnung, Engpassmanagement.
   - `decisionPolicy.onMissingEvidence: 'clarification'` — fehlende Evidenz löst eine konkrete Rückfrage an den Netzbetreiber aus (`requiresClarification: true`), statt nur eine Gap-Liste (#296 verwendet `'evidence_gap'`).
@@ -1715,7 +1624,6 @@ Bestehende Audit-Einträge, die **vor dieser Version** persistiert wurden, werde
 - **Budibase Stadtwerk Mauer Workbench Spike** (`integrations/budibase/`): erste reproduzierbare Grundlage für eine API-/Manifest-getriebene Fallarbeitsplatz-UI statt reiner Datenvisualisierung. Enthält ein lokales Budibase-Integrations-README, ein manifestbasiertes Workbench-Modell für `stadtwerk-mauer` und den idempotenten Apply-Adapter `scripts/apply-stadtwerk-mauer-workbench.js`. Der Adapter legt bzw. aktualisiert Budibase-App, Workspace-App, Cernion-REST-Datasource, Queries mit explizitem Schema und den Screen `Stadtwerk Mauer Workbench` (`/stadtwerk-mauer`). Bewusstes Architekturprinzip: Budibase rendert Fallzustand und kuratierte Aktionen, Cernion bleibt System of Record, Scope-/Command-Gate und Audit-Grenze.
 
 ### Tests
-
 - 7 neue Fälle in `tests/reference-process-redispatch.test.js`: vollständige Evidenz erlaubt, fehlende Evidenz löst Clarification aus (nicht nur Evidence-Gap), `highFinancialImpact`-Flag hat keinen Effekt, Fallback-Rollenableitung ohne RACI-Metadaten, vollständige Kette mit Hash-Chain-Verifikation.
 
 Alle 9 Sub-Issues von #275 (#288–#296) sind damit abgeschlossen.
@@ -1723,7 +1631,6 @@ Alle 9 Sub-Issues von #275 (#288–#296) sind damit abgeschlossen.
 ## [0.66.9] — 2026-06-25
 
 ### Added
-
 - **Referenzprozess 2: Asset-/Transformationsprozess mit kaufmännisch-regulatorischer Wirkung** (`tests/reference-process-asset-transformation.test.js`, #296, sub-issue of #275): End-to-End-Validierung des vollständigen Governance-Primitive-Stacks (#291–#294) für einen kommerziell-regulatorisch wirksamen Steuerungsfall. Der Test zeigt die vollständige Kette: `governance.evaluatePolicy` → `governance.deriveHitlResolverRoles` → `governance.recordDecisionAudit` → `governance.verifyDecisionAuditTrail`. Kein neuer Service, kein neuer REST-Endpunkt — reine Kompositions- und Dokumentationsschicht. Dokumentiert explizit die Unterschiede zum technischen Steuerbarkeits-/Redispatch-Referenzprozess (#295):
   - `controlCase: 'asset_transformation'` (kaufmännisches Asset-Leben, EOG/AfA-Wirkung, regulatorische Abschreibungen).
   - `decisionPolicy.onHighFinancialImpact: 'mandatory_human_decision'` — feuert bei `context.highFinancialImpact: true` (materieller Buchwert-Schwellenwert); diese Eskalationsregel existiert in technischen Control-Cases nicht.
@@ -1732,42 +1639,35 @@ Alle 9 Sub-Issues von #275 (#288–#296) sind damit abgeschlossen.
   - `evidenceRequirements`: kaufmännisches Anlageverzeichnis, regulatorische Relevanzprüfung (§ 6/§ 32 StromNEV), EOG-/AfA-Wirkungsanalyse — keine Messdaten oder Fernsteuerungsnachweise.
 
 ### Tests
-
 - 7 neue Fälle in `tests/reference-process-asset-transformation.test.js`: vollständige Evidenz ohne Financial-Impact-Flag erlaubt, Financial-Impact-Eskalation blockiert mit `requiresHumanDecision: true`, fehlende Evidenz gibt `evidence_gap` (nicht Clarification), ungültiger `controlCase` wird durch Schema-Validierung abgefangen, HITL-Rollenableitung aus VDMI-Zeile, Multi-Party-Approval-Policy, vollständige Kette mit Hash-Chain-Verifikation.
 
 ## [0.66.8] — 2026-06-25
 
 ### Fixed
-
 - **Agent-Receipts-Promotion: Rollenprüfung ergänzt** (`services/agent-receipts.service.js#promote`/`#setStatus`, #289, sub-issue of #275): `promote` recorded `promotedBy` as a free-text audit field but never checked whether the caller was actually authorized to promote a draft receipt to active — any caller could promote any draft. `promote` now requires `full-access` scope or the new `ROLE_RECEIPT_PROMOTER` role, rejecting with `403 AGENT_RECEIPT_PROMOTE_FORBIDDEN` otherwise; the CAS (`_rev`) protection and full validation gate are unchanged and still run for authorized callers.
 - **Closed a parallel bypass via `setStatus`**: `setStatus({status: 'active'})` can reach the exact same `draft → active` transition as `promote` without going through any of `promote`'s checks. The same authorization requirement now applies to `setStatus` whenever the target status is `active`, regardless of the source status (`draft`/`deprecated` → `active`); transitions to any other status (`archived`, `deprecated`, etc.) are unaffected.
 - Reuses the shared `src/auth-role-helpers.js` module introduced in #288 (`hasFullAccessPrincipal`, `callerHasAnyRole`) instead of duplicating role-extraction logic a third time.
 
 ### Tests
-
 - 5 new cases in `tests/agent-receipts.service.test.js`: unauthorized caller rejected (receipt stays `draft`), caller with no auth meta at all rejected, `ROLE_RECEIPT_PROMOTER` alone succeeds (no `full-access` needed), `setStatus`-to-`active` parallel bypass closed, `setStatus`-to-non-`active` remains unauthenticated-callable (unaffected).
 - All 8 pre-existing `promote` tests and 2 pre-existing `setStatus`-to-`active` tests updated to supply `full-access` auth context, preserving their original assertions.
 
 ## [0.66.7] — 2026-06-25
 
 ### Fixed
-
 - **HITL-Freigabe: Rollenprüfung gegen `requiredResolverRoles` ergänzt** (`services/hitl.service.js#resolveItem`, #288, sub-issue of #275): `approve`/`reject`/`bulkApprove`/`bulkReject` recorded `requiredResolverRoles`/`responsibleRole` on every HITL item but never checked the caller against them — anyone with access to the action could resolve any item regardless of documented responsibility. This is a real authorization gap, not cosmetic. `resolveItem` (the shared resolution path for all four actions) now rejects with `403 HITL_RESOLVER_ROLE_REQUIRED` when the item declares required roles and the caller has none of them. Enforcement only activates when an item actually declares a requirement — items without role metadata keep today's permissive behavior (no breaking change). `full-access`/`cross-tenant-admin` always bypasses, consistent with `personal-agent.service.js#hasFullAccessPrincipal`'s existing bypass convention. `bulkApprove`/`bulkReject` reject only the individual items the caller lacks the role for; other items in the same batch still resolve.
 - New shared module `src/auth-role-helpers.js` (`extractCallerRoles`, `hasFullAccessPrincipal`, `callerHasAnyRole`) — the one canonical place that extracts role-like values from `ctx.meta` (handles `authUser.roles`, `authUser.groups`, `apiToken.scope(s)`, `meta.roles/scopes` uniformly). Used by `hitl.service.js` only in this release; `services/personal-agent.service.js`'s existing local equivalent is intentionally left unchanged (zero external callers today, no need to touch a heavily-tested file for a risk-free extraction).
 
 ### Tests
-
 - 6 new cases in `tests/hitl.service.test.js`: non-matching role rejected (item stays `pending`), matching role succeeds, `full-access` bypass, `responsibleRole`-only enforcement, no-role-requirement backward compatibility, and `bulkApprove` partial success/failure.
 
 ## [0.66.6] — 2026-06-25
 
 ### Added
-
 - **Energy Sharing: Verteilregel-Versionierung & Korrekturlauf-Mechanismus** (`services/energy-sharing-allocation.service.js`, #286, sub-issue of #280 — completes the full #280 sub-issue chain): `allocate` accepts an optional `supersedesAllocationId` (+ mandatory `correctionReason`) to mark a run as a correction of a prior run for the same period, e.g. after measured data was corrected. The prior run is marked `superseded`/`supersededBy`/`supersededAt` — **never deleted**, full audit trail preserved. `list` excludes superseded runs by default; `includeSuperseded=true` shows them. `get` on a superseded run still returns its full historical metadata plus the pointer to its replacement. A run without `supersedesAllocationId` behaves exactly as before (additive only, no breaking change). Attempting to supersede an already-superseded run is rejected — corrections must target the latest run in the chain.
 - **KRITIS assessment** (required by the issue's own scoping, documented in the service's header comment): the existing metadata-only retention (inputs, per-consumer summaries, the new supersede links) is sufficient for the Korrekturlauf audit trail — the audit question is "which run replaced which run, and why," answered entirely by `supersedesAllocationId`/`supersededBy`/`correctionReason`, never by re-examining raw 15-min values from an old run. No additional raw-series retention was added, preserving the existing KRITIS data-minimization stance.
 
 ### Tests
-
 - 6 new cases in `tests/energy-sharing-allocation.test.js`: no-breaking-change confirmation, missing `correctionReason` (throws), unknown `supersedesAllocationId` (throws), the full supersede link + `get` on the old run, `list`'s default-exclude/`includeSuperseded` behavior, and refusing to supersede an already-superseded run.
 
 All 6 sub-issues of #280 (#281–#286) are now complete.
@@ -1775,7 +1675,6 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 ## [0.66.5] — 2026-06-25
 
 ### Added
-
 - **Energy Sharing: persistente Gemeinschafts-/Teilnehmer-Stammdaten** (`services/energy-sharing-community.service.js`, #285, sub-issue of #280): new PouchDB-backed service for a durable Energy Sharing "Gemeinschaft" (community) + embedded "Teilnehmer" (member) registry — gap identified in #280's gap analysis (every prior `allocate` call was stateless, with no Teilnahmezeitraum/join-leave tracking).
   - `createCommunity` / `getCommunity` (resolves by internal UUID **or** the external `communityId` business key) / `listCommunities` / `removeCommunity` (soft delete).
   - `addMember` / `updateMember` (the normal way to end a membership — set `validTo`, preserving history) / `removeMember` (hard delete, data-entry corrections only). A member's `roles` is a combinable array: `generator`, `consumer`, `storage` — e.g. `['generator', 'consumer']` for a Prosumer. `storage` is modelable per the issue's acceptance criteria but not yet fed into allocation arithmetic (no storage charge/discharge model exists yet).
@@ -1783,14 +1682,12 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
   - `services/energy-sharing-allocation.service.js#allocate`: `generators`/`consumers` are now **optional** when `communityId` resolves to a persisted community — additive only, inline arrays still fully supported and always take precedence when provided (no breaking change). When inline arrays are empty and `communityId` resolves, the run is tagged with an `ALLOC_GENERATORS_CONSUMERS_RESOLVED_FROM_COMMUNITY` warning. When neither inline arrays nor a resolvable `communityId` are given, `allocate` throws a clear, actionable error instead of the old generic "at least one generator/consumer is required" message.
 
 ### Tests
-
 - 17 new cases in `tests/energy-sharing-community.test.js`: CRUD basics, dual-lookup by id/communityId, role validation (including the Prosumer and pure-storage cases), `updateMember`/`removeMember`, and `resolveActiveMembers`'s Teilnahmezeitraum overlap logic (mid-period join, left-before-period exclusion, joins-after-period exclusion).
 - 4 new integration cases in `tests/energy-sharing-allocation.test.js`: resolves generators/consumers from `communityId`, excludes a member who left before the period, inline arrays take precedence over `communityId`, and a clear error when `communityId` cannot be resolved.
 
 ## [0.66.4] — 2026-06-25
 
 ### Added
-
 - **Energy Sharing: Monatsreport inkl. Preis-/Tarifschicht (kWh→EUR)** (#284, sub-issue of #280): closes the chain started in #281–#283 with the first pricing layer Energy Sharing has ever had.
   - `src/timeseries-allocation.js#buildBillingReport`: applies a **required** `tariffEurPerKWh` (never a hardcoded business value) to a #283 consumer summary. Only `allocatedKWh` (solar actually used) is billed; `remainderKWh` (grid draw) is reported for transparency but never billed here — that stays the regular supplier's/grid operator's responsibility. A consumer with no consumption data gets `billingAmountEur: null`, never a misleading €0.00.
   - `src/timeseries-allocation.js#buildAnnualBillingReport`: sums N (typically 12) monthly billing reports per consumer. Months without data for a consumer are excluded from that consumer's sum (not treated as €0) and tracked via `monthsWithData`/`monthsWithoutData`/`complete` — an incomplete year is never silently presented as complete.
@@ -1799,111 +1696,91 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
   - `download`'s generation-replay logic was extracted into a shared `stepReplayGenerationGrid` method (behavior-preserving refactor, reused by the two new actions).
 
 ### Tests
-
 - 8 new pure-function cases in `tests/energy-sharing-allocation.test.js` (`buildBillingReport`, `buildAnnualBillingReport`, `formatBillingReportAsCsv`) plus 6 new service-integration cases (`billingReport`, `annualBillingReport`), covering: missing tariff (throws), unknown allocation (404), billed vs. null-billed consumers, CSV export format, multi-month summation, and an unknown allocation ID within a batch (throws).
 
 ## [0.66.3] — 2026-06-25
 
 ### Added
-
 - **Energy Sharing: Restmengen-/Überschuss-Aggregation pro Teilnehmer** (`src/timeseries-allocation.js#buildConsumptionAwareConsumerSummary`, #283, sub-issue of #280): new aggregation function building on #282's per-interval `cappedAllocations`/`surplus`/`deficit`/`consumptionDataMissing` output. Per consumer, over the requested period: `allocatedKWh` (solar received), `surplusKWh` (unused quota), `remainderKWh` (Restmenge — consumption beyond the solar share, i.e. grid draw), `consumptionKWh` (= `allocatedKWh + remainderKWh`, the consistency invariant), and `solarSharePercent` (plausibility ratio). Aggregates are computed over intervals with known consumption data only — intervals with `consumptionDataMissing` are excluded from the sums rather than treated as zero. A consumer with **zero** known intervals across the whole period gets `null` for every consumption-derived field (never silently `0`); `dataCompleteness` (`totalIntervals`/`knownIntervals`/`missingIntervals`/`complete`) is always reported so partial coverage is visible even when the available intervals still produce computable numbers.
 - The existing `buildConsumerSummary` is unaffected — this is a new, separate function.
 
 ### Tests
-
 - 5 new cases in `tests/energy-sharing-allocation.test.js`: fully solar-covered consumer, consumer with a significant Restmenge, the `allocatedKWh + remainderKWh = consumptionKWh` consistency invariant, a consumer with zero consumption data (all fields `null`, not `0`), and partial data coverage (still computable from the known subset, `dataCompleteness.complete = false`).
 
 ### Scope note
-
 - Not yet wired into `services/energy-sharing-allocation.service.js`'s `allocate` action, consistent with #282's scoping — that integration lands with the monthly/yearly report in #284, which is where this aggregation becomes meaningful to API consumers.
 
 ## [0.66.2] — 2026-06-25
 
 ### Added
-
 - **Energy Sharing: consumption-capped allocation function** (`src/timeseries-allocation.js#allocateTimeseriesCappedByConsumption`, #282, sub-issue of #280): new pure function, additive alongside the existing quota-only `allocateTimeseries`. Per 15-min interval and consumer: `quotaKWh` (same fixed-percentage split as before, remainder-to-last-consumer rounding) is capped at the consumer's actual measured consumption for that interval (`cappedAllocations = min(quotaKWh, consumptionKWh)`). Unused quota is reported as `surplus`; consumption beyond the solar share is reported as `deficit` (grid draw) — the defining behavior of a real internal-PV-sharing model that the plain quota split never had (see #280's gap analysis). Invariant: `Σ(cappedAllocations) + Σ(surplus) = Σ(netGenerationKWh)` per interval (within `round4`'s 4-decimal tolerance); `deficit` is independent grid consumption and is not part of that invariant. Missing consumption data for a consumer/interval falls back to their full quota (`surplus = 0`) and is marked via `consumptionDataMissing`, with `deficit` reported as `null` (unknown) rather than `0` — never silently assumed.
 - Cross-participant redistribution of one consumer's surplus to another consumer's deficit is deliberately **not** implemented here — left as an explicitly open, separate design question (fixed priority vs. proportional vs. configurable order) per the issue's own scoping. `surplus`/`deficit` are reported per consumer only.
 - The existing `allocateTimeseries` function and its `allocations` field are completely unaffected — this is a new, independent function, not a modification of the existing one. Not yet wired into `services/energy-sharing-allocation.service.js`'s `allocate` action — that wiring lands with the aggregation layer in #283, which consumes this function's per-interval output.
 
 ### Tests
-
 - 6 new cases in `tests/energy-sharing-allocation.test.js`: consumption below quota (surplus), above quota (deficit), exactly at quota (neither), missing consumption data (fallback + `consumptionDataMissing` + `null` deficit), the summation invariant, and non-mutation of the pre-existing `allocations` field.
 
 ## [0.66.1] — 2026-06-25
 
 ### Added
-
 - **Energy Sharing: opt-in EDM consumption-data availability check** (`services/energy-sharing-allocation.service.js`, `allocate` action, #281, sub-issue of #280): new `includeConsumptionData` request parameter. When `true`, the allocation pipeline looks up each consumer's EDM consumption timeseries (`edm.getTimeseries`, OBIS `1-0:1.8.0`) for the same date range and returns a `consumptionStatus[]` array (`{maloId, found, intervalCount, totalKWh}`) alongside the existing quota-based allocation result. A consumer whose MaLo has no EDM timeseries for the requested period (unregistered MeLo or registered but no rows in range) is reported via a structured `ALLOC_CONSUMPTION_DATA_NOT_FOUND` warning — never silently treated as zero or skipped, mirroring the `locationResolutionWarning` convention established in #274. This is a pure data-fetch/availability-reporting addition: it does **not** change the existing quota-based allocation arithmetic (confirmed by a regression test asserting identical totals with the flag on vs. off) — consumption-capped allocation arithmetic is the separate follow-up #282.
 - `consumptionStatus` is persisted on the allocation record and included in the action's response; `null` when `includeConsumptionData` was not requested (default `false`, fully backward-compatible).
 
 ### Tests
-
 - 5 new cases in `tests/energy-sharing-allocation.test.js`: default-off backward compatibility, consumer with EDM data found, consumer without EDM data (structured warning), mixed community (one found / one not, allocation totals unchanged), and an unregistered MeLo (EDM 404) handled the same as an empty result.
 
 ## [0.65.1] — 2026-06-24
 
 ### Fixed
-
 - **`/api/assets/*` silently returned `[]` for an unresolvable free-text `location` instead of surfacing the resolution failure** (`services/assets.service.js#_fetchAssets`, #274): `energy-market.installations` already reports a `locationResolutionWarning` when `location` is a city/region it cannot resolve to a postal code (fix for cernion-openclaw-sidecar/issues/1), but `_fetchAssets` discarded that field while flattening `result.data.installations` into the flat array returned by `/api/assets/solar`, `/api/assets/wind`, `/api/assets/storage`, `/api/assets/biomass`, `/api/assets/hydro`, `/api/assets/combustion`, and `/api/assets/all`. A consuming agent querying `location=Meckesheim` (PLZ 74909) therefore received a bare `[]` indistinguishable from "0 real assets", and could incorrectly conclude no installations exist. `_fetchAssets` now captures the warning and, only when present, returns `{ success: true, data: [...], locationResolutionWarning }` instead of the bare array — the normal array contract is unchanged for genuinely resolved queries (including real 0-result PLZ queries). `assets.effective` (single-asset lookup by ID) normalizes either shape so it can't throw. OpenAPI response schema for the affected actions now documents both shapes via `oneOf`, and the `location` parameter description states the PLZ-only constraint explicitly.
 
 ### Tests
-
 - Added 4 cases to `tests/assets.service.test.js`: warning surfaced for an unresolvable city name, unchanged array contract for a resolved postal code, warning propagated through `/api/assets/all`, and `assets.effective` normalizing the warning shape without throwing. Updated the existing OpenAPI-schema assertion test for the new `oneOf` response shape.
 
 ## [0.65.0] — 2026-06-24
 
 ### Added
-
 - **Evidence Router** (`src/evidence-router.js`, `src/evidence-endpoint-catalog.js`, `services/evidence-router.service.js`, `POST /api/evidence-router/route`, #272): a generic, domain-agnostic read-only Evidence Router / Lookup-Service contract for foreign orchestrators (OpenClaw, CoPilot, Hermes, ...). Infers which evidence type(s) (`resultKind`: `asset_table`, `time_series`, `market_signal`) a request needs from evidence-specific vocabulary (forecast/CO2/Preis/Zeitreihe terms — never from generic inputs like location alone), matches them against a small curated endpoint catalog, and recommends one or more read-only endpoints with fachliche result semantics (`semanticFacts`, `freshness`, `granularity`, `timeRangeSupport`). Reports `coverage.{covered,missing}EvidenceTypes` and never substitutes an unrelated endpoint when a required evidence type isn't covered (`coverage.noSubstitution` is always `true`) — this is the architectural fix for the reported bug where a narrower time-series/CO2 request could incorrectly recommend `GET /api/assets/solar` just because a location input matched. The `asset_table` catalog entry is derived programmatically from the existing `mastr-asset-service-selection-v1` blueprint (#271, zero duplication); the ENTSO-E/energy-market entries are cross-checked against `src/dossier-hydration-registry.js`'s safety-approved rule set rather than asserted by hand. Read-only is established via this curation, not HTTP method (many genuinely read-only actions in this codebase use POST for body-based queries). Completely separate from #271's Blueprint-driven `cernion.ask` plan compiler — this module never executes anything and never synthesizes a final answer.
 - **Generic Process Intake / Write Boundary** (`services/copilot-process.service.js#prepareProcessIntent`, `POST /api/copilot-process/intents`, #272): generalizes the existing `ProcessIntentStore` (already used by the VDMI/ZNP/grid-connection `prepare*` actions) into a domain-agnostic intake/classification/HITL boundary, without implementing any specific downstream process. Creates a `pending_confirmation` intent receipt — never an evidence plan — for arbitrary user-provided process/write intent. Server-side guardrails: rejects `operationFamily` values reserved for the existing dedicated `prepare*` actions (`vdmi`, `gridConnection`, `znp`, `connectionRejectionEvidence` — prevents bypassing their domain-specific validation), and rejects `proposedAction` values that resolve to a registered, safety-approved read-only hydration action (those belong on the Evidence Router, not here). A generically-created intent can never be auto-executed: `executeProcessIntent`'s dispatch table (`_executeIntent`) has no case for a generic `operationFamily` and always falls to its existing default rejection until a developer deliberately adds a reviewed, specific case — establishing the boundary safely without this issue needing to implement every downstream process.
 - Both contracts are intentionally **not** added to the existing 5-tool, read-only-only OpenClaw Sidecar MVP manifest (`src/agent-sidecar-tool-manifest.js`) — that manifest's `maxToolCount: 5` and strict `requiredScope === 'read-only'` / `sideEffects === 'none'` validation appear to be a deliberate product boundary for that specific surface. Both are instead exposed as clearly documented, independently testable backend services/actions, satisfying the issue's "or a clearly documented backend path" acceptance criterion. Wiring either into the curated Sidecar manifest (including raising its tool cap) is left as a separate product decision.
 
 ### Tests
-
 - Added `tests/evidence-router.test.js` (11 tests): catalog grounding against the hydration registry, the exact reported-bug repro (CO2/time-series never recommends the asset endpoint), multi-endpoint recommendation, missing-evidence-type-without-substitution, no-inferable-evidence-type, market_signal resolution, broker-unavailable fail-soft, POST-is-still-read-only, and response-shape distinguishability from Process Intake.
 - Added `tests/process-intake.test.js` (7 tests): pending_confirmation intent creation, reserved-`operationFamily` rejection (all 4 reserved families), read-only-`proposedAction` rejection, never-auto-executable guarantee, human-rejection still works via the existing lifecycle, and response-shape distinguishability from the Evidence Router.
 
 ## [0.64.5] — 2026-06-24
 
 ### Changed
-
 - **`cernion.ask` multi-endpoint recommendation contract** (`src/blueprint-rest-plan-compiler.js`, `services/agent-sidecar.service.js`, `services/personal-agent.service.js`, architecture follow-up to #271): reframes the read-only plan compiler as an endpoint-recommendation / evidence-discovery contract rather than an answer-transformation one. Cernion recommends which approved read-only endpoint(s) are suitable for a request and what each result set means fachlich (`resultSemantics: { kind, description }`) — it does not execute them or synthesize a final answer; that remains the responsibility of the consuming agent/orchestrator. A blueprint may now resolve to multiple complementary read-only endpoints (one per `execution.steps[]` entry, each resolved independently — an unresolvable step is skipped, not fatal, as long as at least one resolves). New `recommendedEndpoints[]` array on the `askCernionAgent` response; `execution` mirrors `recommendedEndpoints[0]` for backward compatibility. New shared `buildAskBlueprintAnswer()` helper keeps the Sidecar bridge and `askCernionAgent` response shaping in sync. The fixture blueprint `mastr-asset-service-selection-v1` now declares `resultSemantics` on its step.
 
 ### Tests
-
 - Added 3 cases to `tests/blueprint-rest-plan-compiler.test.js` (multi-endpoint recommendation, partial-skip-still-succeeds, `buildAskBlueprintAnswer` wording) and updated `tests/copilot-ask-cernion-agent-evidence.test.js` assertions for the new `resultSemantics` field.
 
 ## [0.64.4] — 2026-06-24
 
 ### Fixed
-
 - **`cernion.ask` Sidecar `inputs` not forwarded to the Blueprint compiler** (`services/agent-sidecar.service.js`, `services/personal-agent.service.js`, follow-up to #271): the documented `cernion.ask` request contract sends canonical structured values in `arguments.inputs`, separate from `arguments.context` (tenant/session metadata). The Sidecar bridge only forwarded `context` to `askCernionAgent` — `inputs` was silently dropped, so the Blueprint compiler never saw the Sidecar's structured fixture values and always fell back to the Evidence Planner instead of returning a read-only execution plan. `askCernionAgent` now accepts an `inputs` param and merges `{ ...context, ...inputs }` for plan compilation only (the evidence-planner fallback path is unaffected). Also added the documented `query` compatibility alias for `question`. Verified end-to-end with the exact request envelope reported: compiles to `GET /api/assets/solar` with the expected query.
 - **Sidecar tool manifest** (`src/agent-sidecar-tool-manifest.js`): `cernion.ask`'s `responseContract`/`description` updated to reflect the blueprint-aware execution-plan envelope instead of only the legacy `compact_evidence_answer` shape.
 
 ### Tests
-
 - Added a bridge-forwarding regression test (`tests/agent-sidecar.service.test.js`) and a real-handler merge test (`tests/copilot-ask-cernion-agent-evidence.test.js`) covering the `inputs`/`query` forwarding fix.
 
 ## [0.64.3] — 2026-06-24
 
 ### Fixed
-
 - **MaStR asset location lookups** (`services/energy-market.service.js`, SmartEnergySolutions/cernion-openclaw-sidecar#1): `installations` no longer forwards a non-numeric `location` (city name, or a combined "PLZ Ort" string such as "69256 Mauer") into the `postleitzahl` slot of the underlying `cernion_installations_local` tool, which only accepts an exact 5-digit code. An embedded PLZ is now extracted from combined strings; when none can be resolved, the response carries a structured `locationResolutionWarning` instead of a silently empty result array.
 - **Stadtwerk Mauer / real-town naming collision** (`services/capability-broker.service.js`): the "Stadtwerk Mauer" sandbox tenant is named after the real Baden-Württemberg town of Mauer (PLZ 69256). All five Stadtwerk-Mauer capability triggers matched on "69256 mauer" as a bare substring, risking real MaStR/asset-lookup questions about the real town being routed into the fictional sandbox governance capabilities instead of a real asset lookup. Added a shared real-asset-lookup exclusion checked before all five triggers.
 
 ### Added
-
 - **Blueprint-aware read-only REST execution plans for `cernion.ask`** (`src/blueprint-rest-plan-compiler.js`, `src/blueprints/mastr-asset-service-selection-v1.json`, `services/personal-agent.service.js`, #271): the Sidecar-facing `cernion.ask` tool (`POST /api/agent-sidecar/mcp/tools/cernion.ask/call` → `personal-agent.askCernionAgent`) now attempts to compile the request into a single read-only `{ method, path, query }` REST plan via an active Blueprint before falling through to the generic Copilot evidence planner. The plan is only emitted when the resolved Blueprint step's action is registered as a `GET` (read-only) endpoint. New fixture blueprint `mastr-asset-service-selection-v1` demonstrates generic service selection (`assetType` → `assets.<type>`) and parameter normalization (`minCapacity` → `minCapacityKW`, etc.) — verified end-to-end to compile `{ method: GET, path: /api/assets/solar, query: { location, minCapacityKW, maxCapacityKW, commissioningYear, limit } }` for the issue's smoke scenario. `detectBlueprintIntent` (`src/l3-broker.js`) gained an opt-in `includeRestPlanOnly` option so these compile-only fixtures stay out of the internal chat-routing pipeline by default (their action-name templating is not understood by `executeBlueprint`/`buildBlueprintPlan`). The response keeps all existing `askCernionAgent` fields; on success it adds `resolved`/`canonicalInputs`/`execution`/`policy`/`confidence`, and on no-plan it adds `resolved: { kind: 'none' }` plus a human-readable `noPlanReason`.
 
 ### Tests
-
 - Added `tests/blueprint-rest-plan-compiler.test.js` (8 tests): successful compile, per-assetType action selection, no-match fallback, the read-only policy guardrail (non-GET action refused), missing required inputs, unregistered action, optional-param omission, and soft-fail without a broker.
 - Added 2 tests to `tests/l3-broker.test.js` for the new `includeRestPlanOnly` default-exclusion behavior.
 
 ## [0.64.2] — 2026-06-23
 
 ### Added
-
 - **Governance Readiness & Risk Gates** (`services/dashboard-api.service.js`, `services/znp.service.js`): Nine new read-only evidence gates added to the Capability Broker catalog and dashboard surface: `process_sensitization_readiness_map`, `netzprozess_readiness_gate`, `grossspeicher_anschluss_readiness_gate`, `role_permission_access_readiness_gate`, `owner_deadline_evidence_gate`, `automation_risk_gate`, `dr_readiness_evidence_gate`, `legal_clarification_operating_model`, and `znp_production_readiness_evidence_gate`. Each follows the established read-only dossier-safe pattern (deterministic status, no write/control paths).
 - **Stadtwerk Mauer Sandbox** (`services/stadtwerk-mauer-sandbox-runtime.service.js`, `services/stadtwerk-mauer-external-interface-stubs.service.js`, `services/stadtwerk-mauer-e2e-process-demo.service.js`): New sandbox runtime, external-interface stub layer, and end-to-end process demo for a synthetic "Stadtwerk Mauer" tenant, plus three dashboard status capabilities (`stadtwerk_mauer_vdmi_profile`, `stadtwerk_mauer_capability_projection`, `stadtwerk_mauer_event_replay_preview`) that compose VDMI profile, capability projection, and event-replay views over it.
 - **Finance & Metering Cockpits** (`services/dashboard-api.service.js`): `liquidity_planning_governance_module` (liquidity/cashflow governance evidence), `zaehlpark_finanzierung_szenario_cockpit` (Zählpark financing scenario cockpit), `redispatch_project_controlling_kpi_cockpit` (Redispatch project-controlling KPIs), and `special_grid_usage_impact_map` (besondere Netznutzung impact mapping).
@@ -1913,24 +1790,20 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 - **Fernwärme Asset Tarif Steuerung** (`services/dashboard-api.service.js`, #146): `heat_asset_tariff_steering` read-only status for district-heating tariff steering and post-2030 recognition risk. (Shipped in the v0.64.1 push but undocumented at the time — recorded here for completeness.)
 
 ### Maintenance
-
 - **llm.txt taxonomy upkeep** (`src/llm-manifest-taxonomy.js`): Canonical domain mappings extended for all 22 capabilities above (`redispatch_governance`, `finance_governance`, `operations`, `compliance`, `sandbox_governance`, `heat_steering` raw `domain` values) — zero unmapped entries, build guard (`tests/llm-manifest.test.js`) green.
 
 ## [0.64.1] — 2026-06-21
 
 ### Changed
-
 - **llm.txt cluster manifest** (`scripts/generate-llm-txt.js`, `src/llm-manifest-taxonomy.js`, `services/agent-manifest.service.js`): Replaced the flat ~780-operation index, full cookbook dump, and embedded OpenAPI JSON with a layered navigation manifest. A canonical 9-domain taxonomy (`redispatch`, `grid-planning`, `energy-sharing`, `grid-ops`, `inhouse-data`, `market-data`, `regulatory`, `governance`, `platform`) maps every capability, recipe, and OpenAPI operation tag through explicit, commented mapper tables — recipes are classified by tag/service signal rather than their own cross-cutting `domain` field. The manifest lists only cluster heads (capability ids, recipe ids with one-line problems, and a per-domain `resolve` call) behind a RESOLUTION PROTOCOL block; full detail is fetched in a second call. Changelog/release provenance and source-file hashes moved behind a `--- END OF AGENT-RELEVANT CONTENT ---` marker; the full OpenAPI contract is no longer duplicated into the file (points to `openapi-export.json` / `GET /api/openapi.json` instead). Reduces `llm.txt` from ~900KB to ~22KB; the agent-relevant section stays under a 3,500-token hard budget.
 - **New resolve endpoints** (`services/agent-manifest.service.js`): `GET /api/_agent/capabilities[?domain=]`, `GET /api/_agent/capabilities/:name`, and `GET /api/_agent/operations[?domain=]` resolve manifest cluster heads to full detail. The operations endpoint deduplicates `operationId`s that appear under multiple paths (trailing-slash and service-prefix aliases) into one canonical path plus an `aliases` list.
 
 ### Tests
-
 - Added `tests/llm-manifest.test.js`: build-guard coverage for taxonomy completeness (zero unmapped capabilities/recipes/operations), deterministic output, manifest structure (one END marker, a cluster head per canonical domain, no embedded OpenAPI JSON, no leaked secrets), and the 3,500-token size budget.
 
 ## [0.64.0] — 2026-06-21
 
 ### Added
-
 - **OpenClaw Agent Sidecar MVP** (`services/agent-sidecar.service.js`, #255): Added a sidecar service that provides standardized read-only and action routing APIs for OpenClaw node integration, featuring a generic connector bridge to communicate with external agents and environments.
 - **E2E Controllability & Asset Handover Governance** (`services/controllability-asset-handover.service.js`, `services/controllability-evidence-matrix.service.js`, `services/controllability-submission-cockpit.service.js`): Implemented strict governance gates for controllability handovers, evidence mapping, and submission cockpit monitoring for grid operations.
 - **Regulatory Change Readiness Gate** (`services/regulatory-change-readiness.service.js`): Added an operational evaluation gate to track readiness against upcoming regulatory deadlines and requirements.
@@ -1942,32 +1815,27 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 - **Redispatch, Flex & Energy Gates** (`services/redispatch-call-quality-gate.service.js`, `services/redispatch-readiness-gate.service.js`, `services/battery-redispatch-special-gate.service.js`, `services/flex-strategic-demand-intake.service.js`, `services/flexibility-conductor-role-model.service.js`, `services/re4de-variable-grid-fee.service.js`): Expanded energy flexibility, redispatch readiness, and role model validation systems.
 
 ### Fixed
-
 - **Sidecar Token RBAC Auth Gate** (`services/agent-sidecar.service.js`): Resolved access constraints to permit validated read-only API tokens through sidecar validation paths.
 - **API Market Communication Routing** (`services/api.service.js`): Correctly exposed and mapped REST endpoints for market communication evidence chains and dashboard-api routes.
 
 ### Docs
-
 - **OpenClaw Setup Guide** (`docs/sidecar/setup.md`): Created comprehensive instructions for configuring and connecting the OpenClaw Agent Sidecar and Node bindings.
 
 ## [0.63.12] — 2026-06-18
 
 ### Added
-
 - **Redispatch Readiness Gate** (`services/redispatch-readiness-gate.service.js`, #243): added a tenant-scoped operational readiness gate for access matrix, test-call status, production proof, template version, open questions, responsible role, and acceptance deadline. The read-only `getStatus` action is wired through the Capability Broker, Hydration Registry, Slim Answer Dossier formatter, and REST API under the #251 consumption contract.
 - **Answer Dossier broker planning view** (`services/personal-agent.service.js`, #249): `answerDossier` now exposes a dossier-safe `dossierPlanning` response field derived from the Capability Broker recommendation. The view lists recommended actions, route metadata, missing broker inputs, read-only hydration candidates, and an explicit planning-only execution policy so renderers and follow-up workflows can reason over broker plans without executing consequential actions.
 - **Support-only bootstrap provisioning CLI** (`scripts/provision-tenant.js`, `scripts/provision-user.js`, `scripts/provision-token.js`, `src/provisioning-registry.js`, #157): added in-process `npm run tenant:create`, `npm run user:create`, and `npm run token:create` commands guarded by `CERNION_SUPPORT_TOKEN`. The support secret is never a `ck_` API token, is not exposed through `/api/tokens*`, and is not written to token/user/tenant records. `token:create` creates tenant/user-bound `ck_` tokens through the existing token-manager path and prints the plaintext token only once.
 - **Answer Dossier clarification & final-mode response fields** (`services/personal-agent.service.js`, `src/answer-dossier-builder.js`, #237): `answerDossier` now returns `clarificationQuestions`, `finalDossierRequested`, and `finalDossierMarkdown` so downstream systems (n8n, AnythingLLM) can drive clarification/final-answer workflows without parsing `dossierMarkdown`. `finalDossierRequested` is detected deterministically (regex, no LLM) and is also exposed in `auditTrail` for tracing. `clarificationQuestions` is derived from the same structured evidence-gap conditions that already produce `missingEvidence` — not from Markdown parsing — and is suppressed to `[]` once a final dossier is requested. `finalDossierMarkdown` reuses `buildDossierMarkdown` in a new `finalMode` that suppresses every clarification-seeking instruction (Required Answer Behavior, Recommended Answer Structure, renderer system hint, renderer task, reasoning summary) while still surfacing evidence gaps as caveats/limitations rather than hiding them. The existing `dossierMarkdown` output is unchanged for the default (non-final) path. OpenAPI response schema documents the three new fields.
 
 ### Fixed
-
 - **Personal Agent broker-recommended execution bridge** (`src/consultation-execution-bridge.js`, #150): when the local consultation workflow heuristics produce no executable steps but the Capability Broker already returned a safe `recommendedPlan`, the bridge now adopts those broker-recommended actions as a generic `capability_broker_execution` workflow. This lets VDMI governance and future broker-routed capabilities execute their selected action plan instead of falling back to advisory-only behavior, while still filtering interface placeholders and blocked actions.
 - **API token tenant/user binding slice** (`services/token-manager.service.js`, #157): newly-created API tokens now require explicit `tenantId` and `userId`, expose both fields in create/list/verify responses, and mark pre-existing unbound tokens as `legacy: true` so legacy integrations remain readable while new unbound tokens are rejected.
 - **Token-management auth gate** (`services/api.service.js`, `services/token-manager.service.js`, #157): token-management endpoints now require an explicit API/session principal instead of falling through to the environment-token fallback, while `POST /api/tokens/verify` remains open for token validation. Tenant-bound callers are also prevented from creating tokens for another tenant.
 - **Personal Agent session ownership guard** (`services/personal-agent.service.js`, #157): persisted Personal-Agent sessions with an owner `userId` are now readable/resettable/dream-status-visible only to the same user or a `full-access`/cross-tenant admin principal. Unauthorized cross-user access returns the same `OBJECT_NOT_FOUND` 404 as a missing session to avoid leaking existence, while legacy ownerless sessions remain readable for compatibility.
 
 ### Tests
-
 - Added Answer Dossier coverage for broker-derived planning views, proving VDMI plans remain non-executing in Dossier mode and read-only hydration candidates are exposed as planning metadata. Existing hydration assertions now tolerate the renderer-normalized ASCII evidence labels already emitted by the current Dossier builder.
 - Added 8 tests covering clarification-question extraction, all 5 final-intent phrasings from the issue plus a negative case, full suppression of clarification instructions in final mode, low-evidence final-answer caveat handling, and non-final defaults.
 - Added consultation-execution bridge regressions for broker-recommended execution fallback, including the VDMI governance path and guard cases where local workflows or placeholder-only broker plans must not be overridden.
@@ -1978,70 +1846,57 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 ## [0.63.11] — 2026-06-16
 
 ### Fixed
-
 - **Answer Dossier multi-source hydration runtime** (`services/personal-agent.service.js`): Hydration now limits concurrent read-only evidence actions to two and gives MCP-backed external data sources a realistic per-action timeout. Production Jaeger traces for the AGSI/ENTSO-E Lagebild showed all five actions were selected, but the previous `hydrationBudget / actionCount` timeout caused the dossier to return before any external evidence could be formatted and increased MCP session pressure.
 
 ### Tests
-
 - Updated AGSI/ENTSO-E hydration coverage so the assertion is stable under concurrency-limited execution.
 
 ## [0.63.10] — 2026-06-16
 
 ### Added
-
 - **Cross-commodity Answer Dossier path** (`src/capability-catalog.js`, `services/capability-broker.service.js`): Added curated routing for Stadtwerk supply-security Lagebild prompts that explicitly combine AGSI/GIE gas storage data with ENTSO-E electricity-system data. This prevents generic `evidence` wording in such prompts from being captured by the VDMI asset-validation route.
 - **AGSI/ENTSO-E Dossier hydration** (`services/personal-agent.service.js`): Extended the explicit read-only hydration allowlist with `gas-storage.countryStorage`, `gas-storage.supplySecurityCheck`, `entsoe.loadForecast`, `entsoe.windSolarForecast`, and `entsoe.dayAheadPrices`. Hydrated outputs are source-labelled as validated evidence while remaining fail-open and time-budgeted.
 
 ### Tests
-
 - Added broker routing coverage for AGSI + ENTSO-E Lagebild prompts.
 - Added Answer Dossier hydration coverage proving all five cross-commodity read-only actions can be called and rendered as Known Evidence.
 
 ## [0.63.9] — 2026-06-16
 
 ### Fixed
-
 - **Answer Dossier project-fact extraction** (`services/personal-agent.service.js`): User-provided MaStR/candidate-list sections are ignored when learning project-scoped Low Evidence, so candidate rows such as `SAN... | Speicher | 6.8 kW` are no longer stored as project facts. Explicit project capacity fields such as `Kapazitaet_kW: 24.1` are now parsed as the project power signal.
 
 ### Tests
-
 - Added a regression test that replays the complex MaStR context scenario and verifies the Dossier learns `24.1 kW` as project capacity while not learning `6.8 kW`/`8.9 kW` storage candidate rows as project components.
 
 ## [0.63.8] — 2026-06-16
 
 ### Fixed
-
 - **Answer Dossier CO₂ hydration parameters** (`services/personal-agent.service.js`): `energy-market.co2Intensity` hydration now sends the action's real required parameter shape (`location`, plus `forecast: true`) instead of the invalid `{ zip }` payload. Production Jaeger traces showed the action was reached after v0.63.7 but failed validation because `location` was missing.
 - **Hydrated CO₂ evidence formatting**: Evidence formatting now supports the real `energy-market.co2Intensity` response fields (`co2_intensity_gco2eq_kwh`, `average_today_gco2eq_kwh`, `data.location`) in addition to the earlier unit-test stub fields.
 
 ### Tests
-
 - Updated hydration parameter assertions and added a regression test for the real `energy-market.co2Intensity` response shape.
 
 ## [0.63.7] — 2026-06-16
 
 ### Fixed
-
 - **Answer Dossier hydration candidate extraction** (`services/personal-agent.service.js`): Hydration now reads allowlisted actions from the real `capability-broker.recommend` response shape (`recommendedPlan[].action` and `recommendedCapabilities[].actions`) in addition to legacy/mock `preferredActions`/`fallbackActions`. Production Jaeger traces showed the broker succeeded after v0.63.6 but no hydration action was attempted because the real broker does not expose top-level `preferredActions`.
 
 ### Tests
-
 - Added an Answer Dossier regression test covering the real broker `recommendedPlan` action shape and verifying `energy-market.co2Intensity` hydration.
 
 ## [0.63.6] — 2026-06-16
 
 ### Fixed
-
 - **Answer Dossier broker contract** (`services/personal-agent.service.js`): `answerDossier` now calls `capability-broker.recommend` with the supported `mode: "initial"` instead of the unsupported `mode: "dossier"`. Production Jaeger traces showed the previous payload failed the broker parameter validator immediately (`VALIDATION_ERROR`), preventing read-only hydration from starting.
 
 ### Tests
-
 - Updated broker payload assertions in `tests/answer-dossier.service.test.js` so the mocked broker path matches the real `capability-broker.recommend` contract.
 
 ## [0.63.5] — 2026-06-15
 
 ### Added
-
 - **Read-only capability evidence hydration** (`services/personal-agent.service.js`): second optional phase after the advisory broker resolves. When the broker recommends a capability whose `preferredActions`/`fallbackActions` are on the explicit allowlist, `answerDossier` calls those read-only actions with inputs extracted from session facts/question and merges successful results into the dossier evidence. Fail-open: timeout or failure yields a valid dossier with no hydrated evidence.
   - Hydration budget: 40% of `timeBudget.thinkingMs`, capped at 4000ms; skipped entirely when `thinkingMs ≤ 3000` (short-budget requests <~15s)
   - Per-action cap: `min(3000ms, hydrationBudgetMs / actionsCount)`, all actions run concurrently via `Promise.allSettled`
@@ -2053,19 +1908,16 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
   - `energy-market.co2Intensity` — extracts postal code from session facts or question regex; formats `GrünstromIndex`, CO₂-Intensität, Erneuerbareanteil as evidence text
 
 ### Security
-
 - Hydration is allowlist-gated: write actions, process execution, HITL-requiring actions, and any unregistered action are never called
 - Hydrated evidence counts toward `confidenceEvidenceCount` only when `evidenceQuality: 'validated'` (actual API data, not advisory)
 - Total endpoint budget remains ≤30s (hydration budget carved from thinking phase)
 
 ### Tests
-
 - 8 new hydration tests in `tests/answer-dossier.service.test.js` (happy path, no postal code, allowlist gate, timeout/failure fail-open, budget skip, evidence labeling, write-action guard)
 
 ## [0.63.4] — 2026-06-15
 
 ### Added
-
 - **Capability Broker integration for `answerDossier`** (`services/personal-agent.service.js`, `src/answer-dossier-builder.js`): advisory-only, time-budgeted broker call runs in parallel with evidence collection. Fail-open: timeout, service unavailability, or any broker error yields a valid dossier with `capabilityRouting.status = 'timeout' | 'failed' | 'unavailable'`. No execution is triggered; broker output is strictly advisory.
   - Broker budget: `min(2500, max(1500, floor(timeBudgetMs × 0.08)))` ms, hard cap 2500ms
   - Calls `capability-broker.recommend` with `meta.$gateway = false` (internal-only, never routed through gateway)
@@ -2075,32 +1927,27 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
   - Broker confidence/recommendations are advisory only — they cannot upgrade `low` evidence to validated evidence
 
 ### Security
-
 - Broker is called with `meta.$gateway: false`; no public Capability Broker route added
 - Broker output cannot promote Low Evidence to validated evidence; evidence confidence derived exclusively from actual collected evidence
 
 ### Tests
-
 - 9 new acceptance-criterion tests in `tests/answer-dossier.service.test.js` (broker `$gateway` guard, success path, timeout, failure, unavailable, no evidence upgrade, budget formula, renderer-neutral assertion, schema v1 payload format)
 
 ## [0.63.3] — 2026-06-15
 
 ### Fixed
-
 - **Role inference from `requestedFact`** (`evidence-requirement.service.js`): `inferResponsibleRole()` now checks both `label` and `requestedFact` combined, so auto-synced dossier requirements with the generic label `"Fehlende Evidence-Anforderung"` are correctly assigned a role from the concrete fact value. `zuständiger Netzbetreiber`, `Netzverknüpfungspunkt`, `Reserven im Umspannwerk`, `verbindliche TAB` all resolve to `netzplanung`.
 - **`answerDossier` upsert label**: now passes `fact.value` (e.g. `"zuständiger Netzbetreiber"`) instead of `fact.label` (`"Fehlende Evidence-Anforderung"`) so the concrete requirement label is stored and searchable.
 - **`netzanschluss` heuristic gap**: added `netzanschluss`, `netzanschlusszusage`, `anschlusszusage`, `netzanschlussprüfung` to the `netzplanung` role pattern. `"Formale Netzanschlusszusage fehlt"` → `netzplanung`.
 - **Chat routing wired**: `detectOpenEvidenceRequirementsQuery` and `queryOpenEvidenceRequirements` are now invoked in `_executeChatCoreLogic` before the LLM routing path. Queries like `"Was braucht ihr aktuell von mir?"` return open requirements directly. Fail-open: if the service is unavailable the chat continues normally.
 
 ### Tests
-
 - 9 new regression tests in `tests/evidence-requirement.service.test.js` (relay-gap suite: role inference, netzanschluss heuristic, project-scope isolation)
 - New `tests/evidence-requirement-relay.integration.test.js` with 8 end-to-end integration tests covering auto-sync, project-scope isolation, chat routing, tenant isolation, and no-auto-validate constraint
 
 ## [0.63.2] — 2026-06-15
 
 ### Added
-
 - **Evidence Requirement Service** (`services/evidence-requirement.service.js`): multi-user lifecycle management for structured evidence requirements arising from Answer Dossier `missing_evidence_requirement` facts and VDMI evidence gaps.
   - `upsert` — idempotent create/update per tenant + requirementId; merges `waitingSessions` on re-upsert
   - `listOpenForRole(role, projectScopeKey?)` — tenant-scoped, optionally filtered by project scope key; prevents Sinsheim/Mauer mixing
@@ -2115,7 +1962,6 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 - 26 unit tests in `tests/evidence-requirement.service.test.js` covering all actions, role inference, cross-tenant isolation, VDMI bridge, notification dispatch, and idempotency
 
 ### Security
-
 - Cross-tenant access blocked with HTTP 403 (`EVIDENCE_REQUIREMENT_TENANT_FORBIDDEN`)
 - `ctx.meta.tenantId` always wins over payload `tenantId`; `projectScopeKey` enforces project isolation
 - `answerRequirement` explicitly cannot promote to `validated`; only `markValidated` may do so
@@ -2123,12 +1969,10 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 ## [0.63.1] — 2026-06-14
 
 ### Fixed
-
 - **Auth guard**: `POST /api/copilot/answer-dossier` now rejects unauthenticated calls with HTTP 401 (`AUTH_REQUIRED`). Previously the endpoint was callable without any auth token. `context.tenantId` is ignored if it differs from the authenticated tenant — a warning is logged instead.
 - **processStage regression**: When `userContext=target_grid_planning` (or any known context), `processStage` now correctly advances to `evidence_collection` even when evidence is thin. Previously it could remain `initial` on follow-up turns.
 
 ### Added (enum extensions, backwards-compatible)
-
 - `userContext` new values: `mayor`, `regulatory`, `technical_operator`
 - `processStage` new values: `context_clarification` (replaces `initial` for unknown-context turns), `synthesis`, `async_pending`, `intent_prepared` (replaces `action_requested` for process-action turns); `action_requested` kept for session backwards-compatibility
 - `answerMode` new values: `process_check`, `partial_async`, `final_answer`
@@ -2142,7 +1986,6 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 ## [0.63.0] — 2026-06-14
 
 ### Added
-
 - **Cernion Answer Dossier** (`POST /api/copilot/answer-dossier`): new renderer-neutral endpoint that produces a structured Markdown dossier containing domain reasoning, evidence, guardrails, and a final renderer instruction. External systems (n8n, AnythingLLM, MS365 Copilot) use the dossier to render prose answers without owning domain logic.
 - `src/answer-dossier-builder.js`: pure builder module with closed enums (`userContext`, `processStage`, `answerMode`, `confidence`, `completionState`), deterministic context classification, phase-aware time budget computation, and dossier Markdown assembly.
 - Phase-aware time budget (Fact Collection / Thinking / Compilation): Compilation always runs; evidence phases are soft-limited and produce `completionState: 'partial'` on timeout.
@@ -2155,7 +1998,6 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 - n8n timeout configuration documented in `docs/n8n-answer-dossier-test.md`.
 
 ### Architecture
-
 - Cernion remains the sole domain orchestrator; external renderers receive only the Markdown dossier and a minimal system hint.
 - `askCernionAgent` compact evidence path unchanged; dossier is a separate heavier action.
 - `openapi-copilot.json` Copilot Studio export unchanged (dossier endpoint is Phase 2).
@@ -2163,7 +2005,6 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 ## [Unreleased]
 
 ### Added (v0.62.0)
-
 - `file-ingest-monitor` service: generic file/CSV monitoring with schema registry, provenance tracking, staleness detection, error-folder findings, and green/yellow/red health status per monitored flow (issue #216)
 - `redispatch-asset-register` service: Redispatch-specific asset projection layer over MaStR data with deterministic identifier-conflict and market-location findings; relationship API for co-location, shared-NAP, shared-metering and control-group associations (issues #215, #216)
 - `redispatch-data-governance` service: process governance layer with configurable deadline classes, owner model, source-of-record resolution, and deterministic governance findings (issue #214)
@@ -2960,7 +2801,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 
 - `test:unit:ci` ✅
 
-— HITL Approval Short-Circuit, Scope-Separation Hardening, and Energy-ID Extraction (2026-05-25)
+ — HITL Approval Short-Circuit, Scope-Separation Hardening, and Energy-ID Extraction (2026-05-25)
 
 ### Fixed
 
@@ -3154,7 +2995,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
   - Receipt deckt VNB-Zuständigkeitsprüfung (Wer ist der zuständige Netzbetreiber für eine gegebene Stadt/BDEW-Code?) ab.
   - `toolPlan`: 2-stufig — Primary: `grid-operations.vnbLookup` mit deterministic Param-Mapping (bdew/city/vnbName → Primary-Lookup). Fallback: `grid-operations.marketPartners` (Name-basiert, wenn Primary unzureichend).
   - `evidencePolicy`: Verifiziert VNB-Netzgebiet-Zuständigkeit gegen lokale NAP/MeLo-Daten + Registerstätten. Warnt bei Ortsfremden (ortsfremde) Anlagen.
-  - `forbiddenInferences`: Blockiert "Zuständig ist _X_" ohne VNB-Lookup-Evidenz; blockiert §14a/§41a/§42c/Redispatch-Claims in VNB-Kontext ohne Evidenz.
+  - `forbiddenInferences`: Blockiert "Zuständig ist *X*" ohne VNB-Lookup-Evidenz; blockiert §14a/§41a/§42c/Redispatch-Claims in VNB-Kontext ohne Evidenz.
   - `responsePolicy`: Konservativ. Synthesegap-Warn bei fehlender VNB-Verifizierung. Nur marketPartners-Treffer ohne NAP-Auflösung = "Möglicher VNB, aber nicht endgültig verifiziert".
 - [src/consultation-execution-bridge.js](src/consultation-execution-bridge.js): neue `executeWithReceipt(receipt, knownContext, observations, toolResolver, logger)` Funktion — deterministic, thin Executor für Receipt-toolPlan-Schritte.
   - Unterstützt `paramMapping` (source: 'context'/'fixed'/'default') für flexible Param-Ableitung.
@@ -3397,7 +3238,6 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 - [tests/personal-agent-turn-graph.test.js](tests/personal-agent-turn-graph.test.js): unit coverage for turn graph creation, de-duplication of nodes/edges, and finalization behavior.
 
 ### Changed
-
 - [src/personal-agent-context.js](src/personal-agent-context.js): `buildPersistableSessionState()` now also persists sanitized `l3.chatModeSource`, `l3.lastClassification`, and `l3.executionStateGraph` alongside `l3.stateMachine`/`l3.turnGraph` (no L4 raw payload).
 - [services/personal-agent.service.js](services/personal-agent.service.js): chat-mode resolution now follows deterministic precedence `API param → session fingerprint cache → LLM classifier → heuristic → default`; API `chatMode` cannot be overwritten by classifier output.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `agentTrace` now includes `routingDecision`, `executionStateGraph`, and `execution.meta` (LLM/tool/broker/state trace summary).
@@ -3406,7 +3246,6 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): extended assertions pass for backward-compatible consultation payload shape while exposing new trace metadata via `agentTrace.execution.meta`.
 
 ### Technical Details
-
 - **FSM Lifecycle:** init → session_loaded → knowledge_oriented → broker_recommended → chat_mode_resolved → (consultation_active | execution_planned) → execution_running → synthesizing → (completed | awaiting_user_input | hitl_blocked | error)
 - **Turn Graph Nodes:** message (root), context, knowledge, broker, decision, tool, fact, gap, answer
 - **Turn Graph Edges:** contextualized_by, oriented_by, routes_to, decides, invokes, grounds, requires_evidence, produces
@@ -3419,7 +3258,6 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 ## [0.53.9] — Personal Agent State Machine Foundation (2026-05-21)
 
 ### Added
-
 - [src/personal-agent-state-machine.js](src/personal-agent-state-machine.js): explicit Personal-Agent turn FSM with canonical states (`init`, `session_loaded`, `knowledge_oriented`, `broker_recommended`, `chat_mode_resolved`, `consultation_active`, `execution_planned`, `execution_running`, `synthesizing`, terminal stop states) plus guarded transitions and terminal-state derivation.
 - [src/personal-agent-turn-graph.js](src/personal-agent-turn-graph.js): transient, session-turn-scoped graph model for chat reasoning (`message`, `context`, `knowledge`, `broker`, `tool`, `fact`, `gap`, `answer`) with typed edges and bounded snapshots.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `_executeChatCoreLogic()` now instantiates and advances a turn-local state machine across session load, knowledge orientation, broker recommendation, chat-mode resolution, consultation/execution, synthesis, and terminal stop handling.
@@ -3431,7 +3269,6 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 - [tests/personal-agent-turn-graph.test.js](tests/personal-agent-turn-graph.test.js): unit coverage for turn graph creation, de-duplication of nodes/edges, and finalization behavior.
 
 ### Changed
-
 - [src/personal-agent-context.js](src/personal-agent-context.js): `buildPersistableSessionState()` now persists sanitized `l3.stateMachine` snapshots alongside existing chat/session metadata.
 - [src/personal-agent-context.js](src/personal-agent-context.js): `buildPersistableSessionState()` now persists sanitized `l3.turnGraph` snapshots as first-class L3 artifacts (no L4 raw payload).
 - [services/personal-agent.service.js](services/personal-agent.service.js): session load/reset paths hydrate and clear `l3.stateMachine`, making the FSM a first-class but non-L4 session artifact.
@@ -3441,7 +3278,6 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 ## [0.53.8] — Async Job Observability: Agentic Loop + Status Transition Logs (2026-05-21)
 
 ### Added
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): `handleConsultationTurnAgentic()` now accepts `jobId` from the caller and emits per-ReAct-iteration progress logs — `agentic_iteration_N` (THINK), `agentic_act_N` (ACT, includes tool name), `agentic_observe_N` (OBSERVE, includes success/fail and attempt count) — for all jobs carrying observability context.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `handleConsultationTurn()` call in `_executeChatCoreLogic()` now forwards `jobId` into the input object so agentic loop instrumentation receives it end-to-end.
 - [src/job-store.js](src/job-store.js): `runQueuedJob()` emits `status_running` (queued→running) and `status_completed` (running→completed) / `status_error` (running→error) transition logs — gated on `entry.expectedDuration` so only observable Personal Agent jobs are affected; CYA/ZNP domain-phase log contracts are preserved.
@@ -3450,27 +3286,24 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 - [tests/helpers/job-polling.js](tests/helpers/job-polling.js): `waitForJobCompletion()`, `getJobLogs()`, `findLogByPhase()`, `getLogPhases()` polling helpers for integration tests and E2E acceptance.
 
 ### Changed
-
 - [src/job-store.js](src/job-store.js): `status_running`/`status_completed`/`status_error` transition logs are conditional on `entry.expectedDuration` — preventing interference with CYA and ZNP domain-phase log arrays.
 - [src/job-store/file-driver.js](src/job-store/file-driver.js): `saveResult()` explicitly writes `phase: 'done'` in the `updateJob` patch, ensuring the phase field reflects completion state after any prior `appendLog` calls.
 
 ## [0.53.7] — HITL Cross-Turn Resume + L3 Checkpoint Persistence (2026-05-21)
 
 ### Added
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): `resolveCriticalStepApproval()` now accepts a `knownContext` argument; if `knownContext.hitlItemId` references an already-approved HITL item, the mandatory checkpoint gate is bypassed immediately — enabling deterministic cross-turn resume without an additional round-trip.
 - [src/personal-agent-context.js](src/personal-agent-context.js): `buildPersistableSessionState()` now serialises `criticalStepCheckpoints` from L3 into the persisted payload (sanitised object, no raw L4 tool context), so approval history survives across session turns.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `loadSession()` and the new-session initialisation path both hydrate `criticalStepCheckpoints: {}` into L3, completing the round-trip for HITL state.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): in-memory `hitl` mock service (create / get / approve) and `finance-agent.analyze` mock added to test broker, required for deterministic HITL flow testing without an external HITL backend.
 
 ### Changed
-
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): three VDMI decision-governance tests updated to pre-create and pre-approve a HITL item before calling `personal-agent.chat`, then pass `hitlItemId` via `knownContext` — tests now exercise the full AUTO-mode execution path instead of stopping at `MANDATORY_HITL_APPROVAL`.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): HITL resume test updated to forward `stopPoint.hitlItemId` into `knownContext` on the second turn; assertions relaxed to verify the blocked `finance-agent.analyze` step actually executes rather than asserting a fixed `completed` status.
 - [docs/ui-contracts/41-personal-agent.md](docs/ui-contracts/41-personal-agent.md): contract updated to v0.53.7; `hitlItemId` example format corrected to `hitl-N`; added explicit guarantee that an approved item passed via `knownContext.hitlItemId` resumes the blocked step in the next turn.
 
-### Added
 
+### Added
 - [src/capability-catalog.js](src/capability-catalog.js): capability-level `hitlPolicy` metadata for critical flows (`vdmi_grid_connection_decision_governance`, `financier_due_diligence_assessment`) with `mode: "mandatory_step_approval"` and `criticalityClass`.
 - [services/personal-agent.service.js](services/personal-agent.service.js): deterministic response metadata builders `buildQualitySummary()` and `buildAgentTrace()` for structured Groundedness/Uncertainty and execution trace output.
 - [services/personal-agent.service.js](services/personal-agent.service.js): persistent critical-step checkpoint helpers (`buildCriticalStepCheckpointKey()`, `resolveCriticalStepApproval()`) for HITL create/get approval lifecycle and resume on next turn.
@@ -3479,7 +3312,6 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 - [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): regression ensuring critical capability steps are flagged with `hitlRequired: true`.
 
 ### Changed
-
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): broker-plan steps now carry `hitlRequired` and `criticalityClass`; critical capabilities expose step-level HITL checkpoints in plan output.
 - [services/capability-broker.service.js](services/capability-broker.service.js): broker recommendation payload now exposes `recommendedCapabilities[].hitlPolicy`.
 - [services/personal-agent.service.js](services/personal-agent.service.js): AUTO execution now enforces mandatory HITL before critical steps; execution stops with `reasonCode: "MANDATORY_HITL_APPROVAL"`, returns `stopPoint.hitlItemId`, and resumes the blocked step after external HITL approval.
@@ -3490,7 +3322,6 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 ## [0.53.5] — Forecast-Evidence Planning Phases 1–5 (2026-05-21)
 
 ### Added
-
 - [src/evidence-registry.js](src/evidence-registry.js): new static Evidence Registry mapping capability and routing-matrix route keys to ordered, typed evidence-source requirements (`id`, `label`, `resolvedBy`, `contextKeys`, `optional`). Pilot entries: `residual_load_forecast_for_dso` (4 sources), `investment-grid-check`, `financier_due_diligence_assessment`.
 - [src/evidence-planner.js](src/evidence-planner.js): new pure-function Evidence Planner (`planEvidence`, `resolvePlanKey`, `isSourceSatisfied`, `computeConfidence`) that annotates routing plans with an `evidencePlan` sidecar. Phase 1: read-only annotation (never blocks execution). Phase 2: gap-gate helpers `shouldBlockSynthesisOnGaps` and `buildEvidenceGapPresentation`.
 - [src/tool-coverage-planner.js](src/tool-coverage-planner.js): Phase 3 generic tool-coverage planner (`planGenericToolCoverage`, `extractMissingParamsFromStep`, `inferActionOutputContextKeys`) as fallback for unregistered capabilities. Analyzes `plan.steps` paramsTemplates to infer required params and identify gaps.
@@ -3498,7 +3329,6 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 - [tests/evidence-planner.test.js](tests/evidence-planner.test.js): extended to 49 tests including T-EV-007 semantic near-term Redispatch scenarios (`"nächste Tage"` without explicit `"Prognose"` keyword).
 
 ### Changed
-
 - [src/evidence-planner.js](src/evidence-planner.js): `planEvidence()` now falls back to `planGenericToolCoverage` for unregistered routes (Phase 3); returns `source: "generic"` vs `source: "registry"` to distinguish plan origins. Unknown routes no longer return `null` for plans that have steps.
 - [src/evidence-registry.js](src/evidence-registry.js): Phase 4 — added explicit registry entries for all ROUTING_MATRIX routes: `energy-sharing-znp`, `redispatch-settlement`, `fnav-finance`, `forecast-flex`. These routes now produce precise registry-based evidence plans instead of falling through to generic coverage.
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): Phase 5 signal detection added (`detectEvidenceSignalKey`, near-term temporal hint extraction in `extractPromptHints`) so prompts such as "Redispatch in den nächsten Tagen" map to semantic evidence key `redispatch_probability_forecast` even without explicit forecast keywords.
@@ -3508,9 +3338,7 @@ All 6 sub-issues of #280 (#281–#286) are now complete.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added T-EV-003 — `evidencePlan` field present in all Personal Agent response paths.
 
 ### Architecture Note
-
 Evidence planning is a five-phase migration:
-
 1. **Phase 1** — Read-only sidecar annotation. Pilot capability registered. No execution changes.
 2. **Phase 2** — Gap-gate in synthesis turn. Critical gaps render `evidence_gap_table` instead of LLM synthesis.
 3. **Phase 3** — Generic tool-coverage fallback for any unregistered capability. `planEvidence` never returns `null` for plans with steps.
@@ -3520,12 +3348,10 @@ Evidence planning is a five-phase migration:
 ## [0.53.4] — Dynamic Consultation Tool Params + Retry Hardening (2026-05-20)
 
 ### Added
-
 - [src/consultation-tool-resolver.js](src/consultation-tool-resolver.js): new dynamic consultation tool resolver with Moleculer-first schema discovery (`A`), documenting OpenAPI fallback, LLM-based parameter generation, required-field validation, and bounded tool retry execution (`maxAttempts=3`).
 - [tests/consultation-tool-resolver.test.js](tests/consultation-tool-resolver.test.js): new unit coverage for service/action parsing, Moleculer schema conversion, OpenAPI fallback behavior, parameter payload generation, and retry/fail-fast flows.
 
 ### Changed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): agentic consultation `ACT` step now executes tools via dynamic parameter build + retry (`executeToolWithRetry`) instead of direct single-shot `ctx.call(...)`.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `grid-operations.vnbLookup` is de-prioritized in the THINK/ACT transition when no required BDEW fact is available; fallback path prefers `grid-operations.marketPartners` to collect resolvable evidence first.
 - [services/personal-agent.service.js](services/personal-agent.service.js): consultation responses and persisted L3 `consultationContext` now include bounded `attemptsSummary` metadata only (no raw transient tool payload persistence).
@@ -3534,18 +3360,15 @@ Evidence planning is a five-phase migration:
 ## [0.53.3] — Agentic Consultation Loop with Grid-Operations Tool Execution (2026-05-20)
 
 ### Added
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): bounded agentic consultation loop for `handleConsultationTurn()` with real `grid-operations.marketPartners` and `grid-operations.vnbLookup` tool calls before final synthesis.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): regression coverage for the agentic consultation flow, including planner/tool execution and synthesized output trace.
 
 ### Changed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): consultation synthesis now prefers tool-observed evidence first and falls back to the legacy single-shot advisory path when the agentic loop is unavailable.
 
 ## [0.53.2] — LLM-basierte ChatMode-Klassifikation (Walldorf/Burgbernheim UAT Fix) (2026-05-20)
 
 ### Added
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): new `classifyChatModeLLM()` method for intent classification via LLM. Classifies user messages with confidence scoring to distinguish imperatives (execution) from statements/questions (consultation). Deutsches System-Prompt mit Regeln für imperativ vs. Statement.
 - [services/personal-agent.service.js](services/personal-agent.service.js): 4-Ebenen-Fallback für chatMode-Auflösung: (1) API-Parameter (2) Message-Cache (3) LLM-Klassifikation ≥0.7 confidence (4) Heuristic → Default.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `session.l3.chatModeSource` speichert Klassifikations-Quelle (`api`|`cached`|`llm`|`heuristic`|`default`) für Debugging.
@@ -3553,31 +3376,26 @@ Evidence planning is a five-phase migration:
 - [tests/personal-agent-llm-classify.e2e.test.js](tests/personal-agent-llm-classify.e2e.test.js): Opt-in E2E-Tests für Walldorf/Burgbernheim Szenarien (Turn-by-Turn Validierung) und API-Override-Test. Skipped wenn Dev-Server nicht erreichbar.
 
 ### Changed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): chatMode-Auflösung erweitert mit LLM-Klassifikator statt reiner Heuristik. Löst UAT-Regression: "BDEW-Code ist unbekannt" (Statement) wird jetzt korrekt als `consultation` klassifiziert statt fälschlich als `execution`.
 
 ### Technical Details
-
 - LLM-Klassifikation: temp=0.1 (deterministisch), maxTokens=256, Confidence-Threshold ≥0.7.
 - Message-Cache: Hash basierend auf Message-Länge + Prefix, wiederholte identische Nachrichten triggern keinen neuen LLM-Call.
 - Fallback-Sicher: LLM-Timeout/Fehler → Heuristic → Default (nie Crash).
 - Backward-compatible: API-Parameter hat höchste Priorität (keine Verhaltensänderung für explizite calls).
 
 ### Tests
-
 - personal-agent.service.test.js: 58 Tests ✓ (6 neu für classifyChatModeLLM)
 - personal-agent-llm-classify.e2e.test.js: Opt-in Szenarien (3 Test-Gruppen: Walldorf, Burgbernheim, API-Override)
 
 ## [0.53.1] — Personal Agent Consultation Mode & chatMode API Control (2026-05-20)
 
 ### Added
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): dual chat-mode orchestration with explicit `chatMode` support (`execution` | `consultation`) and API-parameter priority over auto-detection.
 - [services/personal-agent.service.js](services/personal-agent.service.js): new consultation path `handleConsultationTurn()` with structured advisory output (`reply`, `hypotheses`, `openQuestions`, `nextActions`, `factsUsed`) and deterministic fallback when LLM service is unavailable.
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): `CHAT_MODES`, `normalizeChatMode()`, `detectExplicitChatModeSwitch()`, and `detectChatMode()` utilities for mode selection.
 
 ### Changed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): legacy sessions without persisted `chatMode` now default to `consultation` immediately.
 - [services/personal-agent.service.js](services/personal-agent.service.js): consultation responses now expose top-level `status: "consulting"` plus a minimal backward-compatible `execution` object (`{ status: "consulting", plan: null, steps: [] }`).
 - [services/personal-agent.service.js](services/personal-agent.service.js): persisted session state includes `l3.chatMode` and bounded `l3.consultationContext`; execution turns clear consultation context.
@@ -3585,14 +3403,12 @@ Evidence planning is a five-phase migration:
 - [services/api.service.js](services/api.service.js): multipart `POST /api/personal-agent/chat` normalization now forwards `chatMode` to `ctx.params`.
 
 ### Tests
-
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regressions for consultation default on legacy sessions, `chatMode` API-priority (`execution` override), and explicit `consultation` override.
 - [tests/api.service.test.js](tests/api.service.test.js): multipart normalization test extended to verify `chatMode` passthrough.
 
 ## [0.53.0] — VDMI System Templates (Anonymized Governance Patterns, Versioned Upsert) (2026-05-19)
 
 ### Added
-
 - [src/vdmi-system-templates.js](src/vdmi-system-templates.js): new module exporting 5+ anonymized, reusable VDMI governance templates (PV Grid Connection, Energy Sharing Asset Approval, Portfolio Gating Decision, Substation Load Assessment, Redispatch Participation Confirmation) with stable IDs, versioning, and isSystem flag for systemwide seeding.
 - [services/vdmi.service.js](services/vdmi.service.js): `seedSystemTemplates()` method with Option B versioned upsert (insert-if-missing, update on templateVersion bump) and idempotent execution in `started()` hook. System templates persist in PouchDB with `isSystem: true`, `originTenant: '*'`, enabling tenant-overarching template library.
 - [services/vdmi.service.js](services/vdmi.service.js): `templates` action now includes system-wide anonymized templates alongside tenant-created ones via read-path query filter on `isSystem` flag.
@@ -3600,7 +3416,6 @@ Evidence planning is a five-phase migration:
 - [docs/ui-contracts/vdmi-ui-contract.md](docs/ui-contracts/vdmi-ui-contract.md): documented 5 system templates with anonymized governance scenarios, payload schema, and Finanzamt-compliant data minimization.
 
 ### Technical Details
-
 - System templates seeded via stable `vdmi-template:SYSTEM_*` document IDs to prevent duplication across restarts.
 - Versioned upsert logic: if template exists with lower `templateVersion`, metadata and `templateData` are refreshed; if same version, operation is no-op.
 - `originTenant: '*'` marker ensures templates are queryable from all tenants without copying.
@@ -3608,7 +3423,6 @@ Evidence planning is a five-phase migration:
 - All 5 system templates are anonymized: no real customer data, asset names are generic ("PV_Asset_North", "Substation_A", etc.), actors identified by role+category.
 
 ### Governance Patterns Included
-
 1. **Grid Connection Approval** (PV plant, NAV §8): V=DSO, D=Asset Owner, M=Planning Authority, I=Neighbors Register (role-based, no real stakeholders).
 2. **Energy Sharing Collective** (neighborhood asset swap): V=ESG Operator, D=Metering Provider, M=Balancing Authority, I=End-use Consumers.
 3. **Portfolio Gating Decision** (redispatch enrollment): V=Portfolio Manager, D=DMS System, M=TSO Advisory, I=Grid Operator.
@@ -3618,7 +3432,6 @@ Evidence planning is a five-phase migration:
 ## [0.52.17] — Session-Manager Plan-Stack Integration & Parent-Plan Resume (2026-05-19)
 
 ### Changed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js), [src/session-manager.js](src/session-manager.js): integrated plan-stack management into personal-agent.service `_executeChatCoreLogic()` so session state carries multi-turn plan continuity and resolved-parameter carry-over.
 - [services/personal-agent.service.js](services/personal-agent.service.js): session now maintains `l3.planStack` (stack of plan frames), `l3.resolvedParams` (accumulated confirmed data), and `l3.lastCompletedPlan` (parent-plan marker) across turns for deterministic session-aware execution.
 - [services/personal-agent.service.js](services/personal-agent.service.js): plan-stack push occurs on `awaiting-onboarding` stops with frame metadata (intent, routing, plan, awaitingParams, resolvedParamsSnapshot) and max-depth=5 guard.
@@ -3631,11 +3444,9 @@ Evidence planning is a five-phase migration:
 - [services/personal-agent.service.js](services/personal-agent.service.js), [src/personal-agent-context.js](src/personal-agent-context.js): plan-stack loop detection (duplicate intent within 3 recent frames) implemented as non-disruptive logger warning to prevent accidental loops while keeping chat operational.
 
 ### Tests
-
 - [tests/session-manager.test.js](tests/session-manager.test.js): all 4 helpers verified (mergeResolvedParamsIntoPlan, resumeParentPlanFrame, pushPlanFrame max-depth, loop detection).
 
 ### Conflict Handling
-
 - Session reset (`resetSession` POST) now keeps plan-stack and resolved-params intact per spec so hard-reset loops are prevented by continuity guards.
 - Old sessions (before v0.52.17) with missing `l3.planStack`/`l3.resolvedParams` gracefully default to empty state; no migration required.
 - Empathetic onboarding flow (from v0.52.16) coexists with plan-stack: onboarding questions are tracked independently.
@@ -3643,19 +3454,16 @@ Evidence planning is a five-phase migration:
 ## [0.52.16] — Personal Agent Plan Resume & Startup Abort Hardening (2026-05-19)
 
 ### Changed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js), [src/session-manager.js](src/session-manager.js): resume flow for parent plans hardened with plan-stack aware carry-over so resumed turns preserve scenario continuity after child-plan completion.
 - [services/personal-agent.service.js](services/personal-agent.service.js), [src/session-manager.js](src/session-manager.js): plan-stack acknowledgement flow improved (`acknowledged` -> `suspended`/`resumed` transitions) to avoid duplicate loopbacks and to keep deterministic continuation state.
 - [services/personal-agent.service.js](services/personal-agent.service.js), [services/capability-broker.service.js](services/capability-broker.service.js), [src/capability-catalog.js](src/capability-catalog.js), [src/personal-agent-routing.js](src/personal-agent-routing.js): consultative synthesis routing refined so catalog-backed alternatives are preferred and fallback behavior stays explicit when no deterministic alternative is available.
 - [src/job-store.js](src/job-store.js), [tests/job-store.test.js](tests/job-store.test.js), [tests/job-status.service.test.js](tests/job-status.service.test.js): startup rehydration behavior tightened to handle queued/running jobs via explicit startup-abort/recovery lifecycle signaling instead of stale in-memory continuation assumptions.
 
 ### Tests
-
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js), [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js), [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): focused regressions for resumed parent-plan UX, plan-stack continuity, consultative alternative synthesis, and deterministic fallback handling.
 - [tests/job-store.test.js](tests/job-store.test.js), [tests/job-status.service.test.js](tests/job-status.service.test.js): regressions for startup recovery/abort signaling and durable job-state transitions during service startup.
 
 ### Changed
-
 - [src/personal-agent-onboarding.js](src/personal-agent-onboarding.js): added `ONBOARDING_PARAM_ALTERNATIVES` — a static, per-parameter catalog of alternative action suggestions (e.g., "check N-1 capacity without fNAV profile") now exported alongside `ONBOARDING_PARAM_QUESTIONS`.
 - [services/personal-agent.service.js](services/personal-agent.service.js): added `buildEmpathethicOnboardingReply({ message, execution, plan })` method. When execution reaches `awaiting-onboarding`, the Personal Agent now calls the LLM to generate a short (2-3 sentence) contextual reply that explains **why** the missing parameter is needed in the context of the user's specific request, poses the actual question, and optionally offers an alternative path. Falls back gracefully to the original static `questionText` when the LLM is unavailable (e.g., in CI unit tests).
 - [services/personal-agent.service.js](services/personal-agent.service.js): `presentation.nextActions` and `presentation.structuredData.nextActions` are now populated with structured `{ label, type: 'alternative_path' }` entries from `ONBOARDING_PARAM_ALTERNATIVES` for `conversational_onboarding` responses.
@@ -3663,7 +3471,6 @@ Evidence planning is a five-phase migration:
 ## [0.52.15] — Personal Agent Async Job Routing & E2E Polling Alignment (2026-05-18)
 
 ### Changed
-
 - [AGENTS.md](AGENTS.md): expanded contributor guide with quick-start, command matrix, architecture essentials, and CI/testing conventions for local development and release workflows.
 - [services/personal-agent.service.js](services/personal-agent.service.js), [src/job-store.js](src/job-store.js): **Option A rollout**: `POST /api/personal-agent/chat` endpoint now routes through REST async job pattern for all gateway-originated calls (REST API clients). Gateway requests return HTTP 202 Accepted with job descriptor (`jobId`, `statusUrl`, `resultUrl`, `progressUrl`, headers `Location` and `Retry-After`), clients poll `/api/jobs/:jobId/result` for final chat result. Internal Moleculer calls remain synchronous (direct execution without job wrapping).
 - [services/personal-agent.service.js](services/personal-agent.service.js): added `_executeChatCoreLogic(ctx)` method to encapsulate core chat orchestration logic; called either directly by internal callers or via `jobStore.startJob()` wrapper for REST gateway requests.
@@ -3700,7 +3507,6 @@ Evidence planning is a five-phase migration:
 - [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js): added dedicated `PA-MT-008` 4-turn live-flow for Bank Analyst Due Diligence (onboarding → mismatch detection → formal EnWG next step as `vdmi_matrix_table` → one-pager risk assessment as `decision_brief`).
 
 ### Tests
-
 - [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): added regression for `MISSING_CONTEXT` step injection in AUTO mode when required params are missing.
 - [tests/personal-agent-knowledge-rag.test.js](tests/personal-agent-knowledge-rag.test.js): updated `T-PA-KR-001` expectation to assert enforced internal metadata propagation (`meta.$gateway=false`) when calling `knowledge-rag.query`.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added/extended regressions for conversational onboarding presentation metadata and normalized onboarding fact hydration.
@@ -3716,7 +3522,6 @@ Evidence planning is a five-phase migration:
 ## [0.52.14] — #CETview Prompt 7: Fixture-Backed Human-View Validation (2026-05-18)
 
 ### Added
-
 - [tests/fixtures/presentation/pv-wiesloch-kpi.fixture.js](tests/fixtures/presentation/pv-wiesloch-kpi.fixture.js): deterministic KPI fixture for PV asset-count rendering with explicit fixture source and as-of metadata.
 - [tests/fixtures/presentation/vnb-benchmark-comparison.fixture.js](tests/fixtures/presentation/vnb-benchmark-comparison.fixture.js): deterministic comparison fixture for VNB benchmark output (`peers[]`) including missing-value behavior.
 - [tests/fixtures/presentation/bess-financier-due-diligence.fixture.js](tests/fixtures/presentation/bess-financier-due-diligence.fixture.js): fictional bank credit-committee due-diligence fixture (`12 MW / 24 MWh` BESS, `18.5m EUR`) with structured risks, evidence gaps, forbidden assumptions, warnings, and payout-condition next actions.
@@ -3724,7 +3529,6 @@ Evidence planning is a five-phase migration:
 - [tests/presentation.rest-blackbox.test.js](tests/presentation.rest-blackbox.test.js): opt-in REST blackbox suite for `POST /api/presentation/render` (`RUN_PRESENTATION_REST_BLACKBOX=true`) covering KPI, due-diligence, and unknown-format fallback.
 
 ### Changed
-
 - [services/presentation.service.js](services/presentation.service.js): deterministic selector now recognizes `decisionStatus` as decision signal and prioritizes `decision_brief` before pure evidence-gap fallback when decision fields exist.
 - [services/presentation.service.js](services/presentation.service.js): `vdmi_matrix_table` now emits explicit missing-role warnings (`missing_role_field_verantwortlich`, `missing_role_field_durchfuehrend`, `missing_role_field_mitwirkend`, `missing_role_field_information`) instead of inferring actors.
 - [services/presentation.service.js](services/presentation.service.js): `decision_brief` stub extended with deterministic structured sections/tables for status, risks, evidence requirements/gaps, forbidden assumptions, and next actions; fixture warnings are preserved without source/as-of invention.
@@ -3732,7 +3536,6 @@ Evidence planning is a five-phase migration:
 - [tests/personal-agent-presentation.integration.test.js](tests/personal-agent-presentation.integration.test.js): expanded integration coverage with Prompt-7 scenarios (`PA-PRES-01`, `PA-PRES-COMP-01`, `PA-PRES-BANK-DD-01`, `PA-PRES-KPI-01`) asserting `reply === presentation.markdown` for completed structured executions.
 
 ### Tests
-
 - Prompt-7 focused regression run passed:
   - `tests/presentation.service.test.js`
   - `tests/presentation-fixtures.test.js`
@@ -3744,30 +3547,25 @@ Evidence planning is a five-phase migration:
   - `tests/presentation.rest-blackbox.test.js`.
 
 ### Changed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): integrated Presentation Service into Personal Agent final-response path (`synthesis_turn()` updated with presentation rendering context). Execution `status=completed` now triggers deterministic `presentation.render` call if execution result contains structured data (no LLM, no invented facts). Reply uses `presentation.markdown` as primary visible output when presentation renders successfully.
 - [services/personal-agent.service.js](services/personal-agent.service.js): added `hasStructuredExecutionResult()`, `extractDomainResultFromExecution()`, `hasStructuredData()` helper methods to detect when execution results warrant presentation rendering (matrix/tasks/roles/evidenceGaps/assetRisks/risks/count/value/metric/answer/forbiddenAssumptions present).
 - [services/personal-agent.service.js](services/personal-agent.service.js): chat action response now includes `presentationApplied` (boolean), `presentationType` (string or null), and `presentation` object (with `type`, `markdown`, `warnings` or null) for structured introspection. Backward-compatible: existing fields (`routing`, `plan`, `execution`, `reply`) remain unchanged.
 - [services/personal-agent.service.js](services/personal-agent.service.js): presentation render failures are non-blocking; fallback to `synthesizeTurn()` output, `presentationApplied=false` with warning logged. No broken execution path even if presentation service unavailable.
 
 ### Tests
-
 - [tests/personal-agent-presentation.integration.test.js](tests/personal-agent-presentation.integration.test.js): added Step-4 integration test suite (7 tests) verifying Personal Agent + Presentation integration. Coverage: (PA-PRES-01) VDMI execution + presentation render, (PA-PRES-02) KPI fact result, (PA-PRES-03) graceful fallback on presentation render failure, (PA-PRES-04) no structured data → no presentation forced, (PA-PRES-05) metadata correctness, (PA-PRES-06) backward compatibility, (PA-PRES-07) session persistence with presentation metadata.
 
 ### Changed
-
 - [services/presentation.service.js](services/presentation.service.js): promoted renderer routing to centralized deterministic selector `selectRenderer({ preferredFormat, intent, domainResult })` with strict priority (`vdmi_matrix_table` → `evidence_gap_table` → `decision_brief` → `risk_table` → `comparison_table` → `kpi_fact` → `debug_summary`). Unknown `preferredFormat` now falls back safely with warning `unknown_preferred_format`.
 - [services/presentation.service.js](services/presentation.service.js): tightened guardrails for `kpi_fact` rendering — no invented source/as-of metadata, explicit warnings (`missing_source`, `missing_as_of`, `insufficient_structured_data`) for incomplete payloads, and conservative source handling via `source`/`sources` passthrough only.
 - [services/presentation.service.js](services/presentation.service.js): expanded structured Step-2 stubs for `comparison_table`, `decision_brief`, `risk_table`, `evidence_gap_table`, and `vdmi_matrix_table`; stubs now return scanable markdown plus conservative `tables[]`/`sections[]` when deterministic fields are present, while still marking `*_renderer_not_implemented_yet`.
 
 ### Tests
-
 - [tests/presentation.service.test.js](tests/presentation.service.test.js): added Step-2 coverage for unknown preferred format fallback (`unknown_preferred_format`), structured stub routing for evidence/risk/decision/comparison types, KPI guardrail warnings (`missing_source`, `missing_as_of`), and preserved VDMI stub selection behavior.
 - [tests/presentation.service.test.js](tests/presentation.service.test.js): added Step-3 coverage for full deterministic VDMI rendering: exact five-column role matrix, actor-object formatting (`displayName`/`actorId` fallback), em-dash rendering for empty role arrays, structured add-on sections (status, evidence, forbidden assumptions, next actions), `missing_vdmi_tasks` behavior for empty `matrix.tasks`, and suppression of `vdmi_matrix_table_renderer_not_implemented_yet` for valid task payloads.
 - [tests/presentation.service.test.js](tests/presentation.service.test.js): added regressions for decision-brief `nextActions` object rendering to prevent `[object Object]` leakage and enforce deterministic label/title/description/id fallback behavior.
 
 ### Changed
-
 - [services/presentation.service.js](services/presentation.service.js): implemented full deterministic `vdmi_matrix_table` renderer (replacing Step-2 stub behavior for valid tasks) with exact role-table schema (`Beschreibung des Schrittes`, `Verantwortlich`, `Durchführend`, `Mitwirkend`, `Informiert`) and strict structured-field mapping only.
 - [services/presentation.service.js](services/presentation.service.js): added deterministic actor formatting helpers for VDMI roles (`displayName` → `name` → `actorId` → `id` → `—`), comma-joining for multi-actors, and explicit `missing_step_description` / `missing_vdmi_tasks` warnings without inferring roles from free text.
 - [services/presentation.service.js](services/presentation.service.js): added VDMI supplementary sections/tables for status/blocker, evidence requirements & gaps, forbidden assumptions, and next actions when structured fields are present; markdown remains scanable and deterministic.
@@ -3776,7 +3574,6 @@ Evidence planning is a five-phase migration:
 ## [0.52.13] — #CETview Step 1: Presentation Service Skeleton (2026-05-17)
 
 ### Added
-
 - [services/presentation.service.js](services/presentation.service.js): new deterministic Presentation Service (`presentation.render`, `POST /api/presentation/render`) — translates domain results into structured, management-grade human views without LLM calls; no facts or roles are invented.
 - [services/presentation.service.js](services/presentation.service.js): deterministic format selector (`selectFormat`) with schema-level heuristics — `vdmi_matrix_table` when `matrix.tasks[]`/`tasks[]` contain VDMI role fields; `kpi_fact` when `value`/`count` + supporting fields present; `evidence_gap_table` / `risk_table` from respective arrays; `debug_summary` as safe fallback; explicit `preferredFormat` always wins.
 - [services/presentation.service.js](services/presentation.service.js): fully implemented `kpi_fact` renderer — title, KPI entry with unit, Markdown table (Antwort / Gebiet / Quelle / Stand / Hinweis), scannable output; missing fields produce `warnings`, no invented data.
@@ -3786,7 +3583,6 @@ Evidence planning is a five-phase migration:
 - [src/personal-agent-knowledge-rag.js](src/personal-agent-knowledge-rag.js): new Airside-only adapter method `queryKnowledgeOrientation(ctx, { message, activeDomains, limit })` as deterministic wrapper around `knowledge-rag.query` with hard timeout guard (`2000ms`) and graceful degradation (`null`) on timeout/service-unavailable paths.
 
 ### Changed
-
 - [src/personal-agent-knowledge-rag.js](src/personal-agent-knowledge-rag.js): strict knowledgeContext filtering implemented so only derived orientation fields (`domainHint`, `regulatoryFrame`, `synthesisStyle`) are returned; raw RAG fields such as `vectorText`, `referenceText`, and `score` are never propagated.
 - [src/personal-agent-knowledge-rag.js](src/personal-agent-knowledge-rag.js): added hard mapping tables for domain/regulatory derivation based on metadata/tag signals, without assumptions about collection internals.
 - [services/personal-agent.service.js](services/personal-agent.service.js): integrated Knowledge-RAG orientation call before broker recommendation; broker `knownContext` is now enriched with transient `_knowledgeHints` (`domainHint`, `regulatoryFrame`, `synthesisStyle`), plan building accepts `knowledgeContext`, synthesis tone adapts to `synthesisStyle`, and transient `knowledgeContext` is explicitly cleared before response return.
@@ -3804,7 +3600,6 @@ Evidence planning is a five-phase migration:
 - [services/vdmi.service.js](services/vdmi.service.js): Step-3 dossier task payload now includes governance role arrays (`verantwortlich`, `durchfuehrend`, `mitwirkend`, `information`) plus `processId`/`matrixId` for deterministic downstream actor/task derivation.
 
 ### Tests
-
 - [tests/personal-agent-knowledge-rag.test.js](tests/personal-agent-knowledge-rag.test.js): added `T-PA-KR-001`, `T-PA-KR-002`, and `T-PA-KR-005/006` coverage for broker-call wiring, raw-hit filtering, and graceful degradation on zero-hits/service timeout/outage.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added `T-PA-KR-007` (broker knownContext hint propagation) and `T-PA-KR-004` (synthesis style tone adaptation) coverage.
 - [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): added coverage for regulatory `contextNote` propagation from `knowledgeContext` into relevant plan steps.
@@ -3826,14 +3621,12 @@ Evidence planning is a five-phase migration:
 ## [0.52.12] — Conversational Onboarding Hardening (2026-05-17)
 
 ### Changed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): fixed live multi-turn CETRed continuation on top of [0.52.11](CHANGELOG.md#L8) by persisting bounded working assumptions in L3, carrying them across turns, and switching recovery synthesis to assumption-aware continuation/methodology/risk text instead of repeating the original Due-Diligence evidence question for every follow-up prompt.
 - [src/personal-agent-onboarding.js](src/personal-agent-onboarding.js): hardened `operatorEvidence` answer capture so analytical follow-up prompts are no longer misclassified as onboarding answers; only evidence-like answers (e.g. BDEW/BKZ/Marktlokation/Netzanschlusspunkt) advance that question.
 - [services/personal-agent.service.js](services/personal-agent.service.js): replaced T4/T5 fallback detection based on `blockedAction` substring matching with an intent-/capability-oriented methodology gate (`plan.primaryIntent`, `routeLabel`, routing/domain signals, finance-risk task classification) and added a generic finance/risk methodological fallback so unsupported-chain stops still return useful guidance.
 - [services/personal-agent.service.js](services/personal-agent.service.js): added the missing `verified` branch in `classifyLocationOperatorConsistency`; when operator and location are hard-matched with explicit responsibility evidence, no `location_operator_unverified` assumption is stored and deterministic execution completes without an evidence stop.
 
 ### Tests
-
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added session-based regression coverage for CETRed T1→T2/T4/T5 follow-ups, assumption persistence, and user-reply leak suppression.
 - [tests/personal-agent-onboarding.test.js](tests/personal-agent-onboarding.test.js): added heuristics coverage for rejecting analytical follow-ups as `operatorEvidence` answers while accepting evidence-like payloads.
 - [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js): added opt-in HTTP-only blackbox scenario `PA-MT-004` for the CETRed Working-Assumption flow on `POST /api/personal-agent/chat`.
@@ -3843,7 +3636,6 @@ Evidence planning is a five-phase migration:
 ## [0.52.11] — CETRed Personal-Agent Folgefixes: Working Assumptions, Recovery Synthesis, T4/T5 Handler (2026-05-17)
 
 ### Changed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js#L1900): added `location_operator_unverified` assumption tracking across turns; `executeDeterministicPlan` now stores structured assumptions (`type`, `location`, `assertedGridOperatorName`, `status`, `requiredEvidence`) in the execution result instead of only issuing a stopPoint, enabling downstream turns to synthesize with risk-flagged premises rather than looping on the same evidence request.
 - [services/personal-agent.service.js](services/personal-agent.service.js#L1200): enhanced `buildRecoveryReply` to accept and synthesize an `assumptions` array; after a VNB/Standort evidence gap has been recorded in a prior turn the reply carries a one-time risk-flag warning (`buildLocationAssumptionWarning`) instead of repeating the identical onboarding question.
 - [services/personal-agent.service.js](services/personal-agent.service.js#L1235): enhanced `buildRecoveryNextText` with assumption-aware synthesis for T4 (market/regulatory) and T5 (risk-assessment) intents; bare `interface_placeholder` Dead-End responses replaced by `buildMarketMethodologicalNextText` (methodology, ENTSO-E/Netztransparenz data-source guidance, assumption risk reminder) and `buildRiskAssessmentNextText` (preliminary Risk-Assessment structure with Condition-Precedent language for unverified VNB/location).
@@ -3860,7 +3652,6 @@ Evidence planning is a five-phase migration:
 - [src/personal-agent-onboarding.js](src/personal-agent-onboarding.js), [services/personal-agent.service.js](services/personal-agent.service.js): explicit `operatorEvidence` humanization so replies ask for Netzbetreiber/BDEW evidence without exposing internal key names.
 
 ### Tests
-
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js#L1103): unit test — `location_operator_unverified` assumption stored after VNB evidence gap with correct `status`, `assertedGridOperatorName`, `location`, `requiredEvidence`.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js#L1160): unit test — T4 Market/Regulatory question returns methodological answer (data sources, analysis methodology) instead of bare `interface_placeholder`, including assumption risk note.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js#L1214): unit test — T5 Risk-Assessment question synthesizes preliminary assessment with Condition-Precedent language from session state, no placeholder artifacts.
@@ -3872,7 +3663,6 @@ Evidence planning is a five-phase migration:
 - [tests/personal-agent-onboarding.test.js](tests/personal-agent-onboarding.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): `operatorEvidence` suppression regressions.
 
 ### Release Gates
-
 - `npm run test:unit:ci` — unit suite passing (routing + service regressions)
 - `npm run audit:openapi` — no new OpenAPI violations
 - `npm run audit:security` — no new security findings
@@ -3881,7 +3671,6 @@ Evidence planning is a five-phase migration:
 ## [0.52.10] — Routing/Matrix Stabilization, Release-Gate Hardening, and Ops Updates
 
 ### Changed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): improved multi-turn synthesis output continuity by including prompt-context excerpts in deterministic completion/partial responses and kept broker recommendation flow context-aware (`knownContext`).
 - [services/capability-broker.service.js](services/capability-broker.service.js): expanded template hydration and action-template handling for benchmark/fNAV chains (including context interpolation and fallback resolution behavior used by broker plans).
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): hardened placeholder interpolation (`__step_N...` paths incl. bracket-index forms and wrapper fallbacks), improved action alias mappings, and propagated capability-level secondary-intent compatibility tokens into routing payloads.
@@ -3899,7 +3688,6 @@ Evidence planning is a five-phase migration:
 - [llm.txt](llm.txt): regenerated LLM reference artifact to satisfy release integrity checks.
 
 ### Tests
-
 - [tests/personal-agent-tdd-matrix-multiturn.generated.test.js](tests/personal-agent-tdd-matrix-multiturn.generated.test.js), [tests/personal-agent-tdd-matrix-normalizer.test.js](tests/personal-agent-tdd-matrix-normalizer.test.js): updated multi-turn matrix and normalizer regressions for executable blackbox coverage.
 - [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js): strengthened multi-turn Personal-Agent domain validation expectations against routing and session continuity.
 - [tests/assets.service.test.js](tests/assets.service.test.js): extended OpenAPI/contract regressions for assets endpoints.
@@ -3907,7 +3695,6 @@ Evidence planning is a five-phase migration:
 - [tests/job-status.service.test.js](tests/job-status.service.test.js), [tests/async-job-runner.test.js](tests/async-job-runner.test.js), [tests/metrics.test.js](tests/metrics.test.js): added/updated watchdog lifecycle, runner persistence, and metrics regressions.
 
 ### Release Gates
-
 - `npm run test:unit:ci`
 - `npm run test:tdd-matrix`
 - `npm run check:tdd-matrix-coverage`
@@ -3917,12 +3704,10 @@ Evidence planning is a five-phase migration:
 - `npm run release:check`
 
 ### Notes
-
 - This release consolidates the currently modified repository surface (services, src, tests, and governance docs) into a single auditable version cut.
 - OpenAPI version remains sourced from [package.json](package.json) via [services/api.service.js](services/api.service.js) (`info.version = packageVersion`).
 
 ### Changed
-
 - [services/assets.service.js](services/assets.service.js): OpenAPI contracts for location-based asset queries were clarified for `assets.list`, `assets.solar`, `assets.wind`, `assets.storage`, and `assets.all` (improved summaries/descriptions, explicit `operationId`s, clearer `location` semantics for city/PLZ/region prompts).
 - [services/assets.service.js](services/assets.service.js): Added explicit response documentation (`200/400/500`) for `solar`/`wind`/`storage`/`all` with array-based count semantics (`array.length`) for "Wie viele ..." style queries.
 - [src/cookbook-recipes.js](src/cookbook-recipes.js): Corrected recipe REST method for `assets.solar` from `POST /api/assets/solar` to `GET /api/assets/solar`.
@@ -3932,7 +3717,6 @@ Evidence planning is a five-phase migration:
 - [src/personal-agent-tdd-matrix-normalizer.js](src/personal-agent-tdd-matrix-normalizer.js): Multi-turn matrix cases now default to `executionMode: "auto"` (instead of HITL) to validate orchestration behavior beyond plan-only responses.
 
 ### Tests
-
 - [tests/assets.service.test.js](tests/assets.service.test.js): Added OpenAPI contract regressions for location-readability and count semantics (`array.length`) on `assets.solar`, `assets.wind`, `assets.storage`, and `assets.all`.
 - [tests/api.service.test.js](tests/api.service.test.js), [tests/assets.service.test.js](tests/assets.service.test.js): Focused suite run passed (`106/106`).
 - [tests/personal-agent-tdd-matrix-parser.test.js](tests/personal-agent-tdd-matrix-parser.test.js), [tests/personal-agent-tdd-matrix-normalizer.test.js](tests/personal-agent-tdd-matrix-normalizer.test.js), [tests/personal-agent-tdd-matrix.generated.test.js](tests/personal-agent-tdd-matrix.generated.test.js): Updated matrix automation regressions for 70 required IDs while preserving the existing 58 single-turn executable cases.
@@ -3942,7 +3726,6 @@ Evidence planning is a five-phase migration:
 - [tests/personal-agent-tdd-matrix-multiturn.generated.test.js](tests/personal-agent-tdd-matrix-multiturn.generated.test.js): Reworked to call `POST /api/personal-agent/chat` over HTTP blackbox (via API gateway) instead of direct `broker.call('personal-agent.chat', ...)` invocations.
 
 ### Notes
-
 - OpenAPI export was regenerated successfully (`openapi-export.json` updated).
 - `npm run audit:openapi` currently reports one pre-existing unrelated finding in `personal-agent.chat` (`fileAttachments` without example/default).
 - Personal Agent matrix validation now passes with full Multi-Turn coverage: `npm run test:tdd-matrix` and `npm run check:tdd-matrix-coverage` completed successfully with `70/70` required IDs passed.
@@ -3950,12 +3733,10 @@ Evidence planning is a five-phase migration:
 ## [0.52.9] — Inhouse Data / Multimodal (File Attachments)
 
 ### Added
-
 - [src/personal-agent-file-handler.js](src/personal-agent-file-handler.js): new deterministic attachment handler for CSV/Excel/Image/PDF with type recognition, structured extractors, and L3 injection helpers.
 - [tests/personal-agent-file-handler.test.js](tests/personal-agent-file-handler.test.js): dedicated coverage for file type detection, CSV/Excel extract generation, max-size guardrails, and PDF placeholder behavior.
 
 ### Changed
-
 - [services/api.service.js](services/api.service.js): `POST /api/personal-agent/chat` now normalizes multipart uploads (`req.$multipart`) into `ctx.params.fileAttachments`, applies tenant/session-isolated upload paths under `uploads/{tenant}/{session}/`, and enforces gateway limits (max 5 files, 10 MB/file, 50 MB total, max 10 fields).
 - [services/api.service.js](services/api.service.js): gateway now rejects unsupported attachment types at request edge with `400 INVALID_FILE_TYPE` and oversized uploads with `413 FILE_TOO_LARGE`.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `personal-agent.chat` now accepts optional `fileAttachments`, extracts attachment context before plan execution, persists `l3.fileAttachments`, and returns per-file processing results via `fileProcessing[]`.
@@ -3966,7 +3747,6 @@ Evidence planning is a five-phase migration:
 - [tests/api.service.test.js](tests/api.service.test.js): added route-level regressions for multipart upload limits, attachment normalization, and 50 MB total-size rejection.
 
 ### Notes
-
 - C1 implemented: parser failures are `fileProcessing` errors (partial success), while gateway-level invalid type/size remains hard rejection.
 - C2 implemented: 5 files max, 10 MB/file, 50 MB total.
 - C3 implemented (MVP): PDFs are stored as metadata placeholder (`pdf_placeholder`) without active text extraction.
@@ -3974,12 +3754,10 @@ Evidence planning is a five-phase migration:
 ## [0.52.8] — Personal Agent Conversational Onboarding
 
 ### Added
-
 - [src/personal-agent-onboarding.js](src/personal-agent-onboarding.js): new onboarding helper module for deterministic missing-input recovery with question lifecycle support (`pending`/`answered`/`stale`), heuristic answer capture, stale marking, and `oneOf:*` missing-token parameter resolution.
 - [tests/personal-agent-onboarding.test.js](tests/personal-agent-onboarding.test.js): dedicated module test suite for onboarding question generation, heuristic capture guardrails, fact extraction mapping, stale transitions, and missing-token resolution.
 
 ### Changed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): `personal-agent.chat` now supports conversational onboarding in AUTO mode when deterministic plan inputs are missing; returns `execution.status = "awaiting-onboarding"` with structured stop-point metadata (`blockedAction`, `missingParams`, `onboardingQuestion`) and resumes execution after answer capture.
 - [services/personal-agent.service.js](services/personal-agent.service.js): session model extended with tenant-scoped `l3.onboardingQuestions` persistence and stale-question handling; HITL mode remains non-executing and now exposes `plan.onboardingHints` for manual continuation.
 - [services/personal-agent.service.js](services/personal-agent.service.js): deterministic execution path now supports `skipGapForMissingInputs` for onboarding-driven stops, preventing premature interface-placeholder side effects during conversational clarification.
@@ -3989,13 +3767,11 @@ Evidence planning is a five-phase migration:
 - [tests/personal-agent-dreamer.test.js](tests/personal-agent-dreamer.test.js): expanded for onboarding fact extraction, conversion, L2 `onboardingFacts` persistence, and audit payload assertions.
 
 ### Notes
-
 - User-approved MVP strategy preserved: heuristic answer validation only (no immediate VNB lookup in chat path), tenant-scoped onboarding fact storage in L2, and focused test extension strategy.
 
 ## [0.52.7] — Hermes Review Follow-Up Fixes (Part 3)
 
 ### Fixed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): hardened `buildDreamAuthMeta()` to prevent sensitive request header persistence in durable Dream jobs. Only explicit tracing-safe headers are allowlisted (`x-request-id`, `x-correlation-id`, `traceparent`, `tracestate`).
 - [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): added defensive payload sanitization in `scheduleDream()` so `authMeta.requestHeaders` is never persisted even if provided by a caller.
 - [services/object-store.service.js](services/object-store.service.js): fixed CAS contract inconsistency by returning `_rev` from successful `put` responses (aligned with `get`).
@@ -4003,7 +3779,6 @@ Evidence planning is a five-phase migration:
 - [services/object-store.service.js](services/object-store.service.js): improved OCC conflict fidelity in `db.put` collision handling by returning `currentRev` from the latest known revision instead of `null`.
 
 ### Changed
-
 - [services/object-store.service.js](services/object-store.service.js): updated OpenAPI response schemas for `get` and `put` to document `_rev` in response payloads.
 - [tests/object-store.service.test.js](tests/object-store.service.test.js): added regressions for `_rev` response shape, CAS normalization edge-cases (`undefined`, empty-string), and `currentRev` fidelity on write-collision conflicts.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression to verify sensitive headers are stripped from Dream auth metadata.
@@ -4013,13 +3788,11 @@ Evidence planning is a five-phase migration:
 - [README.md](README.md): updated current release marker to `v0.52.7`.
 
 ### Notes
-
 - Matrix hard-gate remains unchanged: 58/58 required TDD IDs must pass (100%).
 
 ## [0.52.6] — Hermes Review Fixes (Part 2)
 
 ### Fixed
-
 - [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): removed stale session snapshot persistence from Dream scheduling payloads. Durable Dream jobs now persist minimal identifiers (`tenantId`, `sessionId`, `userId`, profile/auth metadata) and no longer embed full session state.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `runDream()` now always reloads the latest session from Object Store before pipeline execution; includes zero-downtime dual-schema fallback for legacy v0.52.5 payloads that still carry embedded `session`.
 - [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): completed OCC hardening in `enrichL2Profile()` by switching to native `_rev`-based CAS writes through `object-store.put`, removing the manual double-read `updatedAt` guard.
@@ -4029,7 +3802,6 @@ Evidence planning is a five-phase migration:
 - [services/object-store.service.js](services/object-store.service.js): added optional `_rev` parameter on `put` for native CAS semantics. Revision mismatches now return HTTP `409` with `OBJECT_OCC_CONFLICT`.
 
 ### Changed
-
 - [src/job-store/driver.js](src/job-store/driver.js): extended job-store driver contract with `deleteJob()`.
 - [src/job-store/file-driver.js](src/job-store/file-driver.js): added `_rev` counter to job records and CAS conflict checks in `updateJob()`.
 - [services/object-store.service.js](services/object-store.service.js): `get` responses now include `_rev` for CAS-capable internal clients.
@@ -4042,13 +3814,11 @@ Evidence planning is a five-phase migration:
 - [README.md](README.md): updated current release marker to `v0.52.6`.
 
 ### Notes
-
 - Matrix hard-gate remains unchanged: 58/58 required TDD IDs must pass (100%).
 
 ## [0.52.5] — Hermes Review Fixes (Personal Agent)
 
 ### Fixed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): removed stale request-context capture in Dream scheduling. The `chat` flow now schedules background Dream execution via broker-backed durable job scheduling and no longer closes over request-scoped `ctx`.
 - [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): replaced process-local Dream timer registry with durable v0.52.2 job-store scheduling (`startJob`, idempotent session key, persisted dream schedule generations), including tenant-scoped pending/cancel semantics.
 - [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): strengthened AK1 optimistic concurrency guard in `enrichL2Profile()` to re-check on every write attempt before commit, preventing first-attempt TOCTOU silent overwrites.
@@ -4056,7 +3826,6 @@ Evidence planning is a five-phase migration:
 - [services/personal-agent.service.js](services/personal-agent.service.js): `loadSession()` now supports `createIfMissing` and only auto-creates sessions for `chat`; `getSession` and `resetSession` now return `OBJECT_NOT_FOUND` (404) for missing sessions.
 
 ### Changed
-
 - [tests/personal-agent-dreamer.test.js](tests/personal-agent-dreamer.test.js): migrated scheduler tests to durable job-store semantics, added regression coverage for generation-based re-scheduling and new intra-batch vector dedup behavior.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added explicit 404 regressions for `getSession` and `resetSession` on unknown session IDs.
 - [package.json](package.json): bumped version to `0.52.5`.
@@ -4064,13 +3833,11 @@ Evidence planning is a five-phase migration:
 - [README.md](README.md): updated current release marker to `v0.52.5`.
 
 ### Notes
-
 - v0.52.4 TDD matrix automation remains green: 58/58 required IDs passed (100% hard gate).
 
 ## [0.52.4] — TDD-Matrix & Qualitätsautomation
 
 ### Added
-
 - [src/personal-agent-tdd-matrix-parser.js](src/personal-agent-tdd-matrix-parser.js): new parser for the architecture markdown test matrix, including robust table-row parsing, service-call extraction from code spans, and independent required-ID extraction.
 - [src/personal-agent-tdd-matrix-normalizer.js](src/personal-agent-tdd-matrix-normalizer.js): fixed normalization map for all 58 TDD IDs (`T-*`) that maps markdown nomenclature to executable backend route aliases and documents intentional path normalizations.
 - [tests/personal-agent-tdd-matrix-parser.test.js](tests/personal-agent-tdd-matrix-parser.test.js): parser regression tests, including full-file assertions for the 58-case matrix.
@@ -4078,7 +3845,6 @@ Evidence planning is a five-phase migration:
 - [scripts/check-tdd-matrix-coverage.js](scripts/check-tdd-matrix-coverage.js): strict hard gate that fails CI unless 100% of required matrix IDs are **passed** (not merely executed).
 
 ### Changed
-
 - [package.json](package.json):
   - added `test:tdd-matrix` to execute matrix parser + generated matrix suite,
   - added `check:tdd-matrix-coverage` to enforce the hard 100%-passed rule,
@@ -4087,14 +3853,12 @@ Evidence planning is a five-phase migration:
 - [.github/workflows/release.yml](.github/workflows/release.yml): added explicit v0.52.4 steps for matrix tests and hard coverage gate before publish.
 
 ### Notes
-
 - Hard acceptance criterion implemented: CI now fails with exit code `1` whenever matrix coverage is below `100%` **passed**.
 - Skipped or failed matrix tests are counted as missing coverage and will fail both maintenance and release pipelines.
 
 ## [0.52.2] — Durable Execution, Wake-Up & Watchdog
 
 ### Added
-
 - [src/job-store.js](src/job-store.js): introduced durable execution watchdog primitives on top of the existing job store only (no separate promise registry), including:
   - lease-expiry detection and sweep API (`watchdogSweep()`),
   - startup rehydration (`rehydrateOnStartup()`),
@@ -4111,7 +3875,6 @@ Evidence planning is a five-phase migration:
   - `cernion_async_alarm_events_total`.
 
 ### Changed
-
 - [src/job-store/file-driver.js](src/job-store/file-driver.js): job records now persist durable execution metadata (`tenantId`, `missedLeases`, `wakeContext`, `wakeState`, `alarms`) and support job enumeration via `listJobs()`.
 - [src/job-store/driver.js](src/job-store/driver.js): extended driver interface with `listJobs()` for watchdog scans and recovery operations.
 - [src/async-job-runner.js](src/async-job-runner.js): `runAsync()` now persists wake context (`service`, `action`, `params`) so startup reanimation can issue deterministic wake-ups.
@@ -4126,18 +3889,15 @@ Evidence planning is a five-phase migration:
 - [README.md](README.md): updated current release marker to `v0.52.2`.
 
 ### Notes
-
 - Hard acceptance criterion implemented: lease-expiry detection with escalation to persistent alarm after `maxMissedLeases`, startup rehydration, and idempotent wake-up flow keyed by explicit `idempotencyKey`.
 - Alarm lifecycle is now explicitly stateful (`open`, `acknowledged`, `resolved`) to support future UI/HITL workflows and a dedicated Problem-Solver agent.
 
 ## [0.52.1] — Capability Broker & Intent Routing
 
 ### Added
-
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): new deterministic routing helper with execution-mode normalization, routing-matrix enforcement, domain-signal detection, step-template resolution, and missing-input validation.
 
 ### Changed
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): `personal-agent.chat` now binds capability-broker recommendations to deterministic execution plans, supports `executionMode: auto|hitl`, returns stable plan metadata for the UI, and degrades unsupported chains via explicit stop markers / `interface-placeholder` integration.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): extended regressions for HITL plan return, deterministic auto execution order, unsupported extra-domain degradation, and exact stop-point reporting for missing dependent inputs.
 - [package.json](package.json): bumped version to `0.52.1`.
@@ -4146,14 +3906,12 @@ Evidence planning is a five-phase migration:
 - [docs/ui-contracts/41-personal-agent.md](docs/ui-contracts/41-personal-agent.md): documented execution modes, routing payload, and partial-execution response semantics.
 
 ### Notes
-
 - Hard acceptance criterion enforced: the routing fallback matrix remains the only allowed multi-domain chaining path; unsupported extra domains stop after the last valid deterministic step.
 - HITL mode returns the exact plan without executing tools, while auto mode executes the same ordered plan and reports the precise stop point on graceful degradation.
 
 ## [0.52.0] — Personal Agent Zwiebelmodus (L0–L4)
 
 ### Added
-
 - [services/personal-agent.service.js](services/personal-agent.service.js): new dedicated `personal-agent` service with REST actions:
   - `POST /api/personal-agent/chat` → `personal-agent.chat`
   - `GET /api/personal-agent/session/:sessionId` → `personal-agent.getSession`
@@ -4164,7 +3922,6 @@ Evidence planning is a five-phase migration:
 - [docs/ui-contracts/41-personal-agent.md](docs/ui-contracts/41-personal-agent.md): backend-owned UI contract for Personal Agent endpoints.
 
 ### Changed
-
 - [services/api.service.js](services/api.service.js): added OpenAPI tag `Personal Agent`, explicit route aliases for `/api/personal-agent/*`, and endpoint-class classification for `POST /api/personal-agent/chat` as `compute` for tenant quota/rate-limit handling.
 - [tests/api.service.test.js](tests/api.service.test.js): added OpenAPI and alias regressions for Personal Agent endpoints.
 - [package.json](package.json): bumped version to `0.52.0`.
@@ -4172,21 +3929,18 @@ Evidence planning is a five-phase migration:
 - [README.md](README.md): updated current release marker to `v0.52.0` and service count.
 
 ### Notes
-
 - v0.52.0 is scope-pure for Zwiebelmodus context management only: no promise/watchdog scaffolding is included.
 - Hard acceptance criterion enforced: Layer 4 raw tool payload is transient and never persisted to Object Store/DB.
 
 ## [0.51.8] — EDM SQLite Availability Hardening
 
 ### Added
-
 - [services/edm.service.js](services/edm.service.js): added `health` action (`GET /api/edm/health`) with explicit EDM SQLite readiness output and `503 EDM_SQLITE_UNAVAILABLE` response for backend outages.
 - [tests/edm.service.test.js](tests/edm.service.test.js): added regressions for `edm.health` readiness payload and startup hard-fail behavior when SQLite is unavailable.
 - [tests/edm-sqlite-pool.test.js](tests/edm-sqlite-pool.test.js): added regression for normalized native binding failures (`ERR_DLOPEN_FAILED` → `EDM_SQLITE_UNAVAILABLE`, HTTP 503 semantics).
 - [tests/api.service.test.js](tests/api.service.test.js): added regression to ensure symbolic native error codes do not become invalid HTTP status codes.
 
 ### Changed
-
 - [src/edm-sqlite-pool.js](src/edm-sqlite-pool.js): switched to lazy `better-sqlite3` loading, centralized SQLite error normalization, and added pool-level readiness metadata.
 - [services/edm.service.js](services/edm.service.js): startup now performs immediate SQLite readiness check (`assertAvailable`) to hard-fail service boot when native bindings are broken.
 - [services/api.service.js](services/api.service.js): gateway `onError` now normalizes HTTP status resolution (`status`/`statusCode`/numeric `code`) and safely falls back to `500` to prevent `ERR_HTTP_INVALID_STATUS_CODE`.
@@ -4195,19 +3949,16 @@ Evidence planning is a five-phase migration:
 - [README.md](README.md): updated current release marker to `v0.51.8`.
 
 ### Notes
-
 - This release implements startup hard-fail for EDM SQLite (Option B), keeps client-facing outage semantics at HTTP `503` (Option 1), and adds a dedicated EDM health indicator endpoint for operational monitoring.
 
 ## [0.51.7] — Phase 5 Follow-up: Discovery, Governance Artifacts, Proofs
 
 ### Added
-
 - [src/capability-catalog.js](src/capability-catalog.js): added curated capability `netzfahrplan_fnav_assessment` for direct deterministic discovery of the Phase-5 workflow via `grid-connection.fnavValidate`, `grid-operations.netzfahrplanGenerate`, and `finance-agent.fnavEconomics`.
 - [src/domain-config.js](src/domain-config.js): added `NETZFAHRPLAN_DEFAULTS` with central N-1 defaults for `HS`, `MS`, and `NS` as the domain-config baseline for Phase-5 assessments.
 - [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js): added regression coverage for direct Netzfahrplan / fNAV prompt routing.
 
 ### Changed
-
 - [src/netzfahrplan-schema.js](src/netzfahrplan-schema.js): switched the Phase-5 default N-1 baseline to `domain-config` while preserving explicit tenant/project/scenario override precedence; added additive helpers `buildGovernanceArtifactConfig()`, `buildDecisionChain()`, and `buildProof()`.
 - [services/grid-operations.service.js](services/grid-operations.service.js): `netzfahrplanGenerate` now returns additive `governanceArtifact`, `decisionChain`, and `proof` payloads; gateway-triggered governance blockers reuse `interface-placeholder` / HITL patterns instead of returning blockers only.
 - [services/grid-connection.service.js](services/grid-connection.service.js): `fnavValidate` now preserves gateway origin across internal calls and returns additive `governanceArtifact`, `decisionChain`, and `proof` payloads.
@@ -4219,25 +3970,21 @@ Evidence planning is a five-phase migration:
 - [package-lock.json](package-lock.json): aligned lockfile version to `0.51.7`.
 
 ### Notes
-
 - `v0.51.7` intentionally keeps the richer roadmap-level fNAV contract model and fully automatic tenant/project/scenario override lookup out of scope.
 - The new Phase-5 response fields are additive and preserve existing feasibility/governance verdicts for backward compatibility.
 
 ## [0.51.6] — Phase 5 Cleanup: Roadmap-Abgleich & Deferred Scope
 
 ### Added
-
 - [tmp/ROADMAP_v0.50.md](tmp/ROADMAP_v0.50.md): added a v0.51.6 validation note for Phase 5 that distinguishes between shipped Phase-5 scope and roadmap items explicitly deferred to later releases.
 
 ### Changed
-
 - [CHANGELOG.md](CHANGELOG.md): documented the cleanup release and clarified that v0.51.6 is a documentation/plan alignment release, not a functional redesign of the existing Phase-5 endpoints.
 - [README.md](README.md): updated the current release marker to `v0.51.6`.
 - [package.json](package.json): bumped version to `0.51.6`.
 - [package-lock.json](package-lock.json): aligned lockfile version to `0.51.6`.
 
 ### Notes
-
 - `grid-operations.netzfahrplanGenerate`, `grid-connection.fnavValidate`, and `finance-agent.fnavEconomics` remain the shipped deterministic Phase-5 implementation from `v0.51.5`.
 - The roadmap delta note records these items as deferred to later releases:
   - domain-config-backed N-1 defaults and automatic tenant/project/scenario override resolution,
@@ -4249,7 +3996,6 @@ Evidence planning is a five-phase migration:
 ## [0.51.5] — Phase 5: Netzfahrplan / fNAV als Alternative zu Kupferausbau
 
 ### Added
-
 - **`src/netzfahrplan-schema.js`** — Deterministic fNAV capacity model (Phase 5, Option B):
   - `normaliseFnavProfile()` — computes `profileType` (static_cap | dynamic_flex | hybrid) and `resultingEffectiveCapacityKW = firmKW + flexKW × (1 − curtailmentFactor)`.
   - `resolveN1Threshold()` — hybrid N-1 gate (Option C): domain defaults HS=81 MVA / MS=20 MVA / NS=0.63 MVA (env-overridable), priority: scenario → project → tenant → domain default. Result always exposes `thresholdMVA`, `thresholdSource`, `overrideApplied`.
@@ -4265,13 +4011,13 @@ Evidence planning is a five-phase migration:
 - **`tests/netzfahrplan-integration.test.js`** — 9 integration tests: happy path, governance blocker, N-1 fail, override, fnavValidate delegation, fnavEconomics with and without eog-calculator, avoidedCapexOverride.
 
 ### Changed
-
 - **`tests/dashboard-api.test.js`** — added `'netzfahrplan'` to `VALID_AGENTS` list.
 - **`tests/api.service.test.js`** — added `Netzfahrplan / fNAV` route alias regression test.
 - **`package.json`** — bumped version to `0.51.5`.
 
-### Fixed
 
+
+### Fixed
 - [services/blindflug-radar.service.js](services/blindflug-radar.service.js): removed unused `MoleculerClientError` import to resolve code-quality findings.
 - [services/znp.service.js](services/znp.service.js): corrected `correlateDisturbance` REST route to `POST /api/znp/projects/:projectId/correlate-disturbance` and aligned medium-severity placeholder payload with `interface-placeholder.markGap` schema.
 - [services/api.service.js](services/api.service.js): moved blindflug scan alias to `/api` route and mapped it to the versioned action `v1.blindflug-radar.scan`.
@@ -4281,21 +4027,18 @@ Evidence planning is a five-phase migration:
 - [tests/znp-correlate.service.test.js](tests/znp-correlate.service.test.js): made test hermetic with temporary DB paths, added `object-store` dependency, and asserted real HITL/interface-placeholder side effects.
 
 ### Changed
-
 - [package.json](package.json): bumped version to `0.51.4`.
 - [package-lock.json](package-lock.json): aligned lockfile version to `0.51.4`.
 
 ## [0.51.3] — Störungen als Investitionssignale (Phase 4)
 
 ### Added
-
 - [src/disturbance-schema.js](src/disturbance-schema.js): added deterministic disturbance signal model with `DISTURBANCE_PATTERN` and `REPEATING_FAULT`, recurring-event grouping, confidence scoring, and confidence-threshold proposal helper.
 - [services/blindflug-radar.service.js](services/blindflug-radar.service.js): added dedicated Blindflug-Radar orchestration service with actions `scanBlindflug`, `recommendFromDisturbances`, `listScans`, and `getScan`.
 - [tests/disturbance-schema.test.js](tests/disturbance-schema.test.js): added unit coverage for recurring-pattern detection and confidence-threshold auto-proposal behavior.
 - [tests/blindflug-radar.service.test.js](tests/blindflug-radar.service.test.js): added service-level coverage for Redispatch+MaStR+findings correlation, evidence-placeholder fallback, recommendation retrieval, and tenant isolation.
 
 ### Changed
-
 - [services/api.service.js](services/api.service.js): added OpenAPI tag `Blindflug Radar` and explicit aliases:
   - `POST /api/blindflug-radar/scan` → `blindflug-radar.scanBlindflug`
   - `POST /api/blindflug-radar/recommendations` → `blindflug-radar.recommendFromDisturbances`
@@ -4309,14 +4052,12 @@ Evidence planning is a five-phase migration:
 ## [0.51.2] — Investitionsplanung & Budgetumsteuerung (Phase 3)
 
 ### Added
-
 - [src/investment-plan-utils.js](src/investment-plan-utils.js): added deterministic helpers for hybrid Soll baseline composition (`redispatch_target` + `finance_budget` provenance), Soll-Ist delta computation, strict investment trigger detection (`> 1_000_000 EUR`), and mandate alignment checks.
 - [services/investment-planning.service.js](services/investment-planning.service.js): added tenant-scoped investment planning orchestration with plan creation/list/get, Redispatch Ex-Post integration, VDMI mandate validation, HITL trigger creation for high-value measures, and Interface Placeholder hard-gap fallback for missing dual-role ownership.
 - [tests/investment-plan-utils.test.js](tests/investment-plan-utils.test.js): added utility-level coverage for provenance flags, Soll-Ist computation, strict trigger semantics, and role-gap detection.
 - [tests/investment-planning.service.test.js](tests/investment-planning.service.test.js): added service-level coverage for tenant isolation, governance fallback behavior, and `>1M EUR` escalation.
 
 ### Changed
-
 - [services/api.service.js](services/api.service.js): added OpenAPI `Investment Planning` tag and explicit aliases:
   - `POST /api/investment-planning/plans` → `investment-planning.createPlan`
   - `GET /api/investment-planning/plans` → `investment-planning.listPlans`
@@ -4329,13 +4070,11 @@ Evidence planning is a five-phase migration:
 ## [0.51.1] — Portfolio-Logik (Phase 2)
 
 ### Added
-
 - [src/znp-portfolio-logic.js](src/znp-portfolio-logic.js): added deterministic hybrid portfolio scoring for Layer 0 (MaStR), Layer 2 (Inhouse PDF), and Layer 2.5 (strategic assumptions) with explicit provenance flags and `portfolio.weg` metadata.
 - [tests/znp-portfolio-logic.test.js](tests/znp-portfolio-logic.test.js): added coverage for provenance flags, four-dimensional scoring, and missing-fNAV penalty behavior.
 - [services/znp.service.js](services/znp.service.js): added `znp.assessPortfolio` endpoint (`GET /api/znp/projects/:projectId/portfolio`) exposing `portfolio.weg`, provenance flags, dimension scores (`economic`, `regulatory`, `technical`, `temporal`), overall score, and governance state.
 
 ### Changed
-
 - [services/znp.service.js](services/znp.service.js): integrated manual-only hard-blocker governance flow for missing `kaufmaennische_freigabe_fnav` by creating/returning explicit Interface Placeholder blockers.
 - [src/capability-catalog.js](src/capability-catalog.js): added curated capability `znp_portfolio_assessment` for deterministic portfolio routing.
 - [services/capability-broker.service.js](services/capability-broker.service.js): added action template support for `znp.assessPortfolio` recommendations.
@@ -4350,14 +4089,12 @@ Evidence planning is a five-phase migration:
 ## [0.51.0] — Interface Placeholder Agent (Phase 1)
 
 ### Added
-
 - [src/interface-placeholder-schema.js](src/interface-placeholder-schema.js): added deterministic enums and normalizers for placeholder reasons, blocking levels, signal codes, and mandatory hard-blocker resolver roles.
 - [services/interface-placeholder.service.js](services/interface-placeholder.service.js): added tenant-scoped Interface Placeholder Agent backed by `object-store` with explicit gap creation, evidence requests, low-confidence status retrieval, gap listing, resolution, and execution-block checks.
 - [tests/interface-placeholder.service.test.js](tests/interface-placeholder.service.test.js): added service coverage for tenant isolation, hard-blocker HITL escalation, evidence responses, and mandatory role-based resolution.
 - [tests/interface-placeholder-e2e.test.js](tests/interface-placeholder-e2e.test.js): added API/OpenAPI regression coverage for the new `/api/interface-placeholder/*` routes.
 
 ### Changed
-
 - [src/cya-regulatory-graph.js](src/cya-regulatory-graph.js): added `buildPlaceholderNode()` so placeholder gaps are represented explicitly in the CYA graph layer with `confidence: low` semantics.
 - [src/capability-catalog.js](src/capability-catalog.js): added the curated fallback capability `interface_placeholder` for explicit gap marking instead of silent deterministic mismatch fallbacks.
 - [services/capability-broker.service.js](services/capability-broker.service.js): routes `score === 0` recommendations to `interface-placeholder.markGap` and emits explicit fallback warnings.
@@ -4371,11 +4108,9 @@ Evidence planning is a five-phase migration:
 ## [0.50.10] — Grid What-If + ZNP Routing Fix
 
 ### Added
-
 - [tests/grid-connection-whatif.test.js](tests/grid-connection-whatif.test.js): added Gap-4 What-If regression coverage for `grid-connection.validate` (`scenarioAdditions`, `scenarioCapacityMW`, OpenAPI schema presence).
 
 ### Changed
-
 - [services/grid-connection.service.js](services/grid-connection.service.js): implemented What-If scenario support in `validate` by accepting `scenarioAdditions` and `scenarioCapacityMW`, applying virtual installations during Step 1 inventory evaluation, and exposing scenario metadata in persisted reports.
 - [services/znp.service.js](services/znp.service.js): removed conflicting `rest:` route from `addAssumption` (PR [#100](https://github.com/energychain/cernion-energy-tools/pull/100)) to avoid routing collisions.
 - [package.json](package.json): bumped version to `0.50.10`.
@@ -4385,11 +4120,9 @@ Evidence planning is a five-phase migration:
 ## [0.50.9] — EDM Stabilization and Tenant Resolution
 
 ### Added
-
 - [docs/test-plans/edm-mfh-s14a-e2e.sh](docs/test-plans/edm-mfh-s14a-e2e.sh): added end-to-end demo test plan for Mehrfamilienhaus + PV + Speicher + §14a + Grünstromindex.
 
 ### Changed
-
 - [services/edm-messkonzept.service.js](services/edm-messkonzept.service.js): improved pool handling via lazy `_ensurePool()` usage to prevent create-path crashes when the EDM pool is not yet available at startup.
 - [services/api.service.js](services/api.service.js): API gateway now resolves `tenantId` fallback from `x-tenant-id` header or `tenantId` query parameter (with validation) when token-derived tenant context is missing.
 - [package.json](package.json): bumped version to `0.50.9`.
@@ -4397,18 +4130,15 @@ Evidence planning is a five-phase migration:
 - [README.md](README.md): updated current release marker to `v0.50.9`.
 
 ### Notes
-
 - PR [#99](https://github.com/energychain/cernion-energy-tools/pull/99) merged (includes the functional changes from PR [#98](https://github.com/energychain/cernion-energy-tools/pull/98)).
 - PR [#96](https://github.com/energychain/cernion-energy-tools/pull/96) was evaluated but not merged because its added tests fail against current implementation (Gap-4 What-If still pending).
 
 ## [0.50.8] — Open PR Closure Release
 
 ### Added
-
 - [docs/adr/README.md](docs/adr/README.md) and the ADR set in [docs/adr](docs/adr): release includes the Troisdorf gap decision records for gaps 1, 2, 3, and 6.
 
 ### Changed
-
 - [services/redispatch-expost.service.js](services/redispatch-expost.service.js): finalized TF-08 VDMI linkage for Redispatch audits by resolving VDMI via tenant context in `ctx.meta`, mapping role arrays from the internal task schema, and failing open when `vdmi.list` is unavailable in isolated environments.
 - [services/znp.service.js](services/znp.service.js): release includes tenant-scoped project persistence and access control across create, list, read, delete, and hydration flows.
 - [tests/vdmi.service.test.js](tests/vdmi.service.test.js): release includes focused regression coverage for VDMI task dependencies.
@@ -4420,13 +4150,11 @@ Evidence planning is a five-phase migration:
 ## [0.50.7] — Safe PR Merge Sweep and Tenant-Scoped Governance
 
 ### Added
-
 - [services/vdmi.service.js](services/vdmi.service.js): `emptyTask(...)` now includes `dependsOn` and `blocks` arrays so VDMI task dependencies are preserved in create/get flows.
 - [services/znp.service.js](services/znp.service.js): ZNP projects now carry a `tenantId` in memory and in PouchDB metadata.
 - Added ADR documentation for Troisdorf architecture gaps 1, 2, 3, and 6 under [docs/adr/README.md](docs/adr/README.md).
 
 ### Changed
-
 - [services/redispatch-expost.service.js](services/redispatch-expost.service.js): TF-08 now resolves the VDMI tenant context through `ctx.meta` and maps `informiert` from the internal `information` task field, so persisted Redispatch audits contain the expected `vdmiMatrixId` and role arrays.
 - [services/znp.service.js](services/znp.service.js): `createProject`, `getProjectMeta`, `getProjectAssets`, `listProjects`, `deleteProject`, and hydration now enforce tenant-scoped access.
 - [tests/vdmi.service.test.js](tests/vdmi.service.test.js): added coverage for task dependency persistence.
@@ -4438,20 +4166,17 @@ Evidence planning is a five-phase migration:
 ## [0.50.4] — VDMI E2E Stabilization (DB Path Runtime Resolution)
 
 ### Fixed
-
 - [services/vdmi.service.js](services/vdmi.service.js): `created()` resolves `VDMI_DB_PATH` at runtime before opening PouchDB.
   - Prevents accidental fallback to `./data/vdmi` in test processes where the service module is loaded before environment variables are set.
   - Eliminates intermittent `OpenError: IO error: lock ./data/vdmi/LOCK: Resource temporarily unavailable` in VDMI service test runs.
 
 ### Changed
-
 - [package.json](package.json): bumped version to `0.50.4`.
 - [README.md](README.md): updated current release marker to `v0.50.4`.
 
 ## [0.50.3] — API Discoverability Onboarding Fix (Issue #88)
 
 ### Changed
-
 - API-Onboarding in [README.md](README.md) neu strukturiert, damit die Plattformbreite in der Schnellnavigation sichtbar ist (Issue #88):
   - prominenter Einstieg über `/api/docs` (Swagger UI) und `/api/openapi.json`
   - domänenbasierter Überblick mit repräsentativen Endpunkten für VDMI, CYA, ZNP/NOVA, EDM, Forecast/Settlement/Flex, Assets/Grid-Validation, Datapoints, MaStR Monitor, OEP/OSM/Knowledge und Finance Agent
@@ -4460,7 +4185,6 @@ Evidence planning is a five-phase migration:
 ## [0.50.2] — VDMI Governance APIs (Human Override, Spectator Mode, Findings, Evidence)
 
 ### Added
-
 - New VDMI Governance APIs in [docs/VDMI_GOVERNANCE_APIS.md](docs/VDMI_GOVERNANCE_APIS.md) extending automated agent inference with human-in-the-loop workflows:
 
   **1. Human Override & Audit Trail** ([services/vdmi-human-override.service.js](services/vdmi-human-override.service.js)):
@@ -4500,12 +4224,10 @@ Evidence planning is a five-phase migration:
   - Tenant isolation for all new endpoints via `:tenantId` path parameter
 
 ### Changed
-
 - Updated package.json to version 0.50.2
 - Expanded EOG Calculator endpoints (already present from v0.50.1 fix)
 
 ### Technical Details
-
 - All new services use PouchDB for audit trail, findings, and evidence storage (data/vdmi-* directories)
 - Audit entries are cryptographically immutable with integrity hash verification
 - Finding status follows NOVA Decision Lifecycle (v0.49.0 compatibility)
@@ -4515,7 +4237,6 @@ Evidence planning is a five-phase migration:
 ## [0.50.1] — Dashboard VDMI KPI Integration
 
 ### Added
-
 - Dashboard quality aggregation now includes VDMI governance in [services/dashboard-api.service.js](services/dashboard-api.service.js):
   - new `qualitySummary` agent entry `vdmi` (latest matrices + critical-open finding metric)
   - new `businessKpis` block with management KPIs:
@@ -4524,7 +4245,6 @@ Evidence planning is a five-phase migration:
     - `vdmi_fnav_time_to_decision_gain_days`
 
 ### Changed
-
 - Expanded finding catalog in [src/validation-findings.js](src/validation-findings.js) with initial VDMI governance code metadata (`VD_*`) for dashboard/tooling consistency.
 - Updated dashboard test coverage in [tests/dashboard-api.test.js](tests/dashboard-api.test.js) for VDMI quality summary integration and KPI calculations.
 - Updated quality-summary UI contract for VDMI agent rendering and `businessKpis` display in [docs/ui-contracts/03-quality-summary.md](docs/ui-contracts/03-quality-summary.md).
@@ -4532,7 +4252,6 @@ Evidence planning is a five-phase migration:
 ## [0.50.0] — VDMI Service Baseline (Issue 19)
 
 ### Added
-
 - New VDMI microservice [services/vdmi.service.js](services/vdmi.service.js) with PouchDB-backed matrix lifecycle and audit persistence (`vdmi:`, `vdmi-template:`, `vdmi-audit:`, `vdmi-finding:`).
 - New VDMI REST endpoints (API-first foundation) including:
   - Matrix lifecycle: `GET /api/vdmi`, `GET /api/vdmi/:id`, `POST /api/vdmi`, `POST /api/vdmi/detect`
@@ -4545,14 +4264,12 @@ Evidence planning is a five-phase migration:
 - New test suite [tests/vdmi.service.test.js](tests/vdmi.service.test.js) covering matrix lifecycle, detect/trace/dossier, nomination confirmation, findings mitigate/resolve, and tenant isolation.
 
 ### Notes
-
 - This release establishes the v0.50.x baseline (Roadmap steps 1–4 core service path).
 - KPI aggregation in dashboard and global `VD_*` finding metadata integration are scheduled for follow-up v0.50.x increments.
 
 ## [0.49.0] — NOVA Decision Engine Baseline (project-scoped, tenant-bound)
 
 ### Added
-
 - New decision lifecycle module [src/nova-decision-machine.js](src/nova-decision-machine.js) with transitions:
   - `proposed -> triaged -> pending_approval -> approved -> applied`
   - terminal states: `rejected`, `expired`
@@ -4566,7 +4283,6 @@ Evidence planning is a five-phase migration:
   - `POST /api/znp/projects/:projectId/nova/decisions/:id/replay-trigger`
 
 ### Changed
-
 - [services/nova.service.js](services/nova.service.js):
   - NOVA decisions are now persisted (`PouchDB`) with project scope and tenant-bound access.
   - Added lifecycle transitions with audit trail (`agent_interventions`) and expiration handling.
@@ -4579,13 +4295,11 @@ Evidence planning is a five-phase migration:
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): NOVA capability updated to TRL 7 baseline for v0.49.
 
 ### Tests
-
 - [tests/nova.service.test.js](tests/nova.service.test.js): added coverage for decision listing, approval/apply lifecycle, tenant binding enforcement, and async replay-trigger descriptor.
 
 ## [0.48.4] — Rate Limiting + Tenant Quota Enforcement
 
 ### Added
-
 - New rate/quota foundation modules:
   - [src/rate-quota-store.js](src/rate-quota-store.js)
   - [src/rate-quota/driver.js](src/rate-quota/driver.js)
@@ -4603,7 +4317,6 @@ Evidence planning is a five-phase migration:
   - `quota.exhausted`
 
 ### Changed
-
 - [src/llm-client.js](src/llm-client.js): LLM calls now preflight tenant quotas and record tenant-scoped usage via an interim token estimator when a tenant context is available.
 - [src/metrics.js](src/metrics.js): Added tenant-hash-safe metrics `cernion_rate_limit_hits` and `cernion_quota_usage`.
 - [services/api.service.js](services/api.service.js):
@@ -4619,7 +4332,6 @@ Evidence planning is a five-phase migration:
 - [services/knowledge-rag.service.js](services/knowledge-rag.service.js): ingest now enforces monthly per-tenant RAG chunk quotas before embedding and persistence.
 
 ### Tests
-
 - Added focused coverage for:
   - gateway rate-limit headers and `429` behavior
   - preflight `LLM_QUOTA_EXCEEDED`
@@ -4632,7 +4344,6 @@ Evidence planning is a five-phase migration:
 ## [0.48.3] — Subset-Test Coverage Gate Fix + Retrieval Window Floor
 
 ### Changed
-
 - [jest.config.js](jest.config.js): Coverage threshold gating is now applied only for full-suite runs.
   - Explicit subset runs (e.g. `npm test -- --runInBand tests/...`) no longer fail due to global coverage thresholds.
   - Full release and CI runs keep strict global thresholds unchanged.
@@ -4643,7 +4354,6 @@ Evidence planning is a five-phase migration:
 ## [0.48.2] — Knowledge-RAG Semantic Dedupe & Reranking Hardening
 
 ### Changed
-
 - [services/knowledge-rag.service.js](services/knowledge-rag.service.js): Added robust, backward-compatible semantic result post-processing in the v0.43.1 extension path:
   - new optional query params for `query` + `semantic`: `dedupe` (default `true`), `rerank` (default `true`), `diversityPerDocument` (1..5, default `2`), `rerankWindow` (1..100, default `min(limit*4, 50)`)
   - semantic post-processing methods introduced:
@@ -4663,7 +4373,6 @@ Evidence planning is a five-phase migration:
 - OpenAPI request schemas/examples for semantic query endpoints were extended to expose the new post-processing controls.
 
 ### Tests
-
 - [tests/knowledge-rag.service.test.js](tests/knowledge-rag.service.test.js):
   - verifies external semantic duplicate removal by `documentId/referenceText_L0`
   - verifies `dedupe: false` preserves duplicates
@@ -4674,7 +4383,6 @@ Evidence planning is a five-phase migration:
 ## [0.48.1] — OIDC/SAML SSO Foundation (Issue 17)
 
 ### Added
-
 - Initial authentication foundation for SSO rollout:
   - new RBAC helper [src/auth/rbac.js](src/auth/rbac.js)
   - OIDC helper stub [src/auth/oidc.js](src/auth/oidc.js)
@@ -4689,7 +4397,6 @@ Evidence planning is a five-phase migration:
 - New documentation [docs/AUTH_OIDC_SAML.md](docs/AUTH_OIDC_SAML.md) with configuration examples for Azure AD, Keycloak and ADFS.
 
 ### Changed
-
 - API gateway [services/api.service.js](services/api.service.js):
   - supports `csess_*` verification via `auth.verify` in addition to legacy `ck_*` token verification
   - role checks introduced for write endpoints and HITL approval endpoints (`hitl-approver` required)
@@ -4704,7 +4411,6 @@ Evidence planning is a five-phase migration:
 ## [0.48.0] — EOG-Calculator MVP (Validate/Commit, Kalibrieranker, HITL-Audit)
 
 ### Added
-
 - New microservice [services/eog-calculator.service.js](services/eog-calculator.service.js) with tenant-scoped, typed EOG datapoint model and dedicated REST API:
   - `POST /api/eog-calculator/input-status`
   - `POST /api/eog-calculator/datapoints/validate`
@@ -4734,12 +4440,10 @@ Evidence planning is a five-phase migration:
 - Audit-capable decision events (tenant/VNB-scoped) persisted for commit/hitl decisions.
 
 ### Changed
-
 - API gateway full-access policy extended in [services/api.service.js](services/api.service.js) so `POST /api/eog-calculator/*` requires full-access token scope.
 - `inputStatus` response structure enhanced: Now includes `optionalButRelevant` array alongside `required` and `missing` to signal detail-reproduction fields
 
 ### Added (Tests)
-
 - New test suite [tests/eog-calculator.service.test.js](tests/eog-calculator.service.test.js) covering:
   - validate vs commit separation (no persistence on validate)
   - successful commit flow with datapoint persistence
@@ -4755,7 +4459,6 @@ Evidence planning is a five-phase migration:
 ## [0.47.2] — Architecture Documentation Re-baseline
 
 ### Changed
-
 - Re-based [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) to the current workspace state and release baseline:
   - version reference updated to `v0.47.2`
   - architecture layers extended through Multi-Tenant, OEO export, LLM provider abstraction, Knowledge-RAG ingest, Webhooks, HITL, Observability, Pagination, Asset Overrides, OEP delta, Job-Store drivers and Capability Broker
@@ -4765,13 +4468,11 @@ Evidence planning is a five-phase migration:
 - Updated [README.md](README.md) for consistent current-state numbers and `v0.47.2` references.
 
 ### Added
-
 - New release bridge document [docs/RELEASE_SUMMARY_v0.46.md](docs/RELEASE_SUMMARY_v0.46.md) summarizing the component delta from `v0.40.x` to `v0.46.2`.
 
 ## [0.47.1] — Async-Job-Cutover Foundations (Client-Key Idempotency + Progress SSE)
 
 ### Added
-
 - New shared async wrapper [src/async-job-runner.js](src/async-job-runner.js):
   - `runAsync(ctx, ...)` for standardized async execution via job-store
   - deterministic idempotency-key generation from request payload hash
@@ -4783,7 +4484,6 @@ Evidence planning is a five-phase migration:
   - `Last-Event-ID` replay support (header + `lastEventId` query fallback)
 
 ### Changed
-
 - Job-store idempotency support in [src/job-store.js](src/job-store.js) and [src/job-store/file-driver.js](src/job-store/file-driver.js):
   - persisted `idempotencyKey` on job records
   - lookup/reuse of existing non-error jobs for identical idempotency key
@@ -4801,12 +4501,10 @@ Evidence planning is a five-phase migration:
   - [services/utility-report.service.js](services/utility-report.service.js) → gateway cutover to generic async jobs (internal path remains compatibility mode)
 
 ### Documentation
-
 - Added/updated `202 Accepted` OpenAPI responses for migrated deterministic validation/allocation/audit endpoints.
 - Added explicit route alias `GET /jobs/:jobId/progress` in [services/api.service.js](services/api.service.js).
 
 ### Tests
-
 - New unit suite [tests/async-job-runner.test.js](tests/async-job-runner.test.js)
 - Extended [tests/job-store.test.js](tests/job-store.test.js) for idempotent job reuse + normalized progress fields
 - Extended [tests/job-status.service.test.js](tests/job-status.service.test.js) for progress polling + SSE replay behavior
@@ -4816,37 +4514,31 @@ Evidence planning is a five-phase migration:
 ### Added
 
 - Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
-  **Sub-Track A — A96-Feldspezifikation mit BNetzA-Fallback**
+**Sub-Track A — A96-Feldspezifikation mit BNetzA-Fallback**
 - New module `src/a96-validator.js`: JSON-schema validation for A96 MSCONS messages, drift detection for 4 `[BNetzA-OFFEN]` fields (`ErzeugerMastrNummer`, `Bilanzierungsmonat`, `BdewCodeNetzbetreiber`, `QualitaetskennzeichenMscons`), defensive defaults via `applyA96Defaults()`, finding code `ES_A96_FIELD_DRIFT` (severity: warning)
 - New doc `docs/ENERGY_SHARING_A96_DEFAULTS.md`: All 4 open fields documented with defensive defaults, spec-freeze date 2026-06-15, Q3 2026 BNetzA final spec deferred to v0.51
 - New test suite `tests/a96-validator.test.js`: 13 unit tests covering validate, applyDefaults, buildDriftFinding
 
 **Sub-Track B — Pilot-Tenant Höheinöd produktiv**
-
 - `services/energy-sharing.service.js`: Tenant-prefixed doc IDs (`es:{tenantId}:{uuid}`), tenantId index, scoped list/get with fallback to legacy prefix
 - `services/energy-sharing-allocation.service.js`: Tenant-prefixed doc IDs (`alloc:{tenantId}:{uuid}`), tenantId index
 - New migration script `scripts/migrate-tenant-energy-sharing.js`: Fully automated tenant migration (`--tenant`, `--dry-run`), idempotent, EU AI Act Art. 12 audit manifest at `data/migrations/`
 
 **Sub-Track C — Settlement-Readiness Härte-Test**
-
 - Fixed stale references: canonical module is `src/settlement-calculator.js` → `calculateSettlementReadiness()` (not the non-existent `src/settlement-readiness.js`)
 - Updated `docs/roadmap/issues/13-energy-sharing-42c-subtracks.md` and CHANGELOG references accordingly
 
 **Sub-Track D — Allokations-Engine Last-Test**
-
 - New test suite `tests/energy-sharing-allocation-load.test.js`: 5 sub-tests — CSV byte-determinism, 30d×96 intervals×100 consumers×5 generators within 10s CI budget, heap delta < 512 MB, allocation correctness (lossless), `ALLOC_MAX_WORKERS` env conformance
 
 **Sub-Track E — Operative Runbooks + HITL-Wiring**
-
 - `services/energy-sharing.service.js`: HITL escalation wired on `error`-severity findings — calls `hitl.create` with `kind: 'energy-sharing-validation-error'`, `originService: 'energy-sharing'`, `originAction: 'validate'`, `severity: 'error'`
 - New runbook `docs/RUNBOOK_ES_INCIDENT.md`: 6 incident types (MSCONS gap, Stufe-A/B Reklamation, DV-Wechsel, BK-Korrektur, A96 rollback gate), escalation levels L1–L4
 
 **Sub-Track F — Compliance Sign-Off (DSGVO Art. 35)**
-
 - New template `docs/DSFA_TEMPLATE.md`: DSGVO Art. 35 compliant DSFA template, risk matrix (probability × impact), data categories, Art. 7/17/20 rights references, signature block
 
 **Sub-Track G — Rollback-Plan + Feature Flag + Backup/Restore**
-
 - New service `services/backup-orchestrator.service.js`: Full data restore orchestration for energy-sharing PouchDB, allocation-engine PouchDB, datapoints PouchDB, jobs dir, tokens file. 5 admin API actions: `snapshot`, `restore`, `list`, `get`, `delete`. SHA-256 `provenanceHash` manifest (EU AI Act Art. 12). Restore is additive (missing docs restored, existing skipped).
 - `services/bilanzkreis.service.js`: New `getFeatureFlags` (`GET /:id/feature-flags`) and `updateFeatureFlags` (`PATCH /:id/feature-flags`) actions for `virtual_energy_sharing.enabled` flag with rollback gate
 - `services/api.service.js`: 7 new admin backup routes + 2 feature-flag routes registered
@@ -4864,7 +4556,6 @@ Evidence planning is a five-phase migration:
 ## [0.46.5] — Finance Agent KPI benchmark orchestrator + MaStR asset fixes
 
 ### Added
-
 - **New Finance Agent KPI benchmark orchestrator** in [services/finance-agent.service.js](services/finance-agent.service.js):
   - new action `finance-agent.benchmarkComparison` (REST POST /benchmark-comparison)
   - multi-service orchestration: resolves both VNBs via marketPartners, fetches EWK metrics (Anschlussdauer, Digitalisierungsindex, Umsetzungsquote)
@@ -4881,7 +4572,6 @@ Evidence planning is a five-phase migration:
   - registered in CURATED_CAPABILITIES array with full capability descriptor
 
 ### Fixed
-
 - **MaStR asset filtering (`energy-market.service.js`) now sends correct parameter name to MCP tool** ([services/energy-market.service.js](services/energy-market.service.js)):
   - Parameter name corrected: `gridOperatorId` → `gridOperatorMastrId` at line 1001
   - Upstream MCP tool `cernion_installations_local` expects `gridOperatorMastrId` (not `gridOperatorId`)
@@ -4902,7 +4592,6 @@ Evidence planning is a five-phase migration:
   - supports BDEW codes with spaces (e.g., "9900 599000003")
 
 ### Tests
-
 - Added 12 new tests for `benchmarkComparison` action in [tests/finance-agent.service.test.js](tests/finance-agent.service.test.js):
   - evidence-based comparison for two valid VNBs
   - correct comparison of all three dimensions (anschlussdauer, digitalisierungsindex, umsetzungsquote)
@@ -4923,13 +4612,11 @@ Evidence planning is a five-phase migration:
   - location parameter routing (5-digit vs city names)
 
 ### Changed
-
 - `finance-agent.get` action now supports both `/fa:*` and `/fa:benchmark:*` document types (updated document retrieval logic).
 
 ## [0.46.4] — Finance Agent $gateway fix (correct Moleculer meta merge)
 
 ### Fixed
-
 - **Root cause of `rawHits=0` identified and fixed** in `retrieveEvidence()` ([services/finance-agent.service.js](services/finance-agent.service.js)): the v0.46.3 attempt destructured `$gateway` out of a spread (`{ $gateway: _gw, ...ragMeta }`) and passed `ragMeta` to `ctx.call`. This is insufficient because Moleculer merges `opts.meta` **on top of** `parentCtx.meta` via `Object.assign({}, parentCtx.meta, opts.meta)`. Since `ragMeta` contains no `$gateway` key, the parent's `$gateway: true` is never overridden in the merged child meta — the child `ctx.meta.$gateway` stays `true`, `startJob` fires async, returns a `{ status: 'queued', jobId }` descriptor, sets `ctx.meta.$statusCode = 202` on the child, Moleculer propagates that back to the parent, and `finance-agent.analyze` returns HTTP 202 after 62 s with `rawHits = 0`.
 - **Fix**: replaced the destructure pattern with `{ meta: { ...ctx.meta, $gateway: false } }` — identical to the pattern used in `agent.service.js` internal calls. The explicit `false` value overrides the parent's `true` in the merged meta, `startJob` runs synchronously, and knowledge-rag returns real results.
 - **Test mock strengthened**: the shared `knowledge-rag.query` mock in the test suite now simulates `startJob` behaviour — it returns an async job descriptor when `ctx.meta.$gateway === true`. The regression test `'does not propagate $gateway …'` now verifies `ragCalls.every(c => c.gatewayWasTrue === false)`, so any future regression will be caught immediately.
@@ -4937,11 +4624,9 @@ Evidence planning is a five-phase migration:
 ## [0.46.3] — Finance Agent central collection default + gateway fix
 
 ### Fixed
-
 - **Finance Agent `retrieveEvidence()` now strips `$gateway` from the meta forwarded to `knowledge-rag.query`** ([services/finance-agent.service.js](services/finance-agent.service.js)). When `/api/finance-agent/analyze` was called via the REST gateway, `ctx.meta.$gateway = true` was propagated to the inner `knowledge-rag.query` call. `startJob()` in `job-store.js` treats any call with `$gateway: true` as a REST call and returns a 202 async-job descriptor instead of actual results. `retrieveEvidence` then received `{ status: 'queued', jobId, … }`, found no `data.results`, and accumulated `rawHits = 0` → `evidence_count = 0` → `hypothetical_scenario`. The fix destructures `$gateway` out of `ctx.meta` before the inner call, so `knowledge-rag.query` always runs synchronously and returns real results.
 
 ### Changed
-
 - **Finance Agent retrieval now defaults to the central Landside knowledge collection** `cernion_knowledge_v1` in [services/finance-agent.service.js](services/finance-agent.service.js) when `/api/finance-agent/analyze` is called without an explicit `collection`.
 - **Explicitly provided collections remain authoritative** and are passed unchanged to `knowledge-rag.query`.
 - **No fallback was added** from explicit empty/no-hit collections to `cernion_knowledge_v1`.
@@ -4950,7 +4635,6 @@ Evidence planning is a five-phase migration:
 ## [0.46.2] — Planning-Assist rollout (Utility Report, ZNP, CYA)
 
 ### Changed
-
 - **Utility Report pipeline (`_runPipeline`) now includes non-blocking planning assist metadata** in [services/utility-report.service.js](services/utility-report.service.js):
   - new helper `getPlanningAssist(...)` (fail-open)
   - phase-0 capture persisted under `progress.meta.planAssist`
@@ -4965,7 +4649,6 @@ Evidence planning is a five-phase migration:
   - fallback remains deterministic/non-blocking when assist is unavailable
 
 ### Tests
-
 - Focused suites passed after rollout:
   - [tests/utility-report.service.test.js](tests/utility-report.service.test.js)
   - [tests/znp.service.test.js](tests/znp.service.test.js)
@@ -4974,7 +4657,6 @@ Evidence planning is a five-phase migration:
 ## [0.46.1] — Finance Agent iterative `agent.analyze` integration
 
 ### Changed
-
 - **Finance Agent now uses `agent.analyze` as always-on planning assist** in [services/finance-agent.service.js](services/finance-agent.service.js):
   - initial assist call before retrieval rounds
   - iterative assist calls during refinement rounds
@@ -4985,7 +4667,6 @@ Evidence planning is a five-phase migration:
   - retrieval metadata extended with `stopReason` and `qualitySignals`
 
 ### Tests
-
 - Extended [tests/finance-agent.service.test.js](tests/finance-agent.service.test.js) with assertions for:
   - active `agent.analyze` assistance
   - iterative behavior under weak L1 evidence
@@ -4995,7 +4676,6 @@ Evidence planning is a five-phase migration:
 ## [0.46.0] — Capability Broker v1 (Additive, Internal)
 
 ### Added
-
 - **New internal Capability Broker service** in [services/capability-broker.service.js](services/capability-broker.service.js) with actions:
   - `capability-broker.recommend` (advisory recommendation only)
   - `capability-broker.catalog` (curated capability metadata)
@@ -5009,7 +4689,6 @@ Evidence planning is a five-phase migration:
 - **New broker test suite** in [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js).
 
 ### Changed
-
 - **Agent planning now reuses shared utilities** in [services/agent.service.js](services/agent.service.js) by delegating catalogue/normalization to [src/agent-planning-utils.js](src/agent-planning-utils.js).
 - **Additive broker integration in `agent.analyze`** (best-effort, non-blocking):
   - calls `ctx.call('capability-broker.recommend', ...)` to capture advisory hints for session context
@@ -5025,7 +4704,6 @@ Evidence planning is a five-phase migration:
 - **Hard `doNotUse` enforcement** in broker output filtering (forbidden actions are excluded from recommended steps).
 
 ### Notes
-
 - Capability Broker v1 is **internal action-only** (no API gateway route in v1).
 - Execution runtime is unchanged: `executePlan()` remains untouched and authoritative.
 - Introduction is additive and backward-compatible with existing `agent.analyze`, `agent.execute`, `query.*`, and domain service flows.
@@ -5033,7 +4711,6 @@ Evidence planning is a five-phase migration:
 ## [0.45.1] — Job-Store Driver Interface Foundation (Closes #60)
 
 ### Added
-
 - **Job-store driver interface** in [src/job-store/driver.js](src/job-store/driver.js) with pluggable driver factory in [src/job-store/factory.js](src/job-store/factory.js).
 - **Driver targets wired via `JOB_STORE_DRIVER`**:
   - `file` driver in [src/job-store/file-driver.js](src/job-store/file-driver.js) (default).
@@ -5042,7 +4719,6 @@ Evidence planning is a five-phase migration:
 - **Job migration utility** [scripts/migrate-jobs.js](scripts/migrate-jobs.js) and npm script `migrate:jobs` for file→pouchdb document migration.
 
 ### Changed
-
 - **Job-store facade refactored** in [src/job-store.js](src/job-store.js) to select drivers via environment without caller code changes.
 - **Lease heartbeat metadata introduced** in async job execution path (`leaseOwner`, `leaseExpiresAt`, `lastHeartbeatAt`) with configurable defaults (`JOB_STORE_LEASE_SECONDS`, `JOB_STORE_HEARTBEAT_SECONDS`).
 - **`mastr-quality.audit` aligned to generic async job pattern** in [services/mastr-quality.service.js](services/mastr-quality.service.js):
@@ -5051,14 +4727,12 @@ Evidence planning is a five-phase migration:
   - OpenAPI action response docs extended to include `202 Accepted` async contract.
 
 ### Notes
-
 - v0.45.1 establishes the interface and runtime switch required for distributed rollout while keeping compatibility in-place for existing synchronous call paths.
 - Changelog comment for issue closure: implementation start delivered and tracked for GitHub issue `#60` (`Job-Store-Driver-Interface`).
 
 ## [0.45.0] — §42c Energieteilen Production-Cutover Plan (Closes #59)
 
 ### Added
-
 - **§42c Cutover-Plan Tracking Issue**: Formal tracking structure for Energieteilen production go-live (deadline 01.07.2026) in [docs/roadmap/issues/10-energy-sharing-42c-cutover.md](docs/roadmap/issues/10-energy-sharing-42c-cutover.md).
 - **Seven Sub-Tracks with Acceptance Gates**:
   1. A96-Feldspezifikation finalisieren (BNetzA-Klärungspunkte, Spec-Freeze bis 2026-06-15)
@@ -5076,7 +4750,6 @@ Evidence planning is a five-phase migration:
   - BNetzA-Klärungspunkte: 0 offen
 
 ### Changed
-
 - **Planning foundations consolidated** across:
   - [docs/ENERGY_SHARING_ABNAHME.md](docs/ENERGY_SHARING_ABNAHME.md): Regulatory acceptance checklist with explicit `[BNetzA-OFFEN]` field markers
   - [src/settlement-calculator.js](src/settlement-calculator.js): KPI logic for `PARAGRAF_42C_KONFORM` and `A96_FAEHIG` (function `calculateSettlementReadiness`)
@@ -5086,7 +4759,6 @@ Evidence planning is a five-phase migration:
   - [docs/ui-contracts/09-bilanzkreis-status.md](docs/ui-contracts/09-bilanzkreis-status.md): Bilanzkreis UI contract for §42c readiness visibility
 
 ### Notes
-
 - Deadline: 01.07.2026 (harte Regulatory Frist für Energieteilen Live-Schaltung)
 - External dependency: BNetzA A96-Feldspezifikation erwartetet Q3 2026 (nach Cutover-Ziel, daher Fallback-Planung notwendig)
 - Existing services & tests provide foundation; cutover plan is **planning artifact only** (no code changes in v0.45.0)
@@ -5096,7 +4768,6 @@ Evidence planning is a five-phase migration:
 ## [0.44.5] — HITL Approval Workflow First-Class (Closes #61)
 
 ### Added
-
 - **First-class HITL dashboard APIs** in [services/hitl.service.js](services/hitl.service.js):
   - `GET /api/hitl/summary`
   - `GET /api/hitl/sla-heatmap`
@@ -5106,7 +4777,6 @@ Evidence planning is a five-phase migration:
 - **UI contract** [docs/ui-contracts/40-hitl.md](docs/ui-contracts/40-hitl.md) for approval dashboard, bulk actions, filters, and SLA heatmap.
 
 ### Changed
-
 - **Direct HITL item returns** in caller flows:
   - [services/assets.service.js](services/assets.service.js) now returns `hitlItem` immediately for critical overrides.
   - [services/finance-agent.service.js](services/finance-agent.service.js) now returns `hitlItem` for `hypothetical_scenario` analyses.
@@ -5115,7 +4785,6 @@ Evidence planning is a five-phase migration:
 - **Webhook coverage** in [services/webhooks.service.js](services/webhooks.service.js): `hitl.item.expired` is now whitelisted and delivered.
 
 ### Tests
-
 - Expanded coverage across:
   - [tests/hitl.service.test.js](tests/hitl.service.test.js)
   - [tests/assets.override.test.js](tests/assets.override.test.js)
@@ -5125,13 +4794,11 @@ Evidence planning is a five-phase migration:
   - [tests/api.service.test.js](tests/api.service.test.js)
 
 ### Notes
-
 - Changelog comment for issue closure: implementation completed for GitHub issue `#61` (`HITL Approval Workflow First-Class`).
 
 ## [0.44.4] — MaStR↔OEP Delta Engine (Closes #58)
 
 ### Added
-
 - **Semantic delta engine** in [src/oep-delta-engine.js](src/oep-delta-engine.js):
   - heuristic MaStR↔OEP joins via `joinByOeoClass`
   - field-level mismatch calculation via `computeFieldDeltas`
@@ -5145,7 +4812,6 @@ Evidence planning is a five-phase migration:
   - expanded [tests/energy-market.service.test.js](tests/energy-market.service.test.js)
 
 ### Changed
-
 - **Structured delta output** in [services/oep.service.js](services/oep.service.js):
   - `POST /api/oep/compare-mastr` now returns non-null `delta` summaries when both sources are available
   - adds `matchedPairs`, `mastrOnly`, `oepOnly`, `capacityDeltaMW`, `fieldDeltas`, `topMismatches`, and `_evidence`
@@ -5157,13 +4823,11 @@ Evidence planning is a five-phase migration:
   - REST callers now receive HTTP `202` + job descriptor for large requested comparisons (`limit > 5000` or `limit: "all"`)
 
 ### Notes
-
 - Changelog comment for issue closure: implementation completed for GitHub issue `#58` (`MaStR↔OEP Delta-Engine`).
 
 ## [0.44.3] — Asset Override Production Path (Closes #57)
 
 ### Added
-
 - **Persistent asset overrides** in [services/assets.service.js](services/assets.service.js):
   - `POST /api/assets/:assetId/override` now persists tenant-scoped override records in Object Store namespace `tenant:{id}:asset_overrides`.
   - Provenance and audit fields: `provenanceHash`, `approvedBy`, `approvedAt`, `reason`, `agent_interventions`, `supersedes`, `tenantId`.
@@ -5176,7 +4840,6 @@ Evidence planning is a five-phase migration:
 - **UI contract** [docs/ui-contracts/31-asset-overrides.md](docs/ui-contracts/31-asset-overrides.md).
 
 ### Changed
-
 - **Critical field governance with pending approval**:
   - Whitelist implemented for overrideable fields: `capacityKW`, `voltageLevel`, `commissionDate`, `direktvermarktungActive`.
   - Critical fields (`voltageLevel`, `direktvermarktungActive`) are persisted with `approvalStatus=pendingApproval` and linked HITL item.
@@ -5186,7 +4849,6 @@ Evidence planning is a five-phase migration:
 - **API gateway aliases** in [services/api.service.js](services/api.service.js) updated for all new asset-override routes.
 
 ### Tests
-
 - Expanded [tests/assets.override.test.js](tests/assets.override.test.js) from stub coverage to production behavior:
   - persistence + provenance
   - critical-field `pendingApproval`
@@ -5198,7 +4860,6 @@ Evidence planning is a five-phase migration:
 ## [0.44.2] — Global Cursor Pagination Framework (Closes #56)
 
 ### Added
-
 - **Shared cursor pagination utility** in [src/pagination.js](src/pagination.js):
   - Opaque cursor format with signed payload `{ pivot, direction, hash }`
   - Tenant-aware HMAC verification with derived default secret fallback
@@ -5209,7 +4870,6 @@ Evidence planning is a five-phase migration:
   - `PageInfo`
 
 ### Changed
-
 - **Cursor pagination rolled out** to the following API list endpoints:
   - [services/cya.service.js](services/cya.service.js): `GET /profiles`, `GET /a2a-stats`, `GET /sessions/:id/a2a-log`
   - [services/mastr-monitor.service.js](services/mastr-monitor.service.js): `GET /watches`, `GET /watches/:watchId/deltas`
@@ -5227,7 +4887,6 @@ Evidence planning is a five-phase migration:
   - `offset` accepted as deprecated alias during transition and emits deprecation headers
 
 ### Tests
-
 - Added [tests/pagination.test.js](tests/pagination.test.js) covering:
   - cursor roundtrip signing/verification
   - tamper detection
@@ -5236,7 +4895,6 @@ Evidence planning is a five-phase migration:
 ## [0.44.1] — Observability Stack Foundation (Closes #55)
 
 ### Added
-
 - **Prometheus-style metrics export** on root route [services/api.service.js](services/api.service.js):
   - `GET /metrics` with `METRICS_PUBLIC=true` for public scrape or full-access `ck_` token otherwise
   - custom metric families for actions, logs, utility-report phases, async jobs, LLM, MCP, RAG, MaStR deltas and A2A negotiations
@@ -5245,7 +4903,6 @@ Evidence planning is a five-phase migration:
 - **Grafana starter dashboards** in [docs/observability/grafana/README.md](docs/observability/grafana/README.md)
 
 ### Changed
-
 - **Global Moleculer instrumentation** in [moleculer.config.js](moleculer.config.js):
   - action spans and structured log emission
   - trace-carrier propagation into nested service calls
@@ -5262,13 +4919,11 @@ Evidence planning is a five-phase migration:
   - [services/cya.service.js](services/cya.service.js) → `cernion_a2a_negotiation_rounds`
 
 ### Notes
-
 - Prometheus labels intentionally exclude tenant identifiers to stay KRITIS-safe.
 
 ## [0.44.0] — Outbound Webhooks + HITL Ownership (Closes #54)
 
 ### Added
-
 - **Neuer Service `webhooks`** in [services/webhooks.service.js](services/webhooks.service.js):
   - `POST /api/webhooks` (Subscription erstellen)
   - `GET /api/webhooks` (Subscriptions listen)
@@ -5290,7 +4945,6 @@ Evidence planning is a five-phase migration:
 - **Integrationsdokumentation** in [docs/INTEGRATION_WEBHOOKS.md](docs/INTEGRATION_WEBHOOKS.md) mit Verifikationsbeispielen (Node/Python/Power Automate).
 
 ### Changed
-
 - **Emitter ergänzt**:
   - `mastr-quality.audit.completed` in [services/mastr-quality.service.js](services/mastr-quality.service.js)
   - `redispatch-expost.audit.completed` in [services/redispatch-expost.service.js](services/redispatch-expost.service.js)
@@ -5303,7 +4957,6 @@ Evidence planning is a five-phase migration:
   - Full-Access-Schutz für mutierende HITL-/Webhook-Endpunkte
 
 ### Tests
-
 - Neue Tests:
   - [tests/webhook-crypto.test.js](tests/webhook-crypto.test.js)
   - [tests/hitl.service.test.js](tests/hitl.service.test.js)
@@ -5313,7 +4966,6 @@ Evidence planning is a five-phase migration:
 ## [0.43.1] — Knowledge-RAG Ingestion Pipeline (Closes #53)
 
 ### Added
-
 - **Knowledge-RAG own ingestion pipeline** in [services/knowledge-rag.service.js](services/knowledge-rag.service.js):
   - `POST /api/knowledge-rag/collections` — tenant-isolierte Collection-Erstellung (`tenant:{id}:knowledge` default)
   - `POST /api/knowledge-rag/ingest` — Dokument-Ingest als Async-Job
@@ -5326,7 +4978,6 @@ Evidence planning is a five-phase migration:
   - Strategien `paragraph`, `markdown-section`, `fixed-window`, `semantic`.
 
 ### Changed
-
 - **Knowledge-RAG Query path erweitert**:
   - Query-Endpunkte nutzen bei vorhandener lokaler Collection tenant-lokale Vektor-Retrieval-Logik,
     andernfalls weiterhin MCP-Fallback über `cernion_rag_search`.
@@ -5341,7 +4992,6 @@ Evidence planning is a five-phase migration:
   - Full-Access-Schutz für write/reindex/cutover-Endpunkte.
 
 ### Tests
-
 - Neue Test-Suites:
   - [tests/knowledge-rag-ingest.test.js](tests/knowledge-rag-ingest.test.js)
   - [tests/knowledge-rag-chunker.test.js](tests/knowledge-rag-chunker.test.js)
@@ -5349,13 +4999,11 @@ Evidence planning is a five-phase migration:
   - [tests/knowledge-rag.service.test.js](tests/knowledge-rag.service.test.js)
 
 ### Notes
-
 - Reindex verwendet kontrolliertes Grace-Fenster: vorherige aktive Modellversion bleibt bis zu 7 Tage als `grace` markiert.
 
 ## [0.43.0] — LLM Provider Abstraction (Closes #52)
 
 ### Added
-
 - **Provider-based LLM abstraction** in `src/llm-client.js`:
   - New provider interface with `generateStructured(schema, prompt, options)`, `generateText(prompt, options)`, `embeddings(texts, options)` and `capabilities()`.
   - Configurable provider selection via `LLM_PROVIDER` (`gemini`, `openai-compat`, `ollama`).
@@ -5370,7 +5018,6 @@ Evidence planning is a five-phase migration:
   - Degraded mode reporting (`status=degraded`, `signal=yellow`) when text is healthy but embeddings are unavailable/failing.
 
 ### Changed
-
 - **Permissive structured auto-fallback** in `src/llm-client.js`:
   - Structured generation first attempts provider-native structured output.
   - On provider/schema/parsing failures, automatic fallback to JSON-only text generation with tolerant JSON extraction (raw, fenced, first object block).
@@ -5388,19 +5035,16 @@ Evidence planning is a five-phase migration:
   - Gemini env vars remain backward-compatible.
 
 ### Tests
-
 - New `tests/llm-client.test.js` for provider selection, structured fallback, capability handling and retry behavior.
 - `tests/system.service.test.js` extended for `system.llmHealth` with `ok`, `degraded` and `unhealthy` semantics.
 
 ### Documentation
-
 - `README.md` updated with provider config and `/api/system/llm/health` endpoint.
 - `docs/BACKEND_CONTEXT.md` updated for KRITIS/on-prem LLM provider abstraction context.
 
 ## [0.42.0] — Productive OEO Export (Closes #50)
 
 ### Added
-
 - **Productive OEO JSON-LD export** in `src/oeo-exporter-stub.js`:
   - `transformToOEO()` now emits productive JSON-LD instead of throwing `OEO_NOT_IMPLEMENTED`.
   - `NODE_TYPE_TO_OEO_CLASS` and `EDGE_TYPE_TO_OEO_PROPERTY` now map the CYA graph surface for `INSTALLATION`, `NAP`, `SUBSTATION`, `VNB`, `REGION` and `VERBUNDEN_MIT`, `LIEGT_IN`, `BETRIEBEN_VON`, `ZUSTAENDIG_FUER`.
@@ -5417,7 +5061,6 @@ Evidence planning is a five-phase migration:
   - The response now includes `oeo`, `warnings`, `validationSummary`, `oeoVersion` and `oeoVersionIri`.
 
 ### Changed
-
 - **OEO version pinning** is now enforced:
   - Query parameter `oeoVersion` is accepted, but only the release-pinned version is valid.
   - Unsupported versions return `UNSUPPORTED_OEO_VERSION` instead of silently drifting ontology semantics.
@@ -5429,7 +5072,6 @@ Evidence planning is a five-phase migration:
 - **Science documentation** in `CONTRIBUTING_SCIENCE.md` now documents the productive endpoint, version pinning and SHACL-based regression flow.
 
 ### Tests
-
 - New and expanded OEO coverage:
   - `tests/oeo-exporter-stub.test.js` expanded to productive mapping, versioning, warning and empty-graph coverage.
   - `tests/cya.oeo-export.test.js` covers canonical endpoint behavior, deprecated alias behavior and version rejection.
@@ -5439,7 +5081,6 @@ Evidence planning is a five-phase migration:
 ## [0.41.0] — Multi-Tenant Platform (Closes #51)
 
 ### Added
-
 - **Multi-Tenant Isolation** across all storage-backed services (Issue #51 — PoC → Produktion):
   - `src/tenant-context.js` bereits vorhandene Grundlage (`getTenantId`, `tenantNamespace`, `DEFAULT_TENANT`) — jetzt vollständig genutzt.
   - Tenant-Context wird vom API Gateway über `ctx.meta.tenantId` aus dem verifizierten Token propagiert.
@@ -5469,7 +5110,6 @@ Evidence planning is a five-phase migration:
   - Backward-Kompatibilität: Default-Tenant (`tenantId = 'default'`) verhält sich identisch wie zuvor.
 
 ### Tests
-
 - `tests/vnb-monitor.service.test.js` — Cache-Isolation, Threshold-Isolation je Tenant.
 - `tests/nbp-monitor.service.test.js` — Cache-Isolation, Parameter-Namespace-Isolation je Tenant.
 - `tests/bilanzkreis.service.test.js` — Gleiche Bilanzkreis-ID in zwei Tenants unabhängig.
@@ -5477,10 +5117,9 @@ Evidence planning is a five-phase migration:
 - `tests/cya.service.test.js` — 3 neue Isolationstests: Profile-Isolation, Session-Isolation (generate → refine cross-tenant 404), `profile.update`-Isolation.
 - Alle bestehenden Suites (177 Tests) weiterhin grün.
 
-— Observability Mini Dashboard + Agent Prompt
+ — Observability Mini Dashboard + Agent Prompt
 
 ### Added
-
 - **Dashboard mini observability endpoint** in `services/dashboard-api.service.js`:
   - Neuer read-only Endpunkt `GET /api/dashboard/observability-mini`
   - Kompakte Karten für Fehleranzahl, Fehlerquote, P95-Latenz und Slow-Action-Anteil
@@ -5501,7 +5140,6 @@ Evidence planning is a five-phase migration:
   - Index-Update in `docs/ui-contracts/00-architecture.md`
 
 ### Tests
-
 - `tests/dashboard-api.test.js` erweitert um `dashboard-api.observabilityMini`
 - `tests/observability.service.test.js` erweitert um `observability.agentPrompt`
 - Bestehende API- und Cookbook-Tests für die neuen Flows grün
@@ -5509,7 +5147,6 @@ Evidence planning is a five-phase migration:
 ## [0.40.6] — Observability Feedback Endpoints
 
 ### Added
-
 - **Operational observability service** in `services/observability.service.js`:
   - Neue read-only REST-Endpunkte:
     - `GET /api/observability/logs` — erfasste Broker-/Service-Logs mit Filterung nach `level`, `service`, `action`, Textsuche und Zeitfenster
@@ -5523,14 +5160,12 @@ Evidence planning is a five-phase migration:
   - Automatische Redaction für Bearer-Tokens, `ck_`-Tokens und typische Secret-Query-Parameter
 
 ### Changed
-
 - **Broker-weite Capture-Instrumentierung** in `moleculer.config.js`:
   - Logger-Ausgaben von Broker und Services werden zentral abgegriffen und in die Observability-Persistenz geschrieben.
   - Moleculer-Action-Handler werden beim Laden der Services gewrappt, um Dauer, Status (`success`/`error`), Fehler-Typ und Aufruf-Ursprung (`gateway`/`internal`) als Performance-Metriken mitzuschreiben.
 - **API/OpenAPI-Surface** in `services/api.service.js` und `tests/api.service.test.js` erweitert um die neue Kategorie `Observability`.
 
 ### Tests
-
 - Neue Test-Suite `tests/observability.service.test.js` für:
   - Redaction und Abruf erfasster Logger-Ausgaben
   - Aggregation von Action-Metriken nach Erfolg/Fehler
@@ -5540,7 +5175,6 @@ Evidence planning is a five-phase migration:
 ## [0.40.5] — Finance Agent LLM Intelligence Refactor
 
 ### Changed
-
 - **Finance Agent LLM integration** in `services/finance-agent.service.js`:
   - `buildQueryPlan`, `findConflicts` und `synthesize` nutzen jetzt den zentralen LLM-Client aus `src/llm-client.js` via `generateStructured(...)`.
   - Neue strukturierte Schemas für Query-Planung, Konflikt-Arbitration und Synthese mit strikter Typisierung über `SchemaType`.
@@ -5549,7 +5183,6 @@ Evidence planning is a five-phase migration:
   - Finance-Pipeline-Version auf `0.40.5` erhöht.
 
 ### Tests
-
 - `tests/finance-agent.service.test.js` erweitert um:
   - deterministisches Mocking des zentralen LLM-Clients für Planner, Arbiter und Synthese
   - Verifikation des Fallback-Pfads bei `LLM_NOT_CONFIGURED`
@@ -5557,7 +5190,6 @@ Evidence planning is a five-phase migration:
 ## [0.40.4] — Finance Agent A²MDM Upgrade (CYA + OEO + Datapoints + Multi-Hop)
 
 ### Added
-
 - **Finance Agent A²MDM-Orchestrierung** in `services/finance-agent.service.js`:
   - `POST /api/finance-agent/analyze` erweitert um:
     - `profileId` (CYA-Layer-Awareness)
@@ -5579,13 +5211,11 @@ Evidence planning is a five-phase migration:
   - Enthält `value`, `oeoTags`, `provenance`, `metadata`, `provenanceHash` (SHA-256) und KRITIS-konforme Persistenz.
 
 ### Changed
-
 - Finance-Pipeline-Version auf `0.40.4` erhöht.
 - API-Gateway Alias ergänzt: `POST /api/datapoints` → `datapoint.create`.
 - Finance-Agent-Routenkommentar in `services/api.service.js` auf `v0.40.4` aktualisiert.
 
 ### Tests
-
 - `tests/finance-agent.service.test.js` erweitert um:
   - CYA targetLayers + Layer-Filter Verifikation
   - Datapoint-Working-Memory Verifikation
@@ -5595,7 +5225,6 @@ Evidence planning is a five-phase migration:
 ## [0.40.3] — Finance Agent RAG Collection Parameter Fix
 
 ### Fixed
-
 - **Finance Agent RAG query bug** in `services/finance-agent.service.js`:
   - Fixed missing `collection` parameter propagation to `knowledge-rag.query` calls
   - `POST /api/finance-agent/analyze` now accepts optional `collection` parameter (default: `cernion_knowledge_v1`)
@@ -5605,14 +5234,12 @@ Evidence planning is a five-phase migration:
   - This fix enables targeted RAG retrieval against specific knowledge collections, resolving "no hits found" issues
 
 ### Tests
-
 - Verified Finance Agent OpenAPI schema includes `collection` parameter
 - Verified `knowledge-rag.query` receives collection name in payload
 
 ## [0.40.2] — Finance Agent Session Memory + A2A Context
 
 ### Added
-
 - **Finance Agent context-aware analysis** in `services/finance-agent.service.js`:
   - `POST /api/finance-agent/analyze` now accepts optional session/context parameters:
     - `sessionId`
@@ -5632,12 +5259,10 @@ Evidence planning is a five-phase migration:
   - `GET /api/finance-agent/memory/:sessionId` (`finance-agent.memory`) — read session memory
 
 ### Changed
-
 - Finance pipeline version bumped to `0.40.2`.
 - API gateway aliases updated in `services/api.service.js` for both new memory routes.
 
 ### Tests
-
 - `tests/finance-agent.service.test.js` extended with:
   - memory action exposure assertions
   - session memory write/read tests
@@ -5649,7 +5274,6 @@ Evidence planning is a five-phase migration:
 ## [0.40.1] — OpenAPI Category Grouping Fixes
 
 ### Fixed
-
 - **OpenAPI/Swagger category endpoint visibility** in `services/api.service.js`:
   - Runtime `api.openapi` generation now normalizes operation tags to canonical category tags, so endpoints are grouped under configured tags instead of raw service names.
   - Fixed affected categories:
@@ -5665,12 +5289,10 @@ Evidence planning is a five-phase migration:
   - Added explicit `/api/osm-geo/*` aliases in `services/api.service.js` to ensure OSM Geo endpoints are consistently exported and grouped.
 
 ### Changed
-
 - **OpenAPI generation robustness**:
   - `api.openapi` now prefers local service schema action metadata (including `openapi.tags`) and falls back to registry metadata when needed.
 
 ### Tests
-
 - `tests/api.service.test.js` extended with regressions for:
   - Presence of CYA/Cookbook/Dashboard/MaStR Quality paths in generated OpenAPI.
   - OSM Geo explicit alias mapping.
@@ -5679,7 +5301,6 @@ Evidence planning is a five-phase migration:
 ## [0.40.0] — Finance Agent Service
 
 ### Added
-
 - **`services/finance-agent.service.js`** — Neuer deterministischer Finance Agent Microservice (v0.40) für regulatorische Finanzanalysen mit `knowledge-rag`-Integration.
   - Endpunkte:
     - `POST /api/finance-agent/analyze`
@@ -5715,7 +5336,6 @@ Evidence planning is a five-phase migration:
 ## [0.39.0] — Knowledge RAG Service (cernion_rag_search)
 
 ### Added
-
 - **`services/knowledge-rag.service.js`** — New microservice wrapping MCP tool `cernion_rag_search` with async REST job pattern (`202` + `/api/jobs/:jobId/status|result`) and internal synchronous execution for service-to-service calls.
   - Canonical endpoint: `POST /api/knowledge-rag/query`
   - Convenience endpoints:
@@ -5738,7 +5358,6 @@ Evidence planning is a five-phase migration:
   - `docs/ui-contracts/28-knowledge-rag.md` — New backend-owned UI contract for Knowledge RAG endpoints and async polling workflow.
 
 ### Tests
-
 - **`tests/knowledge-rag.service.test.js`** — New test suite for:
   - Endpoint/action exposure
   - Canonical + convenience endpoint queryType mapping
@@ -5753,7 +5372,6 @@ Evidence planning is a five-phase migration:
 ## [0.38.8] — CI/CD Remediation: Node.js 22 Upgrade (Option A)
 
 ### Changed
-
 - **CI/CD Infrastructure Upgrade:**
   - All GitHub Actions workflows updated to Node.js 22 (from Node.js 20):
     - `.github/workflows/codeql.yml` — CodeQL analysis now runs on Node.js 22
@@ -5764,14 +5382,12 @@ Evidence planning is a five-phase migration:
   - `package-lock.json` — Regenerated to include missing peer dependency `graphology-types@0.24.8`
 
 ### Fixed
-
 - **CodeQL Pipeline Failure:** Resolved EBADENGINE warnings and npm ci sync failure caused by Node.js version mismatch between CI runners (Node 20) and dependency engine requirements (moleculer >=22)
   - **Root Cause:** Transitive peer dependencies (graphology → graphology-types) declared Node.js >=22 requirement, but CI was locked to Node.js 20, causing `npm ci` to fail with "Missing: graphology-types@0.24.8 from lock file"
   - **Resolution:** Upgraded CI infrastructure to Node.js 22, aligning with dependency declarations; regenerated lockfile to capture all peer dependencies
   - **Validation:** `npm ci` now succeeds cleanly (843 packages, 5s, no errors)
 
 ### Documentation
-
 - `README.md` — Updated prerequisite: added "Voraussetzung: **Node.js 22+**" in Schnellstart section
 - `QUICKSTART.md` — Updated all Node.js version references from 18+ to 22+ (setup guide + troubleshooting section)
 
@@ -5780,13 +5396,12 @@ Evidence planning is a five-phase migration:
 ## [0.38.7] — Hygiene Sprint Prio 5 (Security: non-literal RegExp)
 
 ### Fixed
-
 - `services/company.service.js:366` — non-literal RegExp gesichert: `new RegExp(escapedQuery, 'i')` durch `String.includes` ersetzt (kein RegExp mehr nötig)
 - `services/vnb-monitor.service.js:176` — non-literal RegExp gesichert: dynamisch aufgebautes `new RegExp(LEGAL_SUFFIXES.join('|'))` durch statische Literal-Regex `/\b(gmbh|ag|…)\b/g` ersetzt
 - `src/edm-messkonzept-engine.js:26` — non-literal RegExp gesichert: `blocklist.join('|')` durch zwei Literal-Regex-Konstanten ersetzt (`BLOCKLIST_RE_TEST` ohne `/g` + `BLOCKLIST_RE_MATCH` mit `/g` — verhindert auch `/g`-lastIndex-Problem)
 
-### Changed
 
+### Changed
 - **Hygiene Sprint — Prio 3 Block A: no-duplicate-string (Magic Strings → Konstanten):**
   - `services/agent.service.js` — `ACTION_DS_CACHE_QUERY`, `EXAMPLE_SESSION_ID`
   - `services/api.service.js` — `CONTENT_TYPE_HEADER`, `CONTENT_TYPE_JSON`
@@ -5803,7 +5418,6 @@ Evidence planning is a five-phase migration:
 ## [0.38.5] — Hygiene Sprint Prio 1+2
 
 ### Changed
-
 - **Hygiene Sprint — Prio 1: no-unused-vars (22 Findings behoben):**
   - `services/cya.service.js` — `buildNegotiationPrompt` aus Import entfernt
   - `services/datapoint.service.js` — ungenutzter `ctx`-Parameter in health-overview-Handler auf `_ctx` umbenannt
@@ -5836,8 +5450,9 @@ Evidence planning is a five-phase migration:
   - `services/mastr-quality.service.js:1725` — NAP-Multi-Unit-Check zusammengeführt
   - `src/cya-ontology-graph.js:435` — `hasNode`/`hasEdge`-Check zusammengeführt
 
-### Fixed
 
+
+### Fixed
 - **`services/object-store.service.js` — NS_PATTERN erweitert (CR-TENANT-001):**
   - `NS_PATTERN` von `/^[a-z][a-z0-9_]{0,63}$/` auf `/^[a-z][a-z0-9_]*(:[a-z0-9_-]+)*$/` erweitert.
   - Erlaubt jetzt Tenant-Namespaces der Form `tenant:stadtwerk-a:cya_profiles` ohne
@@ -5850,7 +5465,6 @@ Evidence planning is a five-phase migration:
   - Rückwärtskompatibel: einfache Namespaces ohne Doppelpunkt unverändert.
 
 ### Tests
-
 - **`tests/object-store.service.test.js`** — 5 neue Tests (`describe: 'tenant namespace validation (CR-TENANT-001)'`):
   - `tenant:stadtwerk-a:cya_profiles` ist valider Namespace (put + namespace-Rückgabe).
   - `tenant:stadtwerk-a:cya_sessions` ist valider Namespace.
@@ -5858,10 +5472,9 @@ Evidence planning is a five-phase migration:
   - `:leading-colon` bleibt ungültig.
   - Bestehende Namespaces (`cya_profiles`, `cya_a2a_messages`, `test_ns`, `ns_a`) bleiben valide.
 
-— OEP Connector Ausbau (TRL5→6)
+ — OEP Connector Ausbau (TRL5→6)
 
 ### Added
-
 - **`src/oep-tables.js`** — Neues separates Modul für domänen-kontextualisierte OEP-Tabellen:
   - `CERNION_RELEVANT_OEP_TABLES` — Frozen Array mit 5 vorkonifigurierten Einträgen
     (Pflichtfelder: `schema`, `table`, `description`, `cernionUseCase`, `oeoClass`).
@@ -5882,7 +5495,6 @@ Evidence planning is a five-phase migration:
     Enum erweitert. Vollständige OpenAPI-Annotation mit Request-Body-Examples.
 
 ### Changed
-
 - **`services/oep.service.js`** — `CERNION_RELEVANT_OEP_TABLES` via `require('../src/oep-tables')`
   importiert (nicht mehr inline im Service).
 - **`services/agent.service.js` — RULE 13 erweitert:**
@@ -5893,7 +5505,6 @@ Evidence planning is a five-phase migration:
   - Summary-Zeile im Refine-Prompt um beide neuen Actions ergänzt.
 
 ### Tests
-
 - **`tests/oep.service.test.js`** — 14 neue Tests (total: 32):
   - `energyTables` (4 Tests): ≥3 Einträge, Pflichtfelder, `oeo:`-Präfix, count-Konsistenz.
   - `compareWithMastr` (7 Tests): available-Flags, fulfilled→true, rejected→false (graceful),
@@ -5904,7 +5515,6 @@ Evidence planning is a five-phase migration:
 ## [0.38.2] — A2A Replay & Log-Analyse
 
 ### Added
-
 - **`src/cya-a2a-analyzer.js`** — Neues Analyse-Modul für persistierte A2A-Kommunikations-Logs:
   - `analyzeLog(messages)` — wertet einen Session-Log aus: Persona-Verdicts, Konflikt-Anzahl,
     Negotiation-Runden, Consensus-Ergebnis, HITL-Eskalation, Dauer, Blocker-Personas, Signals.
@@ -5934,14 +5544,12 @@ Evidence planning is a five-phase migration:
     leerer Log → Hinweis-String
 
 ### Changed
-
 - `services/api.service.js`: Routen `GET /cya/sessions/:id/a2a-analysis` und
   `GET /cya/a2a-stats` registriert (zwischen `a2a-log` und `context-state`).
 
 ## [0.38.1] — UI Contracts Vollsynchronisation
 
 ### Added
-
 - **`docs/ui-contracts/22-settlement.md`** — Neuer Contract für `settlement`-Service (v0.30.0):
   8 Endpoints (Redispatch-Entschädigung, EEG-Vergütung, A96-Export, EEG-Tariflookup, Settlement-Liste).
   Verweis auf `bilanzkreis.checkReadiness` und `redispatch-expost`-Workflow.
@@ -5965,7 +5573,6 @@ Evidence planning is a five-phase migration:
   Service-Abhängigkeits-Graph, Auth-Anforderungen für RBAC, Breaking-Changes-Hinweis (keine).
 
 ### Changed
-
 - **`docs/ui-contracts/08-redispatch.md`** — Version auf 0.38.1, `Änderungen seit letzter Version`-Block:
   Settlement-Service-Workflow (v0.30.0) und Hinweis auf §42c-KPIs in Contract 23.
 - **`docs/ui-contracts/12-auth.md`** — Version auf 0.38.1, `Änderungen seit letzter Version`-Block:
@@ -5976,8 +5583,8 @@ Evidence planning is a five-phase migration:
 
 ## [0.38.0] — Multi-Tenant Fundament (Namespace-Isolation)
 
-### Added
 
+### Added
 - **`src/tenant-context.js`** — Neues Modul für Multi-Tenant-Namespace-Isolation (rückwärtskompatibel):
   - `getTenantId(ctx)` — extrahiert `ctx.meta.tenantId`; gibt `'default'` zurück wenn nicht gesetzt.
   - `tenantNamespace(baseNamespace, tenantId)` — erzeugt Tenant-präfixierten Namespace-String (`tenant:{id}:{base}`); Default-Tenant → unverändert.
@@ -6006,24 +5613,20 @@ Evidence planning is a five-phase migration:
   - CYA PoC: 2 Tests (Namespace mit tenantId-Präfix, Namespace für Default-Tenant)
 
 ### Notes
-
 - `tenantNamespace()` erzeugt Strings der Form `tenant:{id}:{base}`. Diese können erst direkt an `object-store.*` übergeben werden, wenn `NS_PATTERN` in `object-store.service.js` um Doppelpunkte erweitert wird (folgt in einer späteren Iteration). Für den PoC werden die Namespace-Strings korrekt erzeugt und in Tests validiert; `object-store`-Calls sind in Tests gemockt.
 - `generate`/`refine`/andere CYA-Actions kommen in einer späteren Iteration.
 
 ## [0.37.1] — 360° Utility Report Stabilisierung (TRL6→7)
 
 ### Fixed
-
 - **BUG-5 (Fix A): `fetchWithRetry` für `energy-market.prices`** — Neuer Service-Method `fetchWithRetry(ctx, actionName, params, maxRetries=2, delayMs=1000)` im `utility-report`-Service: bis zu 3 Versuche mit exponentiellem Back-off, `available: false`-Erkennung auch ohne Exception. Phase-3-`energy-market.prices`-Aufruf nutzt jetzt `fetchWithRetry` statt `callBroker`. Fallback auf `p.meta.lastKnownPrice` wenn alle Versuche fehlschlagen; letzter bekannter Preis wird als `_fallback: true` markiert und per WARN geloggt.
 - **BUG-6 (Fix B): Briefing/Section2 Anlagen-Count Konsistenz** — Nach dem Aufbau von `kpiSummary` wird `briefingCount` (Pfad aus `buildStaticNarrative`: `solar.totalCount ?? pvLocal['stats.total']`) mit `section2Count` (direkt aus `p.results.section2.pvLocal.data.stats.total`) verglichen. Bei Diskrepanz wird `[Report] Briefing/Section2 count mismatch: X ≠ Y` als WARN geloggt. Kein Crash wenn eines der Felder `null` ist.
 - **BUG-7 (Fix C): Peer-Benchmark Größenklassen-Filter** — `renderPeerBenchmarkBlock` und `renderSection5` akzeptieren jetzt `totalInstallations` (optional). Neue Funktion `getPeerReference(totalInstallations)` liefert neutralen Größenklassen-Peer: Klein (<500), Mittel (500–2000), Groß (>2000), Default Mittel. Alle hardcodierten echten VNB-Namen (`Stadtwerke Waiblingen`, `Gemeindewerke Baiersbronn`) entfernt. `buildHtmlReport` leitet `totalInstallations` aus `section7.operatorPortfolio` oder `section2.pvLocal.stats.total` ab.
 
 ### Changed
-
 - **Health-Endpoint `phase3Tools`** — Die `health`-Action gibt jetzt `phase3Tools: { available, unavailable, unavailableList }` zurück: Zählt welche der 11 Phase-3-MCP-Tools (`cernion_installations_local`, `cernion_redispatch_export`, etc.) im aktuellen Token-Scope verfügbar sind. OpenAPI-Schema entsprechend erweitert.
 
 ### Added
-
 - **17 neue Unit-Tests** in `tests/utility-report.service.test.js` (describe: `v0.37.1 — 360° Utility Report Stabilisierung`):
   - Fix A: `fetchWithRetry` success on 1st try, retry on 1st failure, `available:false` nach max retries, `available:false`-Erkennung ohne Exception, `ctx.meta`-Weiterleitung
   - Fix A: `lastKnownPrice`-Fallback-Logik, Report kein Crash bei komplett fehlgeschlagenem Phase 3
@@ -6034,7 +5637,6 @@ Evidence planning is a five-phase migration:
 ## [0.37.0] — Zwiebelmodus Context Manager Persistenz (TRL8)
 
 ### Added
-
 - **`CyaContextManager.serialize()` / `CyaContextManager.deserialize()` (`src/cya-context-manager.js`)** — Serialisierung/Deserialisierung des Zoom-States für Persistenz:
   - `serialize()` → `{ outerContext, currentDepth, breadcrumb, iterationLog, maxIterations, zoomStack: string[] }` — `zoomStack` enthält nur nodeId-Strings (keine Graphology-Objekte)
   - `static deserialize(serialized, ontologyGraph)` → `CyaContextManager` — rekonstruiert `zoomStack`-Einträge via `getSubgraph(nodeId, 2)`. Wirft `CONTEXT_DESERIALIZE_FAILED` (400) bei null/ungültigem Input oder fehlendem Graph.
@@ -6059,26 +5661,22 @@ Evidence planning is a five-phase migration:
   - `_restoreContextState` (Broker-Mock): 4 Tests (null result, inkompatibel, kompatibel, graceful error)
   - REST-Endpoint-Simulation: 2 Tests (404 CONTEXT_STATE_NOT_FOUND, 200 mit korrektem Shape)
 
-— §42c Energieteilen Produktionsabnahme-Paket
+ — §42c Energieteilen Produktionsabnahme-Paket
 
 ### Added
-
 - **`docs/ENERGY_SHARING_ABNAHME.md`** — Formale Abnahme-Checkliste für §42c-konforme Produktivschaltung (Deadline 01.07.2026). 8 Sektionen: Regulatorische Grundlage, Technische Infrastruktur, Validierungs-Pipeline, Allokations-Engine, Settlement-Readiness KPIs, A96-Feldspezifikation (inkl. `[BNetzA-OFFEN]`-Markierungen), Sicherheit & Datenschutz, Betrieb & Monitoring.
 - **`tests/energy-sharing-e2e-abnahme.test.js`** — 18 E2E-Abnahmetests auf Fixture Solarpark Höheinöd (2103.7 kW, SEE999952467552): Suite 1 (Validierungs-Pipeline, 6 Tests), Suite 2 (Allokations-Engine 15-min-Raster, 5 Tests), Suite 3 (Settlement-Readiness §42c-KPIs, 7 Tests).
 
 ### Changed
-
 - **`src/bilanzkreis-calculator.js`** — `calculateSettlementReadiness(bkData, bilanzkreis?)` um optionalen zweiten Parameter `bilanzkreis` erweitert. Für Typ `virtual_energy_sharing` werden zwei neue Felder im Rückgabeobjekt gesetzt: `PARAGRAF_42C_KONFORM` (true wenn keine `missing_data`-Issues) und `A96_FAEHIG` (true wenn zusätzlich keine `low_data_quality`- oder `mscons_incomplete`-Issues). Für alle anderen Bilanzkreis-Typen bleiben die Felder `undefined` (vollständig rückwärtskompatibel).
 - **`services/bilanzkreis.service.js`** — `checkReadiness`-Handler übergibt jetzt das vollständige `bilanzkreis`-Objekt als zweiten Parameter an `calculateSettlementReadiness`, sodass der Typ für die §42c-KPI-Berechnung verfügbar ist.
 
 ## [0.36.1] — Bugfix: Installations Grid-Operator Filtering & LLM Context Endpoint
 
 ### Added
-
 - **`GET /llm.txt`** — Static endpoint serving `llm.txt` from the project root via the API Gateway. The file contains a machine-readable summary of all services, actions, and REST endpoints and is updated with every release. Intended to be fed into an LLM for faster development and integration work (`services/api.service.js`).
 
 ### Fixed
-
 - **`POST /api/energy-market/installations` — Bug 1: `gridOperatorMastrId` filter was silently ignored** (`services/energy-market.service.js`): The `baseToolParams` object used the key `gridOperatorMastrId`, but `cernion_installations_local` only accepts `gridOperatorId`. SNB-ID queries (e.g. TDK: `SNB924510006275`, WSW: `SNB900599182315`) always returned `NO DATA FOUND`. Fixed by mapping both `gridOperatorMastrId` and the deprecated `gridOperatorId` alias to the correct MCP key `gridOperatorId`.
 - **`POST /api/energy-market/installations` — Bug 2: `gridOperatorBdewCode` normalisation & hardcoded limit cap** (`services/energy-market.service.js`): BDEW codes with internal whitespace (e.g. `"9900 599000003"`) failed exact matching in the MCP tool. Fixed by stripping all whitespace before forwarding. Also removed the silent `|| 1000` fallback in the `requestedLimit` parser that capped results at 1,000 for any non-numeric `limit` input.
 - **`POST /api/energy-market/installations` — Bug 3: `gridOperatorName` always returned static SNB** (`services/energy-market.service.js`): `cernion_installations_local` has no fuzzy name search — the `gridOperatorName` parameter was silently ignored, causing the full local dataset (scoped to the env-configured VNB) to be returned, making every name query produce the same static SNB. Fixed by resolving the name via `cernion_market_partners` first, then forwarding the resolved `gridOperatorId`. Annotation suffixes such as `"SNB... (strom, 100% Match)"` are stripped. Resolution failures are logged and handled gracefully without crashing.
@@ -6088,7 +5686,6 @@ Evidence planning is a five-phase migration:
 ## [0.36.0] — Central Ontology Graph Persistenz (TRL8)
 
 ### Added
-
 - **`src/cya-graph-cache.js`** — Two-Tier Cache für den Graphology Asset-Graphen:
   - `GraphCache` Klasse mit L1 (In-Memory `Map`, max. 20 VNBs, TTL 24h) und L2 (Object Store Namespace `cya_ontology_graphs`, überlebt Restart).
   - `buildKey(operatorIdentifier)` — normalisierter Cache-Key (lowercase, `[^a-z0-9]` → `_`).
@@ -6118,14 +5715,12 @@ Evidence planning is a five-phase migration:
   - `tests/cya-graph-cache-integration.test.js` (9 Tests): Cache-Miss → L1 befüllt, L1-Hit → kein Event, Operator-Fallback, Invalidate → Rebuild, L2-Warm-up, leere Installations.
 
 ### Changed
-
 - `services/api.service.js`: `GET /cya/graph/cache` und `DELETE /cya/graph/cache/:operatorId` registriert.
 - `_buildOntologyLayer` ist nicht mehr synchron — alle Aufrufer verwenden `await`.
 
 ## [0.35.0] — Agent-to-Agent Protokoll (Moleculer Event Bus)
 
 ### Added
-
 - **`src/cya-a2a-protocol.js`** — New A2A envelope module: structured `A2AMessage` format with `messageId` (UUIDv4), `sessionId` (correlation-ID), `fromPersona`, `toPersona`, `payload`, `timestamp`, `protocolVersion: '1.0'`. Five factory functions: `personaEvaluated`, `conflictDetected`, `negotiationRound`, `consensusReached`, `consensusFailed`. `validateMessage` enforces required fields and known event names. `A2A_NAMESPACE: 'cya_a2a_messages'` for object-store persistence.
 - **Moleculer Event Bus integration in `cya.service.js`** — `broker.emit()` is now used for all 5 `cya.a2a.*` events. `_emitA2AMessage` method validates the envelope, emits to broker (fire-and-forget), and persists to `cya_a2a_messages` object-store namespace (non-blocking, error-tolerant).
 - **`events:` block in `cya.service.js`** — First-ever `events:` block in the CYA service. Listens on `cya.a2a.consensus.failed` (WARN log + HITL escalation hook) and `cya.a2a.conflict.detected` (INFO log). Extension point for future alerts, webhooks, and dashboard events.
@@ -6134,16 +5729,15 @@ Evidence planning is a five-phase migration:
 - **40 new tests** across 2 suites: `tests/cya-a2a-protocol.test.js` (33 tests: `createMessage`, factories, `validateMessage`, broker-mock integration, session log handler logic) and `tests/cya-a2a-bugfix.test.js` (7 tests: currentStates bug-fix scenarios).
 
 ### Fixed
-
 - **Bug: `currentStates` never updated between negotiation rounds** in `runConflictNegotiation`. Round N+1 previously always operated on the same stakeholder states as round N. The fix applies `consensus.updatedStates` (if present in LLM response) before the next round. The hook is additive and backwards-compatible — if `updatedStates` is absent, behaviour is unchanged.
 
 ### Changed
-
 - `runPersonaSynthesis` now accepts `sessionId` via `args` and emits `cya.a2a.persona.evaluated` after each persona evaluation.
 - `runConflictNegotiation` now accepts `sessionId` via `synthesisArgs` and emits conflict/negotiation/consensus events at each stage.
 
-### Added
 
+
+### Added
 - **`src/oeo-exporter-stub.js`** — OEO Exporter Stub (intentional contributor hook):
   - `exportGraphForOeo(graph, options)` — serialisiert den Graphology-Graph + JSON-LD-Skeleton
   - `transformToOEO(graphologyExport, options)` — wirft `OEO_NOT_IMPLEMENTED` (Contributor Entry Point)
@@ -6167,13 +5761,11 @@ Evidence planning is a five-phase migration:
   - `transformToOEO` wirft Error mit `code: OEO_NOT_IMPLEMENTED`
 
 ### Changed
-
 - `services/api.service.js`: Route-Alias `GET /cya/graph/export/oeo-stub` → `cya.export.oeo-stub` registriert
 
 ## [0.34.0] — Progressive Profiling (Zwiebelmodus)
 
 ### Added
-
 - **`src/cya-profile-observer.js`** — Zwiebelmodus profile learning engine:
   - `extractImplicitSignals(session)` — extracts focusAreas, signalsSeen, toolsUsed, confidence, hadRefinement from completed session
   - `mergeImplicitIntoProfile(existingProfile, implicitSignals)` — outer-layer only: updates `implicitStats`, `focusAreaFrequency`, `signalReactions`, `toolUsage`, `averageConfidence`, `preferences.focusAreaWeights/preferredTools`
@@ -6188,7 +5780,6 @@ Evidence planning is a five-phase migration:
 - 57 new tests: `tests/cya-profile-observer.test.js` (44), `tests/cya-profile-update.test.js` (13)
 
 ### Changed
-
 - `cya.service.js` main pipeline and multi-agent pipeline: observer fires after `saveSession` (non-blocking `.catch` guard)
 - Profile `profileVersion` increments on every implicit or explicit update
 - Persona memory activation: first write on session completion when actor role is present in profile
@@ -6196,7 +5787,6 @@ Evidence planning is a five-phase migration:
 ## [0.33.0] — Dynamic Tool Router / Hyper-Relevance Engine
 
 ### Added
-
 - **`src/cya-tool-registry.js`** — Dynamic Tool Router (v0.33.0): role-aware MCP tool
   whitelist (`ROLE_TOOL_WHITELIST` for 9 actor roles), focus-area tool priority map
   (`FOCUS_AREA_TOOL_PRIORITY` for 11 areas incl. `grid_capacity`), 4 signal-override
@@ -6215,7 +5805,6 @@ Evidence planning is a five-phase migration:
   enforcement, citizen budget cap, journalist exclusions.
 
 ### Architecture
-
 - CYA pipeline gains a 4th data lane: `MCP_DIRECT` alongside `MASTR_DETERMINISTIC`,
   `LLM_RAG`, and topology-hop. Every resolved tool set carries an EU AI Act Art. 12
   `rationale` string. 175 CYA regression tests pass.
@@ -6358,8 +5947,8 @@ Evidence planning is a five-phase migration:
 
 - **Utility Report Phase 3 hang fix (v0.28.1 hotfix):**
   All 4 `Promise.all()` batches in Phase 3 converted to `Promise.allSettled()`
-  - `unpackSettled()` helper + heartbeat `saveProgress()` calls between batches.
-    Prevents indefinite hangs caused by stalled MCP upstream calls.
+  + `unpackSettled()` helper + heartbeat `saveProgress()` calls between batches.
+  Prevents indefinite hangs caused by stalled MCP upstream calls.
 
 - **EDM Validation Service (`edm-validation`):**
   6 deterministische Validierungsregeln (Bandbreite, Lücken, Monotonie,
@@ -7100,8 +6689,8 @@ Evidence planning is a five-phase migration:
   - `GET /api/znp/projects/:projectId/nova/pending-decisions`
   - `POST /api/znp/projects/:projectId/nova/apply/:id`
   - `GET /api/nova/stream`
-    `pendingDecisions` analyses overload at substation level and emits actionable
-    QU/rONT suggestions with calculated `capacity_gain_kw`.
+  `pendingDecisions` analyses overload at substation level and emits actionable
+  QU/rONT suggestions with calculated `capacity_gain_kw`.
 
 - **NOVA Redispatch curtailment decision MVP (`nova.service.js`):**
   Added decision type `RD_CURTAILMENT` based on hard Layer-0 asset data.
@@ -7210,8 +6799,8 @@ Evidence planning is a five-phase migration:
   Implemented persistent graph storage with PouchDB split-document architecture:
   - `znp:meta:<projectId>` — lightweight project metadata (bbox, name, layers, stats)
   - `znp:graph:<projectId>` — full serialized graphology export (graph.export() blob)
-    This split enables fast metadata queries (dashboards, list views) while keeping large
-    graph blobs isolated. Graphs are lazily hydrated on-demand when first accessed.
+  This split enables fast metadata queries (dashboards, list views) while keeping large
+  graph blobs isolated. Graphs are lazily hydrated on-demand when first accessed.
 
 - **Conflict-safe graph persistence with retry loop (`znp.service.js`):**
   Added `persistGraph(projectId, graph)` with automatic retry on PouchDB revision conflicts.
@@ -7382,8 +6971,8 @@ Evidence planning is a five-phase migration:
   - `PUT /api/objects/:namespace/:key` — create or update (upsert); requires `full-access` token
   - `DELETE /api/objects/:namespace/:key` — remove a document; requires `full-access` token
   - `POST /api/objects/:namespace/query` — Mango selector query within namespace
-    Service excluded from LLM agent catalogue (`skipServices`).
-    Environment: `OBJECT_STORE_DB_PATH` (default: `./data/object-store`).
+  Service excluded from LLM agent catalogue (`skipServices`).
+  Environment: `OBJECT_STORE_DB_PATH` (default: `./data/object-store`).
 
 - **Cookbook Microservice + Browser Recipe Generator (`cookbook.service.js`, `/app`):**
   New code-managed, community-collaborative API cookbook for reusable implementation
@@ -7398,7 +6987,7 @@ Evidence planning is a five-phase migration:
   - `POST /api/cookbook/validate` — force validation refresh
   - `GET /api/cookbook/health` — validation summary + scheduler metadata
   - `GET /api/cookbook/services` — live service/action catalog for generator tooling
-    `/app` now includes a new **📖 Cookbook** panel with:
+  `/app` now includes a new **📖 Cookbook** panel with:
   - recipe lookup + status badges
   - on-demand validation trigger
   - recipe generator wizard (step builder from live service actions)
@@ -7521,12 +7110,12 @@ Evidence planning is a five-phase migration:
   implemented with the in-memory [graphology](https://graphology.github.io/) library.
   Data Layers are loaded iteratively into the graph:
 
-  | Layer     | Source                                            | Status                     |
-  | --------- | ------------------------------------------------- | -------------------------- |
-  | Layer 0   | MaStR theoretical assets                          | ✅ Implemented             |
-  | Layer 1   | OSM spatial buildings + clustering                | ✅ Implemented (async job) |
-  | Layer 2   | AI-extracted transformer peak load from PDF       | ✅ Implemented (async job) |
-  | Layer 2.5 | Strategic Assumptions (NL text → structured node) | ✅ Implemented             |
+  | Layer | Source | Status |
+  |-------|--------|--------|
+  | Layer 0 | MaStR theoretical assets | ✅ Implemented |
+  | Layer 1 | OSM spatial buildings + clustering | ✅ Implemented (async job) |
+  | Layer 2 | AI-extracted transformer peak load from PDF | ✅ Implemented (async job) |
+  | Layer 2.5 | Strategic Assumptions (NL text → structured node) | ✅ Implemented |
 
   **Architecture decisions (v0.20.4):**
   - Graphs are persisted to PouchDB via `graph.export()` after every layer mutation
@@ -7540,18 +7129,17 @@ Evidence planning is a five-phase migration:
   - Edges: `CONTRIBUTES_LOAD { relationship, layer }`, `oeo_located_in`, `oeo_measures`
 
   **REST endpoints (via API Gateway):**
-
-  | Method | Path                                             | Action                      |
-  | ------ | ------------------------------------------------ | --------------------------- |
-  | `GET`  | `/api/znp/projects`                              | `znp.listProjects`          |
-  | `POST` | `/api/znp/projects`                              | `znp.createProject`         |
-  | `GET`  | `/api/znp/projects/:projectId/strategic-prompts` | `znp.strategicPrompts`      |
-  | `POST` | `/api/znp/projects/:projectId/assumptions`       | `znp.addAssumption`         |
-  | `POST` | `/api/znp/projects/:projectId/layer0`            | `znp.addLayer0`             |
-  | `POST` | `/api/znp/projects/:projectId/layer1`            | `znp.addLayer1` (async job) |
-  | `POST` | `/api/znp/projects/:projectId/layer2`            | `znp.addLayer2` (async job) |
-  | `GET`  | `/api/znp/projects/:projectId/g-factor`          | `znp.calculateGFactor`      |
-  | `GET`  | `/api/znp/projects/:projectId`                   | `znp.getProjectMeta`        |
+  | Method | Path | Action |
+  |--------|------|--------|
+  | `GET`  | `/api/znp/projects` | `znp.listProjects` |
+  | `POST` | `/api/znp/projects` | `znp.createProject` |
+  | `GET`  | `/api/znp/projects/:projectId/strategic-prompts` | `znp.strategicPrompts` |
+  | `POST` | `/api/znp/projects/:projectId/assumptions` | `znp.addAssumption` |
+  | `POST` | `/api/znp/projects/:projectId/layer0` | `znp.addLayer0` |
+  | `POST` | `/api/znp/projects/:projectId/layer1` | `znp.addLayer1` (async job) |
+  | `POST` | `/api/znp/projects/:projectId/layer2` | `znp.addLayer2` (async job) |
+  | `GET`  | `/api/znp/projects/:projectId/g-factor` | `znp.calculateGFactor` |
+  | `GET`  | `/api/znp/projects/:projectId` | `znp.getProjectMeta` |
 
   **Service excluded from LLM agent catalogue** (`skipServices`).
 
@@ -7659,17 +7247,17 @@ Evidence planning is a five-phase migration:
   - **Total:** 2,217 tests, 78 suites, all passing
   - `DELETE /api/companies/:id` — soft-delete (status → archived); frees BDEW codes
   - `enrichResults` (internal) — inject `companyId` + `marketRole` into market-partner arrays
-    Error codes: `COMPANY_NOT_FOUND` (404), `COMPANY_NOT_DRAFT` (409), `BDEW_ALREADY_ASSIGNED` (409).
+  Error codes: `COMPANY_NOT_FOUND` (404), `COMPANY_NOT_DRAFT` (409), `BDEW_ALREADY_ASSIGNED` (409).
   - `docs/ui-contracts/20-cya.md` updated to v0.26.9: multi-agent request/response shape,
     `multi_perspective` field schema, HITL escalation (`multi_agent_conflict_unresolved`),
     `INVALID_PERSPECTIVES` 400 error, backward-compat notes
   - Architecture decisions documented in `feedback/CR-CYA-MULTI-AGENT-DECISIONS.md` with 6
-    Graceful degradation: if the company service is unavailable, original results are
-    returned unchanged with a `WARN` log (`[marketPartners] company.enrichResults failed`).
-    Six new route aliases under `/api/companies` (all six company actions).
-    autoDiscover draft-confirm flow, manual create flow, and error codes.
-
+  Graceful degradation: if the company service is unavailable, original results are
+  returned unchanged with a `WARN` log (`[marketPartners] company.enrichResults failed`).
+  Six new route aliases under `/api/companies` (all six company actions).
+  autoDiscover draft-confirm flow, manual create flow, and error codes.
   ### Changed
+
   - **`services/cya.service.js`** — Multi-agent branch in `generate` handler; new service methods:
     `runMultiAgentOrchestration`, `buildPersonaGroundings`, `runPersonaSynthesis`,
     `runConflictNegotiation`, `refineMultiAgent`. `buildCompletedResponse` and
@@ -7679,7 +7267,7 @@ Evidence planning is a five-phase migration:
     `synthesizeConsensusWith` (multi-stakeholder consensus with `consensusReached` flag),
     `CYA_PERSONA_EVALUATION_SCHEMA`, `CYA_CONSENSUS_SCHEMA`. All new functions exported.
   - **`src/cya-agent-personas.js`** — Added `getPersona` export (used by orchestrator methods).
-    Reserved: `COMPANY_HAS_NO_VNB` error code for Phase 3 (`resolveCompanyBdew`).
+  Reserved: `COMPANY_HAS_NO_VNB` error code for Phase 3 (`resolveCompanyBdew`).
 
 ### Changed
 
@@ -7738,9 +7326,9 @@ Evidence planning is a five-phase migration:
   missing operator shape, invalid pattern rejection, alternate MCP response shape.
 
 - **`dashboard-api.vnbOverview — redispatchEligible`**: 1 new mock service (`assets`)
-  - 4 new tests in `tests/dashboard-api.test.js`:
-    `redispatchEligible`/`redispatchCapacityMW` populated, `gridOperatorId` forwarded,
-    graceful degradation when assets throws, graceful degradation on error shape.
+  + 4 new tests in `tests/dashboard-api.test.js`:
+  `redispatchEligible`/`redispatchCapacityMW` populated, `gridOperatorId` forwarded,
+  graceful degradation when assets throws, graceful degradation on error shape.
 
 - **BR-0002**: 6 new tests in `tests/grid-operations.service.test.js`
   (`describe('vnbLookupCodes — error handling (BR-0002)')`):
@@ -7803,8 +7391,8 @@ Evidence planning is a five-phase migration:
   - `marketSnapshot.location` / `.region`: `min: 2` with `stringMin` message.
   - `qualitySummary.gridOperatorId`: pattern `/^[SG]NB\d+$/` with `stringPattern`
     message.
-    Moleculer returns HTTP 422 with a structured `data[]` array containing
-    `field`, `type`, `message`, and `actual` — ready for inline error display.
+  Moleculer returns HTTP 422 with a structured `data[]` array containing
+  `field`, `type`, `message`, and `actual` — ready for inline error display.
 
 ### Added
 
@@ -7863,17 +7451,17 @@ Evidence planning is a five-phase migration:
   directory at the project root instead of scattered hidden directories
   (`.*` names) across the repository root.
 
-  | Old path              | New default path          | Override env var            |
-  | --------------------- | ------------------------- | --------------------------- |
-  | `.datapoints/`        | `data/datapoints/`        | `DATAPOINT_DB_PATH`         |
-  | `.grid-connections/`  | `data/grid-connections/`  | `GRID_CONNECTION_DB_PATH`   |
-  | `.energy-sharing/`    | `data/energy-sharing/`    | `ENERGY_SHARING_DB_PATH`    |
+  | Old path | New default path | Override env var |
+  |----------|-----------------|-----------------|
+  | `.datapoints/` | `data/datapoints/` | `DATAPOINT_DB_PATH` |
+  | `.grid-connections/` | `data/grid-connections/` | `GRID_CONNECTION_DB_PATH` |
+  | `.energy-sharing/` | `data/energy-sharing/` | `ENERGY_SHARING_DB_PATH` |
   | `.allocation-engine/` | `data/allocation-engine/` | `ALLOCATION_ENGINE_DB_PATH` |
-  | `.mastr-quality/`     | `data/mastr-quality/`     | `MASTR_QUALITY_DB_PATH`     |
+  | `.mastr-quality/` | `data/mastr-quality/` | `MASTR_QUALITY_DB_PATH` |
   | `.redispatch-expost/` | `data/redispatch-expost/` | `REDISPATCH_EXPOST_DB_PATH` |
-  | `.jobs/`              | `data/jobs/`              | `JOB_STORE_DIR`             |
-  | `.sessions/`          | `data/sessions/`          | _(none — internal only)_    |
-  | `.reports/`           | `data/reports/`           | _(none — internal only)_    |
+  | `.jobs/` | `data/jobs/` | `JOB_STORE_DIR` |
+  | `.sessions/` | `data/sessions/` | _(none — internal only)_ |
+  | `.reports/` | `data/reports/` | _(none — internal only)_ |
 
   PouchDB mrview index directories (auto-created by LevelDB) now also land
   inside `data/` (`data/<name>-mrview-<hash>/`) instead of the project root.
@@ -7981,25 +7569,24 @@ Evidence planning is a five-phase migration:
   Included in LLM agent catalogue (not in `skipServices`).
 
   **Endpoints:**
-
-  | Method | Path                             | Action                         | Cache TTL |
-  | ------ | -------------------------------- | ------------------------------ | --------- |
-  | `GET`  | `/api/dashboard/vnb-overview`    | `dashboard-api.vnbOverview`    | 5 min     |
-  | `GET`  | `/api/dashboard/market-snapshot` | `dashboard-api.marketSnapshot` | 15 min    |
-  | `GET`  | `/api/dashboard/quality-summary` | `dashboard-api.qualitySummary` | 5 min     |
-  | `GET`  | `/api/dashboard/finding-codes`   | `dashboard-api.findingCodes`   | 24 h      |
+  | Method | Path | Action | Cache TTL |
+  |--------|------|---------|-----------|
+  | `GET` | `/api/dashboard/vnb-overview` | `dashboard-api.vnbOverview` | 5 min |
+  | `GET` | `/api/dashboard/market-snapshot` | `dashboard-api.marketSnapshot` | 15 min |
+  | `GET` | `/api/dashboard/quality-summary` | `dashboard-api.qualitySummary` | 5 min |
+  | `GET` | `/api/dashboard/finding-codes` | `dashboard-api.findingCodes` | 24 h |
 
   **`vnbOverview`** — Composite VNB identity + KPIs + latest agent results + alerts.
   7 parallel calls: `vnb-monitor.status`, `assets.summary`, `nbp-monitor.status`,
   `grid-connection.list`, `energy-sharing.list`, `redispatch-expost.list`,
   `mastr-quality.list`. Returns `{ identity, kpis, latestAgentResults, alerts,
-timestamp, _errors }`.
+  timestamp, _errors }`.
 
   **`marketSnapshot`** — Day-ahead spot price + CO₂ intensity + 24h load forecast.
   4 parallel calls: `energy-market.dayAheadPrice`, `energy-market.co2intensity`,
   `forecast.load` (24h horizon), `forecast.renewables` (48h horizon, graceful).
   Optional `?location` / `?region` query params. Returns `{ spotPrice, co2,
-loadForecast, timestamp, _errors }`.
+  loadForecast, timestamp, _errors }`.
 
   **`qualitySummary`** — Portfolio quality score + per-agent audit summary.
   5 parallel calls: `mastr-quality.list`, `grid-connection.list`,
@@ -8015,7 +7602,6 @@ loadForecast, timestamp, _errors }`.
 
   > **⚠ Errata (corrected in [0.19.1]):** Several action names and response shapes
   > above were incorrect at publication:
-  >
   > - `vnbOverview` — `vnb-monitor.status` → `vnb-monitor.snapshot`; `nbp-monitor.status`
   >   removed; `assets.summary` removed (phantom action — does not exist); 7-parallel
   >   execution → two-phase sequential + parallel; `gridOperatorId` forwarding added.
@@ -8027,7 +7613,7 @@ loadForecast, timestamp, _errors }`.
   > - `qualitySummary` — `assets.summary` removed (phantom action).
 
 - **`FINDING_CODE_METADATA` in `src/validation-findings.js`** —
-  All 92 finding-code constants (GC__, ES__, MQ__, RD__, AUDIT__, VNB__, SNAPSHOT_*)
+  All 92 finding-code constants (GC_*, ES_*, MQ_*, RD_*, AUDIT_*, VNB_*, SNAPSHOT_*)
   mapped to `{ severity, agent, step, description (EN), descriptionDe (DE) }`.
   Exported as `FINDING_CODE_METADATA` alongside existing helpers.
   Used by `dashboard-api.findingCodes` and available for frontend i18n.
@@ -8116,12 +7702,11 @@ loadForecast, timestamp, _errors }`.
   **New finding codes (19 `RD_*` constants):** total codes 73 → 92.
 
   **New REST endpoints:**
-
-  | Method | Path                         | Action                    |
-  | ------ | ---------------------------- | ------------------------- |
-  | `POST` | `/api/redispatch/audit`      | `redispatch-expost.audit` |
-  | `GET`  | `/api/redispatch/audits`     | `redispatch-expost.list`  |
-  | `GET`  | `/api/redispatch/audits/:id` | `redispatch-expost.get`   |
+  | Method | Path | Action |
+  |--------|------|--------|
+  | `POST` | `/api/redispatch/audit` | `redispatch-expost.audit` |
+  | `GET` | `/api/redispatch/audits` | `redispatch-expost.list` |
+  | `GET` | `/api/redispatch/audits/:id` | `redispatch-expost.get` |
 
 - **`src/redispatch-risk.js`** — New pure stateless risk calculation module.
   `round2`, `assessSettlementReadiness`, `assessRisk`. No I/O, no Moleculer.
@@ -8318,6 +7903,7 @@ Agent Layer         (v0.14–v0.15)
 The Allocation Engine is a Berechnungsschicht — it transforms data (produces time-series),
 not findings. The Findings pattern from v0.14/v0.15 is intentionally not used here.
 
+
 ### Added
 
 - Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
@@ -8461,17 +8047,11 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
   Service excluded from LLM agent catalogue (`skipServices`).
 
 ## [0.13.2] - 2026-03-30
-
--
-
+*
 ### Added
-
 ## [0.52.3] — Asynchrones Träumen & Profil-Anreicherung
-
 - **Dedicated `agent_interventions` endpoint — closes Issue #32**
-
 ### Added
-
 - **[src/personal-agent-dreamer.js](src/personal-agent-dreamer.js)** — New Dream pipeline module:
   - `scheduleDream(sessionId, tenantId, userId, runFn)`: inactivity-timer (default 5 min via `DREAM_INACTIVITY_MS`) per session; idempotent re-schedule on every chat turn; `timer.unref()` for clean shutdown.
   - `cancelDream(sessionId)`: cancels pending timer; called on each new chat turn so the timer resets on activity.
@@ -8494,7 +8074,6 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 - **[tests/personal-agent.service.test.js](tests/personal-agent.service.test.js)** — 3 integration tests for `getDreamStatus` and `getDreamAudit`.
 
 ### Changed
-
 - Object namespaces: `personal_agent_dream_audit:<tenantId>` (new), `personal_agent_tenant_memory:<tenantId>` (new).
 - `DREAM_INACTIVITY_MS` env var controls inactivity threshold (default 300 000 ms = 5 min).
 
@@ -8503,11 +8082,9 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
   to parse the full OEMetadata v2.0 document.
 
   **Response shape:**
-
   ```json
   { "name": "pv-portfolio-TDK-netze", "total": 3, "interventions": [ … ] }
   ```
-
   Entries are returned newest-first. Each entry retains the full Issue #32 schema:
   `{ timestamp, action, reason, confidence_score, agent_id }`.
 
@@ -8610,9 +8187,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
   - `docs/use-cases/grid-assets-pv-leistung-vs-vnb-benchmark.md` — status
     updated from "tracked for v0.9.4" to "resolved in v0.9.11 (EWK BNr
     mapping fix)"
-
 *
-
 ## [0.13.0] - 2026-03-29
 
 ### Added
@@ -8776,6 +8351,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 ## [0.11.5] - 2026-03-29
 
+
 ### Added
 
 - Governance Card follow-up workflow (#667): adds owner-confirmation, blocked/follow-up-date and close-with-rationale commands plus read-only attention, line-feedback and executive-review summaries for card-driven Open WebUI governance operations.
@@ -8800,7 +8376,6 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
   records every automated correction the agent made during plan execution.
 
   **Intervention record shape:**
-
   ```json
   {
     "timestamp": "ISO-8601",
@@ -8823,7 +8398,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
   **New module:** `src/prompt-scrubber.js` (~230 lines)
   - `scrubForLLM(data, options)` — Field-level masking with deterministic
     SHA-256 pseudonyms (`[MASKED-xxxxxxxx]`). Returns `{ scrubbed,
-reidentMap, stats }`. Respects energy-domain allowlist (MaStR IDs,
+    reidentMap, stats }`. Respects energy-domain allowlist (MaStR IDs,
     PLZ, capacity, status, dates, market data, OEO terms).
   - `scrubPromptText(text)` — Regex-based PII removal for free-text
     prompts (emails, IBANs, German phone numbers).
@@ -8938,7 +8513,7 @@ reidentMap, stats }`. Respects energy-domain allowlist (MaStR IDs,
 
   **Fix:** All four `broker.call` / `ctx.call` sites inside the agent execute
   and repair loops now explicitly spread `ctx.meta` and override `$gateway:
-false`, so downstream services always behave as internal callers while still
+  false`, so downstream services always behave as internal callers while still
   receiving the forwarded `cernionToken` and other valid metadata.
 
   **Affected services:** any action backed by `jobStore.startJob` when invoked
@@ -9027,17 +8602,15 @@ false`, so downstream services always behave as internal callers while still
   Fix: a **normalization step** is now applied immediately after each MCP page
   call in `energy-market.installations`. If the response has `installations` at
   the top level and no `data` wrapper, it is folded into the expected shape:
-
   ```javascript
   pageResult.data = { installations: pageResult.installations, stats: pageResult.stats || {} };
   ```
-
   This makes all existing post-filters (operationalStatus, netzbetreiberPruefungStatus,
   updatedAfter) work correctly with the real MCP response.
 
   **New regression test** added:
-  _"should filter correctly when MCP returns flat top-level installations
-  (real response shape)"_ — mocks the actual `{ installations: [...] }` shape
+  *"should filter correctly when MCP returns flat top-level installations
+  (real response shape)"* — mocks the actual `{ installations: [...] }` shape
   and verifies the `updatedAfter` filter reduces 3 records to 1.
 
 ## [0.10.2] - 2026-03-26
@@ -9065,7 +8638,7 @@ false`, so downstream services always behave as internal callers while still
   field mapping transparent to API consumers.
 
   Tests updated to use `lastUpdatedAt` in fixtures; fallback test renamed to
-  _"should fall back to DatumLetzteMeldung field when lastUpdatedAt is absent"_.
+  *"should fall back to DatumLetzteMeldung field when lastUpdatedAt is absent"*.
 
 ## [0.10.1] - 2026-03-26
 
@@ -9090,7 +8663,6 @@ false`, so downstream services always behave as internal callers while still
   eight endpoint definitions.
 
   **Typical use-case — incremental sync:**
-
   ```
   GET /api/assets/solar?gridOperatorId=SNB935578300972&updatedAfter=2026-03-24
   GET /api/assets/all?bdewCode=4041407000008&updatedAfter=2026-03-24
@@ -9114,12 +8686,12 @@ false`, so downstream services always behave as internal callers while still
 
   New service: **`services/osm-geo.service.js`** (`name: 'osm-geo'`)
 
-  | Endpoint                                  | MCP tool                    | Description                                                                                                                                                                                                    |
-  | ----------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | `POST /api/osm-geo/validate`              | `osm_geo_validate`          | Two-layer VNB-assignment plausibility check (L1 authoritative via VNBDigital + L2 physical via Overpass). Detects `DEFINITIVE_MISASSIGNMENT` and `LIKELY_MISASSIGNMENT`.                                       |
+  | Endpoint | MCP tool | Description |
+  |---|---|---|
+  | `POST /api/osm-geo/validate` | `osm_geo_validate` | Two-layer VNB-assignment plausibility check (L1 authoritative via VNBDigital + L2 physical via Overpass). Detects `DEFINITIVE_MISASSIGNMENT` and `LIKELY_MISASSIGNMENT`. |
   | `POST /api/osm-geo/infrastructure-nearby` | `osm_infrastructure_nearby` | All energy infrastructure within a radius, sorted by distance. Includes `connectionSuitability` assessment (`SUITABLE_NS`, `SUITABLE_MS`, `SUITABLE_HS`). Optional `constrainToBbox` from `vnbdigital_lookup`. |
-  | `POST /api/osm-geo/substation-finder`     | `osm_substation_finder`     | Substation inventory for a grid territory or named area. Returns detail list plus aggregated statistics: count by voltage level, operator split, and density label (`SPARSE`/`RURAL`/`SUBURBAN`/`URBAN`).      |
-  | `POST /api/osm-geo/grid-topology`         | `osm_grid_topology`         | Grid topology analysis: node/edge counts, average degree, topology type (`RADIAL`/`MIXED`/`RING`), voltage breakdown. Optional path analysis between two OSM node IDs; optional raw graph data export.         |
+  | `POST /api/osm-geo/substation-finder` | `osm_substation_finder` | Substation inventory for a grid territory or named area. Returns detail list plus aggregated statistics: count by voltage level, operator split, and density label (`SPARSE`/`RURAL`/`SUBURBAN`/`URBAN`). |
+  | `POST /api/osm-geo/grid-topology` | `osm_grid_topology` | Grid topology analysis: node/edge counts, average degree, topology type (`RADIAL`/`MIXED`/`RING`), voltage breakdown. Optional path analysis between two OSM node IDs; optional raw graph data export. |
 
   **Coordinate inputs:** `mastrNummer` (auto-resolved from local DB), explicit
   `latitude`+`longitude`, or `location` string where applicable.
@@ -9157,12 +8729,12 @@ false`, so downstream services always behave as internal callers while still
   RULE 12 adds explicit routing guidance so the planner reliably selects the
   right tool for each intent:
 
-  | Intent keywords                                                                | Routed to                      |
-  | ------------------------------------------------------------------------------ | ------------------------------ |
-  | "VNB assignment", "grid operator validation", "ist SEE… beim richtigen VNB?"   | `osm-geo.validate`             |
-  | "nearby infrastructure", "what is close to…", "Umkreis Infrastruktur"          | `osm-geo.infrastructureNearby` |
-  | "substation inventory", "how many Trafostationen", "find transformer stations" | `osm-geo.substationFinder`     |
-  | "grid topology", "ring or radial", "network redundancy", "Netzredundanz"       | `osm-geo.gridTopology`         |
+  | Intent keywords | Routed to |
+  |---|---|
+  | "VNB assignment", "grid operator validation", "ist SEE… beim richtigen VNB?" | `osm-geo.validate` |
+  | "nearby infrastructure", "what is close to…", "Umkreis Infrastruktur" | `osm-geo.infrastructureNearby` |
+  | "substation inventory", "how many Trafostationen", "find transformer stations" | `osm-geo.substationFinder` |
+  | "grid topology", "ring or radial", "network redundancy", "Netzredundanz" | `osm-geo.gridTopology` |
 
   The rule also documents how to chain with RULE 1 (DSO pipeline) to obtain
   `gridOperator` from a prior `marketPartners` step:
@@ -9175,10 +8747,10 @@ false`, so downstream services always behave as internal callers while still
   the proactive schema-repair pass corrects common LLM typos before any
   service call:
 
-  | LLM typo                | Canonical param |
-  | ----------------------- | --------------- |
-  | `radius` / `umkreis`    | `radiusMeters`  |
-  | `bbox` / `bounding_box` | `boundingBox`   |
+  | LLM typo | Canonical param |
+  |---|---|
+  | `radius` / `umkreis` | `radiusMeters` |
+  | `bbox` / `bounding_box` | `boundingBox` |
 
   **Tests:** 4 new tests in `tests/agent.service.test.js`:
   - Prompt contains `RULE 12` and all four `osm-geo.*` action names.
@@ -9197,20 +8769,20 @@ false`, so downstream services always behave as internal callers while still
 - **Description-guided dataset type (`"other"`) for inhouse data**
   Real-world uploaded files (XLS / CSV / XML / …) often contain mixed or
   custom data that does not map to any of the predefined semantic domain types
-  (`metering`, `grid-assets`, `procurement`, etc.). Previously such datasets
+  (`metering`, `grid-assets`, `procurement`, etc.).  Previously such datasets
   ended up in an unusable `"unknown"` state requiring manual domain selection.
   A new `"other"` / description-guided pathway lets the user's free-text
   **dataset description act as the semantic guide at runtime**, so the AI agent
   can query and aggregate those datasets without any fixed critical-field
   mappings.
 
-  **`src/semantic-domains.js`** — New `"other"` domain entry. Carries no
+  **`src/semantic-domains.js`** — New `"other"` domain entry.  Carries no
   `columnKeywords` or `filenameTokens` (score = 0, never wins by heuristics)
   and declares a single `requiredCapabilities: ['description_guided']`.
   Registered with `"other"` id, label `"Other / Custom Dataset"`.
 
   **`services/datasource-classifier.service.js`**
-  - New `analyseDescription(description, columnProfiles)` method. Parses the
+  - New `analyseDescription(description, columnProfiles)` method.  Parses the
     free-text description via regex patterns and infers a set of runtime
     capabilities (`timeseries`, `aggregate`, `categorical`, `geographic`,
     `financial`, `identity`) plus up to five `suggestedQueries` in German.
@@ -9218,7 +8790,7 @@ false`, so downstream services always behave as internal callers while still
   - After the LLM fallback path, when **no known domain** matches and the
     description has **≥ 8 tokens AND ≥ 1 readable column**, the source is now
     classified as `domainId: "other"` with `requiresUserInput: false` and
-    `descriptionAnalysis` attached. Unreadable files (where inferSchema
+    `descriptionAnalysis` attached.  Unreadable files (where inferSchema
     throws → 0 detected columns) and descriptions with fewer than 8 tokens
     continue to return `"unknown"` unchanged.
 
@@ -9238,7 +8810,7 @@ false`, so downstream services always behave as internal callers while still
   - `getInhouseDescriptorText()` surfaces `freeformDescription`, inferred
     capabilities, and suggested queries in the agent's Gemini planning prompt
     for `"other"` domain descriptors.
-  - `buildIntentClassPlan()` — new `description_guided` intent class. Loads
+  - `buildIntentClassPlan()` — new `description_guided` intent class.  Loads
     all rows via `datasource-cache.query` (INHOUSE DATA RULE always respected)
     with the description context embedded in the step description and plan
     summary.
@@ -9301,23 +8873,23 @@ false`, so downstream services always behave as internal callers while still
 
   **Phase 2a — `grid-operations.direktvermarkterLookup`**
   New action `POST /grid-operations/direktvermarkter-lookup` wraps the MCP tool
-  `cernion_direktvermarkter_lookup`. Accepts `name` (fuzzy) or `mastrId`
+  `cernion_direktvermarkter_lookup`.  Accepts `name` (fuzzy) or `mastrId`
   (exact) and returns portfolio metadata (portfolioSize, totalCapacityMW, role).
   Validates that at least one lookup key is supplied.
 
   **Phase 2b — `assets.byDirektvermarkter`**
   New action `POST /assets/by-direktvermarkter` queries `cernion_installations_local`
   with the new `direktvermarkterName` / `direktvermarkterMastrId` filter
-  parameters from Phase 1. Supports optional filters `installationType`,
+  parameters from Phase 1.  Supports optional filters `installationType`,
   `commissioningYear`, `minCapacityKW`, `maxCapacityKW`, `bundesland`, `limit`,
-  `offset`, and `format` (json / csv / xlsx). Results are mapped through the
+  `offset`, and `format` (json / csv / xlsx).  Results are mapped through the
   canonical German output format and include four new Direktvermarktung columns:
   `Direktvermarkter`, `Direktvermarkter MaStR`, `Direktvermarktung Beginn`,
   `Direktvermarktung Status`.
 
   **Refactor — `assets._mapInstallationItem`**
   The inline mapping lambda inside `_fetchAssets` was extracted into a new shared
-  service method `_mapInstallationItem(item, assetType)`. `_fetchAssets`
+  service method `_mapInstallationItem(item, assetType)`.  `_fetchAssets`
   delegates to it unchanged; `byDirektvermarkter` reuses the same mapper,
   ensuring consistent output columns across all asset endpoints.
 
@@ -9332,12 +8904,11 @@ false`, so downstream services always behave as internal callers while still
   Added static aliases `direktvermarktername`, `direktvermarktermastrid`,
   `dvname`, `dvmastrid`, `directmarketername`, `directmarketerid` to
   `PARAM_ALIASES` so `repairPlanParams` corrects LLM-generated typos/synonyms
-  before execution. `resolveChainedRef` supports the new chaining paths
+  before execution.  `resolveChainedRef` supports the new chaining paths
   (`__step_1.data.results[0].mastrId`, `__step_1.data.results[0].name`)
   without code changes (generic path resolution already handles them).
 
 ## [0.9.11] - 2026-03-20
-
 ### Fixed
 
 - **BDEW→BNr mapping for EWK lookups**
@@ -9366,7 +8937,6 @@ false`, so downstream services always behave as internal callers while still
   reduce per-row payload.
 
 ## [0.9.10] - 2026-03-20
-
 ### Fixed
 
 - **MaStR status filter type mismatch — `inBetrieb` / `inPlanung` returned identical counts**
@@ -9397,7 +8967,6 @@ false`, so downstream services always behave as internal callers while still
   Fixed by stripping the annotation with `.split(' ')[0].trim()` in `assets.service.js`.
 
 ## [0.9.9] - 2026-03-20
-
 ### Fixed
 
 - **Stale BDEW code identity resolution (Issue #3)**
@@ -9651,7 +9220,7 @@ false`, so downstream services always behave as internal callers while still
   - PLZ detail table (top 50 PLZ by kWp)
   - Client-side filters (type, age class) that update charts without
     server round-trips
-    All charts use existing CSS custom properties for colours.
+  All charts use existing CSS custom properties for colours.
 
 - **Power BI — NBP Monitor M-Query** in Connector Generator
   New `Power BI – NBP` tab generates an M-Query for the
@@ -9694,15 +9263,15 @@ false`, so downstream services always behave as internal callers while still
   - `POST /api/tokens`
   - `DELETE /api/tokens/:id`
   - `POST /api/tokens/verify`
-    Tokens are generated as `ck_` keys, stored hashed (SHA-256), and support
-    `read-only` / `full-access` scopes.
+  Tokens are generated as `ck_` keys, stored hashed (SHA-256), and support
+  `read-only` / `full-access` scopes.
 
 - **VNB Monitor threshold management endpoints**
   Added to `services/vnb-monitor.service.js`:
   - `GET /api/vnb-monitor/thresholds`
   - `PUT /api/vnb-monitor/thresholds`
   - `DELETE /api/vnb-monitor/thresholds`
-    Includes persisted threshold overrides and automatic cache invalidation.
+  Includes persisted threshold overrides and automatic cache invalidation.
 
 ### Changed
 
@@ -10512,6 +10081,8 @@ false`, so downstream services always behave as internal callers while still
 
 - Bumped application and OpenAPI version to `0.8.28`.
 
+
+
 ### Fixed
 
 - **Research Agent: `RangeError: Invalid string length` crash in `saveSession` (unresolvable VNB name)**
@@ -10565,7 +10136,7 @@ false`, so downstream services always behave as internal callers while still
      fallback that rendered `JSON.stringify(stepResult)` in the result column.
 
   2. **Live CSV / Export CSV was unusable** — `convertToCSV` JSON-encoded nested objects (→ `"napData":
-"{...json...}"` blob in every row), making automated downstream processing impossible.
+     "{...json...}"` blob in every row), making automated downstream processing impossible.
 
   **Three-layer fix:**
 
@@ -10578,12 +10149,13 @@ false`, so downstream services always behave as internal callers while still
   - `services/agent.service.js` — new `compactStepResult()` helper + `flattenInstallation()`:
     before serialising step results into the Gemini summary prompt, `data.installations[]` arrays are
     (a) truncated to 50 rows (prevents token-limit failures on large result sets) and (b) flattened so
-    napData sub-fields appear as top-level keys. The prompt now also includes an explicit _CRITICAL TABLE
-    RULES_ block instructing Gemini never to emit nested objects or arrays as tableRow cell values.
+    napData sub-fields appear as top-level keys. The prompt now also includes an explicit *CRITICAL TABLE
+    RULES* block instructing Gemini never to emit nested objects or arrays as tableRow cell values.
 
   - `services/agent.service.js` — post-processing safety net: after parsing Gemini's interpretation JSON,
     any remaining object-valued tableRow cells are `JSON.stringify`-d and arrays are joined with `, ` so
     the UI table and the fallback CSV path always receive primitive-only rows.
+
 
   - Changed ambiguity logic from OR to AND condition: now requires BOTH low confidence (<0.9) AND close margin (<0.08) to trigger ambiguity.
   - Example: "Stadtwerke Frankenthal" (score 0.88 vs 0.08, margin 0.80) now correctly auto-selects without requiring `confirmAmbiguousVnb=true`.
@@ -10634,7 +10206,6 @@ false`, so downstream services always behave as internal callers while still
 - **MCP Backend Offline:** Live verification of MaStR-IDs, real installation counts (500-cap validity), and EWK DI scores pending backend availability.
 
 **Post-Congress (after 10.3.2026):**
-
 - **BUG-5 Backlog:** Day-Ahead-Preis fetching needs exponential backoff retry logic + last-known-value fallback for ENTSO-E/SMARD API timeouts.
 
 ## [0.8.25] - 2026-03-07
@@ -10683,6 +10254,7 @@ false`, so downstream services always behave as internal callers while still
 ### Changed
 
 - Bumped application and OpenAPI version to `0.8.24`.
+
 
 ## [0.8.23] - 2026-03-09
 
@@ -10826,8 +10398,8 @@ false`, so downstream services always behave as internal callers while still
 
   Phase 1 identification now classifies ALL market-partner candidates found
   during the search into role buckets: VNB (990x), Lieferant (991x),
-  MSB (992x), BKV (993x), Direktvermarkter (994x). Stored as
-  `p.meta.marktRollenProfile`. A post-merge override guarantees that
+  MSB (992x), BKV (993x), Direktvermarkter (994x).  Stored as
+  `p.meta.marktRollenProfile`.  A post-merge override guarantees that
   `resolvedBdew` is always the VNB code (990x) — not a Lieferant or MSB code
   that might have been picked first.
 
@@ -10840,7 +10412,7 @@ false`, so downstream services always behave as internal callers while still
 - **Service – CR-44 (P0): EWK/DI Benchmark always via VNB-Code (990x)**
 
   Phase 2 `ewk-monitoring.benchmarkVnb` now passes `vnbBdewForEwk =
-marktRollenProfile?.vnb?.bdew ?? resolvedBdew` instead of the raw
+  marktRollenProfile?.vnb?.bdew ?? resolvedBdew` instead of the raw
   `resolvedBdew`, ensuring BNetzA EWK queries target the Netzbetreiber entry.
 
 - **Report Builder – CR-38 (P1): Trafo-Auslastung honest fallback**
@@ -10897,7 +10469,7 @@ marktRollenProfile?.vnb?.bdew ?? resolvedBdew` instead of the raw
 - **Report Builder – CR-30 (P0): Code-Variablen-Leak im Management Summary**
 
   The LLM echoed JavaScript field names from the raw `kpiSummary` JSON (e.g.,
-  _"Das 'loadFallbackWarning' bei der Residuallast…"_). Two-layer fix:
+  *"Das 'loadFallbackWarning' bei der Residuallast…"*).  Two-layer fix:
 
   1. **`services/utility-report.service.js`** — `generateNarrative` now strips
      keys matching `/(Warning|Error|Fallback|Flag|Raw|isError|DataStatus|_count$)/`
@@ -10910,7 +10482,7 @@ marktRollenProfile?.vnb?.bdew ?? resolvedBdew` instead of the raw
 - **Service – CR-31 (P0): MeLo-Datenwiderspruch beseitigt**
 
   Management Summary said "34 Anlagen ohne MeLo" while Section 1 showed
-  "0 ohne MeLo (von 34 ≥100 kW)". Root cause: `summarizeForReport` exposed
+  "0 ohne MeLo (von 34 ≥100 kW)".  Root cause: `summarizeForReport` exposed
   the raw `installationenOhneMelo.installations_count: 34` (total ≥100 kW
   installations regardless of MeLo status) to the LLM, which misread it as
   "34 without MeLo".
@@ -10918,19 +10490,19 @@ marktRollenProfile?.vnb?.bdew ?? resolvedBdew` instead of the raw
   Fix: after `summarizeForReport` runs, the service now computes
   `kpiSummary.meloCheck = { anlagen_ohne_melo, anlagen_gesamt_ge100kw }` using
   the same `filter((i) => !i?.napData)` logic that `renderSection1` uses, then
-  deletes the ambiguous `kpiSummary.installationenOhneMelo` key. The LLM now
+  deletes the ambiguous `kpiSummary.installationenOhneMelo` key.  The LLM now
   sees the correct, pre-computed value.
 
 - **Report Builder – CR-32 (P0): Rang-Beschriftung „Top X%" invertiert**
 
   `renderPeerBenchmarkBlock` computed `pctRankAd = round((1 − rank/total) × 100)`
-  then displayed `Top ${100 − pctRankAd}%`, which is always wrong. For
+  then displayed `Top ${100 − pctRankAd}%`, which is always wrong.  For
   Frankenthal (rank 452/740) this produced "Top 61%" — implying a top-performer
   — when the VNB is actually below median.
 
   Fix: compute `betterThan = round((total − rank) / total × 100)` and apply
   the rule: `betterThan ≥ 75 → "Top X%"` (genuinely top-quartile);
-  otherwise `"besser als Y%"` (unambiguous). Same fix applied to the
+  otherwise `"besser als Y%"` (unambiguous).  Same fix applied to the
   Digitalisierungsindex rank column (`betterThanDi`).
 
 - **Report Builder – CR-33 (P1): Empfehlungen ohne Datenbasis unterdrückt**
@@ -10940,10 +10512,10 @@ marktRollenProfile?.vnb?.bdew ?? resolvedBdew` instead of the raw
   available) or were clearly online.
 
   Fix: the `actionHint` block in `renderSection8` is now built from a
-  conditional array. The Smart-Grids threshold hint is only added when
+  conditional array.  The Smart-Grids threshold hint is only added when
   `isAvail(s8, 'digitalisierungsindex')` and the actual score is known.
   The offline hint is only added when `status` is truthy and does not match
-  `/online|✅/i`. The Digitalisierungsindex-not-available path emits a
+  `/online|✅/i`.  The Digitalisierungsindex-not-available path emits a
   generic EWK-lookup reminder instead.
 
 ### Added
@@ -10967,16 +10539,16 @@ marktRollenProfile?.vnb?.bdew ?? resolvedBdew` instead of the raw
 - **Report Builder – CR-34 (P2): NEST/AgNeS-Sektion – Informative Datenquelle-Hinweise**
 
   AgNeS-Effizienzwert, Erlösobergrenze, and Regulierungskonto-Saldo were
-  showing bare `n/v` with "EWK-Benchmarkdaten nicht enthalten". Replaced with
-  an explicit explanation: _"BNetzA-Festsetzungsdaten nicht maschinenlesbar –
-  individuell abrufbar (BNetzA BK8)"_. When all three AgNeS fields are missing,
+  showing bare `n/v` with "EWK-Benchmarkdaten nicht enthalten".  Replaced with
+  an explicit explanation: *"BNetzA-Festsetzungsdaten nicht maschinenlesbar –
+  individuell abrufbar (BNetzA BK8)"*.  When all three AgNeS fields are missing,
   an additional `<p>` note with a direct link to BNetzA Beschlusskammer 8 is
   appended below the KPI table.
 
 - **Report Builder – CR-35 (P2): Peer-Benchmarking Rang-Percentil auch für DI**
 
   Added `betterThanDi` percentile computation for the Digitalisierungsindex
-  rank column, mirroring the CR-32 fix. Updated the table header from "Rang"
+  rank column, mirroring the CR-32 fix.  Updated the table header from "Rang"
   to "Rang (national)" and added a footer note explaining the percentile
   semantics and flagging regional peer comparison (Bundesland / Größenklasse)
   as a planned Roadmap feature.
@@ -10988,7 +10560,7 @@ marktRollenProfile?.vnb?.bdew ?? resolvedBdew` instead of the raw
 - **Report Builder – CR-23 (P0): Prompt-leak lines appear in Management Summary**
 
   The LLM sometimes echoes the prompt context as its first output line
-  (e.g., _"Hier ist die Management Summary für die Stadtwerke Eberbach:"_).
+  (e.g., *"Hier ist die Management Summary für die Stadtwerke Eberbach:"*).
   Because `renderManagementSummary` parses the response line-by-line, such
   intro sentences were rendered as bullet point 1.
 
@@ -11000,7 +10572,7 @@ marktRollenProfile?.vnb?.bdew ?? resolvedBdew` instead of the raw
 - **Report Builder – CR-24 (P0): Inverted Umsetzungsquote recommendation**
 
   The `else` branch of the `umsetzungsquote < 80 %` guard in `renderSection5`
-  still emitted the text _"Umsetzungsquote <70 %: Nachbearbeitung…"_ — which
+  still emitted the text *"Umsetzungsquote <70 %: Nachbearbeitung…"* — which
   fires precisely when the VNB has a high quota (e.g., Eberbach 100 %).
 
   **Fix (`src/report-builder.js`):** Replaced the incorrect `else` catch-all
@@ -11049,8 +10621,8 @@ marktRollenProfile?.vnb?.bdew ?? resolvedBdew` instead of the raw
 - **Report Builder – CR-28 (P2): ACTION / HOLD / LEVERAGE modes for Anschlussdauer**
 
   Top-performing VNBs (Anschlussdauer < 75 % of Bundesmedian ≈ top 25 %)
-  now receive a LEVERAGE hint: _"Top-Performer – Als Qualitätsmerkmal in
-  Kommunikation mit Gemeinde und Projektierer einsetzen."_ Borderline
+  now receive a LEVERAGE hint: *"Top-Performer – Als Qualitätsmerkmal in
+  Kommunikation mit Gemeinde und Projektierer einsetzen."* Borderline
   above-median cases receive a softer ACTION-light message.
   Digitalisierungsindex ≥ 70 % also gets a positive HOLD message.
 
@@ -11069,7 +10641,7 @@ marktRollenProfile?.vnb?.bdew ?? resolvedBdew` instead of the raw
 
   The `cernion_agsi_storage_trend` tool returns a nested response where
   `storageTrend.data.trend` is a sub-object (`{ direction, startFillLevel,
-endFillLevel, … }`). `getVal(trend, 'trendDirection', 'trend', 'direction')`
+  endFillLevel, … }`).  `getVal(trend, 'trendDirection', 'trend', 'direction')`
   matched the key `'trend'` and returned the whole sub-object, which serialised
   as `[object Object]` in the KPI table.
 
@@ -11082,30 +10654,30 @@ endFillLevel, … }`). `getVal(trend, 'trendDirection', 'trend', 'direction')`
 - **Report Builder – CR-19 (P0): Web-scraping navigation artefacts escape news filter**
 
   Login-page DOM fragments (e.g., `"Internet-Planauskunft Hilfe Hauptmenü
-Abmelden …"`) passed the existing quality filter because they are longer than
-  50 characters and do not end with `"…"`. These appeared as news items in
+  Abmelden …"`) passed the existing quality filter because they are longer than
+  50 characters and do not end with `"…"`.  These appeared as news items in
   Section 8's Context Box.
 
   **Fix (`src/report-builder.js`):** Added `SNIPPET_BLACKLIST_RE` constant with
   patterns for `Hauptmenü`, `Abmelden`, `Anmeldung erforderlich`,
   `Internet-Planauskunft`, `Grund der Auskunft`, `Cookie-Hinweis`,
-  `Bitte aktivieren Sie JavaScript`, and `Hilfe Hauptmen`. Both
+  `Bitte aktivieren Sie JavaScript`, and `Hilfe Hauptmen`.  Both
   `shouldRenderNewsSection` and the inline filter in `renderContextBox` now
   reject items matching the blacklist.
 
 - **Report Builder – CR-22 (P0): Section 2 EE-Portfolio shows `–` for all KPIs**
 
   `cernion_installations_local` returns `{ available: true, data: [{type:'text',
-text:'# MaStR Installations…'}] }`. `safeData()` returns the raw array
+  text:'# MaStR Installations…'}] }`.  `safeData()` returns the raw array
   (it does not auto-unwrap arrays), so
-  `pvLocalData?.stats?.totalCapacityKW` was always `undefined`. Meanwhile the
+  `pvLocalData?.stats?.totalCapacityKW` was always `undefined`.  Meanwhile the
   Management Summary accessed the same data via a dot-string key path and showed
   correct values (e.g., "PVA Grenzhof 4.37 MW").
 
   **Fix (`src/report-builder.js`):** Added `parseMaStrLocalStats(dataArr)` helper
   that locates the markdown text item inside the array and extracts count
   (`**Results:** N installations found`) and total capacity
-  (`**Total capacity (shown):** … (XXXX kW)`) via regex. Appended
+  (`**Total capacity (shown):** … (XXXX kW)`) via regex.  Appended
   `pvLocalStats.totalCapacityKW` / `pvLocalStats.count` (and wind, storage
   equivalents) as the final fallback in each respective chain in
   `renderSection2`.
@@ -11113,7 +10685,7 @@ text:'# MaStR Installations…'}] }`. `safeData()` returns the raw array
 - **Report Builder – CR-18 (P1): Market partner table shows empty columns + developer footnote**
 
   The `renderMarktpartnerRegistry` table was rendered even when the Marktrolle
-  and MaStR-ID columns were mostly `–`, providing no useful information. A
+  and MaStR-ID columns were mostly `–`, providing no useful information.  A
   developer-facing footnote ("Fett = für Datenabruf verwendete VNB-Rolle …")
   also leaked into the customer-facing report.
 
@@ -11138,9 +10710,9 @@ text:'# MaStR Installations…'}] }`. `safeData()` returns the raw array
   content.
 
   **Fix (`src/report-builder.js`):** Added `anyAvail` guard at the top of
-  `renderSection7`. When none of the four tools produced data the section
+  `renderSection7`.  When none of the four tools produced data the section
   collapses to a compact 🔒 upsell/teaser block listing the unavailable features
-  and directing the reader to contact Cernion. The action-hint recommendation
+  and directing the reader to contact Cernion.  The action-hint recommendation
   block is still rendered in both paths.
 
 ## [0.8.17] - 2026-03-06
@@ -11297,8 +10869,8 @@ text:'# MaStR Installations…'}] }`. `safeData()` returns the raw array
 ### Improved
 
 - **360° Report – CR-21: Context-aware error message for VNB_NOT_IDENTIFIED**
-  - Error message now shows the actual search queries used: _"Searched for:
-    \"Eberbach\", \"Stadtwerke Eberbach\", \"Stadtwerk Eberbach\"."_
+  - Error message now shows the actual search queries used: *"Searched for:
+    \"Eberbach\", \"Stadtwerke Eberbach\", \"Stadtwerk Eberbach\"."*
   - Suggestions are derived dynamically from the input value — no more hardcoded
     "Stadtwerke Heidelberg Netz GmbH" example.
   - Input without org prefix (e.g. "Eberbach") → concrete alternatives:
@@ -11350,12 +10922,14 @@ text:'# MaStR Installations…'}] }`. `safeData()` returns the raw array
     that renders a table of all found BDEW codes with market role and MaStR ID.
     - The row with VNB/grid operator role is shown in **bold** (the role used for
       data retrieval).
-    - Notice text: _Supplier/sales roles may also have installation assignments
-      in MaStR._
+    - Notice text: *Supplier/sales roles may also have installation assignments
+      in MaStR.*
   - `renderSection8()` receives a new `allPartners = []` parameter and calls
     `renderMarktpartnerRegistry` at the end of the section.
   - When `allPartners` is empty the block is not rendered (no empty section).
   - 3 new unit tests: table visible, VNB row bold, empty list suppresses section.
+
+
 
 ### Changed
 
@@ -11526,6 +11100,8 @@ text:'# MaStR Installations…'}] }`. `safeData()` returns the raw array
 - **360° Report: all solar/wind/storage asset calls failed for VNBs resolved only via BDEW** — `gridOpParams` used `{ gridOperatorMastrId }` (wrong key for the assets broker) and had no BDEW fallback. Fixed to use `{ gridOperatorId: resolvedMastrId }` OR `{ bdewCode: resolvedBdew }`.
 - **360° Report: `redispatchExport` failed with "One of gridOperator, gridOperatorId, or gridOperatorBdewCode is required"** — Added `gridOperatorBdewCode: resolvedBdew` as fallback when `resolvedMastrId` is null.
 
+
+
 ### Fixed
 
 - **360° Report: all KPI values were "–"** — `safeData()` now auto-unwraps the `{success, data: payload}` service envelope that AGSI, EWK, and EIC tools wrap their results in. Previously the renderers received the outer wrapper object and all field lookups missed.
@@ -11668,6 +11244,7 @@ text:'# MaStR Installations…'}] }`. `safeData()` returns the raw array
   The Moleculer `params` schema correctly declared `format` since v0.6.20, and the handler correctly extracted and used it. The actual failure was that the `openapi.requestBody.content['application/json'].schema.properties` block was written out manually and **omitted the `format` property entirely**. Because the Moleculer API Gateway uses the explicit OpenAPI `requestBody` schema (when present) as the authoritative parameter map, `format` was never registered as an accepted request body field — it was silently dropped before reaching the handler in all deployed versions.
   Fix: Added `format: FORMAT_PARAM_SCHEMA` to the `properties` block of the OpenAPI request schema (matching the pattern used by `german-grid.redispatch` and all other services). Also added a `responses[200]` block with `FORMAT_RESPONSE_CONTENT` so `text/csv` and `application/vnd.openxmlformats...` appear as valid response content types in the published spec. Added a `byMastrIdCsv` example to the Swagger UI.
 
+
 ### Fixed
 
 - **`POST /api/german-grid/redispatch` — `totalMeasures`/`totalEnergyMWh` empty in CSV (D8 follow-up)**
@@ -11680,6 +11257,8 @@ text:'# MaStR Installations…'}] }`. `safeData()` returns the raw array
   When the `cernion_redispatch_export` async job completes with `isError: true` in its result envelope (e.g. grid operator not found), the handler now throws a descriptive error instead of returning a preamble-only CSV with `# Total: 0 installations`.
   Also: removed the `status: 'InBetrieb'` filter from the `cernion_installations_local` secondary lookup (it was unnecessarily restrictive — installations with non-standard status codes were excluded), and added `localResult?.data?.installations` as a fallback access path to handle both direct JSON-spread and wrapped response shapes.
   1 new unit test: `isError: true` rejection.
+
+
 
 ### Fixed
 
@@ -11697,6 +11276,8 @@ text:'# MaStR Installations…'}] }`. `safeData()` returns the raw array
   The `format` parameter was not declared in the Moleculer params schema and was forwarded directly to the MCP tool `cernion_customer_churn_prediction`, which returned a raw heuristic narrative regardless.
   Fix: Added `format` to the params schema. The handler strips `format` before calling `callWithAutoPoll`, then parses the narrative with `parseChurnPredictionText` to extract `{customerSegment, region, riskThreshold, predictionWindowMonths, estimatedAtRiskCustomers, assumedChurnRatePct, isHeuristicModel, analysisText}`. For `format=csv`/`xlsx` a single summary row is returned with a `# Churn Prediction Export` preamble including a `# Note: Heuristic model` warning. Default JSON passthrough unchanged.
   3 new unit tests: CSV preamble, format not forwarded to MCP, JSON default.
+
+
 
 ### Fixed
 
@@ -11762,11 +11343,11 @@ text:'# MaStR Installations…'}] }`. `safeData()` returns the raw array
   1. Return the first non-numeric `bundesland` found across all 10 records.
   2. If no installation has a valid `bundesland`, try `landkreis` (text, non-numeric).
   3. Last resort: `gemeinde` (city name).
-     For TDK, at least one of the 10 sampled installations has `bundesland: "Rheinland-Pfalz"`, which
-     SMARD resolves correctly; `populationOverride: 170000` then scales the state-level RLP load down
-     to the ~170 K Ludwigshafen grid area.
-     One new unit test added: `resolveRegionFromOperatorId` finds bundesland in second record when
-     first record has `bundesland: null` (two-installation mock).
+  For TDK, at least one of the 10 sampled installations has `bundesland: "Rheinland-Pfalz"`, which
+  SMARD resolves correctly; `populationOverride: 170000` then scales the state-level RLP load down
+  to the ~170 K Ludwigshafen grid area.
+  One new unit test added: `resolveRegionFromOperatorId` finds bundesland in second record when
+  first record has `bundesland: null` (two-installation mock).
 
 ### Added
 
@@ -11783,7 +11364,7 @@ text:'# MaStR Installations…'}] }`. `safeData()` returns the raw array
   - `format` is stripped before forwarding to the MCP tool `cernion_co2_intensity`.
   - OpenAPI documentation updated: `format` added to request schema, CSV/XLSX added to
     `responses[200].content`, new `forecastCsv` example.
-    Four new unit tests added (CSV content, XLSX buffer, `format` not forwarded to MCP, JSON default).
+  Four new unit tests added (CSV content, XLSX buffer, `format` not forwarded to MCP, JSON default).
 
 ### Fixed
 
@@ -11904,7 +11485,7 @@ text:'# MaStR Installations…'}] }`. `safeData()` returns the raw array
   and `data.fallbackSource: "entsoe_day_ahead_prices"` in the JSON response; the
   text content is prefixed with a ⚠️ annotation.
   - If both sources fail: HTTP 500 with a combined error message (`Beide
-Datenquellen nicht verfügbar`) listing both errors.
+    Datenquellen nicht verfügbar`) listing both errors.
   - If the ENTSO-E call itself throws (network/timeout): original Netztransparenz
     error is surfaced unchanged.
   - 6 new unit tests covering all fallback scenarios.
@@ -11952,13 +11533,13 @@ Datenquellen nicht verfügbar`) listing both errors.
   parameters on `spotprices`, `negativePrices`, `forecast`, and `redispatch` now accept
   human-friendly relative aliases alongside literal ISO dates:
 
-  | Alias       | Resolves to                                 |
-  | ----------- | ------------------------------------------- |
-  | `today`     | Current date (UTC)                          |
-  | `yesterday` | Today − 1 day                               |
-  | `tomorrow`  | Today + 1 day                               |
-  | `today+N`   | Today + N days (e.g. `today+7`, `today+30`) |
-  | `today-N`   | Today − N days (e.g. `today-7`, `today-90`) |
+  | Alias | Resolves to |
+  |---|---|
+  | `today` | Current date (UTC) |
+  | `yesterday` | Today − 1 day |
+  | `tomorrow` | Today + 1 day |
+  | `today+N` | Today + N days (e.g. `today+7`, `today+30`) |
+  | `today-N` | Today − N days (e.g. `today-7`, `today-90`) |
 
   Literal ISO dates (`YYYY-MM-DD`) continue to work unchanged.
 
@@ -12146,8 +11727,9 @@ Datenquellen nicht verfügbar`) listing both errors.
 - Disabled "Run Analysis" button for plans with zero `requiredInputs` — `renderForm()` now enables `btnExecute` immediately when the inputs array is empty.
 - Repair-loop executor used raw `userInputs` only (ignored `requiredInputs[].default` and the `requiredInputNames` override) — unified to use `effectiveInputs` and the same override set as the main loop.
 
-### Changed
 
+
+### Changed
 - **OpenAPI specification audit — complete coverage of required/optional parameters and examples** across all 13 services:
   - **`system` — `POST /validate-params`**: Added missing `requestBody` with full schema (`tool`, `params`), 2 examples, and `responses.200` schema.
   - **`assets` — all 8 GET endpoints** (`/list`, `/solar`, `/wind`, `/storage`, `/biomass`, `/hydro`, `/combustion`, `/all`):
@@ -12166,7 +11748,6 @@ Datenquellen nicht verfügbar`) listing both errors.
 ## [0.5.8] - 2026-02-19
 
 ### Changed
-
 - **`forecast.generationForecast` and `residual-load.netResidualLoad` — historical predictions via `startDate`** (new MCP tool capability for both `mastr_generation_forecast` and `mastr_net_residual_load`):
   - New parameter **`startDate`** (`string`, optional, format `YYYY-MM-DD`) on both actions:
     - Omitting `startDate` preserves the existing default behaviour (starts from tomorrow) — **no breaking change**.
@@ -12174,10 +11755,10 @@ Datenquellen nicht verfügbar`) listing both errors.
     - For `netResidualLoad`: SMARD automatically switches to **filter 410** (realised load) for historical requests — no extra parameter needed.
     - Historical responses are **cached for 30 days** (immutable data, no additional API quota impact).
   - New fields in the response `summary` object:
-    | Field          | Type      | Values                                                    |
-    | -------------- | --------- | --------------------------------------------------------- |
+    | Field | Type | Values |
+    |---|---|---|
     | `isHistorical` | `boolean` | `true` when `startDate` is in the past, `false` otherwise |
-    | `dataMode`     | `string`  | `"weather_forecast"` or `"historical_observation"`        |
+    | `dataMode` | `string` | `"weather_forecast"` or `"historical_observation"` |
   - OpenAPI updated for both endpoints:
     - `startDate` schema property added to request body (with pattern `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`).
     - `isHistorical` and `dataMode` added to the response `summary` schema.
@@ -12188,7 +11769,6 @@ Datenquellen nicht verfügbar`) listing both errors.
 ## [0.5.7] - 2026-02-19
 
 ### Changed
-
 - **`forecast.generationForecast` — single-installation forecast modes** (new MCP tool capability):
   - New parameter **`installationMastrNummer`** (`string`, optional) — highest-priority single-installation lookup by MaStR unit ID:
     - `SEE…` prefix → `installationType` auto-derived as `solar`
@@ -12203,20 +11783,19 @@ Datenquellen nicht verfügbar`) listing both errors.
 ## [0.5.6] - 2026-02-20
 
 ### Changed
-
 - **`assets` service — NAP enrichment, GPS, and `netzbetreiberpruefungStatus`** (all endpoints: `/list`, `/solar`, `/wind`, `/storage`, `/biomass`, `/hydro`, `/combustion`, `/all`):
   - New parameter **`includeNapData`** (`boolean`, default `true`) — passed through to `energy-market.installations`.
   - New flattened output columns in every row:
-    | Column                              | Type             | Description                                                                     |
-    | ----------------------------------- | ---------------- | ------------------------------------------------------------------------------- |
-    | `Netzbetreiberpruefung Status`      | `number \| null` | Grid operator review code: 2954=Geprüft, 2955=In Prüfung, 3075=Nicht vorgesehen |
-    | `Netzbetreiberpruefung Status Name` | `string \| null` | Human-readable label                                                            |
-    | `NAP MaStR Nummer`                  | `string \| null` | Grid connection point ID (SAN…)                                                 |
-    | `Messlokation (MeLo)`               | `string \| null` | DE… metering location ID (33 chars)                                             |
-    | `Spannungsebene NAP`                | `string \| null` | Voltage level label at connection point                                         |
-    | `Nettoengpassleistung kW`           | `number \| null` | Net bottleneck capacity in kW                                                   |
-    | `Netz MaStR Nummer`                 | `string \| null` | Connected grid ID (SNE…)                                                        |
-    | `Netzbetreiber NAP MaStR`           | `string \| null` | Grid operator at connection point (SNB…)                                        |
+    | Column | Type | Description |
+    |---|---|---|
+    | `Netzbetreiberpruefung Status` | `number \| null` | Grid operator review code: 2954=Geprüft, 2955=In Prüfung, 3075=Nicht vorgesehen |
+    | `Netzbetreiberpruefung Status Name` | `string \| null` | Human-readable label |
+    | `NAP MaStR Nummer` | `string \| null` | Grid connection point ID (SAN…) |
+    | `Messlokation (MeLo)` | `string \| null` | DE… metering location ID (33 chars) |
+    | `Spannungsebene NAP` | `string \| null` | Voltage level label at connection point |
+    | `Nettoengpassleistung kW` | `number \| null` | Net bottleneck capacity in kW |
+    | `Netz MaStR Nummer` | `string \| null` | Connected grid ID (SNE…) |
+    | `Netzbetreiber NAP MaStR` | `string \| null` | Grid operator at connection point (SNB…) |
   - `Breitengrad` / `Längengrad` (GPS) were already present in the mapping; confirmed they pass through correctly from the enriched `energy-market.installations` response.
   - Fixed duplicate `format` parameter line in `wind` action params.
   - OpenAPI documentation updated for all endpoints: new `includeNapData` query parameter; `list` action response schema extended with all new fields.
@@ -12225,23 +11804,20 @@ Datenquellen nicht verfügbar`) listing both errors.
 ## [0.5.5] - 2026-02-19
 
 ### Changed
-
 - **`energy-market.installations` — `netzbetreiberpruefungStatus` field** (`cernion_installations_local` backend update):
   - New field **`netzbetreiberpruefungStatus`** (`number | null`) on every installation object — the grid operator verification status from MaStR:
-    | Code   | Meaning                                                              |
-    | ------ | -------------------------------------------------------------------- |
-    | `2954` | Geprüft ✅ — confirmed by grid operator                              |
-    | `2955` | In Prüfung ⏳ — review in progress                                   |
-    | `3075` | Nicht vorgesehen — no verification applicable                        |
+    | Code | Meaning |
+    |---|---|
+    | `2954` | Geprüft ✅ — confirmed by grid operator |
+    | `2955` | In Prüfung ⏳ — review in progress |
+    | `3075` | Nicht vorgesehen — no verification applicable |
     | `null` | Not available (older record, value not set in original MaStR export) |
   - OpenAPI description updated with `netzbetreiberpruefungStatus` code table; response example updated for both installations (one with `2954`, one with `null`).
 
 ### Fixed
-
 - Test file `tests/energy-market.service.test.js`: removed stray `});` that collapsed two `describe` blocks onto one line.
 
 ### Testing
-
 - 5 new tests in new `installations action — netzbetreiberpruefungStatus` describe block (375 total, up from 370):
   - Status 2954 (Geprüft) passes through
   - Status 2955 (In Prüfung) passes through
@@ -12252,19 +11828,18 @@ Datenquellen nicht verfügbar`) listing both errors.
 ## [0.5.4] - 2026-02-19
 
 ### Changed
-
 - **`energy-market.installations` — NAP & GPS enrichment** (`cernion_installations_local` backend update):
   - New optional parameter **`includeNapData`** (boolean, default: `true`) — pass `false` to skip enrichment for faster responses on large result sets.
   - When `true`, each installation object now includes a **`napData`** sub-object (or `undefined` for ~48% of older installations that have no MeLo on record):
-    | Field                      | Description                                                                            |
-    | -------------------------- | -------------------------------------------------------------------------------------- |
-    | `napMastrNummer`           | NAP identifier (SAN...)                                                                |
-    | `messlokation`             | MeLo-ID (DE000...) for billing/metering                                                |
-    | `spannungsebene`           | Voltage level code                                                                     |
-    | `spannungsebeneLabel`      | Human-readable label (Niederspannung / Mittelspannung / Hochspannung / Höchstspannung) |
-    | `nettoengpassleistung`     | Net transfer capacity at NAP in kW                                                     |
-    | `netzMastrNummer`          | Grid MaStR-ID (SNE...)                                                                 |
-    | `netzbetreiberMastrNummer` | Grid operator MaStR-ID (SNB...)                                                        |
+    | Field | Description |
+    |---|---|
+    | `napMastrNummer` | NAP identifier (SAN...) |
+    | `messlokation` | MeLo-ID (DE000...) for billing/metering |
+    | `spannungsebene` | Voltage level code |
+    | `spannungsebeneLabel` | Human-readable label (Niederspannung / Mittelspannung / Hochspannung / Höchstspannung) |
+    | `nettoengpassleistung` | Net transfer capacity at NAP in kW |
+    | `netzMastrNummer` | Grid MaStR-ID (SNE...) |
+    | `netzbetreiberMastrNummer` | Grid operator MaStR-ID (SNB...) |
   - All installation objects now include **`latitude`** and **`longitude`** (GPS coordinates).
   - Wind turbine objects additionally include **`typenbezeichnung`** (model, e.g. "E-115") and **`hersteller`** (manufacturer, e.g. "Enercon").
   - Storage system objects additionally include **`batterietechnologie`**, **`acDcKoppelung`**, **`wechselrichterleistung`**, **`einsatzort`**.
@@ -12272,7 +11847,6 @@ Datenquellen nicht verfügbar`) listing both errors.
   - NAP enrichment uses a single `$in` query — no N+1; typically < 50 ms additional overhead for 1,000 installations.
 
 ### Testing
-
 - 7 new tests in `tests/energy-market.service.test.js` (370 total, up from 363) in new `installations action — NAP enrichment` describe block with isolated `beforeEach` mocks:
   - `includeNapData: true` passed to MCP tool by default
   - `includeNapData: false` passed through explicitly
@@ -12285,7 +11859,6 @@ Datenquellen nicht verfügbar`) listing both errors.
 ## [0.5.3] - 2026-02-20
 
 ### Added
-
 - **Residual Load Service** (`services/residual-load.service.js`) — new Moleculer service exposing two REST endpoints:
   - `POST /api/residual-load/net-residual-load` — wraps new MCP tool `mastr_net_residual_load`: calculates **net residual load = Regional Load − PV − Wind** using real SMARD.de load data (population-scaled), MaStR installed capacity (PV + Wind), and Visual Crossing weather forecasts (IEC 61853/61400 models). Supports:
     - `forecastDays` 1–14, `resolution` hourly/15min (96 pts/day = §12 StromNZV Fahrplan), `installationType` solar/wind/all
@@ -12301,7 +11874,6 @@ Datenquellen nicht verfügbar`) listing both errors.
 ## [0.5.2] - 2026-02-19
 
 ### Added
-
 - **Forecast Service – `resolution` Parameter** - The `mastr_generation_forecast` MCP tool now supports sub-daily time resolution; the service exposes this via a new `resolution` parameter on `POST /api/forecast/generation-forecast`:
   - `"daily"` (default) – 1 data point per day; minimal weather API quota
   - `"hourly"` – 24 data points per day; suited for intraday dispatch planning and energy trading
@@ -12312,12 +11884,10 @@ Datenquellen nicht verfügbar`) listing both errors.
 - **OpenAPI request examples** updated: `gridOperatorForecast` now shows `resolution`, plus two new examples `hourlyIntraday` (Bayern, 3 days hourly) and `quarterHourlyBalancing` (PLZ 67063, 2 days 15min)
 
 ### Changed
-
 - `convertForecastToCSV(forecastData, summary, resolution)` – third argument added (backward compatible, defaults to `"daily"`)
 - `convertForecastToXLSX(forecastData, summary, resolution)` – third argument added (backward compatible, defaults to `"daily"`); duplicate JSDoc comment removed
 
 ### Testing
-
 - 13 new tests added across all three forecast test suites (59 total forecast tests, up from 46)
   - `forecast.service.test.js`: invalid resolution rejects, all 3 valid values accepted, default is `daily`, resolution forwarded to MCP tool
   - `forecast.integration.test.js`: 1 pt/day for `daily`, 48 pts for 2-day `hourly`, 192 pts for 2-day `15min`, resolution passed to MCP, invalid value rejects; mock updated to generate `pointsPerDay × forecastDays` data points
@@ -12327,7 +11897,6 @@ Datenquellen nicht verfügbar`) listing both errors.
 ## [0.5.1] - 2026-02-18
 
 ### Fixed
-
 - **Forecast Service – Correct MCP Tool Name** - `forecast.service.js` was calling the non-existent tool `cernion_mastr_generation_forecast`, causing every request to fail with `"Error: Unknown tool"`. The service now calls the correct tool `mastr_generation_forecast`.
 - **Forecast Service – Schema Alignment** - Fully aligned with the real `mastr_generation_forecast` MCP tool schema:
   - `forecastDays` (1–14 days, default 7) replaces `forecastHorizonHours` (1–168 h)
@@ -12339,14 +11908,12 @@ Datenquellen nicht verfügbar`) listing both errors.
 - **Live Integration Test Isolation** – `tests/assets.integration.test.js` requires a live MCP connection and was causing the default `npm test` run to time out after 60 s. It is now excluded from the default suite and can be run separately with `npm run test:live`.
 
 ### Changed
-
 - **Forecast Service – Updated OpenAPI Documentation** - Request body and response schemas in the Swagger docs now match the real tool. Examples updated to reflect daily forecasts and the correct field names.
 - **CSV/XLSX Export – Updated Column Names** - Forecast exports now use `Generation (MW)` instead of `Generation (kW)`, and the Metadata sheet shows `Total Capacity (MW)`.
 - **Test Suite – 46 Forecast Tests Rewritten** - All three forecast test files (`forecast.service.test.js`, `forecast.export.test.js`, `forecast.integration.test.js`) have been rewritten to match the real MCP tool schema. No stale old-schema tests remain.
 - **jest.config.js** – Added `tests/assets.integration.test.js` to `testPathIgnorePatterns`. New `npm run test:live` script runs it explicitly.
 
 ### Technical Details
-
 - Confirmed via live Cernion MCP server: tool list contains 76 tools (status endpoint incorrectly reported 42); correct name is `mastr_generation_forecast`
 - Live test with `SNB935578300972`: 2,756 installations, 25.77 MW total capacity, 3-day forecast returns correctly
 - All 253 unit tests pass; 0 failures in default suite
@@ -12354,7 +11921,6 @@ Datenquellen nicht verfügbar`) listing both errors.
 ## [0.5.0] - 2026-02-18
 
 ### Added
-
 - **Renewable Energy Generation Forecast Service** - New forecast microservice for weather-based renewable energy generation forecasting
   - Weather-based generation forecasts using real MaStR installation data
   - IEC standard compliance (IEC 61853 for solar, IEC 61400 for wind)
@@ -12384,20 +11950,17 @@ Datenquellen nicht verfügbar`) listing both errors.
   - Content-Type headers and automatic file download support
 
 ### Changed
-
 - **Test Coverage Improvements** - Added 31 new tests across forecast and export functionality
   - Total test count: 255 tests across 21 test suites
   - Code coverage: 79.13% overall
   - 100% test pass rate
 
 ### Dependencies
-
 - Added `xlsx` (SheetJS) library for Excel file generation
 
 ## [0.4.1] - 2026-02-13
 
 ### Fixed
-
 - **Comprehensive MaStR Field Mapping** - Assets service now captures ALL fields from MaStR data
   - Fixed missing `C_Rate` for storage installations (now checks 4 field name variants for storage capacity)
   - Fixed missing `Marktakteur Name` (now checks 4 field name variants including `nameMarktakteur` and `marktakteurFirmenname`)
@@ -12405,7 +11968,6 @@ Datenquellen nicht verfügbar`) listing both errors.
   - All field mappings now handle both German and English field name variants from MCP
 
 ### Added
-
 - **60+ Comprehensive MaStR Fields** - Complete dataset now available for all asset types:
   - **Core Identification**: EinheitMastrNummer, Einheit Systemstatus
   - **Grid Operator Info**: Netzbetreiber MaStR, Netzbetreiber Name
@@ -12419,13 +11981,11 @@ Datenquellen nicht verfügbar`) listing both errors.
   - **Additional**: Fläche (used area in m²)
 
 ### Changed
-
 - **Robust Field Detection** - All field mappings now check multiple name variants to ensure no data loss
 - **OpenAPI Schema Updated** - Swagger documentation now includes all 60+ fields with proper types, descriptions, and nullability
 - **Asset-Type Aware** - Fields are appropriately marked as type-specific (e.g., solar-only, wind-only, storage-only)
 
 ### Technical Details
-
 - Enhanced field mapping in assets.service.js with comprehensive fallback chains
 - Storage capacity calculation now checks: `storageCapacityKWh`, `nutzbareSpeicherkapazitaet`, `speicherkapazitaet`, `nutzbareKapazitaet`
 - Power capacity checks: `capacityKW`, `acLeistung`, `bruttoleistung`, `nettonennleistung`, `installierteleistung`
@@ -12436,7 +11996,6 @@ Datenquellen nicht verfügbar`) listing both errors.
 ## [0.4.0] - 2026-02-13
 
 ### Added
-
 - **CSV Export** - All asset endpoints now support CSV download format
   - Add `format=csv` query parameter to any `/api/assets/*` endpoint
   - Automatically sets proper response headers (`Content-Type: text/csv`, `Content-Disposition: attachment`)
@@ -12465,7 +12024,6 @@ Datenquellen nicht verfügbar`) listing both errors.
   - Documented in OpenAPI specification
 
 ### Changed
-
 - **Breaking**: Default behavior change for asset endpoints
   - Now returns only active installations (status 35) by default
   - Previous behavior (all statuses): Use `operationalStatus=all`
@@ -12473,7 +12031,6 @@ Datenquellen nicht verfügbar`) listing both errors.
   - Easy to override for users who need all installations
 
 ### Technical Details
-
 - CSV conversion with proper escaping and UTF-8 encoding
 - Client-side operational status filtering after MCP tool call with stats recalculation
 - Field mapping includes status extraction from `einheitBetriebsstatus` with German name mapping
@@ -12483,14 +12040,12 @@ Datenquellen nicht verfügbar`) listing both errors.
 ## [0.3.1] - 2026-02-12
 
 ### Fixed
-
 - **Assets Service** - Location parameter now correctly passed to MCP tool for postal code filtering
 - **Assets Service** - Fixed validation error when using gridOperatorId without location parameter
 - **Energy Market Service** - Added postleitzahl parameter support for precise location filtering
 - Parameter handling: postleitzahl only set when location is actually provided (prevents validation errors)
 
 ### Technical Details
-
 - Bug 1: energy-market.service.js was accepting location parameter but not forwarding it to MCP tool
 - Bug 2: assets.service.js was always setting postleitzahl even when undefined, causing validation failure
 - Both fixes apply to all asset types (solar, wind, storage, biomass, hydro, combustion)
@@ -12498,7 +12053,6 @@ Datenquellen nicht verfügbar`) listing both errors.
 ## [0.3.0] - 2026-02-11
 
 ### Added
-
 - **Assets Service** - Complete grid operator asset management service
   - Retrieve all installations from German Marktstammdatenregister (MaStR) for a distribution network operator
   - Support for all installation types: solar, wind, storage, biomass, hydro, combustion
@@ -12512,45 +12066,38 @@ Datenquellen nicht verfügbar`) listing both errors.
 - MaStR installation filters for grid operator identification
 
 ### Changed
-
 - Moved assets service from custom-services to core services directory
 - OpenAPI documentation fully translated to English for international compatibility
 - Expanded OpenAPI documentation with detailed descriptions, examples, and error responses
 - Grid operator analysis/export accepts BDEW/MaStR identifiers in addition to names
 
 ### Fixed
-
 - VNB filtering now works for all installation types (solar, wind, storage, biomass, combustion)
 - Removed workaround code that restricted VNB filtering to storage-only after MaStR database update
 
 ### Testing
-
 - Added comprehensive test coverage for assets service
 - Integration tests for VNB filtering across all installation types
 
 ## [0.2.0] - 2026-02-07
 
 ### Added
-
 - Custom service and test directories for local extensions (custom-services/, custom-tests/)
 - Creator CLI support for iterative updates, catalog-aware generation, and optional live MCP integration tests
 - Test helper script for custom services (`npm run test:custom`)
 - Hot reload and runtime loading for both core and custom services
 
 ### Changed
-
 - Service creator now resolves Gemini model availability and falls back to supported models
 - Creator and runtime guidance updated for OpenAPI coverage and ctx.call orchestration
 
 ### Fixed
-
 - Normalized CO₂ intensity forecast response shape to align with MCP tool data
 - Improved resilience when mapping forecast arrays from MCP responses
 
 ## [0.1.0] - 2026-02-07
 
 ### Added
-
 - Initial release of Cernion Energy Tools MicroService Agent System
 - 11 microservices covering energy market operations
   - Query Tools Service (`query`) - Natural language queries and schema discovery
@@ -12578,7 +12125,6 @@ Datenquellen nicht verfügbar`) listing both errors.
 - Automatic OpenAPI schema generation
 
 ### Documentation
-
 - Complete README.md with quick start guide
 - MCP_TOOLS.md - Developer documentation for 70+ energy data tools
 - MCP_SERVICES.md - Microservices architecture documentation
@@ -12589,14 +12135,12 @@ Datenquellen nicht verfügbar`) listing both errors.
 - API documentation via Swagger UI
 
 ### Testing
-
 - Unit tests for all microservices
 - Tests for MCP client and async job poller
 - Test coverage reporting with Jest
 - 100% service coverage with test files
 
 ### Configuration
-
 - Environment variable configuration via `.env`
 - Moleculer configuration for distributed systems
 - Support for NATS, Redis, MQTT transporters
@@ -12607,7 +12151,6 @@ Datenquellen nicht verfügbar`) listing both errors.
 ## Roadmap
 
 ### Planned
-
 - Additional European energy market integrations
 - Real-time WebSocket support for streaming data
 - Enhanced caching strategies
@@ -12647,13 +12190,10 @@ The platform supports both direct API queries and natural language queries power
 8. **Template Learning**: Self-learning query system for 20x faster repeated queries
 
 ### Breaking Changes
-
 None - initial release
 
 ### Migration Guide
-
 Not applicable - initial release
 
 ### Deprecations
-
 None - initial release

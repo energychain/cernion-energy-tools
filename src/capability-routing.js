@@ -98,7 +98,8 @@ function calibratedConfidence(score, secondScore, parameters = defaults) {
 
 // An explicit intent route is a signal-word decision. It may outrank the ranking only as far as
 // the route's capability has evidence of its own relative to the strongest competing capability,
-// so one generic word (e.g. "Vergleich") cannot force a capability the message gives no other sign of.
+// so one generic word (e.g. "Vergleich") cannot force a capability the message gives no other
+// sign of.
 function withGradedExplicitRoute(scored) {
   const strongestOther = Math.max(
     0,
@@ -129,91 +130,96 @@ function rankCapabilities(message, catalog, options = {}) {
       typeof item === 'string' ? item : item.capability
     )
   );
-  const scored = index.documents.map(({ cap, phrases }) => {
-    const contributions = phrases
-      .flatMap((keyword) => {
-        const match = phraseMatch(keyword, query, parts, parameters);
-        if (!match) return [];
-        const frequency = Math.max(...match.words.map((word) => index.frequencies.get(word) || 1));
-        const idf =
-          match.words.reduce(
-            (sum, word) => sum + Math.log(1 + catalog.length / (index.frequencies.get(word) || 1)),
-            0
-          ) /
-          match.words.length /
-          Math.log(1 + catalog.length);
-        const suppression =
-          match.words.length === 1 && frequency >= parameters.commonKeywordThreshold
-            ? parameters.commonWordWeight
-            : 1;
-        return [
-          {
-            keyword,
-            kind: match.kind,
-            frequency,
-            idf,
-            score: match.specificity * idf * suppression,
-          },
-        ];
-      })
-      .sort((a, b) => b.score - a.score || compareCanonicalStrings(a.keyword, b.keyword));
-    const lexicalScore = contributions
-      .slice(0, parameters.maxKeywordContributions)
-      .reduce((sum, c) => sum + c.score, 0);
-    const functions = model.functions.filter((fn) => fn.capabilities.includes(cap.capability));
-    const domainMatch =
-      !!domain &&
-      functions.some((fn) =>
-        [...(fn.domains || []), ...(fn.departments || [])].some(
-          (value) => normalizePhrase(value) === domain
-        )
-      );
-    const domainConflict = !!domain && functions.length > 0 && !domainMatch;
-    const similarity = options.vector
-      ? cosine(options.entries?.get(cap.capability), options.vector)
-      : null;
-    const semanticScore =
-      similarity >= parameters.semanticThreshold ? similarity * parameters.semanticWeight : 0;
-    const evidenceScore = lexicalScore + semanticScore;
-    const domainBonus = evidenceScore > 0 && domainMatch ? parameters.domainBonus : 0;
-    const requiredInputs = Array.isArray(cap.requiredInputs) ? cap.requiredInputs : [];
-    const inputBonus =
-      evidenceScore > 0
-        ? requiredInputs.filter((key) => Object.hasOwn(options.resolvedParams || {}, key)).length *
-          parameters.inputBonus
-        : 0;
-    const resolvedPenalty = resolved.has(cap.capability) ? parameters.resolvedPenalty : 0;
-    const explicitRouteBonus =
-      options.explicitCapability === cap.capability ? parameters.explicitRouteBonus : 0;
-    const identifier = normalizePhrase(cap.capability);
-    const identifierBonus =
-      identifier.includes(' ') && ` ${normalizePhrase(message)} `.includes(` ${identifier} `)
-        ? parameters.identifierBonus || 0
-        : 0;
-    const score =
-      evidenceScore +
-      domainBonus +
-      inputBonus +
-      explicitRouteBonus +
-      identifierBonus -
-      resolvedPenalty;
-    return {
-      capability: cap,
-      score,
-      lexicalScore,
-      contributions,
-      similarity,
-      semanticScore,
-      domainBonus,
-      domainMatch,
-      domainConflict,
-      inputBonus,
-      resolvedPenalty,
-      explicitRouteBonus,
-      identifierBonus,
-      evidenceScore,
-    };
-  });
+  const scored = index.documents
+    .map(({ cap, phrases }) => {
+      const contributions = phrases
+        .flatMap((keyword) => {
+          const match = phraseMatch(keyword, query, parts, parameters);
+          if (!match) return [];
+          const frequency = Math.max(
+            ...match.words.map((word) => index.frequencies.get(word) || 1)
+          );
+          const idf =
+            match.words.reduce(
+              (sum, word) =>
+                sum + Math.log(1 + catalog.length / (index.frequencies.get(word) || 1)),
+              0
+            ) /
+            match.words.length /
+            Math.log(1 + catalog.length);
+          const suppression =
+            match.words.length === 1 && frequency >= parameters.commonKeywordThreshold
+              ? parameters.commonWordWeight
+              : 1;
+          return [
+            {
+              keyword,
+              kind: match.kind,
+              frequency,
+              idf,
+              score: match.specificity * idf * suppression,
+            },
+          ];
+        })
+        .sort((a, b) => b.score - a.score || compareCanonicalStrings(a.keyword, b.keyword));
+      const lexicalScore = contributions
+        .slice(0, parameters.maxKeywordContributions)
+        .reduce((sum, c) => sum + c.score, 0);
+      const functions = model.functions.filter((fn) => fn.capabilities.includes(cap.capability));
+      const domainMatch =
+        !!domain &&
+        functions.some((fn) =>
+          [...(fn.domains || []), ...(fn.departments || [])].some(
+            (value) => normalizePhrase(value) === domain
+          )
+        );
+      const domainConflict = !!domain && functions.length > 0 && !domainMatch;
+      const similarity = options.vector
+        ? cosine(options.entries?.get(cap.capability), options.vector)
+        : null;
+      const semanticScore =
+        similarity >= parameters.semanticThreshold ? similarity * parameters.semanticWeight : 0;
+      const evidenceScore = lexicalScore + semanticScore;
+      const domainBonus = evidenceScore > 0 && domainMatch ? parameters.domainBonus : 0;
+      const requiredInputs = Array.isArray(cap.requiredInputs) ? cap.requiredInputs : [];
+      const inputBonus =
+        evidenceScore > 0
+          ? requiredInputs.filter((key) => Object.hasOwn(options.resolvedParams || {}, key))
+              .length * parameters.inputBonus
+          : 0;
+      const resolvedPenalty = resolved.has(cap.capability) ? parameters.resolvedPenalty : 0;
+      const explicitRouteBonus =
+        options.explicitCapability === cap.capability ? parameters.explicitRouteBonus : 0;
+      const identifier = normalizePhrase(cap.capability);
+      const identifierBonus =
+        identifier.includes(' ') && ` ${normalizePhrase(message)} `.includes(` ${identifier} `)
+          ? parameters.identifierBonus || 0
+          : 0;
+      const score =
+        evidenceScore +
+        domainBonus +
+        inputBonus +
+        explicitRouteBonus +
+        identifierBonus -
+        resolvedPenalty;
+      return {
+        capability: cap,
+        score,
+        lexicalScore,
+        contributions,
+        similarity,
+        semanticScore,
+        domainBonus,
+        domainMatch,
+        domainConflict,
+        inputBonus,
+        resolvedPenalty,
+        explicitRouteBonus,
+        identifierBonus,
+        evidenceScore,
+      };
+    })
+    .filter((item) => item.score > 0);
   const matches = withGradedExplicitRoute(scored).filter((item) => item.score > 0);
   matches.sort(
     (a, b) =>
