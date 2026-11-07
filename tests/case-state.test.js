@@ -407,3 +407,21 @@ describe('pre-output answer review', () => {
     expect(unknown).toMatchObject({ reply: draft, issues: [], revised: false });
   });
 });
+
+test('case-state calls send the provider schema grammar', async () => {
+  const { reviewAnswer } = require('../src/case-state');
+  const schemas = [];
+  const llm = {
+    generateStructured: async (schema) => {
+      schemas.push(JSON.stringify(schema));
+      return { issues: [], revisedReply: '' };
+    },
+  };
+  await updateCaseState(createCaseState(), { message: 'x' }, { llm });
+  await reviewAnswer('Entwurf.', createCaseState(), { llm });
+  expect(schemas).toHaveLength(2);
+  for (const schema of schemas) {
+    expect(schema).not.toContain('additionalProperties');
+    expect(schema).not.toContain('maxLength');
+  }
+});
