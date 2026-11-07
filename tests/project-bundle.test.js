@@ -125,19 +125,33 @@ test('file-context directives never authorize an outer project mutation', async 
   expect(prompt.message).toBe('Erkläre die Zahlen');
 });
 
-test('opaque references in project titles survive the shared prompt scrubber', async () => {
-  const message = 'Lege eine Projektakte „2026102412345“ an';
-  llm.generateStructured.mockImplementationOnce(async (_schema, prompt) => {
-    const masked = JSON.parse(prompt).message;
-    expect(masked).not.toContain('2026102412345');
-    return { action: 'create', title: masked.split('„')[1].split('“')[0], basis: masked };
-  });
-  expect(await projectBundleIntent(message, false, 'tenant-a')).toEqual({
-    action: 'create',
-    title: '2026102412345',
-    basis: message,
-  });
-});
+test.each([
+  ['true', false],
+  [undefined, true],
+])(
+  'references in project titles survive with LLM_PROMPT_SCRUBBING=%s',
+  async (scrubbing, sentUnmasked) => {
+    const previous = process.env.LLM_PROMPT_SCRUBBING;
+    if (scrubbing === undefined) delete process.env.LLM_PROMPT_SCRUBBING;
+    else process.env.LLM_PROMPT_SCRUBBING = scrubbing;
+    try {
+      const message = 'Lege eine Projektakte „2026102412345“ an';
+      llm.generateStructured.mockImplementationOnce(async (_schema, prompt) => {
+        const sent = JSON.parse(prompt).message;
+        expect(sent.includes('2026102412345')).toBe(sentUnmasked);
+        return { action: 'create', title: sent.split('„')[1].split('“')[0], basis: sent };
+      });
+      expect(await projectBundleIntent(message, false, 'tenant-a')).toEqual({
+        action: 'create',
+        title: '2026102412345',
+        basis: message,
+      });
+    } finally {
+      if (previous === undefined) delete process.env.LLM_PROMPT_SCRUBBING;
+      else process.env.LLM_PROMPT_SCRUBBING = previous;
+    }
+  }
+);
 
 test('source original hash can bind context when OWUI uses citation ordinals', async () => {
   const originalHash = hash('bytes');

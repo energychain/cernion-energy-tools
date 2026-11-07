@@ -123,7 +123,7 @@ function formatValue(value) {
 }
 
 function sanitizeMessage(message) {
-  let cleaned = scrubPromptText(String(message || ''));
+  let cleaned = scrubPromptText(String(message || ''), { always: true });
   cleaned = cleaned.replace(/(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, '$1[REDACTED]');
   cleaned = cleaned.replace(/\bck_[A-Za-z0-9_-]{8,}\b/g, 'ck_[REDACTED]');
   cleaned = cleaned.replace(

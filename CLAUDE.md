@@ -21,7 +21,8 @@ for the history). In particular:
 - **Calling an LLM** (Gemini/OpenAI-compatible/Ollama) → `src/llm-client.js`
   (`generateText`/`generateStructured`/`generateChat`/`embeddings`/
   `generateImage`), never a provider SDK directly — only this facade applies
-  PII scrubbing, quota enforcement, tracing and retries.
+  PII scrubbing (when `LLM_PROMPT_SCRUBBING` is enabled), quota enforcement,
+  tracing and retries.
 - **HTTP request classification** (read vs. write, sidecar/runbook
   exceptions) → `src/gateway-request-classifiers.js`.
 - When unsure, `grep -rl "keyword" src/` before adding a new helper.

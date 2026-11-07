@@ -1,5 +1,13 @@
 'use strict';
 
+// These cases exercise masked LLM input, which is off by default (LLM_PROMPT_SCRUBBING).
+const previousPromptScrubbing = process.env.LLM_PROMPT_SCRUBBING;
+process.env.LLM_PROMPT_SCRUBBING = 'true';
+afterAll(() => {
+  if (previousPromptScrubbing === undefined) delete process.env.LLM_PROMPT_SCRUBBING;
+  else process.env.LLM_PROMPT_SCRUBBING = previousPromptScrubbing;
+});
+
 jest.mock('../src/llm-client', () => ({
   generateStructured: jest.fn(),
   generateText: jest.fn(),

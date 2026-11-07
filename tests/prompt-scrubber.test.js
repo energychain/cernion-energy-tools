@@ -1,5 +1,13 @@
 'use strict';
 
+// These cases exercise masked LLM input, which is off by default (LLM_PROMPT_SCRUBBING).
+const previousPromptScrubbing = process.env.LLM_PROMPT_SCRUBBING;
+process.env.LLM_PROMPT_SCRUBBING = 'true';
+afterAll(() => {
+  if (previousPromptScrubbing === undefined) delete process.env.LLM_PROMPT_SCRUBBING;
+  else process.env.LLM_PROMPT_SCRUBBING = previousPromptScrubbing;
+});
+
 /**
  * Tests for src/prompt-scrubber.js (Issue #31 — Edge Privacy)
  *
@@ -8,6 +16,7 @@
 
 const {
   scrubForLLM,
+  scrubPrompt,
   scrubPromptText,
   isSensitiveField,
   SENSITIVE_PATTERNS,
@@ -410,5 +419,32 @@ describe('value-based JSON prompt scrubbing', () => {
       },
     };
     expect(() => scrubPromptValues(input)).toThrow('content failure');
+  });
+});
+
+describe('prompt scrubbing is an operator choice', () => {
+  const sample = 'Mail an a.b@example.org, Tel 0621 1234567, Referenz 020037232961';
+  afterEach(() => {
+    process.env.LLM_PROMPT_SCRUBBING = 'true';
+  });
+
+  test('without LLM_PROMPT_SCRUBBING, LLM input passes unmasked', () => {
+    delete process.env.LLM_PROMPT_SCRUBBING;
+    expect(scrubPromptText(sample)).toBe(sample);
+    expect(scrubPrompt(JSON.stringify({ text: sample }))).toBe(JSON.stringify({ text: sample }));
+    const { scrubbed, reidentMap } = scrubForLLM({
+      email: 'a.b@example.org',
+      note: 'x'.repeat(600),
+    });
+    expect(scrubbed.email).toBe('a.b@example.org');
+    expect(scrubbed.note).toHaveLength(500 + '…[truncated]'.length);
+    expect(reidentMap.size).toBe(0);
+  });
+
+  test('logs and stored diagnostics stay masked with { always: true }', () => {
+    process.env.LLM_PROMPT_SCRUBBING = 'false';
+    const masked = scrubPromptText(sample, { always: true });
+    expect(masked).not.toContain('a.b@example.org');
+    expect(masked).not.toContain('0621 1234567');
   });
 });
