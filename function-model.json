@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "c1a90a6dab0f3d140b0bb362344cabc3c5b62a7d6610cc2e55e4b2da228c8b86",
+  "sourceHash": "f078387502adcf31dc9f0bd326af8a585413d6d6f5d7ffa8ee20d52f9c331ab3",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -127522,6 +127522,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-state.js"
         },
         {
           "kind": "service",
