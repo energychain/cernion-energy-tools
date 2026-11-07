@@ -118,7 +118,11 @@ const {
   checkStickinessRetain,
   buildSynthesisPolicyDirectives,
 } = require('../../src/blueprint-policy-interpreter');
-const { detectBlueprintIntent, findBlueprintByPrimaryIntent } = require('../../src/l3-broker');
+const {
+  blueprintYieldsToRecommendation,
+  detectBlueprintIntent,
+  findBlueprintByPrimaryIntent,
+} = require('../../src/l3-broker');
 const { loadBlueprint } = require('../../src/blueprint-registry');
 const {
   compileReadOnlyExecutionPlan,
@@ -2361,6 +2365,7 @@ module.exports = {
   extractBlueprintPolicy,
   checkStickinessRetain,
   buildSynthesisPolicyDirectives,
+  blueprintYieldsToRecommendation,
   detectBlueprintIntent,
   findBlueprintByPrimaryIntent,
   loadBlueprint,

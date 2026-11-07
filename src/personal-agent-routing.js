@@ -6,7 +6,11 @@ const {
   GLOBAL_DO_NOT_USE,
 } = require('./capability-catalog');
 const { planEvidence } = require('./evidence-planner');
-const { detectBlueprintIntent, buildBlueprintPlan } = require('./l3-broker');
+const {
+  blueprintYieldsToRecommendation,
+  detectBlueprintIntent,
+  buildBlueprintPlan,
+} = require('./l3-broker');
 
 const EXECUTION_MODES = Object.freeze({
   AUTO: 'auto',
@@ -1691,7 +1695,7 @@ function buildExecutionPlan({
 
   // L3 Broker: check blueprint registry for a matching intent (replaces hardcoded EV/CO2 detection)
   const blueprintMatch = detectBlueprintIntent(message, knownContext, promptHints);
-  if (blueprintMatch) {
+  if (blueprintMatch && !blueprintYieldsToRecommendation(blueprintMatch, brokerRecommendation)) {
     const bpPlan = buildBlueprintPlan(blueprintMatch.blueprintId, {
       message,
       knownContext,

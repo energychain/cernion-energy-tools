@@ -5954,6 +5954,7 @@ const CURATED_CAPABILITIES = [
       'vdmi rollenfähigkeiten',
       'eve rollen capability sicht',
       'capability projection stadtwerk mauer',
+      'capability projection',
       'stadtwerk_mauer_capability_projection',
     ],
     preferredActions: [
@@ -8539,6 +8540,13 @@ const CURATED_CAPABILITIES = [
       'imsys abrechnungsreife',
       'portal screenshot proof',
       'portalhinweis nachweis',
+      'marktkommunikation',
+      'aperak',
+      'invoic',
+      'remadv',
+      'netznutzungsabrechnung',
+      'prüfidentifikator',
+      'stammdatenclearing',
     ],
     preferredActions: [
       'dashboard-api.marketCommunicationEvidenceChainStatus',

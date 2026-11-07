@@ -88,6 +88,30 @@ function _hasKnownLocation(knownContext, promptHints) {
   );
 }
 
+// A signal counts as a word, not as any substring: "speicher" must not match "gespeichert".
+// Longer signals may also form the head or tail of a German compound ("Batteriespeicher").
+const COMPOUND_SIGNAL_MIN_LENGTH = 5;
+const WORD_CHAR = /[\p{L}\p{N}]/u;
+
+function _signalOccurs(haystack, signal) {
+  const needle = String(signal).toLowerCase();
+  if (!needle) return false;
+  for (let at = haystack.indexOf(needle); at !== -1; at = haystack.indexOf(needle, at + 1)) {
+    const openStart = at === 0 || !WORD_CHAR.test(haystack[at - 1]);
+    const end = at + needle.length;
+    const openEnd = end >= haystack.length || !WORD_CHAR.test(haystack[end]);
+    if (openStart && openEnd) return true;
+    if (needle.length >= COMPOUND_SIGNAL_MIN_LENGTH && (openStart || openEnd)) return true;
+  }
+  return false;
+}
+
+function _countSignalHits(haystack, blueprint) {
+  const signals = blueprint.routing?.intentSignals;
+  if (!Array.isArray(signals)) return 0;
+  return signals.filter((signal) => _signalOccurs(haystack, signal)).length;
+}
+
 function _scoreBlueprintMatch(haystack, blueprint, opts = {}) {
   const signals = blueprint.routing?.intentSignals;
   const negativeSignals = blueprint.routing?.negativeSignals;
@@ -101,10 +125,7 @@ function _scoreBlueprintMatch(haystack, blueprint, opts = {}) {
     }
   }
 
-  let hits = 0;
-  for (const signal of signals) {
-    if (haystack.includes(String(signal).toLowerCase())) hits++;
-  }
+  const hits = _countSignalHits(haystack, blueprint);
 
   const boost =
     typeof blueprint.routing?.priorityBoost === 'number' ? blueprint.routing.priorityBoost : 0;
@@ -181,7 +202,7 @@ function _buildParamsTemplate(blueprint, knownContext, promptHints) {
 
 /**
  * Detect if any registered blueprint matches the user's intent.
- * Returns null if no match; otherwise returns { blueprintId, score }.
+ * Returns null if no match; otherwise returns { blueprintId, score, hits }.
  *
  * `options.includeRestPlanOnly` (default false): blueprints flagged
  * `routing.restPlanOnly: true` are compile-only fixtures for the Sidecar
@@ -213,7 +234,7 @@ function detectBlueprintIntent(message, knownContext = {}, promptHints = {}, opt
     const score = _scoreBlueprintMatch(haystack, blueprint, { negativeHaystack });
     if (score >= MATCH_THRESHOLD) {
       if (!best || score > best.score) {
-        best = { blueprintId: blueprint.id, score };
+        best = { blueprintId: blueprint.id, score, hits: _countSignalHits(haystack, blueprint) };
       }
     }
   }
@@ -323,7 +344,22 @@ function findBlueprintByPrimaryIntent(intent) {
   return null;
 }
 
+/**
+ * A blueprint match is a signal-word decision. When it rests on no more than the minimum number
+ * of signals, a confident capability recommendation for something else (lexical and semantic
+ * ranking) is the better reading of the request, e.g. role words in a forwarded e-mail footer.
+ */
+function blueprintYieldsToRecommendation(match, recommendation) {
+  if (!match || !recommendation || recommendation.uncertain) return false;
+  const top = recommendation.recommendedCapabilities?.[0]?.capability;
+  if (!top || top === 'interface_placeholder') return false;
+  const blueprintIntent = _derivePrimaryIntent(match.blueprintId);
+  if ([top, recommendation.intent].includes(blueprintIntent)) return false;
+  return (match.hits ?? MATCH_THRESHOLD) <= MATCH_THRESHOLD;
+}
+
 module.exports = {
+  blueprintYieldsToRecommendation,
   detectBlueprintIntent,
   findBlueprintByPrimaryIntent,
   buildBlueprintPlan,

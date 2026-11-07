@@ -60,6 +60,7 @@ const {
   DREAM_AUDIT_NAMESPACE,
   extractBlueprintPolicy,
   checkStickinessRetain,
+  blueprintYieldsToRecommendation,
   detectBlueprintIntent,
   findBlueprintByPrimaryIntent,
   loadBlueprint,
@@ -3776,11 +3777,17 @@ module.exports = {
             semanticClassification?.domainIntent || brokerKnownContext?.domainIntent || null,
         };
         const _bpPromptHints = extractPromptHints(ctx.params.message);
-        const _bpSignalMatch = detectBlueprintIntent(
+        const _bpRawSignalMatch = detectBlueprintIntent(
           ctx.params.message,
           _bpDetectContext,
           _bpPromptHints
         );
+        const _bpSignalMatch = blueprintYieldsToRecommendation(
+          _bpRawSignalMatch,
+          brokerRecommendation
+        )
+          ? null
+          : _bpRawSignalMatch;
 
         // Fallback: if signal scoring misses, resolve blueprint directly by primary intent.
         // This covers cases where the broker or semantic classifier already identified the

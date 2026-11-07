@@ -157,3 +157,38 @@ describe('calibrated capability routing #730', () => {
     expect(keywordReport(current)).toEqual([]);
   });
 });
+
+describe('graded explicit intent route', () => {
+  const catalog = [
+    cap('benchmark', ['vergleich', 'benchmark']),
+    cap('message_chain', ['utilmd', 'aperak', 'utilmd analyse']),
+    cap('asset_validation', ['asset validierung']),
+  ];
+
+  test('a route without evidence of its own cannot outrank a capability with evidence', () => {
+    const result = rank('Bitte die UTILMD Analyse prüfen', catalog, {
+      explicitCapability: 'asset_validation',
+    });
+    expect(result.matches[0].capability.capability).toBe('message_chain');
+    expect(result.matches.some((m) => m.capability.capability === 'asset_validation')).toBe(false);
+  });
+
+  test('the bonus scales with the route evidence relative to the strongest competitor', () => {
+    const result = rank('UTILMD Analyse im Vergleich', catalog, {
+      explicitCapability: 'benchmark',
+    });
+    const benchmark = result.matches.find((m) => m.capability.capability === 'benchmark');
+    const chain = result.matches.find((m) => m.capability.capability === 'message_chain');
+    expect(benchmark.explicitRouteBonus).toBeGreaterThan(0);
+    expect(benchmark.explicitRouteBonus).toBeLessThan(6);
+    expect(benchmark.explicitRouteBonus).toBeCloseTo(
+      (6 * benchmark.evidenceScore) / chain.evidenceScore
+    );
+  });
+
+  test('an uncontested route keeps its full weight', () => {
+    const result = rank('Status anzeigen', catalog, { explicitCapability: 'benchmark' });
+    expect(result.matches[0].capability.capability).toBe('benchmark');
+    expect(result.matches[0].explicitRouteBonus).toBe(6);
+  });
+});

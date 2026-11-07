@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `c1a90a6dab0f3d140b0bb362344cabc3c5b62a7d6610cc2e55e4b2da228c8b86`
+Source SHA-256: `c4ce8849cf5c1f6c19e31c7ba93b0e4f3720b435ff528b3ce37c4253701c7bbc`
 
 Capabilities: 173; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
@@ -123,7 +123,7 @@ Singletons and unavailable comparisons are N/A, never assigned an artificial coh
 | fn-settlement-a96-reconciliation | N/A | N/A | 0/0 |
 | fn-smart-meter-cls-data-governance-receipt | N/A | N/A | 0/0 |
 | fn-smgw-connector-readiness-status | N/A | N/A | 0/0 |
-| fn-stadtwerk-mauer-capability-projection | 0.840980 | 0.800029 | 3/3 |
+| fn-stadtwerk-mauer-capability-projection | 0.836273 | 0.800029 | 3/3 |
 | fn-stadtwerk-mauer-e2e-process-demo | 0.851475 | 0.851475 | 1/1 |
 | fn-stadtwerk-mauer-mastr-data-overlay | N/A | N/A | 0/0 |
 | fn-stadtwerk-mauer-sandbox-runtime | N/A | N/A | 0/0 |

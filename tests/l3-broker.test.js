@@ -1,6 +1,7 @@
 'use strict';
 
 const {
+  blueprintYieldsToRecommendation,
   detectBlueprintIntent,
   buildBlueprintPlan,
   _derivePrimaryIntent,
@@ -638,5 +639,64 @@ describe('personal-agent-routing — buildExecutionPlan uses L3 broker for EV/CO
     });
 
     expect(plan?.primaryIntent).not.toMatch(/ev_charging_co2/i);
+  });
+});
+
+describe('blueprint signals are words', () => {
+  const blueprint = { routing: { intentSignals: ['speicher', 'ev', 'netzbetreiber'] } };
+
+  test('a signal inside another word does not count', () => {
+    expect(_scoreBlueprintMatch('daten gespeichert, evidenz fehlt', blueprint)).toBe(0);
+  });
+
+  test('whole words and compound heads or tails of longer signals count', () => {
+    expect(_scoreBlueprintMatch('ev laden', blueprint)).toBe(1);
+    expect(_scoreBlueprintMatch('batteriespeicher', blueprint)).toBe(1);
+    expect(_scoreBlueprintMatch('speicherkapazität beim verteilnetzbetreiber', blueprint)).toBe(2);
+  });
+});
+
+describe('blueprintYieldsToRecommendation', () => {
+  const confident = {
+    uncertain: false,
+    intent: 'dashboard-api.marketCommunicationEvidenceChainStatus',
+    recommendedCapabilities: [{ capability: 'market_communication_evidence_chain' }],
+  };
+  const minimal = {
+    blueprintId: 'netzbetreiber-flexibility-potential-v1',
+    score: 2.6,
+    hits: MATCH_THRESHOLD,
+  };
+
+  test('a minimal signal match yields to a confident recommendation for something else', () => {
+    expect(blueprintYieldsToRecommendation(minimal, confident)).toBe(true);
+  });
+
+  test('a strong match, an uncertain or agreeing recommendation keep the blueprint', () => {
+    expect(blueprintYieldsToRecommendation({ ...minimal, hits: 3 }, confident)).toBe(false);
+    expect(blueprintYieldsToRecommendation(minimal, { ...confident, uncertain: true })).toBe(false);
+    expect(
+      blueprintYieldsToRecommendation(minimal, {
+        uncertain: false,
+        recommendedCapabilities: [{ capability: 'netzbetreiber_flexibility_potential' }],
+      })
+    ).toBe(false);
+    expect(
+      blueprintYieldsToRecommendation(minimal, {
+        uncertain: false,
+        recommendedCapabilities: [{ capability: 'interface_placeholder' }],
+      })
+    ).toBe(false);
+  });
+
+  test('a forwarded mail with role words in its footer is not a flexibility request', () => {
+    const mail =
+      'Bitte den aktiven Vertrag zur Marktlokation rückabwickeln, falsch vom Netzbetreiber ' +
+      'übergeben.\n\nAmtsgericht Göttingen\nGeschäftsführer: Max Muster\n' +
+      'Die Informationen dürfen nicht gespeichert werden.';
+    const match = detectBlueprintIntent(mail, {}, {});
+    expect(match?.blueprintId).toBe('netzbetreiber-flexibility-potential-v1');
+    expect(match.hits).toBe(2);
+    expect(blueprintYieldsToRecommendation(match, confident)).toBe(true);
   });
 });
