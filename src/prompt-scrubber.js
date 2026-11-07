@@ -18,6 +18,14 @@
 
 const crypto = require('crypto');
 
+// Masking of LLM input is an operator choice: LLM_PROMPT_SCRUBBING=true enables it, it is off by
+// default (operator decision of 2026-11-07: masked identifiers kept the model from comparing and
+// separating references). Logs and stored diagnostics pass { always: true } and stay masked.
+function promptScrubbingEnabled(options = {}) {
+  if (options.always === true) return true;
+  return /^(1|true|yes|on)$/i.test(String(process.env.LLM_PROMPT_SCRUBBING || '').trim());
+}
+
 // ---------------------------------------------------------------------------
 // Sensitive field patterns (blocklist) — matched case-insensitively
 // ---------------------------------------------------------------------------
@@ -130,7 +138,9 @@ function scrubForLLM(data, options = {}) {
   const maxRows = options.maxRows ?? 50;
   const maxStringLength = options.maxStringLength ?? 500;
 
+  const masking = promptScrubbingEnabled(options);
   function shouldMask(fieldName) {
+    if (!masking) return false;
     const lower = fieldName.toLowerCase();
     if (extraAllow.has(lower)) return false;
     if (extraBlock.has(lower)) return true;
@@ -195,6 +205,7 @@ function scrubForLLM(data, options = {}) {
  */
 function scrubPromptText(text, options = {}) {
   if (typeof text !== 'string') return text;
+  if (!promptScrubbingEnabled(options)) return text;
 
   const salt = options.salt || crypto.randomBytes(8).toString('hex');
   const mask = (value, kind) => {
@@ -266,6 +277,7 @@ function scrubPrompt(prompt, options = {}) {
 }
 
 module.exports = {
+  promptScrubbingEnabled,
   scrubForLLM,
   scrubPromptText,
   mapStringValues,

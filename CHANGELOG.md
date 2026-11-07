@@ -24,6 +24,20 @@
 - Each consultation turn makes two to three additional LLM calls (update, check); latency is not
   capped (operator decision of 2026-11-07, quality before runtime).
 
+## Unreleased — Prompt scrubbing is optional and off by default
+
+- Masking of personal data in LLM input (email, IBAN, phone patterns, sensitive fields, reversible
+  references) is enabled with `LLM_PROMPT_SCRUBBING=true` and off by default (operator decision of
+  2026-11-07). Masked identifiers kept the model from comparing and separating references: two
+  12-digit data-exchange references beginning with 0 both became the same phone placeholder, so a
+  request to separate them could not be answered. Logs and stored diagnostics (observability
+  traces, tool error texts) stay masked; truncation of long values is unchanged.
+- **Data protection:** with the default, LLM input including personal data reaches the configured
+  provider unmasked.
+- A stored case named by one of its references in the question is bound directly, with or without
+  prompt scrubbing (`referenceCandidates` in `src/workbench-identifier-context.js`); before, the
+  binding depended on the masking placeholders.
+
 ## Unreleased — The agentic consultation reads the attachments too
 
 - The attached files reach both consultation paths: the agentic consultation (planner and

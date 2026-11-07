@@ -4,7 +4,11 @@ const SERVER_CASE_HINT = Symbol('visible-case-search');
 const llm = require('./llm-client');
 const { llmOptions, toFacadeSchema } = require('./workbench-understanding');
 const { safeTurnMemory } = require('./workbench-turn-memory');
-const { opaqueContext, restoreContext } = require('./workbench-identifier-context');
+const {
+  opaqueContext,
+  referenceCandidates,
+  restoreContext,
+} = require('./workbench-identifier-context');
 
 async function selectSemanticCases(query, candidates, tenantId) {
   if (!candidates.length) return [];
@@ -21,18 +25,18 @@ async function selectSemanticCases(query, candidates, tenantId) {
     { query, cases: candidates },
     (text) => (ids.has(text) ? text : text.replace(/(?<=[\p{L}\p{N}])-(?=\p{L})/gu, ' - '))
   );
+  // A stored case named by one of its references in the question is bound directly, with or
+  // without prompt scrubbing.
+  const queryReferences = new Set(referenceCandidates(context.query));
+  const bound = context.cases.filter((item) =>
+    referenceCandidates(item).some((reference) => queryReferences.has(reference))
+  );
+  if (bound.length) {
+    const boundIds = new Set(bound.map((item) => item.caseId));
+    return candidates.filter((item) => boundIds.has(item.caseId)).slice(0, 5);
+  }
   const safe = opaqueContext(context);
-  const queryReferences = [...safe.reidentMap.keys()].filter((token) =>
-    safe.value.query.includes(token)
-  );
-  const bound = safe.value.cases.filter((item) =>
-    queryReferences.some((token) => JSON.stringify(item).includes(token))
-  );
-  if (bound.length) safe.value.cases = bound;
-  const eligible = new Set(
-    safe.value.cases.map((item) => restoreContext(item.caseId, safe.reidentMap))
-  );
-  if (bound.length) return candidates.filter((item) => eligible.has(item.caseId)).slice(0, 5);
+  const eligible = new Set(candidates.map((item) => item.caseId));
   const result = restoreContext(
     await llm.generateStructured(
       toFacadeSchema(schema),

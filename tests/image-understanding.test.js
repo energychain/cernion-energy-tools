@@ -10,14 +10,19 @@ const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);
 
 describe('llm-client.describeImage', () => {
   const previous = process.env.LLM_PROVIDER;
+  const previousScrubbing = process.env.LLM_PROMPT_SCRUBBING;
   afterEach(() => {
     jest.restoreAllMocks();
     if (previous === undefined) delete process.env.LLM_PROVIDER;
     else process.env.LLM_PROVIDER = previous;
+    if (previousScrubbing === undefined) delete process.env.LLM_PROMPT_SCRUBBING;
+    else process.env.LLM_PROMPT_SCRUBBING = previousScrubbing;
   });
 
   test('passes the image and the scrubbed instruction to a vision-capable adapter', async () => {
     process.env.LLM_PROVIDER = 'gemini';
+    // Masked LLM input is opt-in (LLM_PROMPT_SCRUBBING).
+    process.env.LLM_PROMPT_SCRUBBING = 'true';
     const spy = jest.spyOn(gemini, 'describeImage').mockResolvedValue('Sichtbarer Text: OK');
     const text = await llm.describeImage(
       { data: png, mimeType: 'image/png' },
