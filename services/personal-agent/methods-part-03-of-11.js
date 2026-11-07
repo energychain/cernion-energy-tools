@@ -26,6 +26,7 @@ const {
   sanitizeConsultationDebugError,
   createConsultationDebugRecorder,
 } = require('./shared');
+const { caseStateView } = require('../../src/case-state');
 
 module.exports = {
   buildConsultationDegradation({
@@ -1290,6 +1291,7 @@ module.exports = {
         toolRegistry,
         synthesisPolicy,
         routingPolicy,
+        caseView: input.caseState ? caseStateView(input.caseState) : null,
       });
       const synthesisTimeoutMs = this.resolveConsultationSynthesisTimeoutMs();
 

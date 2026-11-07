@@ -467,6 +467,10 @@ module.exports = {
             typeof payload?.l3?.activeStickinessStartTurn === 'number'
               ? payload.l3.activeStickinessStartTurn
               : null,
+          caseState:
+            payload?.l3?.caseState && typeof payload.l3.caseState === 'object'
+              ? payload.l3.caseState
+              : null,
           criticalStepCheckpoints:
             payload?.l3?.criticalStepCheckpoints &&
             typeof payload.l3.criticalStepCheckpoints === 'object'

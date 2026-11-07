@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased — A consolidated case state carries the consultation
+
+- The personal agent keeps a domain-free case state per session (`src/case-state.js`,
+  `session.l3.caseState`): the work model (object, task, expected outcome, role, consequence of a
+  wrong framing), evidence with its kind (reported by the person, observed in a source, derived,
+  confirmed), claims with origin, hypotheses with a lifecycle and history (open, supported,
+  refuted, superseded, confirmed), a comparison of the sources, the decisive open questions, the
+  next executable actions and closure criteria. An LLM proposes the delta of each turn; only safety
+  rules are deterministic: a claim counts as observed or confirmed only when it cites such
+  evidence, and a refuted or superseded hypothesis returns only with new evidence.
+- The case state is updated before routing. A broker route that the work model judges unrelated
+  to the task is treated as uncertain and does not frame the answer (Uslar repeat UAT: a UTILMD
+  file analysis went to the VNB KPI benchmark, a NNA/INVOIC delimitation to VDMI asset
+  validation).
+- The consultation answer is written from the case state; the chat history is only context.
+  Before output, the draft is checked against the case state (inactive hypothesis named as a
+  cause, cause outside the state, overstated evidence, missed source difference, answer beside
+  the task) and only the flagged passages are revised.
+- `evidenceStatus` is derived from the claims: `verified` only when every central claim rests on
+  observed or confirmed evidence. Before, one verified fact without missing evidence marked the
+  whole answer verified.
+- Each consultation turn makes two to three additional LLM calls (update, check); latency is not
+  capped (operator decision of 2026-11-07, quality before runtime).
+
 ## Unreleased — Prompt scrubbing is optional and off by default
 
 - Masking of personal data in LLM input (email, IBAN, phone patterns, sensitive fields, reversible

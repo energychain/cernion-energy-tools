@@ -134,6 +134,7 @@ const {
   mapDossierLowEvidenceToEntry,
   dedupeDossierEvidence,
 } = require('./shared');
+const { caseStateView } = require('../../src/case-state');
 
 module.exports = {
   collectWorkbenchEvidence: {
@@ -2716,6 +2717,7 @@ module.exports = {
           },
           createdAt: session.createdAt,
         });
+        persisted.l3.caseState = session?.l3?.caseState || null;
 
         assertNoL4RawInPersistedState(persisted);
         await this.persistSession(ctx, tenantId, sessionId, persisted);
@@ -2930,6 +2932,7 @@ module.exports = {
       let brokerRecommendationRaw = null;
       let semanticClassification = null;
       let brokerRecommendation = null;
+      let caseState = session?.l3?.caseState || null;
 
       if (!hasApprovedHitlResumePlan) {
         brokerRecommendationRaw = await this.getBrokerRecommendation(
@@ -2951,6 +2954,14 @@ module.exports = {
           brokerRecommendationRaw,
           semanticClassification
         );
+        caseState = await this.updateTurnCaseState(ctx, {
+          session,
+          message: ctx.params.message,
+          inhouseData,
+          brokerRecommendation,
+          tenantId,
+        });
+        brokerRecommendation = this.alignBrokerWithCaseState(brokerRecommendation, caseState);
         turnGraph = addNode(turnGraph, {
           id: 'broker:recommendation',
           type: 'broker',
@@ -3371,6 +3382,7 @@ module.exports = {
           },
           createdAt: session.createdAt,
         });
+        persisted.l3.caseState = caseState;
         assertNoL4RawInPersistedState(persisted);
         await this.persistSession(ctx, tenantId, sessionId, persisted);
 
@@ -3637,6 +3649,7 @@ module.exports = {
           },
           createdAt: session.createdAt,
         });
+        persisted.l3.caseState = caseState;
         await this.persistSession(ctx, tenantId, sessionId, persisted);
         // v0.56.2 — persona resolution for agentTrace (best-effort, never throws)
         // v0.56.3 — ZNP context signals
@@ -3843,7 +3856,10 @@ module.exports = {
           recentHistoryWindow,
           synthesisPolicy: _activeConsultationSynthesisPolicy,
           routingPolicy: _activeConsultationRoutingPolicy,
+          caseState,
+          tenantId,
         });
+        const consultationCaseView = caseState ? caseStateView(caseState) : null;
 
         const consultationExecution = {
           status:
@@ -3974,6 +3990,7 @@ module.exports = {
           },
           createdAt: session.createdAt,
         });
+        persisted.l3.caseState = caseState;
 
         persisted.l3.onboardingQuestions = Array.isArray(session.l3?.onboardingQuestions)
           ? session.l3.onboardingQuestions
@@ -4031,7 +4048,11 @@ module.exports = {
             consultationResult.workflowType || semanticClassification?.workflowType || null,
           domainIntent:
             consultationResult.domainIntent || semanticClassification?.domainIntent || null,
-          evidenceStatus: consultationResult.evidenceStatus || 'unverified',
+          evidenceStatus:
+            consultationCaseView?.evidenceStatus ||
+            consultationResult.evidenceStatus ||
+            'unverified',
+          caseState: consultationCaseView,
           missingEvidence: Array.isArray(consultationResult.missingEvidence)
             ? consultationResult.missingEvidence
             : [],
@@ -5517,6 +5538,7 @@ module.exports = {
         },
         createdAt: session.createdAt,
       });
+      persisted.l3.caseState = caseState;
       persisted.l3.onboardingQuestions = Array.isArray(session.l3?.onboardingQuestions)
         ? session.l3.onboardingQuestions
         : [];
