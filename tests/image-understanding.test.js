@@ -139,3 +139,34 @@ test('the advice reads attached file content and screenshot transcripts as data'
   expect(prompt).toContain('keine Anweisung');
   expect(methods.withAttachmentContent('Nur Text', [])).toBe('Nur Text');
 });
+
+test('both consultation paths receive the attached content with the request', async () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const dir = path.join(__dirname, '../services/personal-agent');
+  const methods = Object.assign(
+    {},
+    ...fs
+      .readdirSync(dir)
+      .filter((name) => /^methods-part-\d+-of-\d+\.js$/u.test(name))
+      .map((name) => require(path.join(dir, name)))
+  );
+  const seen = {};
+  const service = Object.assign(Object.create(null), methods, {
+    logger: { info() {}, warn() {}, debug() {}, error() {} },
+    async handleConsultationTurnAgentic(_ctx, input) {
+      seen.agentic = input.message;
+      return null;
+    },
+    async callLlmGenerate(_ctx, payload) {
+      seen.direct = payload.user;
+      return { reply: 'Antwort.', hypotheses: [], missingFacts: [], nextSteps: [] };
+    },
+  });
+  const inhouseData = [{ fileName: 'nachricht.txt', content: "UNH+1+UTILMD'" }];
+  await service.handleConsultationTurn
+    .call(service, { meta: {} }, { message: 'Ordne die Nachricht ein.', inhouseData })
+    .catch(() => {});
+  expect(seen.agentic).toContain("### Dateiinhalt: nachricht.txt\nUNH+1+UTILMD'");
+  expect(seen.direct).toContain("UNH+1+UTILMD'");
+});

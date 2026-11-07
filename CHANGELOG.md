@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — The agentic consultation reads the attachments too
+
+- The attached files reach both consultation paths: the agentic consultation (planner and
+  synthesis), which runs first, and the direct fallback. The previous change only reached the
+  fallback, so the production answer still said that neither the screenshot nor the message was
+  available.
+
 ## Unreleased — Attachments reach the advice; statements beside files are captured
 
 - Personal-agent consultation turns read the attached files: text and EDIFACT content and
