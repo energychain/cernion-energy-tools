@@ -9,7 +9,7 @@
  *   - generateStructured(schema, prompt)   — structured JSON output (responseSchema)
  *
  * Guarantees:
- *   - PII scrubbing via prompt-scrubber before every call (EU AI Act Art. 12)
+ *   - PII scrubbing via prompt-scrubber before every call when LLM_PROMPT_SCRUBBING is enabled
  *   - HTTP 503 MoleculerError when GEMINI_API_KEY is not configured, so services
  *     can return a clean error to the frontend instead of crashing
  *   - Single point for future model-swap (Claude, Mistral) or rate-limit retry logic
@@ -409,9 +409,9 @@ async function observeLlmCall(adapter, operation, options, usageInput, task) {
 
 /**
  * Generate free-form text from a prompt.
- * PII is scrubbed from the prompt before the call (EU AI Act Art. 12).
+ * PII is scrubbed from the prompt before the call when LLM_PROMPT_SCRUBBING is enabled.
  *
- * @param {string} prompt  The user prompt (may contain PII — will be scrubbed).
+ * @param {string} prompt  The user prompt (may contain PII).
  * @param {object} [options] Optional provider call options (timeout/retries/model hints).
  * @returns {Promise<string>}  Raw response text from the model.
  * @throws {MoleculerError}  503 LLM_NOT_CONFIGURED if GEMINI_API_KEY is not set.
@@ -426,10 +426,10 @@ async function generateText(prompt, options = {}) {
 
 /**
  * Generate a structured JSON response from a prompt using Gemini responseSchema.
- * PII is scrubbed from the prompt before the call (EU AI Act Art. 12).
+ * PII is scrubbed from the prompt before the call when LLM_PROMPT_SCRUBBING is enabled.
  *
  * @param {object} responseSchema  Gemini SchemaType-compatible schema object.
- * @param {string} prompt          The prompt (may contain PII — will be scrubbed).
+ * @param {string} prompt          The prompt (may contain PII).
  * @param {object} [options]       Optional provider call options.
  * @returns {Promise<object>}  Parsed JSON object conforming to responseSchema.
  * @throws {MoleculerError}  503 LLM_NOT_CONFIGURED if GEMINI_API_KEY is not set.
@@ -510,7 +510,7 @@ const MAX_VISION_BYTES = Number(process.env.LLM_VISION_MAX_BYTES || 10 * 1024 * 
  * reaches the provider unchanged (operator decision for screenshots, 2026-11-06).
  *
  * @param {{data: Buffer|string, mimeType: string}} image  Raw bytes or base64.
- * @param {string} prompt  The instruction (may contain PII — will be scrubbed).
+ * @param {string} prompt  The instruction (may contain PII).
  * @param {object} [options] Optional provider call options.
  * @returns {Promise<string>}  The model's text.
  * @throws {MoleculerError} 503 LLM_CAPABILITY_MISSING if the provider cannot read images.
@@ -545,9 +545,9 @@ async function describeImage(image, prompt, options = {}) {
 
 /**
  * Generate an image from a text prompt.
- * PII is scrubbed from the prompt before the call (EU AI Act Art. 12).
+ * PII is scrubbed from the prompt before the call when LLM_PROMPT_SCRUBBING is enabled.
  *
- * @param {string} prompt  The image prompt (may contain PII — will be scrubbed).
+ * @param {string} prompt  The image prompt (may contain PII).
  * @param {object} [options] Optional provider call options (model/size/n hints).
  * @returns {Promise<{images: {b64Json: string, mimeType: string}[], text: (string|null)}>}
  * @throws {MoleculerError} 503 LLM_CAPABILITY_MISSING if the provider does not support image generation.
@@ -572,8 +572,8 @@ async function generateImage(prompt, options = {}) {
 
 /**
  * Chat completion with OpenAI-shaped tool/function-calling support.
- * PII is scrubbed from every string message content before the call
- * (EU AI Act Art. 12). Callers that never pass `options.tools` still work
+ * PII is scrubbed from every string message content before the call when
+ * LLM_PROMPT_SCRUBBING is enabled. Callers that never pass `options.tools` still work
  * (the adapter falls back to a plain text reply), but the capability gate
  * below applies regardless — providers without any chat/tool support (per
  * their `capabilities().toolCalling` flag) are rejected up front.

@@ -2,16 +2,16 @@
 
 const { scrubForLLM, mapStringValues, scrubPromptValues } = require('./prompt-scrubber');
 
-// Keep local reference values reversible while the shared facade still scrubs
-// email, account and telephone patterns. Never send the local reidentification map.
-function opaqueContext(value) {
-  const tokens = /[\p{L}\p{N}_-]{5,}/gu;
-  const boundary = /[\p{L}\p{N}_@.]/u;
-  // A terminal sentence period is punctuation; embedded dots still protect
-  // decimal values, addresses and compound references from partial masking.
-  const bounded = (text, position) =>
-    boundary.test(text[position] || '') &&
-    !(text[position] === '.' && !/[\p{L}\p{N}_@]/u.test(text[position + 1] || ''));
+const tokens = /[\p{L}\p{N}_-]{5,}/gu;
+const boundary = /[\p{L}\p{N}_@.]/u;
+// A terminal sentence period is punctuation; embedded dots still protect
+// decimal values, addresses and compound references from partial masking.
+const bounded = (text, position) =>
+  boundary.test(text[position] || '') &&
+  !(text[position] === '.' && !/[\p{L}\p{N}_@]/u.test(text[position + 1] || ''));
+
+// Reference values (tokens with a digit, not ISO dates) in all string values.
+function referenceCandidates(value) {
   const candidates = new Set();
   mapStringValues(value, (text) => {
     for (const match of text.matchAll(tokens)) {
@@ -25,7 +25,14 @@ function opaqueContext(value) {
     }
     return text;
   });
-  const references = [...candidates];
+  return [...candidates];
+}
+
+// Keep local reference values reversible while the shared facade scrubs email, account and
+// telephone patterns (LLM_PROMPT_SCRUBBING). Without prompt scrubbing the value passes unchanged
+// and the map is empty. Never send the local reidentification map.
+function opaqueContext(value) {
+  const references = referenceCandidates(value);
   const { scrubbed, reidentMap } = scrubForLLM(
     references.map((candidate) => ({ value: candidate })),
     {
@@ -69,4 +76,4 @@ function restoreContext(value, reidentMap) {
     );
   return value;
 }
-module.exports = { opaqueContext, restoreContext };
+module.exports = { opaqueContext, referenceCandidates, restoreContext };
