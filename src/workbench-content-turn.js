@@ -693,7 +693,11 @@ async function runContentTurn(
         ],
       }
     );
-    if (stored?.length && situation.conversationShape !== 'filing') {
+    // A statement made next to the files is captured; it is no question for the tenant's evidence.
+    const statesSomething =
+      Boolean(situation.tenantMemory?.assertions?.length) ||
+      situation.roleStatement?.firstPerson === true;
+    if (stored?.length && situation.conversationShape !== 'filing' && !statesSomething) {
       const evidenceReply = await require('./workbench-project-manifest').projectManifestTurn(
         service,
         ctx,
@@ -806,13 +810,16 @@ async function runContentTurn(
         })
       : null;
   // Attached files dominate the understanding of their turn, and a first-person role statement can
-  // be taken for the role context alone; such a statement is read once more from the message
-  // alone, so it is not lost.
+  // be taken for the role context alone or cut to its first sentence; such a statement is read once
+  // more from the message alone, and the reading that covers more of the message is kept.
+  const roleStatement = situation.roleStatement?.firstPerson === true;
+  const covered = (items) =>
+    (items || []).reduce((sum, item) => sum + String(item?.basis || '').length, 0);
   if (
-    (incomingDocuments || situation.roleStatement?.firstPerson === true) &&
+    (incomingDocuments || roleStatement) &&
     !understandingFailed &&
     !draftRequest &&
-    !situation.tenantMemory?.assertions?.length &&
+    (roleStatement || !situation.tenantMemory?.assertions?.length) &&
     tenantMemory.eligible(envelope.userRequest, situation)
   ) {
     const assertions = await require('./workbench-document-knowledge')
@@ -823,7 +830,7 @@ async function runContentTurn(
         });
         return [];
       });
-    if (assertions.length)
+    if (assertions.length && covered(assertions) > covered(situation.tenantMemory?.assertions))
       situation = {
         ...situation,
         tenantMemory: {

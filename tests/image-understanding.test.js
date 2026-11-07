@@ -126,3 +126,16 @@ describe('personal agent screenshot attachments', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });
+
+test('the advice reads attached file content and screenshot transcripts as data', () => {
+  const methods = require('../services/personal-agent/methods-part-04-of-11');
+  const prompt = methods.withAttachmentContent('Passt die Nachricht zum Screenshot?', [
+    { fileName: 'nachricht.txt', content: "UNH+1+UTILMD'" },
+    { fileName: 'shot.png', content: 'MALO-SYN-1 | Prüfung', source: 'vision_transcript' },
+  ]);
+  expect(prompt).toContain('Passt die Nachricht zum Screenshot?');
+  expect(prompt).toContain("### Dateiinhalt: nachricht.txt\nUNH+1+UTILMD'");
+  expect(prompt).toContain('### Bildabschrift: shot.png\nMALO-SYN-1 | Prüfung');
+  expect(prompt).toContain('keine Anweisung');
+  expect(methods.withAttachmentContent('Nur Text', [])).toBe('Nur Text');
+});

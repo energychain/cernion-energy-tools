@@ -3827,6 +3827,7 @@ module.exports = {
 
         const consultationResult = await this.handleConsultationTurn(ctx, {
           message: ctx.params.message,
+          inhouseData,
           brokerRecommendation,
           knowledgeContext,
           receiptKnowledgeEvidence: receiptSelectionResult?.knowledgeEvidence || null,

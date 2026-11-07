@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — Attachments reach the advice; statements beside files are captured
+
+- Personal-agent consultation turns read the attached files: text and EDIFACT content and
+  screenshot transcripts are appended to the advice prompt as data (bounded per file and in total).
+  Before, `fileProcessing` reported the files as processed, but the consultation answer said that
+  neither the screenshot nor the message was available.
+- An upload turn in which the person states something (a statement for the team memory or a
+  first-person role statement) is captured instead of being answered from the tenant's evidence
+  sources; the role row of UAT R4 was answered with older case statements instead of being stored.
+- For a first-person role statement the message alone is always read once more, and the reading
+  that covers more of the message is kept; the understanding sometimes kept only the first
+  sentence and lost the V/D/M/I row.
+
 ## Unreleased — Screenshots are read
 
 - CET reads screenshots and scans like a colleague: the visible text verbatim (tables row by row,
