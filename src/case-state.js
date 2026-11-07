@@ -48,6 +48,13 @@ const LIMITS = {
   content: 1500,
 };
 
+// The provider accepts only a reduced schema grammar (Gemini rejects e.g. additionalProperties);
+// the same conversion as the other structured calls, loaded lazily to avoid a require cycle.
+function providerSchema(schema) {
+  const { answerProviderSchema, toFacadeSchema } = require('./workbench-understanding');
+  return toFacadeSchema(answerProviderSchema(schema));
+}
+
 const text = (value, max = LIMITS.text) =>
   String(value ?? '')
     .replace(/\s+/g, ' ')
@@ -503,7 +510,7 @@ async function updateCaseState(previous, input = {}, options = {}) {
   const state = normalizeCaseState(previous);
   const llm = options.llm || require('./llm-client');
   const raw = await llm.generateStructured(
-    CASE_UPDATE_SCHEMA,
+    providerSchema(CASE_UPDATE_SCHEMA),
     JSON.stringify({
       instruction: UPDATE_INSTRUCTION,
       caseState: {
@@ -586,7 +593,7 @@ async function reviewAnswer(reply, state, options = {}) {
   if (!draft.trim() || !state) return { reply: draft, issues: [], revised: false };
   const llm = options.llm || require('./llm-client');
   const raw = await llm.generateStructured(
-    REVIEW_SCHEMA,
+    providerSchema(REVIEW_SCHEMA),
     JSON.stringify({
       instruction: REVIEW_INSTRUCTION,
       caseState: caseStateView(state),

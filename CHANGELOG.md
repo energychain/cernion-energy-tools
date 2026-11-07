@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Case-state calls use the provider schema grammar
+
+- The case-state update and the pre-output answer check pass their schemas through the same
+  provider conversion as the other structured calls (`answerProviderSchema`, `toFacadeSchema`).
+  Gemini rejected the raw schemas (`additionalProperties`, `maxLength`) with 400 invalid argument,
+  so every turn fell back to the slower prompt-only path (20–35 s per case-state update in
+  production).
+
 ## Unreleased — The Open WebUI chat follows the case state too
 
 - Workbench conversations keep the shared case state (`src/case-state.js`) in their conversation
