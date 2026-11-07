@@ -1199,7 +1199,9 @@ async function runContentTurn(
                 hitCount: 0,
                 ms: Math.round(performance.now() - retrieveStarted),
                 error: require('./prompt-scrubber')
-                  .scrubPromptText(error.message || 'Werkzeugplanung nicht verfügbar')
+                  .scrubPromptText(error.message || 'Werkzeugplanung nicht verfügbar', {
+                    always: true,
+                  })
                   .slice(0, 240),
               },
             ],

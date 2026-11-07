@@ -915,9 +915,9 @@ async function runCapabilityLoop(
               : entry.called
                 ? 'unavailable'
                 : 'blocked';
-          entry.error = scrubPromptText(
-            error.message || error.type || 'Werkzeug fehlgeschlagen'
-          ).slice(0, 240);
+          entry.error = scrubPromptText(error.message || error.type || 'Werkzeug fehlgeschlagen', {
+            always: true,
+          }).slice(0, 240);
         }
         entry.ms = Math.round(performance.now() - callStarted);
         trace.push(entry);
@@ -941,7 +941,7 @@ async function runCapabilityLoop(
       status: isSourceTimeout(error) ? 'timeout' : 'unavailable',
       hitCount: 0,
       ms: Math.round(performance.now() - started),
-      error: scrubPromptText(error.message).slice(0, 240),
+      error: scrubPromptText(error.message, { always: true }).slice(0, 240),
     });
   }
   if (!trace.length)
