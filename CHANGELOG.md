@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — The Open WebUI chat follows the case state too
+
+- Workbench conversations keep the shared case state (`src/case-state.js`) in their conversation
+  state (`src/workbench-case-state.js`): each turn updates it from the message, the documents of
+  the turn and the retrieved sources (stored statements of the person stay reports, documents and
+  sources count as observed). The answer receives the case-state view and the same rules as the
+  personal agent (`CASE_VIEW_RULES`), and the reply is checked against the state before output;
+  drafts are left as written.
+
 ## Unreleased — A consolidated case state carries the consultation
 
 - The personal agent keeps a domain-free case state per session (`src/case-state.js`,

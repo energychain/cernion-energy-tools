@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "0c5a4c86beb4c69fb7f8a7629864798106669afa651948f3890b331826731e8d",
+  "sourceHash": "1f97a5413ae9e1fc17b6220534879f88e12a933ba7513f4cfef41b1bdd509071",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -9294,6 +9294,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-state.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/budgets.js"
         },
         {
@@ -13176,6 +13180,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-state.js"
         },
         {
           "kind": "service",
@@ -21735,6 +21743,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-state.js"
         },
         {
           "kind": "service",
@@ -32652,6 +32664,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-state.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/budgets.js"
         },
         {
@@ -36836,6 +36852,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-state.js"
         },
         {
           "kind": "service",
@@ -57134,6 +57154,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-state.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/budgets.js"
         },
         {
@@ -67684,6 +67708,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-state.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/budgets.js"
         },
         {
@@ -73587,6 +73615,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-state.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/budgets.js"
         },
         {
@@ -79263,6 +79295,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-state.js"
         },
         {
           "kind": "service",
@@ -85550,6 +85586,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-state.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/budgets.js"
         },
         {
@@ -88760,6 +88800,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-state.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/budgets.js"
         },
         {
@@ -91640,6 +91684,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-state.js"
         },
         {
           "kind": "service",
@@ -100703,6 +100751,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-state.js"
         },
         {
           "kind": "service",
@@ -114690,6 +114742,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-state.js"
         },
         {
           "kind": "service",
@@ -130974,6 +131030,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-state.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/budgets.js"
         },
         {
@@ -136326,6 +136386,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-state.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/budgets.js"
         },
         {
@@ -141056,6 +141120,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-state.js"
         },
         {
           "kind": "service",
@@ -145941,6 +146009,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-state.js"
         },
         {
           "kind": "service",
@@ -150861,6 +150933,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-state.js"
         },
         {
           "kind": "service",
@@ -165554,6 +165630,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-state.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/budgets.js"
         },
         {
@@ -166127,6 +166207,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-case-starters.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-case-state.js"
         },
         {
           "kind": "service",
@@ -175528,6 +175612,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-state.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cet-script/budgets.js"
         },
         {
@@ -183012,6 +183100,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-state.js"
         },
         {
           "kind": "service",
@@ -205612,6 +205704,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-state.js"
         },
         {
           "kind": "service",

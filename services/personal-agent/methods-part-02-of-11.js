@@ -15,6 +15,7 @@ const {
   CONSULTATION_HISTORY_ENTRY_MAX_CHARS,
   CONSULTATION_HISTORY_REDACTION_PLACEHOLDER,
 } = require('./shared');
+const { CASE_VIEW_RULES } = require('../../src/case-state');
 
 module.exports = {
   buildResponsePolicyContract({
@@ -723,24 +724,7 @@ module.exports = {
       facts.push('');
       facts.push('Fallzustand (konsolidierter aktueller Stand, maßgeblich für die Antwort):');
       facts.push(JSON.stringify(caseView).slice(0, 16000));
-      facts.push(
-        '- Bediene den Auftrag aus workIntent (task, requestedOutcome) für die genannte Rolle.'
-      );
-      facts.push(
-        '- Ist workIntent.ambiguous gesetzt, stelle zuerst die separatingQuestion und lege dich nicht fest.'
-      );
-      facts.push(
-        '- Mögliche Ursachen nur aus activeHypotheses; Einträge aus noLongerValid nie wieder als aktive Ursache oder gleichwertige Möglichkeit nennen, höchstens als überholt mit Grund.'
-      );
-      facts.push(
-        '- Kennzeichne die Herkunft wesentlicher Aussagen nach claims.basis: user_reported als Angabe der Person, source_observed als in der genannten Quelle gesehen, derived als Ableitung, hypothesis als Annahme. Nichts als gesichert oder geprüft darstellen, was nicht source_observed oder confirmed ist.'
-      );
-      facts.push(
-        '- Nenne entscheidungsrelevante Unterschiede aus sourceComparison ausdrücklich mit Auswirkung und nötiger Klärung.'
-      );
-      facts.push(
-        '- Schließe mit dem nächsten ausführbaren Schritt aus nextActions (Input, Rolle, erwartetes Ergebnis, Abschlusskriterium) und höchstens den Rückfragen aus openQuestions.'
-      );
+      for (const rule of CASE_VIEW_RULES) facts.push(`- ${rule}`);
     }
 
     if (Array.isArray(recentHistoryWindow) && recentHistoryWindow.length > 0) {

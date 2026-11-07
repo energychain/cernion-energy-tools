@@ -1,4 +1,5 @@
 'use strict';
+jest.mock('../src/workbench-case-state', () => require('./helpers/workbench-case-state-stub'));
 
 jest.mock('../src/llm-client', () => ({ generateText: jest.fn(), generateStructured: jest.fn() }));
 const llm = require('../src/llm-client');

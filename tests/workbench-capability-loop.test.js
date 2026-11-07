@@ -1,4 +1,5 @@
 'use strict';
+jest.mock('../src/workbench-case-state', () => require('./helpers/workbench-case-state-stub'));
 
 // These cases exercise masked LLM input, which is off by default (LLM_PROMPT_SCRUBBING).
 const previousPromptScrubbing = process.env.LLM_PROMPT_SCRUBBING;

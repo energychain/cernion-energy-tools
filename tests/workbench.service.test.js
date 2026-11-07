@@ -1,4 +1,5 @@
 'use strict';
+jest.mock('../src/workbench-case-state', () => require('./helpers/workbench-case-state-stub'));
 jest.mock('../src/llm-client', () => require('./helpers/workbench-llm-stub'));
 const fs = require('fs');
 const http = require('http');
