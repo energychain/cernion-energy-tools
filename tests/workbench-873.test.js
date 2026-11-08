@@ -520,7 +520,10 @@ test('B.1: document evidence is revalidated before the same data scope boundary;
   };
   const selected = await documentKnowledge.evidence(ctx, f.scenarios[4].message);
   const current = await documentKnowledge.currentEvidence(ctx, selected);
-  expect(scopedDataEvidence(current, { dataRequested: false })).toEqual([hits[1]]);
+  // Revalidated document hits carry their origin (documentRefs) for the conversation scope.
+  expect(scopedDataEvidence(current, { dataRequested: false })).toEqual([
+    { ...hits[1], metadata: { ...hits[1].metadata, documentRefs: [] } },
+  ]);
   expect(ctx.call).toHaveBeenCalledWith('knowledge-rag.documentGet', { id: f.records[0].id });
 });
 

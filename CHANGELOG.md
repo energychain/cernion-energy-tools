@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — Answers stay within the conversation unless the tenant's knowledge is asked for
+
+- A workbench answer uses the active conversation, its case and the material attached in it
+  (`src/workbench-context-scope.js`, operator decision of 2026-11-08 on TWL finding CTX-01).
+  Documents stored from other conversations and summaries of other cases enter only when the
+  person asks for the tenant's knowledge (a knowledge question, stored knowledge or a case search
+  in the understanding) or names a reference from that material, and they then carry their origin
+  („aus anderem Gespräch“, „aus anderem Fall“) into the answer evidence. Case work (task/work
+  turns) keeps to its own material. In the TWL UAT a later chat reproduced markers of two other chats
+  and content of another case; a fresh document search over the whole message brought them in.
+- Revalidated document hits carry the origin of the stored document (`documentRefs`).
+- Team memory is unchanged: it already selects other people's statements by the subjects the
+  message names and states their author, which keeps the hint between colleagues (e.g. a planned
+  shutdown and a grid limit at the same location).
+
 ## Unreleased — Fast answers, deeper thinking in the background
 
 - LLM calls can name a phase; the facade picks the model and thinking level per phase
