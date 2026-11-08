@@ -19,6 +19,13 @@
   case sessions and statements of other chats.
 - Statements, role information and corrections of the person no longer count as a request for
   existing tenant content.
+## Unreleased — Reflection keeps up with quick follow-up turns
+
+- A turn that ends while the background reflection of its conversation still runs is reflected
+  afterwards, once (the latest waiting turn replaces an earlier one); before, it was skipped.
+  Workbench and personal agent share the queue (`src/case-reflection-queue.js`).
+- A hypothesis proposed again with the same statement updates the existing one instead of
+  adding a duplicate.
 
 ## Unreleased — Conversation scope also for tenant evidence and the person profile
 

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "540b177a58ace0199c73806a91aa0e172987841d1db38e5c33a6702869d4a098",
+  "sourceHash": "8f52b81537c80b2878dbb5e1e19724c0efd491c0f1db0735a0cf9bc3b0799f8e",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -127717,6 +127717,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/case-reflection-queue.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/case-state.js"
         },
         {
@@ -165823,6 +165827,10 @@
         {
           "kind": "service",
           "ref": "src/case-linking.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/case-reflection-queue.js"
         },
         {
           "kind": "service",

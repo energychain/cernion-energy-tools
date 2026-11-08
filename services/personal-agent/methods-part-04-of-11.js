@@ -39,7 +39,7 @@ const {
 } = require('../../src/case-state');
 
 const CASE_REFLECTION_TIMEOUT_MS = Number(process.env.CASE_REFLECTION_TIMEOUT_MS) || 300000;
-const caseReflections = new Map();
+const caseReflections = require('../../src/case-reflection-queue').createReflectionQueue();
 const { CURATED_CAPABILITIES } = require('../../src/capability-catalog');
 const { getFunctionModel } = require('../../src/function-model');
 
@@ -375,46 +375,43 @@ module.exports = {
   // is merged into the session state current at write time; the turn does not wait for it.
   scheduleCaseReflection(ctx, { tenantId, sessionId, caseState, recentTurns = [] }) {
     if (!reflectionEnabled() || !caseState?.turn || !sessionId) return null;
-    const key = `${tenantId}:${sessionId}`;
-    if (caseReflections.has(key)) return caseReflections.get(key);
     const namespace = tenantNamespace(SESSION_NAMESPACE, tenantId);
-    const started = Date.now();
-    const job = reflectCaseState(
-      caseState,
-      { recentTurns },
-      {
-        tenantId,
-        timeoutMs: CASE_REFLECTION_TIMEOUT_MS,
-      }
-    )
-      .then(async (reflection) => {
-        const doc = await ctx.call(
-          'object-store.get',
-          { namespace, key: sessionId },
-          { meta: ctx.meta }
-        );
-        const payload = doc?.payload;
-        if (!payload?.l3) return null;
-        payload.l3.caseState = mergeReflection(payload.l3.caseState || caseState, reflection);
-        await ctx.call(
-          'object-store.put',
-          { namespace, key: sessionId, payload },
-          { meta: ctx.meta }
-        );
-        this.logger?.info?.('Personal agent case reflection', {
-          ms: Date.now() - started,
-          turn: reflection.turn,
-          addendum: Boolean(reflection.addendum),
+    return caseReflections.schedule(`${tenantId}:${sessionId}`, () => {
+      const started = Date.now();
+      return reflectCaseState(
+        caseState,
+        { recentTurns },
+        {
+          tenantId,
+          timeoutMs: CASE_REFLECTION_TIMEOUT_MS,
+        }
+      )
+        .then(async (reflection) => {
+          const doc = await ctx.call(
+            'object-store.get',
+            { namespace, key: sessionId },
+            { meta: ctx.meta }
+          );
+          const payload = doc?.payload;
+          if (!payload?.l3) return null;
+          payload.l3.caseState = mergeReflection(payload.l3.caseState || caseState, reflection);
+          await ctx.call(
+            'object-store.put',
+            { namespace, key: sessionId, payload },
+            { meta: ctx.meta }
+          );
+          this.logger?.info?.('Personal agent case reflection', {
+            ms: Date.now() - started,
+            turn: reflection.turn,
+            addendum: Boolean(reflection.addendum),
+          });
+          return payload.l3.caseState;
+        })
+        .catch((error) => {
+          this.logger?.warn?.(`Personal agent case reflection failed: ${error.message}`);
+          return null;
         });
-        return payload.l3.caseState;
-      })
-      .catch((error) => {
-        this.logger?.warn?.(`Personal agent case reflection failed: ${error.message}`);
-        return null;
-      })
-      .finally(() => caseReflections.delete(key));
-    caseReflections.set(key, job);
-    return job;
+    });
   },
 
   // Pre-output check of the drafted answer against the case state; a failed check keeps the draft.

@@ -525,3 +525,17 @@ describe('background reflection', () => {
     expect(mergeReflection(state, { turn: 0 })).toEqual(state);
   });
 });
+
+test('a repeated hypothesis without id updates the existing one', () => {
+  let state = applyCaseUpdate(createCaseState(), {
+    hypothesisUpdates: [{ statement: 'Ursache Q', status: 'open', evidenceRefs: [], reason: 'r' }],
+  });
+  state = applyCaseUpdate(state, {
+    evidence: [observed('n1', 'Quelle', 'Q belegt')],
+    hypothesisUpdates: [
+      { statement: 'ursache q', status: 'supported', evidenceRefs: ['n1'], reason: 'belegt' },
+    ],
+  });
+  expect(state.hypotheses).toHaveLength(1);
+  expect(state.hypotheses[0]).toMatchObject({ status: 'supported', evidenceIds: ['E1'] });
+});
