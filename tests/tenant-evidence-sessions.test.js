@@ -112,6 +112,17 @@ test('full turns use fresh authorized case memory, exclude their current session
   expect(controls.errors).toEqual([]);
 });
 
+test('a case from another chat the person does not bring in never takes over the turn (CTX-01)', async () => {
+  const first = await intake();
+  controls.gateDecision = 'unrelated';
+  const answer = await chat(question);
+  expect(answer.tenantEvidenceSelection).toBeUndefined();
+  expect(answer.responseText).not.toContain(`aus Fall ${first.caseDisplayRef}`);
+  const gate = controls.inputs.find((input) => input.foreign);
+  expect(gate.message).toBe(question);
+  expect(controls.errors).toEqual([]);
+});
+
 test('offering a colleague case reads metadata only; reading it as evidence is audited once', async () => {
   const first = await intake();
   const colleague = p('tenant-a', 'actor-b');

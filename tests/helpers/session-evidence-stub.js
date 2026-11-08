@@ -162,7 +162,17 @@ function installSessionStub({ realistic = false } = {}) {
   const controls = { classification: 'work', errors, inputs: [] };
   llm.generateStructured.mockImplementation(async (schema, raw) => {
     try {
-      controls.inputs.push(JSON.parse(raw));
+      const input = JSON.parse(raw);
+      controls.inputs.push(input);
+      // Foreign context gate: the question names the subject of the earlier chat (linked).
+      if (input.foreign)
+        return {
+          items: input.foreign.map(({ index }) => ({
+            index,
+            decision: controls.gateDecision || 'linked',
+            lesson: '',
+          })),
+        };
       return model(schema, raw, controls.classification, controls.internalAnswerField, realistic);
     } catch (error) {
       errors.push(error.message);

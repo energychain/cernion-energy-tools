@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "8f52b81537c80b2878dbb5e1e19724c0efd491c0f1db0735a0cf9bc3b0799f8e",
+  "sourceHash": "1b191fb668d98d11d22a4aa7a7536817deadb245fe8b946bae7de64cb4d378e0",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -9486,6 +9486,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/foreign-context-gate.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/format-response.js"
         },
         {
@@ -13384,6 +13388,10 @@
         {
           "kind": "service",
           "ref": "src/file-channel-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/foreign-context-gate.js"
         },
         {
           "kind": "service",
@@ -21967,6 +21975,10 @@
         {
           "kind": "service",
           "ref": "src/file-channel-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/foreign-context-gate.js"
         },
         {
           "kind": "service",
@@ -32888,6 +32900,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/foreign-context-gate.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/format-response.js"
         },
         {
@@ -37092,6 +37108,10 @@
         {
           "kind": "service",
           "ref": "src/file-channel-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/foreign-context-gate.js"
         },
         {
           "kind": "service",
@@ -57402,6 +57422,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/foreign-context-gate.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-coverage.js"
         },
         {
@@ -67968,6 +67992,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/foreign-context-gate.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-coverage.js"
         },
         {
@@ -73871,6 +73899,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/foreign-context-gate.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-coverage.js"
         },
         {
@@ -79575,6 +79607,10 @@
         {
           "kind": "service",
           "ref": "src/file-channel-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/foreign-context-gate.js"
         },
         {
           "kind": "service",
@@ -85866,6 +85902,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/foreign-context-gate.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-coverage.js"
         },
         {
@@ -89080,6 +89120,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/foreign-context-gate.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-coverage.js"
         },
         {
@@ -91996,6 +92040,10 @@
         {
           "kind": "service",
           "ref": "src/file-channel-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/foreign-context-gate.js"
         },
         {
           "kind": "service",
@@ -101071,6 +101119,10 @@
         {
           "kind": "service",
           "ref": "src/file-channel-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/foreign-context-gate.js"
         },
         {
           "kind": "service",
@@ -115065,6 +115117,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/foreign-context-gate.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/format-response.js"
         },
         {
@@ -128009,6 +128065,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/foreign-context-gate.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-coverage.js"
         },
         {
@@ -131359,6 +131419,10 @@
         {
           "kind": "service",
           "ref": "src/file-channel-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/foreign-context-gate.js"
         },
         {
           "kind": "service",
@@ -136746,6 +136810,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/foreign-context-gate.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/format-response.js"
         },
         {
@@ -141500,6 +141568,10 @@
         {
           "kind": "service",
           "ref": "src/file-channel-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/foreign-context-gate.js"
         },
         {
           "kind": "service",
@@ -146377,6 +146449,10 @@
         {
           "kind": "service",
           "ref": "src/file-channel-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/foreign-context-gate.js"
         },
         {
           "kind": "service",
@@ -151305,6 +151381,10 @@
         {
           "kind": "service",
           "ref": "src/file-channel-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/foreign-context-gate.js"
         },
         {
           "kind": "service",
@@ -176092,6 +176172,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/foreign-context-gate.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/function-coverage.js"
         },
         {
@@ -183524,6 +183608,10 @@
         {
           "kind": "service",
           "ref": "src/file-channel-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/foreign-context-gate.js"
         },
         {
           "kind": "service",
@@ -206132,6 +206220,10 @@
         {
           "kind": "service",
           "ref": "src/file-channel-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/foreign-context-gate.js"
         },
         {
           "kind": "service",
