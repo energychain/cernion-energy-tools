@@ -93,7 +93,15 @@ function caseRow(state, saved, refs) {
       uploadBacked: origin.uploadBacked,
     },
     conclusion,
+    // References the session itself names (e.g. a case marker the person gave); only for the
+    // exact-identifier link of the cross-case gate, never for routing or answers.
+    references: referencesIn([title, conclusion, ...sections]),
   };
+}
+
+function referencesIn(texts) {
+  const { referenceCandidates } = require('./workbench-identifier-context');
+  return referenceCandidates({ text: texts.filter(Boolean).join('\n') }).slice(0, 32);
 }
 
 function memoryRow(fact) {
@@ -117,6 +125,7 @@ function memoryRow(fact) {
     refs: [{ conversationId: fact.conversationId, channel: fact.channel }],
     provenance: { conversationId: fact.conversationId, channel: fact.channel, at: fact.at },
     conclusion: facts.factText(fact),
+    references: referencesIn([...names, fact.text]),
   };
 }
 

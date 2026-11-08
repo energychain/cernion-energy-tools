@@ -123,6 +123,45 @@ test('a case from another chat the person does not bring in never takes over the
   expect(controls.errors).toEqual([]);
 });
 
+test('a case marker from the session itself links it in the cross-case gate, never reaching descriptor prompts (CTX-01)', async () => {
+  const first = await intake();
+  const saved = await app.workbench.store.getTurnMemory({
+    tenantId: 'tenant-a',
+    caseId: first.cetCaseId,
+  });
+  const state = await app.router.loadCase(p(), first.cetCaseId);
+  const row = require('../src/tenant-evidence-sessions').caseRow(
+    state,
+    {
+      ...saved,
+      memory: { ...saved.memory, lastSafeConclusion: 'Vorgang SYN-CASE-7781 ist offen.' },
+    },
+    []
+  );
+  expect(row.references).toContain('SYN-CASE-7781');
+  const candidate = descriptor.evidenceCandidate('case', row, 'actor-a');
+  expect(candidate.references).toContain('SYN-CASE-7781');
+  await descriptor.ensureDescriptor('case', row, { enrich: true });
+  const prompts = llm.generateStructured.mock.calls.filter((args) => JSON.parse(args[1]).nodes);
+  expect(prompts.map((args) => args[1]).join('')).not.toContain('SYN-CASE-7781');
+  const judge = { generateStructured: jest.fn() };
+  const gated = await require('../src/foreign-context-gate').gateForeignEvidence(
+    [
+      {
+        source: candidate.title,
+        value: JSON.stringify({ title: candidate.title, manifest: candidate.manifest }),
+        metadata: {
+          scopeOrigin: 'aus anderem Gespräch',
+          identifiers: [...candidate.subjectIdentifiers, ...candidate.references],
+        },
+      },
+    ],
+    { message: 'Vergleiche bitte den Vorgang SYN-CASE-7781 mit der neuen Lage.', llm: judge }
+  );
+  expect(gated.decisions).toEqual(['linked']);
+  expect(judge.generateStructured).not.toHaveBeenCalled();
+});
+
 test('offering a colleague case reads metadata only; reading it as evidence is audited once', async () => {
   const first = await intake();
   const colleague = p('tenant-a', 'actor-b');

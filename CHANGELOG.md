@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Case markers the session itself names count for named linking
+
+- A stored session's typed identifiers hold what the understanding extracted (e.g. the object
+  ID), not always the marker the person gave the case; on prod the explicitly named case of the
+  isolation probe was still withheld. Sessions and statements now also carry the references in
+  their own title, conclusion and sections (and the case display reference) for the
+  exact-identifier link of the cross-case gate. They are used only for that comparison, never
+  for routing, descriptor prompts or answers.
+
 ## Unreleased — Named case linking also for stored sessions
 
 - The exact-identifier link of the cross-case gate compared stored sessions' typed identifiers
