@@ -424,10 +424,10 @@ function fromConversation(candidate, conversationId) {
   );
 }
 
-// Conversation scope (TWL CTX-01): material that stems from another chat (cases, statements,
-// chat documents) is left out when the request concerns only the current conversation. Project
-// files (Projektakten) are shared containers and stay.
-const CHAT_SOURCE_TYPES = new Set(['case', 'memory', 'document']);
+// Conversation scope (TWL CTX-01): case-specific material of another chat (case sessions,
+// statements) is left out when the request concerns only the current conversation. Project files
+// and stored documents are the tenant's shared knowledge and stay.
+const CHAT_SOURCE_TYPES = new Set(['case', 'memory']);
 function fromOtherChat(candidate, conversationId) {
   if (!conversationId || !CHAT_SOURCE_TYPES.has(candidate.sourceType)) return false;
   const conversations = [
@@ -480,7 +480,13 @@ async function projectManifestAnswer(ctx, question, options = {}) {
           contextual.sourceIds.includes(candidate.id)
       );
       relatedSourceIds = contextual.sourceIds;
-      selected = select(contextual.question);
+      // The enriched routing question must not pull in other chats' sources the resolution did
+      // not choose (conversation scope, TWL CTX-01).
+      selected = select(contextual.question).filter(
+        (candidate) =>
+          !fromOtherChat(candidate, options.currentConversationId) ||
+          contextual.sourceIds.includes(candidate.id)
+      );
       readQuestion = contextual.question;
     }
   }

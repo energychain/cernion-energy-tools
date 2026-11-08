@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased — Cross-case learning without cross-case disclosure
+
+- Material from other conversations and cases (documents, related cases, colleagues' statements)
+  now passes a per-item judgement (`context_gate` phase, fast model) against the operator
+  criterion: material from a case the person brings in stays, labelled with its origin; a
+  transferable lesson replaces the foreign case data and is marked as general experience, never
+  with identifiers or values of the other case (a repeated marker fails closed); a possibly
+  comparable case is only offered (`Dazu gibt es möglicherweise einen vergleichbaren Vorgang. Soll
+  ich die dort gewonnene Prüflogik einbeziehen?`), and agreeing in the next turn links it; the rest
+  stays out. Withheld items can become a lesson or an offer, never linked material; a failed
+  judgement drops all foreign items.
+- The answer keeps foreign material apart from the current case: experience only as general
+  experience or comparison hypothesis, a linked case with commonalities, differences, time and
+  evidence named separately, never as facts of this case.
+- Team memory in a conversation-scoped turn keeps colleagues' statements only for anchors the
+  message itself names, and the contextual reselection of tenant evidence no longer brings back
+  case sessions and statements of other chats.
+- Statements, role information and corrections of the person no longer count as a request for
+  existing tenant content.
 ## Unreleased — Reflection keeps up with quick follow-up turns
 
 - A turn that ends while the background reflection of its conversation still runs is reflected

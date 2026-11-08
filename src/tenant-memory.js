@@ -850,7 +850,13 @@ async function stopRecovery(service) {
 const CONVERSATION_FACTS = 5;
 const MAX_NOTICE_FACTS = 3;
 const MAX_NOTICE_CHARS = 1500;
-async function related(ctx, p, situation, message, { conversationId, channel } = {}) {
+async function related(
+  ctx,
+  p,
+  situation,
+  message,
+  { conversationId, channel, conversationScope = false } = {}
+) {
   if (!available(ctx)) return { evidence: [], text: '' };
   const facts = await store.query(ctx, p, { 'payload.type': 'tenant_memory_fact' });
   const identifiers = (situation.identifiers || []).map((entry) => entry.value);
@@ -859,6 +865,18 @@ async function related(ctx, p, situation, message, { conversationId, channel } =
     message,
     identifiers
   );
+  // Conversation scope (TWL CTX-01): another conversation's statement needs one of its subjects
+  // named in the message itself; identifiers derived by the understanding are not enough,
+  // unless the question asks for knowledge beyond this conversation.
+  if (conversationScope && !require('./workbench-context-scope').tenantScope(situation)) {
+    const own = (fact) =>
+      Boolean(conversationId) &&
+      fact.conversationId === conversationId &&
+      (!channel || fact.channel === channel);
+    selection.facts = selection.facts.filter(
+      (fact) => own(fact) || fact.anchors.some((anchor) => matchesAnchor(anchor, message, []))
+    );
+  }
   const own =
     conversationId && (situation.turnKind === 'knowledge' || message.includes('?'))
       ? facts

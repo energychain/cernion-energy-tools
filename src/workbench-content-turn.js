@@ -16,6 +16,7 @@ const { getFunctionModel } = require('./function-model');
 const { resolveFunctions, normalizePhrase } = require('./function-resolver');
 const { safeTurnMemory } = require('./workbench-turn-memory');
 const { datasetQuestion } = require('./dataset-routing');
+const foreignContextGate = require('./foreign-context-gate');
 
 // Stored statements are read from the tenant's object store; a tenant with many facts needs more
 // than a few hundred milliseconds, and a missed read silently drops what the person said.
@@ -31,6 +32,7 @@ function relatedMemory(ctx, memoryCtx, p, situation, envelope) {
         require('./tenant-memory').related(memoryCtx, p, situation, envelope.userRequest, {
           conversationId: envelope.conversationId,
           channel: envelope.channel,
+          conversationScope: true,
         }),
       memoryRetrievalMs()
     )
@@ -1442,9 +1444,21 @@ async function runContentTurn(
     message: envelope.userRequest,
     situation,
   });
-  retrieval.evidence = scoped.evidence;
-  if (scoped.withheld)
-    service.logger.info('Workbench conversation scope', { withheld: scoped.withheld });
+  // Cross-case criterion: linked material stays, a transferable lesson replaces case data, a
+  // possibly comparable case is suggested instead of disclosed, the rest stays out.
+  const gated = await foreignContextGate.gateForeignEvidence(scoped.evidence, {
+    withheld: scoped.withheldItems,
+    message: envelope.userRequest,
+    suggestionPending: Boolean(pending?.comparableSuggested),
+    tenantId: p.tenantId,
+    logger: service.logger,
+  });
+  retrieval.evidence = gated.evidence;
+  if (scoped.withheld || gated.decisions.length)
+    service.logger.info('Workbench conversation scope', {
+      withheld: scoped.withheld,
+      decisions: gated.decisions,
+    });
   retrieval.dataScope = {
     dataRequested: dataReadAllowed,
     tenantId: p.tenantId,
@@ -1530,6 +1544,11 @@ async function runContentTurn(
       logger: service.logger,
     });
     ({ reply, caseState } = workbenchCaseState.withAddendum(reply, caseState));
+    if (gated.suggest && !reply.responseText.includes(foreignContextGate.SUGGESTION))
+      reply = {
+        ...reply,
+        responseText: `${reply.responseText}\n\n${foreignContextGate.SUGGESTION}`,
+      };
   } finally {
     phaseTimes.answerMs = Math.max(1, Math.round(performance.now() - answerStarted));
   }
@@ -1724,6 +1743,7 @@ async function runContentTurn(
     offeredContent: '',
     lastQuestion: '',
     lastAnswer: reply.responseText.slice(0, 600),
+    comparableSuggested: gated.suggest,
     ...(caseState ? { caseState } : {}),
     askedQuestions: [...(pending?.askedQuestions || []), ...reply.questions],
     ...(knowledgeAsk ? { lastKnowledgeAskAt: Date.now() } : {}),
