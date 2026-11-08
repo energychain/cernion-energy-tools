@@ -498,9 +498,11 @@ async function projectManifestAnswer(ctx, question, options = {}) {
     selected.every((candidate) => fromConversation(candidate, options.currentConversationId))
   )
     return null;
-  const foreign = selected.filter((candidate) =>
-    fromOtherChat(candidate, options.currentConversationId)
-  );
+  // A resolved reference (readQuestion differs) already ties the request to that material.
+  const foreign =
+    readQuestion === question
+      ? selected.filter((candidate) => fromOtherChat(candidate, options.currentConversationId))
+      : [];
   const chatSources = selected.some(
     (candidate) => candidate.sourceType !== 'project' && candidate.sourceType
   );
