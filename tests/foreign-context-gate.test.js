@@ -100,7 +100,11 @@ describe('foreign context gate', () => {
     const session = {
       source: 'Sitzung',
       value: '{"title":"Projekt"}',
-      metadata: { scopeOrigin: 'aus anderem Gespräch', identifiers: ['SYN-PRJ-0042'] },
+      // Stored sessions carry typed identifiers.
+      metadata: {
+        scopeOrigin: 'aus anderem Gespräch',
+        identifiers: [{ value: 'SYN-PRJ-0042', type: 'project' }],
+      },
     };
     const withheld = foreign('Rohdaten zu SYN-PRJ-0042');
     const llm = llmReturning([{ index: 0, decision: 'unrelated', lesson: '' }]);

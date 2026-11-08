@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Named case linking also for stored sessions
+
+- The exact-identifier link of the cross-case gate compared stored sessions' typed identifiers
+  (`{ value, type }`) as objects, so a case named by its marker was never linked on the
+  tenant-evidence path and the turn answered without its material (prod probe, situation 4).
+  Typed identifiers now count by their value.
+
 ## Unreleased — A case named by its identifier is linked
 
 - When the message names another case or object by an exact identifier it carries (a case
