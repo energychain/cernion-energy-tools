@@ -79,10 +79,11 @@ function leaksIdentifiers(lesson, hit) {
 function namedReference(hit, message) {
   const named = new Set(referenceCandidates({ text: String(message || '') }));
   if (!named.size) return false;
+  // Stored sessions carry typed identifiers ({ value, type }); plain strings count as well.
   return [
-    ...(hit?.metadata?.identifiers || []),
+    ...(hit?.metadata?.identifiers || []).map((identifier) => identifier?.value ?? identifier),
     ...referenceCandidates({ text: `${hit?.value || ''} ${hit?.source || ''}` }),
-  ].some((identifier) => named.has(String(identifier)));
+  ].some((identifier) => typeof identifier === 'string' && named.has(identifier));
 }
 
 async function gateForeignEvidence(evidence = [], options = {}) {

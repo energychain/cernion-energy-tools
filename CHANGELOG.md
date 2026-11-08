@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Named case linking also for stored sessions
+
+- The exact-identifier link of the cross-case gate compared stored sessions' typed identifiers
+  (`{ value, type }`) as objects, so a case named by its marker was never linked on the
+  tenant-evidence path and the turn answered without its material (prod probe, situation 4).
+  Typed identifiers now count by their value.
 ## Unreleased — Tool-call follow-up turns with Gemini thinking models
 
 - A follow-up turn that returns a tool result failed with Gemini thinking models ("Function call
