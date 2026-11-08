@@ -212,7 +212,13 @@ describe('src/adapters/gemini generateChat', () => {
         { role: 'user', parts: [{ text: 'Wie ist das Wetter in Berlin?' }] },
         {
           role: 'model',
-          parts: [{ functionCall: { name: 'get_weather', args: { location: 'Berlin' } } }],
+          // Client-built history carries no signature: the documented validator skip is used.
+          parts: [
+            {
+              functionCall: { name: 'get_weather', args: { location: 'Berlin' } },
+              thoughtSignature: 'skip_thought_signature_validator',
+            },
+          ],
         },
         {
           role: 'user',

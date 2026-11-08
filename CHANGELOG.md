@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Tool-call follow-up turns with Gemini thinking models
+
+- A follow-up turn that returns a tool result failed with Gemini thinking models ("Function call
+  is missing a thought_signature"): OpenAI clients send back only id, name and arguments. The
+  facade now keeps each call's thought signature server-side (per tenant and call id, bounded)
+  and attaches it again; for calls without a known signature (client-built history, restart) the
+  Gemini adapter uses the documented validator skip. Signatures never leave CET. Found by the
+  live check of streamed tool calls after deploy.
+
 ## Unreleased — A case named by its identifier is linked
 
 - When the message names another case or object by an exact identifier it carries (a case

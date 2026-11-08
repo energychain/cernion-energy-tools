@@ -228,8 +228,36 @@ function estimateTokens(text) {
 // wants to call and with what arguments — it never invokes the tool itself;
 // that remains the caller's responsibility, exactly like real OpenAI
 // tool-calling.
+// Gemini needs the thought signature of each function call it returned when that call comes
+// back in the history; OpenAI clients only return id, name and arguments. Kept per tenant and
+// call id, bounded; the adapter covers unknown calls.
+const THOUGHT_SIGNATURES = new Map();
+const MAX_THOUGHT_SIGNATURES = 5000;
+function signatureKey(ctx, id) {
+  return `${ctx.meta.tenantId || ctx.meta.authUser?.tenantId || ''}:${id}`;
+}
+function rememberSignature(ctx, id, signature) {
+  if (!signature) return;
+  THOUGHT_SIGNATURES.set(signatureKey(ctx, id), signature);
+  while (THOUGHT_SIGNATURES.size > MAX_THOUGHT_SIGNATURES)
+    THOUGHT_SIGNATURES.delete(THOUGHT_SIGNATURES.keys().next().value);
+}
+function withSignatures(ctx, messages) {
+  return messages.map((message) =>
+    message.role === 'assistant' && Array.isArray(message.tool_calls)
+      ? {
+          ...message,
+          tool_calls: message.tool_calls.map((call) => {
+            const signature = call?.id && THOUGHT_SIGNATURES.get(signatureKey(ctx, call.id));
+            return signature ? { ...call, thoughtSignature: signature } : call;
+          }),
+        }
+      : message
+  );
+}
+
 async function buildToolCallingChatCompletion(ctx, messages, tools, requestedModel) {
-  const result = await llmClient.generateChat(messages, {
+  const result = await llmClient.generateChat(withSignatures(ctx, messages), {
     tools,
     toolChoice: ctx.params.tool_choice,
     model: requestedModel === FACADE_MODEL ? undefined : requestedModel,
@@ -244,11 +272,15 @@ async function buildToolCallingChatCompletion(ctx, messages, tools, requestedMod
     message = {
       role: 'assistant',
       content: null,
-      tool_calls: result.toolCalls.map((call) => ({
-        id: `call_${crypto.randomUUID().replace(/-/g, '')}`,
-        type: 'function',
-        function: { name: call.name, arguments: JSON.stringify(call.args || {}) },
-      })),
+      tool_calls: result.toolCalls.map((call) => {
+        const id = `call_${crypto.randomUUID().replace(/-/g, '')}`;
+        rememberSignature(ctx, id, call.thoughtSignature);
+        return {
+          id,
+          type: 'function',
+          function: { name: call.name, arguments: JSON.stringify(call.args || {}) },
+        };
+      }),
     };
     finishReason = 'tool_calls';
   } else {
