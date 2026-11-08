@@ -4,7 +4,72 @@
 // documents of the turn and the retrieved evidence; the answer follows the state and is checked
 // against it before output. Shares src/case-state with the personal agent.
 
-const { caseStateView, reviewAnswer, updateCaseState } = require('./case-state');
+const {
+  caseStateView,
+  mergeReflection,
+  reflectCaseState,
+  reflectionEnabled,
+  reviewAnswer,
+  takeAddendum,
+  updateCaseState,
+} = require('./case-state');
+
+// Background reflection after a turn (premium model, phase case_reflection): one per
+// conversation at a time; its result is merged into the state current at write time and an
+// addendum is shown with the next answer. Off in tests unless CASE_REFLECTION enables it.
+const REFLECTION_TIMEOUT_MS = Number(process.env.CASE_REFLECTION_TIMEOUT_MS) || 300000;
+const reflections = new Map();
+
+function scheduleReflection(service, p, envelope, { caseState, recentTurns = [], logger } = {}) {
+  if (!reflectionEnabled() || !caseState?.turn) return null;
+  const key = [p.tenantId, p.actorId, envelope.channel, envelope.conversationId].join(':');
+  if (reflections.has(key)) return reflections.get(key);
+  const conversation = require('./workbench-conversation');
+  const started = Date.now();
+  const job = reflectCaseState(
+    caseState,
+    { recentTurns },
+    {
+      tenantId: p.tenantId,
+      timeoutMs: REFLECTION_TIMEOUT_MS,
+    }
+  )
+    .then((reflection) =>
+      conversation
+        .saveCaseState(service.conversationsDb, p, envelope, (current) =>
+          mergeReflection(current || caseState, reflection)
+        )
+        .then((merged) => {
+          logger?.info?.('Workbench case reflection', {
+            ms: Date.now() - started,
+            turn: reflection.turn,
+            addendum: Boolean(reflection.addendum),
+            stored: Boolean(merged),
+          });
+          return merged;
+        })
+    )
+    .catch((error) => {
+      logger?.warn?.(`Workbench case reflection failed: ${error.message}`);
+      return null;
+    })
+    .finally(() => reflections.delete(key));
+  reflections.set(key, job);
+  return job;
+}
+
+// An addendum from the background reflection precedes the next answer, once.
+function withAddendum(reply, caseState) {
+  const { addendum, state } = takeAddendum(caseState);
+  if (!addendum || !reply?.responseText) return { reply, caseState: caseState && state };
+  return {
+    reply: {
+      ...reply,
+      responseText: `Nachtrag zum bisherigen Stand: ${addendum}\n\n${reply.responseText}`,
+    },
+    caseState: state,
+  };
+}
 
 const MAX_SOURCES = 8;
 
@@ -58,4 +123,12 @@ async function reviewTurnReply(reply, caseState, { tenantId, logger } = {}) {
   }
 }
 
-module.exports = { caseStateView, reviewTurnReply, turnEvidence, updateTurnCaseState };
+module.exports = {
+  caseStateView,
+  reflectionEnabled,
+  reviewTurnReply,
+  scheduleReflection,
+  turnEvidence,
+  updateTurnCaseState,
+  withAddendum,
+};

@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — Fast answers, deeper thinking in the background
+
+- LLM calls can name a phase; the facade picks the model and thinking level per phase
+  (`src/llm-phases.js`, override with `LLM_PHASE_MODELS`). The in-turn case-state update and the
+  pre-output answer check run on `gemini-3.5-flash-lite` with minimal thinking: about 3 s instead
+  of about 21 s per update on `gemini-flash-latest` in a benchmark on five UAT turns, with the same
+  work model, evidence kinds and route fit.
+- After each turn a background reflection (`case_reflection`, `gemini-4-argon` with high thinking)
+  checks the whole case state again: hypothesis lifecycle, source comparison, claims, decisive
+  question, executable next step. Its result is merged into the state current at write time, so a
+  later turn is never overwritten; one reflection runs per conversation at a time. When it changes
+  the assessment materially, the next answer begins with a short addendum („Nachtrag zum
+  bisherigen Stand“). Workbench and personal agent; `CASE_REFLECTION`,
+  `CASE_REFLECTION_TIMEOUT_MS` (operator decision of 2026-11-08).
+
 ## Unreleased — Case-state calls use the provider schema grammar
 
 - The case-state update and the pre-output answer check pass their schemas through the same

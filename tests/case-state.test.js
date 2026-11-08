@@ -425,3 +425,103 @@ test('case-state calls send the provider schema grammar', async () => {
     expect(schema).not.toContain('maxLength');
   }
 });
+
+describe('background reflection', () => {
+  const { reflectCaseState, mergeReflection, takeAddendum } = require('../src/case-state');
+  const base = () =>
+    applyCaseUpdate(createCaseState(), {
+      evidence: [report('n1', 'P fehlt vermutlich')],
+      hypothesisUpdates: [
+        { statement: 'Ursache P', status: 'open', evidenceRefs: ['n1'], reason: 'r' },
+      ],
+      nextActions: [
+        {
+          action: 'P prüfen',
+          input: '',
+          role: 'A',
+          expectedResult: '',
+          closureCriterion: '',
+          kind: 'reversible_check',
+        },
+      ],
+    });
+
+  test('runs in the reflection phase; route fit and empty lists stay unchanged', async () => {
+    const calls = [];
+    const llm = {
+      generateStructured: async (schema, prompt, options) => {
+        calls.push({ schema: JSON.stringify(schema), input: JSON.parse(prompt), options });
+        return {
+          workIntent: null,
+          routeFit: [{ candidateId: 'x', fit: 'fits', reason: '' }],
+          evidence: [],
+          claims: [],
+          hypothesisUpdates: [
+            {
+              hypothesisId: 'H1',
+              statement: 'Ursache P',
+              status: 'supported',
+              evidenceRefs: ['E1'],
+              reason: 'tiefer geprüft',
+            },
+          ],
+          crossEvidence: [],
+          openQuestions: [],
+          nextActions: [],
+          closureCriteria: [],
+          addendum: 'Die Vermutung P ist gestützt.',
+        };
+      },
+    };
+    const state = base();
+    const reflection = await reflectCaseState(
+      state,
+      { recentTurns: [{ role: 'user', text: 'Hi' }] },
+      { llm, tenantId: 't' }
+    );
+    expect(calls[0].options).toMatchObject({ phase: 'case_reflection', tenantId: 't' });
+    expect(calls[0].schema).toContain('addendum');
+    expect(calls[0].input.conversation).toEqual([{ role: 'user', text: 'Hi' }]);
+    expect(reflection.delta).not.toHaveProperty('routeFit');
+    expect(reflection.delta).not.toHaveProperty('nextActions');
+    const merged = mergeReflection(state, reflection);
+    expect(merged.hypotheses[0].status).toBe('supported');
+    expect(merged.nextActions).toEqual(state.nextActions);
+    expect(merged).toMatchObject({
+      reflectedAtTurn: 1,
+      pendingAddendum: 'Die Vermutung P ist gestützt.',
+    });
+  });
+
+  test('a reflection finished after a later turn keeps that turn; the addendum is taken once', () => {
+    const state = base();
+    const later = applyCaseUpdate(state, {
+      hypothesisUpdates: [
+        { statement: 'Ursache Q', status: 'open', evidenceRefs: [], reason: 'neu' },
+      ],
+    });
+    const merged = mergeReflection(later, {
+      turn: 1,
+      delta: {
+        hypothesisUpdates: [
+          {
+            hypothesisId: 'H1',
+            statement: 'Ursache P',
+            status: 'refuted',
+            evidenceRefs: ['E1'],
+            reason: 'r',
+          },
+        ],
+      },
+      addendum: 'P scheidet aus.',
+    });
+    expect(merged.turn).toBe(2);
+    // The reflection refutes H1; H2 from the later turn stays.
+    expect(merged.hypotheses.map((h) => h.status)).toEqual(['refuted', 'open']);
+    expect(merged.violations).toEqual([]);
+    const first = takeAddendum(merged);
+    expect(first.addendum).toBe('P scheidet aus.');
+    expect(takeAddendum(first.state).addendum).toBe('');
+    expect(mergeReflection(state, { turn: 0 })).toEqual(state);
+  });
+});

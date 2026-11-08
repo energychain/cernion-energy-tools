@@ -2,7 +2,7 @@
 
 // personal-agent methods chunk 4/11 — extracted verbatim from
 // services/personal-agent.service.js as part of the v0.99 file-size modularization.
-// Contains: applyConsultationGuardrailsToBroker, handleConsultationTurn, updateTurnCaseState, reviewConsultationReply, alignBrokerWithCaseState, buildEmpathethicOnboardingReply, runDream, buildDreamAuthMeta, sanitizeDreamRequestHeaders, deepMergeMeta, buildFileProcessingIntro, resolveExtractForAttachment, buildInhouseDataFromAttachments, processFileAttachments, synthesizeTurn, buildGridOperatorFlexibilityCompletedReply, buildSynthesisStyleLead
+// Contains: applyConsultationGuardrailsToBroker, handleConsultationTurn, updateTurnCaseState, reviewConsultationReply, withCaseAddendum, scheduleCaseReflection, alignBrokerWithCaseState, buildEmpathethicOnboardingReply, runDream, buildDreamAuthMeta, sanitizeDreamRequestHeaders, deepMergeMeta, buildFileProcessingIntro, resolveExtractForAttachment, buildInhouseDataFromAttachments, processFileAttachments, synthesizeTurn, buildGridOperatorFlexibilityCompletedReply, buildSynthesisStyleLead
 
 const {
   crypto,
@@ -19,6 +19,7 @@ const {
   readTextContent,
   injectFileIntoL3,
   PROFILE_NAMESPACE,
+  SESSION_NAMESPACE,
   CONSULTATION_OUTPUT_SCHEMA,
   isNotFound,
   isActionUnavailable,
@@ -28,10 +29,17 @@ const {
 } = require('./shared');
 const {
   caseStateView,
+  mergeReflection,
   normalizeCaseState,
+  reflectCaseState,
+  reflectionEnabled,
   reviewAnswer,
+  takeAddendum,
   updateCaseState,
 } = require('../../src/case-state');
+
+const CASE_REFLECTION_TIMEOUT_MS = Number(process.env.CASE_REFLECTION_TIMEOUT_MS) || 300000;
+const caseReflections = new Map();
 const { CURATED_CAPABILITIES } = require('../../src/capability-catalog');
 const { getFunctionModel } = require('../../src/function-model');
 
@@ -353,6 +361,60 @@ module.exports = {
       this.logger?.warn(`Case state update failed: ${error.message}`);
       return previous ? normalizeCaseState(previous) : null;
     }
+  },
+
+  // An addendum of the background reflection precedes the next consultation answer, once.
+  withCaseAddendum(reply, caseState) {
+    if (!caseState) return { reply, caseState };
+    const { addendum, state } = takeAddendum(caseState);
+    if (!addendum || !reply) return { reply, caseState };
+    return { reply: `Nachtrag zum bisherigen Stand: ${addendum}\n\n${reply}`, caseState: state };
+  },
+
+  // Background reflection after the turn (premium model); one per session at a time. The result
+  // is merged into the session state current at write time; the turn does not wait for it.
+  scheduleCaseReflection(ctx, { tenantId, sessionId, caseState, recentTurns = [] }) {
+    if (!reflectionEnabled() || !caseState?.turn || !sessionId) return null;
+    const key = `${tenantId}:${sessionId}`;
+    if (caseReflections.has(key)) return caseReflections.get(key);
+    const namespace = tenantNamespace(SESSION_NAMESPACE, tenantId);
+    const started = Date.now();
+    const job = reflectCaseState(
+      caseState,
+      { recentTurns },
+      {
+        tenantId,
+        timeoutMs: CASE_REFLECTION_TIMEOUT_MS,
+      }
+    )
+      .then(async (reflection) => {
+        const doc = await ctx.call(
+          'object-store.get',
+          { namespace, key: sessionId },
+          { meta: ctx.meta }
+        );
+        const payload = doc?.payload;
+        if (!payload?.l3) return null;
+        payload.l3.caseState = mergeReflection(payload.l3.caseState || caseState, reflection);
+        await ctx.call(
+          'object-store.put',
+          { namespace, key: sessionId, payload },
+          { meta: ctx.meta }
+        );
+        this.logger?.info?.('Personal agent case reflection', {
+          ms: Date.now() - started,
+          turn: reflection.turn,
+          addendum: Boolean(reflection.addendum),
+        });
+        return payload.l3.caseState;
+      })
+      .catch((error) => {
+        this.logger?.warn?.(`Personal agent case reflection failed: ${error.message}`);
+        return null;
+      })
+      .finally(() => caseReflections.delete(key));
+    caseReflections.set(key, job);
+    return job;
   },
 
   // Pre-output check of the drafted answer against the case state; a failed check keeps the draft.

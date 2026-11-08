@@ -21,6 +21,7 @@ const { SchemaType } = require('@google/generative-ai');
 const { MoleculerError } = require('moleculer').Errors;
 const metrics = require('./metrics');
 const { scrubPromptText, scrubPrompt } = require('./prompt-scrubber');
+const { withPhase } = require('./llm-phases');
 const tracing = require('./tracing');
 const { getObservabilityContext } = require('./observability-context');
 const rateQuotaStore = require('./rate-quota-store');
@@ -417,6 +418,7 @@ async function observeLlmCall(adapter, operation, options, usageInput, task) {
  * @throws {MoleculerError}  503 LLM_NOT_CONFIGURED if GEMINI_API_KEY is not set.
  */
 async function generateText(prompt, options = {}) {
+  options = withPhase(options);
   const adapter = getAdapter();
   const scrubbedPrompt = scrubPrompt(prompt);
   return await observeLlmCall(adapter, 'generate_text', options, scrubbedPrompt, () =>
@@ -436,6 +438,7 @@ async function generateText(prompt, options = {}) {
  * @throws {SyntaxError}     If the model returns non-parseable JSON (unexpected).
  */
 async function generateStructured(responseSchema, prompt, options = {}) {
+  options = withPhase(options);
   const adapter = getAdapter();
   const mode = (options.structuredMode || getStructuredMode()).toLowerCase();
   const scrubbedPrompt = scrubPrompt(prompt);
@@ -516,6 +519,7 @@ const MAX_VISION_BYTES = Number(process.env.LLM_VISION_MAX_BYTES || 10 * 1024 * 
  * @throws {MoleculerError} 503 LLM_CAPABILITY_MISSING if the provider cannot read images.
  */
 async function describeImage(image, prompt, options = {}) {
+  options = withPhase(options);
   const adapter = getAdapter();
   const caps = typeof adapter.capabilities === 'function' ? adapter.capabilities() : {};
   if (!caps.vision || typeof adapter.describeImage !== 'function') {
@@ -585,6 +589,7 @@ async function generateImage(prompt, options = {}) {
  * @throws {MoleculerError} 503 LLM_NOT_CONFIGURED if the provider's API key is not set.
  */
 async function generateChat(messages, options = {}) {
+  options = withPhase(options);
   const adapter = getAdapter();
   const caps = typeof adapter.capabilities === 'function' ? adapter.capabilities() : {};
   if (!caps.toolCalling || typeof adapter.generateChat !== 'function') {

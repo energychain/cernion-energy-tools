@@ -160,3 +160,49 @@ test('the case state survives persisting and loading the session', async () => {
   );
   expect(session.l3.caseState).toEqual(caseState);
 });
+
+describe('background reflection in the personal agent', () => {
+  const previous = process.env.CASE_REFLECTION;
+  afterEach(() => {
+    if (previous === undefined) delete process.env.CASE_REFLECTION;
+    else process.env.CASE_REFLECTION = previous;
+  });
+
+  test('the reflection is merged into the stored session state', async () => {
+    process.env.CASE_REFLECTION = 'true';
+    const state = applyCaseUpdate(createCaseState(), delta());
+    const stored = { payload: { l3: { history: ['kept'], caseState: state } } };
+    const calls = [];
+    const ctx = {
+      meta: {},
+      call: async (name, params) => {
+        calls.push(name);
+        if (name === 'object-store.get') return structuredClone(stored);
+        if (name === 'object-store.put') stored.payload = params.payload;
+        return {};
+      },
+    };
+    llm.generateStructured.mockResolvedValue({ ...delta(), addendum: 'Neu eingeordnet.' });
+    const merged = await service.scheduleCaseReflection(ctx, {
+      tenantId: 't1',
+      sessionId: 's1',
+      caseState: state,
+    });
+    expect(llm.generateStructured.mock.calls[0][2]).toMatchObject({ phase: 'case_reflection' });
+    expect(calls).toEqual(['object-store.get', 'object-store.put']);
+    expect(stored.payload.l3.history).toEqual(['kept']);
+    expect(stored.payload.l3.caseState.pendingAddendum).toBe('Neu eingeordnet.');
+    expect(merged.reflectedAtTurn).toBe(1);
+  });
+
+  test('the addendum precedes the next consultation answer once', () => {
+    const state = { ...applyCaseUpdate(createCaseState(), delta()), pendingAddendum: 'Neu.' };
+    const first = service.withCaseAddendum('Antwort.', state);
+    expect(first.reply).toBe('Nachtrag zum bisherigen Stand: Neu.\n\nAntwort.');
+    expect(service.withCaseAddendum('Antwort.', first.caseState).reply).toBe('Antwort.');
+    expect(service.withCaseAddendum('Antwort.', null)).toEqual({
+      reply: 'Antwort.',
+      caseState: null,
+    });
+  });
+});
