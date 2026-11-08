@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `93d025e1390f7ede0c34566fcd2d4188f5d29f5d170f3fa7d43066f1915931a9`
+Source SHA-256: `b396c98f43c070b147cb73deab692554a43c8d2447b7868b8c02b119b91b4ea1`
 
 Capabilities: 173; functions: 107.
 Function vectors: 107/107; missing or incompatible capability vectors: 0.
@@ -14,7 +14,7 @@ Maximum degree target: ≤ 0.25 × 107 = 26.75; met: yes.
 
 Candidate degree before mutual selection: {"minimum":0,"median":4,"maximum":37,"isolatedFraction":0.27102803738317754}; pruned directed edges: 86; peer limit: 26.
 
-Operation index entries without action: 19/1031.
+Operation index entries without action: 20/1044.
 
 All curated capabilities are assigned once, including entries without resolvable operations.
 Edges describe catalog evidence only; they grant no authorization.
@@ -483,7 +483,7 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (112)
+## unresolvedStaticEvents (114)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:228: dynamic emission"}
@@ -536,6 +536,8 @@ None.
 - {"service":"grid-connection","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"grid-operations","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"job-status","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"knowledge-gateway","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"knowledge-gateway","ref":"src/llm-client.js:228: dynamic emission"}
 - {"service":"knowledge-needs","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"knowledge-needs","ref":"src/llm-client.js:228: dynamic emission"}
 - {"service":"knowledge-rag","ref":"services/knowledge-rag.service.js:137: dynamic emission"}

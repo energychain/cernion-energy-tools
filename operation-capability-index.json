@@ -2,16 +2,16 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "e7a52d91b8309277d196c6a66d2188de692269313fbd93c5294ba9b124ffe210",
+  "sourceOpenApiHash": "780a34c0cfc51b51c466710694b809cfd71a59ef322ad1a2a9e244096e5119d2",
   "coverage": {
-    "rawOperationCount": 1287,
-    "operationCount": 1031,
-    "agentableCount": 1029,
+    "rawOperationCount": 1300,
+    "operationCount": 1044,
+    "agentableCount": 1042,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 451,
+      "data_read": 458,
       "admin": 24,
-      "object_store_write": 273,
+      "object_store_write": 279,
       "process_step": 27,
       "process_start": 54,
       "advisory_plan": 48,
@@ -20,8 +20,8 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 1012,
-    "unresolvedActionCount": 19,
+    "resolvedActionCount": 1024,
+    "unresolvedActionCount": 20,
     "unresolvedActions": [
       {
         "operationId": "assets_biomass",
@@ -118,6 +118,12 @@
         "method": "GET",
         "path": "/api/vdmi/tenants/:tenantId/tasks/:taskId/negotiation-trace",
         "reason": "route_action_not_declared: vdmi-spectator.negotiationTrace"
+      },
+      {
+        "operationId": "cernion_knowledge_search",
+        "method": "POST",
+        "path": "/api/workbench/knowledge/search",
+        "reason": "no_static_route_or_action_declaration"
       },
       {
         "operationId": "createChatCompletion",
@@ -93437,6 +93443,1082 @@
         "curated": false
       },
       "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "knowledge-gateway_bases_list",
+      "method": "GET",
+      "path": "/api/workbench/knowledge-bases",
+      "service": "workbench",
+      "action": "knowledge-gateway.bases.list",
+      "summary": "List the knowledge bases the authenticated actor may read",
+      "tags": [
+        "Knowledge Gateway"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.knowledge-gateway_bases_list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "knowledge",
+          "gateway",
+          "bases",
+          "list",
+          "authenticated",
+          "actor",
+          "may",
+          "read",
+          "workbench"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list the knowledge bases the authenticated actor may read"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "knowledge-gateway_bases_create",
+      "method": "POST",
+      "path": "/api/workbench/knowledge-bases",
+      "service": "workbench",
+      "action": "knowledge-gateway.bases.create",
+      "summary": "POST /knowledge-bases",
+      "tags": [
+        "Knowledge Gateway"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.knowledge-gateway_bases_create"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "knowledge",
+          "gateway",
+          "bases",
+          "create",
+          "workbench"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please post /knowledge-bases"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "knowledge-gateway_bases_remove",
+      "method": "DELETE",
+      "path": "/api/workbench/knowledge-bases/:knowledgeBaseId",
+      "service": "workbench",
+      "action": "knowledge-gateway.bases.remove",
+      "summary": "Delete a knowledge base and all of its documents (owner only)",
+      "tags": [
+        "Knowledge Gateway"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.knowledge-gateway_bases_remove"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Knowledgebase"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "deletes_stored_object"
+      ],
+      "idempotency": "idempotent",
+      "rollbackHint": "Deletion is generally not reversible via API - restore from backup/audit trail if available.",
+      "parameters": {
+        "required": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "knowledge",
+          "gateway",
+          "bases",
+          "remove",
+          "delete",
+          "base",
+          "all",
+          "its",
+          "documents",
+          "(owner",
+          "only)",
+          "workbench"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please delete a knowledge base and all of its documents (owner only)"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "knowledge-gateway_bases_get",
+      "method": "GET",
+      "path": "/api/workbench/knowledge-bases/:knowledgeBaseId",
+      "service": "workbench",
+      "action": "knowledge-gateway.bases.get",
+      "summary": "Read one knowledge base",
+      "tags": [
+        "Knowledge Gateway"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.knowledge-gateway_bases_get"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Knowledgebase"
+      ],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "knowledge",
+          "gateway",
+          "bases",
+          "read",
+          "one",
+          "base",
+          "workbench"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me read one knowledge base"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "knowledge-gateway_bases_update",
+      "method": "PATCH",
+      "path": "/api/workbench/knowledge-bases/:knowledgeBaseId",
+      "service": "workbench",
+      "action": "knowledge-gateway.bases.update",
+      "summary": "Change name, description, visibility, ACL or chat default (owner only)",
+      "tags": [
+        "Knowledge Gateway"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.knowledge-gateway_bases_update"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Knowledgebase"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "knowledge",
+          "gateway",
+          "bases",
+          "update",
+          "change",
+          "name,",
+          "description,",
+          "visibility,",
+          "acl",
+          "or",
+          "chat",
+          "default",
+          "(owner",
+          "only)",
+          "workbench"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please change name, description, visibility, acl or chat default (owner only)"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "knowledge-gateway_documents_list",
+      "method": "GET",
+      "path": "/api/workbench/knowledge-bases/:knowledgeBaseId/documents",
+      "service": "workbench",
+      "action": "knowledge-gateway.documents.list",
+      "summary": "List the documents of a knowledge base with their status",
+      "tags": [
+        "Knowledge Gateway"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.knowledge-gateway_documents_list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Knowledgebase"
+      ],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "knowledge",
+          "gateway",
+          "documents",
+          "list",
+          "base",
+          "with",
+          "their",
+          "status",
+          "workbench"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list the documents of a knowledge base with their status"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "knowledge-gateway_documents_add",
+      "method": "POST",
+      "path": "/api/workbench/knowledge-bases/:knowledgeBaseId/documents",
+      "service": "workbench",
+      "action": "knowledge-gateway.documents.add",
+      "summary": "Add a document from a CET file reference (fileId) or an upload (name, mimeType, contentBase64)",
+      "tags": [
+        "Knowledge Gateway"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.knowledge-gateway_documents_add"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Knowledgebase"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "fileId",
+            "in": "body",
+            "type": "string",
+            "description": "CET file channel reference",
+            "extractionHint": null
+          },
+          {
+            "name": "name",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "mimeType",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "contentBase64",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "title",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "sensitivityLevel",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "source",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "knowledge",
+          "gateway",
+          "documents",
+          "add",
+          "document",
+          "from",
+          "cet",
+          "file",
+          "reference",
+          "(file",
+          "id)",
+          "or",
+          "an",
+          "upload",
+          "(name,",
+          "mime",
+          "type,",
+          "content",
+          "base64)",
+          "workbench"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please add a document from a cet file reference (fileid) or an upload (name, mimetype, contentbase64)"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "knowledge-gateway_documents_remove",
+      "method": "DELETE",
+      "path": "/api/workbench/knowledge-bases/:knowledgeBaseId/documents/:documentId",
+      "service": "workbench",
+      "action": "knowledge-gateway.documents.remove",
+      "summary": "Delete a document: leaves search at once, all chunks are removed",
+      "tags": [
+        "Knowledge Gateway"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.knowledge-gateway_documents_remove"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Knowledgebase",
+        "Document"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "deletes_stored_object"
+      ],
+      "idempotency": "idempotent",
+      "rollbackHint": "Deletion is generally not reversible via API - restore from backup/audit trail if available.",
+      "parameters": {
+        "required": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "knowledge",
+          "gateway",
+          "documents",
+          "remove",
+          "delete",
+          "document",
+          "leaves",
+          "search",
+          "at",
+          "once,",
+          "all",
+          "chunks",
+          "are",
+          "removed",
+          "workbench"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please delete a document: leaves search at once, all chunks are removed"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "knowledge-gateway_documents_get",
+      "method": "GET",
+      "path": "/api/workbench/knowledge-bases/:knowledgeBaseId/documents/:documentId",
+      "service": "workbench",
+      "action": "knowledge-gateway.documents.get",
+      "summary": "Read one document and its ingestion status",
+      "tags": [
+        "Knowledge Gateway"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.knowledge-gateway_documents_get"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Knowledgebase",
+        "Document"
+      ],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "knowledge",
+          "gateway",
+          "documents",
+          "read",
+          "one",
+          "document",
+          "its",
+          "ingestion",
+          "status",
+          "workbench"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me read one document and its ingestion status"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "knowledge-gateway_documents_reindex",
+      "method": "POST",
+      "path": "/api/workbench/knowledge-bases/:knowledgeBaseId/documents/:documentId/reindex",
+      "service": "workbench",
+      "action": "knowledge-gateway.documents.reindex",
+      "summary": "Rebuild the chunks of a document; the current ones stay until it is ready",
+      "tags": [
+        "Knowledge Gateway"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.knowledge-gateway_documents_reindex"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Knowledgebase",
+        "Document"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "knowledge",
+          "gateway",
+          "documents",
+          "reindex",
+          "rebuild",
+          "chunks",
+          "document;",
+          "current",
+          "ones",
+          "stay",
+          "until",
+          "it",
+          "is",
+          "ready",
+          "workbench"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please rebuild the chunks of a document; the current ones stay until it is ready"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "knowledge-gateway_citations_get",
+      "method": "GET",
+      "path": "/api/workbench/knowledge/citations/:citationId",
+      "service": "workbench",
+      "action": "knowledge-gateway.citations.get",
+      "summary": "Resolve a citation; access is checked again",
+      "tags": [
+        "Knowledge Gateway"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.knowledge-gateway_citations_get"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Citation"
+      ],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "citationId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "knowledge",
+          "gateway",
+          "citations",
+          "resolve",
+          "citation;",
+          "access",
+          "is",
+          "checked",
+          "again",
+          "workbench"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me resolve a citation; access is checked again"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "knowledge-gateway_toolOpenApi",
+      "method": "GET",
+      "path": "/api/workbench/knowledge/openapi.json",
+      "service": "workbench",
+      "action": "knowledge-gateway.toolOpenApi",
+      "summary": "OpenAPI document of the Open WebUI tool cernion_knowledge_search",
+      "tags": [
+        "Knowledge Gateway"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.knowledge-gateway_tool_open_api"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "knowledge",
+          "gateway",
+          "tool",
+          "open",
+          "document",
+          "web",
+          "ui",
+          "cernion",
+          "search",
+          "workbench"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me openapi document of the open webui tool cernion_knowledge_search"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "cernion_knowledge_search",
+      "method": "POST",
+      "path": "/api/workbench/knowledge/search",
+      "service": "workbench",
+      "action": null,
+      "summary": "Search released knowledge with citations (Open WebUI tool)",
+      "tags": [
+        "Knowledge Gateway"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.cernion_knowledge_search"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "question",
+            "in": "body",
+            "type": "string",
+            "description": "The question to search the knowledge for.",
+            "extractionHint": null
+          },
+          {
+            "name": "query",
+            "in": "body",
+            "type": "string",
+            "description": "Alias of question.",
+            "extractionHint": null
+          },
+          {
+            "name": "knowledgeBaseIds",
+            "in": "body",
+            "type": "array",
+            "description": "Knowledge bases to search; empty uses the default bases released to you.",
+            "extractionHint": null
+          },
+          {
+            "name": "topK",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": "result_limit"
+          },
+          {
+            "name": "scoreThreshold",
+            "in": "body",
+            "type": "number",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "filters",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "conversationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "cernion",
+          "knowledge",
+          "search",
+          "released",
+          "with",
+          "citations",
+          "(open",
+          "web",
+          "ui",
+          "tool)",
+          "workbench",
+          "gateway"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me search released knowledge with citations (open webui tool)"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": "no_static_route_or_action_declaration",
       "aliases": []
     },
     {

@@ -294,9 +294,14 @@ function buildAutoAliasedPaths() {
       method = method.toLowerCase();
 
       const isAbsolutePublicPath = AUTO_ALIAS_ABSOLUTE_PREFIXES.some((p) => restPath.startsWith(p));
+      // moleculer-web mounts a service under settings.rest when it names a base path.
+      const base =
+        typeof svc.settings?.rest === 'string'
+          ? svc.settings.rest.replace(/\/$/, '')
+          : `/${svc.name}`;
       let finalPath = restPath;
-      if (!finalPath.startsWith(`/${svc.name}`) && !isAbsolutePublicPath) {
-        finalPath = `/${svc.name}${finalPath}`;
+      if (!finalPath.startsWith(base) && !isAbsolutePublicPath) {
+        finalPath = `${base}${finalPath}`;
       }
 
       const fullPath = normaliseApiPath(finalPath);
