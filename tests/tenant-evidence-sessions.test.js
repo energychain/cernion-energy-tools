@@ -123,6 +123,52 @@ test('a case from another chat the person does not bring in never takes over the
   expect(controls.errors).toEqual([]);
 });
 
+test('a case marker from the session itself reaches the cross-case gate as a hint, never descriptor prompts (CTX-01)', async () => {
+  const first = await intake();
+  const saved = await app.workbench.store.getTurnMemory({
+    tenantId: 'tenant-a',
+    caseId: first.cetCaseId,
+  });
+  const state = await app.router.loadCase(p(), first.cetCaseId);
+  const row = require('../src/tenant-evidence-sessions').caseRow(
+    state,
+    {
+      ...saved,
+      memory: { ...saved.memory, lastSafeConclusion: 'Vorgang SYN-CASE-7781 ist offen.' },
+    },
+    []
+  );
+  expect(row.references).toContain('SYN-CASE-7781');
+  const candidate = descriptor.evidenceCandidate('case', row, 'actor-a');
+  expect(candidate.references).toContain('SYN-CASE-7781');
+  await descriptor.ensureDescriptor('case', row, { enrich: true });
+  const prompts = llm.generateStructured.mock.calls.filter((args) => JSON.parse(args[1]).nodes);
+  expect(prompts.map((args) => args[1]).join('')).not.toContain('SYN-CASE-7781');
+  const judge = {
+    generateStructured: jest.fn().mockResolvedValue({
+      items: [{ index: 0, decision: 'linked', lesson: '' }],
+    }),
+  };
+  const gated = await require('../src/foreign-context-gate').gateForeignEvidence(
+    [
+      {
+        source: candidate.title,
+        value: JSON.stringify({ title: candidate.title, manifest: candidate.manifest }),
+        metadata: {
+          scopeOrigin: 'aus anderem Gespräch',
+          identifiers: candidate.subjectIdentifiers,
+          contentRefs: candidate.references,
+        },
+      },
+    ],
+    { message: 'Vergleiche bitte den Vorgang SYN-CASE-7781 mit der neuen Lage.', llm: judge }
+  );
+  // The marker reaches the model as a content hint; the model links it.
+  const [item] = JSON.parse(judge.generateStructured.mock.calls[0][1]).foreign;
+  expect(item.namedIdentifiers).toEqual([{ value: 'SYN-CASE-7781', role: 'content' }]);
+  expect(gated.decisions).toEqual(['linked']);
+});
+
 test('offering a colleague case reads metadata only; reading it as evidence is audited once', async () => {
   const first = await intake();
   const colleague = p('tenant-a', 'actor-b');

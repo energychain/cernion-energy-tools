@@ -537,6 +537,8 @@ async function projectManifestAnswer(ctx, question, options = {}) {
             scopeOrigin: 'aus anderem Gespräch',
             candidateId: candidate.id,
             identifiers: candidate.subjectIdentifiers || [],
+            contentRefs: candidate.references || [],
+            caseRef: candidate.provenance?.displayRef,
           },
         })),
         {
