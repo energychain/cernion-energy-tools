@@ -53306,6 +53306,483 @@
         ]
       }
     },
+    "/api/workbench/knowledge-bases": {
+      "post": {
+        "operationId": "knowledge-gateway_bases_create",
+        "summary": "POST /knowledge-bases",
+        "tags": [
+          "Knowledge Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found (also for resources of other tenants or without access)"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        }
+      },
+      "get": {
+        "operationId": "knowledge-gateway_bases_list",
+        "summary": "List the knowledge bases the authenticated actor may read",
+        "tags": [
+          "Knowledge Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found (also for resources of other tenants or without access)"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/api/workbench/knowledge-bases/:knowledgeBaseId": {
+      "get": {
+        "operationId": "knowledge-gateway_bases_get",
+        "summary": "Read one knowledge base",
+        "tags": [
+          "Knowledge Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found (also for resources of other tenants or without access)"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "kb_…"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "knowledge-gateway_bases_update",
+        "summary": "Change name, description, visibility, ACL or chat default (owner only)",
+        "tags": [
+          "Knowledge Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found (also for resources of other tenants or without access)"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "kb_…"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "knowledge-gateway_bases_remove",
+        "summary": "Delete a knowledge base and all of its documents (owner only)",
+        "tags": [
+          "Knowledge Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found (also for resources of other tenants or without access)"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "kb_…"
+            }
+          }
+        ]
+      }
+    },
+    "/api/workbench/knowledge-bases/:knowledgeBaseId/documents": {
+      "post": {
+        "operationId": "knowledge-gateway_documents_add",
+        "summary": "Add a document from a CET file reference (fileId) or an upload (name, mimeType, contentBase64)",
+        "tags": [
+          "Knowledge Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found (also for resources of other tenants or without access)"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "kb_…"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fileId": {
+                    "type": "string",
+                    "description": "CET file channel reference"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "mimeType": {
+                    "type": "string"
+                  },
+                  "contentBase64": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "sensitivityLevel": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "object",
+                    "properties": {
+                      "externalId": {
+                        "type": "string"
+                      },
+                      "version": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "knowledge-gateway_documents_list",
+        "summary": "List the documents of a knowledge base with their status",
+        "tags": [
+          "Knowledge Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found (also for resources of other tenants or without access)"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "kb_…"
+            }
+          }
+        ]
+      }
+    },
+    "/api/workbench/knowledge-bases/:knowledgeBaseId/documents/:documentId": {
+      "get": {
+        "operationId": "knowledge-gateway_documents_get",
+        "summary": "Read one document and its ingestion status",
+        "tags": [
+          "Knowledge Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found (also for resources of other tenants or without access)"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "kb_…"
+            }
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "doc_…"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "knowledge-gateway_documents_remove",
+        "summary": "Delete a document: leaves search at once, all chunks are removed",
+        "tags": [
+          "Knowledge Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found (also for resources of other tenants or without access)"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "kb_…"
+            }
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "doc_…"
+            }
+          }
+        ]
+      }
+    },
+    "/api/workbench/knowledge-bases/:knowledgeBaseId/documents/:documentId/reindex": {
+      "post": {
+        "operationId": "knowledge-gateway_documents_reindex",
+        "summary": "Rebuild the chunks of a document; the current ones stay until it is ready",
+        "tags": [
+          "Knowledge Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found (also for resources of other tenants or without access)"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "knowledgeBaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "kb_…"
+            }
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "doc_…"
+            }
+          }
+        ]
+      }
+    },
+    "/api/workbench/knowledge/search": {
+      "post": {
+        "operationId": "cernion_knowledge_search",
+        "summary": "Search released knowledge with citations (Open WebUI tool)",
+        "tags": [
+          "Knowledge Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found (also for resources of other tenants or without access)"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "description": "The question to search the knowledge for."
+                  },
+                  "query": {
+                    "type": "string",
+                    "description": "Alias of question."
+                  },
+                  "knowledgeBaseIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Knowledge bases to search; empty uses the default bases released to you."
+                  },
+                  "topK": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "default": 8
+                  },
+                  "scoreThreshold": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "default": 0.3
+                  },
+                  "filters": {
+                    "type": "object",
+                    "properties": {
+                      "documentIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "mimeTypes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "conversationId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workbench/knowledge/citations/:citationId": {
+      "get": {
+        "operationId": "knowledge-gateway_citations_get",
+        "summary": "Resolve a citation; access is checked again",
+        "tags": [
+          "Knowledge Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found (also for resources of other tenants or without access)"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "citationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "cit_…"
+            }
+          }
+        ]
+      }
+    },
+    "/api/workbench/knowledge/openapi.json": {
+      "get": {
+        "operationId": "knowledge-gateway_toolOpenApi",
+        "summary": "OpenAPI document of the Open WebUI tool cernion_knowledge_search",
+        "tags": [
+          "Knowledge Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found (also for resources of other tenants or without access)"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
     "/api/knowledge-rag/query": {
       "post": {
         "operationId": "knowledge-rag_query",
