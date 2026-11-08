@@ -751,7 +751,8 @@ function buildOpenAiStreamChunks(response) {
   const model = response?.model || 'cernion-agent-mvp';
   const choice = Array.isArray(response?.choices) ? response.choices[0] : null;
   const content = typeof choice?.message?.content === 'string' ? choice.message.content : '';
-  const finishReason = choice?.finish_reason || 'stop';
+  const toolCalls = Array.isArray(choice?.message?.tool_calls) ? choice.message.tool_calls : [];
+  const finishReason = choice?.finish_reason || (toolCalls.length ? 'tool_calls' : 'stop');
   const base = {
     id,
     object: 'chat.completion.chunk',
@@ -765,23 +766,34 @@ function buildOpenAiStreamChunks(response) {
     typeof noticeBlock === 'string' && noticeBlock && content.startsWith(noticeBlock)
       ? noticeBlock + (content.startsWith(`${noticeBlock}\n\n`) ? '\n\n' : '')
       : '';
+  const text = content.slice(prefix.length);
+  const delta = (value) => ({
+    ...base,
+    choices: [{ index: 0, delta: value, finish_reason: null }],
+  });
   return [
-    {
-      ...base,
-      choices: [
-        {
-          index: 0,
-          delta: { role: 'assistant', ...(prefix ? { content: prefix } : {}) },
-          finish_reason: null,
-        },
-      ],
-    },
-    {
-      ...base,
-      choices: [
-        { index: 0, delta: { content: content.slice(prefix.length) }, finish_reason: null },
-      ],
-    },
+    delta({ role: 'assistant', ...(prefix ? { content: prefix } : {}) }),
+    // A pure tool-call answer gets no empty content delta; text keeps its frame before the calls.
+    ...(text || !toolCalls.length ? [delta({ content: text })] : []),
+    // One delta per call with its zero-based index; arguments stay the JSON string they are.
+    ...toolCalls.map((call, index) =>
+      delta({
+        tool_calls: [
+          {
+            index,
+            id: call.id,
+            type: call.type || 'function',
+            function: {
+              name: call.function?.name,
+              arguments:
+                typeof call.function?.arguments === 'string'
+                  ? call.function.arguments
+                  : JSON.stringify(call.function?.arguments ?? {}),
+            },
+          },
+        ],
+      })
+    ),
     { ...base, choices: [{ index: 0, delta: {}, finish_reason: finishReason }] },
   ];
 }
