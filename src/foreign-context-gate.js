@@ -75,6 +75,16 @@ function leaksIdentifiers(lesson, hit) {
  * Applies the cross-case criterion to the foreign items of `evidence`. Returns the evidence to
  * answer from and whether a comparable case should be offered.
  */
+// The person names this case or object exactly (an identifier it carries): brought in, linked.
+function namedReference(hit, message) {
+  const named = new Set(referenceCandidates({ text: String(message || '') }));
+  if (!named.size) return false;
+  return [
+    ...(hit?.metadata?.identifiers || []),
+    ...referenceCandidates({ text: `${hit?.value || ''} ${hit?.source || ''}` }),
+  ].some((identifier) => named.has(String(identifier)));
+}
+
 async function gateForeignEvidence(evidence = [], options = {}) {
   // Withheld items (not asked for, not named) may become a lesson or a suggestion, never a link.
   const foreign = [
@@ -84,35 +94,40 @@ async function gateForeignEvidence(evidence = [], options = {}) {
     ...(options.withheld || []).map((hit) => ({ hit, index: -1, mayLink: false })),
   ].slice(0, MAX_ITEMS);
   if (!foreign.length) return { evidence, suggest: false, decisions: [] };
+  for (const item of foreign)
+    item.named = item.mayLink && namedReference(item.hit, options.message);
+  const judge = foreign.filter((item) => !item.named);
   const llm = options.llm || require('./llm-client');
   let judged = [];
-  try {
-    const { answerProviderSchema, toFacadeSchema } = require('./workbench-understanding');
-    const raw = await llm.generateStructured(
-      toFacadeSchema(answerProviderSchema(SCHEMA)),
-      JSON.stringify({
-        instruction: INSTRUCTION,
-        message: String(options.message || '').slice(0, 4000),
-        suggestionPending: options.suggestionPending === true,
-        foreign: foreign.map(({ hit }, position) => ({
-          index: position,
-          origin: hit.metadata?.scopeOrigin || 'aus anderem Gespräch',
-          source: String(hit.source || '').slice(0, 160),
-          content: String(hit.value || '').slice(0, 1200),
-        })),
-      }),
-      { phase: 'context_gate', tenantId: options.tenantId, broker: options.broker }
-    );
-    judged = Array.isArray((raw?.data || raw)?.items) ? (raw.data || raw).items : [];
-  } catch (error) {
-    options.logger?.warn?.(`Foreign context gate failed: ${error.message}`);
-  }
-  const decision = new Map(judged.map((row) => [row.index, row]));
+  if (judge.length)
+    try {
+      const { answerProviderSchema, toFacadeSchema } = require('./workbench-understanding');
+      const raw = await llm.generateStructured(
+        toFacadeSchema(answerProviderSchema(SCHEMA)),
+        JSON.stringify({
+          instruction: INSTRUCTION,
+          message: String(options.message || '').slice(0, 4000),
+          suggestionPending: options.suggestionPending === true,
+          foreign: judge.map(({ hit }, position) => ({
+            index: position,
+            origin: hit.metadata?.scopeOrigin || 'aus anderem Gespräch',
+            source: String(hit.source || '').slice(0, 160),
+            content: String(hit.value || '').slice(0, 1200),
+          })),
+        }),
+        { phase: 'context_gate', tenantId: options.tenantId, broker: options.broker }
+      );
+      judged = Array.isArray((raw?.data || raw)?.items) ? (raw.data || raw).items : [];
+    } catch (error) {
+      options.logger?.warn?.(`Foreign context gate failed: ${error.message}`);
+    }
+  const decision = new Map(judged.map((row) => [judge[row.index], row]));
   const replaced = new Map();
   const lessons = [];
   let suggest = false;
-  const decisions = foreign.map(({ hit, index, mayLink }, position) => {
-    const row = decision.get(position);
+  const decisions = foreign.map((item) => {
+    const { hit, index, mayLink } = item;
+    const row = item.named ? { decision: 'linked' } : decision.get(item);
     const judged = DECISIONS.includes(row?.decision) ? row.decision : 'unrelated';
     const kind = judged === 'linked' && !mayLink ? 'comparable' : judged;
     const lesson = String(row?.lesson || '').trim();

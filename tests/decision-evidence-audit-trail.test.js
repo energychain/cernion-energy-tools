@@ -30,6 +30,21 @@ describe('Decision/Evidence Audit Trail (#294)', () => {
     fs.rmSync(dbPath, { recursive: true, force: true });
   });
 
+  it('orders entries of the same millisecond by their hash chain, not their random id', async () => {
+    const timestamp = '2026-11-08T12:00:00.000Z';
+    const decisions = ['requested', 'running', 'cleaned', 'closed', 'archived'];
+    for (const decision of decisions)
+      await trail.appendEntry({ tenantId: 'tenant-a', entityId: 'project-1', decision, timestamp });
+    const entries = await trail.getTrail({ tenantId: 'tenant-a', entityId: 'project-1' });
+    expect(entries.map((entry) => entry.decision)).toEqual(decisions);
+    expect(
+      (await trail.getLatestEntry({ tenantId: 'tenant-a', entityId: 'project-1' })).decision
+    ).toBe('archived');
+    expect(
+      (await trail.verifyTrail({ tenantId: 'tenant-a', entityId: 'project-1' })).verified
+    ).toBe(true);
+  });
+
   it('appends hash-linked entries and verifies an untouched chain', async () => {
     const first = await trail.appendEntry({
       tenantId: 'tenant-a',

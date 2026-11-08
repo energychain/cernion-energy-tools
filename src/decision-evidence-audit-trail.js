@@ -185,12 +185,22 @@ class DecisionEvidenceAuditTrail {
       endkey: `${start}\uffff`,
     });
 
-    return result.rows
+    const sorted = result.rows
       .map((row) => stripPouchFields(row.doc))
       .sort((a, b) => {
         const byTimestamp = String(a.timestamp).localeCompare(String(b.timestamp));
         return byTimestamp || String(a.id).localeCompare(String(b.id));
       });
+    // Entries of the same millisecond follow the hash chain (the append order), not the random id.
+    const ordered = [];
+    while (sorted.length) {
+      const last = ordered.length ? ordered[ordered.length - 1].entryHash : null;
+      const next = sorted.findIndex(
+        (entry) => entry.timestamp === sorted[0].timestamp && (entry.previousHash || null) === last
+      );
+      ordered.push(sorted.splice(next === -1 ? 0 : next, 1)[0]);
+    }
+    return ordered;
   }
 
   async getLatestEntry(scope) {

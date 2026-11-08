@@ -533,7 +533,11 @@ async function projectManifestAnswer(ctx, question, options = {}) {
             0,
             1200
           ),
-          metadata: { scopeOrigin: 'aus anderem Gespräch', candidateId: candidate.id },
+          metadata: {
+            scopeOrigin: 'aus anderem Gespräch',
+            candidateId: candidate.id,
+            identifiers: candidate.subjectIdentifiers || [],
+          },
         })),
         {
           message: question,

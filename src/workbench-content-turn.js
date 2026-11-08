@@ -1457,7 +1457,10 @@ async function runContentTurn(
   // Suggest a comparable case only on work on the matter, once per conversation; statements,
   // recalls and summaries do not get it.
   const suggestComparable =
-    gated.suggest && situation.conversationShape === 'task' && !pending?.comparableSuggestionShown;
+    gated.suggest &&
+    !gated.decisions.includes('linked') &&
+    situation.conversationShape === 'task' &&
+    !pending?.comparableSuggestionShown;
   if (scoped.withheld || gated.decisions.length)
     service.logger.info('Workbench conversation scope', {
       withheld: scoped.withheld,
