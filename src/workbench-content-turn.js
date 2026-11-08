@@ -1454,6 +1454,10 @@ async function runContentTurn(
     logger: service.logger,
   });
   retrieval.evidence = gated.evidence;
+  // Suggest a comparable case only on work on the matter, once per conversation; statements,
+  // recalls and summaries do not get it.
+  const suggestComparable =
+    gated.suggest && situation.conversationShape === 'task' && !pending?.comparableSuggestionShown;
   if (scoped.withheld || gated.decisions.length)
     service.logger.info('Workbench conversation scope', {
       withheld: scoped.withheld,
@@ -1544,7 +1548,7 @@ async function runContentTurn(
       logger: service.logger,
     });
     ({ reply, caseState } = workbenchCaseState.withAddendum(reply, caseState));
-    if (gated.suggest && !reply.responseText.includes(foreignContextGate.SUGGESTION))
+    if (suggestComparable && !reply.responseText.includes(foreignContextGate.SUGGESTION))
       reply = {
         ...reply,
         responseText: `${reply.responseText}\n\n${foreignContextGate.SUGGESTION}`,
@@ -1743,7 +1747,8 @@ async function runContentTurn(
     offeredContent: '',
     lastQuestion: '',
     lastAnswer: reply.responseText.slice(0, 600),
-    comparableSuggested: gated.suggest,
+    comparableSuggested: suggestComparable,
+    comparableSuggestionShown: Boolean(pending?.comparableSuggestionShown || suggestComparable),
     ...(caseState ? { caseState } : {}),
     askedQuestions: [...(pending?.askedQuestions || []), ...reply.questions],
     ...(knowledgeAsk ? { lastKnowledgeAskAt: Date.now() } : {}),

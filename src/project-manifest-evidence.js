@@ -523,6 +523,37 @@ async function projectManifestAnswer(ctx, question, options = {}) {
       if (selected.length < (options.minSources || 1)) return null;
       if (selected.every((candidate) => fromConversation(candidate, options.currentConversationId)))
         return null;
+    } else if (foreign.length) {
+      // Cross-case criterion: this path answers directly, so another chat's case or statement
+      // stays only when the person brings it in; lessons and suggestions are the regular turn's.
+      const gated = await require('./foreign-context-gate').gateForeignEvidence(
+        foreign.map((candidate) => ({
+          source: String(candidate.title || ''),
+          value: JSON.stringify({ title: candidate.title, manifest: candidate.manifest }).slice(
+            0,
+            1200
+          ),
+          metadata: { scopeOrigin: 'aus anderem Gespräch', candidateId: candidate.id },
+        })),
+        {
+          message: question,
+          tenantId: principal(ctx).tenantId,
+          logger: ctx.broker?.logger,
+        }
+      );
+      const linked = new Set(gated.evidence.map((item) => item.metadata?.candidateId));
+      const dropped = foreign.filter((candidate) => !linked.has(candidate.id));
+      if (dropped.length) {
+        ctx.broker?.logger?.info?.('Tenant evidence cross-case gate', {
+          withheld: dropped.length,
+        });
+        selected = selected.filter((candidate) => !dropped.includes(candidate));
+        if (selected.length < (options.minSources || 1)) return null;
+        if (
+          selected.every((candidate) => fromConversation(candidate, options.currentConversationId))
+        )
+          return null;
+      }
     }
   }
   const results = [];

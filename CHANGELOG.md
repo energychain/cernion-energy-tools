@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Cross-case gate also for direct tenant-evidence answers
+
+- The tenant-evidence path, which answers directly from case sessions and statements, now passes
+  material from other chats through the same cross-case gate: it stays only when the person brings
+  that case or object in; otherwise the regular turn answers, with lessons and suggestions. In the
+  prod isolation probe a new case was answered from another chat's project session, and a recall
+  of the person's own role line from a statement of a previous day's case.
+- The suggestion of a comparable case appears only on work on a matter and at most once per
+  conversation; statements, role information, corrections, recalls and summaries do not get it.
+
 ## Unreleased — Cross-case learning without cross-case disclosure
 
 - Material from other conversations and cases (documents, related cases, colleagues' statements)
