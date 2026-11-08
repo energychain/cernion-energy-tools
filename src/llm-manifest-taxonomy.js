@@ -241,6 +241,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'Investment Planning': 'grid-planning',
   Jobs: 'platform',
   'Knowledge RAG': 'platform',
+  'Knowledge Gateway': 'platform',
   'MCP Server': 'platform',
   'MaStR Monitor': 'grid-ops',
   'MaStR Data Quality': 'grid-ops',

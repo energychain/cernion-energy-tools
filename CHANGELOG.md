@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Tenant-safe Knowledge Gateway for Open WebUI (MVP)
+
+- New `services/knowledge-gateway.service.js` under `/api/workbench`: knowledge bases
+  (`private`/`tenant`/`restricted` with actor, role and group ACL), documents from CET file
+  references or uploads with status, idempotent versions, replace, reindex and complete deletion,
+  and search with re-authorized citations (`POST /api/workbench/knowledge/search`, Open WebUI tool
+  `cernion_knowledge_search`, tool document at `/api/workbench/knowledge/openapi.json`).
+- Tenant and actor come only from the authenticated principal. Opaque IDs; a foreign or unknown
+  resource is `404`. No external RAG fallback, no shared default collection, and no vectors,
+  namespaces or tokens in responses. Open WebUI gateway tokens reach only search, citations, the
+  list and the tool document, acting for the mapped user.
+- `scripts/export-openapi.js` honours a service's `settings.rest` base path, as moleculer-web
+  does. See `docs/knowledge-gateway.md`.
+
 ## Unreleased — Cross-case gate also for direct tenant-evidence answers
 
 - The tenant-evidence path, which answers directly from case sessions and statements, now passes

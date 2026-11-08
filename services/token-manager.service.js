@@ -16,6 +16,7 @@ const {
   isReadOnlySidecarInvocation,
   isOperationsRunbookInvocation,
   isDomainRouterAdvisoryInvocation,
+  isKnowledgeGatewayRequest,
 } = require('../src/gateway-request-classifiers');
 
 const { validateTokenIdentity } = require('../src/auth/token-policy');
@@ -424,7 +425,8 @@ module.exports = {
             (method === 'POST' && requestPath === '/v1/chat/completions') ||
             (method === 'GET' && requestPath === '/v1/models') ||
             require('../src/file-channel-http').isFileChannelRequest(method, requestPath) ||
-            require('../src/project-bundle-http').isProjectBundleRequest(method, requestPath)
+            require('../src/project-bundle-http').isProjectBundleRequest(method, requestPath) ||
+            isKnowledgeGatewayRequest(method, requestPath)
           )
         ) {
           return { success: true, valid: false, reason: 'GATEWAY_TOKEN_FORBIDDEN' };
