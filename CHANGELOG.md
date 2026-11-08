@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — A case named by its identifier is linked
+
+- When the message names another case or object by an exact identifier it carries (a case
+  marker, the case display reference or a subject identifier of a stored session), the
+  cross-case gate links that material without a model judgement; the other foreign items are
+  judged as before, and withheld items stay unlinked. Stored sessions pass their subject
+  identifiers to the gate. In the prod probe an explicit comparison with a named case found no
+  material and answered with a suggestion instead.
+- No comparable-case suggestion in a turn that links a case the person brought in.
+
 ## Unreleased — Tool calls in streamed chat completions
 
 - `POST /v1/chat/completions` with `stream: true` now carries OpenAI-compatible
