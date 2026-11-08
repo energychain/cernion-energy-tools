@@ -195,6 +195,31 @@ async function saveTurn(db, p, envelope, patch, time = Date.now()) {
   }
 }
 
+// Writes only the case state of an existing, unexpired conversation; a background reflection
+// must not touch the request, documents or answer of a turn that ran in the meantime.
+async function saveCaseState(db, p, envelope, update, time = Date.now()) {
+  const _id = turnKey(p, envelope);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    let existing;
+    try {
+      existing = await db.get(_id);
+    } catch (error) {
+      if (error.status === 404) return null;
+      throw error;
+    }
+    if (!(existing.expiresAt > time)) return null;
+    const caseState = update(existing.caseState || null);
+    if (!caseState) return null;
+    try {
+      await db.put({ ...existing, caseState });
+      return caseState;
+    } catch (error) {
+      if (error.status !== 409) throw error;
+    }
+  }
+  return null;
+}
+
 async function assist(call, envelope, state, { draft = false } = {}) {
   const question = draft
     ? `Erstelle einen vollständigen Textentwurf mit allen bekannten Angaben. Anliegen:\n${envelope.userRequest}`
@@ -277,6 +302,7 @@ module.exports = {
   substantiveMessage,
   readTurn,
   saveTurn,
+  saveCaseState,
   assist,
   assistanceChoice,
   cleanupTurns,

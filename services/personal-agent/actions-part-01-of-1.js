@@ -3859,6 +3859,11 @@ module.exports = {
           caseState,
           tenantId,
         });
+        if (consultationResult?.reply) {
+          const withAddendum = this.withCaseAddendum(consultationResult.reply, caseState);
+          consultationResult.reply = withAddendum.reply;
+          caseState = withAddendum.caseState;
+        }
         const consultationCaseView = caseState ? caseStateView(caseState) : null;
 
         const consultationExecution = {
@@ -4019,6 +4024,16 @@ module.exports = {
 
         assertNoL4RawInPersistedState(persisted);
         await this.persistSession(ctx, tenantId, sessionId, persisted);
+        // Background reflection on the stored case state; the turn does not wait for it.
+        this.scheduleCaseReflection(ctx, {
+          tenantId,
+          sessionId,
+          caseState,
+          recentTurns: [
+            { role: 'user', text: ctx.params.message },
+            { role: 'assistant', text: consultationResult?.reply || '' },
+          ],
+        });
 
         await cancelDream(tenantId, sessionId);
         const profileNs = tenantNamespace(PROFILE_NAMESPACE, tenantId);

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "8a1345758fc4d6a275f97a12a3de010f12ffc51a41241299987d936e3e7e24fb",
+  "sourceHash": "d732e78212d489d5b0c5599e1229bae2f84ba4f58350db4f24f62e128d99aa1c",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -5568,6 +5568,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mcp-client.js"
         },
         {
@@ -9546,6 +9550,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mako-evidence-parser.js"
         },
         {
@@ -13436,6 +13444,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -20497,6 +20509,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/metrics.js"
         },
         {
@@ -22011,6 +22027,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -32924,6 +32944,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mako-evidence-parser.js"
         },
         {
@@ -37120,6 +37144,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -42180,6 +42208,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -51763,6 +51795,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/metrics.js"
         },
         {
@@ -57407,6 +57443,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -67968,6 +68008,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mako-evidence-parser.js"
         },
         {
@@ -73859,6 +73903,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mako-evidence-parser.js"
         },
         {
@@ -79559,6 +79607,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -85838,6 +85890,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mako-evidence-parser.js"
         },
         {
@@ -89044,6 +89100,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mako-evidence-parser.js"
         },
         {
@@ -91964,6 +92024,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -95904,6 +95968,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -101027,6 +101095,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -109854,6 +109926,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mcp-client.js"
         },
         {
@@ -115006,6 +115082,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -127937,6 +128017,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/location-resolution.js"
         },
         {
@@ -131274,6 +131358,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mako-evidence-parser.js"
         },
         {
@@ -133348,6 +133436,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -136654,6 +136746,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mako-evidence-parser.js"
         },
         {
@@ -138992,6 +139088,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -141396,6 +141496,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -146257,6 +146361,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -151177,6 +151285,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -157506,6 +157618,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -165887,6 +166003,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -175940,6 +176060,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mako-evidence-parser.js"
         },
         {
@@ -183371,6 +183495,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mako-evidence-parser.js"
         },
         {
@@ -186549,6 +186677,10 @@
         {
           "kind": "service",
           "ref": "src/llm-client.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/llm-phases.js"
         },
         {
           "kind": "service",
@@ -205975,6 +206107,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/llm-phases.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mako-evidence-parser.js"
         },
         {
@@ -209942,7 +210078,7 @@
       },
       {
         "service": "agent",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "api",
@@ -209954,7 +210090,7 @@
       },
       {
         "service": "api",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "assets",
@@ -209970,7 +210106,7 @@
       },
       {
         "service": "capability-broker",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "company",
@@ -209982,7 +210118,7 @@
       },
       {
         "service": "cookbook",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "customer-service",
@@ -209998,7 +210134,7 @@
       },
       {
         "service": "cya",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "datapoint",
@@ -210006,7 +210142,7 @@
       },
       {
         "service": "datapoint",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "dataset",
@@ -210014,7 +210150,7 @@
       },
       {
         "service": "dataset",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "datasource-classifier",
@@ -210026,7 +210162,7 @@
       },
       {
         "service": "decision-frame",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "domain-router",
@@ -210034,7 +210170,7 @@
       },
       {
         "service": "domain-router",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "eeg-clawback-calculator",
@@ -210066,7 +210202,7 @@
       },
       {
         "service": "evidence-router",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "ewk-monitoring",
@@ -210078,7 +210214,7 @@
       },
       {
         "service": "failure-signals",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "files",
@@ -210086,7 +210222,7 @@
       },
       {
         "service": "files",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "finance-agent",
@@ -210094,7 +210230,7 @@
       },
       {
         "service": "finance-agent",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "forecast-sandbox",
@@ -210110,7 +210246,7 @@
       },
       {
         "service": "activation",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "function-coverage",
@@ -210118,7 +210254,7 @@
       },
       {
         "service": "function-coverage",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "gas-storage",
@@ -210146,7 +210282,7 @@
       },
       {
         "service": "knowledge-needs",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "knowledge-rag",
@@ -210158,7 +210294,7 @@
       },
       {
         "service": "knowledge-rag",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "mastr-monitor",
@@ -210182,7 +210318,7 @@
       },
       {
         "service": "object-store",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "oep",
@@ -210194,7 +210330,7 @@
       },
       {
         "service": "openai-compatible",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "operations-runbook",
@@ -210218,7 +210354,7 @@
       },
       {
         "service": "personal-agent",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "project-bundle",
@@ -210226,7 +210362,7 @@
       },
       {
         "service": "project-bundle",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "project-graph",
@@ -210234,7 +210370,7 @@
       },
       {
         "service": "project-graph",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "project-manifest",
@@ -210242,7 +210378,7 @@
       },
       {
         "service": "project-manifest",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "project-structure",
@@ -210250,7 +210386,7 @@
       },
       {
         "service": "project-structure",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "project-upload",
@@ -210258,7 +210394,7 @@
       },
       {
         "service": "project-upload",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "query",
@@ -210278,7 +210414,7 @@
       },
       {
         "service": "role-proposals",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "shared-service-agent",
@@ -210286,7 +210422,7 @@
       },
       {
         "service": "shared-service-agent",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "journal",
@@ -210294,7 +210430,7 @@
       },
       {
         "service": "journal",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "shared-service-learning",
@@ -210302,7 +210438,7 @@
       },
       {
         "service": "shared-service-learning",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "notices",
@@ -210314,7 +210450,7 @@
       },
       {
         "service": "notices",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "system",
@@ -210322,7 +210458,7 @@
       },
       {
         "service": "system",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "tabular",
@@ -210330,7 +210466,7 @@
       },
       {
         "service": "tabular",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "tenant-memory-policy",
@@ -210338,7 +210474,7 @@
       },
       {
         "service": "tenant-memory-policy",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "token-manager",
@@ -210346,7 +210482,7 @@
       },
       {
         "service": "token-manager",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "utility-report",
@@ -210354,7 +210490,7 @@
       },
       {
         "service": "utility-report",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "willi-federated",
@@ -210374,7 +210510,7 @@
       },
       {
         "service": "workbench",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       },
       {
         "service": "znp",
@@ -210382,7 +210518,7 @@
       },
       {
         "service": "znp",
-        "ref": "src/llm-client.js:227: dynamic emission"
+        "ref": "src/llm-client.js:228: dynamic emission"
       }
     ],
     "overrides": [],

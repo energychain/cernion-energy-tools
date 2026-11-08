@@ -145,3 +145,99 @@ test('the reply is revised where the check flags it; drafts are left as written'
   expect(await workbenchCaseState.reviewTurnReply(reply, null)).toBe(reply);
   expect(llm.generateStructured).toHaveBeenCalledTimes(1);
 });
+
+describe('background reflection in the workbench', () => {
+  const p = { tenantId: 't1', actorId: 'a1' };
+  const envelope = { channel: 'api', conversationId: 'c1', userRequest: 'x' };
+  const fakeDb = (doc) => {
+    const store = { doc };
+    return {
+      store,
+      get: async () => {
+        if (!store.doc) throw Object.assign(new Error('missing'), { status: 404 });
+        return structuredClone(store.doc);
+      },
+      put: async (next) => {
+        store.doc = structuredClone(next);
+      },
+    };
+  };
+  const previous = process.env.CASE_REFLECTION;
+  afterEach(() => {
+    if (previous === undefined) delete process.env.CASE_REFLECTION;
+    else process.env.CASE_REFLECTION = previous;
+  });
+
+  test('one reflection per conversation is merged into the stored state only', async () => {
+    process.env.CASE_REFLECTION = 'true';
+    const state = applyCaseUpdate(createCaseState(), {
+      hypothesisUpdates: [
+        { statement: 'Ursache P', status: 'open', evidenceRefs: [], reason: 'r' },
+      ],
+    });
+    const db = fakeDb({
+      _id: 'k',
+      expiresAt: Date.now() + 60000,
+      lastUserRequest: 'neuer Turn',
+      lastAnswer: 'neue Antwort',
+      caseState: state,
+    });
+    llm.generateStructured.mockResolvedValue({
+      ...emptyDelta,
+      hypothesisUpdates: [
+        {
+          hypothesisId: 'H1',
+          statement: 'Ursache P',
+          status: 'superseded',
+          evidenceRefs: [],
+          reason: 'Q erklärt mehr',
+        },
+        { statement: 'Ursache Q', status: 'supported', evidenceRefs: [], reason: 'Abgleich' },
+      ],
+      addendum: 'Q erklärt den Stand besser als P.',
+    });
+    const service = { conversationsDb: db };
+    const first = workbenchCaseState.scheduleReflection(service, p, envelope, { caseState: state });
+    const second = workbenchCaseState.scheduleReflection(service, p, envelope, {
+      caseState: state,
+    });
+    expect(second).toBe(first);
+    const merged = await first;
+    expect(llm.generateStructured).toHaveBeenCalledTimes(1);
+    expect(llm.generateStructured.mock.calls[0][2]).toMatchObject({ phase: 'case_reflection' });
+    expect(db.store.doc).toMatchObject({
+      lastUserRequest: 'neuer Turn',
+      lastAnswer: 'neue Antwort',
+    });
+    expect(db.store.doc.caseState.pendingAddendum).toBe('Q erklärt den Stand besser als P.');
+    expect(merged.hypotheses.map((h) => h.status)).toEqual(['superseded', 'supported']);
+  });
+
+  test('disabled reflection or a state without turns schedules nothing', () => {
+    process.env.CASE_REFLECTION = 'false';
+    const service = { conversationsDb: fakeDb(null) };
+    const state = applyCaseUpdate(createCaseState(), emptyDelta);
+    expect(
+      workbenchCaseState.scheduleReflection(service, p, envelope, { caseState: state })
+    ).toBeNull();
+    process.env.CASE_REFLECTION = 'true';
+    expect(
+      workbenchCaseState.scheduleReflection(service, p, envelope, { caseState: createCaseState() })
+    ).toBeNull();
+  });
+
+  test('the addendum precedes the next answer once', () => {
+    const state = {
+      ...applyCaseUpdate(createCaseState(), emptyDelta),
+      pendingAddendum: 'Q statt P.',
+    };
+    const { reply, caseState } = workbenchCaseState.withAddendum(
+      { responseText: 'Antwort.' },
+      state
+    );
+    expect(reply.responseText).toBe('Nachtrag zum bisherigen Stand: Q statt P.\n\nAntwort.');
+    expect(caseState.pendingAddendum).toBe('');
+    const plain = { responseText: 'Antwort.' };
+    expect(workbenchCaseState.withAddendum(plain, caseState).reply).toBe(plain);
+  });
+});

@@ -7,4 +7,7 @@ module.exports = {
   turnEvidence: () => [],
   updateTurnCaseState: async ({ previous }) => previous || null,
   reviewTurnReply: async (reply) => reply,
+  withAddendum: (reply, caseState) => ({ reply, caseState }),
+  scheduleReflection: () => null,
+  reflectionEnabled: () => false,
 };
