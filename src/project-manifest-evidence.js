@@ -424,6 +424,19 @@ function fromConversation(candidate, conversationId) {
   );
 }
 
+// Conversation scope (TWL CTX-01): material that stems from another chat (cases, statements,
+// chat documents) is left out when the request concerns only the current conversation. Project
+// files (Projektakten) are shared containers and stay.
+const CHAT_SOURCE_TYPES = new Set(['case', 'memory', 'document']);
+function fromOtherChat(candidate, conversationId) {
+  if (!conversationId || !CHAT_SOURCE_TYPES.has(candidate.sourceType)) return false;
+  const conversations = [
+    candidate.provenance?.conversationId,
+    ...(candidate.provenance?.refs || candidate.refs || []).map((ref) => ref?.conversationId),
+  ].filter(Boolean);
+  return conversations.length > 0 && !fromConversation(candidate, conversationId);
+}
+
 async function projectManifestAnswer(ctx, question, options = {}) {
   const settings = ctx.broker?.getLocalService?.('project-manifest')?.settings || {};
   options = { catalog: settings.catalog, operations: settings.operations, ...options };
@@ -485,12 +498,27 @@ async function projectManifestAnswer(ctx, question, options = {}) {
     selected.every((candidate) => fromConversation(candidate, options.currentConversationId))
   )
     return null;
-  if (
-    selected.some((candidate) => candidate.sourceType !== 'project' && candidate.sourceType) &&
-    readQuestion === question &&
-    !(await require('./tenant-evidence-question').evidenceContentRequested(ctx, question))
-  )
-    return null;
+  // A resolved reference (readQuestion differs) already ties the request to that material.
+  const foreign =
+    readQuestion === question
+      ? selected.filter((candidate) => fromOtherChat(candidate, options.currentConversationId))
+      : [];
+  const chatSources = selected.some(
+    (candidate) => candidate.sourceType !== 'project' && candidate.sourceType
+  );
+  if (foreign.length || (chatSources && readQuestion === question)) {
+    const kind = await require('./tenant-evidence-question').evidenceRequestKind(ctx, question);
+    if (chatSources && readQuestion === question && !kind.contentRequested) return null;
+    if (foreign.length && kind.conversationOnly) {
+      ctx.broker?.logger?.info?.('Tenant evidence conversation scope', {
+        withheld: foreign.length,
+      });
+      selected = selected.filter((candidate) => !foreign.includes(candidate));
+      if (selected.length < (options.minSources || 1)) return null;
+      if (selected.every((candidate) => fromConversation(candidate, options.currentConversationId)))
+        return null;
+    }
+  }
   const results = [];
   for (const candidate of selected) {
     // Routing metadata must not become an instruction for the source query.

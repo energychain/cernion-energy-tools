@@ -83,6 +83,7 @@ describe('document knowledge through authenticated Open WebUI HTTP (#789)', () =
           draftRequested: false,
         },
         turnKind: input.message.includes('Richtwert') ? 'knowledge' : 'work',
+        contextScope: input.message.includes('Richtwert') ? 'tenant' : 'conversation',
         retrievalTerms: ['Delta'],
         conversationShape:
           input.message.includes('Kenntnis') || input.message.startsWith('Von:')

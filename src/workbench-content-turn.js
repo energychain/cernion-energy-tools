@@ -514,8 +514,11 @@ async function runContentTurn(
           missingInformation: [],
           requestedAction: { description: '', draftRequested: false, externalEffect: false },
           turnKind: 'knowledge',
-          conversationContext:
-            pending?.conversationContext || workbenchContext.userProfile.conversationContext,
+          // A goal stored with the profile by an earlier chat does not frame this conversation.
+          conversationContext: pending?.conversationContext || {
+            ...workbenchContext.userProfile.conversationContext,
+            goal: '',
+          },
         }
       : null);
   if (previous && pending?.conversationContext)

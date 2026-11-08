@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Conversation scope also for tenant evidence and the person profile
+
+- Tenant evidence (project files, statements and case sessions) no longer takes over an answer
+  with material from other chats when the request concerns only the current conversation: the
+  existing check of the outer request also judges `conversationOnly`, and foreign chat sources
+  are then left out; project files and real knowledge questions keep combining sources. In the
+  TWL isolation probe a chat asked to summarise itself was answered with statements and the case
+  of other chats.
+- The understanding judges `contextScope` (conversation/tenant): documents and cases from other
+  conversations enter only for a question that needs knowledge beyond this conversation, not for
+  a summary or the work on this conversation's case (replaces the knowledge-question rule).
+- The person profile keeps role and preferences; a work goal belongs to its conversation and no
+  longer frames the next chat.
+
 ## Unreleased — Answers stay within the conversation unless the tenant's knowledge is asked for
 
 - A workbench answer uses the active conversation, its case and the material attached in it

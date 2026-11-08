@@ -36,6 +36,10 @@ function evidenceId(tenantId, caseId, id) {
 function turnMemoryId(tenantId, caseId) {
   return key('turn-memory', tenantId, caseId);
 }
+function personContext(context) {
+  return context && typeof context === 'object' ? { ...context, goal: '' } : null;
+}
+
 function userContextId(tenantId, actorId) {
   return key('user-context', tenantId, actorId);
 }
@@ -615,7 +619,11 @@ class WorkbenchStore {
       roleFamilies: input.roleFamilies || existing?.roleFamilies || [],
       domainsAllowed: input.domainsAllowed || existing?.domainsAllowed || [],
       sensitivityClearance: input.sensitivityClearance || existing?.sensitivityClearance || [],
-      conversationContext: input.conversationContext || existing?.conversationContext || null,
+      // Role and preferences belong to the person; a work goal belongs to its conversation
+      // (TWL CTX-01: a goal from one chat framed the answers of the next).
+      conversationContext: personContext(
+        input.conversationContext || existing?.conversationContext || null
+      ),
       language: input.language || existing?.language || null,
       tone: input.tone || existing?.tone || null,
       defaultNoCallGuards: input.defaultNoCallGuards || existing?.defaultNoCallGuards || [],
