@@ -176,6 +176,7 @@ async function evidence(ctx, query) {
 async function currentEvidence(ctx, hits) {
   const states = new Map(),
     ids = new Map(),
+    refs = new Map(),
     invalid = new Set();
   for (const hit of hits) {
     let id = hit.metadata?.workbenchDocument;
@@ -198,6 +199,8 @@ async function currentEvidence(ctx, hits) {
     if (!id || states.has(id)) continue;
     try {
       const row = await ctx.call('knowledge-rag.documentGet', { id });
+      // Origin of a stored document (conversation, case) for the conversation scope.
+      refs.set(id, Array.isArray(row.refs) ? row.refs : []);
       // documentGet already enforces access. Identity is additionally needed only
       // when this source carries actor-specific selection corrections.
       const actorId = row.evidenceCorrections?.length
@@ -214,7 +217,13 @@ async function currentEvidence(ctx, hits) {
       states.set(id, false);
     }
   }
-  return hits.filter((hit) => !invalid.has(hit) && (!ids.get(hit) || states.get(ids.get(hit))));
+  return hits
+    .filter((hit) => !invalid.has(hit) && (!ids.get(hit) || states.get(ids.get(hit))))
+    .map((hit) =>
+      hit.retrievalSource !== 'tenant-memory' && refs.has(ids.get(hit))
+        ? { ...hit, metadata: { ...hit.metadata, documentRefs: refs.get(ids.get(hit)) } }
+        : hit
+    );
 }
 async function purgeCaseCopies(service, p, row) {
   const docs = await service.store.evidenceDb.allDocs({ include_docs: true });

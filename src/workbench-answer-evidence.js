@@ -48,6 +48,8 @@ function prepareAnswerEvidence(evidence, situation, limit = 500) {
         evidenceId: hit.evidenceId,
         source: hit.source,
         title: readableSourceTitle(hit),
+        // Material from another conversation or case (conversation scope) names its origin.
+        ...(hit.metadata?.scopeOrigin ? { origin: hit.metadata.scopeOrigin } : {}),
         value: ['dataset.query', 'cases'].includes(hit.source)
           ? value.slice(0, 12000)
           : value.slice(best, best + limit),

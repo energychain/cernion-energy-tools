@@ -251,7 +251,10 @@ describe('tenant document knowledge (#789)', () => {
       { metadata: { workbenchDocument: latest.id }, value: '53 Einheiten' },
     ];
     const helper = require('../src/workbench-document-knowledge');
-    expect(await helper.currentEvidence(ctx, cached)).toEqual([cached[1]]);
+    // Revalidated document hits carry their origin (documentRefs) for the conversation scope.
+    expect(await helper.currentEvidence(ctx, cached)).toEqual([
+      { ...cached[1], metadata: { ...cached[1].metadata, documentRefs: expect.any(Array) } },
+    ]);
     await docCall('documentCorrect', { id: latest.id, kind: 'delete' }, 'actor-a', ['restricted']);
     expect(await helper.currentEvidence(ctx, cached)).toEqual([]);
   });
