@@ -13,6 +13,14 @@
   list and the tool document, acting for the mapped user.
 - `scripts/export-openapi.js` honours a service's `settings.rest` base path, as moleculer-web
   does. See `docs/knowledge-gateway.md`.
+## Unreleased — Tool calls in streamed chat completions
+
+- `POST /v1/chat/completions` with `stream: true` now carries OpenAI-compatible
+  `delta.tool_calls` in the buffered SSE reframing: one delta per call with its zero-based index,
+  id, type, function name and arguments (the JSON string unchanged), then
+  `finish_reason: "tool_calls"`. A pure tool-call answer gets no empty content delta; text plus
+  calls keeps the text before the calls. Open WebUI can now run its native tool loop against CET;
+  CET still never executes a tool. Plain text SSE and non-streamed completions are unchanged.
 
 ## Unreleased — Cross-case gate also for direct tenant-evidence answers
 
