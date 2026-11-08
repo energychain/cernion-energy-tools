@@ -1432,6 +1432,16 @@ async function runContentTurn(
   }
   // Revalidate managed evidence, including cached reads and draft follow-ups.
   retrieval.evidence = await documentKnowledge.currentEvidence(memoryCtx, retrieval.evidence);
+  // Conversation scope (TWL CTX-01): other conversations and cases only when asked for or named.
+  const scoped = require('./workbench-context-scope').scopeEvidence(retrieval.evidence, {
+    conversationId: envelope.conversationId,
+    caseId: caseId || conversation?.cetCaseId,
+    message: envelope.userRequest,
+    situation,
+  });
+  retrieval.evidence = scoped.evidence;
+  if (scoped.withheld)
+    service.logger.info('Workbench conversation scope', { withheld: scoped.withheld });
   retrieval.dataScope = {
     dataRequested: dataReadAllowed,
     tenantId: p.tenantId,
