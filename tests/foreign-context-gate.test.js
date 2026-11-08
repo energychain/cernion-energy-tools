@@ -80,41 +80,65 @@ describe('foreign context gate', () => {
     expect(result.decisions).toEqual(['comparable']);
   });
 
-  test('a case the person names by its exact identifier is linked without a judgement', async () => {
-    const named = foreign('Klärfall SYN-CASE-4711: Zählerstände fehlen seit Monat 3.');
-    const other = foreign('Klärfall SYN-CASE-0815: Vertragszuordnung fehlt.');
+  test('a case named by its display reference is linked without a judgement', async () => {
+    const named = {
+      ...foreign('Klärfall: Zählerstände fehlen seit Monat 3.'),
+      metadata: { scopeOrigin: 'aus anderem Fall', caseRef: 'F-4711' },
+    };
+    const other = foreign('Klärfall: Vertragszuordnung fehlt.');
     const llm = llmReturning([{ index: 0, decision: 'comparable', lesson: '' }]);
     const result = await gateForeignEvidence([own, named, other], {
       llm,
-      message: 'Vergleiche bitte den Klärfall SYN-CASE-4711 mit dieser Lage.',
+      message: 'Vergleiche bitte den Fall F-4711 mit dieser Lage.',
     });
     expect(result.evidence).toEqual([own, named]);
     expect(result.decisions).toEqual(['linked', 'comparable']);
-    // Only the unnamed item reaches the model.
     const prompt = JSON.parse(llm.generateStructured.mock.calls[0][1]);
     expect(prompt.foreign).toHaveLength(1);
-    expect(prompt.foreign[0].content).toContain('SYN-CASE-0815');
+    expect(prompt.foreign[0].content).toContain('Vertragszuordnung');
   });
 
-  test('identifiers given as metadata count; withheld items stay unlinked even when named', async () => {
+  test('other identifiers reach the model as hints with their role; its decision applies', async () => {
     const session = {
-      source: 'Sitzung',
-      value: '{"title":"Projekt"}',
-      // Stored sessions carry typed identifiers.
+      source: 'Sitzung: Abrechnung',
+      value: '{"title":"Sitzung: Abrechnung"}',
       metadata: {
         scopeOrigin: 'aus anderem Gespräch',
-        identifiers: [{ value: 'SYN-PRJ-0042', type: 'project' }],
+        identifiers: [{ value: 'SYN-OBJ-0042', type: 'object' }],
+        contentRefs: ['SYN-CASE-7781', 'KRED-SYN-4712'],
       },
     };
-    const withheld = foreign('Rohdaten zu SYN-PRJ-0042');
     const llm = llmReturning([{ index: 0, decision: 'unrelated', lesson: '' }]);
-    const result = await gateForeignEvidence([session], {
+    const result = await gateForeignEvidence([own, session], {
+      llm,
+      message:
+        'Die Kreditorennummer lautet KRED-SYN-4712, Objekt SYN-OBJ-0042, Vorgang SYN-CASE-7781.',
+    });
+    const [item] = JSON.parse(llm.generateStructured.mock.calls[0][1]).foreign;
+    expect(item.namedIdentifiers).toEqual(
+      expect.arrayContaining([
+        { value: 'SYN-OBJ-0042', role: 'subject' },
+        { value: 'SYN-CASE-7781', role: 'content' },
+        { value: 'KRED-SYN-4712', role: 'content' },
+      ])
+    );
+    // A shared data value alone does not link: the model judged unrelated.
+    expect(result.evidence).toEqual([own]);
+  });
+
+  test('withheld items stay unlinked even when named by their display reference', async () => {
+    const withheld = {
+      ...foreign('Rohdaten'),
+      metadata: { scopeOrigin: 'aus anderem Fall', caseRef: 'F-9' },
+    };
+    const llm = llmReturning([{ index: 0, decision: 'linked', lesson: '' }]);
+    const result = await gateForeignEvidence([own], {
       llm,
       withheld: [withheld],
-      message: 'Was ist der Stand bei SYN-PRJ-0042?',
+      message: 'Was ist mit F-9?',
     });
-    expect(result.evidence).toEqual([session]);
-    expect(result.decisions).toEqual(['linked', 'unrelated']);
+    expect(result.evidence).toEqual([own]);
+    expect(result.decisions).toEqual(['comparable']);
   });
 
   test('a failed judgement drops all foreign items', async () => {

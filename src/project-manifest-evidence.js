@@ -536,11 +536,9 @@ async function projectManifestAnswer(ctx, question, options = {}) {
           metadata: {
             scopeOrigin: 'aus anderem Gespräch',
             candidateId: candidate.id,
-            identifiers: [
-              ...(candidate.subjectIdentifiers || []),
-              ...(candidate.references || []),
-              candidate.provenance?.displayRef,
-            ].filter(Boolean),
+            identifiers: candidate.subjectIdentifiers || [],
+            contentRefs: candidate.references || [],
+            caseRef: candidate.provenance?.displayRef,
           },
         })),
         {

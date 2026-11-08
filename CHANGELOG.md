@@ -1,13 +1,17 @@
 # Changelog
 
-## Unreleased — Case markers the session itself names count for named linking
+## Unreleased — Named case linking: only the case reference is deterministic
 
-- A stored session's typed identifiers hold what the understanding extracted (e.g. the object
-  ID), not always the marker the person gave the case; on prod the explicitly named case of the
-  isolation probe was still withheld. Sessions and statements now also carry the references in
-  their own title, conclusion and sections (and the case display reference) for the
-  exact-identifier link of the cross-case gate. They are used only for that comparison, never
-  for routing, descriptor prompts or answers.
+- Only a case's own display reference (e.g. `F-123`) now links its material without a model
+  judgement. On prod the exact-identifier link also fired on shared data values: a person
+  restating their creditor number got another run's statement "aus Fall F-108". Every other
+  identifier the message shares with a foreign item reaches the cross-case gate as a hint with
+  its role: `subject` for typed case or object identifiers and title references, `content` for
+  references in the session's own conclusion or sections, which sessions and statements now
+  carry. The model judges whether the person means that case. A shared data value the person
+  states, confirms or corrects for their own work is not linked, and neither is a question about
+  their own statements in this conversation.
+- These references serve only the gate, never routing, descriptor prompts or answers.
 
 ## Unreleased — Named case linking also for stored sessions
 
