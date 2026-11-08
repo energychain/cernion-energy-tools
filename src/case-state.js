@@ -141,9 +141,10 @@ function claimBasis(proposed, evidenceIds, evidenceById) {
 function applyHypothesisUpdate(state, update, { turn, idByRef, evidenceIds }) {
   const evidence = resolveRefs(update.evidenceRefs, idByRef, evidenceIds);
   const reason = text(update.reason);
+  // A proposal without id that repeats an existing statement updates that hypothesis.
   const existing = update.hypothesisId
     ? state.hypotheses.find((item) => item.id === update.hypothesisId)
-    : null;
+    : state.hypotheses.find((item) => sameStatement(item.statement, update.statement)) || null;
   if (!existing) {
     if (state.hypotheses.length >= LIMITS.hypotheses) return;
     const status = oneOf(update.status, ['open', 'supported'], 'open');

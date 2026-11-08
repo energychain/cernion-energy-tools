@@ -15,47 +15,46 @@ const {
 } = require('./case-state');
 
 // Background reflection after a turn (premium model, phase case_reflection): one per
-// conversation at a time; its result is merged into the state current at write time and an
-// addendum is shown with the next answer. Off in tests unless CASE_REFLECTION enables it.
+// conversation at a time, a turn that ends meanwhile is reflected afterwards; the result is
+// merged into the state current at write time and an addendum is shown with the next answer.
+// Off in tests unless CASE_REFLECTION enables it.
 const REFLECTION_TIMEOUT_MS = Number(process.env.CASE_REFLECTION_TIMEOUT_MS) || 300000;
-const reflections = new Map();
+const reflections = require('./case-reflection-queue').createReflectionQueue();
 
 function scheduleReflection(service, p, envelope, { caseState, recentTurns = [], logger } = {}) {
   if (!reflectionEnabled() || !caseState?.turn) return null;
   const key = [p.tenantId, p.actorId, envelope.channel, envelope.conversationId].join(':');
-  if (reflections.has(key)) return reflections.get(key);
   const conversation = require('./workbench-conversation');
-  const started = Date.now();
-  const job = reflectCaseState(
-    caseState,
-    { recentTurns },
-    {
-      tenantId: p.tenantId,
-      timeoutMs: REFLECTION_TIMEOUT_MS,
-    }
-  )
-    .then((reflection) =>
-      conversation
-        .saveCaseState(service.conversationsDb, p, envelope, (current) =>
-          mergeReflection(current || caseState, reflection)
-        )
-        .then((merged) => {
-          logger?.info?.('Workbench case reflection', {
-            ms: Date.now() - started,
-            turn: reflection.turn,
-            addendum: Boolean(reflection.addendum),
-            stored: Boolean(merged),
-          });
-          return merged;
-        })
+  return reflections.schedule(key, () => {
+    const started = Date.now();
+    return reflectCaseState(
+      caseState,
+      { recentTurns },
+      {
+        tenantId: p.tenantId,
+        timeoutMs: REFLECTION_TIMEOUT_MS,
+      }
     )
-    .catch((error) => {
-      logger?.warn?.(`Workbench case reflection failed: ${error.message}`);
-      return null;
-    })
-    .finally(() => reflections.delete(key));
-  reflections.set(key, job);
-  return job;
+      .then((reflection) =>
+        conversation
+          .saveCaseState(service.conversationsDb, p, envelope, (current) =>
+            mergeReflection(current || caseState, reflection)
+          )
+          .then((merged) => {
+            logger?.info?.('Workbench case reflection', {
+              ms: Date.now() - started,
+              turn: reflection.turn,
+              addendum: Boolean(reflection.addendum),
+              stored: Boolean(merged),
+            });
+            return merged;
+          })
+      )
+      .catch((error) => {
+        logger?.warn?.(`Workbench case reflection failed: ${error.message}`);
+        return null;
+      });
+  });
 }
 
 // An addendum from the background reflection precedes the next answer, once.
@@ -124,6 +123,7 @@ async function reviewTurnReply(reply, caseState, { tenantId, logger } = {}) {
 }
 
 module.exports = {
+  reflections,
   caseStateView,
   reflectionEnabled,
   reviewTurnReply,
