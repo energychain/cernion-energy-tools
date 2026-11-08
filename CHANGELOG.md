@@ -9,6 +9,9 @@
   identifiers to the gate. In the prod probe an explicit comparison with a named case found no
   material and answered with a suggestion instead.
 - No comparable-case suggestion in a turn that links a case the person brought in.
+- Decision audit trails order entries written in the same millisecond along their hash chain
+  (the append order) instead of their random id, so the latest entry and chain verification are
+  deterministic; this made the project-deletion audit test fail intermittently in CI.
 
 ## Unreleased — Tenant-safe Knowledge Gateway for Open WebUI (MVP)
 
