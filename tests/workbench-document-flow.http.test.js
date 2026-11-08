@@ -363,7 +363,9 @@ describe('document flow through authenticated HTTP', () => {
         actorId: 'person-a',
       });
       expect(profile.conversationContext.role).toBe('Team A');
-      expect(profile.conversationContext.goal).toBe('Überblick');
+      // The goal belongs to this conversation; only role and preferences persist with the
+      // person (conversation scope, TWL CTX-01).
+      expect(profile.conversationContext.goal).toBe('');
     } finally {
       llm.generateStructured.mockImplementation(originalStructured);
       llm.generateText.mockImplementation(originalText);

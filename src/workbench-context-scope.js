@@ -2,8 +2,8 @@
 
 // Conversation scope of an answer (TWL CTX-01, operator decision of 2026-11-08): an answer uses
 // the active conversation, its case and the material attached in it. Other cases and documents
-// stored from other conversations enter only when the person asks for the tenant's knowledge
-// (a knowledge question, stored knowledge or case search in the understanding) or names a
+// stored from other conversations enter only when the person asks for knowledge beyond this
+// conversation (contextScope, stored knowledge or case search in the understanding) or names a
 // reference that occurs in that material; they then carry their origin. Team memory is already selected by the subjects
 // (anchors) the message names and states its author, so it is not filtered again here.
 
@@ -16,14 +16,9 @@ function explicitTenantRequest(situation = {}) {
   return Boolean(situation?.selfKnowledge?.requested || situation?.caseSearch?.requested);
 }
 
-// A knowledge question asks for what the tenant knows; case work (task/work) keeps to its own
-// material. Both signals come from the understanding, not from keywords.
-function knowledgeQuestion(situation = {}) {
-  if (situation?.turnKind === 'work' || situation?.conversationShape === 'task') return false;
-  return (
-    ['knowledge', 'orientation'].includes(situation?.conversationShape) ||
-    situation?.turnKind === 'knowledge'
-  );
+// The understanding judges whether the question needs knowledge beyond this conversation.
+function tenantScope(situation = {}) {
+  return explicitTenantRequest(situation) || situation?.contextScope === 'tenant';
 }
 
 function sharesReference(text, references) {
@@ -70,7 +65,7 @@ function labelled(hit, origin) {
  * reference shared with the message, labelled with its origin.
  */
 function scopeEvidence(evidence = [], { conversationId, caseId, message, situation } = {}) {
-  const explicit = explicitTenantRequest(situation) || knowledgeQuestion(situation);
+  const explicit = tenantScope(situation);
   const references = new Set([
     ...referenceCandidates({ text: String(message || '') }),
     ...(situation?.identifiers || []).map((entry) => String(entry?.value || '').trim()),
@@ -91,7 +86,7 @@ module.exports = {
   OTHER_CASE,
   OTHER_CONVERSATION,
   explicitTenantRequest,
-  knowledgeQuestion,
+  tenantScope,
   foreignOrigin,
   scopeEvidence,
   sharesReference,

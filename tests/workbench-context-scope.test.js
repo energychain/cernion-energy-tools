@@ -79,7 +79,7 @@ test('an explicit request for the tenant knowledge admits all foreign material, 
   for (const situation of [
     { selfKnowledge: { requested: true } },
     { caseSearch: { requested: true } },
-    { conversationShape: 'knowledge', turnKind: 'knowledge' },
+    { contextScope: 'tenant' },
   ]) {
     const result = scopeEvidence(evidence, { ...here, message: 'Was wissen wir dazu?', situation });
     expect(result.withheld).toBe(0);
@@ -95,11 +95,15 @@ test('without a conversation, stored documents with an origin count as foreign',
   expect(values(result)).toEqual(['Y']);
 });
 
-test('case work keeps to its own material even when it is phrased as a question', () => {
+test('a question about this conversation keeps to its own material, even as a knowledge question', () => {
   const result = scopeEvidence(evidence, {
     ...here,
-    message: 'Was ist der nächste Schritt?',
-    situation: { conversationShape: 'task', turnKind: 'work' },
+    message: 'Fasse den Stand dieses Gesprächs zusammen und nenne alle Marker.',
+    situation: {
+      conversationShape: 'knowledge',
+      turnKind: 'knowledge',
+      contextScope: 'conversation',
+    },
   });
   expect(result.withheld).toBe(2);
 });
