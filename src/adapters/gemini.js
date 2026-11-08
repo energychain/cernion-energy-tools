@@ -4,6 +4,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { MoleculerError } = require('moleculer').Errors;
 
 const DEFAULT_MODEL = 'gemini-2.0-flash';
+const SKIP_THOUGHT_SIGNATURE = 'skip_thought_signature_validator';
 const DEFAULT_EMBEDDING_MODEL = 'gemini-embedding-001';
 const DEFAULT_IMAGE_MODEL = 'gemini-2.5-flash-image';
 
@@ -243,7 +244,9 @@ function buildGeminiContents(messages) {
           if (call?.id) toolCallNameById.set(call.id, name);
           return {
             functionCall: { name, args },
-            ...(call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {}),
+            // A call without its signature (client-built history, restart) uses the validator
+            // skip Gemini documents for transferred function calls; thinking models require one.
+            thoughtSignature: call.thoughtSignature || SKIP_THOUGHT_SIGNATURE,
           };
         });
         contents.push({ role: 'model', parts });

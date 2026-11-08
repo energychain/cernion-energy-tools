@@ -6,6 +6,14 @@
   (`{ value, type }`) as objects, so a case named by its marker was never linked on the
   tenant-evidence path and the turn answered without its material (prod probe, situation 4).
   Typed identifiers now count by their value.
+## Unreleased — Tool-call follow-up turns with Gemini thinking models
+
+- A follow-up turn that returns a tool result failed with Gemini thinking models ("Function call
+  is missing a thought_signature"): OpenAI clients send back only id, name and arguments. The
+  facade now keeps each call's thought signature server-side (per tenant and call id, bounded)
+  and attaches it again; for calls without a known signature (client-built history, restart) the
+  Gemini adapter uses the documented validator skip. Signatures never leave CET. Found by the
+  live check of streamed tool calls after deploy.
 
 ## Unreleased — A case named by its identifier is linked
 
