@@ -438,7 +438,8 @@ module.exports = {
           !isReadMethod(method) &&
           !isReadOnlySidecarInvocation(method, requestPath) &&
           !isOperationsRunbookInvocation(method, requestPath) &&
-          !isDomainRouterAdvisoryInvocation(method, requestPath)
+          !isDomainRouterAdvisoryInvocation(method, requestPath) &&
+          !isKnowledgeGatewayRequest(method, requestPath)
         ) {
           return {
             success: true,
