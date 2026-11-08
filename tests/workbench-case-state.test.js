@@ -201,9 +201,13 @@ describe('background reflection in the workbench', () => {
     const second = workbenchCaseState.scheduleReflection(service, p, envelope, {
       caseState: state,
     });
+    // A turn that ends while a reflection runs is reflected afterwards, once.
+    workbenchCaseState.scheduleReflection(service, p, envelope, { caseState: state });
     expect(second).toBe(first);
-    const merged = await first;
-    expect(llm.generateStructured).toHaveBeenCalledTimes(1);
+    await first;
+    await workbenchCaseState.reflections.settled('t1:a1:api:c1');
+    const merged = db.store.doc.caseState;
+    expect(llm.generateStructured).toHaveBeenCalledTimes(2);
     expect(llm.generateStructured.mock.calls[0][2]).toMatchObject({ phase: 'case_reflection' });
     expect(db.store.doc).toMatchObject({
       lastUserRequest: 'neuer Turn',
