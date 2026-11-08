@@ -215,7 +215,9 @@ describe('SSE tool_calls contract', () => {
   test('round trip through the real facade: rebuilt call equals the JSON completion, follow-up streams text', async () => {
     llmClient.generateChat.mockResolvedValue({
       content: null,
-      toolCalls: [{ name: 'get_weather', args: { location: 'Berlin' } }],
+      toolCalls: [
+        { name: 'get_weather', args: { location: 'Berlin' }, thoughtSignature: 'synthetic-sig' },
+      ],
       finishReason: 'tool_calls',
     });
     const question = { role: 'user', content: 'Wie ist das Wetter in Berlin?' };
@@ -257,6 +259,12 @@ describe('SSE tool_calls contract', () => {
     });
     const forwarded = llmClient.generateChat.mock.calls.at(-1)[0];
     expect(forwarded[2]).toMatchObject({ role: 'tool', tool_call_id: rebuilt.calls[0].id });
+    // The provider's thought signature never leaves CET but returns with the call.
+    expect(JSON.stringify(first.frames)).not.toContain('synthetic-sig');
+    expect(forwarded[1].tool_calls[0]).toMatchObject({
+      id: rebuilt.calls[0].id,
+      thoughtSignature: 'synthetic-sig',
+    });
     expect(assemble(followUp.frames)).toEqual({
       content: 'In Berlin sind es 22 °C.',
       calls: [],
