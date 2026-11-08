@@ -1472,7 +1472,7 @@ async function runContentTurn(
       JSON.stringify([situation.actorContext.role, situation.actorContext.organization]);
   const workbenchCaseState = require('./workbench-case-state');
   const caseStateStarted = performance.now();
-  const caseState = await workbenchCaseState.updateTurnCaseState({
+  let caseState = await workbenchCaseState.updateTurnCaseState({
     previous: pending?.caseState,
     envelope,
     retrieval,
@@ -1526,6 +1526,7 @@ async function runContentTurn(
       tenantId: p.tenantId,
       logger: service.logger,
     });
+    ({ reply, caseState } = workbenchCaseState.withAddendum(reply, caseState));
   } finally {
     phaseTimes.answerMs = Math.max(1, Math.round(performance.now() - answerStarted));
   }
@@ -1723,6 +1724,15 @@ async function runContentTurn(
     ...(caseState ? { caseState } : {}),
     askedQuestions: [...(pending?.askedQuestions || []), ...reply.questions],
     ...(knowledgeAsk ? { lastKnowledgeAskAt: Date.now() } : {}),
+  });
+  // Background reflection on the stored state; the turn does not wait for it.
+  workbenchCaseState.scheduleReflection(service, p, envelope, {
+    caseState,
+    recentTurns: [
+      { role: 'user', text: envelope.userRequest },
+      { role: 'assistant', text: reply.responseText },
+    ],
+    logger: service.logger,
   });
   const roleConfirmation = require('./workbench-role-context').roleConfirmation(
     situation,
