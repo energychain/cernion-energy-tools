@@ -14,6 +14,8 @@ const DEFAULTS = Object.freeze({
     case_review: { model: 'gemini-3.5-flash-lite', thinking: 'minimal' },
     // Background, after the turn: hypothesis lifecycle, source comparison, closure.
     case_reflection: { model: 'gemini-4-argon', thinking: 'high' },
+    // In-turn: how material from other conversations or cases may be used (CTX-01).
+    context_gate: { model: 'gemini-3.5-flash-lite', thinking: 'minimal' },
   }),
 });
 

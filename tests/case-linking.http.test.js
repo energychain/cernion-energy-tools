@@ -67,6 +67,11 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
     app.broker.createService(OpenAi);
     llm.generateStructured.mockImplementation(async (_schema, prompt) => {
       const input = JSON.parse(prompt);
+      // Foreign context gate: the person names the shared object, so the material is linked.
+      if (input.foreign)
+        return {
+          items: input.foreign.map(({ index }) => ({ index, decision: 'linked', lesson: '' })),
+        };
       const value = input.message.match(/\[[^\]]*MASKED[^\]]*\]/)?.[0] || 'ANON-0001';
       return {
         concern: 'Anonymisierte Referenz bearbeiten.',

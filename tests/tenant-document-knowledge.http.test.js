@@ -56,6 +56,11 @@ describe('document knowledge through authenticated Open WebUI HTTP (#789)', () =
     });
     llm.generateStructured.mockImplementation(async (_schema, prompt) => {
       const input = JSON.parse(prompt);
+      // Foreign context gate: the person names the shared object, so the material is linked.
+      if (input.foreign)
+        return {
+          items: input.foreign.map(({ index }) => ({ index, decision: 'linked', lesson: '' })),
+        };
       if (input.document)
         return {
           assertions: [],

@@ -70,6 +70,11 @@ const principal = (actor = 'Charly', tenantId = 'tenant-a', clearance = []) => (
 function assessments() {
   llm.generateStructured.mockImplementation(async (_schema, prompt) => {
     const input = JSON.parse(prompt);
+    // Foreign context gate: the person names the shared object, so the material is linked.
+    if (input.foreign)
+      return {
+        items: input.foreign.map(({ index }) => ({ index, decision: 'linked', lesson: '' })),
+      };
     if (input.fact)
       return {
         effects: input.candidates.map((item) => ({
@@ -1015,12 +1020,16 @@ describe('tenant memory acceptance and lifecycle', () => {
       facts.push(...captured.facts);
     }
     await memory.assess(context(app, 'Doris'), principal('Doris'), facts[1], {});
-    llm.generateStructured.mockImplementation(async () =>
-      situation('Kundeninformation Hauptstraße', [], {
+    llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+      // The person names the Hauptstraße, so the colleagues' statements on it are linked.
+      const foreign = JSON.parse(prompt).foreign;
+      if (foreign)
+        return { items: foreign.map(({ index }) => ({ index, decision: 'linked', lesson: '' })) };
+      return situation('Kundeninformation Hauptstraße', [], {
         turnKind: 'knowledge',
         conversationShape: 'task',
-      })
-    );
+      });
+    });
     llm.generateText.mockResolvedValue(
       JSON.stringify({
         expectation: [],

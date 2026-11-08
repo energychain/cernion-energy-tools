@@ -79,7 +79,7 @@ function scopeEvidence(evidence = [], { conversationId, caseId, message, situati
     else if (explicit || sharesReference(hit.value, references)) kept.push(labelled(hit, origin));
     else withheld.push(hit);
   }
-  return { evidence: kept, withheld: withheld.length };
+  return { evidence: kept, withheld: withheld.length, withheldItems: withheld };
 }
 
 module.exports = {
