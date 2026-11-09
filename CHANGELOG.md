@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — CTX-01: statements carry no foreign material, notices pass the gate, comparisons
+
+- After a resolved follow-up, a statement or correction of the person no longer carries another
+  chat's case session or statement into the direct tenant-evidence answer (R3: a corrected
+  creditor number pulled in another run's statement). The existing request check decides; a
+  real content question keeps the resolution.
+- Team-memory notices (relations to others' statements, and the plausibility of a new
+  statement against them) pass the same cross-case judgement as the evidence and stay only when
+  linked. In the prod probe a new case without identifiers showed another case's object and
+  month through such a notice.
+- A case the person brings in for comparison is answered as a comparison: its evidence is marked
+  as from another conversation, the answer separates commonalities, differences, time and
+  evidence, and numbers from the person's own question (the situation to compare) no longer
+  reject the answer. No internal labels in the source line ("Turn-Memory").
+
 ## Unreleased — A case named by a marker it carries can be found again
 
 - The tenant-evidence routing treated a session as explicitly requested only when the question

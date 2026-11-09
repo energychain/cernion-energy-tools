@@ -1069,6 +1069,61 @@ describe('tenant memory acceptance and lifecycle', () => {
     expect((await memory.related(ctx, p, { turnKind: 'knowledge' }, 'Hauptstraße?')).text).toBe('');
   });
 
+  test("CTX-01: a relation notice about others' statements stays out when the gate does not link them", async () => {
+    const p = principal(),
+      ctx = context(app);
+    const facts = [];
+    for (const item of [fixture.first, fixture.second]) {
+      const captured = await memory.capture(context(app, item.actor), principal(item.actor), {
+        situation: situation(item.text, [assertion(item.text)]),
+        envelope: { userRequest: item.text, channel: 'api', conversationId: item.actor },
+        mapping: { functionLabel: item.functionLabel },
+      });
+      facts.push(...captured.facts);
+    }
+    await memory.assess(context(app, 'Doris'), principal('Doris'), facts[1], {});
+    llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+      // The person names the Hauptstraße, so the colleagues' statements on it are linked.
+      const foreign = JSON.parse(prompt).foreign;
+      if (foreign)
+        return {
+          items: foreign.map(({ index }) => ({ index, decision: 'unrelated', lesson: '' })),
+        };
+      return situation('Kundeninformation Hauptstraße', [], {
+        turnKind: 'knowledge',
+        conversationShape: 'task',
+      });
+    });
+    llm.generateText.mockResolvedValue(
+      JSON.stringify({
+        expectation: [],
+        nextSteps: [],
+        draft: [
+          {
+            text: 'Wir informieren über die geplanten Schritte und die noch zu klärende Übergangslösung.',
+            supported: 'model',
+            completedAction: false,
+            specific: false,
+            evidenceIds: [],
+          },
+        ],
+      })
+    );
+    const reply = await app.call(
+      'workbench.chat',
+      {
+        userRequest: 'Entwirf eine Kundeninformation zur Hauptstraße.',
+        channel: 'api',
+        conversationId: 'later-work',
+        asyncDelivery: {},
+      },
+      auth()
+    );
+    expect(reply.responseText).not.toContain('2030 bis 2034');
+    const prompt = llm.generateText.mock.calls.at(-1)[0];
+    expect(prompt).not.toContain('2034');
+  });
+
   test('AC-11: slow assessment stays within the turn budget; both recipients receive one deferred notice', async () => {
     const previousBudget = process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS;
     const previousTurnBudget = process.env.WORKBENCH_TURN_TIMEOUT_MS;

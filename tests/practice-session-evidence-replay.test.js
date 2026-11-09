@@ -51,13 +51,14 @@ test('generated earlier-session scenario passes unchanged practice checks throug
     const resolutions = calls.filter((input) => input.task === 'evidence_reference_resolution');
     if (['question', 'paraphrase'].includes(turn.id)) {
       expect(resolutions).toHaveLength(1);
-      expect(calls.filter((input) => !input.nodes)).toHaveLength(2);
+      // Resolution, statement check for the other chat's session (CTX-01), answer.
+      expect(calls.filter((input) => !input.nodes)).toHaveLength(3);
       expect(calls.filter((input) => input.untrustedEvidence)).toHaveLength(1);
       expect(resolutions[0].currentSources).toHaveLength(1);
       expect(JSON.stringify(resolutions[0].currentSources[0].manifest.questionTypes)).not.toMatch(
         /Einordnung|eingeordnet/iu
       );
-      expect(calls.filter((input) => input.task === 'evidence_request_kind')).toHaveLength(0);
+      expect(calls.filter((input) => input.task === 'evidence_request_kind')).toHaveLength(1);
     } else expect(resolutions).toHaveLength(0);
     if (turn.id === 'question') {
       expect(resolutions[0].previousSourceIds).toEqual([]);
