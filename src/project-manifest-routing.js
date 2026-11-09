@@ -105,7 +105,13 @@ function scoreCandidate(candidate, question, bounds) {
   const subjectWords = new Set(
     (deterministicSubjects.length ? deterministicSubjects : subjects).flatMap((item) => item.words)
   );
-  const explicit = phrase(question, candidate.title);
+  // Naming a reference the session itself carries (a case marker or its case reference) is as
+  // explicit as naming its title; only an exact token counts.
+  const explicit =
+    phrase(question, candidate.title) ||
+    [...(candidate.references || []), candidate.provenance?.displayRef]
+      .filter((reference) => typeof reference === 'string' && reference)
+      .some((reference) => require('./workbench-codes').exactToken(String(question), reference));
   const lexical = types
     .map((type) => {
       const words = terms(type.description);

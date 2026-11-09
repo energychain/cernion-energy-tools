@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — A case named by a marker it carries can be found again
+
+- The tenant-evidence routing treated a session as explicitly requested only when the question
+  quoted its title. A case the person names by a marker the session itself carries (from its own
+  conclusion or sections) or by its case reference (`F-…`) was never selected, so the explicit
+  comparison of CTX-01 situation 4 found no material. An exact token match with these
+  references now counts as explicit. The foreign material still passes the cross-case gate.
+
 ## Unreleased — Knowledge Gateway reachable with the Open WebUI gateway token
 
 - On `/api`, the authentication did not pass the gateway token's identity (`type`, `client`,

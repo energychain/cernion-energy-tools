@@ -219,3 +219,17 @@ test('an empty question type list has its own diagnosis rather than claiming a u
     diagnosis: { reason: 'no_question_type' },
   });
 });
+
+test('a reference the session itself names selects it only on an exact token (CTX-01 situation 4)', () => {
+  const session = {
+    ...candidate('case-c1'),
+    title: 'Sitzung: Fehlende Abrechnung',
+    references: ['SYN-CASE-7781'],
+    routingSources: [{ ...candidate().routingSources[0], names: ['Fehlende Abrechnung'] }],
+  };
+  const named = assess([session], 'Vergleiche bitte den Klärfall SYN-CASE-7781 mit dieser Lage.');
+  expect(named.selected.map((item) => item.projectId)).toEqual(['case-c1']);
+  // A different or partial reference does not select it.
+  expect(assess([session], 'Vergleiche bitte den Klärfall SYN-CASE-7782.').selected).toEqual([]);
+  expect(assess([session], 'Vergleiche bitte den Klärfall SYN-CASE.').selected).toEqual([]);
+});
