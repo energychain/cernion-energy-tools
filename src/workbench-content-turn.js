@@ -1577,11 +1577,12 @@ async function runContentTurn(
           caseView: caseState ? workbenchCaseState.caseStateView(caseState) : null,
           logger: service.logger,
         });
+    // The addendum is checked together with the answer it precedes.
+    ({ reply, caseState } = workbenchCaseState.withAddendum(reply, caseState));
     reply = await workbenchCaseState.reviewTurnReply(reply, caseState, {
       tenantId: p.tenantId,
       logger: service.logger,
     });
-    ({ reply, caseState } = workbenchCaseState.withAddendum(reply, caseState));
     if (suggestComparable && !reply.responseText.includes(foreignContextGate.SUGGESTION))
       reply = {
         ...reply,

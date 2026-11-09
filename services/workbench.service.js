@@ -8,7 +8,7 @@ const {
 const { handleCorrectionTurn } = require('../src/workbench-corrections');
 const { answerSystemActivity } = require('../src/workbench-system-activity');
 const coverageTurn = require('../src/function-coverage-turn');
-const { classifyWorkbenchIntent } = require('../src/workbench-intent-router');
+const { classifyWorkbenchIntent, isBareStatusQuestion } = require('../src/workbench-intent-router');
 const caseLinking = require('../src/workbench-case-linking');
 const { rawContentAllowed } = require('../src/case-linking');
 const contentTurn = require('../src/workbench-content-turn');
@@ -1506,6 +1506,8 @@ module.exports = {
           type: 'enum',
           values: ['status_query', 'knowledge_query', 'data_lookup', 'system_activity_query'],
         },
+        // From chat: a status question that finds no case is answered as a content turn.
+        fallThrough: { type: 'boolean', optional: true },
       },
       async handler(ctx) {
         const envelope = normalizeTaskEnvelope(ctx.params);
@@ -1639,6 +1641,9 @@ module.exports = {
             };
           }
           if (linkedStatus || conversationStatus) return linkedStatus || conversationStatus;
+          // TWL long dialogue: "Ist-Stand … einen Fall neu aufsetzen" was a work request, not a
+          // lookup; asking for a case number left it unanswered.
+          if (ctx.params.fallThrough) return { unresolvedStatus: true };
           return {
             responseText:
               'Ich kann den Vorgang noch nicht eindeutig zuordnen. Nenne mir eine Fallnummer oder eine Kennung, dann prüfe ich Bearbeitung und Stand.',
@@ -1930,11 +1935,16 @@ module.exports = {
           cetCaseId: conversation?.cetCaseId,
         });
         if (['status_query', 'data_lookup', 'system_activity_query'].includes(intent)) {
-          return ctx.call(
+          const queried = await ctx.call(
             'workbench.query',
-            { ...ctx.params, intentMode: intent },
+            {
+              ...ctx.params,
+              intentMode: intent,
+              fallThrough: intent === 'status_query' && !isBareStatusQuestion(envelope.userRequest),
+            },
             { meta: correctionMeta }
           );
+          if (!queried?.unresolvedStatus) return queried;
         }
         return contentTurn.runContentTurn(this, ctx, {
           p,

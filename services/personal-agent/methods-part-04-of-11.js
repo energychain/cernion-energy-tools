@@ -35,6 +35,7 @@ const {
   reflectionEnabled,
   reviewAnswer,
   takeAddendum,
+  ADDENDUM_LABEL,
   updateCaseState,
 } = require('../../src/case-state');
 
@@ -368,7 +369,7 @@ module.exports = {
     if (!caseState) return { reply, caseState };
     const { addendum, state } = takeAddendum(caseState);
     if (!addendum || !reply) return { reply, caseState };
-    return { reply: `Nachtrag zum bisherigen Stand: ${addendum}\n\n${reply}`, caseState: state };
+    return { reply: `${ADDENDUM_LABEL} ${addendum}\n\n${reply}`, caseState: state };
   },
 
   // Background reflection after the turn (premium model); one per session at a time. The result

@@ -7,6 +7,23 @@ const {
   renderSystemActivity,
 } = require('./workbench-system-activity');
 
+// A status question with no further content ("Status des Falls", "Stand?"). Without a case it
+// is answered by asking for the reference; any other message is a content turn then.
+function isBareStatusQuestion(message) {
+  const text = String(message || '')
+    .toLowerCase()
+    .trim();
+  return (
+    /^(?:status|stand|bearbeitungsstand)\s+(?:des|der|von|zum|zu|bei)\s+(?:falls?|falles|vorgangs?|cases?)[?.!\s]*$/iu.test(
+      text
+    ) ||
+    /^(?:(?:was|wie) ist (?:der )?|aktuelle[rn]? )?(?:status|readiness|stand|bearbeitungsstand|missing evidence|fehlende belege|next safe action)[?.!\s]*$/u.test(
+      text
+    ) ||
+    /^(?:what is the )?status(?: of the case)?[?.!\s]*$/u.test(text)
+  );
+}
+
 // Intent is a presentation/routing hint, never authorization to execute a tool.
 function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
   if (isCorrectionTurn(message)) return 'correction';
@@ -238,6 +255,7 @@ function renderWorkbenchResponse(result = {}, intent, followup) {
 }
 
 module.exports = {
+  isBareStatusQuestion,
   classifyWorkbenchIntent,
   resolveWorkbenchFollowup,
   isReadOnlyIntent,

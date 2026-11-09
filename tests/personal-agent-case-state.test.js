@@ -214,7 +214,7 @@ describe('background reflection in the personal agent', () => {
   test('the addendum precedes the next consultation answer once', () => {
     const state = { ...applyCaseUpdate(createCaseState(), delta()), pendingAddendum: 'Neu.' };
     const first = service.withCaseAddendum('Antwort.', state);
-    expect(first.reply).toBe('Nachtrag zum bisherigen Stand: Neu.\n\nAntwort.');
+    expect(first.reply).toBe('Ergänzung zu meiner letzten Antwort: Neu.\n\nAntwort.');
     expect(service.withCaseAddendum('Antwort.', first.caseState).reply).toBe('Antwort.');
     expect(service.withCaseAddendum('Antwort.', null)).toEqual({
       reply: 'Antwort.',

@@ -263,6 +263,11 @@ const CLAIM = object(
       description:
         'Optionaler unveränderter Originalausschnitt aus message für eine ausdrücklich als Bericht wiederzugebende Eingangsangabe; sonst leer.',
     },
+    ruleClaim: {
+      type: 'boolean',
+      description:
+        'true, wenn der Absatz eine Rechts-, Regulierungs- oder verbindliche Prozessregel, Pflicht, Frist oder Zuständigkeit als geltend behauptet; false für Einordnung, Methodik, Empfehlung, Prüfauftrag oder die Wiedergabe von Angaben der Person.',
+    },
     evidenceIds: { type: 'array', maxItems: 15, items: { type: 'string' } },
   },
   ['text', 'supported', 'completedAction', 'specific', 'evidenceIds']
@@ -1514,11 +1519,9 @@ async function generateAnswerResult({
           safe.reidentMap
         );
         if (!validateAnswer(parsed)) throw schemaError(validateAnswer.errors);
-        if (situation.requestedOutput?.requested)
-          require('./workbench-artifact').materializeTables(parsed, situation.requestedOutput);
-        require('./workbench-communication').validateCommunication(parsed, situation, evidence);
         if (situation.requestedOutput?.requested) {
-          require('./workbench-artifact').validateArtifact(parsed, situation.requestedOutput, {
+          const artifacts = require('./workbench-artifact');
+          const artifactOptions = {
             evidence,
             answerEvidence,
             unresolved,
@@ -1527,14 +1530,41 @@ async function generateAnswerResult({
             counts: filterCounts,
             userFacts: situation.personFacts || [],
             register: situation.conversationPreferences?.register,
-          });
-          const reviewed = await require('./workbench-disclosure-review').reviewDisclosure(
-            parsed,
-            situation,
-            { tenantId, logger, evidence }
-          );
-          require('./workbench-communication').validateCommunication(reviewed, situation, evidence);
-          return reviewed;
+          };
+          // Checks and disclosure review of an artifact, strict or (salvage) lenient.
+          const accept = async (candidate, lenient) => {
+            artifacts.materializeTables(candidate, situation.requestedOutput, { lenient });
+            require('./workbench-communication').validateCommunication(
+              candidate,
+              situation,
+              evidence
+            );
+            artifacts.validateArtifact(candidate, situation.requestedOutput, {
+              ...artifactOptions,
+              lenient,
+            });
+            const reviewed = await require('./workbench-disclosure-review').reviewDisclosure(
+              candidate,
+              situation,
+              { tenantId, logger, evidence }
+            );
+            require('./workbench-communication').validateCommunication(
+              reviewed,
+              situation,
+              evidence
+            );
+            return reviewed;
+          };
+          const original = structuredClone(parsed);
+          try {
+            return await accept(parsed, false);
+          } catch (error) {
+            // A worked-out deliverable that misses only the ordered form is kept as the
+            // fallback, so a failed repair never reduces it to its headings (TWL long dialogue).
+            if (!run.salvage && artifacts.SOFT_CONTRACT.has(error.fallbackReason))
+              run.salvage = await accept(original, true).catch(() => null);
+            throw error;
+          }
         }
         if (conversationMode || analysisOnly) parsed.draft = [];
         parsed.expectation = [];
@@ -1777,6 +1807,7 @@ function decorateAnswer(
     unresolved,
     sources,
     caseEvidence = [],
+    unverifiedRule = false,
   }
 ) {
   if (
@@ -1786,6 +1817,7 @@ function decorateAnswer(
     lines.push(`Entwurf:\n${draft}`);
   if (
     situation.regulatoryQuestion &&
+    unverifiedRule &&
     !(sources || []).some(
       (hit) =>
         ['knowledge-rag', 'knowledge-rag-federated', 'willi-mako'].includes(
@@ -2156,8 +2188,18 @@ async function answer({
   } catch (error) {
     if (!skipModel && !error.workbenchLogged)
       require('./workbench-llm-errors').logLlmError(logger, 'answer', error);
-    modelFailed = !skipModel && Boolean(run.modelFailed || run.modelPending);
-    fallback = fallbackReason(error);
+    if (artifactRequested && run.salvage?.artifact?.length) {
+      logInfo(logger, 'Workbench artifact salvaged', {
+        phase: 'answer',
+        reason: fallbackReason(error),
+        attempts: run.attempts,
+      });
+      result = run.salvage;
+      answerStatus = evidence.length ? 'grounded' : 'model_knowledge';
+    } else {
+      modelFailed = !skipModel && Boolean(run.modelFailed || run.modelPending);
+      fallback = fallbackReason(error);
+    }
     const quotaText = require('./workbench-llm-errors').quotaMessage(error);
     if (quotaText)
       return {
@@ -2359,6 +2401,7 @@ async function answer({
     unresolved,
     sources,
     caseEvidence: caseOverview ? caseEvidence : [],
+    unverifiedRule: Boolean(result.unverifiedRule),
   });
   const toolEvidence = evidence.filter((hit) => hit.retrievalSource === 'capability-read');
   const toolAnswer = require('./workbench-tool-answer');
