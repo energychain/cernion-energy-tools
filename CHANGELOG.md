@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Knowledge Gateway reachable with the Open WebUI gateway token
+
+- On `/api`, the authentication did not pass the gateway token's identity (`type`, `client`,
+  `externalOrgId`) as `/v1` does, so the Knowledge Gateway did not resolve the mapped Open WebUI
+  user and refused the read side with 403 "Authenticated actor and energy role required" (UAT
+  finding with synthetic Alpha/Beta knowledge bases). Knowledge search also needed write scope
+  and the `full-access` role; as a read it is now exempt from both, and the gateway's ACL decides.
+  New HTTP test through the real `/api` authentication, gateway token and user mapping.
+
 ## Unreleased — Named case linking: only the case reference is deterministic
 
 - Only a case's own display reference (e.g. `F-123`) now links its material without a model

@@ -26,6 +26,7 @@ const {
   isReadOnlySidecarInvocation,
   isOperationsRunbookInvocation,
   isDomainRouterAdvisoryInvocation,
+  isKnowledgeGatewayRequest,
 } = require('../src/gateway-request-classifiers');
 const { createMcpHttpHandlers } = require('../src/mcp-transport');
 const { createOAuthHttpHandlers } = require('../src/oauth-server');
@@ -1081,7 +1082,9 @@ function enforceRbacForPath(roles, method, requestPath) {
     !isReadOnlySidecarInvocation(m, requestPath) &&
     !isChatgptSidecarTicketInvocation(m, requestPath) &&
     !isOperationsRunbookInvocation(m, requestPath) &&
-    !isDomainRouterAdvisoryInvocation(m, requestPath)
+    !isDomainRouterAdvisoryInvocation(m, requestPath) &&
+    // Knowledge search is a read; the gateway's own ACL decides access.
+    !isKnowledgeGatewayRequest(m, requestPath)
   ) {
     if (!hasRole(roles, 'full-access')) {
       throw new Errors.MoleculerClientError('Role required: full-access.', 403, 'ROLE_REQUIRED');
@@ -2919,7 +2922,8 @@ module.exports = {
                 !isReadMethod(req?.method) &&
                 !isReadOnlySidecarInvocation(req?.method, requestPath) &&
                 !isChatgptSidecarTicketInvocation(req?.method, requestPath) &&
-                !isOperationsRunbookInvocation(req?.method, requestPath)
+                !isOperationsRunbookInvocation(req?.method, requestPath) &&
+                !isKnowledgeGatewayRequest(req?.method, requestPath)
               ) {
                 throw new Errors.MoleculerClientError(
                   'Scope violation: read-only token cannot call write endpoints.',
@@ -2945,6 +2949,14 @@ module.exports = {
 
               ctx.meta.apiToken = {
                 id: verification.tokenId,
+                // Gateway identity travels on /api too (Knowledge Gateway read side), as on /v1.
+                ...(verification.type
+                  ? {
+                      type: verification.type,
+                      client: verification.client,
+                      externalOrgId: verification.externalOrgId,
+                    }
+                  : {}),
                 name: verification.name,
                 scope: verification.scope,
                 scopes: verification.scopes || [],
