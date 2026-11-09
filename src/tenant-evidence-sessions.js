@@ -314,8 +314,7 @@ async function readSessionEvidence(ctx, selected) {
       )
     )
       throw new Error('Session evidence changed');
-    const location =
-      kind === 'case' ? 'Fallzusammenfassung / Turn-Memory' : 'Festgehaltene Aussage';
+    const location = kind === 'case' ? 'Fallzusammenfassung' : 'Festgehaltene Aussage';
     const sourceLabel = row.title;
     return {
       title: row.title,

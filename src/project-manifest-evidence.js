@@ -562,6 +562,27 @@ async function projectManifestAnswer(ctx, question, options = {}) {
       }
     }
   }
+  if (readQuestion !== question) {
+    // A resolved follow-up skips the scope question, but a statement or correction of the
+    // person never carries another chat's case or statement (CTX-01).
+    const resolvedForeign = selected.filter((candidate) =>
+      fromOtherChat(candidate, options.currentConversationId)
+    );
+    if (resolvedForeign.length) {
+      const kind = await require('./tenant-evidence-question').evidenceRequestKind(ctx, question);
+      if (!kind.contentRequested) {
+        ctx.broker?.logger?.info?.('Tenant evidence statement scope', {
+          withheld: resolvedForeign.length,
+        });
+        selected = selected.filter((candidate) => !resolvedForeign.includes(candidate));
+        if (selected.length < (options.minSources || 1)) return null;
+        if (
+          selected.every((candidate) => fromConversation(candidate, options.currentConversationId))
+        )
+          return null;
+      }
+    }
+  }
   const results = [];
   for (const candidate of selected) {
     // Routing metadata must not become an instruction for the source query.
@@ -571,7 +592,19 @@ async function projectManifestAnswer(ctx, question, options = {}) {
       question,
       { ...options, combinedEvidence: selected.length > 1 }
     );
-    if (result) results.push({ ...result, candidate });
+    if (!result) continue;
+    // Material of another chat's case the person brought in stays marked as such for the answer.
+    const other = fromOtherChat(candidate, options.currentConversationId);
+    results.push({
+      ...result,
+      evidence: other
+        ? (result.evidence || []).map((entry) => ({
+            ...entry,
+            metadata: { ...entry.metadata, otherConversation: true },
+          }))
+        : result.evidence,
+      candidate,
+    });
   }
   if (
     !results.length ||

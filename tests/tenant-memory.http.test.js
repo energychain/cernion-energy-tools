@@ -67,6 +67,11 @@ describe('tenant memory through authenticated OpenAI HTTP', () => {
     app.broker.createService(MemoryPolicy);
     llm.generateStructured.mockImplementation(async (schema, prompt) => {
       const input = JSON.parse(prompt);
+      // Cross-case gate: the person names the shared object, so colleagues' statements are linked.
+      if (input.foreign)
+        return {
+          items: input.foreign.map(({ index }) => ({ index, decision: 'linked', lesson: '' })),
+        };
       if (input.currentUserMessage)
         return validate(
           schema,

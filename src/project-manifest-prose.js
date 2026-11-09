@@ -41,6 +41,8 @@ async function projectManifestProse(result, question, { tenantId, logger, intern
           'Nenne die Herkunft getrennt: für Uploads Datei und Blatt/Abschnitt, für Sitzungen und Aussagen Fall, Gespräch, Zeitpunkt und Fundstelle, für Projektakten Titel und Datei/Fundstelle, für Katalogquellen deren Namen. Benenne fehlende Inhalte klar. ' +
           'Bei mehreren Quellen beantworte die Frage aus ihrer gemeinsamen Evidenz: benenne belegte Übereinstimmungen, Abweichungen und Lücken. Jede Aussage und jede Zahl braucht die zugehörige Quelle und Fundstelle; keine unbelegten Differenzen berechnen. ' +
           'comparisons enthält geprüfte Gegenüberstellungen, die das System vollständig ergänzt. Wiederhole diese Gegenüberstellungen nicht; widersprich ihnen nicht. ' +
+          'Evidenz mit metadata.otherConversation stammt aus einem anderen Vorgang, den die Person einbezieht: nie als Tatsache der in der Frage geschilderten Lage darstellen; vergleicht die Frage, benenne Gemeinsamkeiten, Unterschiede, Zeitpunkt und Belegstand getrennt, und die in der Frage geschilderte Lage bleibt Angabe der Person. ' +
+          'Keine internen Bezeichnungen (etwa Tenant-Memory, Turn-Memory, Konto- oder Nutzerkennungen); nenne die Herkunft in natürlicher Sprache. ' +
           'Kein Code, JSON oder Arbeitsplan. Den Satz zur Quellenwahl fügt das System voran; wiederhole ihn nicht.',
         ...safe.value,
       }),
@@ -54,7 +56,14 @@ async function projectManifestProse(result, question, { tenantId, logger, intern
     );
     if (!validate(output)) throw new Error('Invalid project answer schema');
     const answer = restoreContext(output.answer.trim(), safe.reidentMap);
-    const allowed = new Set(result.evidence.flatMap((entry) => answerNumbers(entry.value)));
+    // Only a comparison with another conversation's case may restate the person's own numbers
+    // (the situation to compare); otherwise a number only in the question stays out.
+    const comparing = result.evidence.some((entry) => entry.metadata?.otherConversation);
+    const asked = new Set(comparing ? answerNumbers(question) : []);
+    const allowed = new Set([
+      ...result.evidence.flatMap((entry) => answerNumbers(entry.value)),
+      ...asked,
+    ]);
     const sources = result.evidence.map((entry) => entry.metadata?.sourceLabel).filter(Boolean);
     const chat = Boolean(result.tenantSelection);
     const sentences = String(answer).split(/(?<=[.!?])\s+|\n+/u);
@@ -68,9 +77,10 @@ async function projectManifestProse(result, question, { tenantId, logger, intern
             sentence.includes(entry.metadata.sourceLabel)
           );
           const numbers = new Set(cited.flatMap((entry) => answerNumbers(entry.value)));
+          // Numbers of the person's own question (e.g. the situation to compare) need no source.
+          const sourced = answerNumbers(sentence).filter((number) => !asked.has(number));
           return (
-            answerNumbers(sentence).length > 0 &&
-            (!cited.length || answerNumbers(sentence).some((number) => !numbers.has(number)))
+            sourced.length > 0 && (!cited.length || sourced.some((number) => !numbers.has(number)))
           );
         }));
     if (

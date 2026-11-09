@@ -1446,14 +1446,40 @@ async function runContentTurn(
   });
   // Cross-case criterion: linked material stays, a transferable lesson replaces case data, a
   // possibly comparable case is suggested instead of disclosed, the rest stays out.
-  const gated = await foreignContextGate.gateForeignEvidence(scoped.evidence, {
+  // Team-memory notices (relations to others' statements, plausibility of this statement against
+  // them) hold other chats' content too: they pass the same judgement and stay only when linked.
+  const notices = [
+    ...(memoryContext.notices || []).map((text) => ({ text, from: 'relation' })),
+    ...memory.paragraphs.map((text) => ({ text, from: 'assessment' })),
+  ];
+  const noticeItems = notices.map((notice, index) => ({
+    source: 'Hinweis aus festgehaltenen Aussagen',
+    value: notice.text,
+    metadata: { scopeOrigin: 'aus anderem Gespräch', notice: index },
+  }));
+  const gated = await foreignContextGate.gateForeignEvidence([...scoped.evidence, ...noticeItems], {
     withheld: scoped.withheldItems,
     message: envelope.userRequest,
     suggestionPending: Boolean(pending?.comparableSuggested),
     tenantId: p.tenantId,
     logger: service.logger,
   });
-  retrieval.evidence = gated.evidence;
+  const keptNotices = new Set(
+    gated.evidence
+      .filter((hit) => Number.isInteger(hit.metadata?.notice))
+      .map((hit) => hit.metadata.notice)
+  );
+  if (notices.length) {
+    const kept = (from) =>
+      notices.filter((notice, index) => notice.from === from && keptNotices.has(index));
+    memoryContext.text =
+      memoryContext.ambiguous ||
+      kept('relation')
+        .map((notice) => notice.text)
+        .join('\n\n');
+    memory.paragraphs = kept('assessment').map((notice) => notice.text);
+  }
+  retrieval.evidence = gated.evidence.filter((hit) => !Number.isInteger(hit.metadata?.notice));
   // Suggest a comparable case only on work on the matter, once per conversation; statements,
   // recalls and summaries do not get it.
   const suggestComparable =

@@ -953,6 +953,9 @@ async function related(
       },
     })),
     text: selection.ambiguous || paragraphs.join('\n\n'),
+    // Separately for the cross-case gate: notices about others' statements, and the open question.
+    notices: selection.ambiguous ? [] : paragraphs,
+    ambiguous: selection.ambiguous || '',
   };
 }
 // Whether the person stated something in this conversation that is still valid.
