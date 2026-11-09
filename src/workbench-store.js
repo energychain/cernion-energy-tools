@@ -36,8 +36,15 @@ function evidenceId(tenantId, caseId, id) {
 function turnMemoryId(tenantId, caseId) {
   return key('turn-memory', tenantId, caseId);
 }
+// Across conversations only person attributes carry over: the goal, the verbatim excerpt
+// (basis) and the stated content belong to the conversation they were said in (CTX-01: an
+// earlier message's object reappeared in a new case as "nach deiner Angabe").
 function personContext(context) {
-  return context && typeof context === 'object' ? { ...context, goal: '' } : null;
+  if (!context || typeof context !== 'object') return null;
+  const person = { ...context, goal: '' };
+  delete person.basis;
+  delete person.statement;
+  return person;
 }
 
 function userContextId(tenantId, actorId) {
@@ -643,7 +650,10 @@ class WorkbenchStore {
     try {
       const doc = await this.contextDb.get(userContextId(input.tenantId, input.actorId));
       if (doc.enabled === false) disabled('User context disabled');
-      return doc;
+      // Profiles stored before the cleanup still hold earlier excerpts; never hand them on.
+      return doc.conversationContext
+        ? { ...doc, conversationContext: personContext(doc.conversationContext) }
+        : doc;
     } catch (e) {
       if (e.status === 404 && optional) return null;
       if (e.status === 404) notFound('Workbench user context not found');
