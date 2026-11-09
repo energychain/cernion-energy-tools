@@ -172,6 +172,33 @@ test('previous subject context never bypasses a semantic rejection or exact iden
   expect(llm.generateStructured).not.toHaveBeenCalled();
 });
 
+test("a content question without an explicit stored-knowledge request gets no other chat's source (CTX-01)", async () => {
+  const candidates = [source()];
+  const catalog = jest
+    .spyOn(require('../src/evidence-endpoint-catalog'), 'projectEvidenceCandidates')
+    .mockResolvedValue(candidates);
+  const read = jest
+    .spyOn(require('../src/tenant-evidence-sources'), 'readEvidenceSource')
+    .mockResolvedValue(null);
+  llm.generateStructured.mockImplementation(async (_schema, raw) =>
+    JSON.parse(raw).task === 'evidence_request_kind'
+      ? { contentRequested: true, conversationOnly: false, storedKnowledge: false }
+      : { sources: candidates.map((item) => ({ id: item.id, relevance: 1 })) }
+  );
+  try {
+    const result = await require('../src/project-manifest-evidence').projectManifestAnswer(
+      ctx,
+      'Welche Rollen und Strukturen schlägst du für die Messreihe vor?',
+      { contextual: 'only', previousEvidence: { question }, currentConversationId: 'new-chat' }
+    );
+    expect(result).toBeNull();
+    expect(read).not.toHaveBeenCalled();
+  } finally {
+    catalog.mockRestore();
+    read.mockRestore();
+  }
+});
+
 test("a correction after a resolved follow-up never carries another chat's source (CTX-01)", async () => {
   const candidates = [source()];
   const catalog = jest
@@ -219,7 +246,7 @@ test('semantic source groups retain individual validation and execute the origin
   // A content question: the earlier chat's source stays after the resolution.
   llm.generateStructured.mockImplementation(async (_schema, raw) =>
     JSON.parse(raw).task === 'evidence_request_kind'
-      ? { contentRequested: true, conversationOnly: false }
+      ? { contentRequested: true, conversationOnly: false, storedKnowledge: true }
       : { sources: candidates.map((item) => item.id).map((id) => ({ id, relevance: 1 })) }
   );
   try {

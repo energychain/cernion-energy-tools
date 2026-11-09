@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — Other chats' statements answer directly only on an explicit stored-knowledge request
+
+- The direct tenant-evidence answer used other conversations' team-memory statements and case
+  sessions whenever the routing found them through a shared topic word (semantic isolation probe:
+  a new chat's question about "this case" was answered with another chat's whole structure and
+  fixture metadata; TWL long-dialogue UAT). The request check now also judges `storedKnowledge`:
+  the request asks explicitly for stored, recorded or team knowledge beyond this conversation.
+  Only then, and never for a request about this case or conversation, do other chats' sources
+  answer directly; this also holds after a resolved follow-up. Colleague notices in the regular
+  turn are unchanged and still pass the cross-case gate.
+
 ## Unreleased — Knowledge-search hits from other cases pass the cross-case gate
 
 - A question about CET's knowledge of "this case" searched all cases of the tenant, and the
