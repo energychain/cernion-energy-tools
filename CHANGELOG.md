@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Knowledge-search hits from other cases pass the cross-case gate
+
+- A question about CET's knowledge of "this case" searched all cases of the tenant, and the
+  resulting case hits carried no origin, so they bypassed the cross-case gate (semantic
+  isolation probe and TWL long-dialogue UAT: a new chat was answered with another case's target
+  structure and fixture metadata). Case hits from another case are now foreign material; an
+  explicit search for other cases still returns them as the requested answer.
+- The gate also receives the current case (concern and situation), so a reference to "this case"
+  is judged against it; another case is linked only when the person names or brings it in.
+
 ## Unreleased — CTX-01: statements carry no foreign material, notices pass the gate, comparisons
 
 - After a resolved follow-up, a statement or correction of the person no longer carries another

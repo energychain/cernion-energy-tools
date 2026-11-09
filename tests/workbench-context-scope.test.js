@@ -107,3 +107,26 @@ test('a question about this conversation keeps to its own material, even as a kn
   });
   expect(result.withheld).toBe(2);
 });
+
+test('knowledge-search case hits from another case are foreign; the own case is not (CTX-01)', () => {
+  const { scopeEvidence, OTHER_CASE } = require('../src/workbench-context-scope');
+  const own = {
+    source: 'cases',
+    value: 'Fall F-1: eigener Stand',
+    metadata: { caseId: 'case-own' },
+  };
+  const other = {
+    source: 'cases',
+    value: 'Fall F-2: anderer Stand',
+    metadata: { caseId: 'case-other' },
+  };
+  const { evidence, withheld } = scopeEvidence([own, other], {
+    conversationId: 'chat',
+    caseId: 'case-own',
+    message: 'Welche Angaben liegen dir zu diesem Fall vor?',
+    situation: { selfKnowledge: { requested: true }, contextScope: 'tenant' },
+  });
+  expect(evidence[0]).toBe(own);
+  expect(evidence[1].metadata.scopeOrigin).toBe(OTHER_CASE);
+  expect(withheld).toBe(0);
+});
