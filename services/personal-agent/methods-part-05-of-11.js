@@ -248,8 +248,8 @@ module.exports = {
       : '';
 
     return taskTone === 'finance-risk'
-      ? `Ich kann auf Basis der Working Assumption fachlich weiterarbeiten: zunächst offene Evidenzpunkte priorisieren, dann Markt-/Regulatorik-Annahmen dokumentieren und anschließend die Condition-Precedent-Themen für die Due Diligence strukturieren.${assumptionNote}`
-      : `Ich kann auf Basis der Working Assumption fachlich weiterarbeiten: als Nächstes die Methodik, offene Evidenzpunkte und benötigten Anschlussunterlagen strukturiert auflisten.${assumptionNote}`;
+      ? `Ich kann auf Basis dieser Arbeitsannahme fachlich weiterarbeiten: zunächst offene Evidenzpunkte priorisieren, dann Markt-/Regulatorik-Annahmen dokumentieren und anschließend die Condition-Precedent-Themen für die Due Diligence strukturieren.${assumptionNote}`
+      : `Ich kann auf Basis dieser Arbeitsannahme fachlich weiterarbeiten: als Nächstes die Methodik, offene Evidenzpunkte und benötigten Anschlussunterlagen strukturiert auflisten.${assumptionNote}`;
   },
 
   mergeAssumptions(existing = [], incoming = []) {

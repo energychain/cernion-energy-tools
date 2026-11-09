@@ -2,7 +2,7 @@
 
 // personal-agent methods chunk 4/11 — extracted verbatim from
 // services/personal-agent.service.js as part of the v0.99 file-size modularization.
-// Contains: applyConsultationGuardrailsToBroker, handleConsultationTurn, updateTurnCaseState, reviewConsultationReply, withCaseAddendum, scheduleCaseReflection, alignBrokerWithCaseState, buildEmpathethicOnboardingReply, runDream, buildDreamAuthMeta, sanitizeDreamRequestHeaders, deepMergeMeta, buildFileProcessingIntro, resolveExtractForAttachment, buildInhouseDataFromAttachments, processFileAttachments, synthesizeTurn, buildGridOperatorFlexibilityCompletedReply, buildSynthesisStyleLead
+// Contains: applyConsultationGuardrailsToBroker, handleConsultationTurn, updateTurnCaseState, reviewConsultationReply, withCaseAddendum, scheduleCaseReflection, alignBrokerWithCaseState, caseRouteFit, buildEmpathethicOnboardingReply, runDream, buildDreamAuthMeta, sanitizeDreamRequestHeaders, deepMergeMeta, buildFileProcessingIntro, resolveExtractForAttachment, buildInhouseDataFromAttachments, processFileAttachments, synthesizeTurn, buildGridOperatorFlexibilityCompletedReply, buildSynthesisStyleLead
 
 const {
   crypto,
@@ -451,6 +451,17 @@ module.exports = {
       recommendedPlan: [],
       caseStateRouteRejected: { capability: top, reason: fit.reason },
     };
+  },
+
+  // The work model's judgement of the recommended route: fits/partial/unrelated, 'unassessed' when
+  // the case state judged routes but not this one, null when it judged no routes at all.
+  caseRouteFit(brokerRecommendation, caseState) {
+    const candidates = caseState?.routing?.candidates;
+    if (!Array.isArray(candidates) || !candidates.length) return null;
+    const top =
+      brokerRecommendation?.recommendedCapabilities?.[0]?.capability ||
+      brokerRecommendation?.capability;
+    return candidates.find((row) => row.candidateId === top)?.fit || 'unassessed';
   },
 
   async buildEmpathethicOnboardingReply({ message, execution, plan }) {
