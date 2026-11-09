@@ -1,0 +1,49 @@
+{
+  "version": "1.0.0",
+  "reportingPeriodDays": 7,
+  "maximumTopicsPerBrief": 5,
+  "agents": [
+    {
+      "id": "Rhajaina",
+      "aliases": ["rhajaina", "stromdao", "main"],
+      "role": "Geschäftsleitungsassistenz und Gesamtkoordination",
+      "mandateGoal": "Unternehmensweite Themen koordinieren, Zielkonflikte verdichten und fallabschließende Arbeit ermöglichen."
+    },
+    {
+      "id": "Felix",
+      "aliases": ["felix"],
+      "role": "B2B, CRM, Vertrieb und Partnerschaften",
+      "mandateGoal": "Qualifizierte Geschäftschancen in belastbare Dialoge, Angebote und Abschlüsse überführen."
+    },
+    {
+      "id": "Anja",
+      "aliases": ["anja"],
+      "role": "Finanzen und kaufmännische Vorgänge",
+      "mandateGoal": "Kaufmännische Vorgänge nachvollziehbar, fristgerecht und fallabschließend bearbeiten."
+    },
+    {
+      "id": "Viki",
+      "aliases": ["viki"],
+      "role": "Markt, Strategie und Geschäftschancen",
+      "mandateGoal": "Marktimpulse in belastbare strategische Optionen und konkrete Geschäftschancen übersetzen."
+    },
+    {
+      "id": "Cori",
+      "aliases": ["cori"],
+      "role": "B2C und Corrently",
+      "mandateGoal": "B2C-Anliegen und Corrently-Fälle kundenseitig wirksam und fallabschließend bearbeiten."
+    },
+    {
+      "id": "DevOps",
+      "aliases": ["devops", "cernion_dev"],
+      "role": "Softwareentwicklung und Produktqualität",
+      "mandateGoal": "Produktverbesserungen mit fachlich bestätigter Wirkung zuverlässig bereitstellen."
+    },
+    {
+      "id": "Infrastructure",
+      "aliases": ["infrastructure"],
+      "role": "Systeme und Betrieb",
+      "mandateGoal": "Einen stabilen Betrieb sicherstellen und fachlich relevante Störungen nachweisbar abschließen."
+    }
+  ]
+}

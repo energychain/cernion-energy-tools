@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0",
+  "privateBoards": ["twl-netze-private"],
+  "sensitiveValues": ["twl-private", "private", "unclear", "mixed-sensitive"],
+  "noisePatterns": ["newsletter", "monitoring", "status mail", "alert", "digest"],
+  "riskPatterns": [
+    "preis",
+    "price",
+    "angebot",
+    "offer",
+    "vertrag",
+    "contract",
+    "zahlung",
+    "payment",
+    "rechnung",
+    "invoice",
+    "rechtlich",
+    "legal",
+    "extern",
+    "external",
+    "produktiv",
+    "production",
+    "deployment",
+    "deploy",
+    "irreversibel",
+    "security",
+    "sicherheit"
+  ],
+  "inputPatterns": [
+    "fehlende datei",
+    "missing file",
+    "bitte datei",
+    "persönliche erklärung",
+    "personal input"
+  ],
+  "completionStatuses": ["done", "completed"],
+  "activeStatuses": ["ready", "running", "blocked", "scheduled", "todo", "claimed"]
+}

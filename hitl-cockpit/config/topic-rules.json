@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "ignoredHashtags": ["hitl", "todo", "done", "status", "update", "newsletter"],
+  "referencePrefixes": ["crm", "conversation", "thread", "case", "lead"],
+  "minimumReferenceLength": 6,
+  "minimumFingerprintTokens": 4,
+  "maximumHashtagGroupSize": 50,
+  "maximumTopicSize": 50,
+  "autoMergeExactFingerprint": false,
+  "terminalStates": ["done", "completed", "archived", "cancelled", "rejected"],
+  "statePriority": [
+    "blocked",
+    "running",
+    "ready",
+    "todo",
+    "triage",
+    "scheduled",
+    "done",
+    "completed",
+    "archived",
+    "cancelled"
+  ]
+}

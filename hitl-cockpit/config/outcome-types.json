@@ -1,0 +1,121 @@
+{
+  "version": "1.0.0",
+  "evidencePrefixes": [
+    "message-id",
+    "matrix-event-id",
+    "crm-conversation-id",
+    "meeting-id",
+    "pilot-id",
+    "offer-id",
+    "invoice-id",
+    "payment-id",
+    "release-id",
+    "incident-id",
+    "publication-id",
+    "case-id",
+    "external-reply-id",
+    "url",
+    "attachment"
+  ],
+  "internalActivityPatterns": [
+    "karte (erstellt|angelegt)",
+    "bericht (erstellt|geschrieben)",
+    "recherche (begonnen|gestartet|durchgeführt)",
+    "status (aktualisiert|geändert)",
+    "agent(en)? (gefragt|beauftragt)",
+    "entwurf (erstellt|vorbereitet)",
+    "draft (created|prepared)",
+    "task (created|updated)",
+    "analysis (started|completed)"
+  ],
+  "types": {
+    "customer_dialogue_started": {
+      "kind": "external",
+      "patterns": [
+        "kundendialog (begonnen|gestartet)",
+        "customer dialogue started",
+        "gespräch mit .+ begonnen"
+      ]
+    },
+    "human_reply_received": {
+      "kind": "external",
+      "patterns": [
+        "(externe|persönliche|menschliche) antwort (eingegangen|erhalten)",
+        "human reply received",
+        "kunde hat geantwortet",
+        "\\bresponse_received\\b"
+      ]
+    },
+    "meeting_agreed": {
+      "kind": "external",
+      "patterns": [
+        "termin (vereinbart|bestätigt)",
+        "meeting (agreed|confirmed)",
+        "besprechung (vereinbart|bestätigt)"
+      ]
+    },
+    "test_or_pilot_agreed": {
+      "kind": "external",
+      "patterns": [
+        "(test|pilot) (vereinbart|bestätigt|beauftragt)",
+        "(test|pilot) agreed",
+        "\\btest_user_confirmed\\b",
+        "\\bpilot_scope_requested\\b"
+      ]
+    },
+    "offer_created": {
+      "kind": "internal_precursor",
+      "publish": false,
+      "patterns": ["angebot (erstellt|fertiggestellt)", "offer created"]
+    },
+    "offer_sent": {
+      "kind": "external",
+      "patterns": ["angebot (versendet|gesendet|übermittelt)", "offer sent"]
+    },
+    "invoice_sent": {
+      "kind": "external",
+      "patterns": ["rechnung (versendet|gesendet|übermittelt)", "invoice sent"]
+    },
+    "payment_received": {
+      "kind": "external",
+      "patterns": ["zahlung (eingegangen|erhalten)", "payment received", "zahlungseingang"]
+    },
+    "release_live": {
+      "kind": "external",
+      "patterns": [
+        "release (live|produktiv|veröffentlicht)",
+        "produktiv ausgerollt",
+        "deployment live"
+      ]
+    },
+    "incident_resolved": {
+      "kind": "final",
+      "patterns": ["störung (behoben|gelöst)", "incident resolved", "produktionsstörung beendet"]
+    },
+    "public_asset_published": {
+      "kind": "external",
+      "patterns": [
+        "(seite|artikel|fachartefakt|beitrag) veröffentlicht",
+        "public asset published",
+        "publikation live",
+        "\\bpublished_asset\\b"
+      ]
+    },
+    "customer_case_resolved": {
+      "kind": "final",
+      "patterns": [
+        "kundenfall (abgeschlossen|gelöst)",
+        "customer case resolved",
+        "fallabschließend bearbeitet"
+      ]
+    },
+    "initiative_closed_no_fit": {
+      "kind": "final",
+      "patterns": [
+        "(initiative|lead|vorhaben) .*(kein fit|nicht passend|beendet)",
+        "closed no fit",
+        "begründet beendet"
+      ]
+    }
+  }
+}

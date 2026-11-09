@@ -1,0 +1,126 @@
+[
+  {
+    "name": "Newsletter",
+    "task": { "board": "inbox", "status": "blocked", "title": "Newsletter Energie" },
+    "expected": "NOISE"
+  },
+  {
+    "name": "Monitoring-Mail",
+    "task": { "board": "inbox", "status": "blocked", "title": "Monitoring Alert Status Mail" },
+    "expected": "NOISE"
+  },
+  {
+    "name": "Rechnungseingang",
+    "task": {
+      "board": "finance",
+      "status": "blocked",
+      "title": "Rechnung eingegangen",
+      "body": "Zahlung prüfen"
+    },
+    "expected": "RISK_ESCALATION"
+  },
+  {
+    "name": "Preisentscheidung",
+    "task": {
+      "board": "sales",
+      "status": "blocked",
+      "title": "Preis festlegen",
+      "hasDecisionOptions": true,
+      "decisionQuestion": "Option A oder B?"
+    },
+    "expected": "DECISION_REQUIRED"
+  },
+  {
+    "name": "Angebotsfreigabe",
+    "task": { "board": "sales", "status": "blocked", "title": "Angebot extern freigeben" },
+    "expected": "RISK_ESCALATION"
+  },
+  {
+    "name": "Deployment im gültigen Scope",
+    "task": {
+      "board": "devops",
+      "status": "ready",
+      "title": "Production deployment",
+      "scopeCovered": true
+    },
+    "expected": "SCOPE_COVERED"
+  },
+  {
+    "name": "Deployment außerhalb Scope",
+    "task": { "board": "devops", "status": "blocked", "title": "Production deployment" },
+    "expected": "RISK_ESCALATION"
+  },
+  {
+    "name": "Fehlende Datei",
+    "task": { "board": "assistenz", "status": "blocked", "title": "Fehlende Datei vom Nutzer" },
+    "expected": "INPUT_REQUIRED"
+  },
+  {
+    "name": "Normale Recherche",
+    "task": {
+      "board": "strategy",
+      "status": "ready",
+      "title": "Marktrecherche",
+      "reversibleInternal": true
+    },
+    "expected": "AUTO_EXECUTE"
+  },
+  {
+    "name": "Erledigter Release",
+    "task": {
+      "board": "devops",
+      "status": "done",
+      "title": "Release erledigt",
+      "result": "Smoke-Test belegt",
+      "evidenceRefs": ["artifact:release"]
+    },
+    "expected": "INFORM_ONLY"
+  },
+  {
+    "name": "Geplante Wiedervorlage",
+    "task": {
+      "board": "sales",
+      "status": "scheduled",
+      "title": "Follow-up",
+      "assignee": "Felix",
+      "wakeup": {
+        "wakeAt": 1800000000,
+        "whyScheduled": "Antwortfrist",
+        "nextAction": "Antwort prüfen"
+      }
+    },
+    "expected": "SCHEDULED"
+  },
+  {
+    "name": "Historisches scheduled ohne Datum",
+    "task": { "board": "legacy", "status": "scheduled", "title": "Alte Ablage" },
+    "expected": "projection_incomplete"
+  },
+  {
+    "name": "Duplikatcluster",
+    "task": {
+      "board": "inbox",
+      "status": "blocked",
+      "title": "Wiederholung",
+      "duplicateOf": "t_original"
+    },
+    "expected": "NOISE"
+  },
+  {
+    "name": "TWL-private Karte",
+    "task": { "board": "twl-netze-private", "status": "blocked", "title": "[PRIVATE RAW]" },
+    "expected": null,
+    "excluded": true
+  },
+  {
+    "name": "Unklarer aktiver Fall",
+    "task": { "board": "assistenz", "status": "blocked", "title": "Bitte ansehen" },
+    "expected": "projection_incomplete"
+  },
+  {
+    "name": "Unklare Sensitivität",
+    "task": { "board": "mixed", "status": "blocked", "title": "Unklar", "sensitivity": "unclear" },
+    "expected": null,
+    "excluded": true
+  }
+]
