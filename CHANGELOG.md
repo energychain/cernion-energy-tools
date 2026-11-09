@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — The person profile never hands on an earlier message
+
+- The person-level profile kept `conversationContext.basis` (the verbatim excerpt of the message
+  that stated a role or preference) and `statement` across conversations; only the goal was
+  dropped. A new case could then present an earlier conversation's object as "nach deiner
+  Angabe" (prod probe: a new synthetic case answered with the object of an earlier run). Only
+  person attributes (role, preference, mandate, durable) now carry over; profiles stored before
+  are cleaned when read.
+
 ## Unreleased — CTX-01: statements carry no foreign material, notices pass the gate, comparisons
 
 - After a resolved follow-up, a statement or correction of the person no longer carries another
