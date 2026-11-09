@@ -19,14 +19,20 @@ const ctx = {
 beforeEach(() => llm.generateStructured.mockReset());
 
 test('content and conversation scope come from one check', async () => {
-  llm.generateStructured.mockResolvedValue({ contentRequested: true, conversationOnly: true });
+  llm.generateStructured.mockResolvedValue({
+    contentRequested: true,
+    conversationOnly: true,
+    storedKnowledge: false,
+  });
   expect(await evidenceRequestKind(ctx, 'Fasse dieses Gespräch zusammen.')).toEqual({
     contentRequested: true,
     conversationOnly: true,
+    storedKnowledge: false,
   });
   const input = JSON.parse(llm.generateStructured.mock.calls[0][1]);
   expect(input.task).toBe('evidence_request_kind');
   expect(input.instruction).toContain('conversationOnly=true');
+  expect(input.instruction).toContain('storedKnowledge=true');
 });
 
 test('a missing or failed judgement keeps the tenant scope and denies content', async () => {
@@ -34,11 +40,13 @@ test('a missing or failed judgement keeps the tenant scope and denies content', 
   expect(await evidenceRequestKind(ctx, 'Was gilt?')).toEqual({
     contentRequested: true,
     conversationOnly: false,
+    storedKnowledge: false,
   });
   llm.generateStructured.mockRejectedValueOnce(new Error('down'));
   expect(await evidenceRequestKind(ctx, 'Was gilt?')).toEqual({
     contentRequested: false,
     conversationOnly: false,
+    storedKnowledge: false,
   });
   llm.generateStructured.mockResolvedValueOnce({
     contentRequested: false,
