@@ -422,6 +422,36 @@ test('scenario 9: regulatory assertions without actual cited knowledge remain ex
   expect(result.responseText).toContain('ohne belegte Fundstelle');
 });
 
+test("the person's own report is not downgraded to an unsourced assumption on a regulatory question", async () => {
+  const message = fixture.scenarios[8].turns[0].message;
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      interpretation: [
+        {
+          ...fixture.claim('Nach deiner Angabe läuft der Prozess bisher nur im Einzelfall.'),
+          inputQuote: 'läuft der Prozess bisher nur im Einzelfall',
+        },
+        fixture.claim('Ein Anspruch wäre anhand des geltenden Regelwerks zu prüfen.'),
+      ],
+      expectation: [],
+      nextSteps: [],
+    })
+  );
+  const result = await answer({
+    situation: fixture.situation(message, {
+      regulatoryQuestion: true,
+      personFacts: ['Bei uns läuft der Prozess bisher nur im Einzelfall.'],
+    }),
+    message,
+    tenantId: fixture.tenantId,
+    retrieval: { evidence: [] },
+  });
+  expect(result.responseText).not.toContain('Annahme, ohne belegte Fundstelle: Nach deiner Angabe');
+  expect(result.responseText).toContain(
+    'Zu prüfende Annahme, ohne belegte Fundstelle: Ein Anspruch'
+  );
+});
+
 test('table rows from separate claims remain one valid Markdown table', () => {
   const { renderArtifact } = require('../src/workbench-artifact');
   const row = (text, specific = false) => ({
