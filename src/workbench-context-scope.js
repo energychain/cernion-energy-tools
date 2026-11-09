@@ -40,6 +40,10 @@ function foreignOrigin(hit, { conversationId, caseId }) {
   if (hit?.retrievalSource === 'tenant-memory' || hit?.source === 'tenant-memory') return null;
   if (hit?.source === 'related_case')
     return caseId && metadata.cetCaseId === caseId ? null : OTHER_CASE;
+  // Results of the knowledge or case search over other cases (TWL long-dialogue UAT: a question
+  // about this case was answered from another case's memory).
+  if (hit?.source === 'cases' && metadata.caseId)
+    return caseId && metadata.caseId === caseId ? null : OTHER_CASE;
   if (metadata.conversationState) return null;
   if (Array.isArray(metadata.documentRefs)) {
     const refs = metadata.documentRefs;

@@ -141,6 +141,21 @@ describe('foreign context gate', () => {
     expect(result.decisions).toEqual(['comparable']);
   });
 
+  test('the gate knows the current case to judge references to this case', async () => {
+    const llm = llmReturning([{ index: 0, decision: 'unrelated', lesson: '' }]);
+    await gateForeignEvidence([foreign('Zielbild eines anderen Vorgangs')], {
+      llm,
+      message: 'Welche Angaben liegen dir zu diesem Fall vor?',
+      currentCase: { concern: 'Arbeitsprozess aufsetzen', situation: 'Einzellösungen bisher' },
+    });
+    const prompt = JSON.parse(llm.generateStructured.mock.calls[0][1]);
+    expect(prompt.currentCase).toEqual({
+      concern: 'Arbeitsprozess aufsetzen',
+      situation: 'Einzellösungen bisher',
+    });
+    expect(prompt.instruction).toContain('currentCase');
+  });
+
   test('a failed judgement drops all foreign items', async () => {
     const llm = { generateStructured: jest.fn().mockRejectedValue(new Error('down')) };
     const logger = { warn: jest.fn() };

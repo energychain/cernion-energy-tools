@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Knowledge-search hits from other cases pass the cross-case gate
+
+- A question about CET's knowledge of "this case" searched all cases of the tenant, and the
+  resulting case hits carried no origin, so they bypassed the cross-case gate (semantic
+  isolation probe and TWL long-dialogue UAT: a new chat was answered with another case's target
+  structure and fixture metadata). Case hits from another case are now foreign material; an
+  explicit search for other cases still returns them as the requested answer.
+- The gate also receives the current case (concern and situation), so a reference to "this case"
+  is judged against it; another case is linked only when the person names or brings it in.
 ## Unreleased — The person profile never hands on an earlier message
 
 - The person-level profile kept `conversationContext.basis` (the verbatim excerpt of the message
@@ -8,6 +17,14 @@
   Angabe" (prod probe: a new synthetic case answered with the object of an earlier run). Only
   person attributes (role, preference, mandate, durable) now carry over; profiles stored before
   are cleaned when read.
+## Unreleased — The person's own report is not downgraded to an unsourced assumption
+
+- On a regulatory question, every claim without a regulatory source received the prefix "Zu
+  prüfende Annahme, ohne belegte Fundstelle", including the person's own observations (TWL
+  long-dialogue UAT: a real observation was downgraded). A claim that reproduces the person's
+  statement with a verbatim quote from their messages now stays their report; CET's own claims
+  still need a source. The answer instruction asks for that quote whenever a paragraph restates
+  the person's observation.
 
 ## Unreleased — CTX-01: statements carry no foreign material, notices pass the gate, comparisons
 

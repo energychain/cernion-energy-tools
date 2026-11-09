@@ -1431,6 +1431,10 @@ async function runContentTurn(
     retrieval.evidence.push(...(await documentKnowledge.evidence(memoryCtx, envelope.userRequest)));
   if (selfKnowledgeJob !== null) {
     const searched = await selfKnowledgeJob;
+    // An explicit search for other cases asks for them; a question about CET's knowledge does not.
+    if (situation.caseSearch?.requested)
+      for (const hit of searched.evidence)
+        if (hit.source === 'cases') hit.metadata = { ...hit.metadata, requestedSearch: true };
     retrieval.evidence.push(...searched.evidence);
     retrieval.trace.push(...searched.trace);
     retrieval.knowledgeSearch = searched.trace;
@@ -1461,6 +1465,7 @@ async function runContentTurn(
     withheld: scoped.withheldItems,
     message: envelope.userRequest,
     suggestionPending: Boolean(pending?.comparableSuggested),
+    currentCase: { concern: situation.concern, situation: situation.situation },
     tenantId: p.tenantId,
     logger: service.logger,
   });

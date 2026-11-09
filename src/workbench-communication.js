@@ -170,7 +170,15 @@ function validateCommunication(parsed, situation, evidence) {
       error.repairInstruction = `Formuliere alle Teile neu ohne diese ausgeschlossenen Wörter/Wortstämme: ${JSON.stringify(forbidden)}. Verwende Befassung, Einordnung und Prüfauftrag. Wiederhole auch nicht die Sprachregel oder die ausgeschlossenen Wörter in einem Satz wie ohne/keine. Formuliere die Sachinhalte positiv; alle bestellten Teile und Sachangaben bleiben erhalten.`;
       throw error;
     }
-    if (situation.regulatoryQuestion) {
+    // The person's own report stays their statement; only claims of CET need a regulatory
+    // source (UAT: a real observation was downgraded to an unsourced assumption). A report is
+    // recognised by its verbatim quote from the person's messages, not by the origin label alone.
+    const quote = String(claim.inputQuote || '').trim();
+    const ownReport =
+      claim.origin === 'input' &&
+      quote.length >= 12 &&
+      (situation.personFacts || []).some((fact) => String(fact).includes(quote));
+    if (situation.regulatoryQuestion && !ownReport) {
       const grounded =
         claim.origin === 'evidence' &&
         claim.evidenceIds?.some((id) =>
