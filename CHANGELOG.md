@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — The person's own report is not downgraded to an unsourced assumption
+
+- On a regulatory question, every claim without a regulatory source received the prefix "Zu
+  prüfende Annahme, ohne belegte Fundstelle", including the person's own observations (TWL
+  long-dialogue UAT: a real observation was downgraded). A claim that reproduces the person's
+  statement with a verbatim quote from their messages now stays their report; CET's own claims
+  still need a source. The answer instruction asks for that quote whenever a paragraph restates
+  the person's observation.
+
 ## Unreleased — CTX-01: statements carry no foreign material, notices pass the gate, comparisons
 
 - After a resolved follow-up, a statement or correction of the person no longer carries another
