@@ -57,7 +57,10 @@ function installRealCaseStub() {
       const { role, mandate, goal } = roleFor(message);
       value = { role, mandate, goal };
     } else if (input.task === 'evidence_request_kind')
-      value = { contentRequested: !input.question.startsWith('Bitte ablegen') };
+      value = {
+        contentRequested: !input.question.startsWith('Bitte ablegen'),
+        storedKnowledge: !input.question.startsWith('Bitte ablegen'),
+      };
     else if (input.task === 'evidence_reference_resolution')
       value = {
         sources: (input.question.startsWith('Bitte ablegen')

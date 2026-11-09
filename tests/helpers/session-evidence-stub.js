@@ -6,7 +6,9 @@ const { complete, validate } = require('./workbench-schema-stub');
 function model(schema, raw, classification, internalAnswerField, realistic) {
   const input = JSON.parse(raw);
   let value = {};
-  if (input.task === 'evidence_request_kind') value = { contentRequested: true };
+  // The scenarios ask what exists about a named subject: an explicit stored-knowledge request.
+  if (input.task === 'evidence_request_kind')
+    value = { contentRequested: true, storedKnowledge: true };
   else if (input.task === 'evidence_reference_resolution')
     value = {
       sources: (input.question.includes('Standort Nord') && !input.question.includes('Temperatur')

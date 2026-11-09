@@ -515,7 +515,9 @@ async function projectManifestAnswer(ctx, question, options = {}) {
   if (foreign.length || (chatSources && readQuestion === question)) {
     const kind = await require('./tenant-evidence-question').evidenceRequestKind(ctx, question);
     if (chatSources && readQuestion === question && !kind.contentRequested) return null;
-    if (foreign.length && kind.conversationOnly) {
+    // Another chat's case or statement only on an explicit request for stored or team knowledge;
+    // a matching topic is no such request (CTX-01, decision 2026-11-09).
+    if (foreign.length && (kind.conversationOnly || !kind.storedKnowledge)) {
       ctx.broker?.logger?.info?.('Tenant evidence conversation scope', {
         withheld: foreign.length,
       });
@@ -563,14 +565,14 @@ async function projectManifestAnswer(ctx, question, options = {}) {
     }
   }
   if (readQuestion !== question) {
-    // A resolved follow-up skips the scope question, but a statement or correction of the
-    // person never carries another chat's case or statement (CTX-01).
+    // A resolved follow-up skips the scope question, but only an explicit request for stored or
+    // team knowledge brings another chat's case or statement (CTX-01).
     const resolvedForeign = selected.filter((candidate) =>
       fromOtherChat(candidate, options.currentConversationId)
     );
     if (resolvedForeign.length) {
       const kind = await require('./tenant-evidence-question').evidenceRequestKind(ctx, question);
-      if (!kind.contentRequested) {
+      if (!kind.contentRequested || kind.conversationOnly || !kind.storedKnowledge) {
         ctx.broker?.logger?.info?.('Tenant evidence statement scope', {
           withheld: resolvedForeign.length,
         });
