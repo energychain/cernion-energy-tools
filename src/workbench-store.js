@@ -41,8 +41,10 @@ function turnMemoryId(tenantId, caseId) {
 // earlier message's object reappeared in a new case as "nach deiner Angabe").
 function personContext(context) {
   if (!context || typeof context !== 'object') return null;
-  const { goal: _goal, basis: _basis, statement: _statement, ...person } = context;
-  return { ...person, goal: '' };
+  const person = { ...context, goal: '' };
+  delete person.basis;
+  delete person.statement;
+  return person;
 }
 
 function userContextId(tenantId, actorId) {
