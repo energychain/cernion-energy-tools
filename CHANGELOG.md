@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Uslar UAT: no unasked receipt answers, inferences stay hypotheses
+
+- In consultation, a selected receipt answers instead of the consultation answer only when the
+  case state's work model judges its route to fit the task (USL-SYN-02: a partially fitting
+  route ran unrelated tools and answered with an internal plan summary). Forced receipts, the
+  execution mode and a case state without route judgement keep the previous path.
+- The pre-output case review also recognises unsupported rules or deadlines, invented links or
+  process histories, causes without evidence for the period, data changes before the defect is
+  distinguished, premature closure and visible internal labels, and rewrites them as hypotheses
+  with the next check (USL-SYN-01, 03, 04, 05). Replaying the synthetic run's answers, the review
+  flags each claim-critical turn with the matching kind in about two seconds.
+- The consultation prompt asks for working assumptions in natural German instead of the English
+  label "Working Assumption".
+
 ## Unreleased — Knowledge Gateway reachable with the Open WebUI gateway token
 
 - On `/api`, the authentication did not pass the gateway token's identity (`type`, `client`,

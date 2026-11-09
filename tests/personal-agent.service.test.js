@@ -4723,7 +4723,8 @@ describe('personal-agent.service', () => {
     });
 
     expect(prompt).toContain('Antwortstrategie');
-    expect(prompt).toContain('Working Assumptions');
+    expect(prompt).toContain('Arbeitsannahmen ausdrücklich in natürlicher Sprache');
+    expect(prompt).not.toContain('Working Assumption');
     expect(prompt).toContain('keine internen Schema-Feldnamen');
   });
 
