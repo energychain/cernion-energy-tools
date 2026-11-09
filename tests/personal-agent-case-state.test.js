@@ -114,6 +114,22 @@ test('a broker route judged unrelated to the task does not frame the answer', ()
   expect(service.alignBrokerWithCaseState(broker, null)).toBe(broker);
 });
 
+test('the route fit decides whether a receipt may answer instead of the consultation (USL-SYN-02)', () => {
+  const broker = { capability: 'cap-x', recommendedCapabilities: [{ capability: 'cap-x' }] };
+  const judged = (fit) =>
+    applyCaseUpdate(createCaseState(), { routeFit: [{ candidateId: 'cap-x', fit, reason: 'r' }] });
+  expect(service.caseRouteFit(broker, judged('fits'))).toBe('fits');
+  expect(service.caseRouteFit(broker, judged('partial'))).toBe('partial');
+  // Routes were judged, but not this one: no permission to pre-empt.
+  const other = applyCaseUpdate(createCaseState(), {
+    routeFit: [{ candidateId: 'cap-y', fit: 'fits', reason: 'r' }],
+  });
+  expect(service.caseRouteFit(broker, other)).toBe('unassessed');
+  // No route judgement at all (e.g. case state off): the previous behaviour stays.
+  expect(service.caseRouteFit(broker, createCaseState())).toBeNull();
+  expect(service.caseRouteFit(broker, null)).toBeNull();
+});
+
 test('the answer is written from the case state; the history is only context', () => {
   const caseView = { workIntent: { task: 't' }, activeHypotheses: [], noLongerValid: [] };
   const prompt = service.buildConsultationPrompt.call(service, {

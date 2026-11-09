@@ -3518,8 +3518,17 @@ module.exports = {
         );
       }
 
+      // In consultation, a receipt answers instead of the colleague only when the work model judges
+      // its route to fit the task (USL-SYN-02: a partial route answered with an internal plan
+      // summary); a forced receipt and a case state without route judgement keep the old path.
+      const receiptRouteFit = this.caseRouteFit(brokerRecommendation, caseState);
       const shouldPreferReceiptExecution =
-        receiptSelectionExecutable && ctx.params.disableReceiptSelection !== true;
+        receiptSelectionExecutable &&
+        ctx.params.disableReceiptSelection !== true &&
+        (forceReceiptRequested ||
+          effectiveChatMode !== CHAT_MODES.CONSULTATION ||
+          receiptRouteFit === null ||
+          receiptRouteFit === 'fits');
 
       const routingDecision = decideRoutingTarget({
         effectiveChatMode,

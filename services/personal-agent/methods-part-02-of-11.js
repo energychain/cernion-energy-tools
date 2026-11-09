@@ -707,7 +707,7 @@ module.exports = {
     facts.push('- keine internen Schema-Feldnamen an den Nutzer ausgeben');
     if (strategy.epistemicState === 'inferable') {
       facts.push(
-        '- Working Assumptions ausdrücklich benennen, bevor deterministische Schritte folgen'
+        '- Arbeitsannahmen ausdrücklich in natürlicher Sprache benennen (etwa „Ich gehe davon aus, dass …“), bevor deterministische Schritte folgen'
       );
     }
     if (strategy.epistemicState === 'ambiguous') {
@@ -784,7 +784,7 @@ module.exports = {
       '- Formuliere belastbar mit Unsicherheiten, wenn Evidenz fehlt.',
       '- Keine Sätze wie "Schnittstelle fehlt" oder "Methodik-Hinweis".',
       '- Leite fehlende Informationen als fachliche Konzepte, nie als interne Schemafelder, her.',
-      '- Wenn die Lage inferierbar ist, benenne die Working Assumption ausdrücklich, bevor du fortfährst.',
+      '- Wenn die Lage inferierbar ist, benenne deine Arbeitsannahme ausdrücklich in natürlicher Sprache (etwa „Ich gehe davon aus, dass …“), bevor du fortfährst; keine Überschrift oder englische Marke dafür.',
       '- Wenn die Lage unklar ist, stelle genau eine präzise Klärungsfrage.',
       '- Passe die Abstraktion an: Führungsebene = Entscheidung/Risiko/Wirkung, technisch = Details/Eingaben.',
       '- Schlage konkrete nächste Schritte vor.',
