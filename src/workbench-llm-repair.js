@@ -86,7 +86,11 @@ async function repairOutput({ options, logger, phase, generate, maxAttempts = 2 
     } catch (error) {
       logLlmError(logger, phase, error);
       if (error.schemaErrors)
-        logInfo(logger, 'Workbench schema rejection', { phase, schemaErrors: error.schemaErrors });
+        logInfo(logger, 'Workbench schema rejection', {
+          phase,
+          reason: error.fallbackReason || 'schema_validation',
+          schemaErrors: error.schemaErrors,
+        });
       const repairable =
         error instanceof SyntaxError ||
         /LLM response failed schema validation/u.test(String(error.message));

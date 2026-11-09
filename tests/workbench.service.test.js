@@ -769,6 +769,22 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     );
   });
 
+  test('a status query from chat that finds no case falls through instead of asking for an id', async () => {
+    await provisionOpenWebUiUser();
+    const params = {
+      openWebuiConversationId: 'fresh-work-request',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      message: 'Der Ist-Stand ist ernüchternd; ich möchte einen Fall neu aufsetzen.',
+      intentMode: 'status_query',
+    };
+    await expect(call('query', { ...params, fallThrough: true })).resolves.toEqual({
+      unresolvedStatus: true,
+    });
+    const direct = await call('query', params);
+    expect(direct.responseText).toMatch(/Fallnummer/u);
+  });
+
   test('knowledge query uses mapped consultation without classifying a case', async () => {
     await provisionOpenWebUiUser();
     const chat = jest.fn((ctx) => {

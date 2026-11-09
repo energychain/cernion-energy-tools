@@ -539,3 +539,41 @@ test('a repeated hypothesis without id updates the existing one', () => {
   expect(state.hypotheses).toHaveLength(1);
   expect(state.hypotheses[0]).toMatchObject({ status: 'supported', evidenceIds: ['E1'] });
 });
+
+describe('review and addendum after the TWL long dialogue', () => {
+  const {
+    ADDENDUM_LABEL,
+    takeAddendum,
+    mergeReflection,
+    applyCaseUpdate,
+    createCaseState,
+  } = require('../src/case-state');
+  const empty = { evidence: [], claims: [], hypothesisUpdates: [] };
+
+  test('an addendum is shown only with the answer right after the turn it reflects', () => {
+    const turn1 = applyCaseUpdate(createCaseState(), empty);
+    const merged = mergeReflection(turn1, { turn: 1, delta: {}, addendum: 'Q statt P.' });
+    const turn2 = applyCaseUpdate(merged, empty);
+    expect(takeAddendum(turn2).addendum).toBe('Q statt P.');
+    const late = applyCaseUpdate(applyCaseUpdate(merged, empty), empty);
+    const taken = takeAddendum(late);
+    expect(taken.addendum).toBe('');
+    expect(taken.state.pendingAddendum).toBe('');
+    expect(ADDENDUM_LABEL).toMatch(/letzten Antwort/u);
+  });
+
+  test('the review names assumed authority and proposals presented as settled', async () => {
+    const { reviewAnswer } = require('../src/case-state');
+    const calls = [];
+    const llm = {
+      generateStructured: async (schema, input) => {
+        calls.push({ schema: JSON.stringify(schema), input: JSON.parse(input) });
+        return { issues: [], revisedReply: '' };
+      },
+    };
+    await reviewAnswer('Antwort.', applyCaseUpdate(createCaseState(), empty), { llm });
+    expect(calls[0].schema).toContain('invented_authority');
+    expect(calls[0].schema).toContain('option_as_fact');
+    expect(calls[0].input.instruction).toMatch(/funktion/iu);
+  });
+});

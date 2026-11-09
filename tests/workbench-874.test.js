@@ -452,6 +452,32 @@ test("the person's own report is not downgraded to an unsourced assumption on a 
   );
 });
 
+test('on a regulatory question an assessment or recommendation is not labelled as an unsourced rule', async () => {
+  const message = fixture.scenarios[8].turns[0].message;
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      interpretation: [
+        {
+          ...fixture.claim(
+            'Zuerst sollte die Nutzenseite getrennt von der Machbarkeit bewertet werden.'
+          ),
+          ruleClaim: false,
+        },
+      ],
+      expectation: [],
+      nextSteps: [],
+    })
+  );
+  const result = await answer({
+    situation: fixture.situation(message, { regulatoryQuestion: true }),
+    message,
+    tenantId: fixture.tenantId,
+    retrieval: { evidence: [] },
+  });
+  expect(result.responseText).toContain('Zuerst sollte die Nutzenseite');
+  expect(result.responseText).not.toMatch(/ohne belegte Fundstelle|zu prüfende Annahme;/u);
+});
+
 test('table rows from separate claims remain one valid Markdown table', () => {
   const { renderArtifact } = require('../src/workbench-artifact');
   const row = (text, specific = false) => ({
@@ -1874,7 +1900,24 @@ test('structured sections render exact requested headings and retain content pro
   expect(headings).toEqual(data.sections);
 });
 
-test.each(['missing', 'reordered', 'empty', 'mixed'])(
+test('structured sections in another order or spelling are aligned to the ordered sections', () => {
+  const { materializeTables } = require('../src/workbench-artifact');
+  const sections = fixture.literalSections.sections;
+  const sectionContents = sections
+    .map((section, index) => ({
+      section: `${index + 1}. ${section.toLocaleUpperCase()}:`,
+      content: [fixture.claim(`${section}: ${fixture.proposal.nextConsideration}`)],
+    }))
+    .reverse();
+  const parsed = { artifact: [{ title: '', content: [], sectionContents }] };
+  materializeTables(parsed, { parts: [{ sections, layout: 'sections' }] });
+  const headings = parsed.artifact[0].content
+    .filter((claim) => claim.text.startsWith('### '))
+    .map((claim) => claim.text.slice(4));
+  expect(headings).toEqual(sections);
+});
+
+test.each(['missing', 'empty', 'mixed'])(
   'structured sections reject an incomplete or contradictory contract (%s)',
   (variant) => {
     const { materializeTables } = require('../src/workbench-artifact');
@@ -1884,7 +1927,6 @@ test.each(['missing', 'reordered', 'empty', 'mixed'])(
       content: [fixture.claim(`${section}: ${fixture.proposal.nextConsideration}`)],
     }));
     if (variant === 'missing') sectionContents = sectionContents.slice(1);
-    if (variant === 'reordered') sectionContents.reverse();
     if (variant === 'empty') sectionContents[0].content = [];
     const parsed = {
       artifact: [
@@ -1900,6 +1942,63 @@ test.each(['missing', 'reordered', 'empty', 'mixed'])(
     );
   }
 );
+
+test('a worked-out artifact that keeps missing one ordered section is delivered, not reduced to a fallback', async () => {
+  const data = fixture.literalSections;
+  const requestedOutput = {
+    requested: true,
+    basis: data.message,
+    kind: 'summary',
+    parts: [
+      {
+        title: '',
+        sections: data.sections,
+        columns: [],
+        layout: 'sections',
+        audience: 'internal',
+        letter: false,
+      },
+    ],
+    subjects: [],
+    constraints: [],
+    forbiddenTerms: [],
+  };
+  const delivered = data.sections.slice(0, -1);
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      expectation: [],
+      nextSteps: [],
+      interpretation: [],
+      assumptions: [],
+      draft: [],
+      artifact: [
+        {
+          title: '',
+          content: [],
+          sectionContents: delivered.map((section) => ({
+            section,
+            content: [fixture.claim(`${section}: ${fixture.proposal.nextConsideration}`)],
+          })),
+        },
+      ],
+    })
+  );
+  const log = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+  const result = await answer({
+    tenantId: fixture.tenantId,
+    message: data.message,
+    situation: fixture.situation(data.message, { requestedOutput, codeReferences: [] }),
+    retrieval: { evidence: [] },
+    logger: log,
+  });
+  expect(result.answerStatus).not.toBe('fallback');
+  for (const heading of delivered) expect(result.responseText).toContain(`### ${heading}`);
+  expect(result.responseText).not.toContain('nicht zustande gekommen');
+  expect(log.info).toHaveBeenCalledWith(
+    'Workbench artifact salvaged',
+    expect.objectContaining({ reason: 'artifact_section_contract' })
+  );
+});
 
 test('a section artifact is delivered from the closed structure without generated Markdown headings', async () => {
   const data = fixture.literalSections;

@@ -239,9 +239,22 @@ describe('background reflection in the workbench', () => {
       { responseText: 'Antwort.' },
       state
     );
-    expect(reply.responseText).toBe('Nachtrag zum bisherigen Stand: Q statt P.\n\nAntwort.');
+    expect(reply.responseText).toBe('Ergänzung zu meiner letzten Antwort: Q statt P.\n\nAntwort.');
     expect(caseState.pendingAddendum).toBe('');
     const plain = { responseText: 'Antwort.' };
     expect(workbenchCaseState.withAddendum(plain, caseState).reply).toBe(plain);
   });
+});
+
+test('a fallback answer is not revised by the case review', async () => {
+  const workbenchCaseState = require('../src/workbench-case-state');
+  const reply = {
+    responseText: 'Eine verlässliche neue Bewertung ist gerade nicht zustande gekommen.',
+    answerStatus: 'fallback',
+  };
+  const state = require('../src/case-state').applyCaseUpdate(
+    require('../src/case-state').createCaseState(),
+    { evidence: [], claims: [], hypothesisUpdates: [] }
+  );
+  await expect(workbenchCaseState.reviewTurnReply(reply, state, {})).resolves.toBe(reply);
 });

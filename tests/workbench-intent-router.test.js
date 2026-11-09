@@ -221,3 +221,13 @@ test.each([
     expect(classifyWorkbenchIntent(message)).toBe(intent);
   }
 );
+
+test('a bare status question is told apart from a status-like work request', () => {
+  const { isBareStatusQuestion } = require('../src/workbench-intent-router');
+  expect(isBareStatusQuestion('Status des Falls')).toBe(true);
+  expect(isBareStatusQuestion('Wie ist der Stand?')).toBe(true);
+  expect(isBareStatusQuestion('What is the status?')).toBe(true);
+  expect(
+    isBareStatusQuestion('Der Ist-Stand ist ernüchternd; ich möchte einen Fall neu aufsetzen.')
+  ).toBe(false);
+});

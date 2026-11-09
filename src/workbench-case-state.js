@@ -11,6 +11,7 @@ const {
   reflectionEnabled,
   reviewAnswer,
   takeAddendum,
+  ADDENDUM_LABEL,
   updateCaseState,
 } = require('./case-state');
 
@@ -64,7 +65,7 @@ function withAddendum(reply, caseState) {
   return {
     reply: {
       ...reply,
-      responseText: `Nachtrag zum bisherigen Stand: ${addendum}\n\n${reply.responseText}`,
+      responseText: `${ADDENDUM_LABEL} ${addendum}\n\n${reply.responseText}`,
     },
     caseState: state,
   };
@@ -108,7 +109,9 @@ async function updateTurnCaseState({ previous, envelope, retrieval, tenantId, lo
 
 // Revises only the passages the check flags; drafts are left as written.
 async function reviewTurnReply(reply, caseState, { tenantId, logger } = {}) {
-  if (!caseState || !reply?.responseText || reply.draft) return reply;
+  // A fallback is no answer to correct: a revision would turn it into an invented one (TWL).
+  if (!caseState || !reply?.responseText || reply.draft || reply.answerStatus === 'fallback')
+    return reply;
   try {
     const review = await reviewAnswer(reply.responseText, caseState, { tenantId });
     if (review.issues.length)

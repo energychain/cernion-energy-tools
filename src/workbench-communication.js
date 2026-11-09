@@ -178,7 +178,10 @@ function validateCommunication(parsed, situation, evidence) {
       claim.origin === 'input' &&
       quote.length >= 12 &&
       (situation.personFacts || []).some((fact) => String(fact).includes(quote));
-    if (situation.regulatoryQuestion && !ownReport) {
+    // Only a claim that states a rule as applying needs a regulatory source; an assessment,
+    // method or recommendation is not labelled as an unsourced rule (TWL long dialogue: every
+    // paragraph had the label). Without the flag the claim is treated as a rule.
+    if (situation.regulatoryQuestion && !ownReport && claim.ruleClaim !== false) {
       const grounded =
         claim.origin === 'evidence' &&
         claim.evidenceIds?.some((id) =>
@@ -215,6 +218,7 @@ function validateCommunication(parsed, situation, evidence) {
           claim.text = heading
             ? `${heading.trimEnd()}\n\n${prefix}${body.trimStart()}`
             : prefix + claim.text;
+          parsed.unverifiedRule = true;
         }
       }
     }
