@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>AgentOS HITL Cockpit</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #07111f;
+        --panel: #101d31;
+        --line: #273a55;
+        --text: #eef5ff;
+        --muted: #9eb0ca;
+        --ok: #72e6ac;
+        --warn: #ffd166;
+        --bad: #ff7b7b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: radial-gradient(circle at 20% 0, #18345e, #07111f 34rem);
+        color: var(--text);
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          sans-serif;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        background: rgba(7, 17, 31, 0.94);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--line);
+        padding: 20px;
+        z-index: 2;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 26px;
+      }
+      .bar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      input,
+      button {
+        border: 1px solid var(--line);
+        background: #0d1829;
+        color: var(--text);
+        border-radius: 12px;
+        padding: 10px 12px;
+      }
+      input {
+        flex: 1;
+        min-width: 260px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--ok);
+      }
+      button.warn {
+        border-color: #6b4d22;
+        color: var(--warn);
+      }
+      button.secondary {
+        color: var(--muted);
+      }
+      main {
+        padding: 18px;
+        max-width: 1180px;
+        margin: auto;
+      }
+      .status {
+        color: var(--muted);
+        margin-top: 10px;
+      }
+      .card {
+        background: linear-gradient(180deg, var(--panel), #0c1728);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+        margin: 0 0 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        color: var(--muted);
+      }
+      .badge {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-size: 12px;
+      }
+      h2 {
+        font-size: 19px;
+        margin: 12px 0 8px;
+      }
+      .meta,
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      p {
+        line-height: 1.45;
+      }
+      details {
+        border-top: 1px solid var(--line);
+        margin-top: 12px;
+        padding-top: 10px;
+      }
+      summary {
+        cursor: pointer;
+        color: var(--ok);
+      }
+      pre {
+        white-space: pre-wrap;
+        max-height: 360px;
+        overflow: auto;
+        background: #07101d;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .comment {
+        border-top: 1px solid var(--line);
+        padding: 9px 0;
+        white-space: pre-wrap;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+      .empty {
+        border: 1px dashed var(--line);
+        border-radius: 16px;
+        padding: 24px;
+        color: var(--muted);
+      }
+      @media (max-width: 640px) {
+        header {
+          padding: 14px;
+        }
+        main {
+          padding: 12px;
+        }
+        .top {
+          display: block;
+        }
+        .actions button {
+          flex: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>AgentOS HITL Cockpit</h1>
+      <div class="bar">
+        <input id="q" placeholder="Suche nach Board, Task-ID, Owner, Text…" /><button id="refresh">
+          Aktualisieren</button
+        ><a
+          id="management-link"
+          href="/management"
+          hidden
+          style="
+            border: 1px solid var(--ok);
+            color: var(--ok);
+            border-radius: 12px;
+            padding: 10px 12px;
+            text-decoration: none;
+          "
+          >Geschäftsführung</a
+        >
+      </div>
+      <div id="status" class="status">Initialisiere…</div>
+    </header>
+    <main><div id="cards"></div></main>
+    <script src="/app.js?v=20260917T0759"></script>
+  </body>
+</html>

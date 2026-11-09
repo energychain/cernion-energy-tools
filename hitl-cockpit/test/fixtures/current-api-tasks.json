@@ -1,0 +1,82 @@
+{
+  "fixtureVersion": 1,
+  "capturedAt": "2026-11-08T12:44:16Z",
+  "source": "sanitized production contract capture",
+  "sensitiveContentIncluded": false,
+  "productionObservation": {
+    "service": "agentos-hitl-cockpit",
+    "apiTasksStatus": 200,
+    "count": 89,
+    "statusCounts": {
+      "blocked": 89
+    },
+    "representedBoardCount": 5,
+    "excludedBoards": ["twl-netze-private"],
+    "errorCount": 0
+  },
+  "contract": {
+    "topLevelFields": ["ok", "generatedAt", "count", "excludedBoards", "items", "errors"],
+    "itemFields": [
+      "id",
+      "title",
+      "body",
+      "assignee",
+      "status",
+      "priority",
+      "created_by",
+      "created_at",
+      "started_at",
+      "completed_at",
+      "tenant",
+      "result",
+      "block_kind",
+      "project_id",
+      "board",
+      "comments",
+      "attachments"
+    ],
+    "visibleStatuses": ["blocked", "scheduled"],
+    "scheduledRequiresBlockKind": "needs_input",
+    "actions": ["approve", "reject", "question", "close"]
+  },
+  "items": [
+    {
+      "id": "t_fixture01",
+      "title": "[SANITIZED] Blockierte Entscheidung",
+      "body": "[REDACTED]",
+      "assignee": "fixture-agent",
+      "status": "blocked",
+      "priority": 1,
+      "created_by": "fixture",
+      "created_at": 1700000000,
+      "started_at": null,
+      "completed_at": null,
+      "tenant": "fixture",
+      "result": null,
+      "block_kind": "needs_input",
+      "project_id": null,
+      "board": "fixture-board",
+      "comments": [],
+      "attachments": []
+    },
+    {
+      "id": "t_fixture02",
+      "title": "[SANITIZED] Wiedervorlage mit Eingabebedarf",
+      "body": "[REDACTED]",
+      "assignee": "fixture-agent",
+      "status": "scheduled",
+      "priority": 0,
+      "created_by": "fixture",
+      "created_at": 1700000100,
+      "started_at": null,
+      "completed_at": null,
+      "tenant": "fixture",
+      "result": null,
+      "block_kind": "needs_input",
+      "project_id": null,
+      "board": "fixture-board",
+      "comments": [],
+      "attachments": []
+    }
+  ]
+}
