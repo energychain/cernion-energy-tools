@@ -192,12 +192,13 @@ function loadTasks() {
 }
 
 function readAssistantTask(source) {
-  const result = loadKanbanTasks({
+  const result = loadTaskReferences({
     hermesHome: HERMES_HOME,
     excludedBoards: EXCLUDE_BOARDS,
-    mode: 'projection',
+    references: [source],
     timeout: 10000,
   });
+  if (result.errors.length) throw new Error('assistant_source_read_failed');
   return (
     result.items.find((item) => item.board === source.board && item.id === source.taskId) || null
   );
