@@ -424,12 +424,15 @@ function fromConversation(candidate, conversationId) {
   );
 }
 
-// Conversation scope (TWL CTX-01): case-specific material of another chat (case sessions,
-// statements) is left out when the request concerns only the current conversation. Project files
-// and stored documents are the tenant's shared knowledge and stay.
+// Conversation scope (TWL CTX-01): material of another chat (case sessions, statements, and
+// documents or datasets uploaded there) is left out unless the person explicitly asks for stored
+// knowledge or brings that material in. Project files stay the tenant's shared knowledge; a
+// stored source without conversation provenance is shared as well. (Twin probe: a park package
+// was answered with another case's uploaded meeting minutes.)
+// Case sessions and statements of another chat additionally pass the cross-case gate.
 const CHAT_SOURCE_TYPES = new Set(['case', 'memory']);
 function fromOtherChat(candidate, conversationId) {
-  if (!conversationId || !CHAT_SOURCE_TYPES.has(candidate.sourceType)) return false;
+  if (!conversationId || !candidate.sourceType || candidate.sourceType === 'project') return false;
   const conversations = [
     candidate.provenance?.conversationId,
     ...(candidate.provenance?.refs || candidate.refs || []).map((ref) => ref?.conversationId),
@@ -459,6 +462,10 @@ async function projectManifestAnswer(ctx, question, options = {}) {
     });
   let selected = select(question);
   let readQuestion = question;
+  // The request kind is judged once per question (one model call).
+  let kindJob;
+  const requestKind = () =>
+    (kindJob ||= require('./tenant-evidence-question').evidenceRequestKind(ctx, question));
   // 'only' resumes a deferred reference resolution; the deterministic routing already ran once.
   if (options.contextual === 'only' && selected.length >= (options.minSources || 1)) return null;
   if (selected.length < (options.minSources || 1) && options.contextual !== 'skip') {
@@ -482,8 +489,10 @@ async function projectManifestAnswer(ctx, question, options = {}) {
       relatedSourceIds = contextual.sourceIds;
       // The enriched routing question must not pull in other chats' sources the resolution did
       // not choose (conversation scope, TWL CTX-01).
+      // Documents and datasets of other chats are decided below by the stored-knowledge check.
       selected = select(contextual.question).filter(
         (candidate) =>
+          !CHAT_SOURCE_TYPES.has(candidate.sourceType) ||
           !fromOtherChat(candidate, options.currentConversationId) ||
           contextual.sourceIds.includes(candidate.id)
       );
@@ -513,7 +522,7 @@ async function projectManifestAnswer(ctx, question, options = {}) {
     (candidate) => candidate.sourceType !== 'project' && candidate.sourceType
   );
   if (foreign.length || (chatSources && readQuestion === question)) {
-    const kind = await require('./tenant-evidence-question').evidenceRequestKind(ctx, question);
+    const kind = await requestKind();
     if (chatSources && readQuestion === question && !kind.contentRequested) return null;
     // Another chat's case or statement only on an explicit request for stored or team knowledge;
     // a matching topic is no such request (CTX-01, decision 2026-11-09).
@@ -525,11 +534,15 @@ async function projectManifestAnswer(ctx, question, options = {}) {
       if (selected.length < (options.minSources || 1)) return null;
       if (selected.every((candidate) => fromConversation(candidate, options.currentConversationId)))
         return null;
-    } else if (foreign.length) {
+    } else if (foreign.some((candidate) => CHAT_SOURCE_TYPES.has(candidate.sourceType))) {
       // Cross-case criterion: this path answers directly, so another chat's case or statement
       // stays only when the person brings it in; lessons and suggestions are the regular turn's.
+      // Documents and datasets explicitly asked for as stored material are the requested answer.
+      const chatForeign = foreign.filter((candidate) =>
+        CHAT_SOURCE_TYPES.has(candidate.sourceType)
+      );
       const gated = await require('./foreign-context-gate').gateForeignEvidence(
-        foreign.map((candidate) => ({
+        chatForeign.map((candidate) => ({
           source: String(candidate.title || ''),
           value: JSON.stringify({ title: candidate.title, manifest: candidate.manifest }).slice(
             0,
@@ -550,7 +563,7 @@ async function projectManifestAnswer(ctx, question, options = {}) {
         }
       );
       const linked = new Set(gated.evidence.map((item) => item.metadata?.candidateId));
-      const dropped = foreign.filter((candidate) => !linked.has(candidate.id));
+      const dropped = chatForeign.filter((candidate) => !linked.has(candidate.id));
       if (dropped.length) {
         ctx.broker?.logger?.info?.('Tenant evidence cross-case gate', {
           withheld: dropped.length,
@@ -571,7 +584,7 @@ async function projectManifestAnswer(ctx, question, options = {}) {
       fromOtherChat(candidate, options.currentConversationId)
     );
     if (resolvedForeign.length) {
-      const kind = await require('./tenant-evidence-question').evidenceRequestKind(ctx, question);
+      const kind = await requestKind();
       if (!kind.contentRequested || kind.conversationOnly || !kind.storedKnowledge) {
         ctx.broker?.logger?.info?.('Tenant evidence statement scope', {
           withheld: resolvedForeign.length,

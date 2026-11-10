@@ -442,7 +442,9 @@ test('project files and a chat document are read through the same candidate and 
   const model = llm.generateStructured.getMockImplementation();
   llm.generateStructured.mockImplementation((schema, prompt) => {
     const input = JSON.parse(prompt);
-    if (input.task === 'evidence_request_kind') return { contentRequested: true };
+    // Same candidate and answer path for both sources; the other chat's document is asked for.
+    if (input.task === 'evidence_request_kind')
+      return { contentRequested: true, storedKnowledge: true };
     if (input.nodes?.some((node) => node.kind === 'section')) {
       const sources = input.nodes
         .filter((node) => node.kind === 'section')
