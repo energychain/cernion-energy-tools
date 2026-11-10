@@ -1949,7 +1949,14 @@ async function answer({
 }) {
   situation = withoutStatedCodes(situation, retrieval?.evidence || []);
   const roleReply = require('./workbench-role-context').roleConfirmation(situation, message);
-  if (roleReply && situation.roleStatement?.roleOnly && !situation.requestedOutput?.requested)
+  // A message that asks something is answered; the confirmation of the work context is added to
+  // that answer (long-dialogue test: "Ich möchte zwei Linien prüfen … Wie arbeiten beide …?" got only it).
+  if (
+    roleReply &&
+    situation.roleStatement?.roleOnly &&
+    !situation.requestedOutput?.requested &&
+    !String(message).includes('?')
+  )
     return {
       responseText: roleReply,
       draft: '',

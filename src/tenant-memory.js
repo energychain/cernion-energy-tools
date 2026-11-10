@@ -1251,6 +1251,10 @@ async function correctFacts(ctx, p, envelope, pending, correction, assertions = 
       .slice(0, 1)
       .map((fact) => fact.id);
   }
+  // A named correction that matches no stored statement corrects the case or the answer; the
+  // regular turn handles it with the case state (long-dialogue test: a corrected date became a question
+  // "Welche festgehaltene Aussage meinst du?").
+  if (!ids.length && named) return null;
   if (!ids.length) {
     // Without a valid statement of this person in this conversation, a rejection concerns the
     // answer, not memory.
