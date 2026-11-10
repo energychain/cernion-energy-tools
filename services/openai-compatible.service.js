@@ -7,6 +7,7 @@ const llmClient = require('../src/llm-client');
 const { classifyRequestedEffect } = require('../src/operation-capability-classifier');
 const {
   classifyWorkbenchIntent,
+  isStatusLookup,
   resolveWorkbenchFollowup,
   isReadOnlyIntent,
   renderWorkbenchResponse,
@@ -589,6 +590,9 @@ module.exports = {
               cetCaseId: metadata.cetCaseId,
               recentMessages,
             });
+          // Only a status lookup takes the read-only status path; a longer request is a turn.
+          if (intentMode === 'status_query' && !isStatusLookup(question))
+            intentMode = 'decision_support';
           const followup =
             intentMode === 'knowledge_query'
               ? resolveWorkbenchFollowup(question, { recentMessages })

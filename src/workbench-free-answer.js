@@ -34,15 +34,22 @@ function freeAnswerPrompt(value, { repairInstruction } = {}) {
 }
 
 // Markdown blocks: a heading stays with the block that follows it.
+// A Markdown code fence around the whole answer is dropped (no backtracking-prone pattern).
+function unfenced(text) {
+  let value = String(text || '').trim();
+  if (value.startsWith('```')) value = value.slice(value.indexOf('\n') + 1 || value.length);
+  if (value.endsWith('```')) value = value.slice(0, -3);
+  return value.trim();
+}
+
 function paragraphs(text) {
-  const blocks = String(text || '')
-    .replace(/^```(?:markdown|md)?\s*|\s*```$/gu, '')
+  const blocks = unfenced(text)
     .split(/\n\s*\n/u)
     .map((block) => block.trim())
     .filter(Boolean);
   const merged = [];
   for (const block of blocks) {
-    const previous = merged[merged.length - 1];
+    const previous = merged.at(-1);
     if (previous && /^#{1,6}\s[^\n]*$/u.test(previous))
       merged[merged.length - 1] = `${previous}\n\n${block}`;
     else merged.push(block);

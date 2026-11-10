@@ -159,3 +159,10 @@ test('a requested draft keeps the structured path', async () => {
   expect(prompt.instruction).not.toMatch(/Kennzeichne jeden Absatz/u);
   expect(llm.generateText.mock.calls[0][1].responseMimeType).toBe('application/json');
 });
+
+test('a code fence around the whole answer is dropped', () => {
+  expect(paragraphs('```markdown\nErster Absatz.\n\nZweiter Absatz.\n```')).toEqual([
+    'Erster Absatz.',
+    'Zweiter Absatz.',
+  ]);
+});

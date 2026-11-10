@@ -231,3 +231,14 @@ test('a bare status question is told apart from a status-like work request', () 
     isBareStatusQuestion('Der Ist-Stand ist ernüchternd; ich möchte einen Fall neu aufsetzen.')
   ).toBe(false);
 });
+
+test('only a status lookup takes the status path; a longer request is a content turn', () => {
+  const { isStatusLookup, classifyWorkbenchIntent } = require('../src/workbench-intent-router');
+  expect(isStatusLookup('Wie ist der Stand?')).toBe(true);
+  expect(isStatusLookup('Wie ist der Bearbeitungsstand von Fall F-873?')).toBe(true);
+  const park =
+    'Parke den Vorgang jetzt als Arbeitsstand. Ich brauche eine übergabefähige Parknotiz mit Anlass, gesichertem Stand, verworfenen Spuren, offenen Punkten, DO_NOT_ACT, Wiedervorlageereignis und nächstem Prüfauftrag.';
+  // The regex router still reads it as a status question; the lookup check keeps it a turn.
+  expect(classifyWorkbenchIntent(park)).toBe('status_query');
+  expect(isStatusLookup(park)).toBe(false);
+});
