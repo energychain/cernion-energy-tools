@@ -56,6 +56,8 @@ function installStub() {
         contentRequested:
           !['Bitte speichern.', 'Bitte ablegen.'].includes(input.question) &&
           !input.question.startsWith('Entferne'),
+        // The queries ask for stored documents and sources explicitly.
+        storedKnowledge: /Unterlagen|Quellen|Dokument|Tabelle|Bestand/u.test(input.question),
       };
     } else if (input.task === 'evidence_reference_resolution') {
       result = {
@@ -333,6 +335,18 @@ test('uploads of the current conversation alone stay in the regular turn', async
   const same = await chat(queries[0], 'chat-document');
   expect(same.tenantEvidenceSelection).toBeUndefined();
   expect(same.responseText).not.toContain('Ich habe dafür');
+});
+
+test("another chat's upload is not used for a request that does not ask for stored material", async () => {
+  await chat('Zur Kenntnis', 'chat-document', [document]);
+  phases.length = 0;
+  const reply = await chat(
+    'Fasse für die Übergabe zusammen, was zu Objekt Nord offen ist.',
+    'chat-handover'
+  );
+  expect(reply.tenantEvidenceSelection).toBeUndefined();
+  expect(reply.responseText).not.toContain(docName);
+  expect(reply.responseText).not.toContain('80 Stück');
 });
 
 test('unrelated question offers nothing and does not read either source', async () => {
