@@ -3,7 +3,11 @@ const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { defaultManagementDatabase, loadTasks: loadKanbanTasks } = require('./lib/kanban-source');
+const {
+  defaultManagementDatabase,
+  loadTaskReferences,
+  loadTasks: loadKanbanTasks,
+} = require('./lib/kanban-source');
 const { createManagementApi, decodeId } = require('./lib/management-api');
 const { ManagementReader } = require('./lib/management-reader');
 const { createSessionAuth, secureHeaders } = require('./lib/session-auth');
@@ -200,14 +204,14 @@ function readAssistantTask(source) {
 }
 
 function readAssistantTasks(sources) {
-  const wanted = new Set(sources.map((source) => `${source.board}\0${source.taskId}`));
-  const result = loadKanbanTasks({
+  const result = loadTaskReferences({
     hermesHome: HERMES_HOME,
     excludedBoards: EXCLUDE_BOARDS,
-    mode: 'projection',
+    references: sources,
     timeout: 10000,
   });
-  return result.items.filter((item) => wanted.has(`${item.board}\0${item.id}`));
+  if (result.errors.length) throw new Error('assistant_source_read_failed');
+  return result.items;
 }
 
 async function resolveAssistantSource(input = {}) {

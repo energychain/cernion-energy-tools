@@ -41,6 +41,40 @@ if mode != 'legacy': result['boards']=boards
 print(json.dumps(result, ensure_ascii=False))
 `;
 
+const PYTHON_REFERENCE_READER = String.raw`
+import json, os, sqlite3, sys
+options=json.loads(sys.argv[1])
+home=options['home']
+exclude=set(options.get('excludedBoards', []))
+references=options.get('references', [])
+base=os.path.join(home,'kanban','boards')
+columns='id,title,body,assignee,status,priority,created_by,created_at,started_at,completed_at,tenant,result,block_kind,project_id'
+by_board={}
+for ref in references:
+    board=ref['board']; task_id=ref['taskId']
+    if board in exclude: continue
+    by_board.setdefault(board, []).append(task_id)
+items=[]; errors=[]
+for board, task_ids in sorted(by_board.items()):
+    db=os.path.join(base, board, 'kanban.db')
+    if not os.path.isfile(db): continue
+    try:
+        con=sqlite3.connect('file:'+db+'?mode=ro', uri=True, timeout=2)
+        con.row_factory=sqlite3.Row
+        con.execute('PRAGMA query_only=ON')
+        placeholders=','.join(['?']*len(task_ids))
+        rows=con.execute('select '+columns+' from tasks where id in ('+placeholders+')', task_ids).fetchall()
+        for row in rows:
+            item=dict(row); item['board']=board
+            item['comments']=[dict(x) for x in con.execute('select author, body, created_at from task_comments where task_id=? order by created_at desc limit 8', (row['id'],)).fetchall()]
+            item['attachments']=[dict(x) for x in con.execute('select id, filename, content_type, size, created_at from task_attachments where task_id=? order by created_at desc limit 20', (row['id'],)).fetchall()]
+            items.append(item)
+        con.close()
+    except Exception as error:
+        errors.append({'board':board,'error':str(error)[:500]})
+print(json.dumps({'ok':len(errors)==0,'items':items,'errors':errors}, ensure_ascii=False))
+`;
+
 function normalizeExcludedBoards(value) {
   if (value instanceof Set) return Array.from(value).filter(Boolean).sort();
   if (Array.isArray(value)) return value.filter(Boolean).sort();
@@ -84,6 +118,45 @@ function loadProjectionSource(options = {}) {
   return readKanban({ ...options, mode: 'projection' });
 }
 
+function loadTaskReferences(options = {}) {
+  const excludedBoards = normalizeExcludedBoards(
+    options.excludedBoards ?? process.env.HITL_COCKPIT_EXCLUDE_BOARDS
+  );
+  const excluded = new Set(excludedBoards);
+  const references = (Array.isArray(options.references) ? options.references : [])
+    .map((source) => ({
+      board: String(source?.board || ''),
+      taskId: String(source?.taskId || ''),
+    }))
+    .filter(
+      (source) =>
+        /^[a-z0-9][a-z0-9_.-]{0,80}$/.test(source.board) &&
+        /^t_[a-z0-9]{6,32}$/.test(source.taskId) &&
+        !excluded.has(source.board)
+    );
+  if (references.length === 0) return { ok: true, items: [], errors: [] };
+  const payload = {
+    home: options.hermesHome || process.env.HERMES_HOME || '/home/clawd/.hermes',
+    excludedBoards,
+    references,
+  };
+  const result = spawnSync(
+    options.pythonBin || 'python3',
+    ['-c', PYTHON_REFERENCE_READER, JSON.stringify(payload)],
+    {
+      encoding: 'utf8',
+      timeout: options.timeout || 10000,
+      maxBuffer: options.maxBuffer || 8 * 1024 * 1024,
+    }
+  );
+  if (result.status !== 0) {
+    throw new Error(
+      (result.stderr || result.stdout || 'task_reference_load_failed').slice(0, 1000)
+    );
+  }
+  return JSON.parse(result.stdout);
+}
+
 function defaultManagementDatabase(hermesHome) {
   return path.join(
     hermesHome || process.env.HERMES_HOME || '/home/clawd/.hermes',
@@ -96,6 +169,7 @@ module.exports = {
   DEFAULT_EXCLUDED_BOARDS,
   defaultManagementDatabase,
   loadProjectionSource,
+  loadTaskReferences,
   loadTasks,
   normalizeExcludedBoards,
 };
