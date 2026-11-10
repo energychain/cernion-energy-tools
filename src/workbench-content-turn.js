@@ -1575,6 +1575,7 @@ async function runContentTurn(
           nextStepOnly: Boolean(previous && nextStepRequest),
           skipModel: false,
           lastAnswer: pending?.lastAnswer || '',
+          conversation: documentFlow.cleanDocumentHistory(ctx.params.messages || []),
           caseView: caseState ? workbenchCaseState.caseStateView(caseState) : null,
           logger: service.logger,
         });

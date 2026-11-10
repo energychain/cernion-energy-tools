@@ -188,9 +188,12 @@ function validateCommunication(parsed, situation, evidence) {
           evidence.some(
             (hit) =>
               hit.evidenceId === id &&
-              ['knowledge-rag', 'knowledge-rag-federated', 'willi-mako'].includes(
-                hit.retrievalSource || hit.source
-              ) &&
+              [
+                'knowledge-rag',
+                'knowledge-rag-federated',
+                'knowledge-gateway',
+                'willi-mako',
+              ].includes(hit.retrievalSource || hit.source) &&
               (hit.metadata?.sectionId || hit.metadata?.url)
           )
         );
