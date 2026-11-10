@@ -1537,6 +1537,45 @@ async function runContentTurn(
   });
   phaseTimes.caseStateMs = Math.max(1, Math.round(performance.now() - caseStateStarted));
   const answerStarted = performance.now();
+  const knowledgeLoop = require('./workbench-knowledge-loop');
+  if (
+    knowledgeLoop.knowledgeLoopEnabled(p.tenantId) &&
+    !incomingDocuments &&
+    !draftRequest &&
+    !understandingFailed &&
+    situation.turnKind !== 'smalltalk' &&
+    situation.conversationShape !== 'filing'
+  ) {
+    // Targeted lookups before the answer (AP3, AP10), through the regular evidence collection.
+    const loop = await knowledgeLoop.runKnowledgeLoop({
+      message: envelope.userRequest,
+      situation,
+      caseView: caseState ? workbenchCaseState.caseStateView(caseState) : null,
+      evidence: retrieval.evidence,
+      tenantId: p.tenantId,
+      logger: service.logger,
+      lookup: async (source, query) => {
+        const found = await ctx.call(
+          'personal-agent.collectWorkbenchEvidence',
+          { situation: { ...situation, concern: query, situation: '', retrievalTerms: [query] } },
+          {
+            meta: {
+              ...meta,
+              workbenchEvidenceAccess: access,
+              workbenchToolsManaged: true,
+              workbenchEvidenceSources: [source],
+              workbenchEvidenceCaseId: caseId,
+            },
+            timeout: 12000,
+          }
+        );
+        const status = (found?.trace || []).find((entry) => entry.source === source);
+        return { hits: found?.evidence || [], called: status ? status.called !== false : true };
+      },
+    });
+    retrieval.evidence = [...(retrieval.evidence || []), ...loop.evidence];
+    retrieval.knowledgeLoop = loop.trace;
+  }
   let reply;
   let documentResult;
   try {
