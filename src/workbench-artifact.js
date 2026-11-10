@@ -17,15 +17,19 @@ function escapeTableCell(value) {
 
 // Headings match regardless of case, numbering, Markdown marks and trailing punctuation (TWL
 // long dialogue: complete role models and briefings were discarded over heading spelling).
+const TRAILING = new Set([' ', ':', ';', '.', ',', '!', '?', '\u2013', '\u2014', '-']);
+
 function headingKey(value) {
-  return String(value || '')
+  const key = String(value || '')
     .normalize('NFKC')
     .replace(/^\s*(?:#{1,6}\s*)?(?:\d+[.)]\s*)?/u, '')
     .replace(/[*_`]/gu, '')
-    .replace(/[\s:;.,!?\u2013\u2014-]+$/u, '')
     .replace(/\s+/gu, ' ')
     .trim()
     .toLocaleLowerCase();
+  let end = key.length;
+  while (end > 0 && TRAILING.has(key[end - 1])) end--;
+  return key.slice(0, end);
 }
 
 const sameHeading = (left, right) => headingKey(left) === headingKey(right);
@@ -52,102 +56,106 @@ function alignSections(blocks, sections) {
   };
 }
 
+const contentClaim = (text) => ({
+  text,
+  origin: 'input',
+  supported: 'model',
+  completedAction: false,
+  specific: false,
+  evidenceIds: [],
+});
+
+function contractError(reason, repairInstruction) {
+  const error = require('./workbench-llm-repair').schemaError([], reason);
+  error.repairInstruction = repairInstruction;
+  return error;
+}
+
+function rowClaims(rows, expected, lenient) {
+  if (
+    !lenient &&
+    (!expected?.columns.length || rows.some((row) => row.cells.length !== expected.columns.length))
+  )
+    throw contractError(
+      'artifact_cell_count',
+      'tableRows benötigt je Zeile genau eine Zelle pro bestellter Spalte in deren Reihenfolge; keine Markdown-Tabelle in cells. Alle Teile vollständig neu liefern.'
+    );
+  const cell = escapeTableCell;
+  const columns = expected?.columns?.length
+    ? expected.columns
+    : rows[0].cells.map((_, column) => `Spalte ${column + 1}`);
+  const fit = (cells) => columns.map((_, column) => (column < cells.length ? cells[column] : ''));
+  return [
+    contentClaim(`| ${columns.map(cell).join(' | ')} |`),
+    contentClaim(`| ${columns.map(() => '---').join(' | ')} |`),
+    ...rows.map(({ cells, ...metadata }) => ({
+      ...metadata,
+      text: `| ${fit(cells).map(cell).join(' | ')} |`,
+    })),
+  ];
+}
+
+function sectionClaims(part, expected, lenient) {
+  const aligned = alignSections(part.sectionContents, expected?.sections || []);
+  const contradictory =
+    expected?.layout !== 'sections' ||
+    part.tableRows?.length ||
+    part.orderedSteps?.length ||
+    part.content?.length ||
+    !aligned.complete;
+  if (!lenient && contradictory)
+    throw contractError(
+      'artifact_section_contract',
+      'sectionContents benötigt genau einen vollständigen Block je bestellter section in deren Reihenfolge. content des Teils, tableRows und orderedSteps bleiben leer. Jeder Block enthält ausschließlich fachliche Claim-Absätze ohne zusätzliche Markdown-Überschrift.'
+    );
+  return aligned.blocks.flatMap((block) => [
+    contentClaim(`### ${block.section}`),
+    ...block.content,
+  ]);
+}
+
+function stepClaims(part, expected, lenient, hasRows) {
+  const fail = () => {
+    if (lenient) return;
+    throw contractError(
+      'artifact_step_contract',
+      'Bei orderedSteps content und tableRows leer lassen. Jeder Schritt enthält genau die bestellte section oder ohne bestellte Abschnitte eine leere section. Alle bestellten Abschnitte in Reihenfolge vollständig bedienen.'
+    );
+  };
+  if (expected?.layout !== 'steps' || hasRows || part.content?.length) fail();
+  const sections = expected?.sections || [];
+  const visited = [];
+  const content = [];
+  let active = '';
+  for (const [stepIndex, step] of part.orderedSteps.entries()) {
+    const { section, ...metadata } = step;
+    const heading =
+      sections.find((name) => sameHeading(name, section)) ||
+      section ||
+      (sections.length === 1 ? sections[0] : '');
+    if (sections.length ? !sections.includes(heading) : heading) fail();
+    if (heading && heading !== active) {
+      visited.push(heading);
+      content.push(contentClaim(`### ${heading}`));
+      active = heading;
+    }
+    content.push({ ...metadata, text: `${stepIndex + 1}. ${step.text}` });
+  }
+  if (JSON.stringify(visited) !== JSON.stringify(sections)) fail();
+  return content;
+}
+
 /**
  * Turns the closed artifact structure into content claims. In lenient mode (salvage of the best
  * attempt) contract deviations no longer reject the artifact; what was delivered is kept.
  */
 function materializeTables(parsed, request, { lenient = false } = {}) {
-  const claim = (text) => ({
-    text,
-    origin: 'input',
-    supported: 'model',
-    completedAction: false,
-    specific: false,
-    evidenceIds: [],
-  });
-  const cell = escapeTableCell;
   for (const [index, part] of (parsed.artifact || []).entries()) {
-    const rows = part.tableRows;
-    if (rows?.length) {
-      const expected = request.parts[index];
-      if (
-        !lenient &&
-        (!expected?.columns.length ||
-          rows.some((row) => row.cells.length !== expected.columns.length))
-      ) {
-        const error = require('./workbench-llm-repair').schemaError([], 'artifact_cell_count');
-        error.repairInstruction =
-          'tableRows benötigt je Zeile genau eine Zelle pro bestellter Spalte in deren Reihenfolge; keine Markdown-Tabelle in cells. Alle Teile vollständig neu liefern.';
-        throw error;
-      }
-      const columns = expected?.columns?.length
-        ? expected.columns
-        : rows[0].cells.map((_, column) => `Spalte ${column + 1}`);
-      const fit = (cells) =>
-        columns.map((_, column) => (column < cells.length ? cells[column] : ''));
-      part.content = [
-        claim(`| ${columns.map(cell).join(' | ')} |`),
-        claim(`| ${columns.map(() => '---').join(' | ')} |`),
-        ...rows.map(({ cells, ...metadata }) => ({
-          ...metadata,
-          text: `| ${fit(cells).map(cell).join(' | ')} |`,
-        })),
-      ];
-    }
-    if (part.sectionContents?.length) {
-      const expected = request.parts[index];
-      const aligned = alignSections(part.sectionContents, expected?.sections || []);
-      if (
-        !lenient &&
-        (expected?.layout !== 'sections' ||
-          rows?.length ||
-          part.orderedSteps?.length ||
-          part.content?.length ||
-          !aligned.complete)
-      ) {
-        const error = require('./workbench-llm-repair').schemaError(
-          [],
-          'artifact_section_contract'
-        );
-        error.repairInstruction =
-          'sectionContents benötigt genau einen vollständigen Block je bestellter section in deren Reihenfolge. content des Teils, tableRows und orderedSteps bleiben leer. Jeder Block enthält ausschließlich fachliche Claim-Absätze ohne zusätzliche Markdown-Überschrift.';
-        throw error;
-      }
-      part.content = aligned.blocks.flatMap((block) => [
-        claim(`### ${block.section}`),
-        ...block.content,
-      ]);
-    }
-    if (part.orderedSteps?.length) {
-      const expected = request.parts[index];
-      const fail = () => {
-        if (lenient) return;
-        const error = require('./workbench-llm-repair').schemaError([], 'artifact_step_contract');
-        error.repairInstruction =
-          'Bei orderedSteps content und tableRows leer lassen. Jeder Schritt enthält genau die bestellte section oder ohne bestellte Abschnitte eine leere section. Alle bestellten Abschnitte in Reihenfolge vollständig bedienen.';
-        throw error;
-      };
-      if (expected?.layout !== 'steps' || rows?.length || part.content?.length) fail();
-      const sections = expected.sections || [];
-      const visited = [];
-      let active = '';
-      part.content = [];
-      for (const [stepIndex, step] of part.orderedSteps.entries()) {
-        const { section, ...metadata } = step;
-        const heading =
-          sections.find((name) => sameHeading(name, section)) ||
-          section ||
-          (sections.length === 1 ? sections[0] : '');
-        if (sections.length ? !sections.includes(heading) : heading) fail();
-        if (heading && heading !== active) {
-          visited.push(heading);
-          part.content.push(claim(`### ${heading}`));
-          active = heading;
-        }
-        part.content.push({ ...metadata, text: `${stepIndex + 1}. ${step.text}` });
-      }
-      if (JSON.stringify(visited) !== JSON.stringify(sections)) fail();
-    }
+    const expected = request.parts[index];
+    const hasRows = Boolean(part.tableRows?.length);
+    if (hasRows) part.content = rowClaims(part.tableRows, expected, lenient);
+    if (part.sectionContents?.length) part.content = sectionClaims(part, expected, lenient);
+    if (part.orderedSteps?.length) part.content = stepClaims(part, expected, lenient, hasRows);
     delete part.orderedSteps;
     delete part.tableRows;
     delete part.sectionContents;

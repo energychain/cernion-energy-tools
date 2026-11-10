@@ -577,3 +577,120 @@ describe('review and addendum after the TWL long dialogue', () => {
     expect(calls[0].input.instruction).toMatch(/funktion/iu);
   });
 });
+
+describe('case-work core: authority, decisions, withdrawn recommendations, limits, deliverable', () => {
+  const { applyCaseUpdate, createCaseState, caseStateView } = require('../src/case-state');
+  const report = (ref, content) => ({ ref, kind: 'user_reported', source: 'Gespräch', content });
+
+  test('a responsibility without evidence stays a proposal or a needed function', () => {
+    const state = applyCaseUpdate(createCaseState(), {
+      evidence: [report('n1', 'Die Koordination übernimmt Bereich A.')],
+      roleUpdates: [
+        {
+          function: 'Koordination',
+          holder: 'Bereich A',
+          status: 'confirmed',
+          evidenceRefs: ['n1'],
+        },
+        {
+          function: 'Fachliche Bewertung',
+          holder: 'Bereich B',
+          status: 'confirmed',
+          evidenceRefs: [],
+        },
+        { function: 'Strukturhaltung', holder: '', status: 'accepted', evidenceRefs: [] },
+      ],
+    });
+    expect(caseStateView(state).roles).toEqual([
+      { function: 'Koordination', holder: 'Bereich A', status: 'confirmed', authoritative: true },
+      {
+        function: 'Fachliche Bewertung',
+        holder: 'Bereich B',
+        status: 'proposed',
+        authoritative: false,
+      },
+      { function: 'Strukturhaltung', status: 'needed', authoritative: false },
+    ]);
+  });
+
+  test('a decision is settled only with evidence', () => {
+    const state = applyCaseUpdate(createCaseState(), {
+      decisionUpdates: [{ statement: 'Pilot starten', status: 'taken', evidenceRefs: [] }],
+    });
+    expect(caseStateView(state).decisions).toEqual([
+      { statement: 'Pilot starten', status: 'proposed', settled: false },
+    ]);
+  });
+
+  test('recommendations resting on a refuted hypothesis are withdrawn', () => {
+    let state = applyCaseUpdate(createCaseState(), {
+      evidence: [report('n1', 'Erste Beobachtung.')],
+      hypothesisUpdates: [
+        { statement: 'Ursache P', status: 'open', evidenceRefs: ['n1'], reason: 'r' },
+      ],
+      claims: [
+        {
+          statement: 'Empfehlung X',
+          basis: 'hypothesis',
+          evidenceRefs: [],
+          central: false,
+          dependsOn: ['H1'],
+        },
+      ],
+      nextActions: [
+        { action: 'Schritt Y', kind: 'recommendation', dependsOn: ['H1'] },
+        { action: 'Schritt Z', kind: 'reversible_check' },
+      ],
+    });
+    expect(caseStateView(state).withdrawn).toEqual([]);
+    state = applyCaseUpdate(state, {
+      evidence: [report('n2', 'Gegenbeleg.')],
+      hypothesisUpdates: [
+        {
+          hypothesisId: 'H1',
+          statement: 'Ursache P',
+          status: 'refuted',
+          evidenceRefs: ['n2'],
+          reason: 'Gegenbeleg',
+        },
+      ],
+    });
+    const view = caseStateView(state);
+    expect(view.withdrawn.map((item) => item.statement)).toEqual(['Empfehlung X', 'Schritt Y']);
+    expect(view.nextActions.map((item) => item.action)).toEqual(['Schritt Z']);
+  });
+
+  test('action limits and the expected deliverable persist across turns', () => {
+    let state = applyCaseUpdate(createCaseState(), {
+      boundaries: [
+        { action: 'Bestand ändern', reason: 'Zielzustand offen', until: 'Zielzustand belegt' },
+      ],
+      deliverable: {
+        requested: true,
+        audience: 'Leitungsrunde',
+        purpose: 'Befassung',
+        format: 'Impuls',
+        sections: ['Zielbild', 'Rollen'],
+        doneWhen: 'ohne Verlauf verständlich',
+      },
+    });
+    state = applyCaseUpdate(state, {
+      deliverable: {
+        requested: false,
+        audience: '',
+        purpose: '',
+        format: '',
+        sections: [],
+        doneWhen: '',
+      },
+    });
+    const view = caseStateView(state);
+    expect(view.doNotAct).toEqual([
+      { action: 'Bestand ändern', reason: 'Zielzustand offen', until: 'Zielzustand belegt' },
+    ]);
+    expect(view.deliverable).toMatchObject({
+      audience: 'Leitungsrunde',
+      sections: ['Zielbild', 'Rollen'],
+    });
+  });
+});
