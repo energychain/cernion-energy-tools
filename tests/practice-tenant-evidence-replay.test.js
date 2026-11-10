@@ -22,7 +22,11 @@ function model(schema, raw) {
   const input = JSON.parse(raw);
   let value = {};
   if (input.task === 'evidence_request_kind')
-    value = { contentRequested: !/^Bitte (?:ablegen|speichern)/u.test(input.question) };
+    value = {
+      contentRequested: !/^Bitte (?:ablegen|speichern)/u.test(input.question),
+      // The questions refer to the stored documents and data explicitly.
+      storedKnowledge: /Unterlagen|Daten/u.test(input.question),
+    };
   else if (input.task === 'evidence_reference_resolution')
     value = {
       sources: (input.question.includes('Depot West') ||
@@ -192,7 +196,9 @@ beforeAll(async () => {
       const answer = await ctx.call('dataset.query', { id: row.id, question: ctx.params.question });
       return { ...answer, handled: true };
     });
-  const budget = require('../scripts/live-validation-budget').installLiveBudget();
+  // The cross-conversation checks (stored-knowledge request, semantic case-search gate) add a
+  // model call on some turns; the replay's budget covers them.
+  const budget = require('../scripts/live-validation-budget').installLiveBudget({ limit: 48 });
   transport = await createLocalTransport({ budget });
 });
 afterAll(async () => {

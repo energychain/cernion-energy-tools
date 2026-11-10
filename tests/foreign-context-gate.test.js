@@ -63,6 +63,21 @@ describe('foreign context gate', () => {
     expect(result.evidence).toEqual([]);
   });
 
+  test('a case-search hit is judged, not linked by itself', async () => {
+    const hit = {
+      ...foreign('Vorgang S-9: Zielbild mit zwei Linien'),
+      metadata: { scopeOrigin: 'aus anderem Fall', requestedSearch: true },
+    };
+    const llm = llmReturning([{ index: 0, decision: 'unrelated', lesson: '' }]);
+    const result = await gateForeignEvidence([own, hit], {
+      llm,
+      message: 'Welche Angaben liegen dir zu diesem Fall vor?',
+    });
+    expect(result.evidence).toEqual([own]);
+    const input = JSON.parse(llm.generateStructured.mock.calls[0][1]);
+    expect(input.foreign[0].searched).toBe(true);
+  });
+
   test('a comparable case is offered, not disclosed', async () => {
     const llm = llmReturning([{ index: 0, decision: 'comparable', lesson: '' }]);
     const result = await gateForeignEvidence([own, foreign('Vorgang D-4 Details')], { llm });
