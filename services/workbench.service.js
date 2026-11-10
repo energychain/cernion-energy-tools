@@ -8,7 +8,11 @@ const {
 const { handleCorrectionTurn } = require('../src/workbench-corrections');
 const { answerSystemActivity } = require('../src/workbench-system-activity');
 const coverageTurn = require('../src/function-coverage-turn');
-const { classifyWorkbenchIntent, isBareStatusQuestion } = require('../src/workbench-intent-router');
+const {
+  classifyWorkbenchIntent,
+  isBareStatusQuestion,
+  isStatusLookup,
+} = require('../src/workbench-intent-router');
 const caseLinking = require('../src/workbench-case-linking');
 const { rawContentAllowed } = require('../src/case-linking');
 const contentTurn = require('../src/workbench-content-turn');
@@ -1934,7 +1938,8 @@ module.exports = {
         const intent = classifyWorkbenchIntent(envelope.userRequest, {
           cetCaseId: conversation?.cetCaseId,
         });
-        if (['status_query', 'data_lookup', 'system_activity_query'].includes(intent)) {
+        const lookup = intent !== 'status_query' || isStatusLookup(envelope.userRequest);
+        if (lookup && ['status_query', 'data_lookup', 'system_activity_query'].includes(intent)) {
           const queried = await ctx.call(
             'workbench.query',
             {

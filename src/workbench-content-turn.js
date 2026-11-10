@@ -501,7 +501,8 @@ async function runContentTurn(
     ctx,
     p,
     envelope.userRequest,
-    meta
+    meta,
+    { conversationId: envelope.conversationId }
   );
   const previous =
     persistentSituation(pending?.situation || state?.knownContext?.situation) ||

@@ -827,6 +827,12 @@ describe('OpenAI governance intent modes', () => {
     ['Continue case-1 with evidence', 'case_followup', 'workbench.chat'],
     ['Compare options', 'decision_support', 'workbench.chat'],
     ['Run the web fetch tool', 'tool_run_request', 'workbench.chat'],
+    // A longer work request that the router reads as a status question stays a content turn.
+    [
+      'Parke den Vorgang jetzt als Arbeitsstand. Ich brauche eine übergabefähige Parknotiz mit Anlass, gesichertem Stand, offenen Punkten, DO_NOT_ACT und Wiedervorlage.',
+      'decision_support',
+      'workbench.chat',
+    ],
   ])('%s uses %s through %s', async (message, intentMode, action) => {
     const ctx = {
       params: {

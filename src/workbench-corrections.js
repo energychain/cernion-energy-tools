@@ -6,6 +6,13 @@ const { principal } = require('./domain-router-policy');
 const { reference } = require('./function-coverage');
 
 // Recognition only. No model call, execution, or independent function matching.
+// Function-catalog commands are one sentence. A message of several sentences has its own content
+// and is a regular turn (long-dialogue test: "Der Scan gehört zu …. Zielvorgang … Bitte
+// verarbeite die Korrektur vollständig." became a function-catalog command).
+function singleSentence(text) {
+  return text.split(/(?<=[.!?])\s+/u).filter((part) => part.trim()).length <= 1;
+}
+
 function recognizeCorrection(message) {
   const text = String(message || '')
     .trim()
@@ -51,6 +58,7 @@ function recognizeCorrection(message) {
         .trim(),
       outcome: /ist falsch|is wrong|ablehnen|lehn.+ab|reject/i.test(text) ? 'rejected' : 'accepted',
     };
+  if (!singleSentence(text)) return null;
   if (
     /^(?:das hängt nicht zusammen|das gehört dazu|those are unrelated|these belong together)[.!\s]*$/i.test(
       text
