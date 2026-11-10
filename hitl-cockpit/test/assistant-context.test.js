@@ -129,6 +129,30 @@ test('includes only sanitized task, Matrix, artifact, and evidence references', 
   });
 });
 
+test('includes deduplicated decision source references with the primary source first', () => {
+  const fixture = readerFixture({
+    decision: {
+      decision_id: 'decision_1',
+      question: 'Choose A or B?',
+      status: 'open',
+      source_board: 'public-board',
+      source_task_id: 't_primary1',
+      source_refs: [
+        { board: 'public-board', taskId: 't_secondary1', channel: 'kanban' },
+        { board: 'public-board', taskId: 't_primary1', channel: 'matrix' },
+      ],
+    },
+  });
+  const payload = createAssistantContextResolver({ reader: fixture.reader }).resolve({
+    objectType: 'decision',
+    objectId: 'decision_1',
+  }).payload;
+  assert.deepEqual(payload.references.sourceTasks, [
+    { board: 'public-board', taskId: 't_primary1' },
+    { board: 'public-board', taskId: 't_secondary1' },
+  ]);
+});
+
 test('context firewall rejects forbidden markers in every allowed text shape without disclosure', () => {
   const cases = [
     ['topic', 'title'],

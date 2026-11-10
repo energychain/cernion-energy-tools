@@ -157,9 +157,11 @@ function allowlist(type, row) {
 }
 function safeTaskRefs(row) {
   const raw = [];
-  if (Array.isArray(row.source_task_refs)) raw.push(...row.source_task_refs);
   if (row.source_board && row.source_task_id)
     raw.push({ board: row.source_board, taskId: row.source_task_id });
+  if (Array.isArray(row.source_refs)) raw.push(...row.source_refs);
+  if (Array.isArray(row.source_task_refs)) raw.push(...row.source_task_refs);
+  const seen = new Set();
   return raw
     .map((ref) => ({
       board: String(ref.board || ''),
@@ -170,7 +172,13 @@ function safeTaskRefs(row) {
         /^[a-z0-9][a-z0-9_.-]{0,80}$/.test(ref.board) &&
         /^t_[a-z0-9]{6,64}$/.test(ref.taskId) &&
         !forbiddenText(ref.board)
-    );
+    )
+    .filter((ref) => {
+      const key = `${ref.board}\0${ref.taskId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 }
 function safeMatrixRef(row) {
   const value = String(row.matrix_room_ref || '');

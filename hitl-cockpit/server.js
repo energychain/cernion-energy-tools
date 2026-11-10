@@ -14,6 +14,7 @@ const { createAssistantContextResolver } = require('./lib/assistant-context');
 const { createAssistantMatrixHandoffAdapter } = require('./lib/assistant-matrix-handoff');
 const { createAssistantMatrixRuntime } = require('./lib/assistant-matrix-runtime');
 const { createAssistantService } = require('./lib/assistant-service');
+const { createAssistantSourceResolver } = require('./lib/assistant-source-resolver');
 const { AssistantStore } = require('./lib/assistant-store');
 const { RhajainaClient } = require('./lib/rhajaina-client');
 
@@ -198,13 +199,25 @@ function readAssistantTask(source) {
   );
 }
 
+function readAssistantTasks(sources) {
+  const wanted = new Set(sources.map((source) => `${source.board}\0${source.taskId}`));
+  const result = loadKanbanTasks({
+    hermesHome: HERMES_HOME,
+    excludedBoards: EXCLUDE_BOARDS,
+    mode: 'projection',
+    timeout: 10000,
+  });
+  return result.items.filter((item) => wanted.has(`${item.board}\0${item.id}`));
+}
+
 async function resolveAssistantSource(input = {}) {
-  const references = input.context && input.context.sourceTasks;
-  if (!Array.isArray(references) || references.length !== 1) return null;
-  const source = { board: references[0].board, taskId: references[0].taskId };
-  if (!validBoard(source.board) || !validTask(source.taskId)) return null;
-  const task = readAssistantTask(source);
-  return task ? { source, task } : null;
+  return createAssistantSourceResolver({
+    reader: managementReader,
+    readTask: readAssistantTask,
+    readTasks: readAssistantTasks,
+    validBoard,
+    validTask,
+  })(input);
 }
 
 async function assistantScopeChecker() {
