@@ -47,10 +47,12 @@ async function readJson(req, limit) {
   }
 }
 
-function sameOrigin(req) {
+function sameOrigin(req, trustProxy = false) {
   const origin = req.headers.origin;
   if (!origin) return false;
-  const protocol = req.socket && req.socket.encrypted ? 'https:' : 'http:';
+  const forwarded = trustProxy ? String(req.headers['x-forwarded-proto'] || '') : '';
+  const protocol =
+    forwarded.split(',')[0].trim() === 'https' || req.socket?.encrypted ? 'https:' : 'http:';
   try {
     return new URL(origin).origin === `${protocol}//${String(req.headers.host || '')}`;
   } catch (_) {
@@ -60,6 +62,7 @@ function sameOrigin(req) {
 
 function createAssistantApi(options = {}) {
   const { config, service } = options;
+  const trustProxy = options.trustProxy === true;
   const bodyLimit = options.bodyLimit || 16 * 1024;
   const policy = { windowMs: 60000, max: 30, maxBuckets: 1024, ...(options.rateLimit || {}) };
   const buckets = new Map();
@@ -100,7 +103,7 @@ function createAssistantApi(options = {}) {
       /^\/api\/assistant\/runs\/[^/]+$/.test(url.pathname) ||
       /^\/api\/assistant\/proposals\/[^/]+\/(?:confirm|reject)$/.test(url.pathname);
     if (!known) return response(404, { ok: false, error: 'not_found' });
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && !sameOrigin(req))
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && !sameOrigin(req, trustProxy))
       return response(403, { ok: false, error: 'same_origin_required' });
     try {
       if (url.pathname === '/api/assistant/conversations') {

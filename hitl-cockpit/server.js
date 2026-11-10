@@ -92,7 +92,11 @@ if (assistantConfig.enabled) {
   });
   assistantService.resumePendingRuns();
 }
-const assistantApi = createAssistantApi({ config: assistantConfig, service: assistantService });
+const assistantApi = createAssistantApi({
+  config: assistantConfig,
+  service: assistantService,
+  trustProxy: String(process.env.HITL_COCKPIT_TRUST_PROXY || 'false').toLowerCase() === 'true',
+});
 
 function json(res, status, body) {
   res.writeHead(status, {

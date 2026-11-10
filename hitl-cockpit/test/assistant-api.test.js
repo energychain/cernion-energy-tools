@@ -299,6 +299,36 @@ test('same-origin requires matching protocol and host', async () => {
   assert.equal(valid.status, 201);
 });
 
+test('same-origin accepts forwarded HTTPS only from an explicitly trusted proxy', async () => {
+  const config = {
+    enabled: true,
+    mode: 'low_risk',
+    writesEnabled: true,
+    matrixHandoffEnabled: true,
+    actionAllowlist: ['ask_question'],
+    limits: { maxMessageChars: 4000, maxContextChars: 12000 },
+  };
+  const proxied = () => {
+    const request = req(
+      'POST',
+      '/api/assistant/conversations',
+      { context: null },
+      { origin: 'https://cockpit.test', 'x-forwarded-proto': 'https' }
+    );
+    request.socket.encrypted = false;
+    return request;
+  };
+
+  const denied = await handle(createAssistantApi({ config, service: serviceFixture() }), proxied());
+  assert.equal(denied.status, 403);
+
+  const accepted = await handle(
+    createAssistantApi({ config, service: serviceFixture(), trustProxy: true }),
+    proxied()
+  );
+  assert.equal(accepted.status, 201);
+});
+
 test('rejects non-JSON, cross-origin, oversized, malformed IDs, rate excess, and absent write routes', async () => {
   const service = serviceFixture();
   const config = {
