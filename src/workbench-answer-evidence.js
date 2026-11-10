@@ -7,7 +7,13 @@ function words(text) {
   return normalizePhrase(text).match(/[\p{L}\p{N}]{4,}/gu) || [];
 }
 
-function prepareAnswerEvidence(evidence, situation, limit = 500) {
+// Evidence budget per answer (AP4): more passages and longer windows than the former five
+// passages of 500 characters, bounded in total; fallback listings pass a smaller window.
+const MAX_PASSAGES = 10;
+const TOTAL_CHARS = 12000;
+
+function prepareAnswerEvidence(evidence, situation, limit = 1500) {
+  let remaining = TOTAL_CHARS;
   const wanted = new Set(words([situation.concern, ...(situation.retrievalTerms || [])].join(' ')));
   const documents = new Set(),
     texts = new Set();
@@ -32,7 +38,14 @@ function prepareAnswerEvidence(evidence, situation, limit = 500) {
       if (key) documents.add(key);
       return true;
     })
-    .slice(0, 5)
+    .slice(0, MAX_PASSAGES)
+    .filter(({ hit }) => {
+      // The budget bounds ordinary passages; dataset and case results keep their own cap.
+      if (['dataset.query', 'cases'].includes(hit.source)) return true;
+      if (remaining <= 0) return false;
+      remaining -= limit;
+      return true;
+    })
     .map(({ hit, value }) => {
       let best = 0,
         bestScore = -1;

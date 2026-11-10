@@ -516,6 +516,14 @@ async function understand({
       .filter((turn) => turn.role === 'user' && typeof turn.content === 'string')
       .slice(-4)
       .map((turn) => thread.prepareThread(turn.content, 1500).text.slice(0, 1500)),
+    // Both sides of the conversation (AP1); messages above stays the person's recent input.
+    // Bounded like messages: pasted material is already part of the previous situation.
+    conversation: require('./conversation-context').conversationHistory(messages, {
+      budget: 9000,
+      recentChars: 1500,
+      olderChars: 400,
+    }).turns,
+    historyInstruction: require('./conversation-context').HISTORY_INSTRUCTION,
     message,
     threadTimeline: prepared.timeline.map(({ role, date, summary }) => ({
       role,
@@ -1436,6 +1444,7 @@ async function generateAnswerResult({
   followup,
   message,
   lastAnswer,
+  conversation = [],
   logger,
   conversationMode,
   analysisOnly,
@@ -1465,9 +1474,9 @@ async function generateAnswerResult({
     phase: 'answer',
     maxAttempts: situation.requestedOutput?.requested ? 4 : 2,
     generate: async ({ attempt, repairInstruction, attemptOptions }) => {
-      const answerEvidence = attempt
-        ? prepareAnswerEvidence(evidence, situation, 240).slice(0, 3)
-        : preparedEvidence;
+      // Repairs keep the evidence of the first attempt (AP4).
+      const answerEvidence = preparedEvidence;
+      const history = require('./conversation-context').conversationHistory(conversation);
       const safe = opaqueContext({
         situation,
         evidence: answerEvidence,
@@ -1477,6 +1486,12 @@ async function generateAnswerResult({
           evidence: evidence.filter((hit) => hit.retrievalSource === 'capability-read'),
         },
         ...(followup ? { lastAnswer: lastAnswer.slice(0, 600) } : {}),
+        ...(history.turns.length
+          ? {
+              conversation: history.turns,
+              historyInstruction: require('./conversation-context').HISTORY_INSTRUCTION,
+            }
+          : {}),
         // Consolidated case state of the conversation (BK-01..04); the answer follows it.
         ...(caseView
           ? { caseState: caseView, caseStateRules: require('./case-state').CASE_VIEW_RULES }
@@ -1484,10 +1499,7 @@ async function generateAnswerResult({
       });
       safe.value.evidence = safe.value.evidence.map((hit) => ({
         ...hit,
-        value: hit.value.slice(
-          0,
-          ['dataset.query', 'cases'].includes(hit.source) ? 12000 : attempt ? 240 : 500
-        ),
+        value: hit.value.slice(0, ['dataset.query', 'cases'].includes(hit.source) ? 12000 : 2000),
       }));
       const metadata = {};
       attemptOptions.onResponseMetadata = (value) => Object.assign(metadata, value);
@@ -1820,7 +1832,7 @@ function decorateAnswer(
     unverifiedRule &&
     !(sources || []).some(
       (hit) =>
-        ['knowledge-rag', 'knowledge-rag-federated', 'willi-mako'].includes(
+        ['knowledge-rag', 'knowledge-rag-federated', 'knowledge-gateway', 'willi-mako'].includes(
           hit.retrievalSource || hit.source
         ) &&
         (hit.metadata?.sectionId || hit.metadata?.url)
@@ -1905,6 +1917,7 @@ async function answer({
   skipModel = false,
   suppressDraft = false,
   lastAnswer = '',
+  conversation = [],
   caseView = null,
   logger,
 }) {
@@ -2161,6 +2174,7 @@ async function answer({
       followup,
       message,
       lastAnswer,
+      conversation,
       logger,
       conversationMode,
       analysisOnly,

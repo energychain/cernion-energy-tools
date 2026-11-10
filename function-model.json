@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "e39e8242b17895392cee89d63674a0acddb09267e7ebe363bad6b3f91344f8e4",
+  "sourceHash": "5f01635ff12d9b06df1885fb2c0f2a913328428e20af5d1ab97dc020960de4d7",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -9386,6 +9386,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -9923,6 +9927,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -13287,6 +13295,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -13812,6 +13824,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -21866,6 +21882,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -22411,6 +22431,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -32796,6 +32820,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -33337,6 +33365,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -36999,6 +37031,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -37552,6 +37588,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -57318,6 +57358,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -57843,6 +57887,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -67884,6 +67932,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -68425,6 +68477,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -73803,6 +73859,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -74320,6 +74380,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -79498,6 +79562,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -80039,6 +80107,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -85798,6 +85870,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -86335,6 +86411,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -89024,6 +89104,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -89541,6 +89625,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -91923,6 +92011,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -92488,6 +92580,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -101006,6 +101102,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -101571,6 +101671,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -115013,6 +115117,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -115570,6 +115678,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -127881,6 +127993,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -128590,6 +128706,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -131326,6 +131446,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -131851,6 +131975,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -136698,6 +136826,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -137251,6 +137383,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -141451,6 +141587,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -142008,6 +142148,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -146352,6 +146496,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -146877,6 +147025,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -151288,6 +151440,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -151809,6 +151965,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -166002,6 +166162,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -166599,6 +166763,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -175996,6 +176164,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cookbook-embeddings.js"
         },
         {
@@ -176601,6 +176773,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -183499,6 +183675,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -184048,6 +184228,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -206119,6 +206303,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -206672,6 +206860,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
