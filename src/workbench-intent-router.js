@@ -35,6 +35,18 @@ function isBareStatusQuestion(message) {
   );
 }
 
+// A status lookup: a bare status question or one short sentence (e.g. naming a case reference).
+// Longer messages carry their own work request and belong to the content turn, which has the
+// case state, the conversation and the gated case search (long-dialogue benchmark: a park
+// request mentioning "Stand" and DO_NOT_ACT was answered from other cases' memories).
+const MAX_LOOKUP_WORDS = 15;
+function isStatusLookup(message) {
+  const text = String(message || '').trim();
+  if (isBareStatusQuestion(text)) return true;
+  const sentences = text.split(/(?<=[.!?])\s+/u).filter((part) => part.trim());
+  return sentences.length <= 1 && text.split(/\s+/u).filter(Boolean).length <= MAX_LOOKUP_WORDS;
+}
+
 // Intent is a presentation/routing hint, never authorization to execute a tool.
 function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
   if (isCorrectionTurn(message)) return 'correction';
@@ -267,6 +279,7 @@ function renderWorkbenchResponse(result = {}, intent, followup) {
 
 module.exports = {
   isBareStatusQuestion,
+  isStatusLookup,
   classifyWorkbenchIntent,
   resolveWorkbenchFollowup,
   isReadOnlyIntent,
