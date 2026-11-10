@@ -1436,6 +1436,12 @@ async function runContentTurn(
     if (situation.caseSearch?.requested)
       for (const hit of searched.evidence)
         if (hit.source === 'cases') hit.metadata = { ...hit.metadata, requestedSearch: true };
+    // CET's own records answer an explicit question about its knowledge, gaps or errors; the gate
+    // still keeps them out of a question about this case.
+    if (situation.selfKnowledge?.requested)
+      for (const hit of searched.evidence)
+        if (['knowledge-register', 'self-improvement'].includes(hit.source))
+          hit.metadata = { ...hit.metadata, requestedSearch: true };
     retrieval.evidence.push(...searched.evidence);
     retrieval.trace.push(...searched.trace);
     retrieval.knowledgeSearch = searched.trace;

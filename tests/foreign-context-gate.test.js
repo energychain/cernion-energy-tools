@@ -20,6 +20,14 @@ describe('foreign context gate', () => {
     ).toBe(false);
   });
 
+  test('knowledge needs and failure records from other conversations are foreign', () => {
+    expect(foreignItem({ retrievalSource: 'knowledge-register', metadata: {} })).toBe(true);
+    expect(foreignItem({ source: 'self-improvement', metadata: {} })).toBe(true);
+    expect(
+      foreignItem({ retrievalSource: 'knowledge-register', metadata: { ownConversation: true } })
+    ).toBe(false);
+  });
+
   test('without foreign items no model call is made', async () => {
     const llm = llmReturning([]);
     const result = await gateForeignEvidence([own], { llm });
