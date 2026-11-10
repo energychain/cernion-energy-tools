@@ -242,8 +242,17 @@ function createServerKanbanAdapter() {
           runHermes(['--board', board, 'comment', '--author', AUTHOR, taskId, payload.question]),
         ];
       } else if (command.action === 'delegate_followup') {
+        const assignee = String(payload.assignee || '')
+          .trim()
+          .toLowerCase();
+        if (
+          !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(assignee) ||
+          !fs.existsSync(path.join(HERMES_HOME, 'profiles', assignee))
+        ) {
+          throw new Error('assistant_assignee_profile_not_found');
+        }
         results = [
-          runHermes(['--board', board, 'assign', taskId, payload.assignee]),
+          runHermes(['--board', board, 'assign', taskId, assignee]),
           runHermes(['--board', board, 'comment', '--author', AUTHOR, taskId, payload.followup]),
         ];
       } else if (command.action === 'schedule_wakeup') {
