@@ -11,6 +11,8 @@ const { createAssistantApi } = require('./lib/assistant-api');
 const { createAssistantActionExecutor } = require('./lib/assistant-action-executor');
 const { loadAssistantConfig } = require('./lib/assistant-config');
 const { createAssistantContextResolver } = require('./lib/assistant-context');
+const { createAssistantMatrixHandoffAdapter } = require('./lib/assistant-matrix-handoff');
+const { createAssistantMatrixRuntime } = require('./lib/assistant-matrix-runtime');
 const { createAssistantService } = require('./lib/assistant-service');
 const { AssistantStore } = require('./lib/assistant-store');
 const { RhajainaClient } = require('./lib/rhajaina-client');
@@ -75,12 +77,16 @@ if (assistantConfig.enabled) {
         scopeChecker: assistantScopeChecker,
       })
     : null;
+  const assistantMatrixHandoff = assistantConfig.matrixHandoffEnabled
+    ? createAssistantMatrixHandoffAdapter(createAssistantMatrixRuntime())
+    : null;
   assistantService = createAssistantService({
     store: assistantStore,
     contextResolver: assistantContextResolver,
     client: new RhajainaClient({ config: assistantConfig }),
     config: assistantConfig,
     executor: assistantExecutor,
+    matrixHandoff: assistantMatrixHandoff,
     sourceResolver: resolveAssistantSource,
     scopeChecker: assistantScopeChecker,
   });
