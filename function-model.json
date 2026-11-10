@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "348b5f0402a0917ef7c1825672b4a87506f5c767563ae67867252bf11a6158a2",
+  "sourceHash": "03bb07800e12bd3de5503673f6d53ce22c5f8058c89a398e5905da29c67d02f2",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -9386,6 +9386,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -13284,6 +13288,10 @@
         {
           "kind": "service",
           "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/conversation-context.js"
         },
         {
           "kind": "service",
@@ -21863,6 +21871,10 @@
         {
           "kind": "service",
           "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/conversation-context.js"
         },
         {
           "kind": "service",
@@ -32796,6 +32808,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -36996,6 +37012,10 @@
         {
           "kind": "service",
           "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/conversation-context.js"
         },
         {
           "kind": "service",
@@ -57318,6 +57338,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -67884,6 +67908,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -73803,6 +73831,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -79495,6 +79527,10 @@
         {
           "kind": "service",
           "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/conversation-context.js"
         },
         {
           "kind": "service",
@@ -85798,6 +85834,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -89024,6 +89064,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -91920,6 +91964,10 @@
         {
           "kind": "service",
           "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/conversation-context.js"
         },
         {
           "kind": "service",
@@ -101003,6 +101051,10 @@
         {
           "kind": "service",
           "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/conversation-context.js"
         },
         {
           "kind": "service",
@@ -115013,6 +115065,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -127881,6 +127937,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -131323,6 +131383,10 @@
         {
           "kind": "service",
           "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/conversation-context.js"
         },
         {
           "kind": "service",
@@ -136698,6 +136762,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -141448,6 +141516,10 @@
         {
           "kind": "service",
           "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/conversation-context.js"
         },
         {
           "kind": "service",
@@ -146349,6 +146421,10 @@
         {
           "kind": "service",
           "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/conversation-context.js"
         },
         {
           "kind": "service",
@@ -151285,6 +151361,10 @@
         {
           "kind": "service",
           "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/conversation-context.js"
         },
         {
           "kind": "service",
@@ -166002,6 +166082,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/csv-text.js"
         },
         {
@@ -175996,6 +176080,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/conversation-context.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/cookbook-embeddings.js"
         },
         {
@@ -183496,6 +183584,10 @@
         {
           "kind": "service",
           "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/conversation-context.js"
         },
         {
           "kind": "service",
@@ -206116,6 +206208,10 @@
         {
           "kind": "service",
           "ref": "src/clarification-policy-registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/conversation-context.js"
         },
         {
           "kind": "service",

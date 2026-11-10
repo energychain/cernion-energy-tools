@@ -204,6 +204,10 @@ test('only used evidence appears in sources; no routine sending sentence; condit
     message: 'Mach mir die Antwort fertig',
     followup: true,
     lastAnswer: 'x'.repeat(2000),
+    conversation: [
+      { role: 'user', content: 'Bitte prüfe die Anfrage.' },
+      { role: 'assistant', content: 'Die Anfrage nennt eine Referenz.' },
+    ],
   });
   expect(result.draft).toContain('Variante A');
   expect(result.draft).toContain('Variante B');
@@ -214,6 +218,12 @@ test('only used evidence appears in sources; no routine sending sentence; condit
   expect(result.responseText).not.toMatch(/unverbindlich|keine externe Handlung|MASKED/i);
   const prompt = JSON.parse(llm.generateText.mock.calls[0][0]);
   expect(prompt.lastAnswer).toHaveLength(600);
+  // The answer sees the conversation of both roles (AP1).
+  expect(prompt.conversation).toEqual([
+    { role: 'user', text: 'Bitte prüfe die Anfrage.' },
+    { role: 'assistant', text: 'Die Anfrage nennt eine Referenz.' },
+  ]);
+  expect(prompt.historyInstruction).toMatch(/Verlauf/u);
   expect(llm.generateText.mock.calls[0][1].thinking).toBe('low');
   const sent = await answer({
     situation: {

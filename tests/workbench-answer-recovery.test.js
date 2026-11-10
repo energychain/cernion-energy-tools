@@ -71,7 +71,7 @@ afterEach(() => {
 });
 
 test.each(['invalid JSON', 'invalid schema'])(
-  'one repair after %s succeeds, with shortened evidence and native schema options',
+  'one repair after %s succeeds, keeping the evidence and native schema options',
   async (kind) => {
     const logger = { warn: jest.fn() };
     llm.generateText
@@ -87,7 +87,8 @@ test.each(['invalid JSON', 'invalid schema'])(
     const second = JSON.parse(llm.generateText.mock.calls[1][0]);
     expect(first.repairInstruction).toBeUndefined();
     expect(second.repairInstruction).toBeTruthy();
-    expect(second.evidence[0].value.length).toBeLessThanOrEqual(240);
+    // The repair keeps the grounding of the first attempt (AP4).
+    expect(second.evidence).toEqual(first.evidence);
     expect(llm.generateText.mock.calls[0][1].responseSchema.required).toEqual(
       Object.keys(ANSWER_SCHEMA.properties)
     );
@@ -166,7 +167,7 @@ test('elapsed answer time includes failed call and repair; both attempts share o
   expect(fallback.answerMs).toBe(500);
 });
 
-test('top five excerpts <=500 chars use relevant windows and deduplicate document/section and equal text', () => {
+test('excerpts within the grounding budget use relevant windows and deduplicate document/section and equal text', () => {
   const first = {
     evidenceId: 'E1',
     source: 'willi-mako',
@@ -188,8 +189,9 @@ test('top five excerpts <=500 chars use relevant windows and deduplicate documen
     })),
   ];
   const prepared = prepareAnswerEvidence(hits, situation);
-  expect(prepared).toHaveLength(5);
-  expect(prepared.every((hit) => hit.value.length <= 500)).toBe(true);
+  // AP4: up to ten passages of 1500 characters within 12000 characters in total.
+  expect(prepared).toHaveLength(8);
+  expect(prepared.every((hit) => hit.value.length <= 1500)).toBe(true);
   expect(prepared[0].value).toContain('Prozessantwort');
   expect(prepared.filter((hit) => ['E1', 'E2', 'E3'].includes(hit.evidenceId))).toHaveLength(1);
 });
