@@ -5,10 +5,9 @@ const { exactToken } = require('./workbench-codes');
 
 const MAX_MEANING = 300;
 
-// Like a lesson in the cross-case gate: a digit-bearing token (case reference, marker, date) in a
-// foreign definition is case content, not a term's meaning, and the entry fails closed.
-const carriesIdentifiers = (value) =>
-  /[\p{L}\p{N}][\p{L}\p{N}./-]*\p{N}/u.test(String(value || ''));
+// Like a lesson in the cross-case gate: a digit (case reference, marker, date, value) in a foreign
+// definition is case content, not a term's meaning, and the entry fails closed.
+const carriesIdentifiers = (value) => /\p{N}/u.test(String(value || ''));
 
 // A definition is shared tenant knowledge; the verbatim message it was taken from is not. Entries
 // from another conversation keep term and meaning only (semantic probe: the defining message

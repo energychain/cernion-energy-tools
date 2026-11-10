@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "81f3667a51beab55703e65cd26c8f54b24984d51adf89482210beb1c4a4124f3",
+  "sourceHash": "442512906aefcf37c40b4fc4827c5a144da2257b39631dc1f326229a76251948",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -9930,6 +9930,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-free-answer.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-gateway-knowledge.js"
         },
         {
@@ -13824,6 +13828,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-free-answer.js"
         },
         {
           "kind": "service",
@@ -22431,6 +22439,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-free-answer.js"
         },
         {
           "kind": "service",
@@ -33368,6 +33380,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-free-answer.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-gateway-knowledge.js"
         },
         {
@@ -37588,6 +37604,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-free-answer.js"
         },
         {
           "kind": "service",
@@ -57890,6 +57910,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-free-answer.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-gateway-knowledge.js"
         },
         {
@@ -68480,6 +68504,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-free-answer.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-gateway-knowledge.js"
         },
         {
@@ -74383,6 +74411,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-free-answer.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-gateway-knowledge.js"
         },
         {
@@ -80107,6 +80139,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-free-answer.js"
         },
         {
           "kind": "service",
@@ -86414,6 +86450,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-free-answer.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-gateway-knowledge.js"
         },
         {
@@ -89628,6 +89668,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-free-answer.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-gateway-knowledge.js"
         },
         {
@@ -92580,6 +92624,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-free-answer.js"
         },
         {
           "kind": "service",
@@ -101671,6 +101719,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-free-answer.js"
         },
         {
           "kind": "service",
@@ -115681,6 +115733,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-free-answer.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-gateway-knowledge.js"
         },
         {
@@ -128709,6 +128765,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-free-answer.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-gateway-knowledge.js"
         },
         {
@@ -131975,6 +132035,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-free-answer.js"
         },
         {
           "kind": "service",
@@ -137386,6 +137450,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-free-answer.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-gateway-knowledge.js"
         },
         {
@@ -142148,6 +142216,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-free-answer.js"
         },
         {
           "kind": "service",
@@ -147025,6 +147097,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-free-answer.js"
         },
         {
           "kind": "service",
@@ -151965,6 +152041,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-free-answer.js"
         },
         {
           "kind": "service",
@@ -166766,6 +166846,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-free-answer.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-gateway-knowledge.js"
         },
         {
@@ -176780,6 +176864,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-free-answer.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-gateway-knowledge.js"
         },
         {
@@ -184232,6 +184320,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-free-answer.js"
         },
         {
           "kind": "service",
@@ -206864,6 +206956,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-free-answer.js"
         },
         {
           "kind": "service",
