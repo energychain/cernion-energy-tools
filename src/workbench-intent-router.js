@@ -9,6 +9,16 @@ const {
 
 // A status question with no further content ("Status des Falls", "Stand?"). Without a case it
 // is answered by asking for the reference; any other message is a content turn then.
+const BARE_STATUS_TERMS = new Set([
+  'status',
+  'readiness',
+  'stand',
+  'bearbeitungsstand',
+  'missing evidence',
+  'fehlende belege',
+  'next safe action',
+]);
+
 function isBareStatusQuestion(message) {
   const text = String(message || '')
     .toLowerCase()
@@ -17,8 +27,8 @@ function isBareStatusQuestion(message) {
     /^(?:status|stand|bearbeitungsstand)\s+(?:des|der|von|zum|zu|bei)\s+(?:falls?|falles|vorgangs?|cases?)[?.!\s]*$/iu.test(
       text
     ) ||
-    /^(?:(?:was|wie) ist (?:der )?|aktuelle[rn]? )?(?:status|readiness|stand|bearbeitungsstand|missing evidence|fehlende belege|next safe action)[?.!\s]*$/u.test(
-      text
+    BARE_STATUS_TERMS.has(
+      text.replace(/[?.!\s]+$/u, '').replace(/^(?:(?:was|wie) ist (?:der )?|aktuelle[rn]? )/u, '')
     ) ||
     /^(?:what is the )?status(?: of the case)?[?.!\s]*$/u.test(text)
   );
