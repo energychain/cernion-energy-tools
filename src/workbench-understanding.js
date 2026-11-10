@@ -1476,6 +1476,14 @@ async function generateAnswerResult({
     generate: async ({ attempt, repairInstruction, attemptOptions }) => {
       // Repairs keep the evidence of the first attempt (AP4).
       const answerEvidence = preparedEvidence;
+      const freeAnswer = require('./workbench-free-answer');
+      const free =
+        freeAnswer.freeAnswerEnabled(tenantId) &&
+        !situation.requestedOutput?.requested &&
+        !draftRequested &&
+        !conversationMode &&
+        !analysisOnly &&
+        !nextStepOnly;
       const history = require('./conversation-context').conversationHistory(conversation);
       const safe = opaqueContext({
         situation,
@@ -1509,16 +1517,20 @@ async function generateAnswerResult({
         run.modelPending = true;
         try {
           raw = await llm.generateText(
-            answerPrompt(safe.value, {
-              conversationMode,
-              analysisOnly,
-              attempt,
-              repairInstruction,
-              nextStepOnly,
-              followup,
-              draftRequested,
-            }),
-            attemptOptions
+            free
+              ? freeAnswer.freeAnswerPrompt(safe.value, { repairInstruction })
+              : answerPrompt(safe.value, {
+                  conversationMode,
+                  analysisOnly,
+                  attempt,
+                  repairInstruction,
+                  nextStepOnly,
+                  followup,
+                  draftRequested,
+                }),
+            free
+              ? { ...attemptOptions, responseMimeType: 'text/plain', responseSchema: undefined }
+              : attemptOptions
           );
         } catch (error) {
           run.modelFailed = true;
@@ -1526,11 +1538,25 @@ async function generateAnswerResult({
         } finally {
           run.modelPending = false;
         }
-        const parsed = restoreContext(
-          JSON.parse(raw.replace(/^```(?:json)?\s*|\s*```$/g, '')),
-          safe.reidentMap
-        );
-        if (!validateAnswer(parsed)) throw schemaError(validateAnswer.errors);
+        const parsed = free
+          ? restoreContext(
+              await freeAnswer.annotateFreeAnswer(raw, {
+                evidence: answerEvidence,
+                message,
+                conversation: history.turns,
+                tenantId,
+              }),
+              safe.reidentMap
+            )
+          : restoreContext(
+              JSON.parse(raw.replace(/^```(?:json)?\s*|\s*```$/g, '')),
+              safe.reidentMap
+            );
+        if (free) {
+          // Questions stay outside the claims; at most one is shown after the checks (AP5).
+          run.freeQuestion = (parsed.questions || [])[0] || '';
+          delete parsed.questions;
+        } else if (!validateAnswer(parsed)) throw schemaError(validateAnswer.errors);
         if (situation.requestedOutput?.requested) {
           const artifacts = require('./workbench-artifact');
           const artifactOptions = {
@@ -2405,6 +2431,9 @@ async function answer({
     result,
     modelFailed,
   });
+  // The free answer's own follow-up question, unless the system already asks (AP5).
+  if (run.freeQuestion && answerStatus !== 'fallback' && !questions.length)
+    lines.push(run.freeQuestion);
   decorateAnswer(lines, {
     draft,
     answerStatus,
