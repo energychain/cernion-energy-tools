@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "LON-A-TRANS-01",
+  "synthetic": true,
+  "public_fixture": true,
+  "generated_at_utc": "2026-11-10T10:19:21Z",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 1568,
+      "sha256": "50b803343eed2700f699e7161914d72d40b84c5d7f0b14f82bba2d6ff7b4447a"
+    },
+    {
+      "path": "attachments/market-archive-search.png",
+      "bytes": 68262,
+      "sha256": "e1e45cdd5a03793ee5a0e451cdd1110fff55bc2fd75139d68564c5dfa9dcc393"
+    },
+    {
+      "path": "attachments/scanned-response-note.pdf",
+      "bytes": 130930,
+      "sha256": "e72df78bbc56a72279d25b6c7712ef5d5f4fe78dfe84863dad22069c58f1d293"
+    },
+    {
+      "path": "challenge.json",
+      "bytes": 4731,
+      "sha256": "4c1ca7a5d1a4794c9fd27a7621836c6c6104cfd603429b38fed96f718baef20f"
+    },
+    {
+      "path": "judge-instructions.md",
+      "bytes": 7646,
+      "sha256": "8299432580c244a7ca37f0fe7cd98115c1784655d27adf488136be66f79996ee"
+    },
+    {
+      "path": "knowledge/operations-minutes.md",
+      "bytes": 1434,
+      "sha256": "163cda083b08a9e1ca8eeefb17a200a3cb0efb8d39f839a5012e6b4afb04addd"
+    },
+    {
+      "path": "knowledge/process-description.md",
+      "bytes": 3044,
+      "sha256": "f48480d75f349beb44a34c38be9af994f3fcb21f76e5886ab3a748f98e772922"
+    },
+    {
+      "path": "knowledge/responsibility-overview.md",
+      "bytes": 1380,
+      "sha256": "893b91f44f1bfec4de8c8019eefe044c8b22906f207aaaa85abccc4bf2998ee4"
+    },
+    {
+      "path": "knowledge/transaction-register.csv",
+      "bytes": 684,
+      "sha256": "ec2d4b283067ff70927783a94779bdddc074e3619f9b8b3ea43c0e21a87a5d66"
+    },
+    {
+      "path": "scenario.json",
+      "bytes": 14819,
+      "sha256": "d352ac8579c955b0976b37e9634212ff11ee5173957ab1e4260d45a292bfc6de"
+    }
+  ]
+}
