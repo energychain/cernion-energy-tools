@@ -25,6 +25,9 @@
 * {
   box-sizing: border-box;
 }
+[hidden] {
+  display: none !important;
+}
 html {
   scroll-behavior: smooth;
 }
@@ -37,7 +40,9 @@ body {
   font-family: var(--sans);
 }
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 button,
@@ -47,6 +52,8 @@ a {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
 summary:focus-visible {
   outline: 3px solid rgba(23, 79, 67, 0.28);
   outline-offset: 3px;
@@ -108,7 +115,8 @@ h1 {
 }
 .legacy-button,
 .quiet-button,
-.toolbar button {
+.toolbar button,
+.assistant-open {
   border: 1px solid var(--forest);
   border-radius: 2px;
   background: transparent;
@@ -119,7 +127,8 @@ h1 {
 }
 .legacy-button:hover,
 .quiet-button:hover,
-.toolbar button:hover {
+.toolbar button:hover,
+.assistant-open:hover {
   background: var(--forest);
   color: #fff;
 }
@@ -297,15 +306,18 @@ main {
   margin: 5px 0 9px;
   font-size: 21px;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 .card p {
   margin: 8px 0;
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 .card-meta {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 .card-accent {
   border-left: 4px solid var(--forest);
@@ -603,6 +615,269 @@ footer a {
   transform: none;
 }
 
+.masthead-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 8px;
+}
+.assistant-panel {
+  position: fixed;
+  z-index: 31;
+  top: 0;
+  right: 0;
+  display: grid;
+  grid-template-rows: auto auto auto auto auto auto auto minmax(140px, 1fr) auto auto;
+  width: min(430px, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  overflow-x: hidden;
+  padding: 20px;
+  background: var(--sheet);
+  border-left: 1px solid var(--line-strong);
+  box-shadow: -16px 0 40px rgba(40, 36, 27, 0.18);
+  transform: translateX(102%);
+  transition: transform 0.2s ease;
+}
+.assistant-panel > * {
+  min-width: 0;
+}
+.assistant-opened .assistant-panel {
+  transform: translateX(0);
+}
+.assistant-header,
+.assistant-toolbar,
+.assistant-form > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.assistant-header h2 {
+  margin: 3px 0 0;
+  font-size: 30px;
+}
+.assistant-icon-button,
+.assistant-context-row button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 24px;
+}
+.assistant-readonly {
+  margin: 14px 0;
+  padding: 10px 12px;
+  background: var(--forest-soft);
+  border-left: 3px solid var(--forest);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.assistant-context-row {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.assistant-context-heading {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.assistant-context-chip {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 8px;
+  background: var(--copper-soft);
+  color: var(--copper);
+  font-size: 12px;
+}
+.assistant-context-chip strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.assistant-context-type {
+  padding: 3px 5px;
+  border: 1px solid currentColor;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.assistant-context-id {
+  min-width: 0;
+  overflow: hidden;
+  color: #765344;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.assistant-context-row .assistant-context-chip button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--copper);
+  font-size: 20px;
+}
+.assistant-global {
+  width: 100%;
+  margin-bottom: 10px;
+  border: 1px solid var(--forest);
+  background: transparent;
+  color: var(--forest);
+  cursor: pointer;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 650;
+}
+.assistant-global:hover {
+  background: var(--forest);
+  color: white;
+}
+.assistant-switcher {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.assistant-switcher select,
+.assistant-form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: white;
+  color: var(--ink);
+  padding: 9px;
+}
+.assistant-toolbar {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.assistant-toolbar button,
+.assistant-context-action {
+  border: 0;
+  background: transparent;
+  color: var(--forest);
+  cursor: pointer;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 650;
+}
+.assistant-context-action:hover,
+.assistant-toolbar button:hover {
+  text-decoration: underline;
+}
+.assistant-messages {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 2px;
+}
+.assistant-topic-notice {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--gold);
+  background: #faf4df;
+  color: #67521e;
+  font-size: 12px;
+  font-weight: 650;
+}
+.assistant-message {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  background: var(--forest-soft);
+  border-left: 3px solid var(--forest);
+}
+.assistant-message.user {
+  margin-left: 34px;
+  background: var(--paper-deep);
+  border-left-color: var(--line-strong);
+}
+.assistant-message strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.assistant-message p {
+  margin: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.assistant-shadow-artifact {
+  display: grid;
+  gap: 3px;
+  margin-top: 9px;
+  padding: 8px;
+  border: 1px dashed var(--gold);
+  background: rgba(255, 253, 248, 0.72);
+  font-size: 11px;
+}
+.assistant-shadow-artifact strong {
+  margin: 0;
+  color: var(--gold);
+}
+.assistant-shadow-artifact span {
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+.assistant-proposal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 5px;
+}
+.assistant-proposal-actions button {
+  min-height: 32px;
+}
+.assistant-empty,
+.assistant-status {
+  color: var(--muted);
+  font-size: 12px;
+}
+.assistant-status {
+  min-height: 28px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+.assistant-form {
+  display: grid;
+  gap: 6px;
+}
+.assistant-form > label {
+  font-size: 12px;
+  font-weight: 650;
+}
+.assistant-form textarea {
+  resize: vertical;
+}
+.assistant-form > div span {
+  color: var(--muted);
+  font-size: 10px;
+}
+.assistant-form button {
+  border: 1px solid var(--forest);
+  background: var(--forest);
+  color: white;
+  cursor: pointer;
+  padding: 8px 13px;
+}
+.assistant-form button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.assistant-backdrop {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .masthead {
     align-items: start;
@@ -685,6 +960,64 @@ footer a {
   }
   .toolbar button {
     align-self: end;
+  }
+}
+@media (max-width: 650px) {
+  .masthead-actions {
+    justify-content: start;
+  }
+  .assistant-panel {
+    top: auto;
+    left: 0;
+    right: auto;
+    bottom: 0;
+    width: 100vw;
+    max-width: 100vw;
+    height: min(88dvh, 760px);
+    padding: 14px;
+    border-top: 1px solid var(--line-strong);
+    border-left: 0;
+    transform: translateY(102%);
+  }
+  .assistant-header > div,
+  .assistant-toolbar > *,
+  .assistant-form > div > * {
+    min-width: 0;
+  }
+  .assistant-context-chip {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .assistant-context-id {
+    grid-column: 1 / -1;
+  }
+  .assistant-form > div {
+    flex-wrap: wrap;
+  }
+  .toast {
+    left: 14px;
+    right: auto;
+    max-width: calc(100vw - 28px);
+  }
+  .assistant-opened .assistant-panel {
+    transform: translateY(0);
+  }
+  .assistant-backdrop {
+    position: fixed;
+    z-index: 30;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100dvh;
+    display: block;
+    border: 0;
+    background: rgba(25, 33, 31, 0.34);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .assistant-opened .assistant-backdrop {
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -11,6 +11,7 @@ if (bootstrapUrl.searchParams.has('token')) {
 }
 const byId = (id) => document.getElementById(id);
 const LAST_VISIT_KEY = 'agentos-management-last-visit';
+const ASSISTANT_PAGE_CAP = 100;
 const EMPTY_DECISIONS =
   '<div class="empty"><strong>Keine Entscheidung erforderlich</strong>AgentOS arbeitet innerhalb seines Mandats.</div>';
 const AGENTS = [
@@ -74,6 +75,439 @@ async function api(pathname) {
   const data = await response.json().catch(() => ({ ok: false, error: `HTTP ${response.status}` }));
   if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
   return data;
+}
+
+const assistantState = {
+  config: null,
+  conversations: [],
+  conversationId: null,
+  context: null,
+  contextLabels: new Map(),
+  switching: false,
+  sending: false,
+  switchVersion: 0,
+};
+let assistantOpener = null;
+
+async function assistantRequest(pathname, options = {}) {
+  const response = await fetch(pathname, {
+    method: options.method || 'GET',
+    cache: 'no-store',
+    credentials: 'same-origin',
+    headers: options.body ? { 'content-type': 'application/json' } : {},
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+  const data = await response.json().catch(() => ({ ok: false, error: `HTTP ${response.status}` }));
+  if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+  return data;
+}
+
+function assistantStatus(message) {
+  byId('assistant-status').textContent = message;
+}
+
+function assistantModePresentation(config) {
+  if (!config || !config.enabled) {
+    return {
+      label: 'Assistenz deaktiviert',
+      description: 'Rhajaina ist in dieser Umgebung nicht aktiviert.',
+      ready: 'Deaktiviert',
+    };
+  }
+  if (!config.writesEnabled) {
+    if (config.mode === 'shadow') {
+      return {
+        label: 'Shadow-Assistenz',
+        description:
+          'Rhajaina ordnet den Managementkontext ein und kann Vorschläge simulieren. Es werden keine operativen Änderungen ausgeführt.',
+        ready: 'Shadow-Modus · bereit',
+      };
+    }
+    return {
+      label: 'Read-only Assistenz',
+      description:
+        'Rhajaina ordnet den freigegebenen Managementkontext ein. Sie führt keine Änderungen, Tools oder externen Aktionen aus.',
+      ready: 'Read-only · bereit',
+    };
+  }
+  const modes = {
+    low_risk: {
+      label: 'Assistenz · begrenzte Aktionen',
+      description:
+        'Rhajaina kann ausdrücklich bestätigte, risikoarme Aktionen innerhalb der angezeigten Freigaben ausführen.',
+      ready: 'Begrenzte Aktionen · bereit',
+    },
+    scoped: {
+      label: 'Assistenz · Scope-gedeckt',
+      description:
+        'Rhajaina kann bestätigte Aktionen nur innerhalb eines serverseitig belegten Handlungsscope ausführen.',
+      ready: 'Scope-gedeckter Modus · bereit',
+    },
+    productive: {
+      label: 'Produktive Assistenz',
+      description:
+        'Rhajaina kann erlaubte Aktionen innerhalb der aktiven Governance- und Scope-Grenzen ausführen.',
+      ready: 'Produktiver Modus · bereit',
+    },
+  };
+  return (
+    modes[config.mode] || {
+      label: 'Assistenz',
+      description: 'Rhajaina arbeitet innerhalb der serverseitig freigegebenen Grenzen.',
+      ready: 'Bereit',
+    }
+  );
+}
+
+function updateAssistantMode() {
+  const presentation = assistantModePresentation(assistantState.config);
+  byId('assistant-mode-label').textContent = presentation.label;
+  byId('assistant-mode-description').textContent = presentation.description;
+  return presentation;
+}
+
+function assistantContextLabel(context) {
+  if (!context) return 'Globales Gespräch';
+  const labels = {
+    topic: 'Thema',
+    decision: 'Entscheidung',
+    department: 'Abteilung',
+    outcome: 'Ergebnis',
+    risk: 'Risiko',
+    wakeup: 'Wiedervorlage',
+  };
+  const type = labels[context.objectType] || context.objectType;
+  return `${type}: ${context.label ? `${context.label} · ` : ''}${context.objectId}`;
+}
+
+function assistantContextKey(context) {
+  return context ? `${context.objectType}:${context.objectId}` : '';
+}
+
+function assistantContextButton(objectType, objectId, label = '') {
+  if (!objectType || !objectId) return '';
+  return `<button class="assistant-context-action" type="button" data-assistant-context data-object-type="${escapeHtml(objectType)}" data-object-id="${escapeHtml(objectId)}" data-object-label="${escapeHtml(label)}">Mit Rhajaina besprechen</button>`;
+}
+
+function updateAssistantContext() {
+  const row = byId('assistant-context-row');
+  row.hidden = !assistantState.context;
+  row.setAttribute('aria-hidden', String(!assistantState.context));
+  if (assistantState.context) {
+    const fullLabel = assistantContextLabel(assistantState.context);
+    const [type] = fullLabel.split(':');
+    byId('assistant-context-type').textContent = type;
+    byId('assistant-context-label').textContent = assistantState.context.label || 'Ohne Titel';
+    byId('assistant-context-id').textContent = `ID ${assistantState.context.objectId}`;
+  }
+  byId('assistant-conversation-select').value = assistantState.conversationId || '';
+}
+
+function assistantTopicNotice(context) {
+  const notice = byId('assistant-topic-notice');
+  notice.textContent = `Thema gewechselt · ${assistantContextLabel(context)}`;
+  notice.hidden = false;
+}
+
+function assistantArtifactItems(item, names) {
+  for (const name of names) {
+    const value = item && item[name];
+    if (Array.isArray(value)) return value;
+    if (value) return [value];
+  }
+  return [];
+}
+
+function assistantArtifactText(value) {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object') return '';
+  return [
+    value.title,
+    value.label,
+    value.summary,
+    value.description,
+    value.action,
+    value.status,
+    value.id,
+  ]
+    .filter((part) => typeof part === 'string' || typeof part === 'number')
+    .join(' · ');
+}
+
+function renderAssistantArtifacts(item, article) {
+  const groups = [
+    [
+      'Shadow-Vorschlag',
+      assistantArtifactItems(item, ['proposal', 'shadowProposals', 'shadowProposal', 'proposals']),
+    ],
+    [
+      'Shadow-Beleg',
+      assistantArtifactItems(item, ['receipt', 'shadowReceipts', 'shadowReceipt', 'receipts']),
+    ],
+  ];
+  for (const [label, values] of groups) {
+    for (const value of values) {
+      const text = assistantArtifactText(value);
+      if (!text) continue;
+      const artifact = document.createElement('div');
+      artifact.className = 'assistant-shadow-artifact';
+      const heading = document.createElement('strong');
+      heading.textContent = label;
+      const content = document.createElement('span');
+      content.textContent = text;
+      artifact.append(heading, content);
+      if (label === 'Shadow-Vorschlag' && value && value.id && value.status === 'shadow') {
+        const actions = document.createElement('div');
+        actions.className = 'assistant-proposal-actions';
+        if (assistantState.config && assistantState.config.writesEnabled) {
+          const confirm = document.createElement('button');
+          confirm.type = 'button';
+          confirm.dataset.assistantProposal = value.id;
+          confirm.dataset.proposalAction = 'confirm';
+          confirm.textContent = 'Ausführen';
+          actions.append(confirm);
+        }
+        const reject = document.createElement('button');
+        reject.type = 'button';
+        reject.dataset.assistantProposal = value.id;
+        reject.dataset.proposalAction = 'reject';
+        reject.textContent = 'Verwerfen';
+        actions.append(reject);
+        artifact.append(actions);
+      }
+      article.append(artifact);
+    }
+  }
+}
+
+function renderAssistantMessages(items) {
+  const container = byId('assistant-messages');
+  container.replaceChildren();
+  if (!items.length) {
+    const empty = document.createElement('p');
+    empty.className = 'assistant-empty';
+    empty.textContent = 'Noch keine Nachrichten in dieser Unterhaltung.';
+    container.append(empty);
+    return;
+  }
+  for (const item of items) {
+    const article = document.createElement('article');
+    article.className = `assistant-message ${item.role === 'assistant' ? 'assistant' : 'user'}`;
+    const label = document.createElement('strong');
+    label.textContent = item.role === 'assistant' ? 'Rhajaina' : 'Du';
+    const content = document.createElement('p');
+    content.textContent = item.content;
+    article.append(label, content);
+    renderAssistantArtifacts(item, article);
+    container.append(article);
+  }
+  container.scrollTop = container.scrollHeight;
+}
+
+async function refreshAssistantConversations() {
+  const data = await assistantRequest('/api/assistant/conversations');
+  assistantState.conversations = data.items || [];
+  const select = byId('assistant-conversation-select');
+  select.replaceChildren(new Option('Globales Gespräch', ''));
+  for (const conversation of assistantState.conversations) {
+    const context = conversation.objectType
+      ? {
+          objectType: conversation.objectType,
+          objectId: conversation.objectId,
+          label: assistantState.contextLabels.get(
+            `${conversation.objectType}:${conversation.objectId}`
+          ),
+        }
+      : null;
+    select.append(new Option(assistantContextLabel(context), conversation.id));
+  }
+}
+
+async function loadAssistantMessages() {
+  if (!assistantState.conversationId) {
+    renderAssistantMessages([]);
+    return;
+  }
+  assistantStatus('Unterhaltung wird geladen …');
+  const items = [];
+  let cursor = null;
+  let pages = 0;
+  do {
+    const query = new URLSearchParams({ limit: '100' });
+    if (cursor) query.set('cursor', cursor);
+    const data = await assistantRequest(
+      `/api/assistant/conversations/${encodeURIComponent(assistantState.conversationId)}/messages?${query}`
+    );
+    items.push(...(data.items || []));
+    cursor = data.nextCursor || null;
+    pages += 1;
+  } while (cursor && pages < ASSISTANT_PAGE_CAP);
+  if (cursor) throw new Error('assistant_message_page_cap');
+  renderAssistantMessages(items);
+  assistantStatus(assistantModePresentation(assistantState.config).ready);
+}
+
+async function selectAssistantContext(context, options = {}) {
+  if (assistantState.sending) {
+    assistantStatus('Bitte warte, bis die laufende Nachricht abgeschlossen ist.');
+    return;
+  }
+  const notice = byId('assistant-topic-notice');
+  notice.hidden = true;
+  notice.textContent = '';
+  const nextContext = context
+    ? {
+        objectType: String(context.objectType),
+        objectId: String(context.objectId),
+        ...(context.label ? { label: String(context.label) } : {}),
+      }
+    : null;
+  const nextKey = assistantContextKey(nextContext);
+  const switchVersion = ++assistantState.switchVersion;
+  if (nextContext && nextContext.label) {
+    assistantState.contextLabels.set(nextKey, nextContext.label);
+  }
+  assistantState.switching = true;
+  byId('assistant-send').disabled = true;
+  byId('assistant-text').disabled = true;
+  assistantStatus('Gesprächsthema wird gewechselt …');
+  try {
+    await refreshAssistantConversations();
+    let conversation = assistantState.conversations.find((item) =>
+      nextContext
+        ? item.objectType === nextContext.objectType && item.objectId === nextContext.objectId
+        : !item.objectType && !item.objectId
+    );
+    if (!conversation) {
+      const apiContext = nextContext
+        ? { objectType: nextContext.objectType, objectId: nextContext.objectId }
+        : null;
+      conversation = await assistantRequest('/api/assistant/conversations', {
+        method: 'POST',
+        body: { context: apiContext },
+      });
+      await refreshAssistantConversations();
+    }
+    if (switchVersion !== assistantState.switchVersion) return;
+    assistantState.context = nextContext;
+    assistantState.conversationId = conversation.id;
+    updateAssistantContext();
+    await loadAssistantMessages();
+    if (options.announce) {
+      assistantTopicNotice(nextContext);
+      assistantStatus(`Thema gewechselt · ${assistantContextLabel(nextContext)}`);
+    }
+  } finally {
+    if (switchVersion === assistantState.switchVersion) {
+      assistantState.switching = false;
+      byId('assistant-send').disabled = false;
+      byId('assistant-text').disabled = false;
+    }
+  }
+}
+
+async function openAssistant(context = undefined) {
+  const panel = byId('assistant-panel');
+  const backdrop = byId('assistant-backdrop');
+  const wasOpen = document.body.classList.contains('assistant-opened');
+  if (!wasOpen) assistantOpener = document.activeElement;
+  document.body.classList.add('assistant-opened');
+  panel.removeAttribute('inert');
+  panel.setAttribute('aria-hidden', 'false');
+  backdrop.removeAttribute('hidden');
+  backdrop.removeAttribute('inert');
+  if (!assistantState.config) {
+    assistantStatus('Assistenzkonfiguration wird geladen …');
+    assistantState.config = await assistantRequest('/api/assistant/config');
+    byId('assistant-text').maxLength = assistantState.config.limits.maxMessageChars;
+  }
+  updateAssistantMode();
+  if (!assistantState.config.enabled) {
+    assistantStatus('Rhajaina ist in dieser Umgebung deaktiviert.');
+    byId('assistant-form').hidden = true;
+    byId('assistant-title').focus();
+    return;
+  }
+  byId('assistant-form').hidden = false;
+  await selectAssistantContext(context === undefined ? assistantState.context : context, {
+    announce: wasOpen && context !== undefined,
+  });
+  byId('assistant-text').focus();
+}
+
+function closeAssistant() {
+  document.body.classList.remove('assistant-opened');
+  const panel = byId('assistant-panel');
+  const backdrop = byId('assistant-backdrop');
+  panel.setAttribute('aria-hidden', 'true');
+  panel.setAttribute('inert', '');
+  backdrop.setAttribute('hidden', '');
+  backdrop.setAttribute('inert', '');
+  if (assistantOpener && typeof assistantOpener.focus === 'function') assistantOpener.focus();
+  assistantOpener = null;
+}
+
+async function pollAssistantRun(runId) {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const run = await assistantRequest(`/api/assistant/runs/${encodeURIComponent(runId)}`);
+    if (run.status === 'completed') return run;
+    if (run.status === 'failed' || run.status === 'cancelled') {
+      throw new Error(run.errorCode || 'assistant_run_failed');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error('assistant_run_timeout');
+}
+
+function assistantClientMessageId() {
+  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  const bytes = new Uint8Array(16);
+  if (globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    for (let index = 0; index < bytes.length; index += 1) {
+      bytes[index] = Math.floor(Math.random() * 256);
+    }
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+async function sendAssistantMessage() {
+  const textarea = byId('assistant-text');
+  const text = textarea.value.trim();
+  if (!text || !assistantState.conversationId || assistantState.switching || assistantState.sending)
+    return;
+  const conversationId = assistantState.conversationId;
+  const button = byId('assistant-send');
+  assistantState.sending = true;
+  button.disabled = true;
+  textarea.disabled = true;
+  assistantStatus('Rhajaina ordnet die Frage ein …');
+  try {
+    const run = await assistantRequest(
+      `/api/assistant/conversations/${encodeURIComponent(conversationId)}/messages`,
+      {
+        method: 'POST',
+        body: { clientMessageId: assistantClientMessageId(), text },
+      }
+    );
+    textarea.value = '';
+    await loadAssistantMessages();
+    await pollAssistantRun(run.runId);
+    await loadAssistantMessages();
+  } catch (cause) {
+    assistantStatus(`Antwort nicht verfügbar: ${cause.message}`);
+  } finally {
+    assistantState.sending = false;
+    button.disabled = false;
+    textarea.disabled = false;
+    textarea.focus();
+  }
 }
 
 async function previewDecisionAction(decisionId, action, payload) {
@@ -143,7 +577,7 @@ function topicCard(topic) {
     ${topic.next_step ? `<p><b>Nächster Schritt:</b> ${escapeHtml(topic.next_step)}</p>` : ''}
     <div class="card-meta">Letzter substantieller Fortschritt: ${escapeHtml(formatTime(topic.last_substantive_progress_at))}</div>
     <div class="pills">${participants.map((agent) => `<span class="pill">${escapeHtml(agent)}</span>`).join('')}</div>
-    <div class="context-actions">${taskButton(primary.board, primary.taskId || primary.task_id)}${matrixLink(topic.matrix_room_ref)}</div>
+    <div class="context-actions">${taskButton(primary.board, primary.taskId || primary.task_id)}${matrixLink(topic.matrix_room_ref)}${assistantContextButton('topic', topic.topic_id, topic.title || 'Unbenanntes Thema')}</div>
     ${details([
       ['Topic-ID', topic.topic_id],
       ['Erwarteter Fortschritt', formatTime(topic.expected_progress_at)],
@@ -157,7 +591,7 @@ function topicCard(topic) {
   </article>`;
 }
 
-function decisionCard(decision, compact = false) {
+function decisionCard(decision, compact = false, contextType = 'decision') {
   const options = Array.isArray(decision.options) ? decision.options : [];
   const consequences = Array.isArray(decision.consequences) ? decision.consequences : [];
   const risk =
@@ -172,7 +606,7 @@ function decisionCard(decision, compact = false) {
       <span class="pill">${escapeHtml(decision.classifier_label || '')}</span>
       ${decision.deadline ? `<span class="pill pill-risk">Frist ${escapeHtml(formatTime(decision.deadline))}</span>` : ''}
     </div>
-    <div class="context-actions">${taskButton(decision.source_board, decision.source_task_id)}${matrixLink(decision.matrix_room_ref)}</div>
+    <div class="context-actions">${taskButton(decision.source_board, decision.source_task_id)}${matrixLink(decision.matrix_room_ref)}${assistantContextButton(contextType, decision.decision_id, decision.question || 'Entscheidung ohne formulierte Frage')}</div>
     ${
       compact
         ? ''
@@ -249,7 +683,7 @@ function outcomeCard(item) {
     <div class="eyebrow">${escapeHtml(item.outcome_type || 'Ergebnis')} · ${escapeHtml(formatTime(item.occurred_at))}</div>
     <h3>${escapeHtml(item.statement || 'Belegtes Ergebnis')}</h3>
     ${item.economic_relevance ? `<p class="card-meta">Wirtschaftliche Einordnung: ${escapeHtml(item.economic_relevance)}</p>` : ''}
-    ${taskButton(item.source_board, item.source_task_id)}
+    <div class="context-actions">${taskButton(item.source_board, item.source_task_id)}${assistantContextButton('outcome', item.outcome_id, item.statement || 'Belegtes Ergebnis')}</div>
     ${details([
       ['Gegenpartei', item.counterparty],
       ['Evidenz', item.evidence_refs],
@@ -316,7 +750,7 @@ async function loadOverview() {
         <section>
           <div class="column-title"><h3>Erwartet Aufmerksamkeit</h3><span>Governance</span></div>
           ${matureDecisions.map((item) => decisionCard(item, true)).join('') || EMPTY_DECISIONS}
-          ${(risks.items || []).length ? `<div class="column-title"><h3>Risiken</h3><span>Scope und Bindung</span></div>${risks.items.map((item) => decisionCard(item, true)).join('')}` : ''}
+          ${(risks.items || []).length ? `<div class="column-title"><h3>Risiken</h3><span>Scope und Bindung</span></div>${risks.items.map((item) => decisionCard(item, true, 'risk')).join('')}` : ''}
         </section>
         <section>
           <div class="column-title"><h3>Aktuell in Arbeit</h3><span>substantieller Fortschritt</span></div>
@@ -406,6 +840,7 @@ function departmentCard(agent, item) {
     <p class="card-meta">Letzter belegter substantieller Fortschritt: ${escapeHtml(
       formatTime(item.last_substantive_progress_at, 'im Berichtszeitraum nicht belegt')
     )}</p>
+    <div class="context-actions">${assistantContextButton('department', item.agent_id, agent.id)}</div>
     ${details([
       ['Berichtszeitraum von', formatTime(item.reporting_period_start)],
       ['Berichtszeitraum bis', formatTime(item.reporting_period_end)],
@@ -465,7 +900,9 @@ function timelineItem(item) {
       : type === 'wakeup'
         ? item.next_action_on_wake
         : item.recommendation;
-  return `<article class="timeline-item ${escapeHtml(type)}"><div class="timeline-time">${escapeHtml(formatTime(time))} · ${label}</div><h3>${escapeHtml(title || label)}</h3>${detail ? `<p>${escapeHtml(detail)}</p>` : ''}${taskButton(item.source_board, item.source_task_id)}</article>`;
+  const objectId =
+    type === 'outcome' ? item.outcome_id : type === 'wakeup' ? item.wakeup_id : item.decision_id;
+  return `<article class="timeline-item ${escapeHtml(type)}"><div class="timeline-time">${escapeHtml(formatTime(time))} · ${label}</div><h3>${escapeHtml(title || label)}</h3>${detail ? `<p>${escapeHtml(detail)}</p>` : ''}<div class="context-actions">${taskButton(item.source_board, item.source_task_id)}${assistantContextButton(type, objectId, title || label)}</div></article>`;
 }
 
 async function loadHistory() {
@@ -530,10 +967,93 @@ function toast(message) {
 document.querySelectorAll('[data-view]').forEach((button) => {
   button.addEventListener('click', () => openView(button.dataset.view));
 });
+document.querySelectorAll('[data-assistant-open]').forEach((button) => {
+  button.addEventListener('click', () => {
+    openAssistant(null).catch((cause) =>
+      assistantStatus(`Assistenz nicht verfügbar: ${cause.message}`)
+    );
+  });
+});
+byId('assistant-close').addEventListener('click', closeAssistant);
+byId('assistant-backdrop').addEventListener('click', closeAssistant);
+byId('assistant-context-remove').addEventListener('click', () => {
+  selectAssistantContext(null, { announce: true }).catch((cause) =>
+    assistantStatus(`Kontext nicht verfügbar: ${cause.message}`)
+  );
+});
+byId('assistant-global').addEventListener('click', () => {
+  selectAssistantContext(null, { announce: true })
+    .then(() => byId('assistant-text').focus())
+    .catch((cause) => assistantStatus(`Kontext nicht verfügbar: ${cause.message}`));
+});
+byId('assistant-reload').addEventListener('click', () => {
+  loadAssistantMessages().catch((cause) =>
+    assistantStatus(`Neu laden fehlgeschlagen: ${cause.message}`)
+  );
+});
+byId('assistant-conversation-select').addEventListener('change', (event) => {
+  const conversation = assistantState.conversations.find((item) => item.id === event.target.value);
+  const context =
+    conversation && conversation.objectType
+      ? {
+          objectType: conversation.objectType,
+          objectId: conversation.objectId,
+          label: assistantState.contextLabels.get(
+            `${conversation.objectType}:${conversation.objectId}`
+          ),
+        }
+      : null;
+  selectAssistantContext(context, { announce: true }).catch((cause) =>
+    assistantStatus(`Kontext nicht verfügbar: ${cause.message}`)
+  );
+});
+byId('assistant-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  sendAssistantMessage();
+});
+byId('assistant-text').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    byId('assistant-form').requestSubmit();
+  }
+});
 document.querySelectorAll('[data-refresh]').forEach((button) => {
   button.addEventListener('click', () => loaders[button.dataset.refresh]());
 });
 document.addEventListener('click', async (event) => {
+  const proposalButton = event.target.closest('[data-assistant-proposal]');
+  if (proposalButton) {
+    proposalButton.disabled = true;
+    const proposalId = proposalButton.dataset.assistantProposal;
+    const action = proposalButton.dataset.proposalAction;
+    try {
+      await assistantRequest(
+        `/api/assistant/proposals/${encodeURIComponent(proposalId)}/${encodeURIComponent(action)}`,
+        { method: 'POST', body: {} }
+      );
+      assistantStatus(
+        action === 'confirm' ? 'Ausführung belegt und zurückgelesen.' : 'Vorschlag verworfen.'
+      );
+      await loadAssistantMessages();
+    } catch (cause) {
+      assistantStatus(`Vorschlag konnte nicht bearbeitet werden: ${cause.message}`);
+      proposalButton.disabled = false;
+    }
+    return;
+  }
+  const assistantButton = event.target.closest('[data-assistant-context]');
+  if (assistantButton) {
+    try {
+      await openAssistant({
+        objectType: assistantButton.dataset.objectType,
+        objectId: assistantButton.dataset.objectId,
+        label: assistantButton.dataset.objectLabel,
+      });
+    } catch (cause) {
+      assistantStatus(`Kontext nicht verfügbar: ${cause.message}`);
+    }
+    return;
+  }
   const actionButton = event.target.closest('[data-shadow-action]');
   if (actionButton) {
     const container = actionButton.closest('[data-decision-actions]');
@@ -576,6 +1096,12 @@ byId('topic-search').addEventListener('keydown', (event) => {
   if (event.key === 'Enter') loadTopics();
 });
 window.addEventListener('hashchange', () => openView(location.hash.slice(1), false));
+window.addEventListener('keydown', (event) => {
+  if (!document.body.classList.contains('assistant-opened')) return;
+  if (event.key === 'Escape') {
+    closeAssistant();
+  }
+});
 
 loadMetadata();
 openView(location.hash.slice(1) || 'overview', false);

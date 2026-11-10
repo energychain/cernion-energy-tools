@@ -91,6 +91,8 @@ hitl-cockpit/
 | `HITL_COCKPIT_SESSION_TTL_SECONDS` | `1800`                                               | 60 bis 28.800 Sekunden                             |
 | `HITL_COCKPIT_ALLOW_LEGACY_BEARER` | `false`                                              | befristeter Übergangsclient, nicht Browserstandard |
 | `AGENTOS_SCOPE_LEDGER`             | `$HOME/.hermes/agent-os-scoped-approval-ledger.json` | Scope-Ledger-Override                              |
+| `ASSISTANT_CONFIG`                 | `config/assistant-policy.json`                       | Rhajaina-Policy und Rollout-Modus                  |
+| `ASSISTANT_DATABASE`               | `$HERMES_HOME/agent-os/assistant-channel.db`         | getrennte Conversation-/Audit-Datenbank            |
 
 Bei abweichendem `--hermes-home` muss der Scope-Ledger-Pfad explizit mit `--scope-ledger` angegeben werden, wenn er nicht unter `$HOME/.hermes` liegt.
 
@@ -110,7 +112,7 @@ npm run check
 npm test
 ```
 
-Die Suite umfasst Legacy-Verträge, Projektionsschema und -idempotenz, Classification, Scopes, Management-API, UI, Shadow-Aktionen, Wiedervorlagen, Outcomes, Topics, Agent Briefs, Context Links, Digest, Telemetrie und Session-Auth.
+Die Suite umfasst zusätzlich den Rhajaina Assistant Channel, Kontext-Attachments, Shadow-Proposals, idempotente Receipts, guarded Actions und Matrix-Handoffs.
 
 ## Projektionsdatenbank
 
@@ -275,6 +277,24 @@ POST /api/management/decisions/:id/return-to-rhajaina
 ```
 
 Erfolg bedeutet HTTP 202 mit `mode=shadow`, `writePerformed=false` und `persisted=false`. Bei aktivierter Write-Konfiguration brechen die Endpunkte mit HTTP 501 ab.
+
+### Rhajaina Assistant Channel
+
+Die Default-Policy bleibt `enabled=false`, `mode=read_only`, `writesEnabled=false`, `matrixHandoffEnabled=false` und mit leerer `actionAllowlist`. Zulässige Rollout-Modi sind `read_only`, `shadow`, `low_risk`, `scoped` und `productive`; ungültige Flag-Kombinationen verhindern den Serverstart.
+
+```text
+GET  /api/assistant/config
+GET  /api/assistant/conversations
+POST /api/assistant/conversations
+GET  /api/assistant/conversations/:id/messages
+POST /api/assistant/conversations/:id/messages
+GET  /api/assistant/runs/:id
+GET  /api/assistant/proposals
+POST /api/assistant/proposals/:id/confirm
+POST /api/assistant/proposals/:id/reject
+```
+
+Das Karten-Attachment wird serverseitig aus Objektart und ID rekonstruiert. Ein Themenwechsel im offenen Drawer wechselt sofort in den passenden Objektthread; „Globales Gespräch“ startet beziehungsweise öffnet den globalen Thread. Ein Write-Erfolg wird erst nach exaktem Kanban-Readback als Receipt angezeigt.
 
 ## Deployment-Preflight
 

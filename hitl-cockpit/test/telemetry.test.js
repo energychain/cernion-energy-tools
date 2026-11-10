@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { test } = require('node:test');
+const { AssistantStore } = require('../lib/assistant-store');
 const { ManagementStore } = require('../lib/management-store');
 const {
   CLASSIFIER_LABELS,
@@ -239,6 +240,55 @@ function fixture() {
   return { root, database };
 }
 
+function assistantFixture(root) {
+  const database = path.join(root, 'assistant.db');
+  new AssistantStore({ database }).initialize();
+  const input = {
+    conversation: [
+      'conversation-secret-id',
+      'topic',
+      'topic-secret-id',
+      'assistant-session',
+      'active',
+    ],
+    messages: [
+      ['message-secret-user', 'user', 'vertraulicher Nutzertext', 'client-secret-id', 1700000100],
+      ['message-secret-assistant', 'assistant', 'vertrauliche Antwort', null, 1700000130],
+      ['message-secret-failed', 'user', 'private context request', 'client-secret-two', 1700000200],
+    ],
+    events: [
+      ['intent_detected', { intent: 'resume_topic', messageId: 'message-secret-user' }],
+      ['intent_detected', { intent: 'untrusted-secret-intent' }],
+      ['proposal_created', { body: 'secret proposal' }],
+      ['proposal_accepted', { proposalId: 'proposal-secret-id' }],
+      ['correction_requested', { content: 'secret correction' }],
+      ['correction_applied', {}],
+      ['client_message_deduplicated', { clientMessageId: 'client-secret-id' }],
+      ['clarification_requested', { question: 'secret question' }],
+      ['clarification_resolved', {}],
+      ['assistant_context_rejected', { objectId: 'topic-secret-id' }],
+    ],
+  };
+  const script = String.raw`
+import json,sqlite3,sys
+r=json.loads(sys.stdin.read()); con=sqlite3.connect(sys.argv[1]); con.execute('PRAGMA foreign_keys=ON')
+c=r['conversation']; con.execute('INSERT INTO assistant_conversations VALUES (?,?,?,?,?,?,?,?,?)',(c[0],c[1],c[2],c[3],None,0,c[4],1700000000,1700000200))
+for m in r['messages']: con.execute('INSERT INTO assistant_messages VALUES (?,?,?,?,?,?)',(m[0],c[0],m[1],m[2],m[3],m[4]))
+con.execute('INSERT INTO assistant_context_envelopes VALUES (?,?,?,?,?,?,?)',('context-secret-id',c[0],'topic',c[2],'fingerprint-secret','{"private":"secret context"}',1700000100))
+con.execute('INSERT INTO assistant_runs VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',('run-secret-complete',c[0],r['messages'][0][3],r['messages'][0][0],r['messages'][1][0],'context-secret-id','session-secret','completed',None,None,None,1700000100,1700000130))
+con.execute('INSERT INTO assistant_runs VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',('run-secret-failed',c[0],r['messages'][2][3],r['messages'][2][0],None,None,None,'failed','assistant_context_not_available',None,None,1700000200,1700000220))
+con.execute('INSERT INTO assistant_summaries VALUES (?,?,?,?,?)',(c[0],'secret summary',r['messages'][1][0],2,1700000130))
+for i,e in enumerate(r['events']): con.execute('INSERT INTO assistant_events VALUES (?,?,?,?,?)',('event-secret-'+str(i),c[0],e[0],json.dumps(e[1]),1700000300+i))
+con.commit()
+`;
+  const inserted = spawnSync('python3', ['-c', script, database], {
+    input: JSON.stringify(input),
+    encoding: 'utf8',
+  });
+  assert.equal(inserted.status, 0, inserted.stderr);
+  return database;
+}
+
 test('collectTelemetry computes AP13 metrics without exposing source content', () => {
   const { root, database } = fixture();
   try {
@@ -285,6 +335,88 @@ test('collectTelemetry computes AP13 metrics without exposing source content', (
     const serialized = JSON.stringify(snapshot);
     assert.doesNotMatch(serialized, /secret|TWL raw|counterparty|example\.test/);
     assertSanitized(snapshot);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('AP16 assistant telemetry aggregates behavior and sizes without bodies or identifiers', () => {
+  const { root, database } = fixture();
+  try {
+    const assistantDatabase = assistantFixture(root);
+    const managementBefore = checksum(database);
+    const assistantBefore = checksum(assistantDatabase);
+    const snapshot = collectTelemetry({
+      database,
+      assistantDatabase,
+      now: 1700001000,
+    });
+
+    assert.equal(checksum(database), managementBefore);
+    assert.equal(checksum(assistantDatabase), assistantBefore);
+    assert.equal(snapshot.assistantChannel.available, true);
+    assert.deepEqual(snapshot.assistantChannel.counts, {
+      conversations: 1,
+      activeConversations: 1,
+      runs: 2,
+      messages: 3,
+      events: 10,
+    });
+    assert.equal(snapshot.assistantChannel.runStatusCounts.completed, 1);
+    assert.equal(snapshot.assistantChannel.runStatusCounts.failed, 1);
+    assert.deepEqual(snapshot.assistantChannel.latencySeconds, {
+      sampleSize: 2,
+      median: 25,
+      p95: 30,
+    });
+    assert.equal(snapshot.assistantChannel.errorCounts.total, 1);
+    assert.equal(snapshot.assistantChannel.errorCounts.contextRejection, 1);
+    assert.equal(snapshot.assistantChannel.intentCounts.counts.resume_topic, 1);
+    assert.equal(snapshot.assistantChannel.intentCounts.counts.other, 1);
+    assert.deepEqual(snapshot.assistantChannel.proposalCounts, {
+      available: true,
+      created: 1,
+      accepted: 1,
+      rejected: 0,
+    });
+    assert.deepEqual(snapshot.assistantChannel.correctionCounts, {
+      available: true,
+      requested: 1,
+      applied: 1,
+    });
+    assert.equal(snapshot.assistantChannel.dedupeCount, 1);
+    assert.equal(snapshot.assistantChannel.dedupeMetricsAvailable, true);
+    assert.deepEqual(snapshot.assistantChannel.clarificationCounts, {
+      available: true,
+      requested: 1,
+      resolved: 1,
+    });
+    assert.equal(snapshot.assistantChannel.contextRejectionCount, 1);
+    assert.equal(snapshot.assistantChannel.size.messagesByRole.user.count, 2);
+    assert.equal(snapshot.assistantChannel.size.messagesByRole.assistant.count, 1);
+    assert.equal(snapshot.assistantChannel.size.contexts.count, 1);
+    assert.equal(snapshot.assistantChannel.size.summaries.count, 1);
+
+    const serialized = JSON.stringify(snapshot.assistantChannel);
+    assert.doesNotMatch(
+      serialized,
+      /vertraulich|private context|secret|message-|run-|client-|conversation-|topic-/i
+    );
+    assertSanitized(snapshot);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('AP16 assistant telemetry is explicitly unavailable without an assistant database', () => {
+  const { root, database } = fixture();
+  try {
+    const snapshot = collectTelemetry({ database, now: 1700001000 });
+    assert.equal(snapshot.assistantChannel.available, false);
+    assert.equal(snapshot.assistantChannel.counts, null);
+    assert.equal(snapshot.assistantChannel.latencySeconds, null);
+    assert.equal(snapshot.assistantChannel.dedupeCount, null);
+    assert.equal(snapshot.assistantChannel.dedupeMetricsAvailable, false);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

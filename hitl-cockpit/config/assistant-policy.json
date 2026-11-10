@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "enabled": false,
+  "mode": "read_only",
+  "writesEnabled": false,
+  "matrixHandoffEnabled": false,
+  "actionAllowlist": [],
+  "limits": {
+    "maxMessageChars": 4000,
+    "maxContextChars": 12000,
+    "recentMessageCount": 12,
+    "sessionRotateMessages": 20
+  },
+  "transport": {
+    "type": "cli",
+    "safeMode": true,
+    "executable": "/home/clawd/.local/bin/hermes",
+    "profile": "rhajaina",
+    "toolset": "bot_room",
+    "timeoutMs": 120000,
+    "runBudgetSeconds": 90,
+    "maxTurns": 1,
+    "source": "tool",
+    "extraArgs": []
+  }
+}

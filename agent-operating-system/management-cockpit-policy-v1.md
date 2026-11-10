@@ -1,7 +1,7 @@
 # AgentOS Management-Cockpit Policy v1
 
 Stand: 2026-11-09
-Status: verbindlicher Ziel- und Betriebsvertrag für AP 0–15; im isolierten Worktree implementiert, nicht produktiv aktiviert
+Status: verbindlicher Ziel- und Betriebsvertrag für AP 0–16; im isolierten Worktree implementiert, nicht produktiv aktiviert
 
 ## 1. Zweck und Geltung
 
@@ -15,10 +15,10 @@ Diese Policy ist für die Management-Cockpit-Iteration v1 maßgeblich. Ältere A
 - Die Managementdatenbank ist abgeleitet, getrennt und vollständig neu aufbaubar.
 - Die Legacy-HITL-Liste unter `/` bleibt Rückfallansicht.
 - Die Managementsicht unter `/management` ist im Worktree implementiert, aber nicht produktiv aktiviert.
-- Management-Aktionen sind ausschließlich Simulationen. Sie schreiben weder Kanban noch Scope Ledger, Matrix, Nextcloud oder die Managementdatenbank.
+- Die produktive Konfiguration bleibt deaktiviert und read-only. Der AP-16-Code enthält guarded Low-Risk-, Scope- und Handoff-Pfade, die nur über konsistente Modus-, Write- und Aktionsflags erreichbar sind.
 - Historische `scheduled`-Karten werden ausschließlich gelesen und berichtet.
 - Telemetrie läuft ausschließlich im Shadow-Modus und besitzt keine operative Wirkung.
-- AP 0–15 haben keinen produktiven Deployment-, PM2-, Proxy-, Token- oder Kanban-Schreibvorgang ausgeführt.
+- AP 0–16 haben keinen produktiven Deployment-, PM2-, Proxy-, Token-, Kanban- oder Matrix-Schreibvorgang ausgeführt.
 - Der Worktree ist noch kein freigegebenes, versioniertes Release-Artefakt. Deployment direkt aus dem uncommitteten Worktree ist untersagt.
 
 ## 3. Verantwortlichkeiten
@@ -68,6 +68,16 @@ Quellschreibvorgänge sind in der aktuellen Iteration unzulässig. Zulässige lo
 4. Testartefakte in temporären Verzeichnissen.
 
 Diese Writes haben keine operative Wirkung und dürfen nicht als Routing-, Freigabe- oder Priorisierungssignal verwendet werden.
+
+## 4.1 Rhajaina Assistant Channel
+
+- Ein Klick auf „Mit Rhajaina besprechen“ bindet das ausgewählte Managementobjekt sichtbar als Attachment an einen eigenen Objektthread.
+- Der Browser überträgt nur `objectType` und `objectId`; Titel, Scope, Quelltext und Sensitivität werden serverseitig aufgelöst.
+- Ein Klick auf eine andere Karte wechselt den Thread sofort und zeigt „Thema gewechselt“. „Globales Gespräch“ entfernt das Objekt-Attachment ohne Texteingabe.
+- `read_only` beantwortet nur; `shadow` persistiert nicht ausgeführte Vorschläge; `low_risk`, `scoped` und `productive` benötigen zusätzlich Writes, eine exakte Aktions-Allowlist, Source-Fingerprint und Readback.
+- Produktive Auto-Ausführung ist nur bei serverseitig nachgewiesenem Scope möglich. Chattext kann keinen Scope erzeugen oder erweitern.
+- Preise, Verträge, Zahlungen, Veröffentlichungen, externer Versand, Deployments, destruktive Aktionen sowie private/TWL-/unklare Kontexte bleiben ausgeschlossen.
+- Matrix-Handoffs benötigen ein separates Flag, eine sichere serverseitige Raumreferenz, Loop-Schutz und Readback. Ohne verifizierten Sender bleiben sie `pending`.
 
 ## 5. Klassifikation und Sichtbarkeit
 

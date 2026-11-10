@@ -181,6 +181,23 @@ test('TWL-private tasks, raw bridge tasks and TWL artifacts are blocked at proje
   );
 });
 
+test('private-origin markers remain excluded after forwarding to a general board', () => {
+  const forwarded = task('agenticcoo-for-dec', 't_forward1', {
+    title: '[FOR-DEC][TWL_PRIVATE_REFLECTION] Sanitized-looking management prompt',
+    body: 'SANITIZED_BRIDGE: abstract signal without raw source text',
+  });
+  assert.equal(isPrivateTask(forwarded), true);
+
+  const projection = buildProjection(
+    { errors: [], boards: [{ board: forwarded.board, items: [forwarded] }] },
+    { artifactRegistry: { artifacts: [] }, roomRegistry: { rooms: {} } }
+  );
+  assert.equal(projection.topics.length, 0);
+  assert.equal(projection.decisions.length, 0);
+  assert.equal(projection.digestItems.length, 0);
+  assert.equal(JSON.stringify(projection.agentBriefs).includes('TWL_PRIVATE_REFLECTION'), false);
+});
+
 test('full projection contains no raw TWL titles, paths, room ids or decision questions', () => {
   const publicTask = task('sales', 't_public01', {
     title: 'Öffentliche Richtungsfrage #PublicCase',

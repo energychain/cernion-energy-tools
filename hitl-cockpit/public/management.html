@@ -5,120 +5,230 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="referrer" content="no-referrer" />
     <title>AgentOS Geschäftsführung</title>
-    <link rel="stylesheet" href="/styles.css?v=20261108-ap5" />
+    <link rel="stylesheet" href="/styles.css?v=20261109-ap17-context" />
   </head>
   <body>
-    <a class="skip-link" href="#main">Zum Inhalt</a>
-    <header class="masthead">
-      <div>
-        <div class="kicker">STROMDAO GmbH · AgentOS</div>
-        <h1>Geschäftsführung</h1>
-        <p class="lede">Asynchroner Jour fixe mit den virtuellen Abteilungsleitungen.</p>
-      </div>
-      <div class="masthead-side">
-        <div id="projection-meta" class="projection-meta" aria-live="polite">
-          Projektion wird gelesen…
+    <div id="management-shell">
+      <a class="skip-link" href="#main">Zum Inhalt</a>
+      <header class="masthead">
+        <div>
+          <div class="kicker">STROMDAO GmbH · AgentOS</div>
+          <h1>Geschäftsführung</h1>
+          <p class="lede">Asynchroner Jour fixe mit den virtuellen Abteilungsleitungen.</p>
         </div>
-        <a id="legacy-link-top" class="legacy-button" href="/">Zur alten HITL-Liste</a>
+        <div class="masthead-side">
+          <div id="projection-meta" class="projection-meta" aria-live="polite">
+            Projektion wird gelesen…
+          </div>
+          <div class="masthead-actions">
+            <button class="assistant-open" type="button" data-assistant-open>
+              Mit Rhajaina sprechen
+            </button>
+            <a id="legacy-link-top" class="legacy-button" href="/">Zur alten HITL-Liste</a>
+          </div>
+        </div>
+      </header>
+
+      <div class="shell">
+        <nav class="primary-nav" aria-label="Cockpit-Navigation">
+          <button data-view="overview" class="active" aria-current="page">
+            <span>01</span>Lage
+          </button>
+          <button data-view="decisions"><span>02</span>Entscheidungen</button>
+          <button data-view="departments"><span>03</span>Abteilungen</button>
+          <button data-view="topics"><span>04</span>Themen</button>
+          <button data-view="history"><span>05</span>Verlauf</button>
+          <button class="assistant-nav" type="button" data-assistant-open>
+            <span>↗</span>Rhajaina
+          </button>
+          <a id="legacy-link" class="legacy-link" href="/"><span>↩</span>Alte HITL-Liste</a>
+        </nav>
+
+        <main id="main">
+          <section id="view-overview" class="view active" data-view-panel="overview">
+            <div class="section-heading">
+              <div>
+                <div class="kicker">Unternehmenslage</div>
+                <h2>Was sich bewegt – und was Führung braucht</h2>
+              </div>
+              <button class="quiet-button" data-refresh="overview">Aktualisieren</button>
+            </div>
+            <div id="overview" aria-live="polite">
+              <div class="loading">Lage wird verdichtet…</div>
+            </div>
+          </section>
+
+          <section id="view-decisions" class="view" data-view-panel="decisions">
+            <div class="section-heading">
+              <div>
+                <div class="kicker">Governance</div>
+                <h2>Entscheidungen</h2>
+                <p>Nur reife Fälle, die eine unternehmerische Richtungsentscheidung benötigen.</p>
+              </div>
+            </div>
+            <div class="toolbar">
+              <label class="search-field">
+                <span>Entscheidungen durchsuchen</span>
+                <input id="decision-search" type="search" placeholder="Frage oder Empfehlung" />
+              </label>
+              <button id="decision-refresh">Suchen</button>
+            </div>
+            <div id="decisions" aria-live="polite"></div>
+          </section>
+
+          <section id="view-departments" class="view" data-view-panel="departments">
+            <div class="section-heading">
+              <div>
+                <div class="kicker">Virtuelle Abteilungsleitungen</div>
+                <h2>Abteilungs-Jour-fixe</h2>
+                <p>
+                  Ziele, belegter substantieller Fortschritt und nächste Schritte je
+                  Verantwortungsbereich.
+                </p>
+              </div>
+              <button class="quiet-button" data-refresh="departments">Aktualisieren</button>
+            </div>
+            <div id="departments" aria-live="polite"></div>
+          </section>
+
+          <section id="view-topics" class="view" data-view-panel="topics">
+            <div class="section-heading">
+              <div>
+                <div class="kicker">Arbeitsportfolio</div>
+                <h2>Themen</h2>
+                <p>Unternehmensrelevante Vorhaben mit Ziel, Stand und nächstem Schritt.</p>
+              </div>
+            </div>
+            <div class="toolbar">
+              <label class="search-field">
+                <span>Themen durchsuchen</span>
+                <input id="topic-search" type="search" placeholder="Thema, Ziel oder Agent" />
+              </label>
+              <button id="topic-refresh">Suchen</button>
+            </div>
+            <div id="topics" aria-live="polite"></div>
+          </section>
+
+          <section id="view-history" class="view" data-view-panel="history">
+            <div class="section-heading">
+              <div>
+                <div class="kicker">Nachvollziehbarkeit</div>
+                <h2>Verlauf</h2>
+                <p>Belegte Ergebnisse, Richtungsfragen und vereinbarte Wiedervorlagen.</p>
+              </div>
+              <button class="quiet-button" data-refresh="history">Aktualisieren</button>
+            </div>
+            <div id="history" aria-live="polite"></div>
+          </section>
+
+          <footer>
+            <span>Shadow-/No-write-Betrieb</span>
+            <span>Hermes Kanban bleibt System of Record</span>
+            <a id="legacy-link-footer" href="/">Rückfallansicht öffnen</a>
+          </footer>
+        </main>
       </div>
-    </header>
-
-    <div class="shell">
-      <nav class="primary-nav" aria-label="Cockpit-Navigation">
-        <button data-view="overview" class="active" aria-current="page"><span>01</span>Lage</button>
-        <button data-view="decisions"><span>02</span>Entscheidungen</button>
-        <button data-view="departments"><span>03</span>Abteilungen</button>
-        <button data-view="topics"><span>04</span>Themen</button>
-        <button data-view="history"><span>05</span>Verlauf</button>
-        <a id="legacy-link" class="legacy-link" href="/"><span>↩</span>Alte HITL-Liste</a>
-      </nav>
-
-      <main id="main">
-        <section id="view-overview" class="view active" data-view-panel="overview">
-          <div class="section-heading">
-            <div>
-              <div class="kicker">Unternehmenslage</div>
-              <h2>Was sich bewegt – und was Führung braucht</h2>
-            </div>
-            <button class="quiet-button" data-refresh="overview">Aktualisieren</button>
-          </div>
-          <div id="overview" aria-live="polite">
-            <div class="loading">Lage wird verdichtet…</div>
-          </div>
-        </section>
-
-        <section id="view-decisions" class="view" data-view-panel="decisions">
-          <div class="section-heading">
-            <div>
-              <div class="kicker">Governance</div>
-              <h2>Entscheidungen</h2>
-              <p>Nur reife Fälle, die eine unternehmerische Richtungsentscheidung benötigen.</p>
-            </div>
-          </div>
-          <div class="toolbar">
-            <label class="search-field">
-              <span>Entscheidungen durchsuchen</span>
-              <input id="decision-search" type="search" placeholder="Frage oder Empfehlung" />
-            </label>
-            <button id="decision-refresh">Suchen</button>
-          </div>
-          <div id="decisions" aria-live="polite"></div>
-        </section>
-
-        <section id="view-departments" class="view" data-view-panel="departments">
-          <div class="section-heading">
-            <div>
-              <div class="kicker">Virtuelle Abteilungsleitungen</div>
-              <h2>Abteilungs-Jour-fixe</h2>
-              <p>
-                Ziele, belegter substantieller Fortschritt und nächste Schritte je
-                Verantwortungsbereich.
-              </p>
-            </div>
-            <button class="quiet-button" data-refresh="departments">Aktualisieren</button>
-          </div>
-          <div id="departments" aria-live="polite"></div>
-        </section>
-
-        <section id="view-topics" class="view" data-view-panel="topics">
-          <div class="section-heading">
-            <div>
-              <div class="kicker">Arbeitsportfolio</div>
-              <h2>Themen</h2>
-              <p>Unternehmensrelevante Vorhaben mit Ziel, Stand und nächstem Schritt.</p>
-            </div>
-          </div>
-          <div class="toolbar">
-            <label class="search-field">
-              <span>Themen durchsuchen</span>
-              <input id="topic-search" type="search" placeholder="Thema, Ziel oder Agent" />
-            </label>
-            <button id="topic-refresh">Suchen</button>
-          </div>
-          <div id="topics" aria-live="polite"></div>
-        </section>
-
-        <section id="view-history" class="view" data-view-panel="history">
-          <div class="section-heading">
-            <div>
-              <div class="kicker">Nachvollziehbarkeit</div>
-              <h2>Verlauf</h2>
-              <p>Belegte Ergebnisse, Richtungsfragen und vereinbarte Wiedervorlagen.</p>
-            </div>
-            <button class="quiet-button" data-refresh="history">Aktualisieren</button>
-          </div>
-          <div id="history" aria-live="polite"></div>
-        </section>
-
-        <footer>
-          <span>Shadow-/No-write-Betrieb</span>
-          <span>Hermes Kanban bleibt System of Record</span>
-          <a id="legacy-link-footer" href="/">Rückfallansicht öffnen</a>
-        </footer>
-      </main>
     </div>
 
+    <aside
+      id="assistant-panel"
+      class="assistant-panel"
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby="assistant-title"
+      aria-hidden="true"
+      inert
+    >
+      <div class="assistant-header">
+        <div>
+          <div id="assistant-mode-label" class="kicker">Assistenzmodus wird geladen</div>
+          <h2 id="assistant-title" tabindex="-1">Rhajaina</h2>
+        </div>
+        <button
+          id="assistant-close"
+          class="assistant-icon-button"
+          type="button"
+          aria-label="Rhajaina schließen"
+        >
+          ×
+        </button>
+      </div>
+      <p id="assistant-mode-description" class="assistant-readonly">
+        Rhajainas freigegebener Handlungsrahmen wird geladen.
+      </p>
+      <div id="assistant-context-row" class="assistant-context-row" hidden>
+        <div class="assistant-context-heading">Angehefteter Kontext</div>
+        <div
+          id="assistant-context-chip"
+          class="assistant-context-chip"
+          role="group"
+          aria-label="Angehefteter Gesprächskontext"
+        >
+          <span id="assistant-context-type" class="assistant-context-type"></span>
+          <strong id="assistant-context-label"></strong>
+          <span id="assistant-context-id" class="assistant-context-id"></span>
+          <button
+            id="assistant-context-remove"
+            type="button"
+            aria-label="Kontext entfernen und globales Gespräch öffnen"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+      <button id="assistant-global" class="assistant-global" type="button">
+        Globales Gespräch / neues Thema
+      </button>
+      <label class="assistant-switcher" for="assistant-conversation-select">
+        Bestehendes Gespräch wechseln
+        <select id="assistant-conversation-select">
+          <option value="">Globales Gespräch</option>
+        </select>
+      </label>
+      <div class="assistant-toolbar">
+        <button id="assistant-reload" type="button">Unterhaltung neu laden</button>
+      </div>
+      <div
+        id="assistant-topic-notice"
+        class="assistant-topic-notice"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></div>
+      <div
+        id="assistant-messages"
+        class="assistant-messages"
+        aria-live="polite"
+        aria-relevant="additions text"
+      >
+        <p class="assistant-empty">Öffne den globalen Chat oder besprich ein Managementobjekt.</p>
+      </div>
+      <div id="assistant-status" class="assistant-status" role="status" aria-live="polite"></div>
+      <form id="assistant-form" class="assistant-form">
+        <label for="assistant-text">Nachricht an Rhajaina</label>
+        <textarea
+          id="assistant-text"
+          rows="4"
+          maxlength="4000"
+          placeholder="Frage zur Einordnung …"
+        ></textarea>
+        <div>
+          <span>Ctrl/Cmd + Enter sendet · Enter fügt eine neue Zeile ein</span>
+          <button id="assistant-send" type="submit">Senden</button>
+        </div>
+      </form>
+    </aside>
+    <button
+      id="assistant-backdrop"
+      class="assistant-backdrop"
+      type="button"
+      aria-label="Rhajaina schließen"
+      hidden
+      inert
+      tabindex="-1"
+    ></button>
+
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="/management.js?v=20261109-ap10-briefs"></script>
+    <script src="/management.js?v=20261109-ap17-context"></script>
   </body>
 </html>

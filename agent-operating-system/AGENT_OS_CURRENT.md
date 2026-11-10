@@ -1,4 +1,4 @@
-# AgentOS Current — Management-Cockpit Iteration AP 0–15
+# AgentOS Current — Management-Cockpit Iteration AP 0–16
 
 Stand: 2026-11-09
 Status: im isolierten Worktree implementiert und verifiziert; nicht produktiv aktiviert
@@ -12,7 +12,7 @@ Worktree: /home/clawd/.openclaw/workspace/.worktrees/agentos-management-cockpit-
 Branch: feat/agentos-management-cockpit-iteration
 ```
 
-Die Implementierung ist noch nicht als Commit oder Release-Artefakt fixiert. Der Branch-HEAD allein reproduziert AP 0–15 daher noch nicht. Ein produktives Deployment aus dem uncommitteten Worktree ist nicht zulässig.
+AP 0–15 sind auf dem Branch fixiert. AP 16 liegt derzeit als geprüfter, aber noch uncommitteter Worktree-Stand vor. Ein produktives Deployment aus uncommittierten Dateien ist nicht zulässig.
 
 Produktiv führend bleiben:
 
@@ -21,7 +21,7 @@ Produktiv führend bleiben:
 - die bestehende Legacy-HITL-Liste;
 - bestehende AgentOS-Routinen, Profile, Cronjobs und Scope-Prozesse.
 
-AP 0–15 haben keinen produktiven PM2-Neustart, Proxywechsel, Tokenwechsel, Kanban-Write, Cronjob oder Managementdatenbank-Rebuild ausgelöst.
+AP 0–16 haben keinen produktiven PM2-Neustart, Proxywechsel, Tokenwechsel, Kanban-Write, Matrix-Handoff, Cronjob oder Managementdatenbank-Rebuild ausgelöst.
 
 ## 2. Zielbild der Iteration
 
@@ -58,6 +58,7 @@ Die Legacy-Liste bleibt während des gesamten Parallelbetriebs der Rückfallpfad
 | 13  | aggregierte Qualitätsmetriken                                                   | ausschließlich Shadow                     |
 | 14  | Session-Auth und Tokenhygiene                                                   | nur im Worktree, keine Rotation           |
 | 15  | konsolidierte Policy, Runbook und Betriebsübergabe                              | Dokumentation, keine Produktion           |
+| 16  | Rhajaina Assistant Channel, Kontext-Attachments und guarded Actions             | technisch A–E; standardmäßig deaktiviert  |
 
 Aktuelles Projektionsschema: Version 5.
 
@@ -76,6 +77,7 @@ Aktuelles Projektionsschema: Version 5.
 - Context Links und TWL-Grenze: `agent-operating-system/management-cockpit-context-links-v1.md`
 - Shadow-Metriken: `agent-operating-system/management-cockpit-metrics-v1.md`
 - Session-Auth: `agent-operating-system/management-cockpit-session-auth-v1.md`
+- Rhajaina Assistant Channel: `agent-operating-system/management-cockpit-rhajaina-assistant-channel-v1.md`
 
 Bei Widersprüchen zwischen historischen AP-Dokumenten und dem konsolidierten Stand gilt `management-cockpit-policy-v1.md`.
 

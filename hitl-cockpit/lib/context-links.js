@@ -60,11 +60,24 @@ function isSanitizedBridge(value) {
   );
 }
 
+function hasPrivateOriginMarker(task) {
+  const text = taskText(task || {});
+  return (
+    /\bTWL[_ -]?PRIVATE(?:[_ -]?(?:REFLECTION|CONTEXT|DATA|RAW))?\b/i.test(text) ||
+    /\btwl-netze-private\b/i.test(text)
+  );
+}
+
 function isPrivateTask(task) {
   const board = String(task?.board || '').toLowerCase();
   const sensitivity = String(task?.sensitivity || '').toLowerCase();
   const domain = String(task?.domain || task?.tenant || '').toLowerCase();
-  if (PRIVATE_BOARDS.has(board) || PRIVATE_SENSITIVITIES.has(sensitivity)) return true;
+  if (
+    PRIVATE_BOARDS.has(board) ||
+    PRIVATE_SENSITIVITIES.has(sensitivity) ||
+    hasPrivateOriginMarker(task)
+  )
+    return true;
   if (task?.sensitivityUnclear === true) return true;
   if (board === 'twl-netze-bridge') return !isSanitizedBridge(task);
   return /(^|[-_/])twl(?:-netze)?($|[-_/])/.test(domain) && !isSanitizedBridge(task);

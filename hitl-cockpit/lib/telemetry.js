@@ -34,6 +34,26 @@ const FORBIDDEN_TELEMETRY_KEYS = new Set([
   'source_task_id',
   'sourceTaskId',
   'taskId',
+  'conversation_id',
+  'conversationId',
+  'run_id',
+  'runId',
+  'message_id',
+  'messageId',
+  'client_message_id',
+  'clientMessageId',
+  'object_id',
+  'objectId',
+]);
+
+const ASSISTANT_INTENTS = Object.freeze([
+  'new_topic',
+  'resume_topic',
+  'status',
+  'decision',
+  'action',
+  'meta_control',
+  'unknown',
 ]);
 
 const PYTHON_METRICS_READER = String.raw`
@@ -83,6 +103,45 @@ wakeups=rows('SELECT status,signal_required,last_signal_at FROM wakeups WHERE so
 boards=rows('SELECT board,projected_at,source_count FROM projection_boards WHERE board != ?', [private_board])
 events=rows('SELECT occurred_at,event_type,object_type,payload_json FROM cockpit_events ORDER BY occurred_at', [])
 print(json.dumps({'labels':labels,'decisions':decisions,'topics':topics,'outcomes':outcomes,'wakeups':wakeups,'boards':boards,'events':events}, ensure_ascii=False))
+`;
+
+const PYTHON_ASSISTANT_METRICS_READER = String.raw`
+import json, sqlite3, sys
+request=json.loads(sys.stdin.read())
+con=sqlite3.connect('file:'+request['database']+'?mode=ro', uri=True, timeout=10)
+con.row_factory=sqlite3.Row
+con.execute('PRAGMA query_only=ON')
+required=['assistant_conversations','assistant_messages','assistant_runs','assistant_context_envelopes','assistant_summaries','assistant_events']
+existing={row[0] for row in con.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+missing=[name for name in required if name not in existing]
+if missing: raise RuntimeError('assistant_telemetry_schema_incomplete:'+','.join(missing))
+def one(sql, params=()): return dict(con.execute(sql, params).fetchone())
+def rows(sql, params=()): return [dict(row) for row in con.execute(sql, params).fetchall()]
+run_status=rows('SELECT status,COUNT(*) count FROM assistant_runs GROUP BY status ORDER BY status')
+errors=rows("SELECT error_code,COUNT(*) count FROM assistant_runs WHERE error_code IS NOT NULL GROUP BY error_code ORDER BY error_code")
+latencies=[row[0] for row in con.execute("SELECT updated_at-created_at FROM assistant_runs WHERE status IN ('completed','failed','cancelled') AND updated_at>=created_at").fetchall()]
+message_sizes=rows('SELECT role,COUNT(*) count,COALESCE(SUM(LENGTH(CAST(content AS BLOB))),0) bytes,COALESCE(MAX(LENGTH(CAST(content AS BLOB))),0) maximum FROM assistant_messages GROUP BY role ORDER BY role')
+sizes=one('''SELECT
+  (SELECT COUNT(*) FROM assistant_context_envelopes) context_count,
+  (SELECT COALESCE(SUM(LENGTH(CAST(payload_json AS BLOB))),0) FROM assistant_context_envelopes) context_bytes,
+  (SELECT COALESCE(MAX(LENGTH(CAST(payload_json AS BLOB))),0) FROM assistant_context_envelopes) context_maximum,
+  (SELECT COUNT(*) FROM assistant_summaries) summary_count,
+  (SELECT COALESCE(SUM(LENGTH(CAST(content AS BLOB))),0) FROM assistant_summaries) summary_bytes,
+  (SELECT COALESCE(MAX(LENGTH(CAST(content AS BLOB))),0) FROM assistant_summaries) summary_maximum''')
+counts=one('''SELECT
+  (SELECT COUNT(*) FROM assistant_conversations) conversations,
+  (SELECT COUNT(*) FROM assistant_conversations WHERE status='active') active_conversations,
+  (SELECT COUNT(*) FROM assistant_runs) runs,
+  (SELECT COUNT(*) FROM assistant_messages) messages,
+  (SELECT COUNT(*) FROM assistant_events) events''')
+event_counts=rows('SELECT event_type,COUNT(*) count FROM assistant_events GROUP BY event_type ORDER BY event_type')
+intent_counts=rows("""SELECT
+  CASE WHEN json_valid(payload_json) AND json_type(payload_json,'$.intent')='text'
+       THEN json_extract(payload_json,'$.intent') ELSE 'unknown' END intent,
+  COUNT(*) count
+FROM assistant_events WHERE event_type IN ('intent_detected','assistant_intent')
+GROUP BY intent ORDER BY intent""")
+print(json.dumps({'counts':counts,'runStatus':run_status,'errors':errors,'latencies':latencies,'messageSizes':message_sizes,'sizes':sizes,'eventCounts':event_counts,'intentCounts':intent_counts}))
 `;
 
 function median(values) {
@@ -192,6 +251,192 @@ function readDatabase(database, options = {}) {
     throw new Error((result.stderr || result.stdout || 'telemetry_read_failed').slice(0, 1500));
   }
   return JSON.parse(result.stdout);
+}
+
+function assistantErrorCategory(value) {
+  const code = String(value || '').toLowerCase();
+  if (/(?:context|private|sensitive)/.test(code)) return 'contextRejection';
+  if (/timeout/.test(code)) return 'timeout';
+  if (/busy/.test(code)) return 'busy';
+  if (/(?:identity|session_changed)/.test(code)) return 'identity';
+  if (/(?:restart|interrupted)/.test(code)) return 'restart';
+  if (/(?:invalid|validation|schema|cursor|message)/.test(code)) return 'validation';
+  if (/transport/.test(code)) return 'transport';
+  return 'other';
+}
+
+function emptyAssistantTelemetry() {
+  return {
+    available: false,
+    counts: null,
+    runStatusCounts: null,
+    latencySeconds: null,
+    errorCounts: null,
+    intentCounts: null,
+    proposalCounts: null,
+    correctionCounts: null,
+    dedupeCount: null,
+    dedupeMetricsAvailable: false,
+    clarificationCounts: null,
+    contextRejectionCount: null,
+    size: null,
+  };
+}
+
+function readAssistantDatabase(database, options = {}) {
+  if (!database) return null;
+  const resolved = path.resolve(database);
+  if (!fs.existsSync(resolved)) throw new Error('assistant_telemetry_unavailable');
+  const result = spawnSync(
+    options.pythonBin || 'python3',
+    ['-c', PYTHON_ASSISTANT_METRICS_READER],
+    {
+      input: JSON.stringify({ database: resolved }),
+      encoding: 'utf8',
+      timeout: 30000,
+      maxBuffer: 4 * 1024 * 1024,
+    }
+  );
+  if (result.status !== 0) {
+    throw new Error(
+      (result.stderr || result.stdout || 'assistant_telemetry_read_failed').slice(0, 1500)
+    );
+  }
+  return JSON.parse(result.stdout);
+}
+
+function collectAssistantTelemetry(options = {}) {
+  const data = readAssistantDatabase(options.assistantDatabase, options);
+  if (!data) return emptyAssistantTelemetry();
+
+  const runStatusCounts = Object.fromEntries(
+    ['accepted', 'running', 'completed', 'failed', 'cancelled'].map((status) => [status, 0])
+  );
+  for (const row of data.runStatus) {
+    if (Object.hasOwn(runStatusCounts, row.status)) runStatusCounts[row.status] = Number(row.count);
+  }
+
+  const errorCounts = {
+    total: 0,
+    contextRejection: 0,
+    timeout: 0,
+    busy: 0,
+    identity: 0,
+    restart: 0,
+    validation: 0,
+    transport: 0,
+    other: 0,
+  };
+  for (const row of data.errors) {
+    const count = Number(row.count || 0);
+    errorCounts.total += count;
+    errorCounts[assistantErrorCategory(row.error_code)] += count;
+  }
+
+  const eventCounts = new Map(data.eventCounts.map((row) => [row.event_type, Number(row.count)]));
+  const countEvents = (...types) =>
+    types.reduce((sum, type) => sum + (eventCounts.get(type) || 0), 0);
+  const intentCounts = Object.fromEntries(
+    [...ASSISTANT_INTENTS, 'other'].map((intent) => [intent, 0])
+  );
+  for (const row of data.intentCounts) {
+    const intent = ASSISTANT_INTENTS.includes(row.intent) ? row.intent : 'other';
+    intentCounts[intent] += Number(row.count || 0);
+  }
+  const intentTotal = Object.values(intentCounts).reduce((sum, count) => sum + count, 0);
+
+  const messageSizes = Object.fromEntries(
+    ['user', 'assistant', 'system'].map((role) => [role, { count: 0, bytes: 0, maximumBytes: 0 }])
+  );
+  for (const row of data.messageSizes) {
+    if (!Object.hasOwn(messageSizes, row.role)) continue;
+    messageSizes[row.role] = {
+      count: Number(row.count || 0),
+      bytes: Number(row.bytes || 0),
+      maximumBytes: Number(row.maximum || 0),
+    };
+  }
+
+  const contextRejectedEvents = countEvents('context_rejected', 'assistant_context_rejected');
+  const proposalEventCount = countEvents(
+    'proposal_created',
+    'assistant_proposal_created',
+    'proposal_accepted',
+    'assistant_proposal_accepted',
+    'proposal_rejected',
+    'assistant_proposal_rejected'
+  );
+  const correctionEventCount = countEvents(
+    'correction_requested',
+    'assistant_correction_requested',
+    'correction_applied',
+    'assistant_correction_applied'
+  );
+  const dedupeCount = countEvents(
+    'run_deduplicated',
+    'client_message_deduplicated',
+    'assistant_deduplicated'
+  );
+  const clarificationEventCount = countEvents(
+    'clarification_requested',
+    'assistant_clarification_requested',
+    'clarification_resolved',
+    'assistant_clarification_resolved'
+  );
+  return {
+    available: true,
+    counts: {
+      conversations: Number(data.counts.conversations || 0),
+      activeConversations: Number(data.counts.active_conversations || 0),
+      runs: Number(data.counts.runs || 0),
+      messages: Number(data.counts.messages || 0),
+      events: Number(data.counts.events || 0),
+    },
+    runStatusCounts,
+    latencySeconds: {
+      sampleSize: data.latencies.length,
+      median: median(data.latencies),
+      p95: percentile(data.latencies, 0.95),
+    },
+    errorCounts,
+    intentCounts: {
+      available: intentTotal > 0,
+      total: intentTotal,
+      counts: intentCounts,
+    },
+    proposalCounts: {
+      available: proposalEventCount > 0,
+      created: countEvents('proposal_created', 'assistant_proposal_created'),
+      accepted: countEvents('proposal_accepted', 'assistant_proposal_accepted'),
+      rejected: countEvents('proposal_rejected', 'assistant_proposal_rejected'),
+    },
+    correctionCounts: {
+      available: correctionEventCount > 0,
+      requested: countEvents('correction_requested', 'assistant_correction_requested'),
+      applied: countEvents('correction_applied', 'assistant_correction_applied'),
+    },
+    dedupeCount,
+    dedupeMetricsAvailable: dedupeCount > 0,
+    clarificationCounts: {
+      available: clarificationEventCount > 0,
+      requested: countEvents('clarification_requested', 'assistant_clarification_requested'),
+      resolved: countEvents('clarification_resolved', 'assistant_clarification_resolved'),
+    },
+    contextRejectionCount: Math.max(errorCounts.contextRejection, contextRejectedEvents),
+    size: {
+      messagesByRole: messageSizes,
+      contexts: {
+        count: Number(data.sizes.context_count || 0),
+        bytes: Number(data.sizes.context_bytes || 0),
+        maximumBytes: Number(data.sizes.context_maximum || 0),
+      },
+      summaries: {
+        count: Number(data.sizes.summary_count || 0),
+        bytes: Number(data.sizes.summary_bytes || 0),
+        maximumBytes: Number(data.sizes.summary_maximum || 0),
+      },
+    },
+  };
 }
 
 function collectTelemetry(options = {}) {
@@ -392,6 +637,7 @@ function collectTelemetry(options = {}) {
           : null,
       boardErrorMetricsAvailable: Number.isInteger(options.projectionErrorCount),
     },
+    assistantChannel: collectAssistantTelemetry(options),
     privacy: {
       rawBodiesIncluded: false,
       rawTitlesIncluded: false,
@@ -462,10 +708,12 @@ function compareHistory(history, options = {}) {
 }
 
 module.exports = {
+  ASSISTANT_INTENTS,
   CLASSIFIER_LABELS,
   appendSnapshot,
   assertSanitized,
   collectTelemetry,
+  collectAssistantTelemetry,
   compareHistory,
   isMature,
   isVisible,

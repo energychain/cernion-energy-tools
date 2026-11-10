@@ -7,6 +7,13 @@ const { defaultManagementDatabase, loadTasks: loadKanbanTasks } = require('./lib
 const { createManagementApi, decodeId } = require('./lib/management-api');
 const { ManagementReader } = require('./lib/management-reader');
 const { createSessionAuth, secureHeaders } = require('./lib/session-auth');
+const { createAssistantApi } = require('./lib/assistant-api');
+const { createAssistantActionExecutor } = require('./lib/assistant-action-executor');
+const { loadAssistantConfig } = require('./lib/assistant-config');
+const { createAssistantContextResolver } = require('./lib/assistant-context');
+const { createAssistantService } = require('./lib/assistant-service');
+const { AssistantStore } = require('./lib/assistant-store');
+const { RhajainaClient } = require('./lib/rhajaina-client');
 
 const HOST = process.env.HITL_COCKPIT_HOST || '10.0.0.101';
 const PORT = Number(process.env.HITL_COCKPIT_PORT || 3927);
@@ -46,6 +53,40 @@ const managementApi = createManagementApi({
   shadowOnly: MANAGEMENT_COCKPIT_SHADOW_ONLY,
   defaultView: MANAGEMENT_COCKPIT_DEFAULT_VIEW,
 });
+const assistantConfig = loadAssistantConfig({
+  configPath: process.env.ASSISTANT_CONFIG || process.env.HITL_COCKPIT_ASSISTANT_CONFIG,
+});
+let assistantService = null;
+if (assistantConfig.enabled) {
+  const assistantDatabase = path.resolve(
+    process.env.ASSISTANT_DATABASE ||
+      process.env.HITL_COCKPIT_ASSISTANT_DATABASE ||
+      path.join(HERMES_HOME, 'agent-os', 'assistant-channel.db')
+  );
+  const assistantStore = new AssistantStore({ database: assistantDatabase });
+  assistantStore.initialize();
+  const assistantContextResolver = createAssistantContextResolver({
+    reader: managementReader,
+    maxBytes: assistantConfig.limits.maxContextChars,
+  });
+  const assistantExecutor = assistantConfig.writesEnabled
+    ? createAssistantActionExecutor({
+        kanban: createServerKanbanAdapter(),
+        scopeChecker: assistantScopeChecker,
+      })
+    : null;
+  assistantService = createAssistantService({
+    store: assistantStore,
+    contextResolver: assistantContextResolver,
+    client: new RhajainaClient({ config: assistantConfig }),
+    config: assistantConfig,
+    executor: assistantExecutor,
+    sourceResolver: resolveAssistantSource,
+    scopeChecker: assistantScopeChecker,
+  });
+  assistantService.resumePendingRuns();
+}
+const assistantApi = createAssistantApi({ config: assistantConfig, service: assistantService });
 
 function json(res, status, body) {
   res.writeHead(status, {
@@ -135,6 +176,81 @@ function loadTasks() {
   });
 }
 
+function readAssistantTask(source) {
+  const result = loadKanbanTasks({
+    hermesHome: HERMES_HOME,
+    excludedBoards: EXCLUDE_BOARDS,
+    mode: 'projection',
+    timeout: 10000,
+  });
+  return (
+    result.items.find((item) => item.board === source.board && item.id === source.taskId) || null
+  );
+}
+
+async function resolveAssistantSource(input = {}) {
+  const references = input.context && input.context.sourceTasks;
+  if (!Array.isArray(references) || references.length !== 1) return null;
+  const source = { board: references[0].board, taskId: references[0].taskId };
+  if (!validBoard(source.board) || !validTask(source.taskId)) return null;
+  const task = readAssistantTask(source);
+  return task ? { source, task } : null;
+}
+
+async function assistantScopeChecker() {
+  // Scope coverage must come from a dedicated server-side machine-readable approval record.
+  return { covered: false };
+}
+
+function createServerKanbanAdapter() {
+  return {
+    readTask: readAssistantTask,
+    async applyAction(command) {
+      const { board, taskId } = command.source;
+      const payload = command.payload;
+      let results;
+      if (command.action === 'ask_question') {
+        results = [
+          runHermes(['--board', board, 'comment', '--author', AUTHOR, taskId, payload.question]),
+        ];
+      } else if (command.action === 'delegate_followup') {
+        results = [
+          runHermes(['--board', board, 'assign', taskId, payload.assignee]),
+          runHermes(['--board', board, 'comment', '--author', AUTHOR, taskId, payload.followup]),
+        ];
+      } else if (command.action === 'schedule_wakeup') {
+        results = [
+          runHermes([
+            '--board',
+            board,
+            'block',
+            '--kind',
+            'scheduled',
+            taskId,
+            `${payload.wakeAt}: ${payload.reason}; ${payload.nextAction}`,
+          ]),
+        ];
+      } else if (command.action === 'return_for_completion') {
+        results = [
+          runHermes(['--board', board, 'comment', '--author', AUTHOR, taskId, payload.reason]),
+          runHermes(['--board', board, 'block', '--kind', 'needs_input', taskId, payload.reason]),
+        ];
+      } else if (command.action === 'set_owner') {
+        results = [runHermes(['--board', board, 'assign', taskId, payload.owner])];
+      } else if (command.action === 'set_priority') {
+        results = [
+          runHermes(['--board', board, 'update', '--priority', String(payload.priority), taskId]),
+        ];
+      } else {
+        throw new Error('assistant_action_not_supported');
+      }
+      const result = chainResults(results);
+      if (!result.ok) throw new Error('assistant_kanban_write_failed');
+      return { action: command.action, applied: true };
+    },
+  };
+}
+
 async function handleAction(req, res, board, taskId, action) {
   if (!validBoard(board) || !validTask(taskId))
     return json(res, 400, { ok: false, error: 'invalid_board_or_task' });
@@ -203,7 +319,8 @@ async function handler(req, res) {
     const type = asset.endsWith('.css') ? 'text/css' : 'application/javascript';
     return text(res, 200, await fsp.readFile(path.join(PUBLIC_DIR, asset), 'utf8'), type);
   }
-  if (!sessionAuth.authorize(req).ok) {
+  const authorization = sessionAuth.authorize(req);
+  if (!authorization.ok) {
     res.writeHead(401, {
       ...secureHeaders(),
       'content-type': 'text/plain; charset=utf-8',
@@ -211,6 +328,7 @@ async function handler(req, res) {
     });
     return res.end('Nicht autorisiert. Cockpit-Link erneut öffnen.');
   }
+  req.authIdentity = authorization.identity;
   try {
     if (url.pathname === '/api/health')
       return json(res, 200, {
@@ -223,6 +341,10 @@ async function handler(req, res) {
         time: new Date().toISOString(),
       });
     if (url.pathname === '/api/tasks') return json(res, 200, loadTasks());
+    if (url.pathname.startsWith('/api/assistant/')) {
+      const response = await assistantApi.handle(req, url);
+      return json(res, response.status, response.body);
+    }
     const managementAction = url.pathname.match(
       /^\/api\/management\/decisions\/([^/]+)\/(choose|delegate|question|schedule|reject|return-to-rhajaina)$/
     );

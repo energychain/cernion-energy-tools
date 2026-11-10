@@ -71,6 +71,10 @@ function createSessionAuth(options = {}) {
       ? options.randomBytes
       : (size) => crypto.randomBytes(size);
   const signingKey = deriveSigningKey(staticToken);
+  const sessionPrincipal = `cockpit_session_${crypto
+    .createHmac('sha256', signingKey)
+    .update('rate-limit-principal\0session', 'utf8')
+    .digest('base64url')}`;
 
   function createSession() {
     if (!staticToken) throw new Error('session_auth_token_missing');
@@ -118,17 +122,19 @@ function createSessionAuth(options = {}) {
 
   function authorize(req) {
     const cookies = parseCookies(req.headers.cookie);
-    if (validateSession(cookies.get(cookieName))) return { ok: true, method: 'session' };
+    const sessionValue = cookies.get(cookieName);
+    if (validateSession(sessionValue))
+      return { ok: true, method: 'session', identity: sessionPrincipal };
     if (allowLegacyBearer) {
       const authorization = String(req.headers.authorization || '');
       if (
         authorization.startsWith('Bearer ') &&
         timingSafeTextEqual(authorization.slice('Bearer '.length), staticToken)
       ) {
-        return { ok: true, method: 'legacy_bearer' };
+        return { ok: true, method: 'legacy_bearer', identity: 'legacy_bearer' };
       }
     }
-    return { ok: false, method: null };
+    return { ok: false, method: null, identity: null };
   }
 
   function bootstrap(req, url) {

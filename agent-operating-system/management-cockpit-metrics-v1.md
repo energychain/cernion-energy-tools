@@ -119,6 +119,37 @@ Ein Messpunkt enthält ausschließlich Aggregationen und Zeitwerte. Verboten sin
 
 `assertSanitized` verweigert das Schreiben, sobald ein verbotener Schlüssel im Snapshot vorkommt. Das private Board `twl-netze-private` und private Topic-Sensitivitäten werden bereits in der read-only SQL-Projektion ausgeschlossen.
 
+## AP16: Assistant-Channel-Aggregate
+
+`collectTelemetry` kann additiv eine Assistant-Datenbank über `assistantDatabase` lesen. Ohne diesen
+expliziten Pfad bleibt `assistantChannel.available: false`; fehlende Daten werden nicht als Nullerfolg
+interpretiert. Bestehende Aufrufer und der AP13-CLI-Exporter behalten damit ihren bisherigen Vertrag.
+Die Datenbank wird per SQLite-URI mit `mode=ro` und `PRAGMA query_only=ON` geöffnet.
+
+Der Block `assistantChannel` enthält ausschließlich:
+
+- Summen für Konversationen, aktive Konversationen, Runs, Nachrichten und Events;
+- Run-Anzahlen je festem Status;
+- Stichprobengröße, Median und 95. Perzentil der terminalen Run-Laufzeit;
+- Fehleranzahlen in festen Klassen: Kontextablehnung, Timeout, Busy, Identität, Restart,
+  Validierung, Transport und Sonstige;
+- Intent-Anzahlen für die feste Taxonomie `new_topic`, `resume_topic`, `status`, `decision`,
+  `action`, `meta_control`, `unknown` und `other`;
+- Proposal-, Korrektur-, Dedupe- und Klärungsanzahlen aus explizit typisierten Events;
+- Kontextablehnungen aus Fehlerklasse beziehungsweise typisiertem Event;
+- Byte- und Anzahl-Aggregate für User-/Assistant-/System-Nachrichten, Context Envelopes und
+  Summaries.
+
+Intent-, Proposal-, Korrektur-, Dedupe- und Klärungswerte werden nicht aus Nachrichtentexten
+heuristisch abgeleitet. Nicht allowlistete Intent-Werte werden nur als `other` gezählt. Freie
+Fehlercodes werden in feste Klassen überführt und nicht ausgegeben. Event-Payloads werden nicht in
+den Snapshot übernommen. Die Aggregation enthält keine Conversation-, Run-, Message-, Client-,
+Object- oder Event-IDs, keine Bodies und keine Attachments.
+
+Diese Werte sind Qualitätsbeobachtung, kein Steuerkreis. Sie ändern keine Konversation, keinen Run,
+keinen Kontext, keine Assistant-Antwort und keine Managementprojektion. Eine produktive
+Assistant-Aktivierung oder ein neuer CLI-Parameter ist damit nicht freigegeben.
+
 ## 14-Tage-Vergleich
 
 Pro Kalendertag wird für den Vergleich der jüngste Messpunkt verwendet. Gate C ist erst bei `coverageDays >= 14` messbereit. Verglichen werden mindestens:

@@ -92,3 +92,47 @@ test('stylesheet contains mobile, accessibility and document-layout guards', () 
   assert.match(styles, /\.timeline/);
   assert.match(styles, /\.department-grid/);
 });
+
+test('Rhajaina panel is globally reachable, accessible, contextual and mode-aware', () => {
+  assert.ok(occurrence(managementHtml, /data-assistant-open/g) >= 2);
+  assert.match(managementHtml, /id="assistant-panel"/);
+  assert.match(managementHtml, /aria-labelledby="assistant-title"/);
+  assert.match(managementHtml, /id="assistant-panel"[\s\S]*aria-hidden="true"[\s\S]*\binert\b/);
+  assert.match(managementHtml, /id="assistant-status"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.match(managementHtml, /<textarea[\s\S]*id="assistant-text"/);
+  assert.match(managementHtml, /Ctrl\/Cmd \+ Enter sendet/);
+  assert.match(managementHtml, /id="assistant-mode-label"/);
+  assert.match(managementHtml, /id="assistant-mode-description"/);
+  assert.match(managementJs, /keine Änderungen, Tools oder externen Aktionen/);
+  assert.match(managementJs, /event\.ctrlKey \|\| event\.metaKey/);
+  assert.match(managementJs, /event\.key === 'Enter'/);
+  assert.match(managementJs, /requestSubmit\(\)/);
+  assert.match(managementJs, /textContent = item\.content/);
+  assert.match(managementJs, /body: \{ context: apiContext \}/);
+  assert.match(managementJs, /body: \{ clientMessageId: assistantClientMessageId\(\), text \}/);
+  assert.doesNotMatch(managementJs, /body:\s*\{[^}]*\b(?:title|owner|scope)\b/);
+  for (const type of ['topic', 'department', 'outcome']) {
+    assert.match(managementJs, new RegExp(`assistantContextButton\\('${type}'`));
+  }
+  assert.match(managementJs, /contextType = 'decision'/);
+  assert.match(managementJs, /decisionCard\(item, true, 'risk'\)/);
+  assert.match(managementJs, /assistantContextButton\(type, objectId, title \|\| label\)/);
+  assert.match(managementJs, /assistant-context-remove/);
+  assert.match(managementHtml, /Globales Gespräch \/ neues Thema/);
+  assert.match(managementHtml, /Angehefteter Kontext/);
+  assert.match(managementJs, /Thema gewechselt/);
+  assert.match(managementJs, /data-object-label/);
+  assert.match(managementJs, /shadowProposals/);
+  assert.match(managementJs, /shadowReceipts/);
+  assert.match(managementJs, /assistant-conversation-select/);
+  assert.match(managementJs, /removeAttribute\('inert'\)/);
+  assert.match(managementJs, /setAttribute\('inert',\s*''\)/);
+  assert.match(managementJs, /assistantOpener\.focus\(\)/);
+  assert.match(managementJs, /Unterhaltung neu laden|loadAssistantMessages/);
+  assert.match(styles, /width:\s*min\(430px, 100vw\)/);
+  assert.match(styles, /\.assistant-panel[\s\S]*transform:\s*translateX/);
+  assert.match(
+    styles,
+    /@media \(max-width: 650px\)[\s\S]*\.assistant-panel[\s\S]*width:\s*100vw[\s\S]*translateY/
+  );
+});

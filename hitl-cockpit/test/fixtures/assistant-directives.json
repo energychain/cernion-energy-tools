@@ -1,0 +1,50 @@
+{
+  "answer": {
+    "text": "Die Lage ist stabil.",
+    "directive": { "intent": "answer_only", "target": null, "payload": {} }
+  },
+  "clarification": {
+    "text": "Welche Frist ist gemeint?",
+    "directive": {
+      "intent": "request_clarification",
+      "target": null,
+      "payload": { "question": "Welche Frist ist gemeint?" }
+    }
+  },
+  "delegate": {
+    "text": "Ich schlage Anja als Verantwortliche vor.",
+    "directive": {
+      "intent": "delegate",
+      "target": { "objectType": "topic", "objectId": "topic-1" },
+      "payload": { "assignee": "Anja", "reason": "Fachlich passend" }
+    }
+  },
+  "feedback": {
+    "text": "Das Feedback kann zur Überarbeitung zurückgegeben werden.",
+    "directive": {
+      "intent": "record_feedback",
+      "target": { "objectType": "decision", "objectId": "decision-1" },
+      "payload": { "feedback": "Beleg ergänzen" }
+    }
+  },
+  "wakeup": {
+    "text": "Ein Wiedervorlage-Vorschlag ist vorbereitet.",
+    "directive": {
+      "intent": "schedule_wakeup",
+      "target": { "objectType": "wakeup", "objectId": "wakeup-1" },
+      "payload": { "reason": "Prüffenster", "wakeAt": "2030-01-02T03:04:05Z" }
+    }
+  },
+  "followup": {
+    "text": "Ein Follow-up ist als Vorschlag vorbereitet.",
+    "directive": {
+      "intent": "create_followup",
+      "target": { "objectType": "topic", "objectId": "topic-1" },
+      "payload": {
+        "title": "Belege sammeln",
+        "description": "Öffentliche Belege",
+        "assignee": "Felix"
+      }
+    }
+  }
+}

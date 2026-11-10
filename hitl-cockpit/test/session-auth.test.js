@@ -47,7 +47,7 @@ test('query tokens never authorize API calls and invalid bootstrap attempts do n
   assert.equal(auth.bootstrap(request(), url('/api/health?token=correct-token')), null);
   assert.equal(auth.bootstrap(request(), url('/?token=wrong-token')), null);
   assert.equal(auth.bootstrap(request({ method: 'POST' }), url('/?token=correct-token')), null);
-  assert.deepEqual(auth.authorize(request()), { ok: false, method: null });
+  assert.deepEqual(auth.authorize(request()), { ok: false, method: null, identity: null });
 });
 
 test('valid sessions authorize requests while tampered and expired sessions fail closed', () => {
@@ -61,12 +61,36 @@ test('valid sessions authorize requests while tampered and expired sessions fail
   const session = auth.createSession();
   const cookie = `${auth.cookieName}=${session}`;
 
-  assert.deepEqual(auth.authorize(request({ cookie })), { ok: true, method: 'session' });
+  const authorization = auth.authorize(request({ cookie }));
+  assert.deepEqual(authorization, {
+    ok: true,
+    method: 'session',
+    identity: authorization.identity,
+  });
+  assert.notEqual(authorization.identity, session);
+  assert.match(authorization.identity, /^cockpit_session_[A-Za-z0-9_-]+$/);
   assert.equal(auth.validateSession(`${session.slice(0, -1)}x`), false);
   assert.equal(auth.validateSession('not-a-session'), false);
 
   current += 121;
-  assert.deepEqual(auth.authorize(request({ cookie })), { ok: false, method: null });
+  assert.deepEqual(auth.authorize(request({ cookie })), {
+    ok: false,
+    method: null,
+    identity: null,
+  });
+});
+
+test('all sessions from one auth realm share an opaque stable principal', () => {
+  let nonce = 0;
+  const auth = createSessionAuth({
+    staticToken: 'realm-secret-never-exposed',
+    randomBytes: () => Buffer.alloc(18, ++nonce),
+  });
+  const first = auth.authorize(request({ cookie: `${auth.cookieName}=${auth.createSession()}` }));
+  const second = auth.authorize(request({ cookie: `${auth.cookieName}=${auth.createSession()}` }));
+  assert.equal(first.identity, second.identity);
+  assert.notEqual(first.identity, 'realm-secret-never-exposed');
+  assert.doesNotMatch(first.identity, /realm-secret/i);
 });
 
 test('legacy bearer is disabled by default and can be enabled only for explicit transition clients', () => {
@@ -74,11 +98,16 @@ test('legacy bearer is disabled by default and can be enabled only for explicit 
   const enabled = createSessionAuth({ staticToken: 'legacy-token', allowLegacyBearer: true });
   const req = request({ authorization: 'Bearer legacy-token' });
 
-  assert.deepEqual(disabled.authorize(req), { ok: false, method: null });
-  assert.deepEqual(enabled.authorize(req), { ok: true, method: 'legacy_bearer' });
+  assert.deepEqual(disabled.authorize(req), { ok: false, method: null, identity: null });
+  assert.deepEqual(enabled.authorize(req), {
+    ok: true,
+    method: 'legacy_bearer',
+    identity: 'legacy_bearer',
+  });
   assert.deepEqual(enabled.authorize(request({ authorization: 'Bearer wrong' })), {
     ok: false,
     method: null,
+    identity: null,
   });
 });
 

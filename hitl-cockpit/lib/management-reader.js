@@ -121,23 +121,37 @@ elif operation == 'departments':
         department_sql=department_sql.replace('__AGENT_FILTER__', '')
     found=rows(department_sql, department_params)
     output={'item':found[0] if request.get('id') and found else None, 'items':found if not request.get('id') else []}
-elif operation == 'outcomes':
+elif operation in ('outcome', 'outcomes'):
     limit,offset=pagination()
     filter_sql="o.source_board != ? AND (t.topic_id IS NULL OR ("+public_topic.replace('sensitivity','t.sensitivity').replace('source_task_refs_json','t.source_task_refs_json')+"))"
     params=[private_board]+private_sensitivities+['%"board":"'+private_board+'"%']
-    total=scalar('SELECT COUNT(*) FROM outcomes o LEFT JOIN management_topics t ON t.topic_id=o.topic_id WHERE '+filter_sql, params)
-    output={'count':total, 'items':rows('SELECT o.* FROM outcomes o LEFT JOIN management_topics t ON t.topic_id=o.topic_id WHERE '+filter_sql+' ORDER BY o.occurred_at DESC LIMIT ? OFFSET ?', params+[limit,offset])}
-elif operation == 'risks':
+    if operation == 'outcome':
+        filter_sql='o.outcome_id=? AND '+filter_sql; params=[request['id']]+params
+        found=rows('SELECT o.* FROM outcomes o LEFT JOIN management_topics t ON t.topic_id=o.topic_id WHERE '+filter_sql, params)
+        output={'item':found[0] if found else None}
+    else:
+        total=scalar('SELECT COUNT(*) FROM outcomes o LEFT JOIN management_topics t ON t.topic_id=o.topic_id WHERE '+filter_sql, params)
+        output={'count':total, 'items':rows('SELECT o.* FROM outcomes o LEFT JOIN management_topics t ON t.topic_id=o.topic_id WHERE '+filter_sql+' ORDER BY o.occurred_at DESC LIMIT ? OFFSET ?', params+[limit,offset])}
+elif operation in ('risk', 'risks'):
     limit,offset=pagination()
     filter_sql=open_decision+" AND d.source_board != ? AND (d.decision_class='scope_violation' OR d.classifier_label='RISK_ESCALATION') AND (t.topic_id IS NULL OR ("+public_topic.replace('sensitivity','t.sensitivity').replace('source_task_refs_json','t.source_task_refs_json')+"))"
     params=[private_board]+private_sensitivities+['%"board":"'+private_board+'"%']
-    total=scalar('SELECT COUNT(*) FROM governance_decisions d LEFT JOIN management_topics t ON t.topic_id=d.topic_id WHERE '+filter_sql, params)
-    output={'count':total, 'items':rows('SELECT d.* FROM governance_decisions d LEFT JOIN management_topics t ON t.topic_id=d.topic_id WHERE '+filter_sql+' ORDER BY d.updated_at DESC LIMIT ? OFFSET ?', params+[limit,offset])}
-elif operation == 'wakeups':
+    if operation == 'risk':
+        filter_sql='d.decision_id=? AND '+filter_sql; params=[request['id']]+params
+        found=rows('SELECT d.* FROM governance_decisions d LEFT JOIN management_topics t ON t.topic_id=d.topic_id WHERE '+filter_sql, params)
+        output={'item':found[0] if found else None}
+    else:
+        total=scalar('SELECT COUNT(*) FROM governance_decisions d LEFT JOIN management_topics t ON t.topic_id=d.topic_id WHERE '+filter_sql, params)
+        output={'count':total, 'items':rows('SELECT d.* FROM governance_decisions d LEFT JOIN management_topics t ON t.topic_id=d.topic_id WHERE '+filter_sql+' ORDER BY d.updated_at DESC LIMIT ? OFFSET ?', params+[limit,offset])}
+elif operation in ('wakeup', 'wakeups'):
     limit,offset=pagination()
     params=[private_board]
-    total=scalar('SELECT COUNT(*) FROM wakeups WHERE source_board != ?', params)
-    output={'count':total, 'items':rows('SELECT * FROM wakeups WHERE source_board != ? ORDER BY wake_at LIMIT ? OFFSET ?', params+[limit,offset])}
+    if operation == 'wakeup':
+        found=rows('SELECT * FROM wakeups WHERE wakeup_id=? AND source_board != ?', [request['id']]+params)
+        output={'item':found[0] if found else None}
+    else:
+        total=scalar('SELECT COUNT(*) FROM wakeups WHERE source_board != ?', params)
+        output={'count':total, 'items':rows('SELECT * FROM wakeups WHERE source_board != ? ORDER BY wake_at LIMIT ? OFFSET ?', params+[limit,offset])}
 elif operation == 'digest':
     limit,offset=pagination()
     filter_sql="d.source_board != ? AND (t.topic_id IS NULL OR ("+public_topic.replace('sensitivity','t.sensitivity').replace('source_task_refs_json','t.source_task_refs_json')+"))"
