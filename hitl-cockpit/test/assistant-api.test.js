@@ -45,6 +45,14 @@ function serviceFixture() {
     getRun() {
       return { id: 'run_11111111-1111-4111-8111-111111111111', status: 'completed' };
     },
+    confirmProposal(id, options) {
+      calls.push(['confirm', { id, options }]);
+      return { proposal: { id, status: 'executed' } };
+    },
+    rejectProposal(id) {
+      calls.push(['reject', { id }]);
+      return { proposal: { id, status: 'rejected' } };
+    },
   };
 }
 
@@ -327,6 +335,37 @@ test('same-origin accepts forwarded HTTPS only from an explicitly trusted proxy'
     proxied()
   );
   assert.equal(accepted.status, 201);
+});
+
+test('confirm accepts an explicit assignee choice and rejects invalid overrides', async () => {
+  const service = serviceFixture();
+  const api = createAssistantApi({
+    config: {
+      enabled: true,
+      mode: 'low_risk',
+      writesEnabled: true,
+      matrixHandoffEnabled: true,
+      limits: { maxMessageChars: 4000, maxContextChars: 12000 },
+    },
+    service,
+  });
+  const proposalId = 'proposal_11111111-1111-4111-8111-111111111111';
+  const confirm = (body) =>
+    handle(
+      api,
+      req('POST', `/api/assistant/proposals/${proposalId}/confirm`, body, {
+        origin: 'https://cockpit.test',
+      })
+    );
+
+  assert.equal((await confirm({ assignee: ' Felix ' })).status, 200);
+  assert.deepEqual(service.calls.at(-1), [
+    'confirm',
+    { id: proposalId, options: { assignee: 'Felix' } },
+  ]);
+  assert.equal((await confirm({ assignee: '' })).status, 400);
+  assert.equal((await confirm({ assignee: 'x'.repeat(129) })).status, 400);
+  assert.equal((await confirm({ owner: 'Felix' })).status, 400);
 });
 
 test('rejects non-JSON, cross-origin, oversized, malformed IDs, rate excess, and absent write routes', async () => {

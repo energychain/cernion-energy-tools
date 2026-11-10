@@ -51,16 +51,42 @@ function mappedAction(proposal) {
   return { action, payload: structuredClone(value) };
 }
 
+function withResolvedAssignee(mapped, resolved, options = {}) {
+  if (mapped.action !== 'delegate_followup') return mapped;
+  const explicit =
+    typeof mapped.payload.assignee === 'string' ? mapped.payload.assignee.trim() : '';
+  if (explicit) return mapped;
+  const selected = typeof options.assignee === 'string' ? options.assignee.trim() : '';
+  if (selected) {
+    if (selected.length > 128) throw serviceError('assignee_too_long');
+    return {
+      ...mapped,
+      payload: { ...mapped.payload, assignee: selected },
+    };
+  }
+  const sourceAssignee =
+    typeof resolved.sourceAssignee === 'string' ? resolved.sourceAssignee.trim() : '';
+  if (!sourceAssignee) throw serviceError('assignee_required');
+  return {
+    ...mapped,
+    payload: { ...mapped.payload, assignee: sourceAssignee },
+  };
+}
+
 function proposalSummary(proposal) {
+  const mapped = mappedAction(proposal);
   return {
     id: proposal.id,
     actionType: proposal.actionType,
-    mappedAction: mappedAction(proposal).action,
+    mappedAction: mapped.action,
     targetType: proposal.targetType,
     targetId: proposal.targetId,
     riskClass: proposal.riskClass,
     scopeStatus: proposal.scopeStatus,
     status: proposal.status,
+    assigneeRequired:
+      mapped.action === 'delegate_followup' &&
+      !(typeof mapped.payload.assignee === 'string' && mapped.payload.assignee.trim()),
   };
 }
 
@@ -259,6 +285,10 @@ function createAssistantService(options = {}) {
     return {
       source: { board: source.board, taskId: source.taskId },
       sourceFingerprint: fingerprint,
+      sourceAssignee:
+        typeof resolved.task?.assignee === 'string' && resolved.task.assignee.trim()
+          ? resolved.task.assignee.trim()
+          : null,
     };
   }
 
@@ -337,10 +367,11 @@ function createAssistantService(options = {}) {
       objectId: conversation.objectId,
     });
     const resolved = await resolveExecutionSource(proposal, context);
-    const needsScope = SCOPED_ACTIONS.includes(mapped.action) || config.mode === 'productive';
+    const execution = withResolvedAssignee(mapped, resolved, options);
+    const needsScope = SCOPED_ACTIONS.includes(execution.action) || config.mode === 'productive';
     if (
       needsScope &&
-      !(await coveredByServerScope(mapped.action, resolved.source, proposal, context))
+      !(await coveredByServerScope(execution.action, resolved.source, proposal, context))
     ) {
       throw serviceError('scope_not_covered', 403);
     }
@@ -358,10 +389,10 @@ function createAssistantService(options = {}) {
     });
     try {
       const result = await executor.execute({
-        action: mapped.action,
+        action: execution.action,
         source: resolved.source,
         sourceFingerprint: resolved.sourceFingerprint,
-        payload: mapped.payload,
+        payload: execution.payload,
         idempotencyKey: proposal.idempotencyKey,
       });
       if (
@@ -375,7 +406,7 @@ function createAssistantService(options = {}) {
       }
       const matrix = await deliverMatrixAfterReceipt(
         proposal,
-        mapped.action,
+        execution.action,
         resolved.source,
         context
       );

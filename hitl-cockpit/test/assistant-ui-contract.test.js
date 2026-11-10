@@ -147,6 +147,9 @@ test('AP17 renders optional shadow proposals and receipts without HTML injection
   assert.match(script, /shadowReceipts/);
   assert.match(script, /content\.textContent = text/);
   assert.match(script, /dataset\.assistantProposal/);
+  assert.match(script, /dataset\.assigneeRequired/);
+  assert.match(script, /Welcher Agent soll den Folgeauftrag übernehmen/);
+  assert.match(script, /body\.assignee = assignee\.trim\(\)/);
   assert.doesNotMatch(script, /JSON\.stringify\(value\)/);
 });
 

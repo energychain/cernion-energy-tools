@@ -196,7 +196,15 @@ function createAssistantApi(options = {}) {
           return response(400, { ok: false, error: 'invalid_proposal_id' });
         }
         const body = await readJson(req, bodyLimit);
-        if (!body || Object.keys(body).length !== 0) {
+        const allowedBodyKeys = proposalAction[2] === 'confirm' ? ['assignee'] : [];
+        if (
+          !body ||
+          Object.keys(body).some((key) => !allowedBodyKeys.includes(key)) ||
+          (body.assignee !== undefined &&
+            (typeof body.assignee !== 'string' ||
+              !body.assignee.trim() ||
+              body.assignee.trim().length > 128))
+        ) {
           return response(400, { ok: false, error: 'invalid_body' });
         }
         if (limited(req)) return response(429, { ok: false, error: 'rate_limited' });
@@ -204,7 +212,12 @@ function createAssistantApi(options = {}) {
           if (!config.writesEnabled) {
             return response(403, { ok: false, error: 'assistant_writes_disabled' });
           }
-          return response(200, { ok: true, ...(await service.confirmProposal(proposalId)) });
+          return response(200, {
+            ok: true,
+            ...(await service.confirmProposal(proposalId, {
+              assignee: body.assignee === undefined ? undefined : body.assignee.trim(),
+            })),
+          });
         }
         return response(200, { ok: true, ...service.rejectProposal(proposalId) });
       }

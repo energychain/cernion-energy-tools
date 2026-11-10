@@ -29,7 +29,7 @@ function harness(t, options = {}) {
     board: 'operations',
     title: 'Public task',
     status: 'blocked',
-    assignee: 'Rhajaina',
+    assignee: options.taskAssignee === undefined ? 'Rhajaina' : options.taskAssignee,
     priority: 1,
   };
   const mode = options.mode || 'read_only';
@@ -242,6 +242,50 @@ test('duplicate submit and duplicate confirm produce one transport, one write, a
   assert.equal(h.writes.length, 1);
   assert.equal(confirmed.receipt.id, repeated.receipt.id);
   assert.equal(h.store.getReceiptByProposalId(proposal.id).id, confirmed.receipt.id);
+  assert.equal(h.writes[0].payload.assignee, 'Felix');
+});
+
+test('follow-up without an assignee uses only the selected source task assignment', async (t) => {
+  const response = {
+    text: 'Ich schlage einen Folgeauftrag vor.',
+    directive: {
+      intent: 'create_followup',
+      target: { objectType: 'topic', objectId: 'topic-1' },
+      payload: { title: 'Belege prüfen', description: 'Nur die belegte Quelle bearbeiten.' },
+    },
+  };
+  const assigned = harness(t, {
+    mode: 'low_risk',
+    response,
+    actionAllowlist: ['delegate_followup'],
+    taskAssignee: 'Rhajaina',
+  });
+  const assignedTurn = await assigned.turn({ objectType: 'topic', objectId: 'topic-1' });
+  const assignedProposal = assigned.service.listProposals({
+    conversationId: assignedTurn.conversation.id,
+  })[0];
+  await assigned.service.confirmProposal(assignedProposal.id);
+  assert.equal(assigned.writes[0].payload.assignee, 'Rhajaina');
+
+  const unassigned = harness(t, {
+    mode: 'low_risk',
+    response,
+    actionAllowlist: ['delegate_followup'],
+    taskAssignee: '',
+  });
+  const unassignedTurn = await unassigned.turn({ objectType: 'topic', objectId: 'topic-1' });
+  const unassignedProposal = unassigned.service.listProposals({
+    conversationId: unassignedTurn.conversation.id,
+  })[0];
+  await assert.rejects(
+    unassigned.service.confirmProposal(unassignedProposal.id),
+    (error) => error.code === 'assignee_required' && error.status === 400
+  );
+  assert.equal(unassigned.writes.length, 0);
+
+  await unassigned.service.confirmProposal(unassignedProposal.id, { assignee: 'Felix' });
+  assert.equal(unassigned.writes.length, 1);
+  assert.equal(unassigned.writes[0].payload.assignee, 'Felix');
 });
 
 test('private context is a 404 without transport and timeout produces no proposal or write', async (t) => {

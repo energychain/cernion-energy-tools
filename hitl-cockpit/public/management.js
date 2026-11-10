@@ -264,6 +264,7 @@ function renderAssistantArtifacts(item, article) {
           confirm.type = 'button';
           confirm.dataset.assistantProposal = value.id;
           confirm.dataset.proposalAction = 'confirm';
+          if (value.assigneeRequired) confirm.dataset.assigneeRequired = 'true';
           confirm.textContent = 'Ausführen';
           actions.append(confirm);
         }
@@ -1027,9 +1028,19 @@ document.addEventListener('click', async (event) => {
     const proposalId = proposalButton.dataset.assistantProposal;
     const action = proposalButton.dataset.proposalAction;
     try {
+      const body = {};
+      if (action === 'confirm' && proposalButton.dataset.assigneeRequired === 'true') {
+        const assignee = window.prompt('Welcher Agent soll den Folgeauftrag übernehmen?');
+        if (!assignee || !assignee.trim()) {
+          assistantStatus('Ausführung abgebrochen: Es wurde kein zuständiger Agent ausgewählt.');
+          proposalButton.disabled = false;
+          return;
+        }
+        body.assignee = assignee.trim();
+      }
       await assistantRequest(
         `/api/assistant/proposals/${encodeURIComponent(proposalId)}/${encodeURIComponent(action)}`,
-        { method: 'POST', body: {} }
+        { method: 'POST', body }
       );
       assistantStatus(
         action === 'confirm' ? 'Ausführung belegt und zurückgelesen.' : 'Vorschlag verworfen.'
