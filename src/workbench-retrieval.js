@@ -247,6 +247,14 @@ async function withinSourceBudget(task, budget) {
 }
 
 // Reuse the PA collectors; this is one retrieval round, with bounded parallel reads.
+// One source's collector: read capabilities, released knowledge bases, or a configured collector.
+function collectSource(config, ctx, input) {
+  if (config.kind === 'capability') return collectReadCapabilities(ctx, input.situation);
+  if (config.kind === 'gateway')
+    return require('./workbench-gateway-knowledge').collectGatewayKnowledge(ctx, input);
+  return input.collector[config.collector](ctx, input);
+}
+
 async function collectEvidence(
   collector,
   ctx,
@@ -296,6 +304,7 @@ async function collectEvidence(
             });
           const sourceInput = {
             ...input,
+            collector,
             timeoutMs: budget,
             question:
               source === 'willi-mako'
@@ -305,18 +314,7 @@ async function collectEvidence(
           const cached = source === 'knowledge-rag' ? ctx.meta.workbenchPrefetchedKnowledge : null;
           const result =
             cached ||
-            (await withinSourceBudget(
-              () =>
-                config.kind === 'capability'
-                  ? collectReadCapabilities(sourceCtx, situation)
-                  : config.kind === 'gateway'
-                    ? require('./workbench-gateway-knowledge').collectGatewayKnowledge(
-                        sourceCtx,
-                        sourceInput
-                      )
-                    : collector[config.collector](sourceCtx, sourceInput),
-              budget
-            ));
+            (await withinSourceBudget(() => collectSource(config, sourceCtx, sourceInput), budget));
           const filtered = filterEvidence(result.hits || [], situation, { catalog, source });
           return {
             ...result,
