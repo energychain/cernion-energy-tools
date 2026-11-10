@@ -44,6 +44,14 @@
       "timeoutMs": 4000
     },
     {
+      "id": "knowledge-gateway",
+      "domains": ["*"],
+      "functions": ["*"],
+      "kind": "gateway",
+      "scoreScale": "none",
+      "timeoutMs": 4000
+    },
+    {
       "id": "datapoint",
       "domains": ["*"],
       "functions": ["*"],

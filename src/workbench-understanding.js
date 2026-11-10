@@ -1832,7 +1832,7 @@ function decorateAnswer(
     unverifiedRule &&
     !(sources || []).some(
       (hit) =>
-        ['knowledge-rag', 'knowledge-rag-federated', 'willi-mako'].includes(
+        ['knowledge-rag', 'knowledge-rag-federated', 'knowledge-gateway', 'willi-mako'].includes(
           hit.retrievalSource || hit.source
         ) &&
         (hit.metadata?.sectionId || hit.metadata?.url)

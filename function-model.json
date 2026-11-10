@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "03bb07800e12bd3de5503673f6d53ce22c5f8058c89a398e5905da29c67d02f2",
+  "sourceHash": "ad446a52c129d2e4d0f9cd365b8194509c2154ae7ca9b393c773b2f0ea6b3fff",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -9930,6 +9930,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifier-context.js"
         },
         {
@@ -13820,6 +13824,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -22423,6 +22431,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -33356,6 +33368,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifier-context.js"
         },
         {
@@ -37572,6 +37588,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -57870,6 +57890,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifier-context.js"
         },
         {
@@ -68456,6 +68480,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifier-context.js"
         },
         {
@@ -74355,6 +74383,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifier-context.js"
         },
         {
@@ -80075,6 +80107,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -86378,6 +86414,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifier-context.js"
         },
         {
@@ -89588,6 +89628,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifier-context.js"
         },
         {
@@ -92536,6 +92580,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -101623,6 +101671,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -115629,6 +115681,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifier-context.js"
         },
         {
@@ -128653,6 +128709,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifier-context.js"
         },
         {
@@ -131915,6 +131975,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -137322,6 +137386,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifier-context.js"
         },
         {
@@ -142080,6 +142148,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -146953,6 +147025,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -151889,6 +151965,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -166686,6 +166766,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifier-context.js"
         },
         {
@@ -176692,6 +176776,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-identifier-context.js"
         },
         {
@@ -184140,6 +184228,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",
@@ -206768,6 +206860,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-evidence.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-gateway-knowledge.js"
         },
         {
           "kind": "service",

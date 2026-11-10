@@ -309,7 +309,12 @@ async function collectEvidence(
               () =>
                 config.kind === 'capability'
                   ? collectReadCapabilities(sourceCtx, situation)
-                  : collector[config.collector](sourceCtx, sourceInput),
+                  : config.kind === 'gateway'
+                    ? require('./workbench-gateway-knowledge').collectGatewayKnowledge(
+                        sourceCtx,
+                        sourceInput
+                      )
+                    : collector[config.collector](sourceCtx, sourceInput),
               budget
             ));
           const filtered = filterEvidence(result.hits || [], situation, { catalog, source });
