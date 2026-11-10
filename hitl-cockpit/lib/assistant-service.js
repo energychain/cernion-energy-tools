@@ -291,7 +291,7 @@ function createAssistantService(options = {}) {
       context.objectType === 'decision'
         ? context.objectId
         : context.payload && context.payload.decisionId;
-    if (!topicId || !decisionId) {
+    if (!topicId && !decisionId) {
       return { status: 'pending', error: 'matrix_context_not_available' };
     }
     const result = await matrixHandoff.deliver({

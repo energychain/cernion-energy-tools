@@ -55,6 +55,11 @@ function requireIdentifier(name, value) {
   return value;
 }
 
+function optionalIdentifier(name, value) {
+  if (value === null || value === undefined || value === '') return null;
+  return requireIdentifier(name, value);
+}
+
 function roomRefFromContext(context) {
   const roomRef = context?.payload?.references?.matrixRoom?.roomRef;
   if (typeof roomRef !== 'string' || !ROOM_REF_PATTERN.test(roomRef) || isSensitive(roomRef)) {
@@ -68,8 +73,8 @@ function handoffBody({ handoffId, topicId, decisionId, sourceId, text }) {
   return {
     body: [
       'Assistant handoff',
-      `Topic ID: ${topicId}`,
-      `Decision ID: ${decisionId}`,
+      ...(topicId ? [`Topic ID: ${topicId}`] : []),
+      ...(decisionId ? [`Decision ID: ${decisionId}`] : []),
       `Source ID: ${sourceId}`,
       `Handoff ID: ${handoffId}`,
       `Loop marker: ${loopMarker}`,
@@ -106,6 +111,7 @@ function createAssistantMatrixHandoffAdapter(options = {}) {
   const handoffs = new Map();
   const reportableErrors = new Set([
     'matrix_room_not_available',
+    'matrix_context_not_available',
     'handoff_text_required',
     'sensitive_handoff_forbidden',
     'matrix_mentions_forbidden',
@@ -125,8 +131,9 @@ function createAssistantMatrixHandoffAdapter(options = {}) {
       let loopMarker;
       try {
         roomRef = roomRefFromContext(input.context);
-        topicId = requireIdentifier('topic_id', input.topicId);
-        decisionId = requireIdentifier('decision_id', input.decisionId);
+        topicId = optionalIdentifier('topic_id', input.topicId);
+        decisionId = optionalIdentifier('decision_id', input.decisionId);
+        if (!topicId && !decisionId) throw new Error('matrix_context_not_available');
         sourceId = requireIdentifier('source_id', input.sourceId);
         const text = String(input.text || '').trim();
         if (!text) throw new Error('handoff_text_required');

@@ -69,6 +69,22 @@ test('delivers to the safe server context room and writes trace and loop identif
   assert.equal(calls[0].request.content['m.mentions'], undefined);
 });
 
+test('delivers a topic-only handoff and requires at least one context identifier', async () => {
+  const calls = [];
+  const delivered = await successfulAdapter(calls).deliver(
+    handoff({ handoffId: 'handoff_topic_only', decisionId: null })
+  );
+  assert.equal(delivered.status, 'delivered');
+  assert.match(calls[0].request.content.body, /Topic ID: topic_2026_001/);
+  assert.doesNotMatch(calls[0].request.content.body, /Decision ID:/);
+
+  const denied = await successfulAdapter([]).deliver(
+    handoff({ handoffId: 'handoff_without_context', topicId: null, decisionId: null })
+  );
+  assert.equal(denied.status, 'pending');
+  assert.equal(denied.error, 'matrix_context_not_available');
+});
+
 test('requires the nested server-provided room reference and never accepts a free room id', async () => {
   let sends = 0;
   const adapter = createAssistantMatrixHandoffAdapter({
