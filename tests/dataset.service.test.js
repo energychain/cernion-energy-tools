@@ -553,23 +553,32 @@ describe('tenant dataset catalog', () => {
     expect(historical.summaries[0].integral / 1000).toBeCloseTo(3478.874, 9);
   });
   test('semantic correction changes energy calculation without row upload', async () => {
-    llm.generateStructured.mockResolvedValueOnce({
-      kind: 'metadata',
-      basis: 'Die Werte sind kWh je Viertelstunde.',
-      datasetId: '',
-      rowNumbers: [],
-      units: [],
-    });
-    llm.generateStructured.mockResolvedValueOnce({
-      title: 'synthetischer-lastgang.csv',
-      timezone: 'Europe/Berlin',
-      units: { 'Wirkleistung Bezug [kW]': 'kWh' },
-      assumptions: [],
-    });
-    await call('dataset.turn', {
-      question: 'Die Werte sind kWh je Viertelstunde.',
-      conversationId: 'synthetic-chat',
-    });
+    await llm.generateStructured.withImplementation(
+      async (_schema, prompt) => {
+        const input = JSON.parse(prompt);
+        if (input.datasets)
+          return {
+            kind: 'metadata',
+            basis: 'Die Werte sind kWh je Viertelstunde.',
+            datasetId: '',
+            rowNumbers: [],
+            units: [],
+          };
+        if (input.profile && input.filename)
+          return {
+            title: 'synthetischer-lastgang.csv',
+            timezone: 'Europe/Berlin',
+            units: { 'Wirkleistung Bezug [kW]': 'kWh' },
+            assumptions: [],
+          };
+        return null;
+      },
+      () =>
+        call('dataset.turn', {
+          question: 'Die Werte sind kWh je Viertelstunde.',
+          conversationId: 'synthetic-chat',
+        })
+    );
     const [current] = (await call('datapoint.datasetCatalog', { operation: 'list' })).filter(
       (record) => record.current
     );

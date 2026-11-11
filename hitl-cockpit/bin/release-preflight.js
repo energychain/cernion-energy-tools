@@ -452,7 +452,10 @@ function promoteLastKnownGood({ artifact, target }) {
 }
 
 function rollbackDryRun({ lastKnownGood, target }) {
-  const manifest = copyVerifiedArtifact(lastKnownGood, target);
+  const destination = path.resolve(target);
+  const reportPath = `${destination}-report.json`;
+  if (fs.existsSync(reportPath)) throw new Error(`rollback report already exists: ${reportPath}`);
+  const manifest = copyVerifiedArtifact(lastKnownGood, destination);
   const report = {
     verified: true,
     commit: manifest.commit,
@@ -460,8 +463,6 @@ function rollbackDryRun({ lastKnownGood, target }) {
     kanbanRestorePerformed: false,
     restoredScope: 'cockpit-code-and-documented-runtime-config-only',
   };
-  const reportPath = `${path.resolve(target)}-report.json`;
-  if (fs.existsSync(reportPath)) throw new Error(`rollback report already exists: ${reportPath}`);
   fs.writeFileSync(reportPath, serialize(report), {
     mode: 0o600,
   });

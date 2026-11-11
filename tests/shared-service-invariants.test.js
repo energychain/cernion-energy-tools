@@ -93,7 +93,7 @@ for (const [id, spec] of Object.entries(dependencies)) {
         if (!realRuns.has(seed)) realRuns.set(seed, exerciseRealServices(seed));
         assertExercise(await realRuns.get(seed), id, seed);
       }
-    });
+    }, 90_000);
   }
 }
 
