@@ -94,8 +94,12 @@ const values = (list) =>
 // A hit of a case search is judged like any other item, with `searched` as a hint: the search may
 // mean earlier cases or, as in "Welche Angaben liegen dir zu diesem Fall vor?", only this one
 // (semantic probe: such a question received another chat's case content as linked).
-function namedCase(hit, named) {
-  return values([hit?.metadata?.caseRef]).some((ref) => named.has(ref));
+function namedCase(hit, named, message = '') {
+  const { exactToken } = require('./workbench-codes');
+  // Short display references (F-29) are no reference candidates; an exact token still names them.
+  return values([hit?.metadata?.caseRef]).some(
+    (ref) => named.has(ref) || exactToken(String(message), ref)
+  );
 }
 
 // Identifiers of the message that occur in the item: subject (denote the case or its object)
@@ -120,15 +124,24 @@ function namedIdentifiers(hit, named) {
 
 async function gateForeignEvidence(evidence = [], options = {}) {
   // Withheld items (not asked for, not named) may become a lesson or a suggestion, never a link.
-  const foreign = [
+  const named = new Set(referenceCandidates({ text: String(options.message || '') }));
+  const candidates = [
     ...evidence
       .map((hit, index) => ({ hit, index, mayLink: true }))
       .filter(({ hit }) => foreignItem(hit)),
     ...(options.withheld || []).map((hit) => ({ hit, index: -1, mayLink: false })),
+  ];
+  for (const item of candidates)
+    item.named = item.mayLink && namedCase(item.hit, named, options.message);
+  // Named items first; foreign items beyond the judged ones are never passed on unjudged
+  // (semantic probe: a broad self-knowledge search returned dozens, all but twelve slipped by).
+  const foreign = [
+    ...candidates.filter((item) => item.named),
+    ...candidates.filter((item) => !item.named),
   ].slice(0, MAX_ITEMS);
+  const overflow = candidates.length - foreign.length;
+  if (overflow) options.logger?.info?.('Foreign context gate overflow', { dropped: overflow });
   if (!foreign.length) return { evidence, suggest: false, decisions: [] };
-  const named = new Set(referenceCandidates({ text: String(options.message || '') }));
-  for (const item of foreign) item.named = item.mayLink && namedCase(item.hit, named);
   const judge = foreign.filter((item) => !item.named);
   const llm = options.llm || require('./llm-client');
   let judged = [];
@@ -187,7 +200,7 @@ async function gateForeignEvidence(evidence = [], options = {}) {
     else if (kind === 'comparable') suggest = true;
     return kind;
   });
-  const foreignIndexes = new Set(foreign.map(({ index }) => index));
+  const foreignIndexes = new Set(candidates.map(({ index }) => index));
   const kept = evidence.flatMap((hit, index) =>
     !foreignIndexes.has(index) ? [hit] : replaced.has(index) ? [replaced.get(index)] : []
   );

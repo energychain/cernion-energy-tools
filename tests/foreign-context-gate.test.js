@@ -86,6 +86,27 @@ describe('foreign context gate', () => {
     expect(input.foreign[0].searched).toBe(true);
   });
 
+  test('foreign items beyond the judged ones are dropped; a named case is judged first', async () => {
+    const items = Array.from({ length: 20 }, (_, index) =>
+      foreign(`Vorgang X-${index}: Inhalt ${index}`)
+    );
+    const named = {
+      ...foreign('Vorgang F-77: benannter Inhalt'),
+      metadata: { scopeOrigin: 'aus anderem Fall', caseRef: 'F-77' },
+    };
+    const llm = llmReturning(
+      Array.from({ length: 12 }, (_, index) => ({ index, decision: 'unrelated', lesson: '' }))
+    );
+    const logger = { info: jest.fn(), warn: jest.fn() };
+    const result = await gateForeignEvidence([own, ...items, named], {
+      llm,
+      logger,
+      message: 'Vergleiche bitte mit F-77.',
+    });
+    expect(result.evidence).toEqual([own, named]);
+    expect(logger.info).toHaveBeenCalledWith('Foreign context gate overflow', { dropped: 9 });
+  });
+
   test('a comparable case is offered, not disclosed', async () => {
     const llm = llmReturning([{ index: 0, decision: 'comparable', lesson: '' }]);
     const result = await gateForeignEvidence([own, foreign('Vorgang D-4 Details')], { llm });
