@@ -15,11 +15,6 @@
     "assistant": "/home/clawd/.hermes/agent-os/assistant-channel.db",
     "kanbanRoot": "/home/clawd/.hermes/kanban/boards"
   },
-  "requiredProfiles": [
-    "infrastructure",
-    "rhajaina"
-  ],
-  "excludedBoards": [
-    "twl-netze-private"
-  ]
+  "requiredProfiles": ["infrastructure", "rhajaina"],
+  "excludedBoards": ["twl-netze-private"]
 }
