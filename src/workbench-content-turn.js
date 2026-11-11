@@ -1582,7 +1582,7 @@ async function runContentTurn(
   });
   phaseTimes.caseStateMs = Math.max(1, Math.round(performance.now() - caseStateStarted));
   const answerStarted = performance.now();
-  if (loopJob) {
+  if (loopJob !== null) {
     // Planned lookups ran next to the case-state update (latency, AP7).
     const loop = await loopJob;
     retrieval.evidence = [...(retrieval.evidence || []), ...loop.evidence];
