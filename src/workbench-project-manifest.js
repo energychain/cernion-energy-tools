@@ -11,6 +11,13 @@ function projectManifestTrace(ctx, reply) {
     : reply;
 }
 
+const BUDGET_EXCEEDED = Symbol('tenant-evidence-budget');
+
+function tenantEvidenceBudgetMs(env = process.env) {
+  const value = Number(env.WORKBENCH_TENANT_EVIDENCE_BUDGET_MS || 60000);
+  return Number.isFinite(value) && value > 0 ? value : 60000;
+}
+
 async function projectManifestTurn(service, ctx, { p, envelope, pending, meta }) {
   if (
     (!ctx.broker.getLocalService('project-manifest') &&
@@ -65,90 +72,119 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
       sources: [],
     };
   }
-  const result = await require('./project-manifest-evidence').projectManifestAnswer(
-    safe,
-    envelope.userRequest,
-    {
-      routing: service.settings?.tenantEvidenceRouting,
-      requireSourceIds: envelope.tenantEvidenceReady
-        ? envelope.evidenceSourceIds || envelope.datasetIds
-        : [],
-      minSources: envelope.tenantEvidenceMinSources,
-      contextual: envelope.contextualEvidence,
-      currentConversationId: envelope.conversationId,
-      previousEvidence: {
-        selection: pending?.tenantEvidenceSelection,
-        question: pending?.tenantEvidenceQuestion || pending?.lastUserRequest,
-      },
-      onAssessment: (assessment) => assessments.set(ctx, assessment),
-    }
-  );
-  if (!result) return null;
-  // Learned-check results are phrased like every other project answer (number-checked prose);
-  // only the naming of the check stays deterministic.
-  const prose = await require('./project-manifest-prose').projectManifestProse(
-    result,
-    envelope.userRequest,
-    {
-      tenantId: p.tenantId,
-      logger: service.logger,
-      internalContext: [pending?.situation?.concern, pending?.situation?.situation].filter(Boolean),
-    }
-  );
-  const answer = result.learnedSkill
-    ? {
-        ...prose,
-        responseText: `${prose.responseText}\n\nBerechnet nach meinem gelernten Check ‚${result.learnedSkill.title}‘.`,
+  // The direct path answers within a budget; afterwards the regular turn takes over (long dialogue:
+  // a turn waited six minutes here and returned nothing).
+  let expired = false;
+  const answerFromEvidence = async () => {
+    const result = await require('./project-manifest-evidence').projectManifestAnswer(
+      safe,
+      envelope.userRequest,
+      {
+        routing: service.settings?.tenantEvidenceRouting,
+        requireSourceIds: envelope.tenantEvidenceReady
+          ? envelope.evidenceSourceIds || envelope.datasetIds
+          : [],
+        minSources: envelope.tenantEvidenceMinSources,
+        contextual: envelope.contextualEvidence,
+        currentConversationId: envelope.conversationId,
+        previousEvidence: {
+          selection: pending?.tenantEvidenceSelection,
+          question: pending?.tenantEvidenceQuestion || pending?.lastUserRequest,
+        },
+        onAssessment: (assessment) => assessments.set(ctx, assessment),
       }
-    : prose;
-  const caseProposal = result.tenantSelection
-    ? require('./workbench-tenant-evidence').caseProposal(result.evidence)
-    : null;
-  if (caseProposal)
-    answer.responseText += `\n\nDas Material passt zu Fall ${caseProposal.displayRef}. Du kannst diesen Fall fortsetzen; die Quellenwahl lässt sich mit „passt nicht“ korrigieren.`;
-  await conversation.saveTurn(service.conversationsDb, p, envelope, {
-    tenantMemoryFactIds: [],
-    projectSkillSelection: result.learnedSkill
-      ? { projectId: result.projectId, skillId: result.learnedSkill.skillId }
-      : null,
-    tenantEvidenceSelection: result.tenantSelection || null,
-    tenantEvidenceQuestion: envelope.userRequest.slice(0, 2000),
-    tenantEvidenceProjectSelections: result.projectSelections || [],
-    projectSelection: result.projectId
-      ? { projectId: result.projectId, questionTypeId: result.questionTypeId }
-      : null,
-    retrieval: {
+    );
+    if (!result) return null;
+    // Learned-check results are phrased like every other project answer (number-checked prose);
+    // only the naming of the check stays deterministic.
+    const prose = await require('./project-manifest-prose').projectManifestProse(
+      result,
+      envelope.userRequest,
+      {
+        tenantId: p.tenantId,
+        logger: service.logger,
+        internalContext: [pending?.situation?.concern, pending?.situation?.situation].filter(
+          Boolean
+        ),
+      }
+    );
+    const answer = result.learnedSkill
+      ? {
+          ...prose,
+          responseText: `${prose.responseText}\n\nBerechnet nach meinem gelernten Check ‚${result.learnedSkill.title}‘.`,
+        }
+      : prose;
+    const caseProposal = result.tenantSelection
+      ? require('./workbench-tenant-evidence').caseProposal(result.evidence)
+      : null;
+    if (caseProposal)
+      answer.responseText += `\n\nDas Material passt zu Fall ${caseProposal.displayRef}. Du kannst diesen Fall fortsetzen; die Quellenwahl lässt sich mit „passt nicht“ korrigieren.`;
+    // A late result after the budget is not stored: the regular turn answered meanwhile.
+    if (expired) return null;
+    await conversation.saveTurn(service.conversationsDb, p, envelope, {
+      tenantMemoryFactIds: [],
+      projectSkillSelection: result.learnedSkill
+        ? { projectId: result.projectId, skillId: result.learnedSkill.skillId }
+        : null,
+      tenantEvidenceSelection: result.tenantSelection || null,
+      tenantEvidenceQuestion: envelope.userRequest.slice(0, 2000),
+      tenantEvidenceProjectSelections: result.projectSelections || [],
+      projectSelection: result.projectId
+        ? { projectId: result.projectId, questionTypeId: result.questionTypeId }
+        : null,
+      retrieval: {
+        evidence: result.evidence,
+        trace: [
+          ...(assessments.has(ctx)
+            ? [{ source: 'project-manifest.routing', ...assessments.get(ctx) }]
+            : []),
+          ...result.trace,
+        ],
+        toolTrace: [],
+      },
+      evidenceRetrievedAt: Date.now(),
+      lastAnswer: answer.responseText.slice(0, 600),
+      lastConversationShape: 'knowledge',
+    });
+    return {
+      state: 'assistance',
+      nonBinding: true,
+      ...answer,
       evidence: result.evidence,
-      trace: [
-        ...(assessments.has(ctx)
-          ? [{ source: 'project-manifest.routing', ...assessments.get(ctx) }]
-          : []),
-        ...result.trace,
-      ],
-      toolTrace: [],
-    },
-    evidenceRetrievedAt: Date.now(),
-    lastAnswer: answer.responseText.slice(0, 600),
-    lastConversationShape: 'knowledge',
-  });
-  return {
-    state: 'assistance',
-    nonBinding: true,
-    ...answer,
-    evidence: result.evidence,
-    learnedSkill: result.learnedSkill,
-    gaps: result.gaps,
-    ...(result.projectId
-      ? { projectSelection: { projectId: result.projectId, questionTypeId: result.questionTypeId } }
-      : {}),
-    ...(result.tenantSelection ? { tenantEvidenceSelection: result.tenantSelection } : {}),
-    ...(caseProposal ? { caseProposal } : {}),
-    sources: result.evidence.map((entry) => ({
-      source: entry.source,
-      status: 'available',
-      called: true,
-    })),
+      learnedSkill: result.learnedSkill,
+      gaps: result.gaps,
+      ...(result.projectId
+        ? {
+            projectSelection: {
+              projectId: result.projectId,
+              questionTypeId: result.questionTypeId,
+            },
+          }
+        : {}),
+      ...(result.tenantSelection ? { tenantEvidenceSelection: result.tenantSelection } : {}),
+      ...(caseProposal ? { caseProposal } : {}),
+      sources: result.evidence.map((entry) => ({
+        source: entry.source,
+        status: 'available',
+        called: true,
+      })),
+    };
   };
+  const work = answerFromEvidence();
+  let timer;
+  const budget = tenantEvidenceBudgetMs();
+  const outcome = await Promise.race([
+    work,
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(BUDGET_EXCEEDED), budget);
+    }),
+  ]);
+  clearTimeout(timer);
+  if (outcome !== BUDGET_EXCEEDED) return outcome;
+  expired = true;
+  work.catch(() => {});
+  service.logger?.info?.('Tenant evidence budget exceeded', { budgetMs: budget });
+  return null;
 }
 
 async function supplementDatasetAnswer(service, ctx, input, result) {

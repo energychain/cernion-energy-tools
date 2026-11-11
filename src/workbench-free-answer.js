@@ -133,7 +133,12 @@ async function annotateFreeAnswer(
         title: hit.title,
       })),
     }),
-    { phase: 'answer_annotation', tenantId }
+    {
+      // Classification work: the fast understanding model with its bounded budget (latency).
+      ...require('./workbench-understanding').llmOptions(tenantId),
+      phase: 'answer_annotation',
+      tenantId,
+    }
   );
   const rows = new Map(((raw?.data || raw)?.paragraphs || []).map((row) => [row.index, row]));
   const known = new Set(evidence.map((hit) => hit.evidenceId).filter(Boolean));
