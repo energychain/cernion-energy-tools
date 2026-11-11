@@ -1583,7 +1583,7 @@ async function runContentTurn(
     retrieval.knowledgeLoop = loop.trace;
   }
   // Which material the answer receives, by source and origin (no content): makes leaks and thin
-  // grounding visible per turn.
+  // evidence visible per turn.
   {
     const counts = {};
     for (const hit of retrieval.evidence || []) {
