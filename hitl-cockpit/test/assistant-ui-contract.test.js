@@ -125,6 +125,17 @@ test('AP17 names write-capable assistant modes without calling them read-only', 
   assert.match(script, /productive:[\s\S]*label: 'Produktive Assistenz'/);
   assert.match(script, /if \(!config\.writesEnabled\)/);
   assert.match(script, /updateAssistantMode\(\)/);
+  assert.match(script, /Produktiver Low-Risk-Betrieb · bereit/);
+  assert.match(script, /schreibt das Cockpit den Auftrag nach Kanban/);
+});
+
+test('productive assistant refreshes runtime mode and labels executable artifacts truthfully', () => {
+  assert.match(script, /async function refreshAssistantConfig\(\)/);
+  assert.ok(count(script, /await refreshAssistantConfig\(\)/g) >= 2);
+  assert.match(script, /productive \? 'Ausführungsvorschlag' : 'Shadow-Vorschlag'/);
+  assert.match(script, /productive \? 'Ausführungsbeleg' : 'Shadow-Beleg'/);
+  assert.match(script, /Ausführung vorbereitet · Vorschlag prüfen und „Ausführen“ wählen\./);
+  assert.match(script, /Ausgeführt · Kanban-Readback und Übergabebeleg sind protokolliert\./);
 });
 
 test('AP17 switches an open assistant immediately and announces the topic change', () => {
@@ -194,6 +205,7 @@ test('AP16 message loader follows cursors across pages and renders the newest re
     URLSearchParams,
     assistantState: { conversationId: 'conversation/with cursor', config: { mode: 'read_only' } },
     assistantModePresentation: () => ({ ready: 'Read-only · bereit' }),
+    assistantActivityStatus: () => 'Read-only · bereit',
     assistantRequest: async (url) => {
       requests.push(url);
       return pages.shift();
@@ -229,6 +241,7 @@ test('AP16 message loader enforces the explicit page cap before rendering partia
     URLSearchParams,
     assistantState: { conversationId: 'conversation-1', config: { mode: 'read_only' } },
     assistantModePresentation: () => ({ ready: 'Read-only · bereit' }),
+    assistantActivityStatus: () => 'Read-only · bereit',
     assistantRequest: async (url) => {
       calls += 1;
       if (calls === 2) assert.match(url, /cursor=cursor-1/);

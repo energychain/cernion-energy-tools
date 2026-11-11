@@ -106,6 +106,14 @@ function assistantStatus(message) {
   byId('assistant-status').textContent = message;
 }
 
+async function refreshAssistantConfig() {
+  const config = await assistantRequest('/api/assistant/config');
+  assistantState.config = config;
+  byId('assistant-text').maxLength = config.limits.maxMessageChars;
+  updateAssistantMode();
+  return config;
+}
+
 function assistantModePresentation(config) {
   if (!config || !config.enabled) {
     return {
@@ -134,8 +142,8 @@ function assistantModePresentation(config) {
     low_risk: {
       label: 'Assistenz · begrenzte Aktionen',
       description:
-        'Rhajaina kann ausdrücklich bestätigte, risikoarme Aktionen innerhalb der angezeigten Freigaben ausführen.',
-      ready: 'Begrenzte Aktionen · bereit',
+        'Deine Anweisung erzeugt einen ausführbaren Vorschlag. Nach deiner Bestätigung schreibt das Cockpit den Auftrag nach Kanban und übergibt ihn an den sicheren Matrix-Fachraum.',
+      ready: 'Produktiver Low-Risk-Betrieb · bereit',
     },
     scoped: {
       label: 'Assistenz · Scope-gedeckt',
@@ -235,13 +243,14 @@ function assistantArtifactText(value) {
 }
 
 function renderAssistantArtifacts(item, article) {
+  const productive = Boolean(assistantState.config && assistantState.config.writesEnabled);
   const groups = [
     [
-      'Shadow-Vorschlag',
+      productive ? 'Ausführungsvorschlag' : 'Shadow-Vorschlag',
       assistantArtifactItems(item, ['proposal', 'shadowProposals', 'shadowProposal', 'proposals']),
     ],
     [
-      'Shadow-Beleg',
+      productive ? 'Ausführungsbeleg' : 'Shadow-Beleg',
       assistantArtifactItems(item, ['receipt', 'shadowReceipts', 'shadowReceipt', 'receipts']),
     ],
   ];
@@ -256,7 +265,7 @@ function renderAssistantArtifacts(item, article) {
       const content = document.createElement('span');
       content.textContent = text;
       artifact.append(heading, content);
-      if (label === 'Shadow-Vorschlag' && value && value.id && value.status === 'shadow') {
+      if (label.endsWith('Vorschlag') && value && value.id && value.status === 'shadow') {
         const actions = document.createElement('div');
         actions.className = 'assistant-proposal-actions';
         if (assistantState.config && assistantState.config.writesEnabled) {
@@ -279,6 +288,35 @@ function renderAssistantArtifacts(item, article) {
       article.append(artifact);
     }
   }
+}
+
+function assistantActivityStatus(items) {
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    const item = items[index];
+    const receipts = assistantArtifactItems(item, [
+      'receipt',
+      'shadowReceipts',
+      'shadowReceipt',
+      'receipts',
+    ]);
+    if (receipts.length && assistantState.config && assistantState.config.writesEnabled) {
+      return 'Ausgeführt · Kanban-Readback und Übergabebeleg sind protokolliert.';
+    }
+    const proposals = assistantArtifactItems(item, [
+      'proposal',
+      'shadowProposals',
+      'shadowProposal',
+      'proposals',
+    ]);
+    if (
+      proposals.some((proposal) => proposal && proposal.status === 'shadow') &&
+      assistantState.config &&
+      assistantState.config.writesEnabled
+    ) {
+      return 'Ausführung vorbereitet · Vorschlag prüfen und „Ausführen“ wählen.';
+    }
+  }
+  return assistantModePresentation(assistantState.config).ready;
 }
 
 function renderAssistantMessages(items) {
@@ -345,7 +383,7 @@ async function loadAssistantMessages() {
   } while (cursor && pages < ASSISTANT_PAGE_CAP);
   if (cursor) throw new Error('assistant_message_page_cap');
   renderAssistantMessages(items);
-  assistantStatus(assistantModePresentation(assistantState.config).ready);
+  assistantStatus(assistantActivityStatus(items));
 }
 
 async function selectAssistantContext(context, options = {}) {
@@ -417,12 +455,8 @@ async function openAssistant(context = undefined) {
   panel.setAttribute('aria-hidden', 'false');
   backdrop.removeAttribute('hidden');
   backdrop.removeAttribute('inert');
-  if (!assistantState.config) {
-    assistantStatus('Assistenzkonfiguration wird geladen …');
-    assistantState.config = await assistantRequest('/api/assistant/config');
-    byId('assistant-text').maxLength = assistantState.config.limits.maxMessageChars;
-  }
-  updateAssistantMode();
+  assistantStatus('Aktueller Betriebsmodus wird geprüft …');
+  await refreshAssistantConfig();
   if (!assistantState.config.enabled) {
     assistantStatus('Rhajaina ist in dieser Umgebung deaktiviert.');
     byId('assistant-form').hidden = true;
@@ -490,6 +524,8 @@ async function sendAssistantMessage() {
   textarea.disabled = true;
   assistantStatus('Rhajaina ordnet die Frage ein …');
   try {
+    await refreshAssistantConfig();
+    if (!assistantState.config.enabled) throw new Error('assistant_disabled');
     const run = await assistantRequest(
       `/api/assistant/conversations/${encodeURIComponent(conversationId)}/messages`,
       {
