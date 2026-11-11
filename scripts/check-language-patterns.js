@@ -22,19 +22,33 @@ const SCOPE = [
   /^src\/(?:requested-effect|foreign-context-gate|conversation-context)\.js$/u,
   /^services\/(?:workbench|openai-compatible)\.service\.js$/u,
 ];
-const LITERAL =
-  /\/((?:\\.|\[[^\]\n]*\]|[^/\n\\])+)\/[gimsuy]*\s*\.(?:test|exec)\(|\.(?:match|replace|split|search)\(\s*\/((?:\\.|\[[^\]\n]*\]|[^/\n\\])+)\//gu;
-
 // A pattern counts as language when it holds a word of four or more letters next to an
 // alternation, a word boundary or a space.
 function isLanguagePattern(source) {
-  return /[a-zäöüß]{4,}/iu.test(source) && /[|]|\\b|\s/u.test(source);
+  const lower = String(source).toLowerCase();
+  let run = 0;
+  let word = false;
+  for (const character of lower) {
+    run = /\p{L}/u.test(character) ? run + 1 : 0;
+    if (run >= 4) word = true;
+  }
+  return word && (lower.includes('|') || lower.includes('\\b') || /\s/u.test(lower));
+}
+
+// Regular expression literals of a file, found by the JavaScript parser (no pattern matching).
+function regexLiterals(text) {
+  const { tokenize } = require('espree');
+  try {
+    return tokenize(text, { ecmaVersion: 'latest', sourceType: 'script' })
+      .filter((token) => token.type === 'RegularExpression')
+      .map((token) => token.regex.pattern);
+  } catch (_error) {
+    return [];
+  }
 }
 
 function countFile(text) {
-  let count = 0;
-  for (const match of text.matchAll(LITERAL)) if (isLanguagePattern(match[1] || match[2])) count++;
-  return count;
+  return regexLiterals(text).filter(isLanguagePattern).length;
 }
 
 function scopeFiles() {
@@ -44,7 +58,7 @@ function scopeFiles() {
       const relative = `${dir}/${name}`;
       if (SCOPE.some((pattern) => pattern.test(relative))) files.push(relative);
     }
-  return files.sort();
+  return files.sort((left, right) => left.localeCompare(right));
 }
 
 function inventory() {
