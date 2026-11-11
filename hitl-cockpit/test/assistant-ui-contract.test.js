@@ -155,6 +155,14 @@ test('productive assistant refreshes runtime mode and labels executable artifact
   assert.match(script, /Ausgeführt · Kanban-Readback und Übergabebeleg sind protokolliert\./);
 });
 
+test('department cards expose governance questions and proposed next actions', () => {
+  assert.match(script, /<h4>Governancefragen<\/h4>/);
+  assert.match(script, /decision\.question \|\| 'Governancefrage ohne Titel'/);
+  assert.match(script, /assistantContextButton\(\s*'decision'/);
+  assert.match(script, /Empfehlung ist noch nicht ausgewiesen/);
+  assert.match(script, /item\.next_actions/);
+});
+
 test('AP17 switches an open assistant immediately and announces the topic change', () => {
   assert.match(script, /announce:\s*wasOpen && context !== undefined/);
   assert.match(script, /Thema gewechselt ·/);

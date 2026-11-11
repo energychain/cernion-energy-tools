@@ -209,6 +209,29 @@ function structuredValues(tasks, markers) {
   );
 }
 
+function suggestedNextActions(agent, relevantTopics, managementNeeds) {
+  const governanceSuggestions = managementNeeds.map((decision) =>
+    decision.recommendation
+      ? `Vorschlag: ${decision.recommendation}`
+      : `Vorschlag: Governancefrage klären: ${decision.question}`
+  );
+  if (governanceSuggestions.length) return governanceSuggestions;
+
+  const topicSuggestions = relevantTopics.map((item) => {
+    const title = item.topic.title || item.topic.topic_id;
+    const state = String(item.topic.current_state || '').toLowerCase();
+    return state === 'blocked'
+      ? `Vorschlag: Blockade bei „${title}“ klären und den fallabschließenden nächsten Schritt dokumentieren.`
+      : `Vorschlag: „${title}“ priorisiert bearbeiten und den fallabschließenden nächsten Schritt mit Termin dokumentieren.`;
+  });
+  if (topicSuggestions.length) return topicSuggestions;
+
+  return [
+    agent.defaultNextAction ||
+      'Vorschlag: Lage im Verantwortungsbereich prüfen und den wichtigsten nächsten Schritt oder einen erklärten Leerstand dokumentieren.',
+  ];
+}
+
 function topicScore(topic, context) {
   const outcomes = context.outcomesByTopic.get(topic.topic_id) || [];
   const topicDecisions = context.decisionsByTopic.get(topic.topic_id) || [];
@@ -327,11 +350,16 @@ function projectAgentBriefs(input, options = {}) {
     const memberTasks = unique(relevantTopics.flatMap((item) => item.members));
     const dependencies = structuredValues(memberTasks, ['DEPENDENCY', 'ABHÄNGIGKEIT']);
     const explicitRisks = structuredValues(memberTasks, ['RISK', 'RISIKO']);
-    const nextActions = unique([
+    const explicitNextActions = unique([
       ...relevantTopics.map((item) => item.topic.next_step),
       ...structuredValues(memberTasks, ['NEXT_ACTION', 'NEXT_STEP', 'NÄCHSTER_SCHRITT']),
       ...(wakeupsByOwner.get(agent.id) || []).map((wakeup) => wakeup.next_action_on_wake),
-    ]).slice(0, 8);
+    ]);
+    const nextActions = (
+      explicitNextActions.length
+        ? explicitNextActions
+        : suggestedNextActions(agent, relevantTopics, managementNeeds)
+    ).slice(0, 8);
     const evidenceRefs = unique(
       periodOutcomes.flatMap((outcome) => parseJson(outcome.evidence_refs_json))
     );

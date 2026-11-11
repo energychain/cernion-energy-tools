@@ -864,6 +864,23 @@ function departmentCard(agent, item) {
         'Kein strukturierter nächster Schritt ausgewiesen.'
       )}</section>
     </div>
+    <section class="department-governance"><h4>Governancefragen</h4>${briefItems(
+      needs,
+      (decision) =>
+        `<b>${escapeHtml(decision.question || 'Governancefrage ohne Titel')}</b>${
+          decision.recommendation
+            ? `<span>Empfehlung: ${escapeHtml(decision.recommendation)}</span>`
+            : '<span>Empfehlung ist noch nicht ausgewiesen.</span>'
+        }<div class="context-actions">${taskButton(
+          decision.source?.board,
+          decision.source?.taskId
+        )}${assistantContextButton(
+          'decision',
+          decision.decisionId,
+          decision.question || 'Governancefrage ohne Titel'
+        )}</div>`,
+      'Keine offene Governancefrage.'
+    )}</section>
     ${briefItems(
       outcomes,
       (outcome) =>

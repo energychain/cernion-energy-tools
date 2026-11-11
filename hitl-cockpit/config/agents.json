@@ -7,43 +7,50 @@
       "id": "Rhajaina",
       "aliases": ["rhajaina", "stromdao", "main"],
       "role": "Geschäftsleitungsassistenz und Gesamtkoordination",
-      "mandateGoal": "Unternehmensweite Themen koordinieren, Zielkonflikte verdichten und fallabschließende Arbeit ermöglichen."
+      "mandateGoal": "Unternehmensweite Themen koordinieren, Zielkonflikte verdichten und fallabschließende Arbeit ermöglichen.",
+      "defaultNextAction": "Vorschlag: Unternehmenslage prüfen, den wichtigsten bereichsübergreifenden Engpass priorisieren und einen Verantwortlichen mit Termin benennen."
     },
     {
       "id": "Felix",
       "aliases": ["felix"],
       "role": "B2B, CRM, Vertrieb und Partnerschaften",
-      "mandateGoal": "Qualifizierte Geschäftschancen in belastbare Dialoge, Angebote und Abschlüsse überführen."
+      "mandateGoal": "Qualifizierte Geschäftschancen in belastbare Dialoge, Angebote und Abschlüsse überführen.",
+      "defaultNextAction": "Vorschlag: CRM- und Dialoglage prüfen und die aussichtsreichste fällige Geschäftschance in einen konkreten nächsten Kundenschritt überführen."
     },
     {
       "id": "Anja",
       "aliases": ["anja"],
       "role": "Finanzen und kaufmännische Vorgänge",
-      "mandateGoal": "Kaufmännische Vorgänge nachvollziehbar, fristgerecht und fallabschließend bearbeiten."
+      "mandateGoal": "Kaufmännische Vorgänge nachvollziehbar, fristgerecht und fallabschließend bearbeiten.",
+      "defaultNextAction": "Vorschlag: Liquidität, offene Forderungen, fällige Rechnungen und kaufmännische Wiedervorlagen prüfen und die wichtigste Abweichung bearbeiten."
     },
     {
       "id": "Viki",
       "aliases": ["viki"],
       "role": "Markt, Strategie und Geschäftschancen",
-      "mandateGoal": "Marktimpulse in belastbare strategische Optionen und konkrete Geschäftschancen übersetzen."
+      "mandateGoal": "Marktimpulse in belastbare strategische Optionen und konkrete Geschäftschancen übersetzen.",
+      "defaultNextAction": "Vorschlag: Neue Marktimpulse bewerten und den stärksten belegten Impuls als strategische Option oder Gesprächsanlass ausarbeiten."
     },
     {
       "id": "Cori",
       "aliases": ["cori"],
       "role": "B2C und Corrently",
-      "mandateGoal": "B2C-Anliegen und Corrently-Fälle kundenseitig wirksam und fallabschließend bearbeiten."
+      "mandateGoal": "B2C-Anliegen und Corrently-Fälle kundenseitig wirksam und fallabschließend bearbeiten.",
+      "defaultNextAction": "Vorschlag: Offene B2C- und Corrently-Fälle nach Kundenauswirkung prüfen und den wichtigsten Fall fallabschließend bearbeiten."
     },
     {
       "id": "DevOps",
       "aliases": ["devops", "cernion_dev"],
       "role": "Softwareentwicklung und Produktqualität",
-      "mandateGoal": "Produktverbesserungen mit fachlich bestätigter Wirkung zuverlässig bereitstellen."
+      "mandateGoal": "Produktverbesserungen mit fachlich bestätigter Wirkung zuverlässig bereitstellen.",
+      "defaultNextAction": "Vorschlag: Offene Issues und PRs gegen die aktiven Entwicklungs-EPICs abgleichen und den wichtigsten ungeklärten Qualitäts- oder Liefergegenstand bearbeiten."
     },
     {
       "id": "Infrastructure",
       "aliases": ["infrastructure"],
       "role": "Systeme und Betrieb",
-      "mandateGoal": "Einen stabilen Betrieb sicherstellen und fachlich relevante Störungen nachweisbar abschließen."
+      "mandateGoal": "Einen stabilen Betrieb sicherstellen und fachlich relevante Störungen nachweisbar abschließen.",
+      "defaultNextAction": "Vorschlag: Betriebszustand und offene Störungen prüfen und die wichtigste Abweichung mit Readback oder erklärtem Leerstand abschließen."
     }
   ]
 }

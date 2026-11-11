@@ -224,8 +224,41 @@ test('every configured agent receives a current brief or an explained empty stat
     assert.equal(item.brief_status, 'empty');
     assert.match(item.empty_state_reason, /Keine aktiven Managementthemen/);
     assert.equal(item.last_substantive_progress_at, null);
+    assert.match(JSON.parse(item.next_actions_json)[0], /^Vorschlag:/);
   }
   assert.equal(result.diagnostics.emptyBriefs, 3);
+});
+
+test('brief proposes a governance or topic next step when no explicit action exists', () => {
+  const governanceInput = {
+    tasks: [task('sales', 't_case001')],
+    topics: [topic('topic_case', 'Felix', [{ board: 'sales', taskId: 't_case001' }])],
+    outcomes: [],
+    decisions: [
+      decision('decision_price', 'topic_case', {
+        recommendation: null,
+        classifier_label: 'RISK_ESCALATION',
+      }),
+    ],
+    wakeups: [],
+  };
+  assert.deepEqual(JSON.parse(brief(project(governanceInput), 'Felix').next_actions_json), [
+    'Vorschlag: Governancefrage klären: Preis festlegen?',
+  ]);
+
+  const topicInput = {
+    ...governanceInput,
+    decisions: [],
+    topics: [
+      topic('topic_case', 'Felix', [{ board: 'sales', taskId: 't_case001' }], {
+        title: 'Kundendialog fortsetzen',
+        current_state: 'blocked',
+      }),
+    ],
+  };
+  assert.deepEqual(JSON.parse(brief(project(topicInput), 'Felix').next_actions_json), [
+    'Vorschlag: Blockade bei „Kundendialog fortsetzen“ klären und den fallabschließenden nächsten Schritt dokumentieren.',
+  ]);
 });
 
 test('noise topics and incomplete decision projections do not enter management briefs', () => {
