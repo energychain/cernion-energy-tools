@@ -48,7 +48,7 @@
       "domains": ["*"],
       "functions": ["*"],
       "kind": "gateway",
-      "scoreScale": "none",
+      "scoreScale": "unit",
       "timeoutMs": 4000
     },
     {
