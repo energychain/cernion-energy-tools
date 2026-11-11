@@ -1,12 +1,14 @@
 {
   "name": "agentos-hitl-cockpit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check public/app.js && node --check public/management.js && node --check lib/agent-brief-projector.js && node --check lib/assistant-action-executor.js && node --check lib/assistant-api.js && node --check lib/assistant-config.js && node --check lib/assistant-context.js && node --check lib/assistant-directives.js && node --check lib/assistant-matrix-handoff.js && node --check lib/assistant-matrix-runtime.js && node --check lib/assistant-service.js && node --check lib/assistant-store.js && node --check lib/assistant-summary.js && node --check lib/context-links.js && node --check lib/decision-actions.js && node --check lib/digest-projector.js && node --check lib/management-api.js && node --check lib/management-reader.js && node --check lib/outcome-projector.js && node --check lib/rhajaina-client.js && node --check lib/session-auth.js && node --check lib/telemetry.js && node --check lib/topic-projector.js && node --check lib/wakeup-service.js && node --check bin/export-telemetry.js && node --check bin/process-wakeups.js && node --check bin/rebuild-projection.js",
-    "test": "node --test test/*.test.js"
+    "check": "node --check server.js && node --check public/app.js && node --check public/management.js && node --check lib/agent-brief-projector.js && node --check lib/assistant-action-executor.js && node --check lib/assistant-api.js && node --check lib/assistant-config.js && node --check lib/assistant-context.js && node --check lib/assistant-directives.js && node --check lib/assistant-matrix-handoff.js && node --check lib/assistant-matrix-runtime.js && node --check lib/assistant-service.js && node --check lib/assistant-store.js && node --check lib/assistant-summary.js && node --check lib/context-links.js && node --check lib/decision-actions.js && node --check lib/digest-projector.js && node --check lib/management-api.js && node --check lib/management-reader.js && node --check lib/outcome-projector.js && node --check lib/rhajaina-client.js && node --check lib/session-auth.js && node --check lib/telemetry.js && node --check lib/topic-projector.js && node --check lib/wakeup-service.js && node --check bin/export-telemetry.js && node --check bin/process-wakeups.js && node --check bin/rebuild-projection.js && node --check bin/release-preflight.js && node --check bin/run-tests.js",
+    "release:preflight": "node bin/release-preflight.js preflight --base-ref origin/main --hermes-home \"${HERMES_HOME:-$HOME/.hermes}\" --config config/release-runtime.example.json --allow-untracked agent-operating-system/rhajaina-assistant-channel-production-smoke-v1.md",
+    "release:build": "node bin/release-preflight.js build --base-ref origin/main --hermes-home \"${HERMES_HOME:-$HOME/.hermes}\" --config config/release-runtime.example.json --allow-untracked agent-operating-system/rhajaina-assistant-channel-production-smoke-v1.md --output \"${COCKPIT_RELEASE_OUTPUT:-/tmp/agentos-cockpit-release}\"",
+    "test": "node bin/run-tests.js"
   }
 }

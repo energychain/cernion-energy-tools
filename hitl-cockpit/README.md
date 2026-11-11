@@ -1,7 +1,7 @@
 # AgentOS HITL- und Management-Cockpit
 
-Stand: 2026-11-09
-Status: AP 0–15 im isolierten Worktree implementiert; nicht produktiv deployt
+Stand: 2026-11-11
+Status: AP 0–17 im Integrations-Worktree implementiert; nicht produktiv deployt
 
 ## Zweck
 
@@ -14,6 +14,7 @@ Hermes Kanban bleibt System of Record. Die Management-SQLite ist eine abgeleitet
 
 Verbindliche Policy: `../agent-operating-system/management-cockpit-policy-v1.md`.
 Produktionsbaseline und Rückfall: `../agent-operating-system/management-cockpit-operations-v1.md`.
+Reproduzierbare Releasebasis: `../agent-operating-system/management-cockpit-release-baseline-v2.md`.
 
 ## Sicherheitsstatus
 
@@ -55,6 +56,7 @@ hitl-cockpit/
     rebuild-projection.js
     export-telemetry.js
     process-wakeups.js
+    release-preflight.js
   config/
     agents.json
     classifier-policy.json
@@ -110,6 +112,7 @@ Oder aus `hitl-cockpit/`:
 ```bash
 npm run check
 npm test
+node --test test/release-preflight.test.js
 ```
 
 Die Suite umfasst zusätzlich den Rhajaina Assistant Channel, Kontext-Attachments, Shadow-Proposals, idempotente Receipts, guarded Actions und Matrix-Handoffs.
@@ -296,11 +299,40 @@ POST /api/assistant/proposals/:id/reject
 
 Das Karten-Attachment wird serverseitig aus Objektart und ID rekonstruiert. Ein Themenwechsel im offenen Drawer wechselt sofort in den passenden Objektthread; „Globales Gespräch“ startet beziehungsweise öffnet den globalen Thread. Ein Write-Erfolg wird erst nach exaktem Kanban-Readback als Receipt angezeigt.
 
+## Reproduzierbare Releasebasis
+
+AP 17 führt keinen Cutover aus. Der Release-Preflight validiert Commit/`main`-Abstammung,
+Arbeitsbaum, Schema v5/v6, das geschlossene Runtime-Schema, getrennte Datenbankpfade und die
+tatsächliche Lesbarkeit der erforderlichen Profile. Unbekannte Felder, Secret-Muster und
+NUL-/Binärinhalte werden abgewiesen. Das Artefakt wird nur aus committed Cockpit-Dateien plus der
+dokumentierten Runtime-Konfiguration gebaut; Profile werden nie kopiert:
+
+```bash
+node bin/release-preflight.js preflight \
+  --commit "$(git rev-parse HEAD)" \
+  --base-ref origin/main \
+  --profile-root /home/clawd/.hermes/profiles \
+  --config config/release-runtime.example.json
+
+node bin/release-preflight.js build \
+  --commit "$(git rev-parse HEAD)" \
+  --base-ref origin/main \
+  --profile-root /home/clawd/.hermes/profiles \
+  --config config/release-runtime.example.json \
+  --output /tmp/agentos-cockpit-release
+```
+
+Das deterministische Manifest enthält Commit, Anwendungsversion, Schemaversionen und SHA-256
+aller Dateien. Tests und Workspace-Dirt werden nicht übernommen. Last-Known-Good-Promotion und
+Rollback-Dry-Run verifizieren das Manifest vor und nach dem Kopieren und restaurieren niemals
+Kanban. Vollständige Befehle und Grenzen stehen in
+`management-cockpit-release-baseline-v2.md`.
+
 ## Deployment-Preflight
 
 AP 15 führt kein Deployment aus. Für einen späteren, separat freigegebenen Read-only-Rollout:
 
-1. Branch/Commit beziehungsweise signiertes Release-Artefakt festlegen; keine Auslieferung aus uncommitteten Dateien.
+1. AP-17-Preflight und deterministischen Build für den freigegebenen Commit ausführen; keine Auslieferung aus Arbeitsbaumdateien.
 2. GitNexus `detect_changes(scope=compare, base_ref=main)` auswerten und die bekannte Branch-Divergenz bereinigen.
 3. vollständige Tests, Syntax, Lint, Build und `git diff --check` ausführen.
 4. produktiven PM2-Prozess, CWD, Script, Port, `HERMES_HOME` und Proxy-Upstream read-only erneut prüfen.
@@ -379,7 +411,7 @@ Ablauf:
 
 ## Aktuelle Übergabegrenzen
 
-- Noch kein Commit/Release-Artefakt: Branch HEAD allein enthält die Implementierung nicht.
+- AP 17 stellt eine commitbasierte Release- und LKG-Mechanik bereit; ein produktives LKG wird erst in einem separat freigegebenen Cutover promoted.
 - Kein produktiver Rebuild, Job, Cron, PM2-Restart, Proxywechsel oder Tokenwechsel wurde ausgeführt.
 - Gate C ist nicht erfüllt, solange keine 14 unterschiedlichen täglichen Shadow-Messpunkte und kein fachliches Review vorliegen.
 - Echte Decision-Writes sind nicht implementiert und dürfen nicht durch Umgebungsvariablen erzwungen werden.

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "flags": {
+    "managementCockpitEnabled": false,
+    "managementCockpitWriteEnabled": false,
+    "managementCockpitShadowOnly": true,
+    "managementCockpitDefaultView": "legacy",
+    "assistantEnabled": false,
+    "assistantMode": "read_only",
+    "assistantWritesEnabled": false,
+    "assistantMatrixHandoffEnabled": false
+  },
+  "databasePaths": {
+    "management": "/home/clawd/.hermes/management-cockpit/management.db",
+    "assistant": "/home/clawd/.hermes/agent-os/assistant-channel.db",
+    "kanbanRoot": "/home/clawd/.hermes/kanban/boards"
+  },
+  "requiredProfiles": [
+    "infrastructure",
+    "rhajaina"
+  ],
+  "excludedBoards": [
+    "twl-netze-private"
+  ]
+}
