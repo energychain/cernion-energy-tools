@@ -9,7 +9,7 @@
 function conversationCoreEnabled(tenantId, env = process.env) {
   const value = String(env.WORKBENCH_CONVERSATION_CORE || '').trim();
   if (!value) return false;
-  if (/^(?:all|1|true|on)$/iu.test(value)) return true;
+  if (['all', '1', 'true', 'on'].includes(value.toLowerCase())) return true;
   return value
     .split(',')
     .map((entry) => entry.trim())
