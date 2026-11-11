@@ -46,3 +46,17 @@ test('the direct path gives way to the regular turn after its budget and stores 
   await new Promise((resolve) => setTimeout(resolve, 20));
   expect(conversation.saveTurn).not.toHaveBeenCalled();
 });
+
+test('in the conversation core the direct path leaves stored material to the content turn', async () => {
+  const service = { logger: { info: jest.fn() }, conversationsDb: {}, settings: {} };
+  const ctx = { broker: { getLocalService: () => ({}) }, call: jest.fn() };
+  const reply = await projectManifestTurn(service, ctx, {
+    p: { tenantId: 't', actorId: 'a' },
+    envelope: { userRequest: 'Was ergibt sich aus den Unterlagen?', conversationId: 'c' },
+    pending: {},
+    meta: {},
+    evidenceAnswer: false,
+  });
+  expect(reply).toBeNull();
+  expect(evidence.projectManifestAnswer).not.toHaveBeenCalled();
+});

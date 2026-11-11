@@ -1430,6 +1430,19 @@ async function runContentTurn(
   retrieval.evidence.push(...memoryContext.evidence);
   if (!incomingDocuments && !draftRequest)
     retrieval.evidence.push(...(await documentKnowledge.evidence(memoryCtx, envelope.userRequest)));
+  // Conversation core (AP2): stored material the understanding asks for is evidence of this
+  // answer, judged by the scope and the cross-case gate below, never the answer itself.
+  const conversationCore = require('./workbench-conversation-core');
+  if (conversationCore.conversationCoreEnabled(p.tenantId) && !incomingDocuments)
+    retrieval.evidence.push(
+      ...(await conversationCore.storedEvidence(service, ctx, {
+        p,
+        envelope,
+        pending,
+        meta,
+        situation,
+      }))
+    );
   if (selfKnowledgeJob !== null) {
     const searched = await selfKnowledgeJob;
     // An explicit search for other cases asks for them; a question about CET's knowledge does not.

@@ -896,6 +896,28 @@ describe('OpenAI governance intent modes', () => {
     expect(paragraphs.length).toBeGreaterThan(9000);
     expect(result.choices[0].message.content).toContain('Abschnitt 40:');
   });
+  test('in the conversation core a status question is a turn, not a read-only lookup', async () => {
+    const previous = process.env.WORKBENCH_CONVERSATION_CORE;
+    process.env.WORKBENCH_CONVERSATION_CORE = 'tenant-a';
+    try {
+      const ctx = {
+        params: {
+          model: 'cernion-governance-assistant',
+          messages: [{ role: 'user', content: 'What is the status of case-1?' }],
+          metadata: { conversationId: 'c', openWebuiOrgId: 'o', openWebuiUserId: 'u' },
+        },
+        meta: {
+          apiToken: { tenantId: 'tenant-a', id: 'g', type: 'gateway', client: 'open-webui' },
+        },
+        call: jest.fn().mockResolvedValue({ responseText: 'Stand des Falls.' }),
+      };
+      await handler(ctx);
+      expect(ctx.call).toHaveBeenCalledWith('workbench.chat', expect.any(Object));
+    } finally {
+      if (previous === undefined) delete process.env.WORKBENCH_CONVERSATION_CORE;
+      else process.env.WORKBENCH_CONVERSATION_CORE = previous;
+    }
+  });
   test('renders empty responseText from structured decision support', async () => {
     const ctx = {
       params: {

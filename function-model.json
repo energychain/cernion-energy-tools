@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "cfb85ec674fa49dce3b622a212a1c08d7e7d109a5fb08ebf606e5174a3a35adc",
+  "sourceHash": "1671fc8a7a8a69be3d5011d2b229d66654abd7e00bc3d87d27383093f7fde4e2",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -166783,6 +166783,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-contract.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
         },
         {
           "kind": "service",
