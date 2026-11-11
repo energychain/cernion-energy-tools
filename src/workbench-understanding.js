@@ -1477,7 +1477,10 @@ async function generateAnswerResult({
       // Repairs keep the evidence of the first attempt (AP4).
       const answerEvidence = preparedEvidence;
       const freeAnswer = require('./workbench-free-answer');
+      // A free answer that fails the checks is repaired on the proven structured path (a second
+      // free attempt failed the same way in the long-dialogue test).
       const free =
+        attempt === 0 &&
         freeAnswer.freeAnswerEnabled(tenantId) &&
         !situation.requestedOutput?.requested &&
         !draftRequested &&
