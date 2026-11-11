@@ -129,7 +129,7 @@ test('Rhajaina panel is globally reachable, accessible, contextual and mode-awar
   assert.match(managementJs, /setAttribute\('inert',\s*''\)/);
   assert.match(managementJs, /assistantOpener\.focus\(\)/);
   assert.match(managementJs, /Unterhaltung neu laden|loadAssistantMessages/);
-  assert.match(styles, /width:\s*min\(430px, 100vw\)/);
+  assert.match(styles, /width:\s*min\(780px, calc\(100vw - 48px\)\)/);
   assert.match(styles, /\.assistant-panel[\s\S]*transform:\s*translateX/);
   assert.match(
     styles,

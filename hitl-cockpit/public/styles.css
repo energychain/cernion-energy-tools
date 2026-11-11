@@ -627,8 +627,19 @@ footer a {
   top: 0;
   right: 0;
   display: grid;
-  grid-template-rows: auto auto auto auto auto auto auto minmax(140px, 1fr) auto auto;
-  width: min(430px, 100vw);
+  grid-template-areas:
+    'header header header'
+    'description description description'
+    'context context context'
+    'global switcher toolbar'
+    'notice notice notice'
+    'messages messages messages'
+    'status status status'
+    'form form form';
+  grid-template-columns: minmax(190px, auto) minmax(220px, 1fr) auto;
+  grid-template-rows: auto auto auto auto auto minmax(180px, 1fr) auto auto;
+  column-gap: 12px;
+  width: min(780px, calc(100vw - 48px));
   max-width: 100vw;
   height: 100dvh;
   overflow-x: hidden;
@@ -653,6 +664,9 @@ footer a {
   justify-content: space-between;
   gap: 12px;
 }
+.assistant-header {
+  grid-area: header;
+}
 .assistant-header h2 {
   margin: 3px 0 0;
   font-size: 30px;
@@ -666,6 +680,7 @@ footer a {
   font-size: 24px;
 }
 .assistant-readonly {
+  grid-area: description;
   margin: 14px 0;
   padding: 10px 12px;
   background: var(--forest-soft);
@@ -675,6 +690,7 @@ footer a {
   line-height: 1.45;
 }
 .assistant-context-row {
+  grid-area: context;
   display: grid;
   gap: 5px;
   margin-bottom: 10px;
@@ -727,6 +743,7 @@ footer a {
   font-size: 20px;
 }
 .assistant-global {
+  grid-area: global;
   width: 100%;
   margin-bottom: 10px;
   border: 1px solid var(--forest);
@@ -743,6 +760,7 @@ footer a {
   color: white;
 }
 .assistant-switcher {
+  grid-area: switcher;
   display: grid;
   gap: 5px;
   color: var(--muted);
@@ -758,6 +776,7 @@ footer a {
   padding: 9px;
 }
 .assistant-toolbar {
+  grid-area: toolbar;
   padding: 10px 0;
   border-bottom: 1px solid var(--line);
 }
@@ -776,11 +795,14 @@ footer a {
   text-decoration: underline;
 }
 .assistant-messages {
+  grid-area: messages;
   min-height: 0;
   overflow-y: auto;
-  padding: 12px 2px;
+  padding: 18px 8px 18px 2px;
+  scrollbar-gutter: stable;
 }
 .assistant-topic-notice {
+  grid-area: notice;
   margin: 8px 0 0;
   padding: 8px 10px;
   border-left: 3px solid var(--gold);
@@ -790,8 +812,8 @@ footer a {
   font-weight: 650;
 }
 .assistant-message {
-  margin: 0 0 10px;
-  padding: 10px 12px;
+  margin: 0 0 14px;
+  padding: 14px 16px;
   background: var(--forest-soft);
   border-left: 3px solid var(--forest);
 }
@@ -808,7 +830,8 @@ footer a {
 }
 .assistant-message p {
   margin: 0;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.65;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
@@ -844,11 +867,13 @@ footer a {
   font-size: 12px;
 }
 .assistant-status {
+  grid-area: status;
   min-height: 28px;
   padding: 6px 0;
   border-top: 1px solid var(--line);
 }
 .assistant-form {
+  grid-area: form;
   display: grid;
   gap: 6px;
 }
@@ -857,6 +882,9 @@ footer a {
   font-weight: 650;
 }
 .assistant-form textarea {
+  height: 84px;
+  min-height: 64px;
+  max-height: 140px;
   resize: vertical;
 }
 .assistant-form > div span {
@@ -973,7 +1001,20 @@ footer a {
     bottom: 0;
     width: 100vw;
     max-width: 100vw;
-    height: min(88dvh, 760px);
+    height: 100dvh;
+    grid-template-areas:
+      'header'
+      'description'
+      'context'
+      'global'
+      'switcher'
+      'toolbar'
+      'notice'
+      'messages'
+      'status'
+      'form';
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto auto auto auto minmax(160px, 1fr) auto auto;
     padding: 14px;
     border-top: 1px solid var(--line-strong);
     border-left: 0;

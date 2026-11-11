@@ -117,6 +117,23 @@ test('AP17 constrains the assistant drawer to a narrow mobile viewport', () => {
   assert.match(styles, /\.assistant-form > div\s*\{\s*flex-wrap:\s*wrap;/);
 });
 
+test('assistant history is a readable primary work area', () => {
+  assert.match(html, /styles\.css\?v=20261111-chat-layout/);
+  assert.match(styles, /width:\s*min\(780px, calc\(100vw - 48px\)\)/);
+  assert.match(styles, /'global switcher toolbar'[\s\S]*'messages messages messages'/);
+  assert.match(styles, /grid-template-rows:[\s\S]*minmax\(180px, 1fr\)/);
+  assert.match(styles, /\.assistant-messages\s*\{[\s\S]*grid-area:\s*messages;/);
+  assert.match(styles, /\.assistant-messages\s*\{[\s\S]*scrollbar-gutter:\s*stable;/);
+  assert.match(
+    styles,
+    /\.assistant-message p\s*\{[\s\S]*font-size:\s*15px;[\s\S]*line-height:\s*1\.65;/
+  );
+  assert.match(
+    styles,
+    /@media \(max-width: 650px\)[\s\S]*\.assistant-panel\s*\{[\s\S]*height:\s*100dvh;[\s\S]*minmax\(160px, 1fr\)/
+  );
+});
+
 test('AP17 names write-capable assistant modes without calling them read-only', () => {
   assert.match(html, /id="assistant-mode-label"/);
   assert.match(html, /id="assistant-mode-description"/);
