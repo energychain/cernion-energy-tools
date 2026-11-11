@@ -166,3 +166,47 @@ test('a code fence around the whole answer is dropped', () => {
     'Zweiter Absatz.',
   ]);
 });
+
+test('a free answer that fails the checks is repaired on the structured path', async () => {
+  process.env.WORKBENCH_FREE_ANSWER = 'all';
+  llm.generateText
+    .mockResolvedValueOnce('Ich habe das bereits beim Gegenüber erledigt.')
+    .mockResolvedValueOnce(
+      JSON.stringify({
+        interpretation: [
+          {
+            text: 'Belegt ist der technische Eingang; die fachliche Rückmeldung fehlt.',
+            origin: 'model',
+            supported: 'model',
+            completedAction: false,
+            specific: false,
+            evidenceIds: [],
+          },
+        ],
+        expectation: [],
+        nextSteps: [],
+      })
+    );
+  llm.generateStructured.mockResolvedValue({
+    paragraphs: [
+      {
+        index: 0,
+        kind: 'statement',
+        origin: 'model',
+        evidenceIds: [],
+        ruleClaim: false,
+        completedAction: true,
+        specific: false,
+      },
+    ],
+  });
+  const result = await answer({
+    situation,
+    retrieval: { evidence },
+    message: 'Was ist belegt?',
+    tenantId: 't',
+  });
+  expect(llm.generateText).toHaveBeenCalledTimes(2);
+  expect(llm.generateText.mock.calls[1][1].responseMimeType).toBe('application/json');
+  expect(result.responseText).toContain('fachliche Rückmeldung fehlt');
+});

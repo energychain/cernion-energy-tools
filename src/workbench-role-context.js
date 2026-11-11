@@ -261,6 +261,10 @@ function roleConfirmation(situation, message, context = situation.conversationCo
     !message.includes(context.basis)
   )
     return '';
+  // A question taken as a whole for a statement, without role, mandate or goal, is no work
+  // context to confirm (long-dialogue test: "Ich möchte zwei Linien prüfen … Wie …?").
+  if (!context.role && !context.mandate && !context.goal && String(message).includes('?'))
+    return '';
   const details = [
     context.statement
       ? `Aussage „${context.statement}“`
