@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const {
   DEFAULT_COOKIE_NAME,
+  createBootstrapTicket,
   createSessionAuth,
   parseCookies,
   secureHeaders,
@@ -48,6 +49,49 @@ test('query tokens never authorize API calls and invalid bootstrap attempts do n
   assert.equal(auth.bootstrap(request(), url('/?token=wrong-token')), null);
   assert.equal(auth.bootstrap(request({ method: 'POST' }), url('/?token=correct-token')), null);
   assert.deepEqual(auth.authorize(request()), { ok: false, method: null, identity: null });
+});
+
+test('signed bootstrap tickets establish one session without exposing the static token', () => {
+  let current = 1700000000;
+  const staticToken = 'realm-secret-never-put-in-the-redirect';
+  const auth = createSessionAuth({
+    staticToken,
+    ttlSeconds: 900,
+    now: () => current,
+    randomBytes: () => Buffer.alloc(18, 3),
+  });
+  const ticket = createBootstrapTicket({
+    staticToken,
+    pathname: '/management',
+    timestamp: current,
+    nonce: '0123456789abcdef01234567',
+  });
+  const ticketUrl = url(
+    `/management?bootstrap_ts=${ticket.timestamp}&bootstrap_nonce=${ticket.nonce}&bootstrap_sig=${ticket.signature}`
+  );
+  assert.doesNotMatch(ticketUrl.toString(), new RegExp(staticToken));
+  const result = auth.bootstrap(request(), ticketUrl);
+  assert.equal(result.status, 303);
+  assert.equal(result.headers.location, '/management');
+  assert.match(result.headers['set-cookie'], /HttpOnly; Secure; SameSite=Strict/);
+  assert.equal(auth.bootstrap(request(), ticketUrl), null);
+
+  current += 61;
+  const expired = createBootstrapTicket({
+    staticToken,
+    pathname: '/management',
+    timestamp: 1700000000,
+    nonce: 'abcdef0123456789abcdef01',
+  });
+  assert.equal(
+    auth.bootstrap(
+      request(),
+      url(
+        `/management?bootstrap_ts=${expired.timestamp}&bootstrap_nonce=${expired.nonce}&bootstrap_sig=${expired.signature}`
+      )
+    ),
+    null
+  );
 });
 
 test('valid sessions authorize requests while tampered and expired sessions fail closed', () => {

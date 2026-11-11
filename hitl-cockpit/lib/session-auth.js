@@ -6,6 +6,8 @@ const DEFAULT_COOKIE_NAME = '__Host-agentos_hitl_session';
 const DEFAULT_TTL_SECONDS = 30 * 60;
 const MAX_TTL_SECONDS = 8 * 60 * 60;
 const SESSION_VERSION = 1;
+const BOOTSTRAP_TICKET_VERSION = 1;
+const BOOTSTRAP_TICKET_TTL_SECONDS = 60;
 
 function timingSafeTextEqual(left, right) {
   const leftBuffer = Buffer.from(String(left || ''), 'utf8');
@@ -44,6 +46,28 @@ function sign(encodedPayload, signingKey) {
   return crypto.createHmac('sha256', signingKey).update(encodedPayload, 'utf8').digest('base64url');
 }
 
+function bootstrapTicketSignature({ staticToken, timestamp, nonce, pathname }) {
+  return crypto
+    .createHmac('sha256', deriveSigningKey(staticToken))
+    .update(
+      `agentos-hitl-bootstrap-ticket-v${BOOTSTRAP_TICKET_VERSION}\0${timestamp}\0${nonce}\0${pathname}`,
+      'utf8'
+    )
+    .digest('base64url');
+}
+
+function createBootstrapTicket(options = {}) {
+  const staticToken = String(options.staticToken || '');
+  if (!staticToken) throw new Error('session_auth_token_missing');
+  const timestamp = Number.isInteger(options.timestamp)
+    ? options.timestamp
+    : Math.floor(Date.now() / 1000);
+  const pathname = options.pathname === '/' ? '/' : '/management';
+  const nonce = options.nonce || crypto.randomBytes(18).toString('base64url');
+  const signature = bootstrapTicketSignature({ staticToken, timestamp, nonce, pathname });
+  return { timestamp, nonce, signature };
+}
+
 function secureHeaders({ html = false } = {}) {
   const headers = {
     'cache-control': 'no-store',
@@ -71,6 +95,7 @@ function createSessionAuth(options = {}) {
       ? options.randomBytes
       : (size) => crypto.randomBytes(size);
   const signingKey = deriveSigningKey(staticToken);
+  const usedBootstrapTickets = new Map();
   const sessionPrincipal = `cockpit_session_${crypto
     .createHmac('sha256', signingKey)
     .update('rate-limit-principal\0session', 'utf8')
@@ -140,9 +165,40 @@ function createSessionAuth(options = {}) {
   function bootstrap(req, url) {
     if (req.method !== 'GET' || !['/', '/management'].includes(url.pathname)) return null;
     const token = url.searchParams.get('token');
-    if (!token || !staticToken || !timingSafeTextEqual(token, staticToken)) return null;
+    const ticketTimestamp = Number(url.searchParams.get('bootstrap_ts'));
+    const ticketNonce = String(url.searchParams.get('bootstrap_nonce') || '');
+    const ticketSignature = String(url.searchParams.get('bootstrap_sig') || '');
+    let authenticated = Boolean(token && staticToken && timingSafeTextEqual(token, staticToken));
+    if (!authenticated && staticToken && Number.isInteger(ticketTimestamp)) {
+      const current = now();
+      const expected = bootstrapTicketSignature({
+        staticToken,
+        timestamp: ticketTimestamp,
+        nonce: ticketNonce,
+        pathname: url.pathname,
+      });
+      const ticketKey = `${ticketTimestamp}:${ticketNonce}:${ticketSignature}`;
+      authenticated = Boolean(
+        ticketNonce.length >= 16 &&
+        ticketNonce.length <= 128 &&
+        ticketSignature &&
+        Math.abs(current - ticketTimestamp) <= BOOTSTRAP_TICKET_TTL_SECONDS &&
+        timingSafeTextEqual(ticketSignature, expected) &&
+        !usedBootstrapTickets.has(ticketKey)
+      );
+      if (authenticated) {
+        usedBootstrapTickets.set(ticketKey, current);
+        for (const [key, usedAt] of usedBootstrapTickets) {
+          if (current - usedAt > BOOTSTRAP_TICKET_TTL_SECONDS) usedBootstrapTickets.delete(key);
+        }
+      }
+    }
+    if (!authenticated) return null;
     const clean = new URL(url.toString());
     clean.searchParams.delete('token');
+    clean.searchParams.delete('bootstrap_ts');
+    clean.searchParams.delete('bootstrap_nonce');
+    clean.searchParams.delete('bootstrap_sig');
     const location = `${clean.pathname}${clean.search}`;
     return {
       status: 303,
@@ -166,8 +222,10 @@ function createSessionAuth(options = {}) {
 }
 
 module.exports = {
+  BOOTSTRAP_TICKET_TTL_SECONDS,
   DEFAULT_COOKIE_NAME,
   DEFAULT_TTL_SECONDS,
+  createBootstrapTicket,
   createSessionAuth,
   parseCookies,
   secureHeaders,
