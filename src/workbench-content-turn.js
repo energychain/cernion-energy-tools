@@ -1582,6 +1582,19 @@ async function runContentTurn(
     retrieval.evidence = [...(retrieval.evidence || []), ...loop.evidence];
     retrieval.knowledgeLoop = loop.trace;
   }
+  // Which material the answer receives, by source and origin (no content): makes leaks and thin
+  // evidence visible per turn.
+  {
+    const counts = {};
+    for (const hit of retrieval.evidence || []) {
+      let origin = 'plain';
+      if (hit.metadata?.ownConversation) origin = 'own';
+      if (hit.metadata?.scopeOrigin) origin = 'foreign';
+      const key = `${hit.retrievalSource || hit.source || 'unknown'}:${origin}`;
+      counts[key] = (counts[key] || 0) + 1;
+    }
+    service.logger?.info?.('Workbench answer evidence', { counts });
+  }
   let reply;
   let documentResult;
   try {
