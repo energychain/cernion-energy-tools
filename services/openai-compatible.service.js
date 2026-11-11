@@ -159,6 +159,13 @@ function normalizeTools(rawTools) {
 // These are deliberately small: this is a hint for genuine follow-ups, not a
 // second retrieval query, so it must never be able to out-weigh the latest
 // user message when Cernion evidence retrieval runs.
+// No hard output limit: a worked-out answer (briefing, park package) is delivered in full. The
+// former 6000-character cut had no technical reason; WORKBENCH_OUTPUT_MAX_CHARS can still set one.
+function workbenchOutputLimit(env = process.env) {
+  const value = Number(env.WORKBENCH_OUTPUT_MAX_CHARS);
+  return Number.isFinite(value) && value > 0 ? value : Infinity;
+}
+
 const MAX_PRIOR_TURNS = 6;
 const MAX_PROMPT_HINTS = 4;
 const CONTEXT_HINT_MAX_LENGTH = 400;
@@ -630,7 +637,7 @@ module.exports = {
           );
           const rendered = compactMarkdown(
             renderWorkbenchResponse(workbench, intentMode, followup),
-            workbench.documentReview ? 1000000 : 6000
+            workbench.documentReview ? 1000000 : workbenchOutputLimit()
           );
           const content = prependNotice(workbench, rendered);
           const promptTokens = estimateTokens(question);

@@ -879,6 +879,23 @@ describe('OpenAI governance intent modes', () => {
     );
     expect(result.choices[0].message.content).toBeTruthy();
   });
+  test('a worked-out answer longer than 6000 characters arrives in full', async () => {
+    const paragraphs = Array.from(
+      { length: 40 },
+      (_, index) => `Abschnitt ${index + 1}: ${'Ausgearbeiteter Inhalt. '.repeat(10)}`
+    ).join('\n\n');
+    const ctx = {
+      params: {
+        model: 'cernion-governance-assistant',
+        messages: [{ role: 'user', content: 'Compare options' }],
+      },
+      meta: { apiToken: { tenantId: 'tenant-a' } },
+      call: jest.fn().mockResolvedValue({ responseText: paragraphs }),
+    };
+    const result = await handler(ctx);
+    expect(paragraphs.length).toBeGreaterThan(9000);
+    expect(result.choices[0].message.content).toContain('Abschnitt 40:');
+  });
   test('renders empty responseText from structured decision support', async () => {
     const ctx = {
       params: {

@@ -90,7 +90,12 @@ async function planRound(
         .map((hit) => ({ source: hit.source, excerpt: String(hit.value || '').slice(0, 200) })),
       searched: trace.map(({ source, query, hits }) => ({ source, query, hits })),
     }),
-    { phase: 'knowledge_loop', tenantId }
+    {
+      // Classification work: the fast understanding model with its bounded budget (latency).
+      ...require('./workbench-understanding').llmOptions(tenantId),
+      phase: 'knowledge_loop',
+      tenantId,
+    }
   );
   const plan = raw?.data || raw || {};
   const lookups = (plan.lookups || [])

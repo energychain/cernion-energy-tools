@@ -1533,17 +1533,8 @@ async function runContentTurn(
     JSON.stringify([previous.actorContext?.role, previous.actorContext?.organization]) !==
       JSON.stringify([situation.actorContext.role, situation.actorContext.organization]);
   const workbenchCaseState = require('./workbench-case-state');
-  const caseStateStarted = performance.now();
-  let caseState = await workbenchCaseState.updateTurnCaseState({
-    previous: pending?.caseState,
-    envelope,
-    retrieval,
-    tenantId: p.tenantId,
-    logger: service.logger,
-  });
-  phaseTimes.caseStateMs = Math.max(1, Math.round(performance.now() - caseStateStarted));
-  const answerStarted = performance.now();
   const knowledgeLoop = require('./workbench-knowledge-loop');
+  let loopJob = null;
   if (
     knowledgeLoop.knowledgeLoopEnabled(p.tenantId) &&
     !incomingDocuments &&
@@ -1553,10 +1544,11 @@ async function runContentTurn(
     situation.conversationShape !== 'filing'
   ) {
     // Targeted lookups before the answer (AP3, AP10), through the regular evidence collection.
-    const loop = await knowledgeLoop.runKnowledgeLoop({
+    loopJob = knowledgeLoop.runKnowledgeLoop({
       message: envelope.userRequest,
       situation,
-      caseView: caseState ? workbenchCaseState.caseStateView(caseState) : null,
+      // The previous case state is enough to plan lookups; the answer gets the updated one.
+      caseView: pending?.caseState ? workbenchCaseState.caseStateView(pending.caseState) : null,
       evidence: retrieval.evidence,
       tenantId: p.tenantId,
       logger: service.logger,
@@ -1579,6 +1571,20 @@ async function runContentTurn(
         return { hits: found?.evidence || [], called: status ? status.called !== false : true };
       },
     });
+  }
+  const caseStateStarted = performance.now();
+  let caseState = await workbenchCaseState.updateTurnCaseState({
+    previous: pending?.caseState,
+    envelope,
+    retrieval,
+    tenantId: p.tenantId,
+    logger: service.logger,
+  });
+  phaseTimes.caseStateMs = Math.max(1, Math.round(performance.now() - caseStateStarted));
+  const answerStarted = performance.now();
+  if (loopJob) {
+    // Planned lookups ran next to the case-state update (latency, AP7).
+    const loop = await loopJob;
     retrieval.evidence = [...(retrieval.evidence || []), ...loop.evidence];
     retrieval.knowledgeLoop = loop.trace;
   }
