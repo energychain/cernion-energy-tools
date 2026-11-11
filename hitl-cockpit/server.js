@@ -20,6 +20,7 @@ const { createAssistantMatrixRuntime } = require('./lib/assistant-matrix-runtime
 const { createAssistantService } = require('./lib/assistant-service');
 const { createAssistantSourceResolver } = require('./lib/assistant-source-resolver');
 const { AssistantStore } = require('./lib/assistant-store');
+const { buildOperatingStatus, loadProductionContract } = require('./lib/production-contract');
 const { RhajainaClient } = require('./lib/rhajaina-client');
 
 const HOST = process.env.HITL_COCKPIT_HOST || '10.0.0.101';
@@ -62,6 +63,19 @@ const managementApi = createManagementApi({
 });
 const assistantConfig = loadAssistantConfig({
   configPath: process.env.ASSISTANT_CONFIG || process.env.HITL_COCKPIT_ASSISTANT_CONFIG,
+});
+const productionContract = loadProductionContract({
+  contractPath: process.env.COCKPIT_PRODUCTION_CONTRACT,
+});
+const operatingStatus = buildOperatingStatus({
+  contract: productionContract,
+  management: {
+    enabled: MANAGEMENT_COCKPIT_ENABLED,
+    decisionWritesEnabled: MANAGEMENT_COCKPIT_WRITE_ENABLED,
+    shadowOnly: MANAGEMENT_COCKPIT_SHADOW_ONLY,
+    defaultView: MANAGEMENT_COCKPIT_DEFAULT_VIEW,
+  },
+  assistant: assistantConfig,
 });
 let assistantService = null;
 if (assistantConfig.enabled) {
@@ -375,6 +389,7 @@ async function handler(req, res) {
         port: PORT,
         hermesHome: HERMES_HOME,
         excludedBoards: Array.from(EXCLUDE_BOARDS),
+        operatingStatus,
         time: new Date().toISOString(),
       });
     if (url.pathname === '/api/tasks') return json(res, 200, loadTasks());

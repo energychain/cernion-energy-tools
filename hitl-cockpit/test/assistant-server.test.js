@@ -16,6 +16,7 @@ let root;
 let stubExecutable;
 let enabledConfig;
 let disabledConfig;
+let lowRiskConfig;
 let database;
 let child;
 let baseUrl;
@@ -80,6 +81,7 @@ async function startServer(configPath) {
       HITL_COCKPIT_TOKEN: token,
       HERMES_HOME: root,
       MANAGEMENT_COCKPIT_ENABLED: 'true',
+      MANAGEMENT_COCKPIT_DEFAULT_VIEW: 'management',
       ASSISTANT_CONFIG: configPath,
       ASSISTANT_DATABASE: database,
     },
@@ -129,10 +131,26 @@ before(() => {
   database = path.join(root, 'agent-os', 'assistant-channel.db');
   enabledConfig = path.join(root, 'assistant-enabled.json');
   disabledConfig = path.join(root, 'assistant-disabled.json');
+  lowRiskConfig = path.join(root, 'assistant-low-risk.json');
   fs.writeFileSync(enabledConfig, JSON.stringify(policy(true)));
   const disabledPolicy = policy(false);
   disabledPolicy.transport.executable = path.join(root, 'missing-hermes');
   fs.writeFileSync(disabledConfig, JSON.stringify(disabledPolicy));
+  fs.writeFileSync(
+    lowRiskConfig,
+    JSON.stringify({
+      ...policy(true),
+      mode: 'low_risk',
+      writesEnabled: true,
+      matrixHandoffEnabled: true,
+      actionAllowlist: [
+        'ask_question',
+        'delegate_followup',
+        'schedule_wakeup',
+        'return_for_completion',
+      ],
+    })
+  );
 });
 
 after(async () => {
@@ -186,6 +204,26 @@ test('disabled server exposes sanitized config but no assistant routes', async (
   assert.equal((await request('/api/health')).status, 200);
   assert.equal((await request('/')).status, 200);
   assert.equal(fs.existsSync(database), false);
+});
+
+test('health exposes an aligned secret-free production operating status', async () => {
+  await startServer(lowRiskConfig);
+  const health = await (await request('/api/health')).json();
+  assert.equal(health.operatingStatus.contractId, 'management-cockpit-production-v2');
+  assert.equal(health.operatingStatus.declaredMode, 'low_risk');
+  assert.equal(health.operatingStatus.label, 'Assistenz · begrenzte Aktionen');
+  assert.equal(health.operatingStatus.aligned, true);
+  assert.deepEqual(health.operatingStatus.mismatches, []);
+  assert.deepEqual(health.operatingStatus.runtime.assistant.actionClasses, [
+    'ask_question',
+    'delegate_followup',
+    'schedule_wakeup',
+    'return_for_completion',
+  ]);
+  assert.doesNotMatch(
+    JSON.stringify(health.operatingStatus),
+    /transport|executable|configPath|token|password|authorization/i
+  );
 });
 
 test('enabled startup resumes and completes persisted accepted turns', async () => {

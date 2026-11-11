@@ -1,41 +1,47 @@
 # AgentOS HITL- und Management-Cockpit
 
 Stand: 2026-11-11
-Status: AP 0–17 im Integrations-Worktree implementiert; nicht produktiv deployt
+Status: produktiver interner Low-Risk-Betrieb; AP 17/18 im Integrations-Worktree konsolidiert
 
 ## Zweck
 
 Das Cockpit bietet zwei additive Sichten auf Hermes Kanban:
 
 - `/`: bestehende Legacy-HITL-Liste mit den Aktionen Freigeben, Ablehnen, Rückfrage und Schließen;
-- `/management`: read-only Geschäftsführungssicht mit Lage, Entscheidungen, Abteilungen, Themen und Verlauf.
+- `/management`: primäre Geschäftsführeroberfläche mit Lage, Entscheidungen, Abteilungen, Themen, Verlauf und Rhajaina Assistant Channel.
 
-Hermes Kanban bleibt System of Record. Die Management-SQLite ist eine abgeleitete Projektion und kann vollständig neu aufgebaut werden. Management-Aktionen laufen aktuell ausschließlich als Shadow-Simulation und führen keinen Write aus.
+Hermes Kanban bleibt System of Record. Die Management-SQLite ist eine abgeleitete Projektion und kann vollständig neu aufgebaut werden. Die Management-Decision-API bleibt im Shadow-Modus. Der getrennte Rhajaina Assistant Channel läuft produktiv im Modus `low_risk` und darf nach expliziter Bestätigung genau vier interne Aktionsklassen mit Kanban-Readback, Receipt und optionalem Matrix-Handoff ausführen.
 
-Verbindliche Policy: `../agent-operating-system/management-cockpit-policy-v1.md`.
+Verbindlicher aktueller Betriebsvertrag: `../agent-operating-system/management-cockpit-production-contract-v2.md`.
+Fachliche Policy: `../agent-operating-system/management-cockpit-policy-v1.md`.
 Produktionsbaseline und Rückfall: `../agent-operating-system/management-cockpit-operations-v1.md`.
 Reproduzierbare Releasebasis: `../agent-operating-system/management-cockpit-release-baseline-v2.md`.
 
 ## Sicherheitsstatus
 
-Sichere Defaults:
+Produktiver Vertrag:
 
 ```text
-MANAGEMENT_COCKPIT_ENABLED=false
+MANAGEMENT_COCKPIT_ENABLED=true
 MANAGEMENT_COCKPIT_WRITE_ENABLED=false
 MANAGEMENT_COCKPIT_SHADOW_ONLY=true
-MANAGEMENT_COCKPIT_DEFAULT_VIEW=legacy
+MANAGEMENT_COCKPIT_DEFAULT_VIEW=management
+ASSISTANT mode=low_risk
+ASSISTANT writesEnabled=true
+ASSISTANT matrixHandoffEnabled=true
+ASSISTANT actionAllowlist=ask_question,delegate_followup,schedule_wakeup,return_for_completion
 ```
 
 Wichtige Grenzen:
 
-- kein produktives Deployment aus diesem Worktree;
-- kein Management-Write implementiert;
+- kein Deployment direkt aus einem Arbeitsbaum; Release-Artefakte werden commitbasiert gebaut;
+- keine direkten Management-Decision-Writes; produktiv ist nur die getrennte bestätigte Low-Risk-Lane;
 - keine Mutation von Kanban durch Projektor, Telemetrie oder Wakeup-Prozessor;
 - `twl-netze-private` und sensitive Quellen werden vor jeder Projektion ausgeschlossen;
 - historische `scheduled`-Karten werden nur gelesen;
 - Telemetrie ist sanitisiert und hat keine operative Wirkung;
 - Tokenwerte gehören nie in Befehle, Dokumente, Logs, Screenshots oder Git.
+- externe Kommunikation, Veröffentlichung, Preis, Vertrag, Zahlung, Budget, Deployment, Secrets, Datenschutz und TWL-private Kontexte bleiben gesperrt.
 
 ## Voraussetzungen
 
@@ -95,6 +101,7 @@ hitl-cockpit/
 | `AGENTOS_SCOPE_LEDGER`             | `$HOME/.hermes/agent-os-scoped-approval-ledger.json` | Scope-Ledger-Override                              |
 | `ASSISTANT_CONFIG`                 | `config/assistant-policy.json`                       | Rhajaina-Policy und Rollout-Modus                  |
 | `ASSISTANT_DATABASE`               | `$HERMES_HOME/agent-os/assistant-channel.db`         | getrennte Conversation-/Audit-Datenbank            |
+| `COCKPIT_PRODUCTION_CONTRACT`      | `config/production-contract.json`                    | secret-freier maschinenlesbarer Betriebsvertrag    |
 
 Bei abweichendem `--hermes-home` muss der Scope-Ledger-Pfad explizit mit `--scope-ledger` angegeben werden, wenn er nicht unter `$HOME/.hermes` liegt.
 
@@ -230,7 +237,7 @@ Eine vorhandene Reportdatei wird ohne `--force` nicht überschrieben. Dieser Bef
 5. API-Query-Token liefern 401.
 6. Legacy Bearer ist standardmäßig deaktiviert.
 
-Vor Produktion müssen Proxy-Access-Logs auf Query-Redaction beziehungsweise kurze Aufbewahrung geprüft werden. Der erste Bootstrap-Request kann technisch noch den Token im Request Target tragen.
+Im produktiven Betrieb müssen Proxy-Access-Logs Query-Redaction beziehungsweise kurze Aufbewahrung gewährleisten. Der erste Bootstrap-Request kann technisch noch den Token im Request Target tragen.
 
 ## UI- und API-Pfade
 
@@ -268,7 +275,7 @@ GET /api/management/scopes
 GET /api/management/telemetry
 ```
 
-Shadow-Aktionen sind die einzigen erlaubten Management-POST-Ausnahmen:
+Die Management-Decision-POSTs bleiben Shadow-Aktionen:
 
 ```text
 POST /api/management/decisions/:id/choose
@@ -279,11 +286,11 @@ POST /api/management/decisions/:id/reject
 POST /api/management/decisions/:id/return-to-rhajaina
 ```
 
-Erfolg bedeutet HTTP 202 mit `mode=shadow`, `writePerformed=false` und `persisted=false`. Bei aktivierter Write-Konfiguration brechen die Endpunkte mit HTTP 501 ab.
+Erfolg bedeutet HTTP 202 mit `mode=shadow`, `writePerformed=false` und `persisted=false`. Diese Endpunkte sind von der produktiven Assistant-Low-Risk-Lane getrennt. Bei aktivierter Management-Write-Konfiguration brechen sie mit HTTP 501 ab.
 
 ### Rhajaina Assistant Channel
 
-Die Default-Policy bleibt `enabled=false`, `mode=read_only`, `writesEnabled=false`, `matrixHandoffEnabled=false` und mit leerer `actionAllowlist`. Zulässige Rollout-Modi sind `read_only`, `shadow`, `low_risk`, `scoped` und `productive`; ungültige Flag-Kombinationen verhindern den Serverstart.
+Die versionierte Default-Policy bleibt als sicherer lokaler Code-Default deaktiviert. Produktion bindet explizit `/home/clawd/.hermes/runtime/agentos-hitl-cockpit/assistant-policy.json` mit `enabled=true`, `mode=low_risk`, aktivierten Writes/Handoffs und den vier vertraglichen Low-Risk-Aktionsklassen. Ungültige Flag-Kombinationen verhindern den Serverstart.
 
 ```text
 GET  /api/assistant/config
@@ -298,6 +305,8 @@ POST /api/assistant/proposals/:id/reject
 ```
 
 Das Karten-Attachment wird serverseitig aus Objektart und ID rekonstruiert. Ein Themenwechsel im offenen Drawer wechselt sofort in den passenden Objektthread; „Globales Gespräch“ startet beziehungsweise öffnet den globalen Thread. Ein Write-Erfolg wird erst nach exaktem Kanban-Readback als Receipt angezeigt.
+
+`GET /api/health` zeigt unter `operatingStatus`, ob geladene Management- und Assistant-Flags exakt mit `config/production-contract.json` übereinstimmen. `aligned=false` ist sichtbare Runtime-Drift; Transportpfade und Secrets werden nicht ausgegeben.
 
 ## Reproduzierbare Releasebasis
 
@@ -330,7 +339,7 @@ Kanban. Vollständige Befehle und Grenzen stehen in
 
 ## Deployment-Preflight
 
-AP 15 führt kein Deployment aus. Für einen späteren, separat freigegebenen Read-only-Rollout:
+Für einen neuen produktiven Release:
 
 1. AP-17-Preflight und deterministischen Build für den freigegebenen Commit ausführen; keine Auslieferung aus Arbeitsbaumdateien.
 2. GitNexus `detect_changes(scope=compare, base_ref=main)` auswerten und die bekannte Branch-Divergenz bereinigen.
@@ -341,11 +350,13 @@ AP 15 führt kein Deployment aus. Für einen späteren, separat freigegebenen Re
 7. Managementdatenbank und Telemetrie separat sichern beziehungsweise als ableitbar markieren.
 8. Proxy-Loghygiene und Session-Cookie-Weitergabe prüfen.
 9. Projektion zunächst temporär vollständig neu aufbauen und abnehmen.
-10. Code deployen mit Management deaktiviert; Legacy-Smoke durchführen.
-11. `MANAGEMENT_COCKPIT_ENABLED=true`, Write weiterhin false, Shadow weiterhin true; nur Prozessumgebung kontrolliert neu laden.
-12. Session-Bootstrap, Legacy, Management-Read APIs und TWL-Ausschluss verifizieren.
-13. Projektionsalter, Boardfehler und PM2-/Proxy-Logs prüfen.
-14. Rollback-Drill durchführen oder einen frischen dokumentierten Nachweis vorlegen.
+10. Code zunächst mit deaktiviertem Assistant deployen und Legacy-/Management-Read-Smoke durchführen.
+11. produktive Runtime-Policy explizit binden; Management-Decision-Write bleibt false und Shadow bleibt true.
+12. Prozessumgebung kontrolliert neu laden und `operatingStatus.aligned=true` verifizieren.
+13. Session-Bootstrap, Legacy, Management-APIs, Assistant-Konfiguration und TWL-Ausschluss prüfen.
+14. einen synthetischen oder freigegebenen Low-Risk-Smoke mit Readback durchführen; keine fremde produktive Karte mutieren.
+15. Projektionsalter, Boardfehler, Receipt-/Matrix-Readback und PM2-/Proxy-Logs prüfen.
+16. Rollback-Drill durchführen oder einen frischen dokumentierten Nachweis vorlegen.
 
 ## Healthcheck
 
@@ -357,6 +368,7 @@ Prozessgesundheit:
 - Session-Bootstrap 303, tokenfreie Location und API 200 mit Session;
 - API 401 ohne Session;
 - Legacy-UI und `/api/tasks` erreichbar.
+- `operatingStatus.contractId=management-cockpit-production-v2` und `operatingStatus.aligned=true`.
 
 Projektionsgesundheit:
 
@@ -372,16 +384,19 @@ Ein grüner Prozesshealthcheck belegt nicht automatisch eine aktuelle oder fachl
 
 ## Rollback
 
-Schnellster Rückfall:
+Schnellster Rückfall der Management- und Assistant-Funktion:
 
 ```text
 MANAGEMENT_COCKPIT_WRITE_ENABLED=false
 MANAGEMENT_COCKPIT_ENABLED=false
 MANAGEMENT_COCKPIT_SHADOW_ONLY=true
 MANAGEMENT_COCKPIT_DEFAULT_VIEW=legacy
+ASSISTANT mode=read_only
+ASSISTANT writesEnabled=false
+ASSISTANT matrixHandoffEnabled=false
 ```
 
-Danach den Cockpit-Prozess kontrolliert mit unveränderter Legacy-Konfiguration neu laden und den Legacy-Smoke ausführen. Projektionsjobs stoppen, fehlerhafte Managementdatenbank quarantänisieren und nicht in Kanban zurückspielen.
+Danach den Cockpit-Prozess kontrolliert neu laden und den Legacy-Smoke ausführen. Projektionsjobs stoppen, fehlerhafte Managementdatenbank quarantänisieren und nicht in Kanban zurückspielen. Receipts, echte Kommentare und Matrix-Events bleiben erhalten.
 
 Wenn Runtime oder Legacy betroffen sind, gilt der vollständige Restore aus `management-cockpit-operations-v1.md`. Vor dem ersten produktiven Management-Rollout muss ein neuer Last-Known-Good-Snapshot mit dem vollständigen aktuellen Dateisatz erstellt werden. Kanban-Datenbanken werden bei einem Cockpit-Rollback nicht global restauriert.
 
@@ -411,9 +426,9 @@ Ablauf:
 
 ## Aktuelle Übergabegrenzen
 
-- AP 17 stellt eine commitbasierte Release- und LKG-Mechanik bereit; ein produktives LKG wird erst in einem separat freigegebenen Cutover promoted.
-- Kein produktiver Rebuild, Job, Cron, PM2-Restart, Proxywechsel oder Tokenwechsel wurde ausgeführt.
-- Gate C ist nicht erfüllt, solange keine 14 unterschiedlichen täglichen Shadow-Messpunkte und kein fachliches Review vorliegen.
-- Echte Decision-Writes sind nicht implementiert und dürfen nicht durch Umgebungsvariablen erzwungen werden.
+- AP 17 stellt eine commitbasierte Release- und LKG-Mechanik bereit; ein neuer Release wird nur aus einem geprüften Commit gebaut.
+- Der produktive Low-Risk-Pfad ist durch den versionierten Smoke-Nachweis belegt; die Freigabe gilt nicht für weitere Aktionsklassen.
+- Echte Management-Decision-Writes sind nicht implementiert und dürfen nicht durch Umgebungsvariablen erzwungen werden.
+- Ergebnisrücklauf, persistente Reconciliation, vollständige Agentenabdeckung und weitere Geschäftsvorgangsklassen bleiben Folgearbeit.
 - `MANAGEMENT_COCKPIT_DEFAULT_VIEW=management` routet `/` nicht um; `/` bleibt Legacy.
 - Der kanonische Einstieg in die Managementsicht ist `/management`, nicht die statische Datei `/management.html`.

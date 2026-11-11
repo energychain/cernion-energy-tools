@@ -1,198 +1,146 @@
 # Management-Cockpit: Rhajaina Assistant Channel v1
 
-## Zweck und aktueller Status
+Stand: 2026-11-11
+Status: produktiver interner Low-Risk-Kanal
+Verbindlicher Betriebsvertrag: `management-cockpit-production-contract-v2.md`
 
-AP16 ergänzt das Management-Cockpit um einen gebundenen Gesprächskanal zum bestehenden
-Hermes-Profil `rhajaina`. Der Kanal unterstützt Managementklärung im Kontext eines Cockpit-Objekts,
-ist aber kein zweiter Kanban-, Matrix- oder AgentOS-Steuerpfad.
+## Zweck und Betriebsstatus
 
-Stand dieses Pakets:
+Der Assistant Channel verbindet das Geschäftsführer-Cockpit mit dem bestehenden Hermes-Profil `rhajaina`. Er ist die persönliche Frontdoor für allgemeine Geschäftsführerhinweise und objektgebundene Aufträge. Matrix und Hermes Kanban bleiben operative Backends; das Cockpit ist die Management-Control-Plane.
 
-- Implementierung und Konfiguration liegen ausschließlich im isolierten Worktree.
-- `enabled` ist standardmäßig `false`.
-- Der einzige zulässige Modus ist `read_only`.
-- Writes und Matrix-Handoff sind technisch auf `false` festgelegt.
-- Es gab keine produktive Flagänderung, keinen Deploy und keinen Prozessneustart.
-- Die AP16-Telemetrie liest die Assistant-Datenbank optional und ausschließlich aggregiert.
+Aktiv ist der Modus `low_risk`, in der UI „Assistenz · begrenzte Aktionen“. Bestätigte Low-Risk-Writes und Matrix-Handoffs nach erfolgreichem Kanban-Readback sind produktiv aktiviert. Die Management-Decision-API bleibt davon getrennt im Shadow-Modus.
 
-## Betriebsgrenze
+Die maschinenlesbare Betriebswahrheit steht in `../hitl-cockpit/config/production-contract.json`. Der Health-Endpunkt vergleicht sie mit den tatsächlich geladenen Runtime-Flags. Historische Wellen-/UAT-Aussagen beschreiben nur den damaligen Rolloutschritt.
 
-Rhajaina darf im Assistant Channel erklären, zusammenfassen, nachfragen und Vorschläge formulieren.
-Sie darf dort keine Kanban-Karte verändern, keinen Scope registrieren, keine Nachricht senden, keinen
-Matrix-Handoff auslösen, keine Datei schreiben und keine externe Aktion ausführen. Cockpit-Quellen
-und Assistant-Datenbank sind getrennte Zustände. Eine Assistant-Antwort ist weder Freigabe noch
-Nachweis einer operativen Ausführung.
+## Produktive Wirkungskette
 
-Der Transport ist auf das Profil `rhajaina`, den CLI-Transport, `safeMode: true`, Toolset `bot_room`,
-einen Turn und leere `extraArgs` begrenzt. Eine SOUL- oder Promptanweisung ersetzt diese technischen
-Grenzen nicht.
+Der freigegebene Ablauf lautet:
 
-## Ausbaustufen A–E
+1. Thorsten öffnet einen globalen oder objektgebundenen Rhajaina-Dialog.
+2. Rhajaina liefert eine Antwort und gegebenenfalls einen typisierten Vorschlag.
+3. Das Cockpit zeigt Aktion, Ziel, Zuständigen und Wirkung vor der Ausführung.
+4. Thorsten bestätigt den Vorschlag ausdrücklich.
+5. Der Server löst genau eine autorisierte Quellkarte auf und prüft Vorzustand sowie Fingerprint.
+6. Der Executor führt genau eine allowlistete Low-Risk-Aktion aus.
+7. Der konkrete Kanban-Zustand wird zurückgelesen und als persistentes Receipt gespeichert.
+8. Erst danach wird der Handoff in einen serverseitig belegten sicheren Matrix-Fachraum gesendet.
+9. Raum und Event-ID werden direkt zurückgelesen und im Receipt festgehalten.
+10. Replays liefern dasselbe Receipt und dieselbe Event-ID ohne zweite Nebenwirkung.
 
-### Welle A – lokaler, deaktivierter Read-only-Kern
+Der Produktionsnachweis `rhajaina-assistant-channel-production-smoke-v1.md` belegt diese Kette einschließlich Idempotenz nach einem echten Prozessneustart.
 
-- versionierte Policy mit Default `enabled: false`;
-- profilgebundener Hermes-CLI-Transport mit Wall-Clock-Timeout und Run-Budget;
-- getrennte, mode-`0600` Assistant-SQLite-Datenbank;
-- Konversationen, Runs, idempotente Client-Message-Verarbeitung und fail-closed Kontextauflösung;
-- keine produktive Aktivierung.
+## Ein-Klick-Kontext und Themenwechsel
 
-Gate A: Konfigurations-, Store-, Service-, Transport- und Privacy-Tests sind grün; ein fehlender oder
-privater Kontext ruft den Transport nicht auf. Rollback: Prozess nicht mit aktivierter Policy starten
-beziehungsweise `enabled: false` beibehalten.
+`Mit Rhajaina besprechen` bindet ein Topic, eine Decision, eine Abteilung, ein Outcome, ein Risiko oder eine Wiedervorlage sichtbar als strukturiertes Kontext-Attachment an einen eigenen Objektthread.
 
-### Welle B – kontrollierte interne Preview
+Der Browser übermittelt nur `objectType` und `objectId`. Titel, Quellen, Sensitivität und fachlicher Inhalt werden serverseitig aus der Managementprojektion aufgelöst. Freie Browser-Payloads können keinen Kontext einschleusen.
 
-- Assistant-Panel nur in einer isolierten internen Preview;
-- Session-Authentifizierung bleibt unverändert erforderlich;
-- echte Read-only-Cockpit-Kontexte werden mit synthetischen, nicht sensitiven Fragen geprüft;
-- Telemetrie und Logs werden auf Text-, ID- und Secret-Leaks geprüft.
+Ein Klick auf ein anderes Managementobjekt wechselt in dessen Unterhaltung und zeigt den Themenwechsel. `Globales Gespräch / neues Thema` entfernt die Objektbindung per Klick. Während eines laufenden Runs wird kein Kontextwechsel ausgeführt.
 
-Gate B: Browser-Smoke, API-Vertrag, Auth-Fehlerpfad, Kontext-Isolation, Timeout und Restart-Recovery
-sind belegt. Produktiver PM2-Prozess, Proxy und Kanban-Quellen bleiben unverändert. Rollback:
-Preview-Prozess stoppen und Preview-Port entfernen.
+Fehlt das Objekt, ist es privat, TWL-bezogen, unklar, gemischt-sensitiv oder zu groß, schlägt die Auflösung fail-closed fehl und Rhajaina wird mit diesem Kontext nicht aufgerufen.
 
-### Welle C – begrenzter Shadow-Betrieb
+## Kontext-Attachment und Dateien
 
-- Aktivierung nur für benannte interne Operatoren und nicht sensitive Managementobjekte;
-- Assistant-Antworten bleiben Vorschläge ohne operative Wirkung;
-- mindestens 14 unterschiedliche Telemetrietage;
-- Fehler-, Latenz-, Klärungs-, Kontextablehnungs- und Größenwerte werden fachlich geprüft.
+Das strukturierte Cockpit-Objekt ist ein Kontext-Attachment. Es ist kein Binary-Upload.
 
-Gate C: keine Privacy-Verletzung, keine Quellenmutation, keine ungebundene Sessionfortsetzung und
-kein pathologischer Fehler-/Timeouttrend. Intent-, Dedupe- oder Proposal-Werte gelten nur bei
-explizit typisierten Events als verfügbar. Rollback: `enabled: false`, Prozess neu laden, Assistant-
-Route nicht mehr anbieten; bestehende Assistant-Datenbank unverändert für Audit sichern.
+Der aktuelle Kanal akzeptiert keine Dateien, lokalen Pfade, Drag-and-drop-Binaries oder Clipboard-Dateien. Screenshots, PDFs, EDIFACT-Dateien und Nextcloud-Dokumente benötigen einen späteren gesonderten Upload-, Malware-, Retention- und Löschvertrag. Sensible Inhalte dürfen nicht durch Einfügen in Freitext umgangen werden.
 
-### Welle D – Anhänge und strukturierte Handoffs als eigener Entscheid
+## Erlaubte Aktionsklassen
 
-- erst nach separater Datenklassifikation und Threat Model;
-- erlaubte Typen, Größen, Malwareprüfung, Aufbewahrung und Löschung müssen festgelegt sein;
-- Binaries benötigen einen getrennten, nicht öffentlich erreichbaren Store;
-- Kontextreferenzen dürfen keine lokalen Pfade, Tokens oder privaten Quellen offenlegen;
-- ein Matrix- oder Kanban-Handoff braucht einen eigenen typisierten Preview-/Freigabeprozess.
+Genau vier produktive Aktionen sind erlaubt:
 
-Gate D: Privacy Review, Storage- und Löschvertrag, negative Uploadtests und ausdrückliche Freigabe.
-Rollback: Attachment-/Handoff-Flag deaktivieren, neue Annahme stoppen, Quarantäne und Audit nach dem
-separaten Retention-Vertrag behandeln. Welle D ist **nicht** durch AP16 v1 freigegeben.
+| Aktion                  | Wirkung                                                     |
+| ----------------------- | ----------------------------------------------------------- |
+| `ask_question`          | konkrete Rückfrage als auditierter Kommentar                |
+| `delegate_followup`     | Folgeauftrag an einen expliziten oder belegten Agenten      |
+| `schedule_wakeup`       | begründete Wiedervorlage mit Zeitpunkt und nächstem Schritt |
+| `return_for_completion` | unvollständigen Vorgang mit Begründung zurückgeben          |
 
-### Welle E – optionaler produktiver Kanal
+Jede Aktion benötigt eine explizite Bestätigung. Rhajaina darf keinen Zuständigen erfinden. Vorrang haben ein ausdrücklich genannter Agent und danach der belegte Assignee der ausgewählten Quellkarte. Bleibt die Zuständigkeit offen, fragt das Cockpit beim Ausführen nach; ohne Auswahl gilt `assignee_required`.
 
-- nur nach Abnahme der Wellen A–D und ausdrücklichem Betriebsentscheid;
-- festgelegte SLOs, Incident Owner, Backup/Restore, Kapazitätsgrenzen und Nutzerkreis;
-- Writes bleiben getrennt und benötigen weiterhin den bestehenden Scope-/HITL-Prozess;
-- Telemetrie bleibt beobachtend und darf Routing oder Freigaben nicht automatisch steuern.
+Owner- und Prioritätsänderungen gehören nicht zur aktuellen Low-Risk-Allowlist. Externe Kommunikation, Veröffentlichung, Preis, Vertrag, Zahlung, Budget, Deployment, destruktive Aktionen, Secrets, Datenschutzentscheidungen und TWL-private Kontexte bleiben gesperrt.
 
-Gate E: Last-Known-Good, Restore-Smoke, Security Review, 14-Tage-Nachweis und dokumentierte
-Rollback-Verantwortung. Rollback: Assistant deaktivieren und auf das unveränderte Management-
-Cockpit ohne Assistant zurückfallen; kein Kanban-Restore ist für diesen UI-Rollback erforderlich.
+## Aggregierte Managementthemen
 
-## Ein-Klick-Kontextwechsel
+Ein aggregiertes Topic darf nur ausgeführt werden, wenn genau eine autorisierte operative Quelle bestimmbar ist. Die Auswahlreihenfolge ist:
 
-`Mit Rhajaina besprechen` ist der vorgesehene Ein-Klick-Einstieg für Topic, Decision, Department,
-Outcome, Risk und Wakeup. Das Cockpit:
+1. explizite primäre Quelle einer Decision;
+2. projektionsdefinierte Primärquelle eines Topics;
+3. genau eine offene, explizit referenzierte Decision-Quelle;
+4. genau eine verbleibende offene und autorisierte Quelle;
+5. andernfalls fail-closed.
 
-1. sperrt Senden und Texteingabe während des Wechsels;
-2. sucht eine aktive Konversation mit exakt demselben `objectType` und `objectId`;
-3. verwendet diese wieder oder legt genau eine gebundene Konversation an;
-4. lädt deren Nachrichten vollständig innerhalb der Pagination-Grenze;
-5. zeigt den neuen Kontext sichtbar an und entsperrt erst danach die Eingabe.
+Mehrere gleichrangige offene Kandidaten, geschlossene Quellen, unbekannte Referenzen, private Boards, TWL-Kontexte und nicht im Attachment enthaltene Tasks bleiben ausgeschlossen.
 
-Während ein Run läuft, wird kein Kontextwechsel ausgeführt. Die Bindung ist keine Volltextsuche und
-kein unscharfes Topic-Matching. Ein anderer Kontext erhält eine andere Konversation und Hermes-
-Session. Kontextdaten werden serverseitig aus der Managementprojektion aufgelöst; der Browser darf
-keinen freien Kontext-Payload einschleusen. Fehlt das Objekt, ist es privat/unklar/mixed-sensitive
-oder überschreitet es die Größenbegrenzung, schlägt der Wechsel fail closed fehl.
+## Runtime-Policy
 
-## Attachment-Verhalten
+Die produktive Policy wird außerhalb des Release-Artefakts unter
+`/home/clawd/.hermes/runtime/agentos-hitl-cockpit/assistant-policy.json` gebunden. Ihr vertraglicher, secret-freier Inhalt ist:
 
-AP16 v1 nimmt **keine Attachments** an. Es gibt weder Upload-Endpunkt noch Drag-and-drop, Clipboard-
-Binary-Upload, Dateipfad-Auflösung oder Weitergabe von Management-Attachments an Hermes. Im Cockpit
-sichtbare Quellen- oder Artefakthinweise sind Darstellungsdaten der bestehenden Projektion und
-werden nicht automatisch zum Assistant-Anhang.
+| Feld                   | Produktiver Wert                 |
+| ---------------------- | -------------------------------- |
+| `enabled`              | `true`                           |
+| `mode`                 | `low_risk`                       |
+| `writesEnabled`        | `true`                           |
+| `matrixHandoffEnabled` | `true`                           |
+| `actionAllowlist`      | die vier Low-Risk-Aktionsklassen |
+| `transport.type`       | `cli`                            |
+| `transport.safeMode`   | `true`                           |
+| `transport.profile`    | `rhajaina`                       |
+| `transport.toolset`    | `bot_room`                       |
+| `transport.maxTurns`   | `1`                              |
+| `transport.source`     | `tool`                           |
+| `transport.extraArgs`  | leeres Array                     |
 
-Operatoren dürfen sensible Inhalte nicht durch Einfügen in den Nachrichtentext umgehen. Benötigt
-Rhajaina eine Datei, lautet das v1-Verhalten: konkrete Datei beziehungsweise Information als fehlend
-benennen und im bestehenden verantwortlichen Fachprozess klären. Ein zukünftiger Attachment-Support
-gehört ausschließlich in Welle D.
+Inkonsistente Flags, unbekannte Aktionen, unsichere Transportwerte und zusätzliche CLI-Argumente verhindern den Start. Die Runtime-Policy enthält keine Matrix-Zugangsdaten.
 
-## Flags und feste Grenzen
+Die versionierte `config/assistant-policy.json` bleibt der deaktivierte sichere Code-Default für lokale Starts. Die produktive Aktivierung erfolgt ausschließlich über den expliziten Runtime-Policy-Pfad. Der Unterschied ist beabsichtigt und wird im Health-Status gegen den produktiven Vertrag sichtbar gemacht.
 
-Maßgeblich ist `hitl-cockpit/config/assistant-policy.json`:
+## Persistenz und Idempotenz
 
-| Feld                           | v1-Vertrag                                |
-| ------------------------------ | ----------------------------------------- |
-| `version`                      | exakt `1`                                 |
-| `enabled`                      | Default `false`; einzige Aktivierungsflag |
-| `mode`                         | exakt `read_only`                         |
-| `writesEnabled`                | exakt `false`                             |
-| `matrixHandoffEnabled`         | exakt `false`                             |
-| `transport.type`               | exakt `cli`                               |
-| `transport.safeMode`           | exakt `true`                              |
-| `transport.profile`            | exakt `rhajaina`                          |
-| `transport.toolset`            | exakt `bot_room`                          |
-| `transport.maxTurns`           | exakt `1`                                 |
-| `transport.source`             | exakt `tool`                              |
-| `transport.extraArgs`          | leeres Array                              |
-| `limits.maxMessageChars`       | höchstens 4.000                           |
-| `limits.maxContextChars`       | höchstens 12.000                          |
-| `limits.recentMessageCount`    | höchstens 50                              |
-| `limits.sessionRotateMessages` | 2 bis 200                                 |
+Conversation, Message, Run, Proposal, Event, Summary und Receipt liegen in einer getrennten Assistant-SQLite-Datenbank. Die Datenbank ist persistent und Modus 0600. Kanban-Quellen und Assistant-Audit bleiben getrennte Zustände.
 
-Ungültige, unlesbare oder erweiterte Konfiguration schlägt beim Start fehl. `writesEnabled` und
-`matrixHandoffEnabled` sind keine vorbereiteten Aktivierungsflags; `true` ist im v1-Loader
-unzulässig. Umgebungsvariablen dürfen den Pfad zu Policy und Datenbank wählen, aber die festen
-Sicherheitswerte nicht aufweichen.
+Ein Write-Erfolg wird erst nach exaktem Readback gespeichert. Receipts sind append-only. Proposal-ID, Idempotency-Key und Matrix-Handoff-Marker bleiben über Prozessneustarts stabil. Ein Replay prüft zuerst persistente Zustände und erzeugt weder einen zweiten Kanban-Write noch ein zweites Matrix-Event.
+
+Teilwirkungen dürfen nicht als Erfolg erscheinen. Bis AP 20 eine vollständige Reconciliation-Outbox bereitstellt, bleiben unklare oder pending Handoffs sichtbar und benötigen gezielte Prüfung.
+
+## Matrix-Handoff
+
+Matrix-Handoffs benötigen:
+
+- erfolgreichen Kanban-Write und Readback;
+- Topic- oder Decision-Kontext mit serverseitig belegtem sicheren Fachraum;
+- stabilen Handoff-Marker aus der Proposal-ID;
+- erlaubten Sender;
+- Event-ID aus der Send-Antwort;
+- direkten Event-Readback.
+
+Fehlt der Raum, bleibt der Handoff pending. Es wird kein Raum erfunden oder automatisch angelegt. Private/TWL-Räume sind ausgeschlossen.
 
 ## Telemetrie und Datenschutz
 
-Die AP16-Aggregation liest eine explizit übergebene Assistant-Datenbank mit SQLite `mode=ro` und
-`query_only`. Erfasst werden nur Counts, terminale Run-Latenzen, feste Fehlerklassen, allowlistete
-Intent-Klassen, Proposal-/Korrektur-/Dedupe-/Klärungszahlen, Kontextablehnungen und Bytegrößen.
+Assistant-Telemetrie enthält ausschließlich aggregierte Counts, terminale Latenzen, allowlistete Fehler- und Intentklassen sowie Größenwerte. Nicht exportiert werden Nachrichten, Bodies, Context-Payloads, IDs, Sessionnamen, Dateipfade, freie Fehlerwerte oder Zugangsdaten.
 
-Nicht erfasst oder exportiert werden:
+Telemetrie steuert keine Aktion, Freigabe oder Priorität. Die aktive Low-Risk-Lane wird ausschließlich durch Runtime-Policy, serverseitige Quellauflösung, Operatorbestätigung, Allowlist und Readback begrenzt.
 
-- Nachrichten-, Summary-, Context- oder Event-Bodies;
-- Conversation-, Run-, Message-, Client-, Object- oder Event-IDs;
-- freie Fehlercodes oder freie Intentwerte;
-- Sessionnamen oder Session-IDs;
-- Attachment-Namen, Pfade, Inhalte oder Metadaten.
+## Health und Drift
 
-Ohne `assistantDatabase` ist `assistantChannel.available: false`; fehlende Beobachtung wird nicht als
-Null interpretiert. Die Metriken steuern keine Aktivierung, Priorität, Antwort oder Aktion.
+`GET /api/health` zeigt unter `operatingStatus` den deklarierten Vertrag, die tatsächlichen Runtime-Modi, die Aktionsklassen und `aligned`. Transportpfad, Policy-Pfad, Matrix-Token und sonstige Secrets werden nicht ausgegeben.
 
-## Aktivierungscheckliste
-
-Vor jeder Welle:
-
-1. exakten Worktree, Commitstand und Diff prüfen;
-2. fokussierte Tests, Syntaxcheck und `git diff --check` ausführen;
-3. Policy, Datenbankpfad, Dateimodus und Profilbindung read-only prüfen;
-4. Management- und Assistant-Quelle vor/nach dem Telemetrielauf hashen;
-5. negative Privacy-, Kontext-, Timeout-, Dedupe- und Restart-Fälle prüfen;
-6. Gate-Verantwortliche und Rückfallzeitpunkt protokollieren;
-7. erst danach das für diese Welle zulässige Flag ändern.
+`aligned=false` bedeutet, dass Runtime und produktiver Vertrag auseinanderlaufen. Es ist ein Betriebsfehler und muss vor einer Aussage über den aktiven Modus geklärt werden.
 
 ## Rollback und Incident
 
-Sofort auf `enabled: false` zurückfallen bei:
+Der Assistant Channel wird sofort auf `read_only` beziehungsweise deaktiviert, wenn private Inhalte, eine falsche Quelle, falscher Zuständiger, Doppelwirkung, Readback-Abweichung, falscher Matrix-Raum, Auth-Bypass, Datenbankkorruption oder unkontrollierter Retry erkannt werden.
 
-- Body-, ID-, Secret-, Attachment- oder privatem Kontext in Telemetrie/Logs;
-- falscher Profil- oder Sessionbindung;
-- Transportaufruf nach Kontextablehnung;
-- unerwartetem Write, Matrix-Handoff oder externer Aktion;
-- beschädigter Assistant-Datenbank, nicht auflösbarer Run-Lease oder unkontrollierter Retry-Schleife;
-- überschrittenem Fehler-/Timeoutlimit des freigegebenen Gates.
+Rollback-Schritte:
 
-Ablauf:
+1. neue Assistant-Ausführungen stoppen;
+2. Runtime-Policy auf `read_only` mit deaktivierten Writes und Handoffs setzen oder Assistant deaktivieren;
+3. Prozess kontrolliert neu laden;
+4. Health, Legacy-Sicht, Managementsicht und Quellintegrität prüfen;
+5. Assistant-Datenbank und Logs secret-frei sichern;
+6. unklare Teilwirkungen einzeln reconciliieren;
+7. kein globales Kanban-Restore durchführen.
 
-1. neue Assistant-Aufrufe stoppen und Flag deaktivieren;
-2. produktive Managementansicht ohne Assistant verfügbar halten;
-3. Assistant-Datenbank und relevante sanitisierten Logs read-only sichern;
-4. keine fehlerhaften Runs automatisch wiederholen;
-5. Prozessstatus und unveränderte Kanban-/Managementquellen prüfen;
-6. Incident klassifizieren und erst nach neuer Gate-Abnahme wieder aktivieren.
-
-Das Deaktivieren des Assistant Channel löscht keine Auditdaten und verändert keine Managementquelle.
-Datenlöschung, Restore einer Assistant-Datenbank oder Token-/Proxyänderung sind separate, explizit
-freizugebende Operationen.
+Das Deaktivieren löscht keine Auditdaten und macht bereits ausgeführte Kanban- oder Matrix-Wirkungen nicht rückgängig.

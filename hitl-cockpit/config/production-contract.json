@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "contractId": "management-cockpit-production-v2",
+  "effectiveDate": "2026-11-10",
+  "status": "active",
+  "interface": {
+    "path": "/management",
+    "mode": "low_risk",
+    "label": "Assistenz · begrenzte Aktionen",
+    "legacyFallbackPath": "/"
+  },
+  "management": {
+    "enabled": true,
+    "decisionWritesEnabled": false,
+    "shadowOnly": true,
+    "defaultView": "management"
+  },
+  "assistant": {
+    "enabled": true,
+    "mode": "low_risk",
+    "writesEnabled": true,
+    "matrixHandoffEnabled": true,
+    "confirmationRequired": true,
+    "actionClasses": [
+      "ask_question",
+      "delegate_followup",
+      "schedule_wakeup",
+      "return_for_completion"
+    ],
+    "profile": "rhajaina",
+    "matrixSender": "@hermes-stromdao:matrix.stromdao.de"
+  },
+  "databasePaths": {
+    "management": "/home/clawd/.hermes/management-cockpit/management.db",
+    "assistant": "/home/clawd/.hermes/management-cockpit/assistant-channel.db",
+    "kanbanRoot": "/home/clawd/.hermes/kanban/boards"
+  },
+  "safety": {
+    "excludedBoards": ["twl-netze-private"],
+    "blockedActionClasses": [
+      "external_communication",
+      "publication",
+      "pricing",
+      "contract",
+      "payment",
+      "budget",
+      "deployment",
+      "destructive",
+      "secret",
+      "privacy",
+      "twl_private"
+    ],
+    "writeRequirements": [
+      "explicit_confirmation",
+      "authorized_source",
+      "source_fingerprint",
+      "readback",
+      "persistent_receipt"
+    ]
+  },
+  "rollback": {
+    "assistantPolicyMode": "read_only",
+    "writesEnabled": false,
+    "matrixHandoffEnabled": false,
+    "managementEnabled": false,
+    "defaultView": "legacy",
+    "kanbanRestorePermitted": false
+  },
+  "evidence": {
+    "productionSmoke": "agent-operating-system/rhajaina-assistant-channel-production-smoke-v1.md"
+  }
+}

@@ -1,47 +1,48 @@
 # AgentOS Management-Cockpit Policy v1
 
-Stand: 2026-11-09
-Status: verbindlicher Ziel- und Betriebsvertrag für AP 0–16; im isolierten Worktree implementiert, nicht produktiv aktiviert
+Stand: 2026-11-11
+Status: fachliche Policy; aktueller Betriebsvertrag ist `management-cockpit-production-contract-v2.md`
 
 ## 1. Zweck und Geltung
 
 Das Management-Cockpit ist die verdichtete Geschäftsführungs- und Governance-Sicht des AgentOS. Es zeigt Unternehmenslage, fachlich relevante Themen, belegte Ergebnisse, Risiken, Wiedervorlagen und entscheidungsreife Governance-Fragen. Es ersetzt weder Hermes Kanban als operatives System of Record noch Matrix als Gesprächs- und Arbeitsoberfläche.
 
-Diese Policy ist für die Management-Cockpit-Iteration v1 maßgeblich. Ältere AP-Dokumente bleiben Implementierungsnachweise. Bei Widersprüchen gilt diese konsolidierte Policy.
+Diese Policy beschreibt die bleibenden fachlichen und sicherheitsbezogenen Grenzen. Der einzige verbindliche aktuelle Runtime-Vertrag ist `management-cockpit-production-contract-v2.md`; ältere AP-Dokumente bleiben zeitgebundene Implementierungsnachweise.
 
 ## 2. Verbindlicher Systemzustand
 
 - Hermes Kanban bleibt die einzige operative Aufgabenwahrheit.
 - Die Managementdatenbank ist abgeleitet, getrennt und vollständig neu aufbaubar.
 - Die Legacy-HITL-Liste unter `/` bleibt Rückfallansicht.
-- Die Managementsicht unter `/management` ist im Worktree implementiert, aber nicht produktiv aktiviert.
-- Die produktive Konfiguration bleibt deaktiviert und read-only. Der AP-16-Code enthält guarded Low-Risk-, Scope- und Handoff-Pfade, die nur über konsistente Modus-, Write- und Aktionsflags erreichbar sind.
+- Die Managementsicht unter `/management` ist produktiv als primäre interne Geschäftsführeroberfläche aktiviert.
+- Der Rhajaina Assistant Channel läuft im Modus `low_risk` mit bestätigungspflichtigen Low-Risk-Writes und Matrix-Handoff nach erfolgreichem Kanban-Readback.
+- Die Management-Decision-API bleibt separat im Shadow-Modus und führt keine direkten Decision-Writes aus.
 - Historische `scheduled`-Karten werden ausschließlich gelesen und berichtet.
 - Telemetrie läuft ausschließlich im Shadow-Modus und besitzt keine operative Wirkung.
-- AP 0–16 haben keinen produktiven Deployment-, PM2-, Proxy-, Token-, Kanban- oder Matrix-Schreibvorgang ausgeführt.
-- Der Worktree ist noch kein freigegebenes, versioniertes Release-Artefakt. Deployment direkt aus dem uncommitteten Worktree ist untersagt.
+- Der produktive Betriebsnachweis belegt genau einen bestätigten Write→Readback→Matrix-Ablauf einschließlich Idempotenz über einen Prozessneustart.
+- Deployments direkt aus einem uncommitteten Worktree bleiben untersagt; Releases werden commitbasiert gebaut und geprüft.
 
 ## 3. Verantwortlichkeiten
 
-| Verantwortung                                 | Primär                           | Mitwirkung / Freigabe                                     |
-| --------------------------------------------- | -------------------------------- | --------------------------------------------------------- |
-| Fachmodell und Governance-Grenzen             | Rhajaina / Geschäftsführung      | Fachagenten                                               |
-| Cockpit-Code und Tests                        | DevOps                           | Infrastructure                                            |
-| Deployment, Backup, Health und Rollback       | Infrastructure                   | DevOps                                                    |
-| Projektions-Rebuild und Datenqualitätsprüfung | Infrastructure                   | Rhajaina                                                  |
-| Shadow-Telemetrie sammeln                     | Infrastructure                   | ohne operative Auswertung                                 |
-| Telemetrie fachlich bewerten                  | Rhajaina                         | Geschäftsführung                                          |
-| Scope-Freigaben                               | bestehender Scope-Prozess        | Geschäftsführung bei nicht gedeckter Grenze               |
-| Tokenrotation und Proxy-Loghygiene            | Infrastructure                   | Geschäftsführung bei Zugangsunterbrechung                 |
-| TWL-/Datenschutz-Incident                     | Infrastructure als Incident Lead | Rhajaina und Geschäftsführung                             |
-| Write-Aktivierung                             | DevOps und Infrastructure        | ausdrückliche Geschäftsführungsentscheidung nach Gate C/D |
+| Verantwortung                                 | Primär                           | Mitwirkung / Freigabe                       |
+| --------------------------------------------- | -------------------------------- | ------------------------------------------- |
+| Fachmodell und Governance-Grenzen             | Rhajaina / Geschäftsführung      | Fachagenten                                 |
+| Cockpit-Code und Tests                        | DevOps                           | Infrastructure                              |
+| Deployment, Backup, Health und Rollback       | Infrastructure                   | DevOps                                      |
+| Projektions-Rebuild und Datenqualitätsprüfung | Infrastructure                   | Rhajaina                                    |
+| Shadow-Telemetrie sammeln                     | Infrastructure                   | ohne operative Auswertung                   |
+| Telemetrie fachlich bewerten                  | Rhajaina                         | Geschäftsführung                            |
+| Scope-Freigaben                               | bestehender Scope-Prozess        | Geschäftsführung bei nicht gedeckter Grenze |
+| Tokenrotation und Proxy-Loghygiene            | Infrastructure                   | Geschäftsführung bei Zugangsunterbrechung   |
+| TWL-/Datenschutz-Incident                     | Infrastructure als Incident Lead | Rhajaina und Geschäftsführung               |
+| Erweiterung der Write-Aktionsklassen          | DevOps und Infrastructure        | ausdrückliche Geschäftsführungsentscheidung |
 
 Ein reiner, durch den Rollback-Vertrag gedeckter Cockpit-Rückfall darf durch DevOps oder Infrastructure ohne zusätzliche Einzel-HITL ausgeführt werden. Er muss nachträglich auditiert werden. Kanban-Restore, Tokenrotation, DNS-/Cloudflare-Änderungen und Änderungen an fremden Diensten sind davon nicht gedeckt.
 
 ## 4. Datenfluss und Vertrauensgrenzen
 
 ```text
-Hermes Kanban-Boards (read-only)
+Hermes Kanban-Boards (lesen; bestätigte Low-Risk-Writes über Assistant Executor)
 Scoped-Approval-Ledger (read-only)
 Artifact Registry (read-only)
 Matrix Room Registry (read-only)
@@ -60,14 +61,14 @@ Management SQLite, Schema v5 (abgeleitet, neu aufbaubar)
         +--> sanitierte Shadow-Telemetrie JSONL
 ```
 
-Quellschreibvorgänge sind in der aktuellen Iteration unzulässig. Zulässige lokale Writes sind nur:
+Außerhalb der bestätigten Assistant-Low-Risk-Lane sind Quellschreibvorgänge unzulässig. Zusätzlich zulässige lokale Writes sind:
 
 1. Aufbau oder Ersatz der abgeleiteten Management-SQLite;
 2. optionales Anhängen eines sanitisierten Shadow-Messpunkts;
 3. optionales Erzeugen eines Modus-0600-Migrationsreports zu historischen Wiedervorlagen;
 4. Testartefakte in temporären Verzeichnissen.
 
-Diese Writes haben keine operative Wirkung und dürfen nicht als Routing-, Freigabe- oder Priorisierungssignal verwendet werden.
+Projektions-, Telemetrie- und Testwrites haben keine operative Wirkung und dürfen nicht als Routing-, Freigabe- oder Priorisierungssignal verwendet werden. Assistant-Writes benötigen dagegen die im produktiven Betriebsvertrag festgelegten Quell-, Bestätigungs-, Readback- und Receipt-Nachweise.
 
 ## 4.1 Rhajaina Assistant Channel
 
@@ -167,18 +168,21 @@ Der produktive Zielvertrag verwendet den vorhandenen statischen Token nur für `
 
 APIs akzeptieren keine Query-Token. Statischer Bearer-Zugriff ist standardmäßig deaktiviert und nur als ausdrücklich befristete Übergangsoption über `HITL_COCKPIT_ALLOW_LEGACY_BEARER=true` zulässig. Der Browser lädt keine Drittressourcen. CSP, HSTS, `Referrer-Policy: no-referrer`, `HttpOnly`, `Secure` und `SameSite=Strict` sind Pflicht.
 
-Vor produktiver Aktivierung müssen Reverse-Proxy-Access-Logs auf Query-Redaction und Aufbewahrung geprüft werden. Tokenwerte dürfen nicht in Git, Dokumentation, Berichte, Fixtures, Screenshots, Telemetrie, Prozessausgaben oder Shell-History gelangen. Die spätere Tokenrotation ist ein separates, freizugebendes Arbeitspaket.
+Im produktiven Betrieb werden Reverse-Proxy-Access-Logs auf Query-Redaction und kurze Aufbewahrung geprüft. Tokenwerte dürfen nicht in Git, Dokumentation, Berichte, Fixtures, Screenshots, Telemetrie, Prozessausgaben oder Shell-History gelangen. Eine Tokenrotation ist ein separates, freizugebendes Arbeitspaket.
 
-## 12. Feature Flags und sichere Defaults
+## 12. Runtime-Modi und sichere Defaults
 
 ```text
-MANAGEMENT_COCKPIT_ENABLED=false
+MANAGEMENT_COCKPIT_ENABLED=true
 MANAGEMENT_COCKPIT_WRITE_ENABLED=false
 MANAGEMENT_COCKPIT_SHADOW_ONLY=true
-MANAGEMENT_COCKPIT_DEFAULT_VIEW=legacy
+MANAGEMENT_COCKPIT_DEFAULT_VIEW=management
+ASSISTANT mode=low_risk
+ASSISTANT writesEnabled=true
+ASSISTANT matrixHandoffEnabled=true
 ```
 
-`/` bleibt unabhängig vom Default-View die Legacy-Sicht. Die Managementsicht wird über `/management` geöffnet. Echte Management-Writes sind nicht implementiert. Wird Write aktiviert oder Shadow-only deaktiviert, müssen Decision-Aktionen mit `501 decision_writes_not_implemented` fail-closed abbrechen.
+`/` bleibt unabhängig vom Default-View die Legacy-Sicht. Die Managementsicht wird über `/management` geöffnet. Direkte Management-Decision-Writes sind nicht implementiert; aktiv ist ausschließlich die getrennte, bestätigungspflichtige Assistant-Low-Risk-Lane. Inkonsistente Flag-Kombinationen und nicht allowlistete Aktionen brechen fail-closed ab. Die maschinenlesbare Betriebswahrheit steht in `../hitl-cockpit/config/production-contract.json` und wird über `/api/health` mit der tatsächlichen Runtime verglichen.
 
 ## 13. Aktivierungsgates
 
@@ -211,7 +215,7 @@ MANAGEMENT_COCKPIT_DEFAULT_VIEW=legacy
 
 ### Gate D – Begrenzte Writes
 
-Ein separates Arbeitspaket ist erforderlich. Voraussetzungen:
+Für die aktuell aktivierte Low-Risk-Lane sind folgende Voraussetzungen erfüllt und dauerhaft einzuhalten:
 
 - Writer mit Versionsprüfung und Idempotenz;
 - Action-Allowlist je Decision-Klasse;
@@ -221,7 +225,7 @@ Ein separates Arbeitspaket ist erforderlich. Voraussetzungen:
 - nachgewiesener Rollback;
 - ausdrückliche Geschäftsführungsentscheidung.
 
-AP 15 aktiviert kein Gate und keine produktive Funktion.
+Der Produktions-Smoke `rhajaina-assistant-channel-production-smoke-v1.md` belegt Write, Readback, Receipt, Matrix-Readback und Idempotenz. Das Gate gilt ausschließlich für die vier allowlisteten Low-Risk-Aktionsklassen.
 
 ## 14. Telemetrie
 
@@ -244,8 +248,8 @@ Jeder Incident dokumentiert Zeitpunkt, Erkennung, Umfang, betroffene Objekte, Qu
 
 Der erste Rückfall ist immer der Feature-Flag-Rollback auf Legacy. Die Managementprojektion darf quarantänisiert und neu aufgebaut werden; Kanban-Datenbanken werden für einen Cockpit-Fehler nie global zurückgesetzt. Nutzerentscheidungen, Kommentare und Auditdaten bleiben erhalten.
 
-Der vollständige Runtime-Restore folgt `management-cockpit-operations-v1.md`. Vor produktiver Aktivierung muss dessen Backup-Manifest um alle aktuellen `lib/`, `config/`, `bin/`, Management-UI-, Auth- und Schema-Dateien erweitert und ein neuer Last-Known-Good-Stand erzeugt werden.
+Der vollständige Runtime-Restore folgt `management-cockpit-operations-v1.md`. Vor jedem neuen produktiven Release wird das Backup-Manifest um alle aktuellen `lib/`, `config/`, `bin/`, Management-UI-, Auth- und Schema-Dateien erweitert und ein neuer Last-Known-Good-Stand erzeugt.
 
 ## 17. Betriebsübergabe
 
-Der operative Einstieg steht in `hitl-cockpit/README.md`. Implementierungsdetails bleiben in den AP-Dokumenten. Ein Operator darf die Managementsicht erst aktivieren, wenn die dortige Preflight- und Abnahmeliste vollständig erfüllt und die produktive Änderung separat beauftragt ist.
+Der operative Einstieg steht in `hitl-cockpit/README.md`. Implementierungsdetails bleiben in den AP-Dokumenten. Änderungen am aktiven Modus oder an den Aktionsklassen richten sich ausschließlich nach `management-cockpit-production-contract-v2.md`.
