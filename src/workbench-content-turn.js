@@ -1587,10 +1587,10 @@ async function runContentTurn(
   {
     const counts = {};
     for (const hit of retrieval.evidence || []) {
-      const key = [
-        hit.retrievalSource || hit.source || 'unknown',
-        hit.metadata?.scopeOrigin ? 'foreign' : hit.metadata?.ownConversation ? 'own' : 'plain',
-      ].join(':');
+      let origin = 'plain';
+      if (hit.metadata?.ownConversation) origin = 'own';
+      if (hit.metadata?.scopeOrigin) origin = 'foreign';
+      const key = `${hit.retrievalSource || hit.source || 'unknown'}:${origin}`;
       counts[key] = (counts[key] || 0) + 1;
     }
     service.logger?.info?.('Workbench answer evidence', { counts });
