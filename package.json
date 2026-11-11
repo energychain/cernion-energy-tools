@@ -73,7 +73,8 @@
     "generate:practice-fixtures": "node scripts/generate-practice-evaluation-fixtures.js",
     "check:practice-fixtures": "node scripts/check-practice-fixtures.js",
     "release:practice": "node scripts/validate-practice-live.js",
-    "release:gate": "npm run release:check && npm run check:practice-fixtures && npm run release:practice"
+    "release:gate": "npm run release:check && npm run check:practice-fixtures && npm run release:practice",
+    "check:language-patterns": "node scripts/check-language-patterns.js"
   },
   "repository": {
     "type": "git",
