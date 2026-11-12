@@ -168,6 +168,25 @@ async function linkTarget(service, ctx, p, router, state, caseRef) {
 
 const correctionReply = (responseText) => ({ mode: 'correction', responseText });
 
+function linkDecision(link, undo) {
+  if (undo) return 'undo';
+  return link.rejected ? 'rejected' : 'confirmed';
+}
+
+// The case of this conversation whose links are corrected; a reply when there is none.
+async function linkedCase(service, p, envelope, link) {
+  const conversation = await service.store.resolveConversation(
+    { tenantId: p.tenantId, client: envelope.channel, conversationId: envelope.conversationId },
+    { optional: true }
+  );
+  if (conversation?.cetCaseId) return { caseId: conversation.cetCaseId };
+  return {
+    reply: link
+      ? correctionReply('Bitte wähle zuerst den Fall, dessen Verknüpfung du korrigieren möchtest.')
+      : null,
+  };
+}
+
 async function handleCaseLinkTurn(service, ctx, p, envelope, meta, command) {
   const merged = await require('./workbench-case-continuation').mergeCommand(
     service,
@@ -182,16 +201,10 @@ async function handleCaseLinkTurn(service, ctx, p, envelope, meta, command) {
   if (!link && !undo) return null;
   const turn = await conversationAssistance.readTurn(service.conversationsDb, p, envelope);
   if (undo && turn?.correctionFamily === 'function') return null;
-  const conversation = await service.store.resolveConversation(
-    { tenantId: p.tenantId, client: envelope.channel, conversationId: envelope.conversationId },
-    { optional: true }
-  );
-  if (!conversation?.cetCaseId)
-    return link
-      ? correctionReply('Bitte wähle zuerst den Fall, dessen Verknüpfung du korrigieren möchtest.')
-      : null;
+  const own = await linkedCase(service, p, envelope, link);
+  if (!own.caseId) return own.reply;
   const router = service.broker.getLocalService('domain-router');
-  const state = await router.loadCase(p, conversation.cetCaseId);
+  const state = await router.loadCase(p, own.caseId);
   if (undo && !hasUndoableLink(state)) return null;
   let targetCaseId;
   if (link) {
@@ -201,15 +214,12 @@ async function handleCaseLinkTurn(service, ctx, p, envelope, meta, command) {
         'Bitte nenne den eindeutigen verwandten Fall: „gehört zusammen F-…“ oder „gehört nicht zusammen F-…“.'
       );
   }
-  let decision = 'confirmed';
-  if (undo) decision = 'undo';
-  else if (link.rejected) decision = 'rejected';
   const result = await ctx.call(
     'domain-router.cases.correctLink',
     {
       cetCaseId: state.cetCaseId,
       ...(targetCaseId ? { targetCaseId } : {}),
-      decision,
+      decision: linkDecision(link, undo),
       caseStateVersion: state.caseStateVersion,
     },
     { meta }
