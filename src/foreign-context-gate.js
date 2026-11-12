@@ -74,9 +74,30 @@ function markers(text) {
   ]);
 }
 
-function leaksIdentifiers(lesson, hit) {
-  const foreign = markers(`${hit?.value || ''} ${hit?.source || ''}`);
-  return [...markers(lesson)].some((marker) => foreign.has(marker));
+// Pairs of consecutive capitalised words (names such as a project line or a person with a role).
+function namePairs(text) {
+  const words = String(text || '')
+    .split(/[^\p{L}\p{N}-]+/u)
+    .filter(Boolean);
+  const pairs = new Set();
+  for (let index = 1; index < words.length; index++) {
+    const [left, right] = [words[index - 1], words[index]];
+    if (left[0] === left[0].toUpperCase() && right[0] === right[0].toUpperCase())
+      pairs.add(`${left} ${right}`.toLowerCase());
+  }
+  return pairs;
+}
+
+// A lesson describes a pattern; a digit-bearing marker or a name pair of the foreign item that the
+// current message does not contain is case content (semantic probe: "Spur Kormoran" reached
+// another chat inside a lesson) and the lesson fails closed.
+function leaksIdentifiers(lesson, hit, message = '') {
+  const foreignText = `${hit?.value || ''} ${hit?.source || ''}`;
+  const foreign = markers(foreignText);
+  if ([...markers(lesson)].some((marker) => foreign.has(marker))) return true;
+  const own = namePairs(message);
+  const foreignPairs = namePairs(foreignText);
+  return [...namePairs(lesson)].some((pair) => foreignPairs.has(pair) && !own.has(pair));
 }
 
 /**
@@ -186,7 +207,7 @@ async function gateForeignEvidence(evidence = [], options = {}) {
     const kind = judged === 'linked' && !mayLink ? 'comparable' : judged;
     const lesson = String(row?.lesson || '').trim();
     const experience =
-      kind === 'pattern' && lesson && !leaksIdentifiers(lesson, hit)
+      kind === 'pattern' && lesson && !leaksIdentifiers(lesson, hit, options.message)
         ? {
             source: 'Erfahrung aus vergleichbaren Vorgängen',
             retrievalSource: 'experience',
