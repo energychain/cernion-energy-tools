@@ -139,19 +139,19 @@ const MAX_SCANNED_PAGES = 10;
 async function scannedPages(parser, file, numbers) {
   const read = numbers.slice(0, MAX_SCANNED_PAGES);
   const shots = await parser.getScreenshot({ partial: read, scale: 2 });
-  const texts = new Map();
-  for (const page of shots.pages || []) {
-    try {
-      const { text } = await require('./image-understanding').transcribeImage(
-        { data: Buffer.from(page.data), mimeType: 'image/png', fileName: `${file.name}.png` },
-        { tenantId: file.tenantId }
-      );
-      texts.set(page.pageNumber, text);
-    } catch (_error) {
-      texts.set(page.pageNumber, '');
-    }
-  }
-  return texts;
+  const transcripts = await Promise.all(
+    (shots.pages || []).map((page) =>
+      require('./image-understanding')
+        .transcribeImage(
+          { data: Buffer.from(page.data), mimeType: 'image/png', fileName: `${file.name}.png` },
+          { tenantId: file.tenantId }
+        )
+        .then(({ text }) => [page.pageNumber, text])
+        // An unreadable page stays without transcript; the text says so instead of failing.
+        .catch(() => [page.pageNumber, ''])
+    )
+  );
+  return new Map(transcripts);
 }
 async function pdfText(file, bytes) {
   const parser = createPdfParser({ data: bytes });

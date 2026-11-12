@@ -1705,9 +1705,9 @@ module.exports = {
               tenantId: p.tenantId,
               logger: this.logger,
             })
-          : null;
+          : Promise.resolve(undefined);
         const pending = await conversationAssistance.readTurn(this.conversationsDb, p, envelope);
-        const turnAction = turnActionJob ? await turnActionJob : undefined;
+        const turnAction = await turnActionJob;
         const roleUpdate = await require('../src/workbench-role-context').readRoleUpdate(
           p,
           envelope,
