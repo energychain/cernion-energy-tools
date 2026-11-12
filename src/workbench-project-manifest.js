@@ -18,7 +18,13 @@ function tenantEvidenceBudgetMs(env = process.env) {
   return Number.isFinite(value) && value > 0 ? value : 60000;
 }
 
-async function projectManifestTurn(service, ctx, { p, envelope, pending, meta }) {
+// `evidenceAnswer: false` (conversation core) keeps the learned checks and source corrections but
+// leaves answering from stored material to the content turn, where it is evidence.
+async function projectManifestTurn(
+  service,
+  ctx,
+  { p, envelope, pending, meta, evidenceAnswer = true }
+) {
   if (
     (!ctx.broker.getLocalService('project-manifest') &&
       !ctx.broker.getLocalService('dataset')?.schema?.actions?.evidenceCandidates &&
@@ -72,6 +78,7 @@ async function projectManifestTurn(service, ctx, { p, envelope, pending, meta })
       sources: [],
     };
   }
+  if (!evidenceAnswer) return null;
   // The direct path answers within a budget; afterwards the regular turn takes over (long dialogue:
   // a turn waited six minutes here and returned nothing).
   let expired = false;

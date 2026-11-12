@@ -597,8 +597,15 @@ module.exports = {
               cetCaseId: metadata.cetCaseId,
               recentMessages,
             });
-          // Only a status lookup takes the read-only status path; a longer request is a turn.
-          if (intentMode === 'status_query' && !isStatusLookup(question))
+          // Only a status lookup takes the read-only status path; a longer request is a turn. In
+          // the conversation core the understanding decides about every turn (AP2).
+          if (
+            (intentMode === 'status_query' && !isStatusLookup(question)) ||
+            (isReadOnlyIntent(intentMode) &&
+              require('../src/workbench-conversation-core').conversationCoreEnabled(
+                ctx.meta?.apiToken?.tenantId
+              ))
+          )
             intentMode = 'decision_support';
           const followup =
             intentMode === 'knowledge_query'

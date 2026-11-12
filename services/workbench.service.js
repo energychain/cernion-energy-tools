@@ -1688,6 +1688,11 @@ module.exports = {
           correctionMeta
         );
         if (fileReply) return fileReply;
+        // Conversation core (AP2): the understanding decides; no regex routing or direct
+        // evidence answer before it.
+        const core = require('../src/workbench-conversation-core').conversationCoreEnabled(
+          p.tenantId
+        );
         const background = require('../src/workbench-background-task');
         if (background.backgroundTask(envelope.userRequest))
           return background.answerBackgroundTask(envelope.userRequest, p.tenantId, this.logger);
@@ -1745,6 +1750,7 @@ module.exports = {
           this,
           ctx,
           {
+            evidenceAnswer: !core,
             p,
             envelope: { ...envelope, contextualEvidence: 'skip' },
             pending,
@@ -1831,6 +1837,7 @@ module.exports = {
         // Otherwise only the deferred reference resolution against this chat's sources remains.
         const evidenceReply =
           await require('../src/workbench-project-manifest').projectManifestTurn(this, ctx, {
+            evidenceAnswer: !core,
             p,
             envelope: envelope.datasetIds?.length
               ? { ...envelope, tenantEvidenceReady: true }
@@ -1939,7 +1946,11 @@ module.exports = {
           cetCaseId: conversation?.cetCaseId,
         });
         const lookup = intent !== 'status_query' || isStatusLookup(envelope.userRequest);
-        if (lookup && ['status_query', 'data_lookup', 'system_activity_query'].includes(intent)) {
+        if (
+          !core &&
+          lookup &&
+          ['status_query', 'data_lookup', 'system_activity_query'].includes(intent)
+        ) {
           const queried = await ctx.call(
             'workbench.query',
             {
