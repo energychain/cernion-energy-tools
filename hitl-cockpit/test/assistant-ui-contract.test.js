@@ -151,6 +151,7 @@ test('productive assistant refreshes runtime mode and labels executable artifact
   assert.ok(count(script, /await refreshAssistantConfig\(\)/g) >= 2);
   assert.match(script, /productive \? 'Ausführungsvorschlag' : 'Shadow-Vorschlag'/);
   assert.match(script, /productive \? 'Ausführungsbeleg' : 'Shadow-Beleg'/);
+  assert.match(script, /toLocaleLowerCase\('de-DE'\)\.endsWith\('vorschlag'\)/);
   assert.match(script, /Ausführung vorbereitet · Vorschlag prüfen und „Ausführen“ wählen\./);
   assert.match(script, /Ausgeführt · Kanban-Readback und Übergabebeleg sind protokolliert\./);
 });

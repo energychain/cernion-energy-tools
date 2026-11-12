@@ -265,7 +265,12 @@ function renderAssistantArtifacts(item, article) {
       const content = document.createElement('span');
       content.textContent = text;
       artifact.append(heading, content);
-      if (label.endsWith('Vorschlag') && value && value.id && value.status === 'shadow') {
+      if (
+        label.toLocaleLowerCase('de-DE').endsWith('vorschlag') &&
+        value &&
+        value.id &&
+        value.status === 'shadow'
+      ) {
         const actions = document.createElement('div');
         actions.className = 'assistant-proposal-actions';
         if (assistantState.config && assistantState.config.writesEnabled) {
