@@ -1487,6 +1487,14 @@ async function generateAnswerResult({
         !conversationMode &&
         !analysisOnly &&
         !nextStepOnly;
+      // An ordered internal deliverable is written freely as Markdown (LON-A: long deliverables
+      // as claim JSON broke the JSON three times); the artifact checks apply unchanged.
+      const freeArtifact =
+        attempt === 0 &&
+        freeAnswer.freeAnswerEnabled(tenantId) &&
+        freeAnswer.freeDeliverable(situation.requestedOutput) &&
+        !conversationMode;
+      const writtenFreely = free || freeArtifact;
       const history = require('./conversation-context').conversationHistory(conversation);
       const safe = opaqueContext({
         situation,
@@ -1520,8 +1528,11 @@ async function generateAnswerResult({
         run.modelPending = true;
         try {
           raw = await llm.generateText(
-            free
-              ? freeAnswer.freeAnswerPrompt(safe.value, { repairInstruction })
+            writtenFreely
+              ? freeAnswer.freeAnswerPrompt(safe.value, {
+                  repairInstruction,
+                  deliverable: freeArtifact ? situation.requestedOutput : null,
+                })
               : answerPrompt(safe.value, {
                   conversationMode,
                   analysisOnly,
@@ -1531,7 +1542,7 @@ async function generateAnswerResult({
                   followup,
                   draftRequested,
                 }),
-            free
+            writtenFreely
               ? { ...attemptOptions, responseMimeType: 'text/plain', responseSchema: undefined }
               : attemptOptions
           );
@@ -1541,23 +1552,29 @@ async function generateAnswerResult({
         } finally {
           run.modelPending = false;
         }
-        const parsed = free
-          ? restoreContext(
-              await freeAnswer.annotateFreeAnswer(raw, {
-                evidence: answerEvidence,
-                message,
-                conversation: history.turns,
-                tenantId,
-              }),
-              safe.reidentMap
-            )
+        const annotation = {
+          evidence: answerEvidence,
+          message,
+          conversation: history.turns,
+          tenantId,
+        };
+        let freeParsed = null;
+        if (freeArtifact)
+          freeParsed = await freeAnswer.annotateDeliverable(
+            raw,
+            situation.requestedOutput,
+            annotation
+          );
+        else if (free) freeParsed = await freeAnswer.annotateFreeAnswer(raw, annotation);
+        const parsed = freeParsed
+          ? restoreContext(freeParsed, safe.reidentMap)
           : restoreContext(
               JSON.parse(raw.replace(/^```(?:json)?\s*|\s*```$/g, '')),
               safe.reidentMap
             );
-        if (free) {
+        if (writtenFreely) {
           // Questions stay outside the claims; at most one is shown after the checks (AP5).
-          run.freeQuestion = (parsed.questions || [])[0] || '';
+          run.freeQuestion = free ? (parsed.questions || [])[0] || '' : '';
           delete parsed.questions;
         } else if (!validateAnswer(parsed)) throw schemaError(validateAnswer.errors);
         if (situation.requestedOutput?.requested) {
@@ -1600,6 +1617,10 @@ async function generateAnswerResult({
           try {
             return await accept(parsed, false);
           } catch (error) {
+            // A freely written deliverable that misses only the ordered form is given as written;
+            // structured repairs of a long deliverable cost the turn's time budget (LON-A).
+            if (freeArtifact && artifacts.SOFT_CONTRACT.has(error.fallbackReason))
+              return await accept(original, true);
             // A worked-out deliverable that misses only the ordered form is kept as the
             // fallback, so a failed repair never reduces it to its headings (TWL long dialogue).
             if (!run.salvage && artifacts.SOFT_CONTRACT.has(error.fallbackReason))

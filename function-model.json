@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "69de7e1006eb2294a4d1c553812f0526f5863b64e650eba0441840b31cffbcba",
+  "sourceHash": "c1f29d7eb7ec4636ca8b24789c5706af41d6b6d7a1666ef6be3cd58caa108dfc",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -9890,6 +9890,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-conversation-mode.js"
         },
         {
@@ -13788,6 +13792,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-context-scope.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
         },
         {
           "kind": "service",
@@ -22399,6 +22407,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-context-scope.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
         },
         {
           "kind": "service",
@@ -33340,6 +33352,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-conversation-mode.js"
         },
         {
@@ -37564,6 +37580,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-context-scope.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
         },
         {
           "kind": "service",
@@ -57870,6 +57890,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-conversation-mode.js"
         },
         {
@@ -68464,6 +68488,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-conversation-mode.js"
         },
         {
@@ -74371,6 +74399,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-conversation-mode.js"
         },
         {
@@ -80099,6 +80131,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-context-scope.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
         },
         {
           "kind": "service",
@@ -86410,6 +86446,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-conversation-mode.js"
         },
         {
@@ -89628,6 +89668,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-conversation-mode.js"
         },
         {
@@ -92584,6 +92628,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-context-scope.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
         },
         {
           "kind": "service",
@@ -101679,6 +101727,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-context-scope.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
         },
         {
           "kind": "service",
@@ -115693,6 +115745,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-conversation-mode.js"
         },
         {
@@ -128725,6 +128781,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-conversation-mode.js"
         },
         {
@@ -131995,6 +132055,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-context-scope.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
         },
         {
           "kind": "service",
@@ -137410,6 +137474,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-conversation-mode.js"
         },
         {
@@ -142176,6 +142244,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-context-scope.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
         },
         {
           "kind": "service",
@@ -147057,6 +147129,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-context-scope.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
         },
         {
           "kind": "service",
@@ -152001,6 +152077,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-context-scope.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
         },
         {
           "kind": "service",
@@ -176832,6 +176912,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-conversation-mode.js"
         },
         {
@@ -184288,6 +184372,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-context-scope.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
         },
         {
           "kind": "service",
@@ -206924,6 +207012,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-context-scope.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-conversation-core.js"
         },
         {
           "kind": "service",

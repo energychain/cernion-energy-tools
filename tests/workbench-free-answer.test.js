@@ -210,3 +210,106 @@ test('a free answer that fails the checks is repaired on the structured path', a
   expect(llm.generateText.mock.calls[1][1].responseMimeType).toBe('application/json');
   expect(result.responseText).toContain('fachliche Rückmeldung fehlt');
 });
+
+const parkNote = {
+  requested: true,
+  basis: 'übergabefähige Parknotiz mit Anlass, gesichertem Stand und offenen Punkten',
+  kind: 'internal',
+  parts: [
+    {
+      title: 'Parknotiz',
+      audience: 'internal',
+      letter: false,
+      sections: ['Anlass', 'Gesicherter Stand', 'Offene Punkte'],
+      columns: [],
+      layout: 'sections',
+      sectionsExplicit: true,
+    },
+  ],
+  subjects: [],
+  constraints: [],
+  forbiddenTerms: [],
+};
+const annotateAll = async (schema, raw) => {
+  const input = JSON.parse(raw);
+  return {
+    paragraphs: input.paragraphs.map(({ index }) => ({
+      index,
+      kind: 'statement',
+      origin: 'input',
+      evidenceIds: [],
+      ruleClaim: false,
+      completedAction: false,
+      specific: false,
+    })),
+  };
+};
+
+test('an ordered internal deliverable is written as Markdown and passes the artifact checks', async () => {
+  process.env.WORKBENCH_FREE_ANSWER = 'all';
+  llm.generateText.mockResolvedValue(
+    [
+      '# Parknotiz',
+      '## Anlass\n\nFür den Zielvorgang fehlt die fachliche Rückmeldung.',
+      '## Gesicherter Stand\n\nNur die Transportquittung liegt vor; der Scan gehört zum Vergleichsvorgang.',
+      '## Offene Punkte\n\nDie fachliche Rückmeldung ist weiterhin offen.',
+    ].join('\n\n')
+  );
+  llm.generateStructured.mockImplementation(annotateAll);
+  const result = await answer({
+    situation: { ...situation, requestedOutput: parkNote },
+    retrieval: { evidence },
+    message: `Parke den Vorgang. Ich brauche eine ${parkNote.basis}.`,
+    tenantId: 't',
+  });
+  expect(llm.generateText).toHaveBeenCalledTimes(1);
+  const prompt = JSON.parse(llm.generateText.mock.calls[0][0]);
+  expect(prompt.deliverable).toEqual(parkNote.parts);
+  expect(llm.generateText.mock.calls[0][1].responseMimeType).toBe('text/plain');
+  expect(result.answerStatus).not.toBe('fallback');
+  for (const heading of ['## Anlass', '## Gesicherter Stand', '## Offene Punkte'])
+    expect(result.responseText).toContain(heading);
+  expect(result.responseText).toContain('der Scan gehört zum Vergleichsvorgang');
+  expect(result.responseText).not.toContain('# Parknotiz\n\n# Parknotiz');
+});
+
+test('a free deliverable that misses only the ordered form is given as written, without repairs', async () => {
+  process.env.WORKBENCH_FREE_ANSWER = 'all';
+  llm.generateText.mockResolvedValue(
+    [
+      '## Anlass\n\nFür den Zielvorgang fehlt die fachliche Rückmeldung.',
+      '## Stand\n\nNur die Transportquittung liegt vor.',
+    ].join('\n\n')
+  );
+  llm.generateStructured.mockImplementation(annotateAll);
+  const result = await answer({
+    situation: { ...situation, requestedOutput: parkNote },
+    retrieval: { evidence },
+    message: `Parke den Vorgang. Ich brauche eine ${parkNote.basis}.`,
+    tenantId: 't',
+  });
+  expect(llm.generateText).toHaveBeenCalledTimes(1);
+  expect(result.answerStatus).not.toBe('fallback');
+  expect(result.responseText).toContain('Nur die Transportquittung liegt vor.');
+});
+
+test('correspondence keeps the structured path', () => {
+  const { freeDeliverable } = require('../src/workbench-free-answer');
+  expect(freeDeliverable(parkNote)).toBe(true);
+  expect(freeDeliverable({ ...parkNote, kind: 'correspondence' })).toBe(false);
+  expect(
+    freeDeliverable({ ...parkNote, parts: [{ ...parkNote.parts[0], audience: 'external' }] })
+  ).toBe(false);
+  expect(freeDeliverable({ ...parkNote, requested: false })).toBe(false);
+});
+
+test('several ordered parts are split at their part headings', () => {
+  const { deliverableBlocks } = require('../src/workbench-free-answer');
+  const request = { parts: [{ title: 'Kurzfassung' }, { title: 'Langfassung' }] };
+  expect(
+    deliverableBlocks('# Kurzfassung\n\nA.\n\n# Langfassung\n\n## Teil\n\nB.\n\nC.', request)
+  ).toEqual([
+    { title: 'Kurzfassung', blocks: ['A.'] },
+    { title: 'Langfassung', blocks: ['## Teil\n\nB.', 'C.'] },
+  ]);
+});
