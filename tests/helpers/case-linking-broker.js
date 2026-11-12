@@ -16,7 +16,7 @@ const auth = (
   apiToken: { id: actorId, tenantId, roles, sensitivityFlags: clearance, scope: 'agentos-session' },
 });
 
-async function createCaseBroker() {
+async function createCaseBroker({ personalAgentActions = {} } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-753-'));
   const registry = path.join(dir, 'tenants.json');
   const broker = new ServiceBroker({ logger: false, transporter: null });
@@ -50,6 +50,7 @@ async function createCaseBroker() {
     actions: {
       collectWorkbenchEvidence: () => ({ evidence: [], trace: [] }),
       chat: () => ({ reply: 'Unverbindliche Antwort.' }),
+      ...personalAgentActions,
     },
   });
   const policy = (caseVisibility, identifierTypes = {}) =>

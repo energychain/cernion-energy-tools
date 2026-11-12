@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — Knowledge-Loop hits pass the final evidence gate; the stored turn keeps none (#1137)
+
+- Knowledge-Loop hits were appended after the conversation scope and cross-case gate, reached
+  the answer unjudged, and the stored turn kept them with their lookup queries, raw lookup errors
+  and negative-evidence text. They are now candidates: the same `scopeEvidence`,
+  `gateForeignEvidence` (with the current message, so the #1138 name-pair check applies) and data
+  scope decide before the answer. A failed or unrecognized judgement withholds them.
+- The stored turn receives a distinct retrieval projection without Knowledge-Loop hits,
+  Conversation-Core material or loop diagnostics; a turn answered from loop hits stores no
+  `lastAnswer`. The answer-evidence log carries only a closed summary (policy version, judgement,
+  attempted/admitted/withheld/failed counts, source classes). Lookup errors keep no raw text.
+
 ## Unreleased — Other chats' statements answer directly only on an explicit stored-knowledge request
 
 - The direct tenant-evidence answer used other conversations' team-memory statements and case

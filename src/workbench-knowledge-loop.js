@@ -110,8 +110,9 @@ function runLookups(lookups, lookup) {
       try {
         const result = await lookup(item.source, String(item.query).slice(0, 300));
         return { item, hits: result?.hits || [], skipped: result?.called === false };
-      } catch (error) {
-        return { item, hits: [], error: error.message };
+      } catch (_error) {
+        // The raw error text stays out of the result: it may repeat the query or source detail.
+        return { item, hits: [], failed: true };
       }
     })
   );
@@ -119,7 +120,7 @@ function runLookups(lookups, lookup) {
 
 // Adds new hits (and negative evidence for a search that ran without a hit) and the trace rows.
 function record(results, { round, seen, added, trace }) {
-  for (const { item, hits, error, skipped } of results) {
+  for (const { item, hits, failed, skipped } of results) {
     const fresh = hits.filter((hit) => !seen.has(identity(hit))).slice(0, MAX_HITS);
     for (const hit of fresh) seen.add(identity(hit));
     added.push(
@@ -127,7 +128,7 @@ function record(results, { round, seen, added, trace }) {
     );
     // Only a search that ran is negative evidence; a source not called for this tenant or topic
     // says nothing about the material.
-    if (!hits.length && !error && !skipped)
+    if (!hits.length && !failed && !skipped)
       added.push({
         source: 'Gezielte Suche ohne Treffer',
         retrievalSource: 'knowledge-loop',
@@ -140,7 +141,7 @@ function record(results, { round, seen, added, trace }) {
       query: item.query,
       hits: hits.length,
       ...(skipped ? { skipped: true } : {}),
-      ...(error ? { error } : {}),
+      ...(failed ? { failed: true } : {}),
     });
   }
 }
@@ -197,4 +198,69 @@ async function runKnowledgeLoop({
   return { evidence: state.added, trace: state.trace };
 }
 
-module.exports = { SOURCES, knowledgeLoopEnabled, runKnowledgeLoop };
+// Final evidence boundary (#1137): loop hits are candidates. They pass the same conversation scope,
+// cross-case judgement and data scope as the earlier retrieval set before they may reach the
+// answer, and are marked answer-only so the stored turn keeps none of them.
+const POLICY_VERSION = 'final-evidence-gate-1';
+const bounded = (value) => Math.min(Math.max(0, Number.isInteger(value) ? value : 0), 99);
+
+function loopSummary(trace, candidates, admitted, failedJudgement = false) {
+  const rows = Array.isArray(trace) ? trace : [];
+  const withheld = Math.max(0, candidates - admitted);
+  let judgement = 'none';
+  if (failedJudgement) judgement = 'failed';
+  else if (candidates) judgement = !admitted ? 'withheld' : withheld ? 'partial' : 'admitted';
+  return {
+    policyVersion: POLICY_VERSION,
+    judgement,
+    attemptedCount: bounded(rows.filter((row) => !row?.skipped).length),
+    admittedCount: bounded(admitted),
+    withheldCount: bounded(withheld),
+    failedCount: bounded(rows.filter((row) => row?.failed).length),
+    sourceClasses: Object.keys(SOURCES).filter((id) => rows.some((row) => row?.source === id)),
+  };
+}
+
+async function admitLoopEvidence(loop, { scope = {}, gate = {}, dataScope = {} } = {}) {
+  const candidates = Array.isArray(loop?.evidence)
+    ? loop.evidence.filter((hit) => hit && typeof hit === 'object')
+    : [];
+  if (!candidates.length) return { evidence: [], summary: loopSummary(loop?.trace, 0, 0) };
+  try {
+    const scoped = require('./workbench-context-scope').scopeEvidence(candidates, scope);
+    const gated = await require('./foreign-context-gate').gateForeignEvidence(scoped.evidence, {
+      ...gate,
+      withheld: scoped.withheldItems,
+    });
+    const evidence = require('./workbench-data-scope')
+      .scopedDataEvidence(gated.evidence, dataScope)
+      .map((hit) => ({ ...hit, metadata: { ...hit.metadata, answerOnly: 'knowledge-loop' } }));
+    return {
+      evidence,
+      summary: loopSummary(loop.trace, candidates.length, evidence.length),
+    };
+  } catch (_error) {
+    // A failed judgement withholds every candidate.
+    return { evidence: [], summary: loopSummary(loop.trace, candidates.length, 0, true) };
+  }
+}
+
+// The stored turn (conversationAssistance.saveTurn) is a distinct object without answer-only
+// evidence (Knowledge-Loop hits, Conversation-Core material) and without loop diagnostics.
+function storedRetrieval(retrieval = {}) {
+  const { knowledgeLoop: _answerTime, ...stored } = retrieval;
+  return {
+    ...stored,
+    evidence: (retrieval.evidence || []).filter((hit) => !hit?.metadata?.answerOnly),
+  };
+}
+
+module.exports = {
+  POLICY_VERSION,
+  SOURCES,
+  admitLoopEvidence,
+  knowledgeLoopEnabled,
+  loopSummary,
+  runKnowledgeLoop,
+  storedRetrieval,
+};

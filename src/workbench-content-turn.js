@@ -1434,15 +1434,18 @@ async function runContentTurn(
   // answer, judged by the scope and the cross-case gate below, never the answer itself.
   const conversationCore = require('./workbench-conversation-core');
   const coreMode = conversationCore.conversationCoreEnabled(p.tenantId);
+  // It answers this turn only; the stored turn keeps none of it (#1137).
   if (coreMode && !incomingDocuments)
     retrieval.evidence.push(
-      ...(await conversationCore.storedEvidence(service, ctx, {
-        p,
-        envelope,
-        pending,
-        meta,
-        situation,
-      }))
+      ...(
+        await conversationCore.storedEvidence(service, ctx, {
+          p,
+          envelope,
+          pending,
+          meta,
+          situation,
+        })
+      ).map((hit) => ({ ...hit, metadata: { ...hit.metadata, answerOnly: 'conversation-core' } }))
     );
   if (selfKnowledgeJob !== null) {
     const searched = await selfKnowledgeJob;
@@ -1604,10 +1607,26 @@ async function runContentTurn(
   phaseTimes.caseStateMs = Math.max(1, Math.round(performance.now() - caseStateStarted));
   const answerStarted = performance.now();
   if (loopJob !== null) {
-    // Planned lookups ran next to the case-state update (latency, AP7).
-    const loop = await loopJob;
-    retrieval.evidence = [...(retrieval.evidence || []), ...loop.evidence];
-    retrieval.knowledgeLoop = loop.trace;
+    // Planned lookups ran next to the case-state update (latency, AP7); their hits pass the same
+    // final scope, cross-case and data boundary before they join the answer evidence (#1137).
+    const admitted = await knowledgeLoop.admitLoopEvidence(await loopJob, {
+      scope: {
+        conversationId: envelope.conversationId,
+        caseId: caseId || conversation?.cetCaseId,
+        message: envelope.userRequest,
+        situation,
+      },
+      gate: {
+        message: envelope.userRequest,
+        suggestionPending: Boolean(pending?.comparableSuggested),
+        currentCase: { concern: situation.concern, situation: situation.situation },
+        tenantId: p.tenantId,
+        logger: service.logger,
+      },
+      dataScope: retrieval.dataScope,
+    });
+    retrieval.evidence = [...(retrieval.evidence || []), ...admitted.evidence];
+    retrieval.knowledgeLoop = admitted.summary;
   }
   // Which material the answer receives, by source and origin (no content): makes leaks and thin
   // evidence visible per turn.
@@ -1617,10 +1636,13 @@ async function runContentTurn(
       let origin = 'plain';
       if (hit.metadata?.ownConversation) origin = 'own';
       if (hit.metadata?.scopeOrigin) origin = 'foreign';
-      const key = `${hit.retrievalSource || hit.source || 'unknown'}:${origin}`;
+      const key = `${hit.metadata?.answerOnly || hit.retrievalSource || hit.source || 'unknown'}:${origin}`;
       counts[key] = (counts[key] || 0) + 1;
     }
-    service.logger?.info?.('Workbench answer evidence', { counts });
+    service.logger?.info?.('Workbench answer evidence', {
+      counts,
+      ...(retrieval.knowledgeLoop ? { knowledgeLoop: retrieval.knowledgeLoop } : {}),
+    });
   }
   let reply;
   let documentResult;
@@ -1866,7 +1888,7 @@ async function runContentTurn(
       ? { lastArtifactRequest: situation.requestedOutput }
       : {}),
     lastConversationShape: situation.conversationShape,
-    retrieval,
+    retrieval: knowledgeLoop.storedRetrieval(retrieval),
     tenantMemoryFactIds: memory.ids.length
       ? memory.ids
       : retrieval.evidence?.some((hit) => hit.source === 'dataset.query')
@@ -1876,7 +1898,8 @@ async function runContentTurn(
     draft: reply.draft,
     offeredContent: '',
     lastQuestion: '',
-    lastAnswer: reply.responseText.slice(0, 600),
+    // An answer built from Knowledge-Loop hits may repeat their lookups; it is not stored.
+    lastAnswer: retrieval.knowledgeLoop?.admittedCount ? '' : reply.responseText.slice(0, 600),
     comparableSuggested: suggestComparable,
     comparableSuggestionShown: Boolean(pending?.comparableSuggestionShown || suggestComparable),
     ...(caseState ? { caseState } : {}),
