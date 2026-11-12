@@ -372,7 +372,8 @@ async function capture(ctx, p, { situation, envelope, mapping, sensitivityFlags,
         assertion.text,
       ];
       const prior = existing.find((item) => item.id === store.key(statementKey));
-      if (facts.some((fact) => fact.text === assertion.text)) continue;
+      // Two assertions can fall back to the same literal basis; one statement is one fact.
+      if (facts.some((fact) => fact.text === assertion.text || fact.text === text)) continue;
       if (prior && store.active(prior)) {
         // A restated valid statement is this turn's statement too (e.g. for a replay).
         currentFacts(ctx).push(prior.id);

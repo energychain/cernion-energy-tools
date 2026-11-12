@@ -85,6 +85,30 @@ describe('863 grounded anchor and correspondence acceptance', () => {
     expect(saved.confirmation).toContain('Hab ich festgehalten');
     expect(store.groundedAnchors(saved.facts[0].anchors, f.textB)).toEqual(saved.facts[0].anchors);
   });
+  test('two assertions falling back to the same literal basis are one statement', async () => {
+    const p = principal(f.actorA);
+    const message = f.incomplete.text;
+    const paraphrase = (text) => ({
+      ...f.incomplete,
+      text,
+      anchors: [{ value: f.base, qualifier: 'Gasleitung', aliases: [] }],
+    });
+    const saved = await memory.capture(context(p), p, {
+      situation: {
+        turnKind: 'work',
+        requestedAction: {},
+        tenantMemory: {
+          assertions: [
+            paraphrase('Eine Leitung wird stillgelegt.'),
+            paraphrase('Stilllegung bis 2030.'),
+          ],
+        },
+      },
+      envelope: { userRequest: message, conversationId: 'dedupe', channel: 'api' },
+    });
+    expect(saved.facts).toHaveLength(1);
+    expect(saved.confirmation.match(/Hab ich festgehalten/g)).toHaveLength(1);
+  });
   test('scenario 2 / A.2: omitted anchors are recovered independently of extraction', async () => {
     const saved = await capture(f.omitted);
     expect(saved.facts[0].anchors).toEqual([{ value: f.base, qualifier: '', aliases: [] }]);

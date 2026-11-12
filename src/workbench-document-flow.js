@@ -513,6 +513,15 @@ async function documentReply(
     situation.personAssessment?.applicable
   )
     return null;
+  // Conversation core: a turn that asks for no document review is answered by the regular answer
+  // with case state and history; the case documents are its evidence, not a separate answer.
+  if (
+    require('./workbench-conversation-core').conversationCoreEnabled(p.tenantId) &&
+    !isReviewRequest(question) &&
+    !documentDraftRequested(question) &&
+    !reviewResultRequested(question)
+  )
+    return { caseDocuments: caseDocumentEvidence(documents), storageNote };
   // A statement for the working context is not answered from document excerpts as if it were a
   // question about them; with a question in the same turn, the regular path answers.
   if (
@@ -663,6 +672,28 @@ async function documentReply(
   return null;
 }
 
+// Sections of the case documents as evidence of this conversation, bounded in number.
+const MAX_DOCUMENT_SECTIONS = 24;
+function caseDocumentEvidence(documents) {
+  return documents
+    .flatMap((document) => {
+      const text = String(document.text || '');
+      return documentSections(text, 1500).map((section, index) => ({
+        source: document.name,
+        retrievalSource: 'documents',
+        value: text.slice(section.start, section.end),
+        metadata: {
+          name: document.name,
+          sourceId: document.id || document.name,
+          sectionId: String(index),
+          ownConversation: true,
+        },
+      }));
+    })
+    .filter((hit) => hit.value.trim())
+    .slice(0, MAX_DOCUMENT_SECTIONS);
+}
+
 async function documentFollowup(service, { p, envelope, caseId, access }) {
   if (!caseId || envelope.documents?.length || documentDraftRequested(envelope.userRequest))
     return null;
@@ -765,6 +796,7 @@ module.exports = {
   documentIdentity,
   documentReply,
   documentFollowup,
+  caseDocumentEvidence,
   renderReview,
   storedPassage,
   cleanDocumentHistory,

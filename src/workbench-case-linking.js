@@ -110,77 +110,116 @@ async function conversationCaseStatus(service, ctx, p, envelope, meta) {
   return null;
 }
 
-async function handleCaseLinkTurn(service, ctx, p, envelope, meta) {
+// Removes closing marks after a command ("gehört zusammen F-12.").
+function withoutClosingMarks(text) {
+  let end = text.length;
+  while (end > 0 && '.! '.includes(text[end - 1])) end--;
+  return text.slice(0, end);
+}
+
+// `command` is the turn action of the conversation core; without it the wording is recognized.
+// link: { rejected, caseRef } for a statement that the cases (do not) belong together.
+function linkCommand(message, command) {
+  if (command)
+    return {
+      link: command.caseLink
+        ? { rejected: !command.caseLink.related, caseRef: command.caseLink.caseRef || '' }
+        : null,
+      undo: command.action === 'undo',
+    };
+  const found = message.match(/^(?:das |die fälle )?gehört (nicht )?zusammen(.*)$/iu);
+  const rest = found ? withoutClosingMarks(found[2]) : '';
+  const separated = !rest || rest.trimStart() !== rest;
+  return {
+    link: found && separated ? { rejected: Boolean(found[1]), caseRef: rest.trim() } : null,
+    undo: /^(?:mach das rückgängig|rückgängig|undo(?: that)?)[.!\s]*$/iu.test(message),
+  };
+}
+
+function hasUndoableLink(state) {
+  const corrections = state.caseLinkCorrections || [];
+  return corrections.some(
+    (item) =>
+      item.decision !== 'undo' && !corrections.some((entry) => entry.undoOf === item.entryId)
+  );
+}
+
+// The visible related case the person means; null when none or several fit.
+async function linkTarget(service, ctx, p, router, state, caseRef) {
+  const related = [...(await router.discover(ctx, p, state)).relatedCases];
+  // An explicit target can confirm a previously rejected visible relation.
+  for (const relation of state.relatedCases) {
+    if (related.some((item) => item.cetCaseId === relation.cetCaseId)) continue;
+    if (relation.relationshipType !== 'same_subject') continue;
+    const target = await router.loadCase(p, relation.cetCaseId, { summaryOnly: true });
+    related.push({ ...relation, ...(await router.readCaseSummary(p, target)) });
+  }
+  const candidates = [];
+  for (const item of related) {
+    if (item.relationshipType !== 'same_subject') continue;
+    const displayRef = await service.store.caseDisplayRef({
+      tenantId: p.tenantId,
+      caseId: item.cetCaseId,
+    });
+    if (!caseRef || [item.cetCaseId, displayRef].includes(caseRef)) candidates.push(item);
+  }
+  return candidates.length === 1 ? candidates[0].cetCaseId : null;
+}
+
+const correctionReply = (responseText) => ({ mode: 'correction', responseText });
+
+function linkDecision(link, undo) {
+  if (undo) return 'undo';
+  return link.rejected ? 'rejected' : 'confirmed';
+}
+
+// The case of this conversation whose links are corrected; a reply when there is none.
+async function linkedCase(service, p, envelope, link) {
+  const conversation = await service.store.resolveConversation(
+    { tenantId: p.tenantId, client: envelope.channel, conversationId: envelope.conversationId },
+    { optional: true }
+  );
+  if (conversation?.cetCaseId) return { caseId: conversation.cetCaseId };
+  return {
+    reply: link
+      ? correctionReply('Bitte wähle zuerst den Fall, dessen Verknüpfung du korrigieren möchtest.')
+      : null,
+  };
+}
+
+async function handleCaseLinkTurn(service, ctx, p, envelope, meta, command) {
   const merged = await require('./workbench-case-continuation').mergeCommand(
     service,
     ctx,
     p,
     envelope,
-    meta
+    meta,
+    command
   );
   if (merged) return merged;
-  const message = envelope.userRequest.trim();
-  const match = message.match(/^(?:das |die fälle )?gehört (nicht )?zusammen(?:\s+(.+?))?[.!]*$/iu);
-  const undo = /^(?:mach das rückgängig|rückgängig|undo(?: that)?)[.!\s]*$/iu.test(message);
-  if (!match && !undo) return null;
+  const { link, undo } = linkCommand(envelope.userRequest.trim(), command);
+  if (!link && !undo) return null;
   const turn = await conversationAssistance.readTurn(service.conversationsDb, p, envelope);
   if (undo && turn?.correctionFamily === 'function') return null;
-  const conversation = await service.store.resolveConversation(
-    { tenantId: p.tenantId, client: envelope.channel, conversationId: envelope.conversationId },
-    { optional: true }
-  );
-  if (!conversation?.cetCaseId)
-    return match
-      ? {
-          mode: 'correction',
-          responseText: 'Bitte wähle zuerst den Fall, dessen Verknüpfung du korrigieren möchtest.',
-        }
-      : null;
+  const own = await linkedCase(service, p, envelope, link);
+  if (!own.caseId) return own.reply;
   const router = service.broker.getLocalService('domain-router');
-  const state = await router.loadCase(p, conversation.cetCaseId);
-  if (
-    undo &&
-    !state.caseLinkCorrections?.some(
-      (item) =>
-        item.decision !== 'undo' &&
-        !state.caseLinkCorrections.some((entry) => entry.undoOf === item.entryId)
-    )
-  )
-    return null;
+  const state = await router.loadCase(p, own.caseId);
+  if (undo && !hasUndoableLink(state)) return null;
   let targetCaseId;
-  if (match) {
-    const discovered = (await router.discover(ctx, p, state)).relatedCases;
-    const related = [...discovered];
-    // An explicit target can confirm a previously rejected visible relation.
-    for (const relation of state.relatedCases) {
-      if (related.some((item) => item.cetCaseId === relation.cetCaseId)) continue;
-      if (relation.relationshipType !== 'same_subject') continue;
-      const target = await router.loadCase(p, relation.cetCaseId, { summaryOnly: true });
-      related.push({ ...relation, ...(await router.readCaseSummary(p, target)) });
-    }
-    const candidates = [];
-    for (const item of related) {
-      if (item.relationshipType !== 'same_subject') continue;
-      const displayRef = await service.store.caseDisplayRef({
-        tenantId: p.tenantId,
-        caseId: item.cetCaseId,
-      });
-      if (!match[2] || [item.cetCaseId, displayRef].includes(match[2])) candidates.push(item);
-    }
-    if (candidates.length !== 1)
-      return {
-        mode: 'correction',
-        responseText:
-          'Bitte nenne den eindeutigen verwandten Fall: „gehört zusammen F-…“ oder „gehört nicht zusammen F-…“.',
-      };
-    targetCaseId = candidates[0].cetCaseId;
+  if (link) {
+    targetCaseId = await linkTarget(service, ctx, p, router, state, link.caseRef);
+    if (!targetCaseId)
+      return correctionReply(
+        'Bitte nenne den eindeutigen verwandten Fall: „gehört zusammen F-…“ oder „gehört nicht zusammen F-…“.'
+      );
   }
   const result = await ctx.call(
     'domain-router.cases.correctLink',
     {
       cetCaseId: state.cetCaseId,
       ...(targetCaseId ? { targetCaseId } : {}),
-      decision: undo ? 'undo' : match[1] ? 'rejected' : 'confirmed',
+      decision: linkDecision(link, undo),
       caseStateVersion: state.caseStateVersion,
     },
     { meta }
@@ -190,10 +229,11 @@ async function handleCaseLinkTurn(service, ctx, p, envelope, meta) {
   });
   return {
     ...result,
-    mode: 'correction',
-    responseText: undo
-      ? 'Die Fallverknüpfungs-Korrektur ist rückgängig gemacht.'
-      : 'Die Fallverknüpfungs-Korrektur ist journalisiert. Mit „rückgängig“ kannst du sie zurücknehmen.',
+    ...correctionReply(
+      undo
+        ? 'Die Fallverknüpfungs-Korrektur ist rückgängig gemacht.'
+        : 'Die Fallverknüpfungs-Korrektur ist journalisiert. Mit „rückgängig“ kannst du sie zurücknehmen.'
+    ),
   };
 }
 

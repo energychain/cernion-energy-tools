@@ -318,6 +318,28 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     expect((await call('query', 'other')).cetCaseId).toBeTruthy();
   });
 
+  test('conversation core: declining the case in free wording discards it through the turn action', async () => {
+    const first = await call(productionMail);
+    process.env.WORKBENCH_CONVERSATION_CORE = 'tenant-a';
+    const previous = llm.generateStructured.getMockImplementation();
+    llm.generateStructured.mockImplementation(async (schema, ...rest) =>
+      schema?.properties?.action?.enum?.includes('discard_case')
+        ? { data: { action: 'discard_case' } }
+        : previous(schema, ...rest)
+    );
+    try {
+      const result = await call('Dafür brauche ich keinen Vorgang.');
+      expect(result.state).toBe('case_discarded');
+      const state = await broker
+        .getLocalService('domain-router')
+        .db.get(`tenant-a:${first.cetCaseId}`);
+      expect(state.disposition).toBe('discarded');
+    } finally {
+      delete process.env.WORKBENCH_CONVERSATION_CORE;
+      llm.generateStructured.mockImplementation(previous);
+    }
+  });
+
   test('AC-05: external wish offers draft, explicit draft is internal and never sends', async () => {
     const first = await call(productionMail);
     const external = await call('Antwort per Mail senden');

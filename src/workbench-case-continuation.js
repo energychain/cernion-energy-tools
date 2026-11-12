@@ -152,8 +152,12 @@ async function duplicateProposal(service, p, selected, items) {
   };
 }
 
-async function mergeCommand(service, ctx, p, envelope, meta) {
-  if (!/^(?:fälle zusammenführen|zusammenführung bestätigen)[.!\s]*$/iu.test(envelope.userRequest))
+async function mergeCommand(service, ctx, p, envelope, meta, command) {
+  if (
+    command
+      ? command.action !== 'case_merge'
+      : !/^(?:fälle zusammenführen|zusammenführung bestätigen)[.!\s]*$/iu.test(envelope.userRequest)
+  )
     return null;
   const pending = await conversationAssistance.readTurn(service.conversationsDb, p, envelope);
   const proposal = pending?.caseMergeProposal;

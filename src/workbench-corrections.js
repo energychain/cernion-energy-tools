@@ -238,13 +238,14 @@ async function handleCorrectionTurn(
   ctx,
   envelope,
   store,
-  { model = getFunctionModel(), allowUnmatchedConfirmation = false } = {}
+  { model = getFunctionModel(), allowUnmatchedConfirmation = false, intent: read } = {}
 ) {
   const p = principal(ctx, ctx.params);
   const memoryId = `correction-conversation-${reference(p.actorId, envelope.channel, envelope.conversationId)}`;
   const saved = await store.getTurnMemory({ tenantId: p.tenantId, caseId: memoryId });
   const memory = saved?.memory || {};
-  let intent = recognizeCorrection(envelope.userRequest);
+  // Conversation core: the turn action read by the model; otherwise the wording recognition.
+  let intent = read === undefined ? recognizeCorrection(envelope.userRequest) : read;
   if (!intent && memory.pending?.candidates) {
     const selected = resolveFunctions(envelope.userRequest, { model });
     if (

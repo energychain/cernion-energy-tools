@@ -444,6 +444,49 @@ describe('Case linking #753 (real broker and existing PouchDB lifecycle)', () =>
     expect(state.caseLinkCorrections).toHaveLength(1);
   });
 
+  test('conversation core: a case link read by the model from free wording is journalized', async () => {
+    const first = await app.create(ids);
+    const second = await app.create(ids);
+    const envelope = {
+      userRequest: 'Mit dem anderen Vorgang hat das hier nichts zu tun.',
+      channel: 'test',
+      conversationId: 'core-link',
+    };
+    await app.workbench.store.linkConversation({
+      tenantId: 'tenant-a',
+      client: 'test',
+      conversationId: envelope.conversationId,
+      cetCaseId: second.cetCaseId,
+    });
+    const p = principal({ meta: auth() });
+    const link = require('../src/workbench-case-linking');
+    const command = (action, caseLink = null) => ({ action, correction: null, caseLink });
+    expect(
+      await link.handleCaseLinkTurn(
+        app.workbench,
+        { broker: app.broker },
+        p,
+        envelope,
+        auth(),
+        command('content')
+      )
+    ).toBeNull();
+    const result = await link.handleCaseLinkTurn(
+      app.workbench,
+      { broker: app.broker, call: (name, params, options) => app.call(name, params, options.meta) },
+      p,
+      envelope,
+      auth(),
+      command('case_link', { related: false, caseRef: '' })
+    );
+    expect(result.responseText).toContain('journalisiert');
+    const state = await app.router.loadCase(p, second.cetCaseId);
+    expect(state.caseLinkCorrections.at(-1)).toMatchObject({
+      decision: 'rejected',
+      targetCaseId: first.cetCaseId,
+    });
+  });
+
   test('identifier queries are generic for spaced/punctuated values and case-normalized type prefixes', async () => {
     app.policy('team');
     const first = await app.create([{ kind: 'reference-a', value: 'ANON REF.001' }]);

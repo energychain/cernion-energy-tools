@@ -209,6 +209,31 @@ test('separate confirmation required; memory is actor/conversation/tenant isolat
   await chat('Ja');
   expect((await beta()).responsibility.cet).toBe(true);
 });
+test('conversation core: a correction in free wording, read by the model, needs the same confirmation', async () => {
+  const { correctionIntent } = require('../src/workbench-turn-action');
+  const read = (message, result) =>
+    handleCorrectionTurn(
+      {
+        params: {},
+        meta: meta(),
+        call: (name, input) => adapter.broker.call(name, input, { meta: meta() }),
+      },
+      { userRequest: message, conversationId: 'one', channel: 'open-webui' },
+      store,
+      { model, intent: correctionIntent(result) }
+    );
+  const asked = await read('Beta Review braucht dich künftig nicht mehr zu beschäftigen.', {
+    action: 'function',
+    target: 'activation',
+    positive: false,
+    phrase: 'Beta Review',
+  });
+  expect(asked.responseText).toContain('Beta Review');
+  expect((await beta()).responsibility.cet).toBe(true);
+  await read('Genau so.', { action: 'confirm' });
+  expect((await beta()).responsibility.cet).toBe(false);
+  expect(await read('Wie ist der Stand?', { action: 'content' })).toBeNull();
+});
 test('ambiguous resolution cannot be confirmed; explicit repeated target is echoed before mutation', async () => {
   const response = await chat('kümmere dich nicht mehr um Review');
   expect(response.responseText).toContain('Welche Funktion');
