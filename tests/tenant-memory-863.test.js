@@ -109,6 +109,44 @@ describe('863 grounded anchor and correspondence acceptance', () => {
     expect(saved.facts).toHaveLength(1);
     expect(saved.confirmation.match(/Hab ich festgehalten/g)).toHaveLength(1);
   });
+  test('conversation core: only statements judged organizational reach team memory; a failed judgement writes nothing', async () => {
+    process.env.WORKBENCH_CONVERSATION_CORE = 'tenant-a';
+    const p = principal(f.actorA);
+    const run = (conversationId) =>
+      memory.capture(context(p), p, {
+        ...input(f.incomplete),
+        envelope: { userRequest: f.incomplete.text, conversationId, channel: 'api' },
+        verifyScope: true,
+      });
+    const judge = (scope) => async (schema, raw) => {
+      const request = JSON.parse(raw);
+      expect(request.instruction).toMatch(/über den aktuellen Einzelvorgang hinaus/u);
+      return { items: request.assertions.map(({ index }) => ({ index, scope })) };
+    };
+    try {
+      llm.generateStructured.mockImplementationOnce(judge('case'));
+      expect((await run('scope-case')).facts).toHaveLength(0);
+      llm.generateStructured.mockImplementationOnce(async () => {
+        throw new Error('model down');
+      });
+      expect((await run('scope-failed')).facts).toHaveLength(0);
+      llm.generateStructured.mockImplementationOnce(judge('organization'));
+      const kept = await run('scope-organization');
+      expect(kept.facts).toHaveLength(1);
+      expect(kept.confirmation).toContain('Hab ich festgehalten');
+    } finally {
+      delete process.env.WORKBENCH_CONVERSATION_CORE;
+    }
+  });
+  test('outside the core or without the turn flag, capture keeps the understanding judgement', async () => {
+    process.env.WORKBENCH_CONVERSATION_CORE = 'tenant-a';
+    try {
+      const saved = await capture(f.incomplete);
+      expect(saved.facts).toHaveLength(1);
+    } finally {
+      delete process.env.WORKBENCH_CONVERSATION_CORE;
+    }
+  });
   test('scenario 2 / A.2: omitted anchors are recovered independently of extraction', async () => {
     const saved = await capture(f.omitted);
     expect(saved.facts[0].anchors).toEqual([{ value: f.base, qualifier: '', aliases: [] }]);
