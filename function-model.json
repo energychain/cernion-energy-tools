@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "e6490b8a47567889604abad5fa6b800620f547ece966d93a861cda1f874b447c",
+  "sourceHash": "975a4bef64b5dc0513e5d36647e7033f04e621eb909ec93bd87288f99615ce03",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -166987,6 +166987,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-tools.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-turn-action.js"
         },
         {
           "kind": "service",

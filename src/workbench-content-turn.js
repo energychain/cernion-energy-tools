@@ -1433,7 +1433,8 @@ async function runContentTurn(
   // Conversation core (AP2): stored material the understanding asks for is evidence of this
   // answer, judged by the scope and the cross-case gate below, never the answer itself.
   const conversationCore = require('./workbench-conversation-core');
-  if (conversationCore.conversationCoreEnabled(p.tenantId) && !incomingDocuments)
+  const coreMode = conversationCore.conversationCoreEnabled(p.tenantId);
+  if (coreMode && !incomingDocuments)
     retrieval.evidence.push(
       ...(await conversationCore.storedEvidence(service, ctx, {
         p,
@@ -1494,7 +1495,12 @@ async function runContentTurn(
       .filter((hit) => Number.isInteger(hit.metadata?.notice))
       .map((hit) => hit.metadata.notice)
   );
-  if (notices.length) {
+  if (notices.length && coreMode) {
+    // Conversation core: notices that passed the gate are evidence of the answer, which decides
+    // whether they matter; they are not put in front of it.
+    memoryContext.text = memoryContext.ambiguous || '';
+    memory.paragraphs = [];
+  } else if (notices.length) {
     const kept = (from) =>
       notices.filter((notice, index) => notice.from === from && keptNotices.has(index));
     memoryContext.text =
@@ -1504,7 +1510,9 @@ async function runContentTurn(
         .join('\n\n');
     memory.paragraphs = kept('assessment').map((notice) => notice.text);
   }
-  retrieval.evidence = gated.evidence.filter((hit) => !Number.isInteger(hit.metadata?.notice));
+  if (!coreMode)
+    retrieval.evidence = gated.evidence.filter((hit) => !Number.isInteger(hit.metadata?.notice));
+  else retrieval.evidence = gated.evidence;
   // Suggest a comparable case only on work on the matter, once per conversation; statements,
   // recalls and summaries do not get it.
   const suggestComparable =
@@ -1634,6 +1642,13 @@ async function runContentTurn(
       selectedCapabilities: result.selectedCapabilities,
       statementTurn: Boolean(memoryStatement),
     });
+    let storageNote = '';
+    if (documentResult?.caseDocuments) {
+      // Conversation core: the case documents are evidence of the regular answer.
+      retrieval.evidence = [...documentResult.caseDocuments, ...(retrieval.evidence || [])];
+      storageNote = documentResult.storageNote;
+      documentResult = null;
+    }
     reply = documentResult
       ? documentResult.conversationReply || documentFlow.documentAnswer(documentResult)
       : await understanding.answer({
@@ -1656,6 +1671,7 @@ async function runContentTurn(
           caseView: caseState ? workbenchCaseState.caseStateView(caseState) : null,
           logger: service.logger,
         });
+    if (storageNote) reply = { ...reply, responseText: `${reply.responseText}\n\n${storageNote}` };
     // The addendum is checked together with the answer it precedes.
     ({ reply, caseState } = workbenchCaseState.withAddendum(reply, caseState));
     reply = await workbenchCaseState.reviewTurnReply(reply, caseState, {
@@ -1727,7 +1743,7 @@ async function runContentTurn(
     [
       caseNotice,
       memoryContext.text,
-      ...memory.paragraphs.filter((text) => !memoryContext.text.includes(text)),
+      ...(coreMode ? [] : memory.paragraphs.filter((text) => !memoryContext.text.includes(text))),
       reply.responseText,
       memory.ambiguous,
       memory.confirmation,

@@ -192,12 +192,14 @@ async function extractRoleFields(message, tenantId) {
   return fields;
 }
 
-async function readRoleUpdate(p, envelope, pending) {
+async function readRoleUpdate(p, envelope, pending, turnAction) {
   const hasContext = ['role', 'mandate', 'goal', 'statement'].some((key) =>
     pending?.conversationContext?.[key]?.trim()
   );
   if (!hasContext) {
-    const intent = require('./workbench-corrections').recognizeCorrection(envelope.userRequest);
+    const intent = turnAction
+      ? turnAction.correction
+      : require('./workbench-corrections').recognizeCorrection(envelope.userRequest);
     if (
       intent?.type !== 'function' ||
       require('./function-resolver').resolveFunctions(intent.phrase || '').status === 'resolved'

@@ -133,6 +133,47 @@ async function imageTranscript(file, bytes) {
     return `Bild „${file.name}“: Der Bildinhalt konnte gerade nicht gelesen werden.`;
   }
 }
+// A scanned page has no text layer; it is rendered and read like a screenshot, so a scan is
+// evidence instead of an empty document (bounded number of pages per file).
+const MAX_SCANNED_PAGES = 10;
+async function scannedPages(parser, file, numbers) {
+  const read = numbers.slice(0, MAX_SCANNED_PAGES);
+  const shots = await parser.getScreenshot({ partial: read, scale: 2 });
+  const texts = new Map();
+  for (const page of shots.pages || []) {
+    try {
+      const { text } = await require('./image-understanding').transcribeImage(
+        { data: Buffer.from(page.data), mimeType: 'image/png', fileName: `${file.name}.png` },
+        { tenantId: file.tenantId }
+      );
+      texts.set(page.pageNumber, text);
+    } catch (_error) {
+      texts.set(page.pageNumber, '');
+    }
+  }
+  return texts;
+}
+async function pdfText(file, bytes) {
+  const parser = createPdfParser({ data: bytes });
+  try {
+    const result = await parser.getText();
+    const pages = result.pages || [];
+    const scanned = pages.filter((page) => !String(page.text || '').trim()).map((page) => page.num);
+    if (!scanned.length) return result.text;
+    const read = await scannedPages(parser, file, scanned);
+    return pages
+      .map((page) => {
+        if (String(page.text || '').trim()) return `Seite ${page.num}\n${page.text}`;
+        const transcript = read.get(page.num);
+        return transcript
+          ? `Seite ${page.num} (Scan, maschinell gelesen)\n${transcript}`
+          : `Seite ${page.num}: gescannte Seite, Inhalt nicht gelesen.`;
+      })
+      .join('\n\n');
+  } finally {
+    await parser.destroy();
+  }
+}
 async function extractOriginal(file) {
   const bytes = Buffer.from(file.contentBase64, 'base64');
   let text;
@@ -177,12 +218,7 @@ async function extractOriginal(file) {
       )
       .join('\n');
   } else if (file.extension === 'pdf') {
-    const parser = createPdfParser({ data: bytes });
-    try {
-      text = (await parser.getText()).text;
-    } finally {
-      await parser.destroy();
-    }
+    text = await pdfText(file, bytes);
   } else if (/^image\//u.test(String(file.mimeType || ''))) {
     text = await imageTranscript(file, bytes);
   } else text = bytes.toString('utf8');

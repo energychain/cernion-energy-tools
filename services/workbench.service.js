@@ -1696,11 +1696,23 @@ module.exports = {
         const background = require('../src/workbench-background-task');
         if (background.backgroundTask(envelope.userRequest))
           return background.answerBackgroundTask(envelope.userRequest, p.tenantId, this.logger);
+        // Core: the model reads what the turn asks CET to do (commands with their parameters).
+        const turnActions = require('../src/workbench-turn-action');
+        const turnActionJob = core
+          ? turnActions.readTurnAction({
+              message: envelope.userRequest,
+              lastAssistant: turnActions.lastAssistantMessage(ctx.params.messages),
+              tenantId: p.tenantId,
+              logger: this.logger,
+            })
+          : null;
         const pending = await conversationAssistance.readTurn(this.conversationsDb, p, envelope);
+        const turnAction = turnActionJob ? await turnActionJob : undefined;
         const roleUpdate = await require('../src/workbench-role-context').readRoleUpdate(
           p,
           envelope,
-          pending
+          pending,
+          turnAction
         );
         if (roleUpdate?.updated)
           return contentTurn.runContentTurn(this, ctx, {
@@ -1880,10 +1892,16 @@ module.exports = {
             conversation,
             meta: correctionMeta,
           });
-        if (/^(?:kein fall|no case)[.!\s]*$/i.test(envelope.userRequest.trim())) {
+        if (
+          turnAction
+            ? turnAction.action === 'discard_case'
+            : /^(?:kein fall|no case)[.!\s]*$/i.test(envelope.userRequest.trim())
+        ) {
           return contentTurn.discard(this, ctx, p, envelope, pending, correctionMeta);
         }
-        const confirmation = conversationAssistance.emptyConfirmation(envelope.userRequest);
+        const confirmation = turnAction
+          ? turnAction.action === 'confirm'
+          : conversationAssistance.emptyConfirmation(envelope.userRequest);
         const offeredContent =
           pending?.offeredContent || conversationAssistance.substantiveMessage(ctx.params.messages);
         const caseLinkCorrection = await caseLinking.handleCaseLinkTurn(
@@ -1891,7 +1909,8 @@ module.exports = {
           ctx,
           p,
           envelope,
-          correctionMeta
+          correctionMeta,
+          turnAction
         );
         if (caseLinkCorrection) return caseLinkCorrection;
         const correctionResult = await handleCorrectionTurn(
@@ -1904,6 +1923,7 @@ module.exports = {
           this.store,
           {
             model: this.settings.systemActivityModel,
+            ...(turnAction ? { intent: turnAction.correction } : {}),
             allowUnmatchedConfirmation:
               confirmation &&
               !!(offeredContent || pending?.lastQuestion || pending?.askedQuestions?.length),

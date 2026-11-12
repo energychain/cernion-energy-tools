@@ -110,18 +110,36 @@ async function conversationCaseStatus(service, ctx, p, envelope, meta) {
   return null;
 }
 
-async function handleCaseLinkTurn(service, ctx, p, envelope, meta) {
+// `command` is the turn action of the conversation core; without it the wording is recognized.
+function linkCommand(message, command) {
+  if (command)
+    return {
+      match: command.caseLink
+        ? [
+            null,
+            command.caseLink.related ? undefined : 'nicht ',
+            command.caseLink.caseRef || undefined,
+          ]
+        : null,
+      undo: command.action === 'undo',
+    };
+  return {
+    match: message.match(/^(?:das |die fälle )?gehört (nicht )?zusammen(?:\s+(.+?))?[.!]*$/iu),
+    undo: /^(?:mach das rückgängig|rückgängig|undo(?: that)?)[.!\s]*$/iu.test(message),
+  };
+}
+
+async function handleCaseLinkTurn(service, ctx, p, envelope, meta, command) {
   const merged = await require('./workbench-case-continuation').mergeCommand(
     service,
     ctx,
     p,
     envelope,
-    meta
+    meta,
+    command
   );
   if (merged) return merged;
-  const message = envelope.userRequest.trim();
-  const match = message.match(/^(?:das |die fälle )?gehört (nicht )?zusammen(?:\s+(.+?))?[.!]*$/iu);
-  const undo = /^(?:mach das rückgängig|rückgängig|undo(?: that)?)[.!\s]*$/iu.test(message);
+  const { match, undo } = linkCommand(envelope.userRequest.trim(), command);
   if (!match && !undo) return null;
   const turn = await conversationAssistance.readTurn(service.conversationsDb, p, envelope);
   if (undo && turn?.correctionFamily === 'function') return null;
