@@ -107,6 +107,42 @@ describe('foreign context gate', () => {
     expect(logger.info).toHaveBeenCalledWith('Foreign context gate overflow', { dropped: 9 });
   });
 
+  test('a lesson carrying a name of the foreign case fails closed', async () => {
+    const hit = foreign(
+      'Zielbild: Spur Kormoran für Nutzen, Strukturhalterin Ilvana hält das Thema.'
+    );
+    const llm = llmReturning([
+      {
+        index: 0,
+        decision: 'pattern',
+        lesson: 'Bewährt hat sich die Trennung in Spur Kormoran und eine Machbarkeitslinie.',
+      },
+    ]);
+    const result = await gateForeignEvidence([own, hit], {
+      llm,
+      message: 'Wie trenne ich Linien?',
+    });
+    expect(result.evidence).toEqual([own]);
+  });
+
+  test('a lesson with general wording only is kept as experience', async () => {
+    const hit = foreign(
+      'Zielbild: Spur Kormoran für Nutzen, Strukturhalterin Ilvana hält das Thema.'
+    );
+    const llm = llmReturning([
+      {
+        index: 0,
+        decision: 'pattern',
+        lesson: 'Bewährt hat sich, Nutzen und Machbarkeit getrennt zu prüfen.',
+      },
+    ]);
+    const result = await gateForeignEvidence([own, hit], {
+      llm,
+      message: 'Wie trenne ich Linien?',
+    });
+    expect(result.evidence[1]).toMatchObject({ retrievalSource: 'experience' });
+  });
+
   test('a comparable case is offered, not disclosed', async () => {
     const llm = llmReturning([{ index: 0, decision: 'comparable', lesson: '' }]);
     const result = await gateForeignEvidence([own, foreign('Vorgang D-4 Details')], { llm });
