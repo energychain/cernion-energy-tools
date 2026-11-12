@@ -151,9 +151,37 @@ test('productive assistant refreshes runtime mode and labels executable artifact
   assert.ok(count(script, /await refreshAssistantConfig\(\)/g) >= 2);
   assert.match(script, /productive \? 'Ausführungsvorschlag' : 'Shadow-Vorschlag'/);
   assert.match(script, /productive \? 'Ausführungsbeleg' : 'Shadow-Beleg'/);
+  assert.match(script, /status: 'wartet auf Bestätigung'/);
   assert.match(script, /toLocaleLowerCase\('de-DE'\)\.endsWith\('vorschlag'\)/);
   assert.match(script, /Ausführung vorbereitet · Vorschlag prüfen und „Ausführen“ wählen\./);
   assert.match(script, /Ausgeführt · Kanban-Readback und Übergabebeleg sind protokolliert\./);
+});
+
+test('productive assistant presents persisted shadow proposals as awaiting confirmation', () => {
+  const context = vm.createContext({
+    assistantState: { config: { writesEnabled: true } },
+    document: { createElement: (tagName) => new ElementHarness(tagName) },
+  });
+  vm.runInContext(
+    `${functionSource('function assistantArtifactItems', 'function assistantArtifactText')}\n${functionSource('function assistantArtifactText', 'function renderAssistantArtifacts')}\n${functionSource('function renderAssistantArtifacts', 'function assistantActivityStatus')}\nthis.render = renderAssistantArtifacts;`,
+    context
+  );
+  const article = new ElementHarness('article');
+
+  context.render(
+    {
+      proposal: {
+        title: 'Uslar-Planungsannahme übernehmen',
+        status: 'shadow',
+      },
+    },
+    article
+  );
+
+  assert.equal(article.children.length, 1);
+  assert.equal(article.children[0].children[0].textContent, 'Ausführungsvorschlag');
+  assert.match(article.children[0].children[1].textContent, /wartet auf Bestätigung/);
+  assert.doesNotMatch(article.children[0].children[1].textContent, /shadow/i);
 });
 
 test('department cards expose governance questions and proposed next actions', () => {

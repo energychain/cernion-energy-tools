@@ -256,7 +256,11 @@ function renderAssistantArtifacts(item, article) {
   ];
   for (const [label, values] of groups) {
     for (const value of values) {
-      const text = assistantArtifactText(value);
+      const displayValue =
+        productive && value && value.status === 'shadow'
+          ? { ...value, status: 'wartet auf Bestätigung' }
+          : value;
+      const text = assistantArtifactText(displayValue);
       if (!text) continue;
       const artifact = document.createElement('div');
       artifact.className = 'assistant-shadow-artifact';
