@@ -75,6 +75,12 @@ function markers(text) {
 }
 
 // Pairs of consecutive capitalised words (names such as a project line or a person with a role).
+// A word that starts with a capital letter (digits and symbols do not count).
+function capitalized(word) {
+  const first = word.slice(0, 1);
+  return first !== first.toLowerCase();
+}
+
 function namePairs(text) {
   const words = String(text || '')
     .split(/[^\p{L}\p{N}-]+/u)
@@ -82,8 +88,7 @@ function namePairs(text) {
   const pairs = new Set();
   for (let index = 1; index < words.length; index++) {
     const [left, right] = [words[index - 1], words[index]];
-    if (left[0] === left[0].toUpperCase() && right[0] === right[0].toUpperCase())
-      pairs.add(`${left} ${right}`.toLowerCase());
+    if (capitalized(left) && capitalized(right)) pairs.add(`${left} ${right}`.toLowerCase());
   }
   return pairs;
 }
