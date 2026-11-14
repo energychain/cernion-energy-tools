@@ -154,7 +154,10 @@ function roomForTopic(topic, members, roomRegistry) {
     if (match && hashtags.has(normalizeToken(match[1]))) return roomId;
   }
 
-  const roomName = OWNER_ROOMS[topic.owner_agent];
+  const ownerToken = normalizeToken(topic.owner_agent);
+  const roomName = Object.entries(OWNER_ROOMS).find(
+    ([owner]) => normalizeToken(owner) === ownerToken
+  )?.[1];
   const roomId = roomName ? rooms[roomName] : null;
   return validRoomId(roomId) ? roomId : null;
 }

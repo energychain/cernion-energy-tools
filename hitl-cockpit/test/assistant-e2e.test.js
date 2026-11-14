@@ -403,6 +403,23 @@ test('topic archive is one explicit idempotent low-risk write without Matrix noi
   assert.ok(h.store.getReceiptByProposalId(proposal.id));
 });
 
+test('irrelevant decision closure reuses the guarded idempotent archive path', async (t) => {
+  const h = harness(t, {
+    mode: 'low_risk',
+    actionAllowlist: ['archive_intake_noise'],
+    matrixHandoffEnabled: true,
+  });
+  const first = await h.service.archiveDecision('decision-1');
+  const second = await h.service.archiveDecision('decision-1');
+
+  assert.equal(first.proposal.status, 'executed');
+  assert.equal(second.proposal.status, 'executed');
+  assert.equal(h.writes.length, 1);
+  assert.equal(h.writes[0].action, 'archive_intake_noise');
+  assert.equal(h.writes[0].payload.reason, 'Rauschen/kein weiterer Handlungsbedarf');
+  assert.equal(h.matrix.length, 0);
+});
+
 test('Matrix pending remains an open disturbance and never presents the proposal as executed', async (t) => {
   const pending = harness(t, {
     mode: 'low_risk',

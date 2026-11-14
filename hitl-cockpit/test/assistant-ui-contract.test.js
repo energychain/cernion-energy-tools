@@ -317,8 +317,18 @@ test('AP16 message loader enforces the explicit page cap before rendering partia
 test('AP20 reconciliation lane polls independently and exposes operational evidence', () => {
   assert.match(script, /loadAssistantReconciliation\(\)\.catch/);
   assert.match(script, /setInterval\([\s\S]*loadAssistantReconciliation/);
-  for (const label of ['Alter', 'Eskalation', 'Versuche', 'Fehler']) {
+  for (const label of ['Alter', 'Versuche', 'Readback prüfen', 'An Rhajaina eskalieren']) {
     assert.match(script, new RegExp(label));
   }
-  assert.match(script, /reason, evidence, requestId: crypto\.randomUUID\(\)/);
+  assert.match(script, /serverseitiger Readback bleibt zwingend/);
+  assert.match(script, /requestId: assistantClientMessageId\(\)/);
+  assert.match(script, /grouped\.get\(item\.proposalId\)/);
+});
+
+test('decision cards expose guarded close controls with explicit no-decision semantics', () => {
+  assert.match(script, /data-decision-archive/);
+  assert.match(script, /Keine Entscheidung erforderlich · schließen/);
+  assert.match(script, /objectType === 'decision' \? 'decisions' : 'topics'/);
+  assert.match(styles, /\.decision-card/);
+  assert.match(styles, /\.decision-archive/);
 });

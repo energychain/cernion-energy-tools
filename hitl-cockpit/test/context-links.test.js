@@ -162,6 +162,26 @@ test('topic context links use configured Fachraum and only non-private artifacts
   assert.equal(result.diagnostics.linkedArtifacts, 1);
 });
 
+test('owner room lookup tolerates normalized lowercase Kanban assignees', () => {
+  const source = task('operations', 't_lowercase_owner', {
+    assignee: 'rhajaina',
+    status: 'ready',
+  });
+  const projectedTopic = {
+    ...topic,
+    owner_agent: 'rhajaina',
+    source_task_refs_json: JSON.stringify([{ board: source.board, taskId: source.id }]),
+  };
+  projectContextLinks({
+    tasks: [source],
+    topics: [projectedTopic],
+    decisions: [],
+    roomRegistry: { rooms: { Assistenz: '!assistenz:example.org' } },
+    artifactRegistry: { artifacts: [] },
+  });
+  assert.equal(projectedTopic.matrix_room_ref, '!assistenz:example.org');
+});
+
 test('TWL-private tasks, raw bridge tasks and TWL artifacts are blocked at projection boundary', () => {
   assert.equal(isPrivateTask(task('twl-netze-private', 't_private1')), true);
   assert.equal(isPrivateTask(task('twl-netze-bridge', 't_raw00001')), true);

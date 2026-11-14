@@ -414,6 +414,14 @@ async function refreshAssistantConversations() {
 
 async function loadAssistantReconciliation() {
   const data = await assistantRequest('/api/assistant/reconciliation');
+  const grouped = new Map();
+  for (const item of data.items || []) {
+    const current = grouped.get(item.proposalId);
+    if (!current || (current.stage !== 'matrix' && item.stage === 'matrix')) {
+      grouped.set(item.proposalId, item);
+    }
+  }
+  const items = [...grouped.values()];
   let lane = document.querySelector('[data-assistant-reconciliation-lane]');
   if (!lane) {
     lane = document.createElement('section');
@@ -423,9 +431,9 @@ async function loadAssistantReconciliation() {
   }
   lane.replaceChildren();
   const heading = document.createElement('strong');
-  heading.textContent = `Störungen (${(data.items || []).length})`;
+  heading.textContent = `Störungen (${items.length})`;
   lane.append(heading);
-  for (const item of data.items || []) {
+  for (const item of items) {
     const row = document.createElement('div');
     row.className = 'assistant-proposal-actions';
     const text = document.createElement('span');
@@ -434,12 +442,23 @@ async function loadAssistantReconciliation() {
       ageSeconds >= 86400
         ? `${Math.floor(ageSeconds / 86400)}d`
         : `${Math.floor(ageSeconds / 3600)}h`;
-    text.textContent = `${item.stage} · ${item.status} · Owner ${item.owner} · Alter ${age} · Eskalation ${item.escalatedAt ? 'ja' : 'nein'} · Versuche ${item.attemptCount} · Fehler ${item.lastErrorCode || '–'} · nächste Prüfung ${new Date(item.nextAttemptAt * 1000).toLocaleString('de-DE')}`;
+    const explanations = {
+      matrix_room_not_available:
+        'Der Kanban-Auftrag ist ausgeführt, aber es konnte kein Matrix-Fachraum aufgelöst werden.',
+      matrix_runtime_unavailable:
+        'Der Kanban-Auftrag ist ausgeführt, aber der Matrix-Zustelldienst ist nicht verfügbar.',
+      matrix_delivery_failed:
+        'Der Kanban-Auftrag ist ausgeführt, die Matrix-Zustellung wurde jedoch nicht bestätigt.',
+      matrix_readback_mismatch:
+        'Die Matrix-Nachricht konnte nach dem Senden nicht eindeutig zurückgelesen werden.',
+    };
+    const stage = item.stage === 'matrix' ? 'Kanban erledigt · Matrix offen' : 'Kanban-Write offen';
+    text.textContent = `${stage}. ${explanations[item.lastErrorCode] || `Technischer Status: ${item.status}.`} Automatische nächste Prüfung: ${new Date(item.nextAttemptAt * 1000).toLocaleString('de-DE')}. Versuche: ${item.attemptCount}; verantwortlich: ${item.owner}; Alter: ${age}.`;
     row.append(text);
     for (const [action, label] of [
-      ['retry', 'Erneut prüfen'],
-      ['resolve', 'Als erledigt reconciliieren'],
-      ['escalate', 'Eskalieren'],
+      ['retry', item.stage === 'matrix' ? 'Erneut zustellen' : 'Erneut prüfen'],
+      ['resolve', 'Readback prüfen'],
+      ['escalate', 'An Rhajaina eskalieren'],
     ]) {
       const button = document.createElement('button');
       button.type = 'button';
@@ -450,7 +469,11 @@ async function loadAssistantReconciliation() {
     }
     lane.append(row);
   }
-  lane.hidden = !(data.items || []).length;
+  const help = document.createElement('small');
+  help.textContent =
+    '„Erneut“ stößt die automatische Verarbeitung sofort an. „Readback prüfen“ schließt nur nach serverseitig bestätigter Wirkung. „An Rhajaina eskalieren“ übergibt die Klärung.';
+  lane.append(help);
+  lane.hidden = !items.length;
 }
 
 async function loadAssistantMessages() {
@@ -745,13 +768,20 @@ function topicCard(topic) {
   </article>`;
 }
 
+function decisionArchiveButton(decision) {
+  return Array.isArray(decision.source_refs) && decision.source_refs.length === 1
+    ? `<button class="decision-archive" type="button" data-decision-archive="${escapeHtml(decision.decision_id)}" aria-label="${escapeHtml(decision.question || 'Entscheidung')} als irrelevant schließen" title="Keine Entscheidung erforderlich · schließen">×</button>`
+    : '';
+}
+
 function decisionCard(decision, compact = false, contextType = 'decision') {
   const options = Array.isArray(decision.options) ? decision.options : [];
   const consequences = Array.isArray(decision.consequences) ? decision.consequences : [];
   const risk =
     decision.classifier_label === 'RISK_ESCALATION' ||
     decision.decision_class === 'scope_violation';
-  return `<article class="card ${risk ? 'card-risk' : 'card-accent'}">
+  return `<article class="card decision-card ${risk ? 'card-risk' : 'card-accent'}" data-decision-card="${escapeHtml(decision.decision_id)}">
+    ${decisionArchiveButton(decision)}
     <div class="eyebrow">${escapeHtml(decision.decision_class || 'Governance')} · ${escapeHtml(decision.source_board || '')}</div>
     <h3>${escapeHtml(decision.question || 'Entscheidung ohne formulierte Frage')}</h3>
     ${decision.reason_human_required ? `<p>${escapeHtml(decision.reason_human_required)}</p>` : ''}
@@ -962,7 +992,10 @@ async function loadDecisions() {
     const matureDecisions = candidates.filter(isMatureDecision);
     const incompleteDecisions = candidates.filter((item) => !isMatureDecision(item));
     const incompleteCards = incompleteDecisions.map(
-      (item) => `<article class="card decision-incomplete">
+      (
+        item
+      ) => `<article class="card decision-card decision-incomplete" data-decision-card="${escapeHtml(item.decision_id)}">
+        ${decisionArchiveButton(item)}
         <div class="eyebrow">Vorbereitung durch Rhajaina erforderlich</div>
         <h3>${escapeHtml(item.question || 'Entscheidungsfrage noch nicht formuliert')}</h3>
         <p>Fehlende Entscheidungsgrundlage: ${escapeHtml(missingDecisionFields(item).join(', '))}</p>
@@ -1251,21 +1284,36 @@ document.querySelectorAll('[data-refresh]').forEach((button) => {
   button.addEventListener('click', () => loaders[button.dataset.refresh]());
 });
 document.addEventListener('click', async (event) => {
-  const archiveButton = event.target.closest('[data-topic-archive]');
+  const archiveButton = event.target.closest('[data-topic-archive], [data-decision-archive]');
   if (archiveButton) {
     archiveButton.disabled = true;
     try {
-      const topicId = archiveButton.dataset.topicArchive;
+      const objectType = archiveButton.dataset.decisionArchive ? 'decision' : 'topic';
+      const objectId = archiveButton.dataset.decisionArchive || archiveButton.dataset.topicArchive;
       const result = await assistantRequest(
-        `/api/management/topics/${encodeURIComponent(topicId)}/archive`,
+        `/api/management/${objectType === 'decision' ? 'decisions' : 'topics'}/${encodeURIComponent(objectId)}/archive`,
         { method: 'POST' }
       );
-      toast(result.pending ? 'Archivierung wird abgeglichen.' : 'Thema wurde archiviert.');
-      await Promise.all([loadOverview(), loadTopics(), loadDepartments(), loadHistory()]);
+      toast(
+        result.pending
+          ? 'Abschluss wird abgeglichen.'
+          : objectType === 'decision'
+            ? 'Entscheidung wurde als irrelevant geschlossen.'
+            : 'Thema wurde archiviert.'
+      );
+      await Promise.all([
+        loadOverview(),
+        loadDecisions(),
+        loadTopics(),
+        loadDepartments(),
+        loadHistory(),
+      ]);
     } catch (cause) {
       const labels = {
         topic_archive_source_ambiguous:
           'Das Thema bündelt mehrere Quellen und kann nicht pauschal archiviert werden.',
+        decision_archive_source_ambiguous:
+          'Die Entscheidung bündelt mehrere Quellen und kann nicht pauschal geschlossen werden.',
         action_source_not_available: 'Die autorisierte Quellkarte ist nicht eindeutig verfügbar.',
         PROJECTION_STALE: 'Die Lage ist veraltet. Nach der nächsten Projektion erneut versuchen.',
       };
@@ -1278,17 +1326,19 @@ document.addEventListener('click', async (event) => {
   if (reconciliationButton) {
     reconciliationButton.disabled = true;
     try {
-      const reason = window.prompt('Begründung der Operator-Aktion:');
-      const evidence = reason && window.prompt('Evidenz/Readback-Referenz:');
-      if (!reason || !evidence) {
-        reconciliationButton.disabled = false;
-        return;
-      }
+      const action = reconciliationButton.dataset.reconciliationAction;
+      const labels = {
+        retry: 'Sofortige erneute Verarbeitung im Geschäftsführer-Cockpit angefordert.',
+        resolve: 'Serverseitige Readback-Prüfung im Geschäftsführer-Cockpit angefordert.',
+        escalate: 'Klärung im Geschäftsführer-Cockpit an Rhajaina eskaliert.',
+      };
+      const reason = labels[action];
+      const evidence = `Cockpit-Reconciliation ${reconciliationButton.dataset.assistantReconciliation}; serverseitiger Readback bleibt zwingend.`;
       await assistantRequest(
         `/api/assistant/reconciliation/${encodeURIComponent(reconciliationButton.dataset.assistantReconciliation)}/${encodeURIComponent(reconciliationButton.dataset.reconciliationAction)}`,
         {
           method: 'POST',
-          body: { reason, evidence, requestId: crypto.randomUUID() },
+          body: { reason, evidence, requestId: assistantClientMessageId() },
         }
       );
       await loadAssistantReconciliation();

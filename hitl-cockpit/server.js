@@ -667,6 +667,21 @@ async function handler(req, res) {
         });
       }
     }
+    const decisionArchive = url.pathname.match(/^\/api\/management\/decisions\/([^/]+)\/archive$/);
+    if (decisionArchive && req.method === 'POST') {
+      if (!guardLegacyWrite(res)) return;
+      const decisionId = decodeId(decisionArchive[1]);
+      if (!decisionId) return json(res, 400, { ok: false, error: 'invalid_management_id' });
+      try {
+        const result = await assistantService.archiveDecision(decisionId);
+        return json(res, result.pending ? 202 : 200, { ok: true, ...result });
+      } catch (error) {
+        return json(res, error.status || 500, {
+          ok: false,
+          error: error.code || 'decision_archive_failed',
+        });
+      }
+    }
     const managementAction = url.pathname.match(
       /^\/api\/management\/decisions\/([^/]+)\/(choose|delegate|question|schedule|reject|return-to-rhajaina)$/
     );

@@ -479,32 +479,36 @@ function createAssistantService(options = {}) {
     return operation;
   }
 
-  async function archiveTopic(topicId) {
+  async function archiveManagementObject(objectType, objectId) {
     guardMutation();
-    const context = contextResolver.resolve({ objectType: 'topic', objectId: topicId });
+    const context = contextResolver.resolve({ objectType, objectId });
     const sources = trustedSourceReferences(context);
-    if (sources.length !== 1) throw serviceError('topic_archive_source_ambiguous', 409);
+    if (sources.length !== 1) {
+      throw serviceError(`${objectType}_archive_source_ambiguous`, 409);
+    }
     const syntheticProposal = {
-      id: `topic-archive-${topicId}`,
+      id: `${objectType}-archive-${objectId}`,
       actionType: 'mark_no_action',
-      targetType: 'topic',
-      targetId: topicId,
+      targetType: objectType,
+      targetId: objectId,
       payload: { reason: 'Rauschen/kein weiterer Handlungsbedarf' },
       riskClass: 'low',
       scopeStatus: 'covered',
       status: 'shadow',
     };
     const resolved = await resolveExecutionSource(syntheticProposal, context);
-    const idempotencyKey = `topic-archive:${topicId}:${resolved.sourceFingerprint}`;
+    const idempotencyKey = `${objectType}-archive:${objectId}:${resolved.sourceFingerprint}`;
     let conversation = store
       .listConversations()
-      .find((item) => item.objectType === 'topic' && item.objectId === topicId);
-    if (!conversation)
-      conversation = createConversation({ objectType: 'topic', objectId: topicId });
+      .find((item) => item.objectType === objectType && item.objectId === objectId);
+    if (!conversation) conversation = createConversation({ objectType, objectId });
     const message = store.appendMessage({
       conversationId: conversation.id,
       role: 'user',
-      content: 'Als Intake-Rauschen archivieren; kein weiterer Handlungsbedarf.',
+      content:
+        objectType === 'decision'
+          ? 'Als irrelevant schließen; keine Managemententscheidung erforderlich.'
+          : 'Als Intake-Rauschen archivieren; kein weiterer Handlungsbedarf.',
       clientMessageId: idempotencyKey,
     });
     const created = store.createProposal({
@@ -519,6 +523,14 @@ function createAssistantService(options = {}) {
       idempotencyKey,
     });
     return confirmProposal(created.proposal.id);
+  }
+
+  function archiveTopic(topicId) {
+    return archiveManagementObject('topic', topicId);
+  }
+
+  function archiveDecision(decisionId) {
+    return archiveManagementObject('decision', decisionId);
   }
 
   function rejectProposal(id) {
@@ -901,6 +913,7 @@ function createAssistantService(options = {}) {
     listProposals,
     confirmProposal,
     archiveTopic,
+    archiveDecision,
     rejectProposal,
     listReconciliations,
     retryReconciliation,

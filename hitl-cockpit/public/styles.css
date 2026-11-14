@@ -308,11 +308,13 @@ main {
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
-.topic-card {
+.topic-card,
+.decision-card {
   position: relative;
   padding-right: 58px;
 }
-.topic-archive {
+.topic-archive,
+.decision-archive {
   position: absolute;
   top: 14px;
   right: 14px;
@@ -327,11 +329,14 @@ main {
   line-height: 1;
 }
 .topic-archive:hover,
-.topic-archive:focus-visible {
+.topic-archive:focus-visible,
+.decision-archive:hover,
+.decision-archive:focus-visible {
   border-color: var(--copper);
   color: var(--copper);
 }
-.topic-archive:disabled {
+.topic-archive:disabled,
+.decision-archive:disabled {
   cursor: wait;
   opacity: 0.45;
 }
