@@ -397,3 +397,45 @@ test('when the checks remove too much of a free deliverable, it is written once 
   expect(result.responseText).toContain('Nur die Transportquittung liegt vor.');
   expect(result.responseText).not.toContain('bereits');
 });
+
+test('a second free attempt that the checks empty again is not given as the deliverable', async () => {
+  process.env.WORKBENCH_FREE_ANSWER = 'all';
+  const gutted = [
+    '## Hypothesen',
+    'Ich habe den Vorgang bereits geschlossen.',
+    'Die Antwort wurde bereits versendet.',
+    'Der Bestand wurde bereits geändert.',
+  ].join('\n\n');
+  llm.generateText.mockResolvedValue(gutted);
+  llm.generateStructured.mockImplementation(async (schema, raw) => {
+    const input = JSON.parse(raw);
+    return {
+      paragraphs: input.paragraphs.map(({ index, text }) => ({
+        index,
+        kind: 'statement',
+        origin: 'input',
+        evidenceIds: [],
+        ruleClaim: false,
+        completedAction: /bereits/u.test(text),
+        specific: false,
+      })),
+    };
+  });
+  const logger = { info: jest.fn(), warn: jest.fn() };
+  const result = await answer({
+    situation: { ...situation, requestedOutput: parkNote },
+    retrieval: { evidence },
+    message: `Parke den Vorgang. Ich brauche eine ${parkNote.basis}.`,
+    tenantId: 't',
+    logger,
+  });
+  // Two free attempts, then the structured repair path (here without a valid answer).
+  expect(llm.generateText.mock.calls[0][1].responseMimeType).toBe('text/plain');
+  expect(llm.generateText.mock.calls[1][1].responseMimeType).toBe('text/plain');
+  expect(llm.generateText.mock.calls.length).toBeGreaterThan(2);
+  expect(result.responseText.trim()).not.toBe('## Hypothesen');
+  const rejected = logger.info.mock.calls.find(([message]) =>
+    String(message).includes('Free deliverable rejected')
+  );
+  expect(rejected[1].filters['draft:completed_action']).toBeGreaterThan(0);
+});
