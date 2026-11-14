@@ -1,0 +1,4 @@
+record_id,request_reference,location_id,sent_at,transport_ack_reference,transport_status,business_response_reference,business_response_status,document_id,notes
+REG-SYN-017,REQ-SYN-2403-017,LOC-SYN-8327,2026-03-14T09:12:00+01:00,ACK-SYN-2403-017,accepted,,unknown,,Initial register snapshot; business-response search not yet performed
+REG-SYN-018,REQ-SYN-2403-018,LOC-SYN-8326,2026-03-14T10:05:00+01:00,ACK-SYN-2403-018,accepted,ANS-SYN-2403-018,received,,Completed comparison transaction; document assignment not exported
+REG-SYN-019,REQ-SYN-2403-019,LOC-SYN-8410,2026-03-17T08:44:00+01:00,ACK-SYN-2403-019,accepted,ANS-SYN-2403-019,received,DOC-SYN-074,Unrelated control transaction
