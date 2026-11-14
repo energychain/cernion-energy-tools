@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { test } = require('node:test');
 const { AssistantStore } = require('../lib/assistant-store');
-const { createAssistantService } = require('../lib/assistant-service');
+const { createAssistantService, snapshotMatrixRoom } = require('../lib/assistant-service');
 
 function fixture(t, client = null, options = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'assistant-service-'));
@@ -56,6 +56,23 @@ function fixture(t, client = null, options = {}) {
   });
   return { service, store, calls };
 }
+
+test('snapshots context Matrix room over trusted agent fallback', () => {
+  const context = {
+    payload: { references: { matrixRoom: { roomRef: '!context1:matrix.example.org' } } },
+  };
+  const selected = snapshotMatrixRoom(context, 'Anja', {
+    anja: '!fallback1:matrix.example.org',
+  });
+  context.payload.references.matrixRoom.roomRef = '!mutated1:matrix.example.org';
+  assert.deepEqual(selected, { roomRef: '!context1:matrix.example.org' });
+  assert.deepEqual(
+    snapshotMatrixRoom({ payload: {} }, 'Anja', { anja: '!fallback1:matrix.example.org' }),
+    {
+      roomRef: '!fallback1:matrix.example.org',
+    }
+  );
+});
 
 test('runs accepted -> running -> completed, persists stable transport identities and context', async (t) => {
   const { service, store, calls } = fixture(t);

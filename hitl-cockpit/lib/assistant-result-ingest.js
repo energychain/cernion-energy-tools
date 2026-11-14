@@ -53,7 +53,19 @@ function matrixEnvelope(event = {}) {
       ['content', 'm.relates_to', 'm.in_reply_to', 'event_id']
     ),
     body: eventValue(event, ['body'], ['content', 'body']) || '',
+    eventType: eventValue(event, ['eventType'], ['type']),
+    msgtype: eventValue(event, ['msgtype'], ['content', 'msgtype']),
+    relationType: eventValue(event, ['relationType'], ['content', 'm.relates_to', 'rel_type']),
+    originServerTs:
+      Number(event.originServerTs || event.origin_server_ts) > 0
+        ? Number(event.originServerTs || event.origin_server_ts)
+        : null,
+    redacted: Boolean(event.redacted || event.unsigned?.redacted_because),
   };
+}
+
+function sameMatrixEnvelope(left, right) {
+  return ['eventId', 'sender', 'replyTo', 'body'].every((field) => left[field] === right[field]);
 }
 
 function resultThreadReply(contract) {
@@ -233,7 +245,7 @@ function createAssistantResultIngest(options = {}) {
   }
 
   async function ingestMatrix(event = {}) {
-    const envelope = matrixEnvelope(event);
+    let envelope = matrixEnvelope(event);
     if (!envelope.body.includes('---BEGIN AGENT RESULT---')) {
       return { classification: 'hint', closed: false, reason: 'machine_result_block_missing' };
     }
@@ -246,6 +258,31 @@ function createAssistantResultIngest(options = {}) {
     }
     if (!envelope.roomId || !envelope.eventId || !envelope.sender || !envelope.replyTo) {
       throw resultError('matrix_correlation_incomplete', 422);
+    }
+    if (envelope.eventType && envelope.eventType !== 'm.room.message')
+      throw resultError('matrix_event_type_invalid', 422);
+    if (envelope.msgtype && envelope.msgtype !== 'm.text')
+      throw resultError('matrix_message_type_invalid', 422);
+    if (envelope.relationType === 'm.replace' || envelope.redacted)
+      throw resultError('matrix_event_mutated', 422);
+    if (typeof options.readMatrixEvent === 'function') {
+      const observedEvent = await options.readMatrixEvent({
+        roomRef: envelope.roomId,
+        eventId: envelope.eventId,
+      });
+      const observed = matrixEnvelope({ roomId: envelope.roomId, ...observedEvent });
+      if (!sameMatrixEnvelope(envelope, observed)) {
+        throw resultError('matrix_event_readback_mismatch', 422);
+      }
+      if (
+        (observed.eventType && observed.eventType !== 'm.room.message') ||
+        (observed.msgtype && observed.msgtype !== 'm.text') ||
+        observed.relationType === 'm.replace' ||
+        observed.redacted
+      ) {
+        throw resultError('matrix_event_mutated', 422);
+      }
+      envelope = observed;
     }
     if (!allowedSenders.size || !allowedSenders.has(envelope.sender)) {
       throw resultError('matrix_sender_not_allowed', 403);
@@ -283,6 +320,11 @@ function createAssistantResultIngest(options = {}) {
       contract.occurredAt > timestamp + 300
     )
       throw resultError('occurred_at_out_of_bounds', 422);
+    if (
+      envelope.originServerTs &&
+      Math.abs(contract.occurredAt - Math.floor(envelope.originServerTs / 1000)) > 300
+    )
+      throw resultError('occurred_at_event_mismatch', 422);
     if (containsPrivateMarker({ envelope, contract })) {
       throw resultError('private_result_rejected', 403);
     }

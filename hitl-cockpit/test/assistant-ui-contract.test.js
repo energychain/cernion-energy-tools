@@ -265,6 +265,7 @@ test('AP16 message loader follows cursors across pages and renders the newest re
       status.textContent = value;
     },
     loadAssistantReconciliation: async () => undefined,
+    refreshExecutionPreflights: async () => undefined,
     byId: (id) => (id === 'assistant-messages' ? messages : status),
     document: { createElement: (tagName) => new ElementHarness(tagName) },
     renderAssistantArtifacts: () => undefined,

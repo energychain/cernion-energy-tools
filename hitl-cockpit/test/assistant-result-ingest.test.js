@@ -189,6 +189,64 @@ test('verified return performs a second Kanban readback and replies exactly once
   assert.equal(first.result.kanbanReadback.task.status, 'ready');
 });
 
+test('requires authoritative Matrix readback parity and rejects edits', async (t) => {
+  let observed;
+  const h = fixture(t, {
+    dependencies: {
+      async readMatrixEvent() {
+        return observed;
+      },
+    },
+  });
+  const event = h.event({
+    eventType: 'm.room.message',
+    msgtype: 'm.text',
+    originServerTs: h.contract.occurredAt * 1000,
+  });
+  observed = {
+    event_id: event.eventId,
+    sender: event.sender,
+    type: event.eventType,
+    origin_server_ts: event.originServerTs,
+    content: {
+      msgtype: event.msgtype,
+      body: event.body,
+      'm.relates_to': { 'm.in_reply_to': { event_id: event.replyToEventId } },
+    },
+  };
+  const saved = await h.ingest.ingestMatrix(event);
+  assert.equal(saved.classification, 'verified_result');
+
+  const edited = fixture(t, {
+    dependencies: {
+      async readMatrixEvent() {
+        return {
+          ...observed,
+          event_id: '$edited-result',
+          content: {
+            ...observed.content,
+            'm.relates_to': {
+              rel_type: 'm.replace',
+              'm.in_reply_to': { event_id: '$handoff-event' },
+            },
+          },
+        };
+      },
+    },
+  });
+  await assert.rejects(
+    edited.ingest.ingestMatrix(
+      edited.event({
+        eventId: '$edited-result',
+        eventType: 'm.room.message',
+        msgtype: 'm.text',
+        relationType: 'm.replace',
+      })
+    ),
+    { code: 'matrix_event_mutated' }
+  );
+});
+
 test('blocked returns become a concrete reconciliation question and cannot be accepted', async (t) => {
   const h = fixture(t);
   const blocked = {

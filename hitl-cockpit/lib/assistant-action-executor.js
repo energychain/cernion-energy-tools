@@ -381,6 +381,19 @@ function createAssistantActionExecutor(options = {}) {
     }
   }
 
+  async function preflight(input = {}) {
+    const source = sourceRef(input.source);
+    if (containsPrivateMarker(source) || containsPrivateMarker(input.payload)) {
+      throw new AssistantActionError('private_source_rejected', 403);
+    }
+    const task = await readBack(source);
+    return {
+      executable: true,
+      source: { ...source },
+      sourceFingerprint: sourceFingerprint(task),
+    };
+  }
+
   async function reconcile(input = {}) {
     const action = typeof input.action === 'string' ? input.action : '';
     if (!ALLOWED_ACTIONS.includes(action))
@@ -415,7 +428,7 @@ function createAssistantActionExecutor(options = {}) {
     };
   }
 
-  return { actions: ALLOWED_ACTIONS, execute, reconcile };
+  return { actions: ALLOWED_ACTIONS, execute, preflight, reconcile };
 }
 
 module.exports = {

@@ -27,6 +27,8 @@ function handoff(overrides = {}) {
     topicId: 'topic_2026_001',
     decisionId: 'decision_2026_001',
     sourceId: 'assistant_conversation_001',
+    sourceBoard: 'operations',
+    responsibleAgent: 'Anja',
     text: 'Please review the documented decision.',
     context: safeContext(),
     ...overrides,
@@ -66,7 +68,15 @@ test('delivers to the safe server context room and writes trace and loop identif
   assert.match(body, /Source ID: assistant_conversation_001/);
   assert.match(body, /Handoff ID: handoff_2026_001/);
   assert.match(body, new RegExp(`Loop marker: ${LOOP_MARKER_PREFIX}:handoff_2026_001`));
-  assert.equal(calls[0].request.content['m.mentions'], undefined);
+  assert.match(body, /---BEGIN AGENT RESULT---/);
+  assert.match(body, /---END AGENT RESULT---/);
+  assert.match(body, /"sourceBoard":"operations"/);
+  assert.match(body, /"responsibleAgent":"Anja"/);
+  assert.ok(
+    body.split('\n').includes(`${LOOP_MARKER_PREFIX}:handoff_2026_001`),
+    'exact handoff marker is included for the result reply'
+  );
+  assert.match(body, /Free DONE text is only a hint/);
 });
 
 test('delivers a topic-only handoff and requires at least one context identifier', async () => {

@@ -74,6 +74,33 @@ const PAYLOADS = {
   return_for_completion: { reason: 'Add the missing evidence.' },
 };
 
+test('preflight uses the exact readback/public-source guard without writing', async () => {
+  const task = publicTask();
+  const kanban = adapter(task);
+  const executor = createAssistantActionExecutor({ kanban, publicBoards: ['operations'] });
+  const result = await executor.preflight({
+    source: { board: task.board, taskId: task.id },
+  });
+  assert.equal(result.executable, true);
+  assert.equal(result.sourceFingerprint, sourceFingerprint(task));
+  assert.equal(kanban.calls.length, 0);
+
+  const privateTask = publicTask({ body: 'TWL private source' });
+  await assert.rejects(
+    createAssistantActionExecutor({ kanban: adapter(privateTask) }).preflight({
+      source: { board: privateTask.board, taskId: privateTask.id },
+    }),
+    { code: 'private_source_rejected' }
+  );
+  await assert.rejects(
+    executor.preflight({
+      source: { board: task.board, taskId: task.id },
+      payload: { reason: 'TWL private source' },
+    }),
+    { code: 'private_source_rejected' }
+  );
+});
+
 test('executes only the initial safe actions through the injected adapter with readback receipts', async () => {
   assert.deepEqual(ALLOWED_ACTIONS, [
     'ask_question',

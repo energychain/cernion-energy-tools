@@ -113,6 +113,8 @@ function createAssistantApi(options = {}) {
       /^\/api\/assistant\/reconciliation\/[^/]+\/(?:retry|resolve|escalate)$/.test(url.pathname) ||
       /^\/api\/assistant\/conversations\/[^/]+\/messages$/.test(url.pathname) ||
       /^\/api\/assistant\/runs\/[^/]+$/.test(url.pathname) ||
+      /^\/api\/assistant\/management\/(?:topic|decision)\/[^/]+\/preflight$/.test(url.pathname) ||
+      /^\/api\/assistant\/proposals\/[^/]+\/preflight$/.test(url.pathname) ||
       /^\/api\/assistant\/proposals\/[^/]+\/(?:confirm|reject)$/.test(url.pathname) ||
       /^\/api\/assistant\/results\/[^/]+\/(?:accept|correct|continue|end)$/.test(url.pathname);
     if (!known) return response(404, { ok: false, error: 'not_found' });
@@ -294,6 +296,49 @@ function createAssistantApi(options = {}) {
         if (!ENTITY_ID.test(runId) || !runId.startsWith('run_'))
           return response(400, { ok: false, error: 'invalid_run_id' });
         return response(200, { ok: true, ...service.getRun(runId) });
+      }
+      const proposalPreflight = url.pathname.match(
+        /^\/api\/assistant\/proposals\/([^/]+)\/preflight$/
+      );
+      if (proposalPreflight) {
+        if (req.method !== 'GET') return response(405, { ok: false, error: 'method_not_allowed' });
+        const proposalId = decodeURIComponent(proposalPreflight[1]);
+        if (!ENTITY_ID.test(proposalId) || !proposalId.startsWith('proposal_')) {
+          return response(400, { ok: false, error: 'invalid_proposal_id' });
+        }
+        try {
+          if (freshnessGuard) freshnessGuard();
+          return response(200, { ok: true, ...(await service.preflightProposal(proposalId)) });
+        } catch (_) {
+          return response(200, {
+            ok: true,
+            executable: false,
+            explanation: 'Ausführung ist für diese Quelle nicht verfügbar.',
+          });
+        }
+      }
+      const managementPreflight = url.pathname.match(
+        /^\/api\/assistant\/management\/(topic|decision)\/([^/]+)\/preflight$/
+      );
+      if (managementPreflight) {
+        if (req.method !== 'GET') return response(405, { ok: false, error: 'method_not_allowed' });
+        const objectId = decodeURIComponent(managementPreflight[2]);
+        if (!objectId || objectId.length > 128 || !/^[a-z0-9_.:-]+$/i.test(objectId)) {
+          return response(400, { ok: false, error: 'invalid_context' });
+        }
+        try {
+          if (freshnessGuard) freshnessGuard();
+          return response(200, {
+            ok: true,
+            ...(await service.preflightManagementObject(managementPreflight[1], objectId)),
+          });
+        } catch (_) {
+          return response(200, {
+            ok: true,
+            executable: false,
+            explanation: 'Ausführung ist für diese Quelle nicht verfügbar.',
+          });
+        }
       }
       const proposalAction = url.pathname.match(
         /^\/api\/assistant\/proposals\/([^/]+)\/(confirm|reject)$/

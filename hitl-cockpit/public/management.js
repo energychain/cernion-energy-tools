@@ -85,6 +85,7 @@ const assistantState = {
   contextLabels: new Map(),
   switching: false,
   sending: false,
+  polling: false,
   switchVersion: 0,
 };
 let assistantOpener = null;
@@ -287,9 +288,17 @@ function renderAssistantArtifacts(item, article) {
           confirm.type = 'button';
           confirm.dataset.assistantProposal = value.id;
           confirm.dataset.proposalAction = 'confirm';
+          confirm.dataset.executionPreflight = `/api/assistant/proposals/${encodeURIComponent(value.id)}/preflight`;
+          confirm.hidden = true;
+          confirm.title = 'Ausführung ist für diese Quelle nicht verfügbar.';
           if (value.assigneeRequired) confirm.dataset.assigneeRequired = 'true';
           confirm.textContent = 'Ausführen';
           actions.append(confirm);
+          const unavailable = document.createElement('span');
+          unavailable.dataset.executionUnavailable = 'true';
+          unavailable.textContent =
+            'Nicht ausführbar: Die aktuelle Quellkarte ist nicht für Cockpit-Aktionen freigegeben.';
+          actions.append(unavailable);
         }
         const reject = document.createElement('button');
         reject.type = 'button';
@@ -476,6 +485,28 @@ async function loadAssistantReconciliation() {
   lane.hidden = !items.length;
 }
 
+async function refreshExecutionPreflights(root = document) {
+  const controls = [...root.querySelectorAll('[data-execution-preflight]')];
+  await Promise.all(
+    controls.map(async (control) => {
+      let result = null;
+      try {
+        result = await assistantRequest(control.dataset.executionPreflight);
+      } catch (_) {
+        // Read-only preflight failures remain non-executable and reveal no source detail.
+      }
+      control.hidden = result?.executable !== true;
+      const unavailable = control.parentElement?.querySelector('[data-execution-unavailable]');
+      if (unavailable) unavailable.hidden = result?.executable === true;
+      control.title = result?.executable
+        ? control.dataset.proposalAction === 'confirm'
+          ? 'Ausführen'
+          : 'Ausführen'
+        : result?.explanation || 'Ausführung ist für diese Quelle nicht verfügbar.';
+    })
+  );
+}
+
 async function loadAssistantMessages() {
   if (!assistantState.conversationId) {
     renderAssistantMessages([]);
@@ -497,6 +528,7 @@ async function loadAssistantMessages() {
   } while (cursor && pages < ASSISTANT_PAGE_CAP);
   if (cursor) throw new Error('assistant_message_page_cap');
   renderAssistantMessages(items);
+  await refreshExecutionPreflights(byId('assistant-messages'));
   assistantStatus(assistantActivityStatus(items));
   await loadAssistantReconciliation();
 }
@@ -743,7 +775,7 @@ function topicCard(topic) {
   const primary = refs[0] || {};
   const archiveButton =
     refs.length === 1
-      ? `<button class="topic-archive" type="button" data-topic-archive="${escapeHtml(topic.topic_id)}" aria-label="${escapeHtml(topic.title || 'Thema')} als Intake-Rauschen archivieren" title="Als Intake-Rauschen archivieren">×</button>`
+      ? `<button class="topic-archive" type="button" hidden data-execution-preflight="/api/assistant/management/topic/${encodeURIComponent(topic.topic_id)}/preflight" data-topic-archive="${escapeHtml(topic.topic_id)}" aria-label="${escapeHtml(topic.title || 'Thema')} als Intake-Rauschen archivieren" title="Als Intake-Rauschen archivieren">×</button><span class="card-meta" data-execution-unavailable>Quelle nicht ausführbar</span>`
       : '';
   return `<article class="card topic-card" data-topic-card="${escapeHtml(topic.topic_id)}">
     ${archiveButton}
@@ -770,7 +802,7 @@ function topicCard(topic) {
 
 function decisionArchiveButton(decision) {
   return Array.isArray(decision.source_refs) && decision.source_refs.length === 1
-    ? `<button class="decision-archive" type="button" data-decision-archive="${escapeHtml(decision.decision_id)}" aria-label="${escapeHtml(decision.question || 'Entscheidung')} als irrelevant schließen" title="Keine Entscheidung erforderlich · schließen">×</button>`
+    ? `<button class="decision-archive" type="button" hidden data-execution-preflight="/api/assistant/management/decision/${encodeURIComponent(decision.decision_id)}/preflight" data-decision-archive="${escapeHtml(decision.decision_id)}" aria-label="${escapeHtml(decision.question || 'Entscheidung')} als irrelevant schließen" title="Keine Entscheidung erforderlich · schließen">×</button><span class="card-meta" data-execution-unavailable>Quelle nicht ausführbar</span>`
     : '';
 }
 
@@ -978,6 +1010,7 @@ async function loadOverview() {
       </div>
       <div class="column-title"><h3>Jüngste belegte Ergebnisse</h3><span>Außenwirkung und Abschluss</span></div>
       ${(data.recentOutcomes || []).map(outcomeCard).join('') || '<div class="empty">Noch keine belegten Ergebnisse in der Projektion.</div>'}`;
+    await refreshExecutionPreflights(byId('overview'));
     rememberVisit();
   } catch (cause) {
     showError('overview', cause);
@@ -1015,6 +1048,7 @@ async function loadDecisions() {
       (incompleteCards.length
         ? `<div class="column-title"><h3>In Vorbereitung</h3><span>noch keine Entscheidung treffen</span></div>${incompleteCards.join('')}`
         : '');
+    await refreshExecutionPreflights(byId('decisions'));
   } catch (cause) {
     showError('decisions', cause);
   }
@@ -1157,6 +1191,7 @@ async function loadTopics() {
       `<div class="list-head"><span>${data.count} Themen</span><span>Ziel · Stand · nächster Schritt</span></div>` +
       ((data.items || []).map(topicCard).join('') ||
         '<div class="empty">Keine Themen gefunden.</div>');
+    await refreshExecutionPreflights(byId('topics'));
   } catch (cause) {
     showError('topics', cause);
   }
@@ -1488,7 +1523,30 @@ const assistantReconciliationPoll = setInterval(
   () => loadAssistantReconciliation().catch(() => undefined),
   15000
 );
-window.addEventListener('pagehide', () => clearInterval(assistantReconciliationPoll), {
-  once: true,
-});
+const assistantConversationPoll = setInterval(async () => {
+  if (
+    !document.body.classList.contains('assistant-opened') ||
+    !assistantState.conversationId ||
+    assistantState.switching ||
+    assistantState.sending ||
+    assistantState.polling
+  )
+    return;
+  assistantState.polling = true;
+  try {
+    await loadAssistantMessages();
+  } catch (_) {
+    // The open conversation remains visible and will retry without exposing source details.
+  } finally {
+    assistantState.polling = false;
+  }
+}, 5000);
+window.addEventListener(
+  'pagehide',
+  () => {
+    clearInterval(assistantReconciliationPoll);
+    clearInterval(assistantConversationPoll);
+  },
+  { once: true }
+);
 openView(location.hash.slice(1) || 'overview', false);

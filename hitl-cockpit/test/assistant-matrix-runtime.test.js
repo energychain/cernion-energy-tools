@@ -123,6 +123,11 @@ test('sync returns bounded message events with reply correlation', async () => {
       eventId: '$result',
       sender: '@felix:example.test',
       body: '---BEGIN AGENT RESULT---',
+      eventType: 'm.room.message',
+      msgtype: null,
+      originServerTs: null,
+      relationType: null,
+      redacted: false,
       replyToEventId: '$handoff',
     },
   ]);

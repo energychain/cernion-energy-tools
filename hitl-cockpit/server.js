@@ -19,6 +19,8 @@ const { loadAssistantConfig } = require('./lib/assistant-config');
 const { createAssistantContextResolver } = require('./lib/assistant-context');
 const { createAssistantMatrixHandoffAdapter } = require('./lib/assistant-matrix-handoff');
 const { createAssistantMatrixRuntime } = require('./lib/assistant-matrix-runtime');
+const { createMatrixResultSync } = require('./lib/assistant-matrix-result-sync');
+const { loadMatrixAgentRooms } = require('./lib/matrix-agent-rooms');
 const { createAssistantService } = require('./lib/assistant-service');
 const { createAssistantSourceResolver } = require('./lib/assistant-source-resolver');
 const { AssistantStore } = require('./lib/assistant-store');
@@ -74,6 +76,14 @@ const assistantPublicBoards = String(process.env.ASSISTANT_PUBLIC_BOARDS || 'ope
   .map((value) => value.trim())
   .filter(Boolean);
 const assistantMatrixAgentSenders = JSON.parse(process.env.ASSISTANT_MATRIX_AGENT_SENDERS || '{}');
+const assistantMatrixAgentRooms = assistantConfig.matrixHandoffEnabled
+  ? loadMatrixAgentRooms({
+      agentsPath: path.join(__dirname, 'config', 'agents.json'),
+      roomsPath:
+        process.env.ASSISTANT_MATRIX_AGENT_ROOMS ||
+        path.join('/home/clawd/.hermes', 'matrix-agent-rooms.json'),
+    })
+  : {};
 const assistantResultAllowedSenders = String(process.env.ASSISTANT_RESULT_ALLOWED_SENDERS || '')
   .split(',')
   .map((value) => value.trim())
@@ -132,34 +142,28 @@ if (assistantConfig.enabled) {
     scopeChecker: assistantScopeChecker,
     publicBoards: assistantPublicBoards,
     matrixAgentSenders: assistantMatrixAgentSenders,
+    matrixAgentRooms: assistantMatrixAgentRooms,
     freshnessGuard: () => assertFreshForWrite(managementReader.read('health')),
     readResultKanban: readAssistantTask,
     readResultRound: readAssistantResultRound,
     resultRoundIdempotent: true,
     resultAllowedSenders: assistantResultAllowedSenders,
+    readResultMatrixEvent: assistantMatrixRuntime?.readback,
     closeResultCase: closeAssistantResultCase,
     createResultRound: createAssistantResultRound,
   });
   assistantService.resumePendingRuns();
   let reconciliationDelay = 5000;
-  let matrixSyncToken = null;
+  const matrixResultSync =
+    assistantMatrixRuntime?.sync && assistantResultAllowedSenders.length
+      ? createMatrixResultSync({
+          runtime: assistantMatrixRuntime,
+          ingest: (event) => assistantService.ingestAgentResult(event),
+        })
+      : null;
   const reconcileLoop = async () => {
     try {
-      if (assistantMatrixRuntime?.sync && assistantResultAllowedSenders.length) {
-        const batch = await assistantMatrixRuntime.sync({ since: matrixSyncToken, timeoutMs: 0 });
-        for (const event of batch.events) {
-          if (!event.body.includes('---BEGIN AGENT RESULT---')) continue;
-          try {
-            await assistantService.ingestAgentResult(event);
-          } catch (error) {
-            const code = String(error.code || error.message || 'failed');
-            process.stderr.write(
-              `assistant_result_ingest:${/^[a-z0-9_]+$/i.test(code) ? code : 'failed'}\n`
-            );
-          }
-        }
-        matrixSyncToken = batch.nextBatch || matrixSyncToken;
-      }
+      if (matrixResultSync) await matrixResultSync.poll();
       await assistantService.processReconciliations();
       reconciliationDelay = 5000;
     } catch (_) {

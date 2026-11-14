@@ -105,6 +105,11 @@ function createAssistantMatrixRuntime(options = {}) {
             eventId: event.event_id,
             sender: event.sender,
             body: event.content.body,
+            eventType: event.type,
+            msgtype: event.content.msgtype || null,
+            originServerTs: event.origin_server_ts || null,
+            relationType: event.content['m.relates_to']?.rel_type || null,
+            redacted: Boolean(event.unsigned?.redacted_because),
             replyToEventId: event.content['m.relates_to']?.['m.in_reply_to']?.event_id || null,
           });
         }

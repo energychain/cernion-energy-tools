@@ -70,8 +70,30 @@ function roomRefFromContext(context) {
   return roomRef;
 }
 
-function handoffBody({ handoffId, topicId, decisionId, sourceId, text }) {
+function handoffBody({
+  handoffId,
+  topicId,
+  decisionId,
+  sourceId,
+  sourceBoard,
+  responsibleAgent,
+  text,
+}) {
   const loopMarker = `${LOOP_MARKER_PREFIX}:${handoffId}`;
+  const resultTemplate = {
+    proposalId: handoffId,
+    handoffId,
+    sourceBoard,
+    sourceTaskId: sourceId,
+    status: 'completed',
+    statement: '<replace with concise result>',
+    evidenceRefs: ['<replace with material URL or authoritative-id:value>'],
+    nextStep: null,
+    responsibleAgent,
+    occurredAt: '<replace with ISO-8601 timestamp or Unix seconds>',
+    outcomeCandidate: null,
+    managementDecision: null,
+  };
   return {
     body: [
       'Assistant handoff',
@@ -82,6 +104,13 @@ function handoffBody({ handoffId, topicId, decisionId, sourceId, text }) {
       `Loop marker: ${loopMarker}`,
       '',
       text,
+      '',
+      'Reply in this Matrix thread with the exact handoff marker and JSON contract:',
+      loopMarker,
+      '---BEGIN AGENT RESULT---',
+      JSON.stringify(resultTemplate),
+      '---END AGENT RESULT---',
+      'Replace every <replace ...> value; use nextStep for non-completed status. Free DONE text is only a hint.',
     ].join('\n'),
     loopMarker,
   };
@@ -144,16 +173,34 @@ function createAssistantMatrixHandoffAdapter(options = {}) {
         decisionId = optionalIdentifier('decision_id', input.decisionId);
         if (!topicId && !decisionId) throw new Error('matrix_context_not_available');
         sourceId = requireIdentifier('source_id', input.sourceId);
+        const sourceBoard = requireIdentifier('source_board', input.sourceBoard);
+        const responsibleAgent = requireIdentifier('responsible_agent', input.responsibleAgent);
         const text = String(input.text || '').trim();
         if (!text) throw new Error('handoff_text_required');
         if (
-          containsSensitiveValue({ context: input.context, topicId, decisionId, sourceId, text })
+          containsSensitiveValue({
+            context: input.context,
+            topicId,
+            decisionId,
+            sourceId,
+            sourceBoard,
+            responsibleAgent,
+            text,
+          })
         ) {
           throw new Error('sensitive_handoff_forbidden');
         }
         if (hasMention(text)) throw new Error('matrix_mentions_forbidden');
 
-        const content = handoffBody({ handoffId, topicId, decisionId, sourceId, text });
+        const content = handoffBody({
+          handoffId,
+          topicId,
+          decisionId,
+          sourceId,
+          sourceBoard,
+          responsibleAgent,
+          text,
+        });
         loopMarker = content.loopMarker;
         const transactionId = crypto
           .createHash('sha256')

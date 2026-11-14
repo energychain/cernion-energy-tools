@@ -20,6 +20,18 @@ const DIRECTIVE_ACTION_MAP = Object.freeze({
   change_priority: 'set_priority',
 });
 
+function snapshotMatrixRoom(context, responsibleAgent, matrixAgentRooms = {}) {
+  const contextRoomRef = context?.payload?.references?.matrixRoom?.roomRef;
+  const fallbackRoomRef =
+    matrixAgentRooms[
+      String(responsibleAgent || '')
+        .trim()
+        .toLowerCase()
+    ];
+  const roomRef = contextRoomRef || fallbackRoomRef;
+  return roomRef ? Object.freeze({ roomRef: String(roomRef) }) : undefined;
+}
+
 function mappedAction(proposal) {
   const action = DIRECTIVE_ACTION_MAP[proposal.actionType] || proposal.actionType;
   const value = proposal.payload || {};
@@ -132,6 +144,7 @@ function runLeaseSeconds(config) {
 function createAssistantService(options = {}) {
   const { store, contextResolver, client, config } = options;
   const matrixAgentSenders = options.matrixAgentSenders || {};
+  const matrixAgentRooms = options.matrixAgentRooms || {};
   if (!store || !contextResolver || !client || !config)
     throw new Error('assistant_service_dependencies_required');
   const summaryConfig = {
@@ -172,6 +185,7 @@ function createAssistantService(options = {}) {
           mutationGuard: guardMutation,
           now: () => Math.floor((options.nowMs || Date.now)() / 1000),
           allowedSenders: options.resultAllowedSenders || [],
+          readMatrixEvent: options.readResultMatrixEvent,
           closeCase: options.closeResultCase,
           createRound: options.createResultRound,
           onProjectionRequired: options.onResultProjectionRequired,
@@ -341,7 +355,7 @@ function createAssistantService(options = {}) {
     return result === 'covered' || Boolean(result && result.covered === true);
   }
 
-  function matrixInput(proposal, action, source, context) {
+  function matrixInput(proposal, action, source, context, responsibleAgent) {
     if (!config.matrixHandoffEnabled || action === 'archive_intake_noise') return null;
     const topicId =
       context.objectType === 'topic'
@@ -352,18 +366,72 @@ function createAssistantService(options = {}) {
         ? context.objectId
         : context.payload && context.payload.decisionId;
     if (!topicId && !decisionId) return null;
+    const matrixRoom = snapshotMatrixRoom(context, responsibleAgent, matrixAgentRooms);
     return {
       handoffId: proposal.id,
       topicId,
       decisionId,
       sourceId: source.taskId,
+      sourceBoard: source.board,
+      responsibleAgent,
       text: `Kanban action ${action} applied for ${source.taskId}.`,
       context: {
         objectType: context.objectType,
         objectId: context.objectId,
-        payload: { references: { matrixRoom: context.payload?.references?.matrixRoom } },
+        payload: { references: { matrixRoom } },
       },
     };
+  }
+
+  async function executionPreflight(source, payload) {
+    try {
+      if (!config.writesEnabled || !executor || typeof executor.preflight !== 'function') {
+        return {
+          executable: false,
+          explanation: 'Ausführung ist für diese Quelle nicht verfügbar.',
+        };
+      }
+      await executor.preflight({ source, payload });
+      return { executable: true };
+    } catch (_) {
+      return { executable: false, explanation: 'Ausführung ist für diese Quelle nicht verfügbar.' };
+    }
+  }
+
+  async function preflightProposal(id) {
+    requireEnabled();
+    const proposal = store.getProposal(id);
+    if (!proposal || proposal.status !== 'shadow') {
+      return { executable: false, explanation: 'Ausführung ist für diese Quelle nicht verfügbar.' };
+    }
+    try {
+      const conversation = getConversation(proposal.conversationId);
+      const context = contextResolver.resolve({
+        objectType: conversation.objectType || 'global',
+        objectId: conversation.objectId,
+      });
+      const resolved = await resolveExecutionSource(proposal, context);
+      return executionPreflight(resolved.source, mappedAction(proposal).payload);
+    } catch (_) {
+      return { executable: false, explanation: 'Ausführung ist für diese Quelle nicht verfügbar.' };
+    }
+  }
+
+  async function preflightManagementObject(objectType, objectId) {
+    requireEnabled();
+    if (!['topic', 'decision'].includes(objectType)) {
+      return { executable: false, explanation: 'Ausführung ist für diese Quelle nicht verfügbar.' };
+    }
+    try {
+      const context = contextResolver.resolve({ objectType, objectId });
+      const sources = trustedSourceReferences(context);
+      if (sources.length !== 1) throw serviceError('action_source_not_available', 403);
+      return executionPreflight(sources[0], {
+        reason: 'Rauschen/kein weiterer Handlungsbedarf',
+      });
+    } catch (_) {
+      return { executable: false, explanation: 'Ausführung ist für diese Quelle nicht verfügbar.' };
+    }
   }
 
   async function executeProposal(proposal, options = {}) {
@@ -404,10 +472,16 @@ function createAssistantService(options = {}) {
       throw serviceError('automatic_execution_not_allowed', 403);
     }
 
-    const handoff = matrixInput(proposal, execution.action, resolved.source, context);
+    const responsibleAgent =
+      execution.payload.assignee || execution.payload.owner || resolved.sourceAssignee;
+    const handoff = matrixInput(
+      proposal,
+      execution.action,
+      resolved.source,
+      context,
+      responsibleAgent
+    );
     if (handoff) {
-      const responsibleAgent =
-        execution.payload.assignee || execution.payload.owner || resolved.sourceAssignee;
       const expectedSender = matrixAgentSenders[String(responsibleAgent || '').toLowerCase()];
       if (!expectedSender) throw serviceError('responsible_agent_matrix_sender_required', 403);
       store.bindHandoff({ proposalId: proposal.id, responsibleAgent, expectedSender });
@@ -911,6 +985,8 @@ function createAssistantService(options = {}) {
     resumePendingRuns,
     getRun,
     listProposals,
+    preflightProposal,
+    preflightManagementObject,
     confirmProposal,
     archiveTopic,
     archiveDecision,
@@ -934,4 +1010,5 @@ module.exports = {
   receiptSummary,
   runLeaseSeconds,
   serviceError,
+  snapshotMatrixRoom,
 };

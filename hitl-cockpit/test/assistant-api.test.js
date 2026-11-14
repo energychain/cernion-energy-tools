@@ -45,6 +45,14 @@ function serviceFixture() {
     getRun() {
       return { id: 'run_11111111-1111-4111-8111-111111111111', status: 'completed' };
     },
+    preflightProposal(id) {
+      calls.push(['preflight-proposal', id]);
+      return { executable: id.includes('11111111') };
+    },
+    preflightManagementObject(objectType, objectId) {
+      calls.push(['preflight-management', { objectType, objectId }]);
+      return { executable: objectId === 'topic_1' };
+    },
     confirmProposal(id, options) {
       calls.push(['confirm', { id, options }]);
       return { proposal: { id, status: 'executed' } };
@@ -402,6 +410,37 @@ test('same-origin accepts forwarded HTTPS only from an explicitly trusted proxy'
     proxied()
   );
   assert.equal(accepted.status, 201);
+});
+
+test('read-only preflight exposes only executable parity and does not consume mutation guards', async () => {
+  const service = serviceFixture();
+  let freshnessChecks = 0;
+  const api = createAssistantApi({
+    config: {
+      enabled: true,
+      mode: 'low_risk',
+      writesEnabled: true,
+      matrixHandoffEnabled: true,
+      limits: { maxMessageChars: 4000, maxContextChars: 12000 },
+    },
+    service,
+    freshnessGuard() {
+      freshnessChecks += 1;
+    },
+  });
+  const proposalId = 'proposal_11111111-1111-4111-8111-111111111111';
+  const proposal = await handle(
+    api,
+    req('GET', `/api/assistant/proposals/${proposalId}/preflight`)
+  );
+  const topic = await handle(api, req('GET', '/api/assistant/management/topic/topic_1/preflight'));
+  assert.deepEqual(proposal.body, { ok: true, executable: true });
+  assert.deepEqual(topic.body, { ok: true, executable: true });
+  assert.equal(freshnessChecks, 2);
+  assert.deepEqual(service.calls, [
+    ['preflight-proposal', proposalId],
+    ['preflight-management', { objectType: 'topic', objectId: 'topic_1' }],
+  ]);
 });
 
 test('confirm accepts an explicit assignee choice and rejects invalid overrides', async () => {
