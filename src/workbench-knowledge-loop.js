@@ -256,6 +256,7 @@ function storedRetrieval(retrieval = {}) {
 }
 
 module.exports = {
+  PLAN_SCHEMA,
   POLICY_VERSION,
   SOURCES,
   admitLoopEvidence,
