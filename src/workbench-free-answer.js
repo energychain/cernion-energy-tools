@@ -85,16 +85,17 @@ const KINDS = ['statement', 'step', 'assumption', 'question'];
 const ANNOTATION_SCHEMA = {
   type: 'object',
   properties: {
+    // No maxItems: together with the enums it exceeds the provider's schema limit (HTTP 400);
+    // the number of rows is bounded by the paragraphs sent, unknown evidence ids are dropped.
     paragraphs: {
       type: 'array',
-      maxItems: 60,
       items: {
         type: 'object',
         properties: {
           index: { type: 'integer', minimum: 0 },
           kind: { type: 'string', enum: KINDS },
           origin: { type: 'string', enum: ['input', 'evidence', 'model'] },
-          evidenceIds: { type: 'array', maxItems: 15, items: { type: 'string' } },
+          evidenceIds: { type: 'array', items: { type: 'string' } },
           ruleClaim: { type: 'boolean' },
           inputQuote: { type: 'string' },
           completedAction: { type: 'boolean' },
@@ -252,6 +253,7 @@ async function annotateDeliverable(text, request, options = {}) {
 }
 
 module.exports = {
+  ANNOTATION_SCHEMA,
   annotateFreeAnswer,
   annotateDeliverable,
   deliverableBlocks,

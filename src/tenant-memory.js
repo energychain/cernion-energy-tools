@@ -1361,6 +1361,7 @@ async function correctFacts(ctx, p, envelope, pending, correction, assertions = 
   };
 }
 module.exports = {
+  SCOPE_CHECK_SCHEMA,
   serialized,
   acceptedAssertion,
   glossaryDefinition,
