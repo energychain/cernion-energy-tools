@@ -80,6 +80,37 @@ function createAssistantMatrixRuntime(options = {}) {
         `/_matrix/client/v3/rooms/${encodeURIComponent(roomRef)}/event/${encodeURIComponent(eventId)}`
       );
     },
+    async sync({ since = null, timeoutMs = 0, limit = 20 } = {}) {
+      const timeout = Math.max(0, Math.min(30000, Number(timeoutMs) || 0));
+      const timelineLimit = Math.max(1, Math.min(50, Number(limit) || 20));
+      const filter = JSON.stringify({
+        room: {
+          timeline: { limit: timelineLimit, types: ['m.room.message'] },
+          state: { types: [], lazy_load_members: true },
+          ephemeral: { types: [] },
+          account_data: { types: [] },
+        },
+        presence: { types: [] },
+        account_data: { types: [] },
+      });
+      const query = new URLSearchParams({ timeout: String(timeout), filter });
+      if (since) query.set('since', String(since));
+      const response = await request('GET', `/_matrix/client/v3/sync?${query.toString()}`);
+      const events = [];
+      for (const [roomId, room] of Object.entries(response.rooms?.join || {})) {
+        for (const event of room.timeline?.events || []) {
+          if (event.type !== 'm.room.message' || typeof event.content?.body !== 'string') continue;
+          events.push({
+            roomId,
+            eventId: event.event_id,
+            sender: event.sender,
+            body: event.content.body,
+            replyToEventId: event.content['m.relates_to']?.['m.in_reply_to']?.event_id || null,
+          });
+        }
+      }
+      return { nextBatch: response.next_batch || null, events };
+    },
   };
 }
 

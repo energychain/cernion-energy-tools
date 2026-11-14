@@ -81,6 +81,58 @@ test('sends idempotently and reads the exact event back', async () => {
   assert.match(calls[1].url, /\/event\/%24event$/);
 });
 
+test('sync returns bounded message events with reply correlation', async () => {
+  const requests = [];
+  global.fetch = async (url, options) => {
+    requests.push({ url: String(url), options });
+    return {
+      ok: true,
+      async json() {
+        return {
+          next_batch: 'next-token',
+          rooms: {
+            join: {
+              '!room:example.test': {
+                timeline: {
+                  events: [
+                    {
+                      type: 'm.room.message',
+                      event_id: '$result',
+                      sender: '@felix:example.test',
+                      content: {
+                        body: '---BEGIN AGENT RESULT---',
+                        'm.relates_to': { 'm.in_reply_to': { event_id: '$handoff' } },
+                      },
+                    },
+                    { type: 'm.room.member', event_id: '$ignored', content: {} },
+                  ],
+                },
+              },
+            },
+          },
+        };
+      },
+    };
+  };
+  const runtime = createAssistantMatrixRuntime({ profileHome: profile() });
+  const result = await runtime.sync({ since: 'previous-token', timeoutMs: 5000, limit: 500 });
+  assert.equal(result.nextBatch, 'next-token');
+  assert.deepEqual(result.events, [
+    {
+      roomId: '!room:example.test',
+      eventId: '$result',
+      sender: '@felix:example.test',
+      body: '---BEGIN AGENT RESULT---',
+      replyToEventId: '$handoff',
+    },
+  ]);
+  const requestUrl = new URL(requests[0].url);
+  assert.equal(requestUrl.pathname, '/_matrix/client/v3/sync');
+  assert.equal(requestUrl.searchParams.get('since'), 'previous-token');
+  assert.equal(requestUrl.searchParams.get('timeout'), '5000');
+  assert.equal(JSON.parse(requestUrl.searchParams.get('filter')).room.timeline.limit, 50);
+});
+
 test('fails closed when the profile has no Matrix credentials', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'assistant-matrix-runtime-empty-'));
   roots.push(root);

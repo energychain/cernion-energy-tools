@@ -74,6 +74,10 @@ const assistantPublicBoards = String(process.env.ASSISTANT_PUBLIC_BOARDS || 'ope
   .map((value) => value.trim())
   .filter(Boolean);
 const assistantMatrixAgentSenders = JSON.parse(process.env.ASSISTANT_MATRIX_AGENT_SENDERS || '{}');
+const assistantResultAllowedSenders = String(process.env.ASSISTANT_RESULT_ALLOWED_SENDERS || '')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
 const productionContract = loadProductionContract({
   contractPath: process.env.COCKPIT_PRODUCTION_CONTRACT,
 });
@@ -108,9 +112,11 @@ if (assistantConfig.enabled) {
       })
     : null;
   let assistantMatrixHandoff = null;
+  let assistantMatrixRuntime = null;
   if (assistantConfig.matrixHandoffEnabled) {
     try {
-      assistantMatrixHandoff = createAssistantMatrixHandoffAdapter(createAssistantMatrixRuntime());
+      assistantMatrixRuntime = createAssistantMatrixRuntime();
+      assistantMatrixHandoff = createAssistantMatrixHandoffAdapter(assistantMatrixRuntime);
     } catch (_) {
       // Required Matrix delivery remains durable as matrix_pending until runtime becomes available.
     }
@@ -130,17 +136,30 @@ if (assistantConfig.enabled) {
     readResultKanban: readAssistantTask,
     readResultRound: readAssistantResultRound,
     resultRoundIdempotent: true,
-    resultAllowedSenders: String(process.env.ASSISTANT_RESULT_ALLOWED_SENDERS || '')
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean),
+    resultAllowedSenders: assistantResultAllowedSenders,
     closeResultCase: closeAssistantResultCase,
     createResultRound: createAssistantResultRound,
   });
   assistantService.resumePendingRuns();
   let reconciliationDelay = 5000;
+  let matrixSyncToken = null;
   const reconcileLoop = async () => {
     try {
+      if (assistantMatrixRuntime?.sync && assistantResultAllowedSenders.length) {
+        const batch = await assistantMatrixRuntime.sync({ since: matrixSyncToken, timeoutMs: 0 });
+        for (const event of batch.events) {
+          if (!event.body.includes('---BEGIN AGENT RESULT---')) continue;
+          try {
+            await assistantService.ingestAgentResult(event);
+          } catch (error) {
+            const code = String(error.code || error.message || 'failed');
+            process.stderr.write(
+              `assistant_result_ingest:${/^[a-z0-9_]+$/i.test(code) ? code : 'failed'}\n`
+            );
+          }
+        }
+        matrixSyncToken = batch.nextBatch || matrixSyncToken;
+      }
       await assistantService.processReconciliations();
       reconciliationDelay = 5000;
     } catch (_) {
