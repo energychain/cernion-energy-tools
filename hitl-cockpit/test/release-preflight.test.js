@@ -90,7 +90,7 @@ function createRepository() {
   write(
     root,
     'hitl-cockpit/lib/assistant-schema.sql',
-    'CREATE TABLE y (id TEXT);\nPRAGMA user_version = 6;\n'
+    'CREATE TABLE y (id TEXT);\nPRAGMA user_version = 10;\n'
   );
   write(root, 'hitl-cockpit/public/index.html', '<!doctype html>\n');
   git(root, 'add', '.');
@@ -140,7 +140,7 @@ test('preflight verifies commit, clean tree, schemas, safe flags, database paths
 
   assert.equal(result.ok, true);
   assert.equal(result.commit, commit);
-  assert.deepEqual(result.schemas, { management: 6, assistant: 6 });
+  assert.deepEqual(result.schemas, { management: 6, assistant: 10 });
   assert.deepEqual(result.requiredProfiles, ['infrastructure', 'rhajaina']);
 
   fs.rmSync(path.join(repository, '.git', 'test-profiles', 'rhajaina'), { recursive: true });
