@@ -1617,10 +1617,20 @@ async function generateAnswerResult({
           try {
             return await accept(parsed, false);
           } catch (error) {
-            // A freely written deliverable that misses only the ordered form is given as written;
-            // structured repairs of a long deliverable cost the turn's time budget (LON-A).
-            if (freeArtifact && artifacts.SOFT_CONTRACT.has(error.fallbackReason))
+            // A freely written deliverable that misses only the ordered form, or from which the
+            // filters removed single paragraphs, is given as checked: the lenient pass applies the
+            // same filters and fails when nothing is left. Structured repairs of a long
+            // deliverable cost the turn's time budget (LON-A interim status, T13).
+            if (
+              freeArtifact &&
+              (artifacts.SOFT_CONTRACT.has(error.fallbackReason) ||
+                error.fallbackReason === 'artifact_filtered')
+            ) {
+              logger?.info?.('Free deliverable accepted after checks', {
+                reason: error.fallbackReason,
+              });
               return await accept(original, true);
+            }
             // A worked-out deliverable that misses only the ordered form is kept as the
             // fallback, so a failed repair never reduces it to its headings (TWL long dialogue).
             if (!run.salvage && artifacts.SOFT_CONTRACT.has(error.fallbackReason))
