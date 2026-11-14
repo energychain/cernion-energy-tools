@@ -31,18 +31,50 @@ const catalogs = {
 test('vocabulary derives capability IDs, domains, keywords, semantic IDs and function labels', () => {
   const terms = buildVocabulary(catalogs);
   for (const word of [
-    'cap-aaaa',
-    'domain-bbbb',
-    'keyword-cccc',
-    'domain-dddd',
-    'semantic-eeee',
-    'keyword-gggg',
-    'keyword-hhhh',
+    'cap aaaa',
+    'domain bbbb',
+    'keyword cccc',
+    'domain dddd',
+    'semantic eeee',
+    'keyword gggg',
+    'keyword hhhh',
     'label iiii',
   ])
     expect(terms).toContain(word);
   expect(terms).not.toContain('xy');
   expect(() => buildVocabulary(catalogs, 0)).toThrow();
+});
+
+test('hyphen, underscore, space and camelCase separators canonicalize to the same vocabulary term', () => {
+  for (const spelling of ['grid_ops', 'grid-ops', 'grid ops', 'gridOps']) {
+    const terms = buildVocabulary({
+      capabilities: [{ capability: spelling }],
+      operations: [],
+      domains: [],
+      functions: [],
+    });
+    expect(terms).toContain('grid ops');
+  }
+});
+
+test('grid_ops/grid-ops style multi-word terms are found regardless of source separator style', () => {
+  const vocabulary = buildVocabulary({
+    capabilities: [{ capability: 'grid_ops' }],
+    operations: [],
+    domains: [],
+    functions: [],
+  });
+  expect(vocabulary).toContain('grid ops');
+  for (const source of [
+    'const grid_ops = loadConfig();',
+    'const gridOps = loadConfig();',
+    "const mode = 'grid-ops';",
+    '// grid ops runbook',
+  ])
+    expect(scanText(source, vocabulary)).toEqual([{ line: 1, term: 'grid ops' }]);
+  expect(scanText('const gridOpsIncident = 1;', vocabulary)).toEqual([
+    { line: 1, term: 'grid ops' },
+  ]);
 });
 
 test('AC-01: intentionally contaminated fixture from REAL catalogs makes CLI fail', () => {
