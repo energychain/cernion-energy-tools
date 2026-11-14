@@ -202,6 +202,20 @@ test('requires an exact current source fingerprint and performs no stale write',
   assert.equal(kanban.calls.length, 0);
 });
 
+test('reconciliation treats normalized profile casing as the same assignee', async () => {
+  const task = publicTask({
+    assignee: 'felix',
+    comments: ['Collect the public evidence.'],
+  });
+  const executor = createAssistantActionExecutor({ kanban: adapter(task) });
+  const result = await executor.reconcile(
+    request(task, 'delegate_followup', PAYLOADS.delegate_followup)
+  );
+
+  assert.equal(result.applied, true);
+  assert.equal(result.unchanged, true);
+});
+
 test('returns a readback-backed ambiguous reconciliation status after write timeout', async () => {
   const task = publicTask();
   const kanban = adapter(task, async () => {

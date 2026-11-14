@@ -172,14 +172,21 @@ function isCovered(result) {
 
 function actionObserved(action, payload, task, idempotencyKey) {
   const text = JSON.stringify(task).toLowerCase();
+  const assignedTo = (expected) =>
+    [task.assignee, task.owner].some(
+      (value) =>
+        String(value || '')
+          .trim()
+          .toLowerCase() ===
+        String(expected || '')
+          .trim()
+          .toLowerCase()
+    );
   if (text.includes(String(idempotencyKey).toLowerCase())) return true;
-  if (action === 'set_owner') return [task.assignee, task.owner].includes(payload.owner);
+  if (action === 'set_owner') return assignedTo(payload.owner);
   if (action === 'set_priority') return String(task.priority) === String(payload.priority);
   if (action === 'delegate_followup') {
-    return (
-      [task.assignee, task.owner].includes(payload.assignee) &&
-      text.includes(String(payload.followup).toLowerCase())
-    );
+    return assignedTo(payload.assignee) && text.includes(String(payload.followup).toLowerCase());
   }
   if (action === 'schedule_wakeup') {
     return (

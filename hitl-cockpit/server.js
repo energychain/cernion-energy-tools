@@ -401,6 +401,16 @@ function createServerKanbanAdapter() {
       });
       const contains = (task, value) =>
         JSON.stringify(task).toLowerCase().includes(String(value).toLowerCase());
+      const assignedTo = (task, value) =>
+        [task.assignee, task.owner].some(
+          (assigned) =>
+            String(assigned || '')
+              .trim()
+              .toLowerCase() ===
+            String(value || '')
+              .trim()
+              .toLowerCase()
+        );
       if (command.action === 'ask_question') {
         return [
           step('comment', ['comment', '--author', AUTHOR, taskId, payload.question], (task) =>
@@ -433,7 +443,7 @@ function createServerKanbanAdapter() {
       if (command.action === 'delegate_followup') {
         return [
           step('assign', ['assign', taskId, payload.assignee], (task) =>
-            [task.assignee, task.owner].includes(payload.assignee)
+            assignedTo(task, payload.assignee)
           ),
           step('comment', ['comment', '--author', AUTHOR, taskId, payload.followup], (task) =>
             contains(task, payload.followup)
@@ -465,7 +475,7 @@ function createServerKanbanAdapter() {
       if (command.action === 'set_owner')
         return [
           step('assign', ['assign', taskId, payload.owner], (task) =>
-            [task.assignee, task.owner].includes(payload.owner)
+            assignedTo(task, payload.owner)
           ),
         ];
       if (command.action === 'set_priority')
