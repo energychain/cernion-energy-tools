@@ -116,6 +116,8 @@ function filterAnswer(
     internalContext = [],
     requireCompleteDraft = false,
     artifact = false,
+    // A lenient internal deliverable: a rejected paragraph removes only itself.
+    partialContent = false,
     register = 'du',
   }
 ) {
@@ -127,6 +129,7 @@ function filterAnswer(
   };
   for (const field of ['interpretation', 'expectation', 'nextSteps', 'assumptions', 'draft']) {
     const original = parsed[field] || [];
+    const variants = original.some((claim) => conditionOf(claim, normalizeCondition));
     const rejectedConditions = new Set();
     const filtered = original.filter((claim) => {
       const unresolvedDependency = unresolved.some(
@@ -247,7 +250,10 @@ function filterAnswer(
         ? filtered
         : filtered.filter((claim) => {
             const condition = conditionOf(claim, normalizeCondition);
-            // A rejected shared block compromises every variant that uses it.
+            // A rejected shared block compromises every variant that uses it. An internal
+            // deliverable without variants has no shared block: a rejected paragraph removes
+            // only itself (LON-A interim status). Letters and drafts stay whole or are dropped.
+            if (partialContent && !variants) return true;
             if (rejectedConditions.has('') || rejectedConditions.has(condition)) {
               reject(field, 'incomplete_variant');
               return false;

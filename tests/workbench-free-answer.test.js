@@ -313,3 +313,40 @@ test('several ordered parts are split at their part headings', () => {
     { title: 'Langfassung', blocks: ['## Teil\n\nB.', 'C.'] },
   ]);
 });
+
+test('a filtered paragraph is removed from a free deliverable; the rest is given without repairs', async () => {
+  process.env.WORKBENCH_FREE_ANSWER = 'all';
+  llm.generateText.mockResolvedValue(
+    [
+      '## Anlass\n\nFür den Zielvorgang fehlt die fachliche Rückmeldung.',
+      '## Gesicherter Stand\n\nNur die Transportquittung liegt vor.',
+      'Ich habe den Vorgang bereits im Bestand geschlossen.',
+      '## Offene Punkte\n\nDie fachliche Rückmeldung ist weiterhin offen.',
+    ].join('\n\n')
+  );
+  llm.generateStructured.mockImplementation(async (schema, raw) => {
+    const input = JSON.parse(raw);
+    return {
+      paragraphs: input.paragraphs.map(({ index, text }) => ({
+        index,
+        kind: 'statement',
+        origin: 'input',
+        evidenceIds: [],
+        ruleClaim: false,
+        completedAction: /bereits/u.test(text),
+        specific: false,
+      })),
+    };
+  });
+  const result = await answer({
+    situation: { ...situation, requestedOutput: parkNote },
+    retrieval: { evidence },
+    message: `Parke den Vorgang. Ich brauche eine ${parkNote.basis}.`,
+    tenantId: 't',
+  });
+  expect(llm.generateText).toHaveBeenCalledTimes(1);
+  expect(result.answerStatus).not.toBe('fallback');
+  expect(result.responseText).toContain('Nur die Transportquittung liegt vor.');
+  expect(result.responseText).toContain('Die fachliche Rückmeldung ist weiterhin offen.');
+  expect(result.responseText).not.toContain('bereits im Bestand geschlossen');
+});

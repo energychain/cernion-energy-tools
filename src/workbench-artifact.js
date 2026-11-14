@@ -206,7 +206,7 @@ function validateArtifact(parsed, request, options) {
     const originalCount = part.content.length;
     const filtered = require('./workbench-answer-filter').filterAnswer(
       { draft: part.content },
-      { ...options, artifact: true }
+      { ...options, artifact: true, partialContent: Boolean(options.lenient && !letter) }
     );
     part.content = filtered.draft;
     if (!part.content.length || (!options.lenient && part.content.length !== originalCount))
