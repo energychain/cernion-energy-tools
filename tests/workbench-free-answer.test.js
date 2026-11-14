@@ -350,3 +350,50 @@ test('a filtered paragraph is removed from a free deliverable; the rest is given
   expect(result.responseText).toContain('Die fachliche Rückmeldung ist weiterhin offen.');
   expect(result.responseText).not.toContain('bereits im Bestand geschlossen');
 });
+
+test('when the checks remove too much of a free deliverable, it is written once more freely with the reasons', async () => {
+  process.env.WORKBENCH_FREE_ANSWER = 'all';
+  llm.generateText
+    .mockResolvedValueOnce(
+      [
+        '## Anlass\n\nFür den Zielvorgang fehlt die fachliche Rückmeldung.',
+        'Ich habe den Vorgang bereits geschlossen.',
+        'Die Antwort wurde bereits versendet.',
+        'Der Bestand wurde bereits geändert.',
+      ].join('\n\n')
+    )
+    .mockResolvedValueOnce(
+      [
+        '## Anlass\n\nFür den Zielvorgang fehlt die fachliche Rückmeldung.',
+        '## Gesicherter Stand\n\nNur die Transportquittung liegt vor.',
+        '## Offene Punkte\n\nDie fachliche Rückmeldung ist weiterhin offen.',
+      ].join('\n\n')
+    );
+  llm.generateStructured.mockImplementation(async (schema, raw) => {
+    const input = JSON.parse(raw);
+    return {
+      paragraphs: input.paragraphs.map(({ index, text }) => ({
+        index,
+        kind: 'statement',
+        origin: 'input',
+        evidenceIds: [],
+        ruleClaim: false,
+        completedAction: /bereits/u.test(text),
+        specific: false,
+      })),
+    };
+  });
+  const result = await answer({
+    situation: { ...situation, requestedOutput: parkNote },
+    retrieval: { evidence },
+    message: `Parke den Vorgang. Ich brauche eine ${parkNote.basis}.`,
+    tenantId: 't',
+  });
+  expect(llm.generateText).toHaveBeenCalledTimes(2);
+  const second = llm.generateText.mock.calls[1];
+  expect(second[1].responseMimeType).toBe('text/plain');
+  expect(JSON.parse(second[0]).repairInstruction).toBeTruthy();
+  expect(result.answerStatus).not.toBe('fallback');
+  expect(result.responseText).toContain('Nur die Transportquittung liegt vor.');
+  expect(result.responseText).not.toContain('bereits');
+});
