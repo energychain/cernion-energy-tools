@@ -771,3 +771,17 @@ describe('corrected values (LON-A long dialogue)', () => {
     expect(CASE_VIEW_RULES.join(' ')).toMatch(/noch festzulegen/u);
   });
 });
+
+test('the case review receives the evidence with its content, bounded', async () => {
+  const { reviewAnswer } = require('../src/case-state');
+  const state = applyCaseUpdate(createCaseState(), {
+    evidence: [observed('n1', 'Archiv', `Transportquittung LOC-SYN-8327 ${'x'.repeat(3000)}`)],
+  });
+  const llm = { generateStructured: jest.fn(async () => ({ issues: [], revisedReply: '' })) };
+  await reviewAnswer('Die Quittung betrifft LOC-SYN-8327.', state, { llm });
+  const prompt = JSON.parse(llm.generateStructured.mock.calls[0][1]);
+  expect(prompt.evidence[0]).toMatchObject({ id: 'E1', kind: 'source_observed', source: 'Archiv' });
+  expect(prompt.evidence[0].content).toContain('LOC-SYN-8327');
+  expect(prompt.evidence[0].content.length).toBeLessThanOrEqual(1200);
+  expect(prompt.instruction).toMatch(/Angaben, die dort stehen/u);
+});

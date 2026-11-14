@@ -331,6 +331,9 @@ const ajv = new Ajv({ allErrors: true });
 Object.assign(SITUATION_SCHEMA.properties, require('./workbench-communication').SCHEMAS);
 const validateSituation = ajv.compile(SITUATION_SCHEMA);
 const validateAnswer = ajv.compile(ARTIFACT_ANSWER_SCHEMA);
+// Share of a free deliverable's paragraphs the checks must keep for it to be given without a
+// second free attempt.
+const MIN_KEPT_SHARE = 0.75;
 
 // Conservative: the speaker is the grammatical subject and no other person is referenced, so a
 // remark about a colleague ("mein Kollege ist …") always keeps the protective path.
@@ -1489,8 +1492,9 @@ async function generateAnswerResult({
         !nextStepOnly;
       // An ordered internal deliverable is written freely as Markdown (LON-A: long deliverables
       // as claim JSON broke the JSON three times); the artifact checks apply unchanged.
+      // A second free attempt follows a free deliverable from which the filters removed too much.
       const freeArtifact =
-        attempt === 0 &&
+        (attempt === 0 || run.freeArtifactRepair === true) &&
         freeAnswer.freeAnswerEnabled(tenantId) &&
         freeAnswer.freeDeliverable(situation.requestedOutput) &&
         !conversationMode;
@@ -1620,16 +1624,28 @@ async function generateAnswerResult({
             // A freely written deliverable that misses only the ordered form, or from which the
             // filters removed single paragraphs, is given as checked: the lenient pass applies the
             // same filters and fails when nothing is left. Structured repairs of a long
-            // deliverable cost the turn's time budget (LON-A interim status, T13).
+            // deliverable cost the turn's time budget (LON-A interim status, T13). When the
+            // filters removed more than a quarter, the model writes it once more freely with the
+            // filter reasons (LON-A hypotheses, T06, came out without its hypotheses).
             if (
               freeArtifact &&
               (artifacts.SOFT_CONTRACT.has(error.fallbackReason) ||
                 error.fallbackReason === 'artifact_filtered')
             ) {
-              logger?.info?.('Free deliverable accepted after checks', {
-                reason: error.fallbackReason,
-              });
-              return await accept(original, true);
+              const paragraphs = (value) =>
+                (value.artifact || []).reduce((sum, part) => sum + (part.content?.length || 0), 0);
+              const written = paragraphs(original);
+              const checked = await accept(structuredClone(original), true);
+              const kept = paragraphs(checked);
+              if (run.freeArtifactRepair || kept >= Math.ceil(written * MIN_KEPT_SHARE)) {
+                logger?.info?.('Free deliverable accepted after checks', {
+                  reason: error.fallbackReason,
+                  written,
+                  kept,
+                });
+                return checked;
+              }
+              run.freeArtifactRepair = true;
             }
             // A worked-out deliverable that misses only the ordered form is kept as the
             // fallback, so a failed repair never reduces it to its headings (TWL long dialogue).
