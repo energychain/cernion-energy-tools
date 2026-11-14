@@ -191,6 +191,7 @@ function topicPublicView(topic, technicalOnly, progressAt) {
     title: topic.title,
     state: topic.current_state,
     nextStep: topic.next_step || null,
+    artifacts: parseJson(topic.artifact_refs_json),
     updatedAt: topic.updated_at,
     progressClassification: technicalOnly
       ? 'technical_enabler_only'

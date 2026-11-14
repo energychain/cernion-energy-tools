@@ -42,6 +42,10 @@ function adapter(initial = publicTask(), apply) {
         );
       if (command.action === 'set_owner') task.assignee = command.payload.owner;
       if (command.action === 'set_priority') task.priority = command.payload.priority;
+      if (command.action === 'archive_intake_noise') {
+        task.status = 'completed';
+        task.result = `ACTION_ID: ${command.idempotencyKey}`;
+      }
       task.comments.push({ action: command.action, key: command.idempotencyKey });
       return { operationId: `op-${calls.length}` };
     },
@@ -60,6 +64,7 @@ function request(task, action, payload, idempotencyKey = `${action}-key`) {
 
 const PAYLOADS = {
   ask_question: { question: 'Which evidence is missing?' },
+  archive_intake_noise: { reason: 'Rauschen/kein weiterer Handlungsbedarf' },
   delegate_followup: { assignee: 'Felix', followup: 'Collect the public evidence.' },
   schedule_wakeup: {
     wakeAt: '2030-01-02T03:04:05Z',
@@ -72,6 +77,7 @@ const PAYLOADS = {
 test('executes only the initial safe actions through the injected adapter with readback receipts', async () => {
   assert.deepEqual(ALLOWED_ACTIONS, [
     'ask_question',
+    'archive_intake_noise',
     'delegate_followup',
     'schedule_wakeup',
     'return_for_completion',

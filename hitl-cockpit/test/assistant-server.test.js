@@ -145,6 +145,7 @@ before(() => {
       matrixHandoffEnabled: true,
       actionAllowlist: [
         'ask_question',
+        'archive_intake_noise',
         'delegate_followup',
         'schedule_wakeup',
         'return_for_completion',
@@ -216,6 +217,7 @@ test('health exposes an aligned secret-free production operating status', async 
   assert.deepEqual(health.operatingStatus.mismatches, []);
   assert.deepEqual(health.operatingStatus.runtime.assistant.actionClasses, [
     'ask_question',
+    'archive_intake_noise',
     'delegate_followup',
     'schedule_wakeup',
     'return_for_completion',

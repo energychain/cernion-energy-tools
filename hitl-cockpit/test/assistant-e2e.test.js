@@ -384,6 +384,25 @@ test('productive mode auto-executes only covered allowlisted actions', async (t)
   assert.equal(notAllowlisted.store.listProposals()[0].status, 'shadow');
 });
 
+test('topic archive is one explicit idempotent low-risk write without Matrix noise', async (t) => {
+  const h = harness(t, {
+    mode: 'low_risk',
+    actionAllowlist: ['archive_intake_noise'],
+    matrixHandoffEnabled: true,
+  });
+  const first = await h.service.archiveTopic('topic-1');
+  const second = await h.service.archiveTopic('topic-1');
+
+  assert.equal(first.proposal.status, 'executed');
+  assert.equal(second.proposal.status, 'executed');
+  assert.equal(h.writes.length, 1);
+  assert.equal(h.writes[0].action, 'archive_intake_noise');
+  assert.deepEqual(h.writes[0].payload, { reason: 'Rauschen/kein weiterer Handlungsbedarf' });
+  assert.equal(h.matrix.length, 0);
+  const proposal = h.store.listProposals()[0];
+  assert.ok(h.store.getReceiptByProposalId(proposal.id));
+});
+
 test('Matrix pending remains an open disturbance and never presents the proposal as executed', async (t) => {
   const pending = harness(t, {
     mode: 'low_risk',

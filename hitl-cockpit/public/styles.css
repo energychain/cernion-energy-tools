@@ -308,6 +308,33 @@ main {
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
+.topic-card {
+  position: relative;
+  padding-right: 58px;
+}
+.topic-archive {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+.topic-archive:hover,
+.topic-archive:focus-visible {
+  border-color: var(--copper);
+  color: var(--copper);
+}
+.topic-archive:disabled {
+  cursor: wait;
+  opacity: 0.45;
+}
 .card p {
   margin: 8px 0;
   line-height: 1.55;
@@ -381,6 +408,43 @@ main {
 }
 .context-link:hover {
   text-decoration: underline;
+}
+.artifact-links {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.artifact-links h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.artifact-links ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.artifact-links a {
+  color: var(--forest);
+  font-weight: 650;
+}
+.artifact-links span {
+  color: var(--muted);
+}
+.department-steering {
+  margin-top: 16px;
+  padding: 14px;
+  border-left: 3px solid var(--forest);
+  background: var(--forest-soft);
+}
+.department-steering p {
+  margin-top: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.decision-incomplete {
+  border-left: 4px solid var(--gold);
 }
 details {
   margin-top: 13px;

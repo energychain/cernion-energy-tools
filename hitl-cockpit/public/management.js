@@ -192,9 +192,14 @@ function assistantContextKey(context) {
   return context ? `${context.objectType}:${context.objectId}` : '';
 }
 
-function assistantContextButton(objectType, objectId, label = '') {
+function assistantContextButton(
+  objectType,
+  objectId,
+  label = '',
+  buttonLabel = 'Mit Rhajaina besprechen'
+) {
   if (!objectType || !objectId) return '';
-  return `<button class="assistant-context-action" type="button" data-assistant-context data-object-type="${escapeHtml(objectType)}" data-object-id="${escapeHtml(objectId)}" data-object-label="${escapeHtml(label)}">Mit Rhajaina besprechen</button>`;
+  return `<button class="assistant-context-action" type="button" data-assistant-context data-object-type="${escapeHtml(objectType)}" data-object-id="${escapeHtml(objectId)}" data-object-label="${escapeHtml(label)}">${escapeHtml(buttonLabel)}</button>`;
 }
 
 function updateAssistantContext() {
@@ -675,6 +680,25 @@ function artifactLabels(artifacts) {
   });
 }
 
+function artifactLinks(artifacts) {
+  const items = (Array.isArray(artifacts) ? artifacts : []).filter(Boolean);
+  if (!items.length) return '';
+  return `<div class="artifact-list"><b>Artefakte und Ausarbeitungen</b>${items
+    .map((artifact) => {
+      const value = typeof artifact === 'string' ? { title: artifact } : artifact;
+      const title = value.title || value.id || 'Artefakt';
+      const meta = [value.kind, value.status].filter(Boolean).join(' · ');
+      const href = /^https:\/\/nextcloud\.stromdao\.de\/nextcloud\//i.test(value.href || '')
+        ? value.href
+        : null;
+      const label = `<span><strong>${escapeHtml(title)}</strong>${meta ? `<small>${escapeHtml(meta)}</small>` : ''}</span>`;
+      return href
+        ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${label}<span aria-hidden="true">↗</span></a>`
+        : `<div>${label}</div>`;
+    })
+    .join('')}</div>`;
+}
+
 function details(rows) {
   const content = rows
     .filter((row) => row[1] !== null && row[1] !== undefined && row[1] !== '')
@@ -694,7 +718,12 @@ function topicCard(topic) {
     : [topic.owner_agent].filter(Boolean);
   const refs = Array.isArray(topic.source_task_refs) ? topic.source_task_refs : [];
   const primary = refs[0] || {};
-  return `<article class="card">
+  const archiveButton =
+    refs.length === 1
+      ? `<button class="topic-archive" type="button" data-topic-archive="${escapeHtml(topic.topic_id)}" aria-label="${escapeHtml(topic.title || 'Thema')} als Intake-Rauschen archivieren" title="Als Intake-Rauschen archivieren">×</button>`
+      : '';
+  return `<article class="card topic-card" data-topic-card="${escapeHtml(topic.topic_id)}">
+    ${archiveButton}
     <div class="eyebrow">${escapeHtml(topic.owner_agent || 'Ohne Zuordnung')} · ${escapeHtml(topic.current_state || 'unbekannt')}</div>
     <h3>${escapeHtml(topic.title || 'Unbenanntes Thema')}</h3>
     ${topic.business_goal ? `<p><b>Ziel:</b> ${escapeHtml(topic.business_goal)}</p>` : ''}
@@ -702,6 +731,7 @@ function topicCard(topic) {
     <div class="card-meta">Letzter substantieller Fortschritt: ${escapeHtml(formatTime(topic.last_substantive_progress_at))}</div>
     <div class="pills">${participants.map((agent) => `<span class="pill">${escapeHtml(agent)}</span>`).join('')}</div>
     <div class="context-actions">${taskButton(primary.board, primary.taskId || primary.task_id)}${matrixLink(topic.matrix_room_ref)}${assistantContextButton('topic', topic.topic_id, topic.title || 'Unbenanntes Thema')}</div>
+    ${artifactLinks(topic.artifact_refs)}
     ${details([
       ['Topic-ID', topic.topic_id],
       ['Erwarteter Fortschritt', formatTime(topic.expected_progress_at)],
@@ -830,6 +860,19 @@ function isMatureDecision(item) {
   );
 }
 
+function missingDecisionFields(item) {
+  return [
+    [item && item.question, 'Frage'],
+    [item && item.reason_human_required, 'Entscheidungsgrund'],
+    [item && item.recommendation, 'Empfehlung'],
+    [item && Array.isArray(item.options) && item.options.length, 'Optionen'],
+    [item && Array.isArray(item.consequences) && item.consequences.length, 'Auswirkungen'],
+    [item && item.non_decision_effect, 'Folge der Nichtentscheidung'],
+  ]
+    .filter(([present]) => !present)
+    .map(([, label]) => label);
+}
+
 async function loadMetadata() {
   try {
     const data = await api('/api/management/metadata');
@@ -866,7 +909,9 @@ async function loadOverview() {
       api('/api/management/risks?limit=5'),
     ]);
     const counts = data.counts || {};
-    const matureDecisions = (data.decisions || []).filter(isMatureDecision);
+    const decisionCandidates = data.decisions || [];
+    const matureDecisions = decisionCandidates.filter(isMatureDecision);
+    const incompleteDecisionCount = Math.max(0, decisionCandidates.length - matureDecisions.length);
     const since = lastVisit();
     const changedTopics = (data.activeTopics || []).filter(
       (item) => parseTimestamp(item.updated_at || item.last_substantive_progress_at) > since
@@ -889,6 +934,11 @@ async function loadOverview() {
         <section>
           <div class="column-title"><h3>Erwartet Aufmerksamkeit</h3><span>Governance</span></div>
           ${matureDecisions.map((item) => decisionCard(item, true)).join('') || EMPTY_DECISIONS}
+          ${
+            incompleteDecisionCount
+              ? `<div class="notice"><b>${incompleteDecisionCount} Entscheidungskandidat(en) sind noch nicht entscheidungsreif.</b> Rhajaina muss Empfehlung, Optionen und Auswirkungen vervollständigen. Details stehen unter „Entscheidungen“.</div>`
+              : ''
+          }
           ${(risks.items || []).length ? `<div class="column-title"><h3>Risiken</h3><span>Scope und Bindung</span></div>${risks.items.map((item) => decisionCard(item, true, 'risk')).join('')}` : ''}
         </section>
         <section>
@@ -908,10 +958,30 @@ async function loadDecisions() {
   try {
     const query = byId('decision-search').value.trim();
     const data = await api(`/api/management/decisions?limit=100&q=${encodeURIComponent(query)}`);
-    const matureDecisions = (data.items || []).filter(isMatureDecision);
+    const candidates = data.items || [];
+    const matureDecisions = candidates.filter(isMatureDecision);
+    const incompleteDecisions = candidates.filter((item) => !isMatureDecision(item));
+    const incompleteCards = incompleteDecisions.map(
+      (item) => `<article class="card decision-incomplete">
+        <div class="eyebrow">Vorbereitung durch Rhajaina erforderlich</div>
+        <h3>${escapeHtml(item.question || 'Entscheidungsfrage noch nicht formuliert')}</h3>
+        <p>Fehlende Entscheidungsgrundlage: ${escapeHtml(missingDecisionFields(item).join(', '))}</p>
+        <div class="context-actions">${taskButton(item.source_board, item.source_task_id)}${assistantContextButton(
+          'decision',
+          item.decision_id,
+          item.question || 'Entscheidungskandidat vorbereiten',
+          'Mit Rhajaina entscheidungsreif machen'
+        )}</div>
+      </article>`
+    );
     byId('decisions').innerHTML =
-      `<div class="list-head"><span>${matureDecisions.length} reife Governance-Fälle in der geladenen Auswahl</span><span>read-only</span></div>` +
-      (matureDecisions.map((item) => decisionCard(item)).join('') || EMPTY_DECISIONS);
+      `<div class="list-head"><span>${matureDecisions.length} entscheidungsreif · ${incompleteDecisions.length} in Vorbereitung</span><span>Rhajaina bereitet unvollständige Fälle vor</span></div>` +
+      (matureDecisions.length
+        ? `<div class="column-title"><h3>Entscheidungsreif</h3><span>vollständige Grundlage</span></div>${matureDecisions.map((item) => decisionCard(item)).join('')}`
+        : '<div class="empty"><strong>Noch kein Fall ist entscheidungsreif.</strong>Offene Kandidaten werden darunter transparent angezeigt.</div>') +
+      (incompleteCards.length
+        ? `<div class="column-title"><h3>In Vorbereitung</h3><span>noch keine Entscheidung treffen</span></div>${incompleteCards.join('')}`
+        : '');
   } catch (cause) {
     showError('decisions', cause);
   }
@@ -936,6 +1006,14 @@ function departmentCard(agent, item) {
   const outcomes = Array.isArray(item.outcomes) ? item.outcomes : [];
   const needs = Array.isArray(item.needs_management) ? item.needs_management : [];
   const risks = Array.isArray(item.risks) ? item.risks : [];
+  const artifacts = Array.from(
+    new Map(
+      topics
+        .flatMap((topic) => (Array.isArray(topic.artifacts) ? topic.artifacts : []))
+        .filter(Boolean)
+        .map((artifact) => [artifact.id || artifact.href || artifact.title, artifact])
+    ).values()
+  );
   return `<article class="card department-card brief-${escapeHtml(item.brief_status || 'empty')}">
     <div class="eyebrow">${escapeHtml(statusLabels[item.brief_status] || 'Managementbrief')}</div>
     <h3>${escapeHtml(agent.id)}</h3>
@@ -966,6 +1044,7 @@ function departmentCard(agent, item) {
         'Kein strukturierter nächster Schritt ausgewiesen.'
       )}</section>
     </div>
+    ${artifactLinks(artifacts)}
     <section class="department-governance"><h4>Governancefragen</h4>${briefItems(
       needs,
       (decision) =>
@@ -996,7 +1075,15 @@ function departmentCard(agent, item) {
     <p class="card-meta">Letzter belegter substantieller Fortschritt: ${escapeHtml(
       formatTime(item.last_substantive_progress_at, 'im Berichtszeitraum nicht belegt')
     )}</p>
-    <div class="context-actions">${assistantContextButton('department', item.agent_id, agent.id)}</div>
+    <div class="department-steering">
+      <p>Ein Steuerungsimpuls wird von Rhajaina als bestätigbarer Auftrag vorbereitet und nach „Ausführen“ über Kanban an die Abteilung übergeben.</p>
+      ${assistantContextButton(
+        'department',
+        item.agent_id,
+        agent.id,
+        `Steuerungsimpuls an ${agent.id}`
+      )}
+    </div>
     ${details([
       ['Berichtszeitraum von', formatTime(item.reporting_period_start)],
       ['Berichtszeitraum bis', formatTime(item.reporting_period_end)],
@@ -1043,44 +1130,31 @@ async function loadTopics() {
 }
 
 function timelineItem(item) {
-  const type = item.timelineType;
-  const title =
-    type === 'outcome' ? item.statement : type === 'wakeup' ? item.why_scheduled : item.question;
-  const time =
-    type === 'outcome' ? item.occurred_at : type === 'wakeup' ? item.wake_at : item.updated_at;
-  const label =
-    type === 'outcome' ? 'Ergebnis' : type === 'wakeup' ? 'Wiedervorlage' : 'Richtungsfrage';
-  const detail =
-    type === 'outcome'
-      ? item.outcome_type
-      : type === 'wakeup'
-        ? item.next_action_on_wake
-        : item.recommendation;
-  const objectId =
-    type === 'outcome' ? item.outcome_id : type === 'wakeup' ? item.wakeup_id : item.decision_id;
-  return `<article class="timeline-item ${escapeHtml(type)}"><div class="timeline-time">${escapeHtml(formatTime(time))} · ${label}</div><h3>${escapeHtml(title || label)}</h3>${detail ? `<p>${escapeHtml(detail)}</p>` : ''}<div class="context-actions">${taskButton(item.source_board, item.source_task_id)}${assistantContextButton(type, objectId, title || label)}</div></article>`;
+  const type = item.entry_type || item.timelineType;
+  const labels = {
+    closure: 'Thema abgeschlossen',
+    decision: 'Richtungsfrage',
+    outcome: 'Ergebnis',
+    wakeup: 'Wiedervorlage',
+  };
+  const label = labels[type] || 'Aktivität';
+  const objectType = type === 'closure' ? 'topic' : type;
+  const objectId = type === 'closure' ? item.topic_id || item.entry_id : item.entry_id;
+  return `<article class="timeline-item ${escapeHtml(type)}">
+    <div class="timeline-time">${escapeHtml(formatTime(item.event_at))} · ${escapeHtml(label)}</div>
+    <h3>${escapeHtml(item.statement || label)}</h3>
+    ${item.detail ? `<p>${escapeHtml(item.detail)}</p>` : ''}
+    ${artifactLinks(item.evidence_refs)}
+    <div class="context-actions">${taskButton(item.source_board, item.source_task_id)}${assistantContextButton(objectType, objectId, item.statement || label)}</div>
+  </article>`;
 }
 
 async function loadHistory() {
   try {
-    const [outcomes, wakeups, decisions] = await Promise.all([
-      api('/api/management/outcomes?limit=100'),
-      api('/api/management/wakeups?limit=100'),
-      api('/api/management/decisions?limit=100'),
-    ]);
-    const entries = [
-      ...(outcomes.items || []).map((item) => ({ ...item, timelineType: 'outcome' })),
-      ...(wakeups.items || []).map((item) => ({ ...item, timelineType: 'wakeup' })),
-      ...(decisions.items || [])
-        .filter(isMatureDecision)
-        .map((item) => ({ ...item, timelineType: 'decision' })),
-    ].sort((left, right) => {
-      const leftTime = left.occurred_at || left.wake_at || left.updated_at || 0;
-      const rightTime = right.occurred_at || right.wake_at || right.updated_at || 0;
-      return rightTime - leftTime;
-    });
+    const data = await api('/api/management/history?limit=100');
+    const entries = data.items || [];
     byId('history').innerHTML = entries.length
-      ? `<div class="timeline">${entries.map(timelineItem).join('')}</div>`
+      ? `<div class="list-head"><span>${data.count} protokollierte Managementereignisse</span><span>Ergebnisse · Entscheidungen · Wiedervorlagen · Abschlüsse</span></div><div class="timeline">${entries.map(timelineItem).join('')}</div>`
       : '<div class="empty">Noch kein Managementverlauf in der Projektion.</div>';
   } catch (cause) {
     showError('history', cause);
@@ -1177,6 +1251,29 @@ document.querySelectorAll('[data-refresh]').forEach((button) => {
   button.addEventListener('click', () => loaders[button.dataset.refresh]());
 });
 document.addEventListener('click', async (event) => {
+  const archiveButton = event.target.closest('[data-topic-archive]');
+  if (archiveButton) {
+    archiveButton.disabled = true;
+    try {
+      const topicId = archiveButton.dataset.topicArchive;
+      const result = await assistantRequest(
+        `/api/management/topics/${encodeURIComponent(topicId)}/archive`,
+        { method: 'POST' }
+      );
+      toast(result.pending ? 'Archivierung wird abgeglichen.' : 'Thema wurde archiviert.');
+      await Promise.all([loadOverview(), loadTopics(), loadDepartments(), loadHistory()]);
+    } catch (cause) {
+      const labels = {
+        topic_archive_source_ambiguous:
+          'Das Thema bündelt mehrere Quellen und kann nicht pauschal archiviert werden.',
+        action_source_not_available: 'Die autorisierte Quellkarte ist nicht eindeutig verfügbar.',
+        PROJECTION_STALE: 'Die Lage ist veraltet. Nach der nächsten Projektion erneut versuchen.',
+      };
+      toast(labels[cause.message] || `Archivierung fehlgeschlagen: ${cause.message}`);
+      archiveButton.disabled = false;
+    }
+    return;
+  }
   const reconciliationButton = event.target.closest('[data-assistant-reconciliation]');
   if (reconciliationButton) {
     reconciliationButton.disabled = true;

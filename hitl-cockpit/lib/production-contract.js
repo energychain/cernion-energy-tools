@@ -6,6 +6,7 @@ const path = require('node:path');
 const DEFAULT_CONTRACT_PATH = path.join(__dirname, '..', 'config', 'production-contract.json');
 const ACTION_CLASSES = Object.freeze([
   'ask_question',
+  'archive_intake_noise',
   'delegate_followup',
   'schedule_wakeup',
   'return_for_completion',

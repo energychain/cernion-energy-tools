@@ -408,6 +408,28 @@ function createServerKanbanAdapter() {
           ),
         ];
       }
+      if (command.action === 'archive_intake_noise') {
+        const auditText = `[MANAGEMENT-COCKPIT] Als Intake-Rauschen archiviert · ${payload.reason} · ACTION_ID: ${command.idempotencyKey}`;
+        const terminal = (task) =>
+          ['done', 'completed', 'closed', 'resolved', 'archived'].includes(
+            String(task.status || '').toLowerCase()
+          );
+        return [
+          step('audit-comment', ['comment', '--author', AUTHOR, taskId, auditText], (task) =>
+            contains(task, command.idempotencyKey)
+          ),
+          step(
+            'activate-if-scheduled',
+            ['unblock', '--reason', auditText, taskId],
+            (task) => String(task.status || '').toLowerCase() !== 'scheduled'
+          ),
+          step(
+            'complete',
+            ['complete', '--result', auditText, '--summary', auditText, taskId],
+            terminal
+          ),
+        ];
+      }
       if (command.action === 'delegate_followup') {
         return [
           step('assign', ['assign', taskId, payload.assignee], (task) =>
@@ -619,6 +641,21 @@ async function handler(req, res) {
     if (url.pathname.startsWith('/api/assistant/')) {
       const response = await assistantApi.handle(req, url);
       return json(res, response.status, response.body);
+    }
+    const topicArchive = url.pathname.match(/^\/api\/management\/topics\/([^/]+)\/archive$/);
+    if (topicArchive && req.method === 'POST') {
+      if (!guardLegacyWrite(res)) return;
+      const topicId = decodeId(topicArchive[1]);
+      if (!topicId) return json(res, 400, { ok: false, error: 'invalid_management_id' });
+      try {
+        const result = await assistantService.archiveTopic(topicId);
+        return json(res, result.pending ? 202 : 200, { ok: true, ...result });
+      } catch (error) {
+        return json(res, error.status || 500, {
+          ok: false,
+          error: error.code || 'topic_archive_failed',
+        });
+      }
     }
     const managementAction = url.pathname.match(
       /^\/api\/management\/decisions\/([^/]+)\/(choose|delegate|question|schedule|reject|return-to-rhajaina)$/

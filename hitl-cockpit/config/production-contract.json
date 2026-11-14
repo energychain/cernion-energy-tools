@@ -23,6 +23,7 @@
     "confirmationRequired": true,
     "actionClasses": [
       "ask_question",
+      "archive_intake_noise",
       "delegate_followup",
       "schedule_wakeup",
       "return_for_completion"

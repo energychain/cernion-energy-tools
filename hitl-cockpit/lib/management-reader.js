@@ -178,9 +178,13 @@ elif operation == 'history':
     limit,offset=pagination()
     outcome_filter="o.source_board != ? AND (t.topic_id IS NULL OR ("+public_topic.replace('sensitivity','t.sensitivity').replace('source_task_refs_json','t.source_task_refs_json')+"))"
     outcome_params=[private_board]+private_sensitivities+['%"board":"'+private_board+'"%']
-    outcome_rows=rows("SELECT 'outcome' AS entry_type,o.outcome_id AS entry_id,o.topic_id,o.statement,o.evidence_refs_json,o.occurred_at AS event_at,o.source_board,o.source_task_id FROM outcomes o LEFT JOIN management_topics t ON t.topic_id=o.topic_id WHERE "+outcome_filter, outcome_params)
-    closure_rows=rows("SELECT 'closure' AS entry_type,topic_id AS entry_id,topic_id,title AS statement,artifact_refs_json AS evidence_refs_json,updated_at AS event_at,NULL AS source_board,NULL AS source_task_id FROM management_topics WHERE "+public_topic+" AND current_state IN ('done','completed','closed','resolved','archived')", public_topic_params)
-    combined=sorted(outcome_rows+closure_rows, key=lambda x:(x.get('event_at') or 0,x.get('entry_id') or ''), reverse=True)
+    outcome_rows=rows("SELECT 'outcome' AS entry_type,o.outcome_id AS entry_id,o.topic_id,o.statement,o.outcome_type AS detail,o.evidence_refs_json,o.occurred_at AS event_at,o.source_board,o.source_task_id FROM outcomes o LEFT JOIN management_topics t ON t.topic_id=o.topic_id WHERE "+outcome_filter, outcome_params)
+    closure_rows=rows("SELECT 'closure' AS entry_type,topic_id AS entry_id,topic_id,title AS statement,'Thema abgeschlossen' AS detail,artifact_refs_json AS evidence_refs_json,updated_at AS event_at,NULL AS source_board,NULL AS source_task_id FROM management_topics WHERE "+public_topic+" AND current_state IN ('done','completed','closed','resolved','archived')", public_topic_params)
+    decision_filter="d.source_board != ? AND (t.topic_id IS NULL OR ("+public_topic.replace('sensitivity','t.sensitivity').replace('source_task_refs_json','t.source_task_refs_json')+"))"
+    decision_params=[private_board]+private_sensitivities+['%"board":"'+private_board+'"%']
+    decision_rows=rows("SELECT 'decision' AS entry_type,d.decision_id AS entry_id,d.topic_id,d.question AS statement,COALESCE(d.recommendation,d.decision_class) AS detail,d.source_refs_json AS evidence_refs_json,d.updated_at AS event_at,d.source_board,d.source_task_id FROM governance_decisions d LEFT JOIN management_topics t ON t.topic_id=d.topic_id WHERE "+decision_filter, decision_params)
+    wakeup_rows=rows("SELECT 'wakeup' AS entry_type,wakeup_id AS entry_id,NULL AS topic_id,why_scheduled AS statement,next_action_on_wake AS detail,'[]' AS evidence_refs_json,wake_at AS event_at,source_board,source_task_id FROM wakeups WHERE source_board != ?", [private_board])
+    combined=sorted(outcome_rows+closure_rows+decision_rows+wakeup_rows, key=lambda x:(x.get('event_at') or 0,x.get('entry_id') or ''), reverse=True)
     output={'count':len(combined), 'items':combined[offset:offset+limit]}
 elif operation == 'telemetry':
     label_rows=rows('SELECT label,COUNT(*) AS count FROM classification_audit WHERE source_board != ? GROUP BY label ORDER BY label', [private_board])

@@ -31,6 +31,7 @@ const OWNER_ROOMS = Object.freeze({
   DevOps: 'Software Dev',
   Infrastructure: 'Infrastructure',
 });
+const NEXTCLOUD_FILES_URL = 'https://nextcloud.stromdao.de/nextcloud/index.php/apps/files/';
 
 function normalizeToken(value) {
   return String(value || '')
@@ -158,12 +159,30 @@ function roomForTopic(topic, members, roomRegistry) {
   return validRoomId(roomId) ? roomId : null;
 }
 
+function nextcloudArtifactUrl(value) {
+  const artifactPath = String(value || '')
+    .trim()
+    .replace(/^\/+/, '');
+  if (!artifactPath || artifactPath.includes('\0') || artifactPath.split('/').includes('..')) {
+    return null;
+  }
+  const parts = artifactPath.split('/').filter(Boolean);
+  if (!parts.length) return null;
+  const filename = parts.pop();
+  const url = new URL(NEXTCLOUD_FILES_URL);
+  url.searchParams.set('dir', `/${parts.join('/')}`);
+  url.searchParams.set('scrollto', filename);
+  return url.toString();
+}
+
 function safeArtifactReference(artifact) {
+  const nextcloudPath = String(artifact.nextcloud_path || '');
   return {
     id: String(artifact.id || ''),
     kind: String(artifact.kind || ''),
     title: String(artifact.title || ''),
-    nextcloudPath: String(artifact.nextcloud_path || ''),
+    nextcloudPath,
+    href: nextcloudArtifactUrl(nextcloudPath),
     status: String(artifact.status || ''),
   };
 }
@@ -363,6 +382,7 @@ module.exports = {
   isPrivateArtifact,
   isPrivateTask,
   isSanitizedBridge,
+  nextcloudArtifactUrl,
   projectContextLinks,
   readRoomRegistry,
   roomForTopic,

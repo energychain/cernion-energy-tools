@@ -9,6 +9,7 @@ const SAFE_TOOLSET = 'bot_room';
 const MODES = Object.freeze(['read_only', 'shadow', 'low_risk', 'scoped', 'productive']);
 const LOW_RISK_ACTIONS = Object.freeze([
   'ask_question',
+  'archive_intake_noise',
   'delegate_followup',
   'schedule_wakeup',
   'return_for_completion',

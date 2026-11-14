@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 
 const BASE_ACTIONS = Object.freeze([
   'ask_question',
+  'archive_intake_noise',
   'delegate_followup',
   'schedule_wakeup',
   'return_for_completion',
@@ -55,6 +56,9 @@ function normalizePayload(action, input) {
   const payload = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   if (action === 'ask_question') {
     return { question: cleanText(payload.question, 'question') };
+  }
+  if (action === 'archive_intake_noise') {
+    return { reason: cleanText(payload.reason, 'reason', 500) };
   }
   if (action === 'delegate_followup') {
     return {
@@ -190,6 +194,13 @@ function actionObserved(action, payload, task, idempotencyKey) {
     );
   }
   if (action === 'ask_question') return text.includes(String(payload.question).toLowerCase());
+  if (action === 'archive_intake_noise') {
+    return (
+      ['done', 'completed', 'closed', 'resolved', 'archived'].includes(
+        String(task.status || '').toLowerCase()
+      ) && text.includes(String(idempotencyKey).toLowerCase())
+    );
+  }
   return false;
 }
 

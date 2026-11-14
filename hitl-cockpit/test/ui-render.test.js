@@ -55,8 +55,7 @@ test('management cockpit exposes only fail-closed shadow actions and required se
   assert.match(managementJs, /https:\/\/matrix\.to\/\#\//);
   assert.match(managementJs, /source_refs/);
   assert.match(managementJs, /topic_artifact_refs/);
-  assert.match(managementJs, /api\/management\/outcomes/);
-  assert.match(managementJs, /api\/management\/wakeups/);
+  assert.match(managementJs, /api\/management\/history/);
   assert.match(managementJs, /api\/management\/risks/);
   for (const agent of ['Rhajaina', 'Felix', 'Anja', 'Viki', 'Cori', 'DevOps', 'Infrastructure']) {
     assert.match(managementJs, new RegExp(agent));
@@ -112,11 +111,14 @@ test('Rhajaina panel is globally reachable, accessible, contextual and mode-awar
   assert.match(managementJs, /body: \{ clientMessageId: assistantClientMessageId\(\), text \}/);
   assert.doesNotMatch(managementJs, /body:\s*\{[^}]*\b(?:title|owner|scope)\b/);
   for (const type of ['topic', 'department', 'outcome']) {
-    assert.match(managementJs, new RegExp(`assistantContextButton\\('${type}'`));
+    assert.match(managementJs, new RegExp(`assistantContextButton\\(\\s*'${type}'`));
   }
   assert.match(managementJs, /contextType = 'decision'/);
   assert.match(managementJs, /decisionCard\(item, true, 'risk'\)/);
-  assert.match(managementJs, /assistantContextButton\(type, objectId, title \|\| label\)/);
+  assert.match(
+    managementJs,
+    /assistantContextButton\(objectType, objectId, item\.statement \|\| label\)/
+  );
   assert.match(managementJs, /assistant-context-remove/);
   assert.match(managementHtml, /Globales Gespräch \/ neues Thema/);
   assert.match(managementHtml, /Angehefteter Kontext/);

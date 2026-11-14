@@ -16,7 +16,7 @@ const DIRECTIVE_ACTION_MAP = Object.freeze({
   create_followup: 'delegate_followup',
   schedule_wakeup: 'schedule_wakeup',
   prepare_decision: 'ask_question',
-  mark_no_action: 'return_for_completion',
+  mark_no_action: 'archive_intake_noise',
   change_priority: 'set_priority',
 });
 
@@ -342,7 +342,7 @@ function createAssistantService(options = {}) {
   }
 
   function matrixInput(proposal, action, source, context) {
-    if (!config.matrixHandoffEnabled) return null;
+    if (!config.matrixHandoffEnabled || action === 'archive_intake_noise') return null;
     const topicId =
       context.objectType === 'topic'
         ? context.objectId
@@ -404,7 +404,8 @@ function createAssistantService(options = {}) {
       throw serviceError('automatic_execution_not_allowed', 403);
     }
 
-    if (config.matrixHandoffEnabled) {
+    const handoff = matrixInput(proposal, execution.action, resolved.source, context);
+    if (handoff) {
       const responsibleAgent =
         execution.payload.assignee || execution.payload.owner || resolved.sourceAssignee;
       const expectedSender = matrixAgentSenders[String(responsibleAgent || '').toLowerCase()];
@@ -423,7 +424,7 @@ function createAssistantService(options = {}) {
           payload: execution.payload,
           idempotencyKey: proposal.idempotencyKey,
         },
-        matrixInput: matrixInput(proposal, execution.action, resolved.source, context),
+        matrixInput: handoff,
       });
       if (outcome.pending) {
         return {
@@ -476,6 +477,48 @@ function createAssistantService(options = {}) {
     );
     proposalExecutions.set(id, operation);
     return operation;
+  }
+
+  async function archiveTopic(topicId) {
+    guardMutation();
+    const context = contextResolver.resolve({ objectType: 'topic', objectId: topicId });
+    const sources = trustedSourceReferences(context);
+    if (sources.length !== 1) throw serviceError('topic_archive_source_ambiguous', 409);
+    const syntheticProposal = {
+      id: `topic-archive-${topicId}`,
+      actionType: 'mark_no_action',
+      targetType: 'topic',
+      targetId: topicId,
+      payload: { reason: 'Rauschen/kein weiterer Handlungsbedarf' },
+      riskClass: 'low',
+      scopeStatus: 'covered',
+      status: 'shadow',
+    };
+    const resolved = await resolveExecutionSource(syntheticProposal, context);
+    const idempotencyKey = `topic-archive:${topicId}:${resolved.sourceFingerprint}`;
+    let conversation = store
+      .listConversations()
+      .find((item) => item.objectType === 'topic' && item.objectId === topicId);
+    if (!conversation)
+      conversation = createConversation({ objectType: 'topic', objectId: topicId });
+    const message = store.appendMessage({
+      conversationId: conversation.id,
+      role: 'user',
+      content: 'Als Intake-Rauschen archivieren; kein weiterer Handlungsbedarf.',
+      clientMessageId: idempotencyKey,
+    });
+    const created = store.createProposal({
+      conversationId: conversation.id,
+      messageId: message.id,
+      actionType: syntheticProposal.actionType,
+      targetType: syntheticProposal.targetType,
+      targetId: syntheticProposal.targetId,
+      payload: syntheticProposal.payload,
+      riskClass: syntheticProposal.riskClass,
+      scopeStatus: syntheticProposal.scopeStatus,
+      idempotencyKey,
+    });
+    return confirmProposal(created.proposal.id);
   }
 
   function rejectProposal(id) {
@@ -857,6 +900,7 @@ function createAssistantService(options = {}) {
     getRun,
     listProposals,
     confirmProposal,
+    archiveTopic,
     rejectProposal,
     listReconciliations,
     retryReconciliation,
