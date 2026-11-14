@@ -52,7 +52,7 @@ function topic(id, owner, state, sensitivity = 'internal') {
     expected_progress_at: null,
     impact_statement: 'Expected impact',
     last_substantive_progress_at: 1700000200,
-    matrix_room_ref: null,
+    matrix_room_ref: '!room:example.test',
     artifact_refs_json: '[]',
     source_task_refs_json: JSON.stringify([{ board: 'fixture', taskId: `t_${id}` }]),
     sensitivity,
@@ -416,6 +416,7 @@ test('management read APIs expose overview, decisions, departments and topics', 
   assert.equal(decisions.body.count, 1);
   assert.equal(decisions.body.items.length, 1, JSON.stringify(decisions.body));
   assert.equal(decisions.body.items[0].source_board, 'fixture');
+  assert.equal(decisions.body.items[0].matrix_room_ref, '!room:example.test');
   assert.equal((await request('/api/management/decisions?q=%25_')).body.count, 0);
   assert.equal(JSON.stringify(overview.body).includes('Bereits beantwortete Matrix-Frage'), false);
   const resolved = await request('/api/management/decisions?status=resolved');

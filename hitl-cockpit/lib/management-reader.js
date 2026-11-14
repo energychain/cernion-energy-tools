@@ -30,7 +30,7 @@ private_placeholders=','.join(['?']*len(private_sensitivities))
 public_topic="sensitivity NOT IN ("+private_placeholders+") AND source_task_refs_json NOT LIKE ?"
 public_topic_params=private_sensitivities+['%"board":"'+private_board+'"%']
 open_decision="LOWER(d.status) NOT IN ('done','completed','closed','resolved','rejected','cancelled','archived')"
-decision_select="SELECT d.*, t.matrix_room_ref AS matrix_room_ref, t.artifact_refs_json AS topic_artifact_refs_json"
+decision_select="SELECT d.*, t.matrix_room_ref AS topic_matrix_room_ref, t.artifact_refs_json AS topic_artifact_refs_json"
 
 def rows(sql, params=()):
     return [dict(row) for row in con.execute(sql, params).fetchall()]
@@ -214,6 +214,10 @@ function normalizeResult(value) {
   if (Array.isArray(value)) return value.map(normalizeResult);
   if (!value || typeof value !== 'object') return value;
   const parsed = parseJsonFields(value);
+  if (Object.hasOwn(parsed, 'topic_matrix_room_ref')) {
+    parsed.matrix_room_ref = parsed.topic_matrix_room_ref || parsed.matrix_room_ref || null;
+    delete parsed.topic_matrix_room_ref;
+  }
   return Object.fromEntries(
     Object.entries(parsed).map(([key, item]) => [key, normalizeResult(item)])
   );
