@@ -334,6 +334,7 @@ const validateAnswer = ajv.compile(ARTIFACT_ANSWER_SCHEMA);
 // Share of a free deliverable's paragraphs the checks must keep for it to be given without a
 // second free attempt.
 const MIN_KEPT_SHARE = 0.75;
+const MIN_REPAIRED_SHARE = 0.5;
 
 // Conservative: the speaker is the grammatical subject and no other person is referenced, so a
 // remark about a colleague ("mein Kollege ist …") always keeps the protective path.
@@ -1635,17 +1636,25 @@ async function generateAnswerResult({
               const paragraphs = (value) =>
                 (value.artifact || []).reduce((sum, part) => sum + (part.content?.length || 0), 0);
               const written = paragraphs(original);
-              const checked = await accept(structuredClone(original), true);
-              const kept = paragraphs(checked);
-              if (run.freeArtifactRepair || kept >= Math.ceil(written * MIN_KEPT_SHARE)) {
+              // The lenient pass fails when nothing is left; that counts as nothing kept.
+              const checked = await accept(structuredClone(original), true).catch(() => null);
+              const kept = checked ? paragraphs(checked) : 0;
+              // Which checks removed paragraphs (rule names and counts only, never text).
+              const filters = Object.fromEntries(filterCounts);
+              // The second free attempt still has to keep at least half of what it wrote; an
+              // emptied deliverable (LON-A T06: heading only) goes to the repair path instead.
+              const share = run.freeArtifactRepair ? MIN_REPAIRED_SHARE : MIN_KEPT_SHARE;
+              if (checked && kept >= Math.ceil(written * share)) {
                 logger?.info?.('Free deliverable accepted after checks', {
                   reason: error.fallbackReason,
                   written,
                   kept,
+                  filters,
                 });
                 return checked;
               }
-              run.freeArtifactRepair = true;
+              logger?.info?.('Free deliverable rejected after checks', { written, kept, filters });
+              run.freeArtifactRepair = !run.freeArtifactRepair;
             }
             // A worked-out deliverable that misses only the ordered form is kept as the
             // fallback, so a failed repair never reduces it to its headings (TWL long dialogue).
