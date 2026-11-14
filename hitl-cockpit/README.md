@@ -97,9 +97,9 @@ hitl-cockpit/
 | `MANAGEMENT_COCKPIT_SHADOW_ONLY`   | `true`                                               | muss in v1 `true` bleiben                          |
 | `MANAGEMENT_COCKPIT_DEFAULT_VIEW`  | `legacy`                                             | Konfigurationshinweis; `/` bleibt Legacy           |
 | `MANAGEMENT_COCKPIT_DATABASE`      | `$HERMES_HOME/management-cockpit/management.db`      | Projektionsdatenbank                               |
-| `PROJECTION_INTERVAL_SECONDS`       | `120`                                                | Start-zu-Start-Intervall, maximal 180 Sekunden     |
-| `PROJECTION_BUDGET_SECONDS`         | `100`                                                | absolutes Laufzeitbudget eines Projektionslaufs    |
-| `PROJECTION_BACKOFF_SECONDS`        | `30`                                                 | Backoff nach Fehler oder belegtem Lock             |
+| `PROJECTION_INTERVAL_SECONDS`      | `120`                                                | Start-zu-Start-Intervall, maximal 180 Sekunden     |
+| `PROJECTION_BUDGET_SECONDS`        | `100`                                                | absolutes Laufzeitbudget eines Projektionslaufs    |
+| `PROJECTION_BACKOFF_SECONDS`       | `30`                                                 | Backoff nach Fehler oder belegtem Lock             |
 | `HITL_COCKPIT_SESSION_TTL_SECONDS` | `1800`                                               | 60 bis 28.800 Sekunden                             |
 | `HITL_COCKPIT_ALLOW_LEGACY_BEARER` | `false`                                              | befristeter Übergangsclient, nicht Browserstandard |
 | `AGENTOS_SCOPE_LEDGER`             | `$HOME/.hermes/agent-os-scoped-approval-ledger.json` | Scope-Ledger-Override                              |
@@ -446,6 +446,7 @@ Ablauf:
 - AP 17 stellt eine commitbasierte Release- und LKG-Mechanik bereit; ein neuer Release wird nur aus einem geprüften Commit gebaut.
 - Der produktive Low-Risk-Pfad ist durch den versionierten Smoke-Nachweis belegt; die Freigabe gilt nicht für weitere Aktionsklassen.
 - Echte Management-Decision-Writes sind nicht implementiert und dürfen nicht durch Umgebungsvariablen erzwungen werden.
-- Ergebnisrücklauf, persistente Reconciliation, vollständige Agentenabdeckung und weitere Geschäftsvorgangsklassen bleiben Folgearbeit.
+- Ergebnisrücklauf und persistente Reconciliation sind implementiert: Teilfehler bleiben auditierbar und wiederaufnehmbar; verifizierte Agentenergebnisse werden in den ursprünglichen Rhajaina-Verlauf zurückgeführt und schließen Fälle erst nach terminalem Kanban-Readback.
+- Vollständige Agentenabdeckung und weitere Geschäftsvorgangsklassen bleiben Folgearbeit.
 - `MANAGEMENT_COCKPIT_DEFAULT_VIEW=management` routet `/` nicht um; `/` bleibt Legacy.
 - Der kanonische Einstieg in die Managementsicht ist `/management`, nicht die statische Datei `/management.html`.
