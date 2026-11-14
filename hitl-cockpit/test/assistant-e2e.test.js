@@ -130,6 +130,11 @@ function harness(t, options = {}) {
     },
     scopeChecker: async () => (options.scopeCovered ? 'covered' : { covered: false }),
     matrixHandoff,
+    matrixAgentSenders: {
+      felix: '@felix:example.test',
+      anja: '@anja:example.test',
+      rhajaina: '@rhajaina:example.test',
+    },
   });
   async function turn(context, text = 'test') {
     const conversation = service.createConversation(context || {});
@@ -379,7 +384,7 @@ test('productive mode auto-executes only covered allowlisted actions', async (t)
   assert.equal(notAllowlisted.store.listProposals()[0].status, 'shadow');
 });
 
-test('Matrix handoff occurs after Kanban success, deduplicates, and pending keeps Kanban executed', async (t) => {
+test('Matrix pending remains an open disturbance and never presents the proposal as executed', async (t) => {
   const pending = harness(t, {
     mode: 'low_risk',
     response: directives.followup,
@@ -390,12 +395,14 @@ test('Matrix handoff occurs after Kanban success, deduplicates, and pending keep
   const completed = await pending.turn({ objectType: 'topic', objectId: 'topic-1' });
   const proposal = pending.service.listProposals({ conversationId: completed.conversation.id })[0];
   const first = await pending.service.confirmProposal(proposal.id);
-  const duplicate = await pending.service.confirmProposal(proposal.id);
   assert.equal(pending.writes.length, 1);
   assert.equal(pending.matrix.length, 1);
-  assert.equal(first.proposal.status, 'executed');
-  assert.equal(first.receipt.matrix.status, 'pending');
-  assert.equal(duplicate.receipt.id, first.receipt.id);
+  assert.equal(first.proposal.status, 'executing');
+  assert.equal(first.pending, true);
+  assert.equal(pending.store.getReceiptByProposalId(proposal.id), null);
+  const open = pending.service.listReconciliations();
+  assert.equal(open.length, 2);
+  assert.ok(open.every((item) => item.owner === 'Operations' && item.nextAttemptAt));
   assert.match(pending.matrix[0].handoffId, /^proposal_/);
   assert.doesNotMatch(pending.matrix[0].text, /Belege sammeln|Öffentliche Belege/);
 });

@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { validateProjectedClosure } = require('./assistant-result-ingest');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -125,8 +126,21 @@ function evaluateOutcome(task, options = {}) {
     return { accepted: false, reason: 'source_not_completed' };
   }
 
-  const text = taskText(task);
+  let text = taskText(task);
   const resultText = String(task.result || '').trim();
+
+  if (/AGENT_RESULT_|RESULT_OPERATION_ID/.test(text)) {
+    try {
+      const closed = validateProjectedClosure(task, options.publicBoards);
+      if (closed.action !== 'accept')
+        return { accepted: false, reason: 'agent_result_not_accepted' };
+      // Only the validated terminal result participates in projection.
+      text = resultText;
+      task = { ...task, title: '', body: '', comments: [], outcome: null, outcomeEvidence: null };
+    } catch (_) {
+      return { accepted: false, reason: 'agent_result_terminal_readback_invalid' };
+    }
+  }
   const explicitType = task.outcome?.type || markerValues(text, 'OUTCOME_TYPE')[0];
   const outcomeType = explicitType || (resultText ? inferOutcomeType(resultText, policy) : null);
   if (!outcomeType || !policy.types[outcomeType]) {

@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const { toBrowserAssistantConfig } = require('./assistant-config');
 
 const ENTITY_ID =
-  /^(?:conversation|run|proposal)_[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  /^(?:conversation|run|proposal|reconciliation|result)_[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function response(status, body) {
   return { status, body };
@@ -108,9 +108,13 @@ function createAssistantApi(options = {}) {
     const known =
       url.pathname === '/api/assistant/conversations' ||
       url.pathname === '/api/assistant/proposals' ||
+      url.pathname === '/api/assistant/results' ||
+      url.pathname === '/api/assistant/reconciliation' ||
+      /^\/api\/assistant\/reconciliation\/[^/]+\/(?:retry|resolve|escalate)$/.test(url.pathname) ||
       /^\/api\/assistant\/conversations\/[^/]+\/messages$/.test(url.pathname) ||
       /^\/api\/assistant\/runs\/[^/]+$/.test(url.pathname) ||
-      /^\/api\/assistant\/proposals\/[^/]+\/(?:confirm|reject)$/.test(url.pathname);
+      /^\/api\/assistant\/proposals\/[^/]+\/(?:confirm|reject)$/.test(url.pathname) ||
+      /^\/api\/assistant\/results\/[^/]+\/(?:accept|correct|continue|end)$/.test(url.pathname);
     if (!known) return response(404, { ok: false, error: 'not_found' });
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && !sameOrigin(req, trustProxy))
       return response(403, { ok: false, error: 'same_origin_required' });
@@ -156,6 +160,102 @@ function createAssistantApi(options = {}) {
           items: service.listProposals({
             conversationId: conversationId || null,
             status: url.searchParams.get('status') || null,
+          }),
+        });
+      }
+      if (url.pathname === '/api/assistant/results') {
+        if (req.method !== 'GET') return response(405, { ok: false, error: 'method_not_allowed' });
+        const conversationId = url.searchParams.get('conversationId');
+        if (
+          conversationId &&
+          (!ENTITY_ID.test(conversationId) || !conversationId.startsWith('conversation_'))
+        ) {
+          return response(400, { ok: false, error: 'invalid_conversation_id' });
+        }
+        return response(200, {
+          ok: true,
+          items: service.listResults({ conversationId: conversationId || null }),
+        });
+      }
+      const resultAction = url.pathname.match(
+        /^\/api\/assistant\/results\/([^/]+)\/(accept|correct|continue|end)$/
+      );
+      if (resultAction) {
+        if (req.method !== 'POST') return response(405, { ok: false, error: 'method_not_allowed' });
+        const resultId = decodeURIComponent(resultAction[1]);
+        if (!ENTITY_ID.test(resultId) || !resultId.startsWith('result_')) {
+          return response(400, { ok: false, error: 'invalid_result_id' });
+        }
+        const body = await readJson(req, bodyLimit);
+        const allowed = new Set(['requestId', 'instruction', 'reason', 'evidence']);
+        if (
+          !body ||
+          Object.keys(body).some((key) => !allowed.has(key)) ||
+          typeof body.requestId !== 'string' ||
+          !body.requestId.trim() ||
+          body.requestId.length > 256 ||
+          (['correct', 'continue'].includes(resultAction[2]) &&
+            (typeof body.instruction !== 'string' ||
+              !body.instruction.trim() ||
+              body.instruction.length > 4000))
+        ) {
+          return response(400, { ok: false, error: 'invalid_body' });
+        }
+        if (!config.writesEnabled) {
+          return response(403, { ok: false, error: 'assistant_writes_disabled' });
+        }
+        if (limited(req)) return response(429, { ok: false, error: 'rate_limited' });
+        if (freshnessGuard) freshnessGuard();
+        return response(200, {
+          ok: true,
+          ...(await service.decideResult(resultId, resultAction[2], {
+            requestId: body.requestId.trim(),
+            instruction: typeof body.instruction === 'string' ? body.instruction.trim() : '',
+            identity: req.authIdentity,
+            reason: body.reason,
+            evidence: body.evidence,
+          })),
+        });
+      }
+      if (url.pathname === '/api/assistant/reconciliation') {
+        if (req.method !== 'GET') return response(405, { ok: false, error: 'method_not_allowed' });
+        return response(200, { ok: true, items: service.listReconciliations() });
+      }
+      const reconciliationAction = url.pathname.match(
+        /^\/api\/assistant\/reconciliation\/([^/]+)\/(retry|resolve|escalate)$/
+      );
+      if (reconciliationAction) {
+        if (req.method !== 'POST') return response(405, { ok: false, error: 'method_not_allowed' });
+        const reconciliationId = decodeURIComponent(reconciliationAction[1]);
+        if (!ENTITY_ID.test(reconciliationId) || !reconciliationId.startsWith('reconciliation_')) {
+          return response(400, { ok: false, error: 'invalid_reconciliation_id' });
+        }
+        const body = await readJson(req, bodyLimit);
+        if (
+          !body ||
+          Object.keys(body).some((key) => !['reason', 'evidence', 'requestId'].includes(key)) ||
+          ['reason', 'evidence', 'requestId'].some(
+            (key) => typeof body[key] !== 'string' || !body[key].trim() || body[key].length > 2000
+          )
+        ) {
+          return response(400, { ok: false, error: 'operator_audit_required' });
+        }
+        if (!config.writesEnabled)
+          return response(403, { ok: false, error: 'assistant_writes_disabled' });
+        if (freshnessGuard) freshnessGuard();
+        if (limited(req)) return response(429, { ok: false, error: 'rate_limited' });
+        const methods = {
+          retry: 'retryReconciliation',
+          resolve: 'resolveReconciliation',
+          escalate: 'escalateReconciliation',
+        };
+        return response(200, {
+          ok: true,
+          item: await service[methods[reconciliationAction[2]]](reconciliationId, {
+            identity: req.authIdentity,
+            reason: body.reason.trim(),
+            evidence: body.evidence.trim(),
+            requestId: body.requestId.trim(),
           }),
         });
       }

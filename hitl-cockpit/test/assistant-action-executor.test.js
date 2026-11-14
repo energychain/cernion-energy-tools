@@ -259,3 +259,61 @@ test('validates adapter and action payload contracts fail-closed', async () => {
     (error) => error.code === 'wakeAt_invalid'
   );
 });
+
+test('composite operations persist verified steps and resume only the missing side effect', async () => {
+  const initial = publicTask();
+  let task = structuredClone(initial);
+  let firstCalls = 0;
+  let secondCalls = 0;
+  let failSecond = true;
+  const kanban = {
+    async readTask() {
+      return structuredClone(task);
+    },
+    async applyAction() {
+      throw new Error('whole_action_must_not_be_used');
+    },
+    operations() {
+      return [
+        {
+          id: 'assign',
+          observed: (value) => value.assignee === 'Felix',
+          async apply() {
+            firstCalls += 1;
+            task.assignee = 'Felix';
+          },
+        },
+        {
+          id: 'comment',
+          observed: (value) => value.comments.includes('Collect evidence'),
+          async apply() {
+            secondCalls += 1;
+            if (failSecond) throw new Error('comment_failed');
+            task.comments.push('Collect evidence');
+          },
+        },
+      ];
+    },
+  };
+  const executor = createAssistantActionExecutor({ kanban });
+  const input = request(initial, 'delegate_followup', {
+    assignee: 'Felix',
+    followup: 'Collect evidence',
+  });
+  const completedSteps = new Set();
+  await assert.rejects(
+    executor.execute(input, { completedSteps, onStep: (step) => completedSteps.add(step) }),
+    /comment_failed/
+  );
+  assert.deepEqual([...completedSteps], ['assign']);
+  failSecond = false;
+  const result = await executor.execute(input, {
+    retry: true,
+    completedSteps,
+    onStep: (step) => completedSteps.add(step),
+  });
+  assert.equal(result.ok, true);
+  assert.equal(firstCalls, 1);
+  assert.equal(secondCalls, 2);
+  assert.deepEqual([...completedSteps], ['assign', 'comment']);
+});

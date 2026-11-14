@@ -174,6 +174,14 @@ elif operation == 'digest':
         term=like_term(request['query']); params.extend([term,term])
     total=scalar('SELECT COUNT(*) FROM digest_items d LEFT JOIN management_topics t ON t.topic_id=d.topic_id WHERE '+filter_sql, params)
     output={'count':total, 'items':rows('SELECT d.* FROM digest_items d LEFT JOIN management_topics t ON t.topic_id=d.topic_id WHERE '+filter_sql+' ORDER BY d.observed_at DESC, d.digest_id LIMIT ? OFFSET ?', params+[limit,offset])}
+elif operation == 'history':
+    limit,offset=pagination()
+    outcome_filter="o.source_board != ? AND (t.topic_id IS NULL OR ("+public_topic.replace('sensitivity','t.sensitivity').replace('source_task_refs_json','t.source_task_refs_json')+"))"
+    outcome_params=[private_board]+private_sensitivities+['%"board":"'+private_board+'"%']
+    outcome_rows=rows("SELECT 'outcome' AS entry_type,o.outcome_id AS entry_id,o.topic_id,o.statement,o.evidence_refs_json,o.occurred_at AS event_at,o.source_board,o.source_task_id FROM outcomes o LEFT JOIN management_topics t ON t.topic_id=o.topic_id WHERE "+outcome_filter, outcome_params)
+    closure_rows=rows("SELECT 'closure' AS entry_type,topic_id AS entry_id,topic_id,title AS statement,artifact_refs_json AS evidence_refs_json,updated_at AS event_at,NULL AS source_board,NULL AS source_task_id FROM management_topics WHERE "+public_topic+" AND current_state IN ('done','completed','closed','resolved','archived')", public_topic_params)
+    combined=sorted(outcome_rows+closure_rows, key=lambda x:(x.get('event_at') or 0,x.get('entry_id') or ''), reverse=True)
+    output={'count':len(combined), 'items':combined[offset:offset+limit]}
 elif operation == 'telemetry':
     label_rows=rows('SELECT label,COUNT(*) AS count FROM classification_audit WHERE source_board != ? GROUP BY label ORDER BY label', [private_board])
     board=con.execute('SELECT COUNT(*), COALESCE(SUM(source_count),0), COALESCE(MAX(projected_at),0) FROM projection_boards WHERE board != ?', (private_board,)).fetchone()

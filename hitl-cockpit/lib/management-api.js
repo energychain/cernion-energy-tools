@@ -98,6 +98,7 @@ function createManagementApi(options) {
       '/api/management/risks': 'risks',
       '/api/management/wakeups': 'wakeups',
       '/api/management/digest': 'digest',
+      '/api/management/history': 'history',
       '/api/management/telemetry': 'telemetry',
     };
 

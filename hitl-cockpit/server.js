@@ -69,6 +69,11 @@ const managementApi = createManagementApi({
 const assistantConfig = loadAssistantConfig({
   configPath: process.env.ASSISTANT_CONFIG || process.env.HITL_COCKPIT_ASSISTANT_CONFIG,
 });
+const assistantPublicBoards = String(process.env.ASSISTANT_PUBLIC_BOARDS || 'operations')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
+const assistantMatrixAgentSenders = JSON.parse(process.env.ASSISTANT_MATRIX_AGENT_SENDERS || '{}');
 const productionContract = loadProductionContract({
   contractPath: process.env.COCKPIT_PRODUCTION_CONTRACT,
 });
@@ -98,12 +103,18 @@ if (assistantConfig.enabled) {
   const assistantExecutor = assistantConfig.writesEnabled
     ? createAssistantActionExecutor({
         kanban: createServerKanbanAdapter(),
+        publicBoards: assistantPublicBoards,
         scopeChecker: assistantScopeChecker,
       })
     : null;
-  const assistantMatrixHandoff = assistantConfig.matrixHandoffEnabled
-    ? createAssistantMatrixHandoffAdapter(createAssistantMatrixRuntime())
-    : null;
+  let assistantMatrixHandoff = null;
+  if (assistantConfig.matrixHandoffEnabled) {
+    try {
+      assistantMatrixHandoff = createAssistantMatrixHandoffAdapter(createAssistantMatrixRuntime());
+    } catch (_) {
+      // Required Matrix delivery remains durable as matrix_pending until runtime becomes available.
+    }
+  }
   assistantService = createAssistantService({
     store: assistantStore,
     contextResolver: assistantContextResolver,
@@ -113,8 +124,32 @@ if (assistantConfig.enabled) {
     matrixHandoff: assistantMatrixHandoff,
     sourceResolver: resolveAssistantSource,
     scopeChecker: assistantScopeChecker,
+    publicBoards: assistantPublicBoards,
+    matrixAgentSenders: assistantMatrixAgentSenders,
+    freshnessGuard: () => assertFreshForWrite(managementReader.read('health')),
+    readResultKanban: readAssistantTask,
+    readResultRound: readAssistantResultRound,
+    resultRoundIdempotent: true,
+    resultAllowedSenders: String(process.env.ASSISTANT_RESULT_ALLOWED_SENDERS || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
+    closeResultCase: closeAssistantResultCase,
+    createResultRound: createAssistantResultRound,
   });
   assistantService.resumePendingRuns();
+  let reconciliationDelay = 5000;
+  const reconcileLoop = async () => {
+    try {
+      await assistantService.processReconciliations();
+      reconciliationDelay = 5000;
+    } catch (_) {
+      reconciliationDelay = Math.min(60000, reconciliationDelay * 2);
+    }
+    const timer = setTimeout(reconcileLoop, reconciliationDelay);
+    timer.unref();
+  };
+  reconcileLoop();
 }
 const assistantApi = createAssistantApi({
   config: assistantConfig,
@@ -250,9 +285,158 @@ async function assistantScopeChecker() {
   return { covered: false };
 }
 
+async function closeAssistantResultCase(input) {
+  const { board, taskId } = input.source;
+  if (!validBoard(board) || !validTask(taskId)) throw new Error('assistant_result_source_invalid');
+  const result = runHermes([
+    '--board',
+    board,
+    'complete',
+    '--result',
+    input.resultText,
+    '--summary',
+    input.resultText,
+    taskId,
+  ]);
+  if (!result.ok) throw new Error('assistant_result_close_failed');
+  const task = readAssistantTask({ board, taskId });
+  return { task };
+}
+
+async function readAssistantResultRound(input) {
+  const loaded = loadTasks();
+  if (loaded.errors?.length) throw new Error('assistant_result_round_lookup_failed');
+  const matches = (loaded.boards || [])
+    .flatMap((item) => item.items || [])
+    .filter(
+      (task) =>
+        task.board === input.source.board &&
+        String(task.body || '')
+          .split('\n')
+          .includes(`RESULT_OPERATION_ID: ${input.operationId}`)
+    );
+  if (matches.length > 1) throw new Error('assistant_result_round_ambiguous');
+  if (!matches.length) return null;
+  return { task: readAssistantTask({ board: input.source.board, taskId: matches[0].id }) };
+}
+
+async function createAssistantResultRound(input) {
+  const { board, taskId } = input.source;
+  if (!validBoard(board) || !validTask(taskId)) throw new Error('assistant_result_source_invalid');
+  const title =
+    `${input.action === 'correct' ? 'Korrektur' : 'Fortsetzung'}: ${input.result.statement}`.slice(
+      0,
+      180
+    );
+  const body = [
+    `RESULT_OPERATION_ID: ${input.operationId}`,
+    `PARENT_RESULT_ID: ${input.result.id}`,
+    `SOURCE_TASK_ID: ${taskId}`,
+    input.instruction,
+  ].join('\n');
+  const created = runHermes([
+    '--board',
+    board,
+    'create',
+    '--body',
+    body,
+    '--assignee',
+    input.result.responsibleAgent,
+    '--parent',
+    taskId,
+    '--idempotency-key',
+    input.idempotencyKey,
+    '--created-by',
+    AUTHOR,
+    '--json',
+    title,
+  ]);
+  if (!created.ok) throw new Error('assistant_result_round_failed');
+  let payload;
+  try {
+    payload = JSON.parse(created.stdout);
+  } catch (_) {
+    throw new Error('assistant_result_round_readback_missing');
+  }
+  const linkedTaskId = payload.id || payload.task_id || payload.taskId;
+  if (!validTask(linkedTaskId)) throw new Error('assistant_result_round_readback_missing');
+  const task = readAssistantTask({ board, taskId: linkedTaskId });
+  if (!task) throw new Error('assistant_result_round_readback_missing');
+  return { task };
+}
+
 function createServerKanbanAdapter() {
   return {
     readTask: readAssistantTask,
+    operations(command) {
+      const { board, taskId } = command.source;
+      const payload = command.payload;
+      const step = (id, args, observed) => ({
+        id,
+        observed,
+        async apply() {
+          const result = runHermes(['--board', board, ...args]);
+          if (!result.ok) throw new Error('assistant_kanban_write_failed');
+          return { step: id };
+        },
+      });
+      const contains = (task, value) =>
+        JSON.stringify(task).toLowerCase().includes(String(value).toLowerCase());
+      if (command.action === 'ask_question') {
+        return [
+          step('comment', ['comment', '--author', AUTHOR, taskId, payload.question], (task) =>
+            contains(task, payload.question)
+          ),
+        ];
+      }
+      if (command.action === 'delegate_followup') {
+        return [
+          step('assign', ['assign', taskId, payload.assignee], (task) =>
+            [task.assignee, task.owner].includes(payload.assignee)
+          ),
+          step('comment', ['comment', '--author', AUTHOR, taskId, payload.followup], (task) =>
+            contains(task, payload.followup)
+          ),
+        ];
+      }
+      if (command.action === 'schedule_wakeup') {
+        const reason = `${payload.wakeAt}: ${payload.reason}; ${payload.nextAction}`;
+        return [
+          step(
+            'block',
+            ['block', '--kind', 'scheduled', taskId, reason],
+            (task) =>
+              ['scheduled', 'wakeup'].includes(task.block_kind || task.blockKind || task.status) &&
+              contains(task, payload.reason)
+          ),
+        ];
+      }
+      if (command.action === 'return_for_completion') {
+        return [
+          step('comment', ['comment', '--author', AUTHOR, taskId, payload.reason], (task) =>
+            contains(task, payload.reason)
+          ),
+          step('block', ['block', '--kind', 'needs_input', taskId, payload.reason], (task) =>
+            ['needs_input', 'blocked'].includes(task.block_kind || task.blockKind || task.status)
+          ),
+        ];
+      }
+      if (command.action === 'set_owner')
+        return [
+          step('assign', ['assign', taskId, payload.owner], (task) =>
+            [task.assignee, task.owner].includes(payload.owner)
+          ),
+        ];
+      if (command.action === 'set_priority')
+        return [
+          step(
+            'priority',
+            ['update', '--priority', String(payload.priority), taskId],
+            (task) => String(task.priority) === String(payload.priority)
+          ),
+        ];
+      throw new Error('assistant_action_not_supported');
+    },
     async applyAction(command) {
       const { board, taskId } = command.source;
       const payload = command.payload;

@@ -297,6 +297,42 @@ function renderAssistantArtifacts(item, article) {
       article.append(artifact);
     }
   }
+  const result = item && item.agentResult;
+  if (result) {
+    const artifact = document.createElement('div');
+    artifact.className = 'assistant-shadow-artifact assistant-agent-result';
+    const heading = document.createElement('strong');
+    heading.textContent = `Ergebnis · ${result.status}`;
+    const detail = document.createElement('span');
+    detail.textContent = `${result.statement} · Prüfung: ${result.verificationStatus}`;
+    artifact.append(heading, detail);
+    if (
+      productive &&
+      result.correlationStatus === 'verified' &&
+      !['accepted', 'ended', 'corrected', 'continued'].includes(result.verificationStatus)
+    ) {
+      const actions = document.createElement('div');
+      actions.className = 'assistant-proposal-actions';
+      const choices = [
+        ...(result.status === 'completed' && result.verificationReceipt?.verified === true
+          ? [['accept', 'Akzeptieren']]
+          : []),
+        ['correct', 'Korrigieren'],
+        ['continue', 'Weiterführen'],
+        ['end', 'Beenden'],
+      ];
+      for (const [action, label] of choices) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.assistantResult = result.id;
+        button.dataset.resultAction = action;
+        button.textContent = label;
+        actions.append(button);
+      }
+      artifact.append(actions);
+    }
+    article.append(artifact);
+  }
 }
 
 function assistantActivityStatus(items) {
@@ -371,6 +407,47 @@ async function refreshAssistantConversations() {
   }
 }
 
+async function loadAssistantReconciliation() {
+  const data = await assistantRequest('/api/assistant/reconciliation');
+  let lane = document.querySelector('[data-assistant-reconciliation-lane]');
+  if (!lane) {
+    lane = document.createElement('section');
+    lane.dataset.assistantReconciliationLane = '';
+    lane.className = 'assistant-shadow-artifact';
+    byId('assistant-messages').before(lane);
+  }
+  lane.replaceChildren();
+  const heading = document.createElement('strong');
+  heading.textContent = `Störungen (${(data.items || []).length})`;
+  lane.append(heading);
+  for (const item of data.items || []) {
+    const row = document.createElement('div');
+    row.className = 'assistant-proposal-actions';
+    const text = document.createElement('span');
+    const ageSeconds = Math.max(0, Math.floor(Date.now() / 1000) - item.createdAt);
+    const age =
+      ageSeconds >= 86400
+        ? `${Math.floor(ageSeconds / 86400)}d`
+        : `${Math.floor(ageSeconds / 3600)}h`;
+    text.textContent = `${item.stage} · ${item.status} · Owner ${item.owner} · Alter ${age} · Eskalation ${item.escalatedAt ? 'ja' : 'nein'} · Versuche ${item.attemptCount} · Fehler ${item.lastErrorCode || '–'} · nächste Prüfung ${new Date(item.nextAttemptAt * 1000).toLocaleString('de-DE')}`;
+    row.append(text);
+    for (const [action, label] of [
+      ['retry', 'Erneut prüfen'],
+      ['resolve', 'Als erledigt reconciliieren'],
+      ['escalate', 'Eskalieren'],
+    ]) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.assistantReconciliation = item.id;
+      button.dataset.reconciliationAction = action;
+      button.textContent = label;
+      row.append(button);
+    }
+    lane.append(row);
+  }
+  lane.hidden = !(data.items || []).length;
+}
+
 async function loadAssistantMessages() {
   if (!assistantState.conversationId) {
     renderAssistantMessages([]);
@@ -393,6 +470,7 @@ async function loadAssistantMessages() {
   if (cursor) throw new Error('assistant_message_page_cap');
   renderAssistantMessages(items);
   assistantStatus(assistantActivityStatus(items));
+  await loadAssistantReconciliation();
 }
 
 async function selectAssistantContext(context, options = {}) {
@@ -1099,6 +1177,72 @@ document.querySelectorAll('[data-refresh]').forEach((button) => {
   button.addEventListener('click', () => loaders[button.dataset.refresh]());
 });
 document.addEventListener('click', async (event) => {
+  const reconciliationButton = event.target.closest('[data-assistant-reconciliation]');
+  if (reconciliationButton) {
+    reconciliationButton.disabled = true;
+    try {
+      const reason = window.prompt('Begründung der Operator-Aktion:');
+      const evidence = reason && window.prompt('Evidenz/Readback-Referenz:');
+      if (!reason || !evidence) {
+        reconciliationButton.disabled = false;
+        return;
+      }
+      await assistantRequest(
+        `/api/assistant/reconciliation/${encodeURIComponent(reconciliationButton.dataset.assistantReconciliation)}/${encodeURIComponent(reconciliationButton.dataset.reconciliationAction)}`,
+        {
+          method: 'POST',
+          body: { reason, evidence, requestId: crypto.randomUUID() },
+        }
+      );
+      await loadAssistantReconciliation();
+      assistantStatus('Reconciliation-Aktion wurde auditiert.');
+    } catch (cause) {
+      assistantStatus(`Störung konnte nicht bearbeitet werden: ${cause.message}`);
+      reconciliationButton.disabled = false;
+    }
+    return;
+  }
+  const resultButton = event.target.closest('[data-assistant-result]');
+  if (resultButton) {
+    resultButton.disabled = true;
+    const resultId = resultButton.dataset.assistantResult;
+    const action = resultButton.dataset.resultAction;
+    try {
+      const body = { requestId: crypto.randomUUID() };
+      if (action === 'correct' || action === 'continue') {
+        const instruction = window.prompt(
+          action === 'correct' ? 'Was soll korrigiert werden?' : 'Wie soll weitergearbeitet werden?'
+        );
+        if (!instruction || !instruction.trim()) {
+          resultButton.disabled = false;
+          return;
+        }
+        body.instruction = instruction.trim();
+      }
+      const reason = window.prompt('Begründung der Entscheidung:');
+      const evidence = window.prompt('Welche Evidenz wurde geprüft?');
+      if (!reason?.trim() || !evidence?.trim()) {
+        resultButton.disabled = false;
+        return;
+      }
+      body.reason = reason.trim();
+      body.evidence = evidence.trim();
+      await assistantRequest(
+        `/api/assistant/results/${encodeURIComponent(resultId)}/${encodeURIComponent(action)}`,
+        { method: 'POST', body }
+      );
+      assistantStatus(
+        action === 'accept' || action === 'end'
+          ? 'Fallabschluss im Kanban zurückgelesen; Projektion wird aktualisiert.'
+          : 'Verknüpfte Arbeitsrunde wurde persistent angelegt.'
+      );
+      await loadAssistantMessages();
+    } catch (cause) {
+      assistantStatus(`Ergebnis konnte nicht bearbeitet werden: ${cause.message}`);
+      resultButton.disabled = false;
+    }
+    return;
+  }
   const proposalButton = event.target.closest('[data-assistant-proposal]');
   if (proposalButton) {
     proposalButton.disabled = true;
@@ -1192,4 +1336,12 @@ window.addEventListener('keydown', (event) => {
 });
 
 loadMetadata();
+loadAssistantReconciliation().catch(() => undefined);
+const assistantReconciliationPoll = setInterval(
+  () => loadAssistantReconciliation().catch(() => undefined),
+  15000
+);
+window.addEventListener('pagehide', () => clearInterval(assistantReconciliationPoll), {
+  once: true,
+});
 openView(location.hash.slice(1) || 'overview', false);

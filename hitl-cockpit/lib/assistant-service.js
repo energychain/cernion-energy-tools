@@ -5,6 +5,8 @@ const { buildAssistantSummary } = require('./assistant-summary');
 const { parseAssistantDirective } = require('./assistant-directives');
 const { LOW_RISK_ACTIONS, SCOPED_ACTIONS } = require('./assistant-config');
 const { sourceFingerprint } = require('./assistant-action-executor');
+const { createAssistantReconciliation } = require('./assistant-reconciliation');
+const { createAssistantResultIngest } = require('./assistant-result-ingest');
 
 const OBJECT_TYPES = new Set(['topic', 'decision', 'department', 'outcome', 'risk', 'wakeup']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -129,6 +131,7 @@ function runLeaseSeconds(config) {
 
 function createAssistantService(options = {}) {
   const { store, contextResolver, client, config } = options;
+  const matrixAgentSenders = options.matrixAgentSenders || {};
   if (!store || !contextResolver || !client || !config)
     throw new Error('assistant_service_dependencies_required');
   const summaryConfig = {
@@ -144,6 +147,36 @@ function createAssistantService(options = {}) {
   const sourceResolver = options.sourceResolver || null;
   const scopeChecker = options.scopeChecker || null;
   const matrixHandoff = options.matrixHandoff || null;
+  const reconciliation =
+    options.reconciliation ||
+    (executor
+      ? createAssistantReconciliation({
+          store,
+          executor,
+          matrixHandoff,
+          mutationGuard: guardMutation,
+          publicBoards: options.publicBoards,
+          now: () => Math.floor((options.nowMs || Date.now)() / 1000),
+        })
+      : null);
+  const resultIngest =
+    options.resultIngest ||
+    (typeof options.readResultKanban === 'function'
+      ? createAssistantResultIngest({
+          store,
+          readKanban: options.readResultKanban,
+          readRound: options.readResultRound,
+          roundIdempotent: options.resultRoundIdempotent === true,
+          evidenceResolver: options.resultEvidenceResolver,
+          publicBoards: options.publicBoards,
+          mutationGuard: guardMutation,
+          now: () => Math.floor((options.nowMs || Date.now)() / 1000),
+          allowedSenders: options.resultAllowedSenders || [],
+          closeCase: options.closeResultCase,
+          createRound: options.createResultRound,
+          onProjectionRequired: options.onResultProjectionRequired,
+        })
+      : null);
   const sleep =
     options.sleep ||
     ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
@@ -308,11 +341,8 @@ function createAssistantService(options = {}) {
     return result === 'covered' || Boolean(result && result.covered === true);
   }
 
-  async function deliverMatrixAfterReceipt(proposal, action, source, context) {
+  function matrixInput(proposal, action, source, context) {
     if (!config.matrixHandoffEnabled) return null;
-    if (!matrixHandoff || typeof matrixHandoff.deliver !== 'function') {
-      return { status: 'pending', error: 'matrix_handoff_not_available' };
-    }
     const topicId =
       context.objectType === 'topic'
         ? context.objectId
@@ -321,23 +351,18 @@ function createAssistantService(options = {}) {
       context.objectType === 'decision'
         ? context.objectId
         : context.payload && context.payload.decisionId;
-    if (!topicId && !decisionId) {
-      return { status: 'pending', error: 'matrix_context_not_available' };
-    }
-    const result = await matrixHandoff.deliver({
+    if (!topicId && !decisionId) return null;
+    return {
       handoffId: proposal.id,
       topicId,
       decisionId,
       sourceId: source.taskId,
       text: `Kanban action ${action} applied for ${source.taskId}.`,
-      context,
-    });
-    return {
-      status: result.status === 'delivered' ? 'delivered' : 'pending',
-      ...(result.roomRef ? { roomRef: result.roomRef } : {}),
-      ...(result.eventId ? { eventId: result.eventId } : {}),
-      ...(result.loopMarker ? { loopMarker: result.loopMarker } : {}),
-      ...(result.error ? { error: result.error } : {}),
+      context: {
+        objectType: context.objectType,
+        objectId: context.objectId,
+        payload: { references: { matrixRoom: context.payload?.references?.matrixRoom } },
+      },
     };
   }
 
@@ -379,61 +404,50 @@ function createAssistantService(options = {}) {
       throw serviceError('automatic_execution_not_allowed', 403);
     }
 
-    const confirmed = store.updateProposalStatus(proposal.id, 'confirmed', {
-      expectedStatus: 'shadow',
-      conversationId: proposal.conversationId,
-    }).proposal;
-    store.updateProposalStatus(confirmed.id, 'executing', {
-      expectedStatus: 'confirmed',
-      conversationId: proposal.conversationId,
-    });
+    if (config.matrixHandoffEnabled) {
+      const responsibleAgent =
+        execution.payload.assignee || execution.payload.owner || resolved.sourceAssignee;
+      const expectedSender = matrixAgentSenders[String(responsibleAgent || '').toLowerCase()];
+      if (!expectedSender) throw serviceError('responsible_agent_matrix_sender_required', 403);
+      store.bindHandoff({ proposalId: proposal.id, responsibleAgent, expectedSender });
+    }
     try {
-      const result = await executor.execute({
-        action: execution.action,
-        source: resolved.source,
-        sourceFingerprint: resolved.sourceFingerprint,
-        payload: execution.payload,
-        idempotencyKey: proposal.idempotencyKey,
-      });
-      if (
-        !result ||
-        result.ok !== true ||
-        result.status !== 'applied' ||
-        !result.receipt?.readBack?.task ||
-        !/^[0-9a-f]{64}$/.test(String(result.receipt.readBack.fingerprint || ''))
-      ) {
-        throw serviceError('assistant_action_readback_failed', 502);
-      }
-      const matrix = await deliverMatrixAfterReceipt(
-        proposal,
-        execution.action,
-        resolved.source,
-        context
-      );
-      const saved = store.saveReceipt({
+      const outcome = await reconciliation.execute({
         proposalId: proposal.id,
         conversationId: proposal.conversationId,
-        sourceBoard: resolved.source.board,
-        sourceTaskId: resolved.source.taskId,
-        matrixRoomId: matrix && matrix.status === 'delivered' ? matrix.roomRef : null,
-        matrixEventId: matrix && matrix.eventId ? matrix.eventId : null,
-        beforeFingerprint: result.sourceFingerprint,
-        afterFingerprint: result.receipt.readBack.fingerprint,
-        readback: { kanban: result.receipt.readBack, matrix },
+        owner: 'Operations',
+        command: {
+          action: execution.action,
+          source: resolved.source,
+          sourceFingerprint: resolved.sourceFingerprint,
+          payload: execution.payload,
+          idempotencyKey: proposal.idempotencyKey,
+        },
+        matrixInput: matrixInput(proposal, execution.action, resolved.source, context),
       });
+      if (outcome.pending) {
+        return {
+          proposal: store.getProposal(proposal.id),
+          reconciliation: outcome.reconciliation,
+          pending: true,
+        };
+      }
       return {
-        proposal: saved.proposal,
-        receipt: receiptSummary(saved.receipt),
-        deduplicated: Boolean(result.deduplicated || saved.deduplicated),
+        proposal: outcome.proposal,
+        receipt: receiptSummary(outcome.receipt),
+        deduplicated: Boolean(outcome.deduplicated),
       };
     } catch (error) {
-      try {
-        store.updateProposalStatus(proposal.id, 'failed', {
-          expectedStatus: 'executing',
-          conversationId: proposal.conversationId,
-        });
-      } catch (_) {
-        // Preserve the original execution failure; status reconciliation is audit-visible.
+      const open = store.getReconciliationByStage(proposal.id, 'kanban');
+      if (!open || ['resolved', 'cancelled'].includes(open.status)) {
+        try {
+          store.updateProposalStatus(proposal.id, 'failed', {
+            expectedStatus: 'executing',
+            conversationId: proposal.conversationId,
+          });
+        } catch (_) {
+          // Preserve the original execution failure; status reconciliation is audit-visible.
+        }
       }
       throw error;
     }
@@ -452,6 +466,10 @@ function createAssistantService(options = {}) {
     if (proposalExecutions.has(id)) return proposalExecutions.get(id);
     const proposal = store.getProposal(id);
     if (!proposal) throw serviceError('proposal_not_found', 404);
+    if (proposal.status === 'executing') {
+      const item = store.getReconciliationByStage(id, 'kanban');
+      if (item) return { proposal, reconciliation: item, pending: true, deduplicated: true };
+    }
     if (proposal.status !== 'shadow') throw serviceError('proposal_not_confirmable', 409);
     const operation = executeProposal(proposal, options).finally(() =>
       proposalExecutions.delete(id)
@@ -737,9 +755,15 @@ function createAssistantService(options = {}) {
         },
       ])
     );
+    const results = new Map(
+      (resultIngest ? resultIngest.listResults({ conversationId }) : [])
+        .filter((result) => result.replyMessageId)
+        .map((result) => [result.replyMessageId, result])
+    );
     const page = items.slice(0, limit).map((message) => {
       const attachment = message.role === 'assistant' ? proposals.get(message.id) : null;
-      return attachment ? { ...message, ...attachment } : message;
+      const result = message.role === 'assistant' ? results.get(message.id) : null;
+      return { ...message, ...(attachment || {}), ...(result ? { agentResult: result } : {}) };
     });
     const last = page.at(-1);
     return {
@@ -781,6 +805,47 @@ function createAssistantService(options = {}) {
   function drain(conversationId) {
     return queues.get(conversationId) || Promise.resolve();
   }
+  function guardMutation() {
+    requireEnabled();
+    if (!config.writesEnabled) throw serviceError('assistant_writes_disabled', 403);
+    options.freshnessGuard?.();
+  }
+  function listReconciliations() {
+    requireEnabled();
+    return reconciliation ? reconciliation.listOpen() : [];
+  }
+  function retryReconciliation(id, audit) {
+    guardMutation();
+    return reconciliation.retry(id, audit);
+  }
+  function resolveReconciliation(id, audit) {
+    guardMutation();
+    return reconciliation.resolve(id, audit);
+  }
+  function escalateReconciliation(id, audit) {
+    guardMutation();
+    return reconciliation.escalate(id, audit);
+  }
+  async function processReconciliations(input) {
+    guardMutation();
+    const results = resultIngest ? await resultIngest.processPending() : null;
+    const actions = reconciliation ? await reconciliation.processDue(input) : null;
+    return { results, actions };
+  }
+  function listResults(input = {}) {
+    requireEnabled();
+    return resultIngest ? resultIngest.listResults(input) : [];
+  }
+  function ingestAgentResult(event) {
+    requireEnabled();
+    if (!resultIngest) throw serviceError('result_ingest_not_available', 503);
+    return resultIngest.ingestMatrix(event);
+  }
+  function decideResult(id, action, input) {
+    guardMutation();
+    if (!resultIngest) throw serviceError('result_ingest_not_available', 503);
+    return resultIngest.decide(id, action, input);
+  }
 
   return {
     createConversation,
@@ -793,6 +858,14 @@ function createAssistantService(options = {}) {
     listProposals,
     confirmProposal,
     rejectProposal,
+    listReconciliations,
+    retryReconciliation,
+    resolveReconciliation,
+    escalateReconciliation,
+    processReconciliations,
+    listResults,
+    ingestAgentResult,
+    decideResult,
     drain,
   };
 }

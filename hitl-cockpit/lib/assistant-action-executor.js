@@ -10,7 +10,8 @@ const BASE_ACTIONS = Object.freeze([
 ]);
 const SCOPED_ACTIONS = Object.freeze(['set_owner', 'set_priority']);
 const ALLOWED_ACTIONS = Object.freeze([...BASE_ACTIONS, ...SCOPED_ACTIONS]);
-const PRIVATE_PATTERN = /(?:^|[-_\s])(twl(?:-netze)?|private|confidential|restricted)(?:$|[-_\s])/i;
+const PRIVATE_PATTERN =
+  /(?:^|[^a-z0-9])(?:t[\W_]*w[\W_]*l|private|confidential|restricted|secret|unclear|unknown)(?:$|[^a-z0-9])|twlnetze|mixed[\W_]*sensitive|raw[\W_]*bridge/i;
 
 class AssistantActionError extends Error {
   constructor(code, status = 400) {
@@ -100,8 +101,33 @@ function sourceRef(input) {
 }
 
 function containsPrivateMarker(value, key = '') {
-  if (value === true && /^(?:private|isPrivate|twl)$/i.test(key)) return true;
-  if (typeof value === 'string') return PRIVATE_PATTERN.test(value);
+  const normalize = (text) =>
+    String(text)
+      .normalize('NFKC')
+      .replace(/[\p{Cf}\p{M}]/gu, '')
+      .toLowerCase();
+  const normalizedKey = normalize(key).replace(/[^a-z0-9]/g, '');
+  if (
+    /^(?:private|isprivate|twl|confidential|restricted|sensitive|mixedsensitive)$/.test(
+      normalizedKey
+    ) &&
+    value !== false &&
+    value !== null &&
+    value !== 0 &&
+    value !== 'false'
+  )
+    return true;
+  if (typeof value === 'string') {
+    const text = normalize(value);
+    return (
+      PRIVATE_PATTERN.test(text) ||
+      /twlnetze/.test(text.replace(/[^a-z0-9]/g, '')) ||
+      (/^(?:visibility|sensitivity|classification|sourcevisibility|sourcesensitivity)$/.test(
+        normalizedKey
+      ) &&
+        !['public', 'internal', 'public_internal'].includes(text))
+    );
+  }
   if (Array.isArray(value)) return value.some((item) => containsPrivateMarker(item, key));
   if (value && typeof value === 'object') {
     return Object.entries(value).some(([childKey, child]) =>
@@ -109,6 +135,15 @@ function containsPrivateMarker(value, key = '') {
     );
   }
   return false;
+}
+
+function assertPublicSource(source, task = null, publicBoards = ['operations']) {
+  if (containsPrivateMarker(source) || containsPrivateMarker(task))
+    throw new AssistantActionError('private_source_rejected', 403);
+  if (!Array.isArray(publicBoards) || !publicBoards.includes(source?.board))
+    throw new AssistantActionError('public_board_not_allowed', 403);
+  if (task && (task.board !== source.board || task.id !== source.taskId))
+    throw new AssistantActionError('source_readback_mismatch', 409);
 }
 
 function isTimeout(error) {
@@ -131,6 +166,33 @@ function isCovered(result) {
   return result === 'covered' || Boolean(result && result.covered === true);
 }
 
+function actionObserved(action, payload, task, idempotencyKey) {
+  const text = JSON.stringify(task).toLowerCase();
+  if (text.includes(String(idempotencyKey).toLowerCase())) return true;
+  if (action === 'set_owner') return [task.assignee, task.owner].includes(payload.owner);
+  if (action === 'set_priority') return String(task.priority) === String(payload.priority);
+  if (action === 'delegate_followup') {
+    return (
+      [task.assignee, task.owner].includes(payload.assignee) &&
+      text.includes(String(payload.followup).toLowerCase())
+    );
+  }
+  if (action === 'schedule_wakeup') {
+    return (
+      ['scheduled', 'wakeup'].includes(task.block_kind || task.blockKind || task.status) &&
+      text.includes(String(payload.reason).toLowerCase())
+    );
+  }
+  if (action === 'return_for_completion') {
+    return (
+      ['needs_input', 'blocked'].includes(task.block_kind || task.blockKind || task.status) &&
+      text.includes(String(payload.reason).toLowerCase())
+    );
+  }
+  if (action === 'ask_question') return text.includes(String(payload.question).toLowerCase());
+  return false;
+}
+
 function createAssistantActionExecutor(options = {}) {
   const { kanban, scopeChecker } = options;
   if (
@@ -145,10 +207,11 @@ function createAssistantActionExecutor(options = {}) {
   async function readBack(source) {
     const task = await kanban.readTask(source);
     if (!task) throw new AssistantActionError('source_task_not_found', 404);
+    assertPublicSource(source, task, options.publicBoards);
     return task;
   }
 
-  async function run(input, source, payload, key) {
+  async function run(input, source, payload, key, executionOptions = {}) {
     const before = await readBack(source);
     if (
       containsPrivateMarker(source) ||
@@ -159,7 +222,10 @@ function createAssistantActionExecutor(options = {}) {
     }
     const beforeFingerprint = sourceFingerprint(before);
     const expectedFingerprint = cleanText(input.sourceFingerprint, 'sourceFingerprint', 128);
-    if (expectedFingerprint !== beforeFingerprint) {
+    if (
+      expectedFingerprint !== beforeFingerprint &&
+      !(executionOptions.completedSteps && executionOptions.completedSteps.size)
+    ) {
       throw new AssistantActionError('source_fingerprint_mismatch', 409);
     }
 
@@ -181,12 +247,38 @@ function createAssistantActionExecutor(options = {}) {
       source: Object.freeze({ ...source }),
       payload: Object.freeze({ ...payload }),
       idempotencyKey: key,
-      sourceFingerprint: beforeFingerprint,
+      sourceFingerprint: expectedFingerprint,
     });
 
     let adapterReceipt;
     try {
-      adapterReceipt = await kanban.applyAction(command);
+      if (typeof kanban.operations === 'function') {
+        const receipts = [];
+        for (const operation of kanban.operations(command)) {
+          if (
+            !operation ||
+            typeof operation.id !== 'string' ||
+            typeof operation.apply !== 'function'
+          ) {
+            throw new AssistantActionError('kanban_operation_invalid', 500);
+          }
+          let completed = executionOptions.completedSteps?.has(operation.id) === true;
+          if (!completed && typeof operation.observed === 'function') {
+            completed = await operation.observed(await readBack(source));
+          }
+          if (!completed) receipts.push(await operation.apply());
+          if (!completed && typeof operation.observed === 'function') {
+            const verified = await operation.observed(await readBack(source));
+            if (!verified) throw new AssistantActionError('kanban_step_readback_mismatch', 502);
+          }
+          if (!executionOptions.completedSteps?.has(operation.id)) {
+            await executionOptions.onStep?.(operation.id);
+          }
+        }
+        adapterReceipt = receipts;
+      } else {
+        adapterReceipt = await kanban.applyAction(command);
+      }
     } catch (error) {
       if (!isTimeout(error)) throw error;
       let task = null;
@@ -202,7 +294,7 @@ function createAssistantActionExecutor(options = {}) {
         action: input.action,
         source,
         idempotencyKey: key,
-        sourceFingerprint: beforeFingerprint,
+        sourceFingerprint: expectedFingerprint,
         reconciliation: {
           status: 'ambiguous',
           reason: 'write_timeout',
@@ -223,7 +315,7 @@ function createAssistantActionExecutor(options = {}) {
       action: input.action,
       source,
       idempotencyKey: key,
-      sourceFingerprint: beforeFingerprint,
+      sourceFingerprint: expectedFingerprint,
       receipt: {
         adapter: adapterReceipt === undefined ? null : structuredClone(adapterReceipt),
         readBack: {
@@ -234,7 +326,7 @@ function createAssistantActionExecutor(options = {}) {
     };
   }
 
-  async function execute(input = {}) {
+  async function execute(input = {}, executionOptions = {}) {
     const action = typeof input.action === 'string' ? input.action : '';
     if (!ALLOWED_ACTIONS.includes(action))
       throw new AssistantActionError('action_not_allowed', 403);
@@ -251,7 +343,8 @@ function createAssistantActionExecutor(options = {}) {
       sourceFingerprint: input.sourceFingerprint,
     });
     const existing = idempotency.get(key);
-    if (existing) {
+    if (existing && executionOptions.retry === true) idempotency.delete(key);
+    if (existing && executionOptions.retry !== true) {
       if (existing.signature !== signature) {
         throw new AssistantActionError('idempotency_key_conflict', 409);
       }
@@ -259,7 +352,7 @@ function createAssistantActionExecutor(options = {}) {
       return { ...structuredClone(result), deduplicated: true };
     }
 
-    const promise = run({ ...input, action }, source, payload, key);
+    const promise = run({ ...input, action }, source, payload, key, executionOptions);
     idempotency.set(key, { signature, promise });
     try {
       const result = await promise;
@@ -270,14 +363,51 @@ function createAssistantActionExecutor(options = {}) {
     }
   }
 
-  return { actions: ALLOWED_ACTIONS, execute };
+  async function reconcile(input = {}) {
+    const action = typeof input.action === 'string' ? input.action : '';
+    if (!ALLOWED_ACTIONS.includes(action))
+      throw new AssistantActionError('action_not_allowed', 403);
+    const source = sourceRef(input.source);
+    const payload = normalizePayload(action, input.payload);
+    const key = cleanText(input.idempotencyKey, 'idempotencyKey', 256);
+    const task = await readBack(source);
+    if (
+      containsPrivateMarker(source) ||
+      containsPrivateMarker(payload) ||
+      containsPrivateMarker(task)
+    ) {
+      throw new AssistantActionError('private_source_rejected', 403);
+    }
+    const fingerprint = sourceFingerprint(task);
+    if (SCOPED_ACTIONS.includes(action)) {
+      if (typeof scopeChecker !== 'function')
+        throw new AssistantActionError('scope_not_covered', 403);
+      const coverage = await scopeChecker({
+        action,
+        source,
+        payload,
+        task: structuredClone(task),
+      });
+      if (!isCovered(coverage)) throw new AssistantActionError('scope_not_covered', 403);
+    }
+    return {
+      applied: actionObserved(action, payload, task, key),
+      unchanged: fingerprint === input.sourceFingerprint,
+      readBack: { task: structuredClone(task), fingerprint },
+    };
+  }
+
+  return { actions: ALLOWED_ACTIONS, execute, reconcile };
 }
 
 module.exports = {
+  assertPublicSource,
   ALLOWED_ACTIONS,
   AssistantActionError,
   BASE_ACTIONS,
   SCOPED_ACTIONS,
+  actionObserved,
+  containsPrivateMarker,
   createAssistantActionExecutor,
   normalizePayload,
   sourceFingerprint,

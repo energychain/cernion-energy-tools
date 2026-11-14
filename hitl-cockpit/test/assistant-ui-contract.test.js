@@ -46,10 +46,7 @@ test('AP17 browser payloads contain only context IDs or message text plus client
   );
   assert.match(script, /body:\s*\{\s*context:\s*apiContext\s*\}/);
   assert.match(script, /body:\s*\{\s*clientMessageId:\s*assistantClientMessageId\(\),\s*text\s*\}/);
-  assert.doesNotMatch(
-    script,
-    /body:\s*\{[^}]*\b(?:title|owner|scope|evidence|payload|toolOutput)\b/
-  );
+  assert.doesNotMatch(script, /body:\s*\{[^}]*\b(?:title|owner|scope|payload|toolOutput)\b/);
 });
 
 test('AP17 creates valid client message UUIDs on internal HTTP without randomUUID', () => {
@@ -264,9 +261,10 @@ test('AP16 message loader follows cursors across pages and renders the newest re
       requests.push(url);
       return pages.shift();
     },
-    assistantStatus: (text) => {
-      status.textContent = text;
+    assistantStatus: (value) => {
+      status.textContent = value;
     },
+    loadAssistantReconciliation: async () => undefined,
     byId: (id) => (id === 'assistant-messages' ? messages : status),
     document: { createElement: (tagName) => new ElementHarness(tagName) },
     renderAssistantArtifacts: () => undefined,
@@ -314,4 +312,13 @@ test('AP16 message loader enforces the explicit page cap before rendering partia
   await assert.rejects(() => context.run(), /assistant_message_page_cap/);
   assert.equal(calls, 2);
   assert.equal(renders, 0);
+});
+
+test('AP20 reconciliation lane polls independently and exposes operational evidence', () => {
+  assert.match(script, /loadAssistantReconciliation\(\)\.catch/);
+  assert.match(script, /setInterval\([\s\S]*loadAssistantReconciliation/);
+  for (const label of ['Alter', 'Eskalation', 'Versuche', 'Fehler']) {
+    assert.match(script, new RegExp(label));
+  }
+  assert.match(script, /reason, evidence, requestId: crypto\.randomUUID\(\)/);
 });

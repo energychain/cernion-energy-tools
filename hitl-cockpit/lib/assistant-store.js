@@ -6,7 +6,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const SCHEMA_PATH = path.join(__dirname, 'assistant-schema.sql');
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 10;
 const SCHEMA = fs.readFileSync(SCHEMA_PATH, 'utf8');
 
 const PYTHON_STORE = String.raw`
@@ -31,6 +31,11 @@ def message(m):
             return old
     con.execute('INSERT INTO assistant_messages VALUES (?,?,?,?,?,?)',(m['id'],m['conversationId'],m['role'],m['content'],cid,m['createdAt']))
     return one('SELECT * FROM assistant_messages WHERE message_id=?',(m['id'],))
+def finish_result_operation(r):
+    op=r.get('operation')
+    if not op: raise RuntimeError('result_operation_required')
+    c=con.execute("UPDATE assistant_result_operations SET status='applied',receipt_json=?,lease_owner=NULL,lease_expires_at=NULL,updated_at=? WHERE operation_id=? AND lease_owner=? AND lease_expires_at>? AND status<>'applied'",(json.dumps(op['receipt'],sort_keys=True),op['now'],op['id'],op['owner'],op['now']))
+    if c.rowcount!=1: raise RuntimeError('result_operation_lease_lost')
 version=con.execute('PRAGMA user_version').fetchone()[0]
 if version>r['schemaVersion']: raise RuntimeError('assistant database schema is newer than this application')
 if version<r['schemaVersion']:
@@ -38,10 +43,13 @@ if version<r['schemaVersion']:
         tables={x[0] for x in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         conversation_columns={x[1] for x in con.execute('PRAGMA table_info(assistant_conversations)')} if 'assistant_conversations' in tables else set()
         run_columns={x[1] for x in con.execute('PRAGMA table_info(assistant_runs)')} if 'assistant_runs' in tables else set()
+        reconciliation_columns={x[1] for x in con.execute('PRAGMA table_info(assistant_reconciliation_items)')} if 'assistant_reconciliation_items' in tables else set()
         migrations=[]
         if 'assistant_conversations' in tables and 'hermes_session_messages' not in conversation_columns: migrations.append('ALTER TABLE assistant_conversations ADD COLUMN hermes_session_messages INTEGER NOT NULL DEFAULT 0 CHECK (hermes_session_messages >= 0)')
         if 'assistant_runs' in tables and 'lease_owner' not in run_columns: migrations.append('ALTER TABLE assistant_runs ADD COLUMN lease_owner TEXT')
         if 'assistant_runs' in tables and 'lease_expires_at' not in run_columns: migrations.append('ALTER TABLE assistant_runs ADD COLUMN lease_expires_at INTEGER')
+        if 'assistant_reconciliation_items' in tables and 'lease_owner' not in reconciliation_columns: migrations.append('ALTER TABLE assistant_reconciliation_items ADD COLUMN lease_owner TEXT')
+        if 'assistant_reconciliation_items' in tables and 'lease_expires_at' not in reconciliation_columns: migrations.append('ALTER TABLE assistant_reconciliation_items ADD COLUMN lease_expires_at INTEGER')
         migration=(';\n'.join(migrations)+';\n') if migrations else ''
         con.executescript('BEGIN IMMEDIATE;\n'+migration+r['schema'])
         if 'assistant_runs' in tables:
@@ -208,7 +216,7 @@ elif a=='save_receipt':
         if not proposal: raise RuntimeError('proposal_not_found')
         old=one('SELECT * FROM assistant_action_receipts WHERE proposal_id=?',(x['proposalId'],))
         if old:
-            same=(old['source_board']==x.get('sourceBoard') and old['source_task_id']==x.get('sourceTaskId') and old['matrix_room_id']==x.get('matrixRoomId') and old['matrix_event_id']==x.get('matrixEventId') and old['before_fingerprint']==x.get('beforeFingerprint') and old['after_fingerprint']==x.get('afterFingerprint') and old['readback_json']==readback and old['executed_at']==x['executedAt'])
+            same=(old['source_board']==x.get('sourceBoard') and old['source_task_id']==x.get('sourceTaskId') and old['matrix_room_id']==x.get('matrixRoomId') and old['matrix_event_id']==x.get('matrixEventId') and old['before_fingerprint']==x.get('beforeFingerprint') and old['after_fingerprint']==x.get('afterFingerprint') and old['readback_json']==readback)
             if not same: raise RuntimeError('proposal_receipt_conflict')
             out={'receipt':old,'proposal':proposal,'deduplicated':True}
         else:
@@ -221,6 +229,184 @@ elif a=='save_receipt':
     except Exception: con.rollback(); raise
 elif a=='get_receipt': out=one('SELECT * FROM assistant_action_receipts WHERE receipt_id=?',(r['id'],))
 elif a=='get_receipt_proposal': out=one('SELECT * FROM assistant_action_receipts WHERE proposal_id=?',(r['proposalId'],))
+elif a=='start_reconciliation':
+    x=r['item']; details=json.dumps(x.get('details',{}),ensure_ascii=False,sort_keys=True,separators=(',',':')); con.execute('BEGIN IMMEDIATE')
+    try:
+        p=one('SELECT * FROM assistant_action_proposals WHERE proposal_id=?',(x['proposalId'],))
+        if not p: raise RuntimeError('proposal_not_found')
+        old=one("SELECT * FROM assistant_reconciliation_items WHERE proposal_id=? AND stage='kanban'",(x['proposalId'],))
+        if old: out={'item':old,'proposal':p,'deduplicated':True}
+        else:
+            if p['status']=='shadow':
+                c=con.execute("UPDATE assistant_action_proposals SET status='executing',updated_at=? WHERE proposal_id=? AND status='shadow'",(x['createdAt'],x['proposalId']))
+                if c.rowcount!=1: raise RuntimeError('proposal_status_changed')
+            elif p['status']!='executing': raise RuntimeError('proposal_not_confirmable')
+            con.execute('INSERT INTO assistant_reconciliation_items VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(x['id'],x['proposalId'],'kanban','pending',0,x['nextAttemptAt'],None,x.get('expectedFingerprint'),None,None,x['owner'],details,None,None,None,x['createdAt'],x['createdAt']))
+            y=r['event']; con.execute('INSERT INTO assistant_reconciliation_events VALUES (?,?,?,?,?)',(y['id'],x['id'],y['eventType'],json.dumps(y.get('payload',{}),ensure_ascii=False,sort_keys=True),y['occurredAt']))
+            event(r['proposalEvent']); out={'item':one('SELECT * FROM assistant_reconciliation_items WHERE id=?',(x['id'],)),'proposal':one('SELECT * FROM assistant_action_proposals WHERE proposal_id=?',(x['proposalId'],)),'deduplicated':False}
+        con.commit()
+    except Exception: con.rollback(); raise
+elif a=='create_reconciliation':
+    x=r['item']; details=json.dumps(x.get('details',{}),ensure_ascii=False,sort_keys=True,separators=(',',':')); con.execute('BEGIN IMMEDIATE')
+    try:
+        old=one('SELECT * FROM assistant_reconciliation_items WHERE proposal_id=? AND stage=?',(x['proposalId'],x['stage']))
+        if old: out={'item':old,'deduplicated':True}
+        else:
+            con.execute('INSERT INTO assistant_reconciliation_items VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(x['id'],x['proposalId'],x['stage'],x['status'],0,x['nextAttemptAt'],x.get('lastErrorCode'),x.get('expectedFingerprint'),x.get('matrixRoomId'),x.get('matrixEventId'),x['owner'],details,None,None,None,x['createdAt'],x['createdAt']))
+            y=r['event']; con.execute('INSERT INTO assistant_reconciliation_events VALUES (?,?,?,?,?)',(y['id'],x['id'],y['eventType'],json.dumps(y.get('payload',{}),ensure_ascii=False,sort_keys=True),y['occurredAt']))
+            out={'item':one('SELECT * FROM assistant_reconciliation_items WHERE id=?',(x['id'],)),'deduplicated':False}
+        con.commit()
+    except Exception: con.rollback(); raise
+elif a=='update_reconciliation':
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        current=one('SELECT * FROM assistant_reconciliation_items WHERE id=?',(r['id'],))
+        if not current: raise RuntimeError('reconciliation_not_found')
+        fields=['status=?','attempt_count=?','next_attempt_at=?','last_error_code=?','updated_at=?']; vals=[r['status'],current['attempt_count']+(1 if r.get('incrementAttempt') else 0),r['nextAttemptAt'],r.get('lastErrorCode'),r['now']]
+        for key,col in [('expectedFingerprint','expected_fingerprint'),('matrixRoomId','matrix_room_id'),('matrixEventId','matrix_event_id'),('owner','owner'),('escalatedAt','escalated_at')]:
+            if key in r: fields.append(col+'=?'); vals.append(r.get(key))
+        if 'details' in r: fields.append('details_json=?'); vals.append(json.dumps(r['details'],ensure_ascii=False,sort_keys=True,separators=(',',':')))
+        if r.get('expectedLeaseOwner') is not None:
+            vals.extend([r['id'],r['expectedLeaseOwner'],r['now']]); lease='' if r.get('keepLease') else ',lease_owner=NULL,lease_expires_at=NULL'; c=con.execute('UPDATE assistant_reconciliation_items SET '+','.join(fields)+lease+' WHERE id=? AND lease_owner=? AND lease_expires_at>?',vals)
+            if c.rowcount!=1: raise RuntimeError('reconciliation_lease_lost')
+        else:
+            vals.append(r['id']); con.execute('UPDATE assistant_reconciliation_items SET '+','.join(fields)+' WHERE id=?',vals)
+        y=r['event']; con.execute('INSERT INTO assistant_reconciliation_events VALUES (?,?,?,?,?)',(y['id'],r['id'],y['eventType'],json.dumps(y.get('payload',{}),ensure_ascii=False,sort_keys=True),y['occurredAt']))
+        con.commit(); out=one('SELECT * FROM assistant_reconciliation_items WHERE id=?',(r['id'],))
+    except Exception: con.rollback(); raise
+elif a=='get_reconciliation': out=one('SELECT * FROM assistant_reconciliation_items WHERE id=?',(r['id'],))
+elif a=='claim_reconciliation':
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        c=con.execute("UPDATE assistant_reconciliation_items SET lease_owner=?,lease_expires_at=?,updated_at=? WHERE id=? AND status NOT IN ('resolved','cancelled') AND (lease_owner IS NULL OR lease_expires_at<=? OR lease_owner=?)",(r['owner'],r['leaseExpiresAt'],r['now'],r['id'],r['now'],r['owner']))
+        out={'claimed':c.rowcount==1,'item':one('SELECT * FROM assistant_reconciliation_items WHERE id=?',(r['id'],))}; con.commit()
+    except Exception: con.rollback(); raise
+elif a=='finalize_reconciliation':
+    x=r['item']; readback=json.dumps(x['readback'],ensure_ascii=False,sort_keys=True,separators=(',',':')); con.execute('BEGIN IMMEDIATE')
+    try:
+        current=one('SELECT * FROM assistant_reconciliation_items WHERE id=?',(r['reconciliationId'],))
+        if not current or current['lease_owner']!=r.get('owner') or current['lease_expires_at'] is None or current['lease_expires_at']<=x['executedAt']: raise RuntimeError('reconciliation_lease_lost')
+        old=one('SELECT * FROM assistant_action_receipts WHERE proposal_id=?',(x['proposalId'],))
+        if old:
+            same=(old['source_board']==x.get('sourceBoard') and old['source_task_id']==x.get('sourceTaskId') and old['matrix_room_id']==x.get('matrixRoomId') and old['matrix_event_id']==x.get('matrixEventId') and old['before_fingerprint']==x.get('beforeFingerprint') and old['after_fingerprint']==x.get('afterFingerprint') and old['readback_json']==readback)
+            if not same: raise RuntimeError('proposal_receipt_conflict')
+        else:
+            con.execute('INSERT INTO assistant_action_receipts VALUES (?,?,?,?,?,?,?,?,?,?)',(x['id'],x['proposalId'],x.get('sourceBoard'),x.get('sourceTaskId'),x.get('matrixRoomId'),x.get('matrixEventId'),x.get('beforeFingerprint'),x.get('afterFingerprint'),readback,x['executedAt']))
+            event(r['receiptEvent'])
+        con.execute("UPDATE assistant_action_proposals SET status='executed',updated_at=? WHERE proposal_id=? AND status IN ('executing','executed')",(x['executedAt'],x['proposalId']))
+        con.execute("UPDATE assistant_reconciliation_items SET status='resolved',next_attempt_at=?,last_error_code=NULL,lease_owner=NULL,lease_expires_at=NULL,updated_at=? WHERE proposal_id=? AND status NOT IN ('resolved','cancelled')",(x['executedAt'],x['executedAt'],x['proposalId']))
+        for y in r['events']: con.execute('INSERT INTO assistant_reconciliation_events VALUES (?,?,?,?,?)',(y['id'],y['reconciliationId'],y['eventType'],json.dumps(y.get('payload',{}),ensure_ascii=False,sort_keys=True),y['occurredAt']))
+        if r.get('auditEvent'): event(r['auditEvent'])
+        out={'receipt':one('SELECT * FROM assistant_action_receipts WHERE proposal_id=?',(x['proposalId'],)),'proposal':one('SELECT * FROM assistant_action_proposals WHERE proposal_id=?',(x['proposalId'],)),'deduplicated':old is not None}; con.commit()
+    except Exception: con.rollback(); raise
+elif a=='get_reconciliation_stage': out=one('SELECT * FROM assistant_reconciliation_items WHERE proposal_id=? AND stage=?',(r['proposalId'],r['stage']))
+elif a=='list_reconciliation':
+    clauses=[]; vals=[]
+    if not r.get('includeClosed'): clauses.append("status NOT IN ('resolved','cancelled')")
+    if r.get('dueBefore') is not None: clauses.append('next_attempt_at<=?'); vals.append(r['dueBefore'])
+    where=(' WHERE '+' AND '.join(clauses)) if clauses else ''
+    out=rows('SELECT * FROM assistant_reconciliation_items'+where+' ORDER BY next_attempt_at,created_at,id',vals)
+elif a=='list_reconciliation_events': out=rows('SELECT * FROM assistant_reconciliation_events WHERE reconciliation_id=? ORDER BY occurred_at,event_id',(r['id'],))
+elif a=='bind_handoff':
+    x=r['item']; con.execute('BEGIN IMMEDIATE')
+    try:
+        old=one('SELECT * FROM assistant_handoff_bindings WHERE proposal_id=?',(x['proposalId'],))
+        if old and (old['responsible_agent']!=x['responsibleAgent'] or old['expected_sender']!=x['expectedSender']): raise RuntimeError('handoff_binding_conflict')
+        if not old: con.execute('INSERT INTO assistant_handoff_bindings VALUES (?,?,?,?)',(x['proposalId'],x['responsibleAgent'],x['expectedSender'],x['createdAt']))
+        con.commit(); out=one('SELECT * FROM assistant_handoff_bindings WHERE proposal_id=?',(x['proposalId'],))
+    except Exception: con.rollback(); raise
+elif a=='get_handoff_binding': out=one('SELECT * FROM assistant_handoff_bindings WHERE proposal_id=?',(r['id'],))
+elif a=='start_result_operation':
+    x=r['item']; con.execute('BEGIN IMMEDIATE')
+    try:
+        current=one('SELECT * FROM assistant_results WHERE result_id=?',(x['resultId'],))
+        if not current: raise RuntimeError('result_not_found')
+        old=one('SELECT * FROM assistant_result_operations WHERE request_id=?',(x['requestId'],))
+        audit=json.dumps(x['audit'],sort_keys=True,separators=(',',':'))
+        if old:
+            if old['result_id']!=x['resultId'] or old['action']!=x['action'] or old['instruction']!=x['instruction'] or old['audit_json']!=audit: raise RuntimeError('result_operation_request_conflict')
+            out=old
+        else:
+            if current['operator_decision'] in ('accept','end','reject'): raise RuntimeError('result_already_decided')
+            if one("SELECT operation_id FROM assistant_result_operations WHERE result_id=? AND status<>'applied'",(x['resultId'],)): raise RuntimeError('result_operation_pending')
+            con.execute("INSERT INTO assistant_result_operations VALUES (?,?,?,?,?,?,?,'result_pending',0,NULL,NULL,NULL,?,?)",(x['id'],x['resultId'],x['action'],x['requestId'],x['idempotencyKey'],x['instruction'],audit,x['createdAt'],x['createdAt']))
+            event(r['event']); out=one('SELECT * FROM assistant_result_operations WHERE operation_id=?',(x['id'],))
+        con.commit()
+    except Exception: con.rollback(); raise
+elif a=='list_result_operations': out=rows("SELECT * FROM assistant_result_operations WHERE status<>'applied' ORDER BY created_at,operation_id")
+elif a=='claim_result_operation':
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        c=con.execute("UPDATE assistant_result_operations SET lease_owner=?,lease_expires_at=?,updated_at=? WHERE operation_id=? AND status<>'applied' AND (lease_owner IS NULL OR lease_expires_at<=?)",(r['owner'],r['expiresAt'],r['now'],r['id'],r['now']))
+        out={'claimed':c.rowcount==1,'item':one('SELECT * FROM assistant_result_operations WHERE operation_id=?',(r['id'],))}; con.commit()
+    except Exception: con.rollback(); raise
+elif a=='result_operation_write_started':
+    c=con.execute("UPDATE assistant_result_operations SET write_started=1,updated_at=? WHERE operation_id=? AND lease_owner=? AND lease_expires_at>? AND status<>'applied'",(r['now'],r['id'],r['owner'],r['now']))
+    if c.rowcount!=1: raise RuntimeError('result_operation_lease_lost')
+    con.commit(); out={'started':True}
+elif a=='result_operation_unknown':
+    con.execute("UPDATE assistant_result_operations SET status='write_unknown',lease_owner=NULL,lease_expires_at=NULL,updated_at=? WHERE operation_id=? AND lease_owner=?",(r['now'],r['id'],r['owner'])); con.commit(); out={'pending':True}
+elif a=='save_result':
+    x=r['item']; con.execute('BEGIN IMMEDIATE')
+    try:
+        p=one('SELECT * FROM assistant_action_proposals WHERE proposal_id=?',(x['proposalId'],))
+        if not p: raise RuntimeError('proposal_not_found')
+        old=one('SELECT * FROM assistant_results WHERE source_kind=? AND source_event_id=?',(x['sourceKind'],x.get('sourceEventId'))) if x.get('sourceEventId') else None
+        if not old: old=one('SELECT * FROM assistant_results WHERE proposal_id=? AND occurred_at=? AND statement=?',(x['proposalId'],x['occurredAt'],x['statement']))
+        if old:
+            out={'result':old,'message':one('SELECT * FROM assistant_messages WHERE message_id=?',(old['reply_message_id'],)) if old['reply_message_id'] else None,'deduplicated':True}
+        else:
+            con.execute('INSERT INTO assistant_results(result_id,proposal_id,conversation_id,parent_result_id,source_board,source_task_id,source_kind,source_event_id,result_status,statement,evidence_refs_json,next_step,responsible_agent,occurred_at,outcome_candidate_json,management_decision_json,correlation_status,verification_status,operator_decision,kanban_readback_json,reply_message_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(x['id'],x['proposalId'],p['conversation_id'],x.get('parentResultId'),x['sourceBoard'],x['sourceTaskId'],x['sourceKind'],x.get('sourceEventId'),x['resultStatus'],x['statement'],json.dumps(x.get('evidenceRefs',[]),ensure_ascii=False,sort_keys=True),x.get('nextStep'),x['responsibleAgent'],x['occurredAt'],json.dumps(x.get('outcomeCandidate'),ensure_ascii=False,sort_keys=True) if x.get('outcomeCandidate') is not None else None,json.dumps(x.get('managementDecision'),ensure_ascii=False,sort_keys=True) if x.get('managementDecision') is not None else None,x['correlationStatus'],x['verificationStatus'],None,json.dumps(x.get('kanbanReadback'),ensure_ascii=False,sort_keys=True) if x.get('kanbanReadback') is not None else None,None,x['createdAt'],x['createdAt']))
+            saved=None
+            if r.get('reply'):
+                saved=message(r['reply'])
+                con.execute('UPDATE assistant_results SET reply_message_id=? WHERE result_id=?',(saved['message_id'],x['id']))
+            event(r['event']); out={'result':one('SELECT * FROM assistant_results WHERE result_id=?',(x['id'],)),'message':saved,'deduplicated':False}
+        con.commit()
+    except Exception: con.rollback(); raise
+elif a=='get_result': out=one('SELECT * FROM assistant_results WHERE result_id=?',(r['id'],))
+elif a=='list_results':
+    clauses=[]; vals=[]
+    if r.get('conversationId') is not None: clauses.append('conversation_id=?'); vals.append(r['conversationId'])
+    if r.get('proposalId') is not None: clauses.append('proposal_id=?'); vals.append(r['proposalId'])
+    where=(' WHERE '+' AND '.join(clauses)) if clauses else ''
+    out=rows('SELECT * FROM assistant_results'+where+' ORDER BY created_at,result_id',vals)
+elif a=='decide_result':
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        finish_result_operation(r)
+        current=one('SELECT * FROM assistant_results WHERE result_id=?',(r['id'],))
+        if not current: raise RuntimeError('result_not_found')
+        if current['operator_decision'] in ('accept','end','reject'):
+            if current['operator_decision']!=r['decision']: raise RuntimeError('result_already_decided')
+            out={'result':current,'changed':False}
+        else:
+            c=con.execute("UPDATE assistant_results SET operator_decision=?,verification_status=?,kanban_readback_json=?,updated_at=? WHERE result_id=? AND (operator_decision IS NULL OR operator_decision IN ('correct','continue'))",(r['decision'],r['verificationStatus'],json.dumps(r.get('kanbanReadback'),ensure_ascii=False,sort_keys=True) if r.get('kanbanReadback') is not None else current['kanban_readback_json'],r['now'],r['id']))
+            if c.rowcount!=1: raise RuntimeError('result_already_decided')
+            event(r['event']); out={'result':one('SELECT * FROM assistant_results WHERE result_id=?',(r['id'],)),'changed':True}
+        con.commit()
+    except Exception: con.rollback(); raise
+elif a=='create_result_round':
+    x=r['item']; con.execute('BEGIN IMMEDIATE')
+    try:
+        finish_result_operation(r)
+        old=one('SELECT * FROM assistant_result_rounds WHERE request_id=?',(x['requestId'],))
+        if old:
+            if old['result_id']!=x['resultId'] or old['action']!=x['action'] or old['instruction']!=x['instruction'] or old['source_board']!=x['sourceBoard'] or old['source_task_id']!=x['sourceTaskId']: raise RuntimeError('result_round_request_conflict')
+            out={'round':old,'deduplicated':True}
+        else:
+            current=one('SELECT * FROM assistant_results WHERE result_id=?',(x['resultId'],))
+            if not current: raise RuntimeError('result_not_found')
+            if current['operator_decision'] in ('accept','end','reject'): raise RuntimeError('result_already_decided')
+            number=one('SELECT COALESCE(MAX(round_number),0)+1 AS n FROM assistant_result_rounds WHERE result_id=?',(x['resultId'],))['n']
+            parent=one('SELECT round_id FROM assistant_result_rounds WHERE result_id=? ORDER BY round_number DESC LIMIT 1',(x['resultId'],))
+            con.execute('INSERT INTO assistant_result_rounds VALUES (?,?,?,?,?,?,?,?,?,?,?)',(x['id'],x['resultId'],parent['round_id'] if parent else None,number,x['action'],x['instruction'],x['sourceBoard'],x['sourceTaskId'],x['linkedTaskId'],x['requestId'],x['createdAt']))
+            con.execute('UPDATE assistant_results SET operator_decision=?,verification_status=?,updated_at=? WHERE result_id=?',(x['action'],'corrected' if x['action']=='correct' else 'continued',x['createdAt'],x['resultId']))
+            event(r['event']); out={'round':one('SELECT * FROM assistant_result_rounds WHERE round_id=?',(x['id'],)),'deduplicated':False}
+        con.commit()
+    except Exception: con.rollback(); raise
+elif a=='list_result_rounds': out=rows('SELECT * FROM assistant_result_rounds WHERE result_id=? ORDER BY round_number,round_id',(r['resultId'],))
+elif a=='get_result_round_request': out=one('SELECT * FROM assistant_result_rounds WHERE request_id=?',(r['requestId'],))
 elif a=='append_event': event(r['item']); con.commit(); out={'id':r['item']['id']}
 elif a=='append_transaction':
     con.execute('BEGIN IMMEDIATE')
@@ -238,7 +424,7 @@ elif a=='read_recent_messages':
 elif a=='read_message': out=one('SELECT * FROM assistant_messages WHERE message_id=?',(r['id'],))
 elif a=='read_events': out=rows('SELECT * FROM assistant_events '+('WHERE conversation_id=? ' if r.get('conversationId') else '')+'ORDER BY occurred_at,event_id',((r['conversationId'],) if r.get('conversationId') else ()))
 elif a=='read_context': out=one('SELECT * FROM assistant_context_envelopes WHERE context_envelope_id=?',(r['id'],))
-elif a=='read_schema_metadata': out={'tables':[x[0] for x in con.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")],'conversationColumns':[x[1] for x in con.execute('PRAGMA table_info(assistant_conversations)')],'runColumns':[x[1] for x in con.execute('PRAGMA table_info(assistant_runs)')],'proposalColumns':[x[1] for x in con.execute('PRAGMA table_info(assistant_action_proposals)')],'eventTriggers':[x[0] for x in con.execute("SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name='assistant_events' ORDER BY name")],'receiptTriggers':[x[0] for x in con.execute("SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name='assistant_action_receipts' ORDER BY name")],'indexes':[x[0] for x in con.execute("SELECT name FROM sqlite_master WHERE type='index' ORDER BY name")]}
+elif a=='read_schema_metadata': out={'tables':[x[0] for x in con.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")],'conversationColumns':[x[1] for x in con.execute('PRAGMA table_info(assistant_conversations)')],'runColumns':[x[1] for x in con.execute('PRAGMA table_info(assistant_runs)')],'proposalColumns':[x[1] for x in con.execute('PRAGMA table_info(assistant_action_proposals)')],'resultColumns':[x[1] for x in con.execute('PRAGMA table_info(assistant_results)')],'eventTriggers':[x[0] for x in con.execute("SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name='assistant_events' ORDER BY name")],'receiptTriggers':[x[0] for x in con.execute("SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name='assistant_action_receipts' ORDER BY name")],'indexes':[x[0] for x in con.execute("SELECT name FROM sqlite_master WHERE type='index' ORDER BY name")]}
 else: raise RuntimeError('unknown assistant store action')
 con.close(); os.chmod(db,0o600); print(json.dumps(out,ensure_ascii=False))
 `;
@@ -339,6 +525,101 @@ function receipt(row) {
       afterFingerprint: row.after_fingerprint,
       readback: JSON.parse(row.readback_json),
       executedAt: row.executed_at,
+    }
+  );
+}
+function reconciliation(row) {
+  return (
+    row && {
+      id: row.id,
+      proposalId: row.proposal_id,
+      stage: row.stage,
+      status: row.status,
+      attemptCount: row.attempt_count,
+      nextAttemptAt: row.next_attempt_at,
+      lastErrorCode: row.last_error_code,
+      expectedFingerprint: row.expected_fingerprint,
+      matrixRoomId: row.matrix_room_id,
+      matrixEventId: row.matrix_event_id,
+      owner: row.owner,
+      details: JSON.parse(row.details_json),
+      escalatedAt: row.escalated_at,
+      leaseOwner: row.lease_owner,
+      leaseExpiresAt: row.lease_expires_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }
+  );
+}
+
+function assistantResult(row) {
+  return (
+    row && {
+      id: row.result_id,
+      proposalId: row.proposal_id,
+      conversationId: row.conversation_id,
+      parentResultId: row.parent_result_id,
+      sourceBoard: row.source_board,
+      sourceTaskId: row.source_task_id,
+      sourceKind: row.source_kind,
+      sourceEventId: row.source_event_id,
+      status: row.result_status,
+      statement: row.statement,
+      evidenceRefs: JSON.parse(row.evidence_refs_json || '[]'),
+      nextStep: row.next_step,
+      responsibleAgent: row.responsible_agent,
+      occurredAt: row.occurred_at,
+      outcomeCandidate: row.outcome_candidate_json ? JSON.parse(row.outcome_candidate_json) : null,
+      managementDecision: row.management_decision_json
+        ? JSON.parse(row.management_decision_json)
+        : null,
+      correlationStatus: row.correlation_status,
+      verificationStatus: row.verification_status,
+      operatorDecision: row.operator_decision,
+      kanbanReadback: row.kanban_readback_json ? JSON.parse(row.kanban_readback_json) : null,
+      verificationReceipt: row.kanban_readback_json
+        ? JSON.parse(row.kanban_readback_json).verificationReceipt || null
+        : null,
+      replyMessageId: row.reply_message_id,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }
+  );
+}
+
+function resultRound(row) {
+  return (
+    row && {
+      id: row.round_id,
+      resultId: row.result_id,
+      parentRoundId: row.parent_round_id,
+      roundNumber: row.round_number,
+      action: row.action,
+      instruction: row.instruction,
+      sourceBoard: row.source_board,
+      sourceTaskId: row.source_task_id,
+      linkedTaskId: row.linked_task_id,
+      requestId: row.request_id,
+      createdAt: row.created_at,
+    }
+  );
+}
+
+function resultOperation(row) {
+  return (
+    row && {
+      id: row.operation_id,
+      resultId: row.result_id,
+      action: row.action,
+      requestId: row.request_id,
+      idempotencyKey: row.idempotency_key,
+      instruction: row.instruction,
+      audit: JSON.parse(row.audit_json),
+      status: row.status,
+      writeStarted: Boolean(row.write_started),
+      leaseOwner: row.lease_owner,
+      leaseExpiresAt: row.lease_expires_at,
+      receipt: row.receipt_json ? JSON.parse(row.receipt_json) : null,
     }
   );
 }
@@ -670,6 +951,337 @@ class AssistantStore {
   }
   getReceiptByProposalId(value) {
     return receipt(this.#execute('get_receipt_proposal', { proposalId: value }));
+  }
+  createReconciliation(input = {}) {
+    const createdAt = input.createdAt || nowSeconds();
+    const result = this.#execute('create_reconciliation', {
+      item: {
+        id: input.id || id('reconciliation'),
+        proposalId: input.proposalId,
+        stage: input.stage,
+        status: input.status || 'pending',
+        nextAttemptAt: input.nextAttemptAt || createdAt,
+        lastErrorCode: input.lastErrorCode || null,
+        expectedFingerprint: input.expectedFingerprint || null,
+        matrixRoomId: input.matrixRoomId || null,
+        matrixEventId: input.matrixEventId || null,
+        owner: input.owner || 'Rhajaina',
+        details: input.details || {},
+        createdAt,
+      },
+      event: {
+        id: id('reconciliation_event'),
+        eventType: 'created',
+        payload: {},
+        occurredAt: createdAt,
+      },
+    });
+    return { item: reconciliation(result.item), deduplicated: result.deduplicated };
+  }
+  startReconciliation(input = {}) {
+    const createdAt = input.createdAt || nowSeconds();
+    const item = {
+      id: input.id || id('reconciliation'),
+      proposalId: input.proposalId,
+      owner: input.owner || 'Rhajaina',
+      nextAttemptAt: input.nextAttemptAt || createdAt,
+      expectedFingerprint: input.expectedFingerprint || null,
+      details: input.details || {},
+      createdAt,
+    };
+    const result = this.#execute('start_reconciliation', {
+      item,
+      event: {
+        id: id('reconciliation_event'),
+        eventType: 'created',
+        payload: {},
+        occurredAt: createdAt,
+      },
+      proposalEvent: this.eventItem({
+        conversationId: input.conversationId,
+        eventType: 'proposal.execution_started',
+        payload: { proposalId: input.proposalId, reconciliationId: item.id },
+        occurredAt: createdAt,
+      }),
+    });
+    return {
+      item: reconciliation(result.item),
+      proposal: proposal(result.proposal),
+      deduplicated: result.deduplicated,
+    };
+  }
+  updateReconciliation(value, status, options = {}) {
+    const now = options.now || nowSeconds();
+    const optional = {};
+    for (const key of [
+      'expectedFingerprint',
+      'matrixRoomId',
+      'matrixEventId',
+      'owner',
+      'escalatedAt',
+      'details',
+    ]) {
+      if (Object.hasOwn(options, key)) optional[key] = options[key];
+    }
+    return reconciliation(
+      this.#execute('update_reconciliation', {
+        id: value,
+        status,
+        nextAttemptAt: options.nextAttemptAt ?? now,
+        lastErrorCode: options.lastErrorCode || null,
+        keepLease: options.keepLease === true,
+        incrementAttempt: options.incrementAttempt === true,
+        expectedLeaseOwner: options.expectedLeaseOwner ?? null,
+        now,
+        ...optional,
+        event: {
+          id: id('reconciliation_event'),
+          eventType: options.eventType || `status.${status}`,
+          payload: options.eventPayload || {},
+          occurredAt: now,
+        },
+      })
+    );
+  }
+  getReconciliation(value) {
+    return reconciliation(this.#execute('get_reconciliation', { id: value }));
+  }
+  claimReconciliation(value, options = {}) {
+    const now = options.now || nowSeconds();
+    const owner = String(options.owner || '');
+    if (!owner) throw new Error('lease_owner_required');
+    const result = this.#execute('claim_reconciliation', {
+      id: value,
+      owner,
+      now,
+      leaseExpiresAt: now + Math.max(1, Number(options.leaseSeconds) || 60),
+    });
+    return { claimed: result.claimed, item: reconciliation(result.item) };
+  }
+  finalizeReconciliation(input = {}) {
+    const executedAt = input.executedAt || nowSeconds();
+    const receiptId = input.receiptId || id('receipt');
+    const result = this.#execute('finalize_reconciliation', {
+      auditEvent: input.audit
+        ? this.eventItem({
+            conversationId: input.conversationId,
+            eventType: 'reconciliation.operator_resolved',
+            payload: { reconciliationId: input.reconciliationId, ...input.audit },
+            occurredAt: executedAt,
+          })
+        : null,
+      reconciliationId: input.reconciliationId,
+      owner: input.owner,
+      item: {
+        id: receiptId,
+        proposalId: input.proposalId,
+        sourceBoard: input.sourceBoard || null,
+        sourceTaskId: input.sourceTaskId || null,
+        matrixRoomId: input.matrixRoomId || null,
+        matrixEventId: input.matrixEventId || null,
+        beforeFingerprint: input.beforeFingerprint || null,
+        afterFingerprint: input.afterFingerprint || null,
+        readback: input.readback || {},
+        executedAt,
+      },
+      receiptEvent: this.eventItem({
+        conversationId: input.conversationId,
+        eventType: 'action.executed',
+        payload: { proposalId: input.proposalId },
+        occurredAt: executedAt,
+      }),
+      events: (input.reconciliationIds || []).map((reconciliationId) => ({
+        id: id('reconciliation_event'),
+        reconciliationId,
+        eventType: 'resolved.atomically',
+        payload: { receiptId },
+        occurredAt: executedAt,
+      })),
+    });
+    return {
+      receipt: receipt(result.receipt),
+      proposal: proposal(result.proposal),
+      deduplicated: result.deduplicated,
+    };
+  }
+  getReconciliationByStage(proposalId, stage) {
+    return reconciliation(this.#execute('get_reconciliation_stage', { proposalId, stage }));
+  }
+  listReconciliations(options = {}) {
+    return this.#execute('list_reconciliation', {
+      includeClosed: options.includeClosed === true,
+      dueBefore: options.dueBefore ?? null,
+    }).map(reconciliation);
+  }
+  listReconciliationEvents(value) {
+    return this.#execute('list_reconciliation_events', { id: value }).map((row) => ({
+      id: row.event_id,
+      reconciliationId: row.reconciliation_id,
+      eventType: row.event_type,
+      payload: JSON.parse(row.payload_json),
+      occurredAt: row.occurred_at,
+    }));
+  }
+  bindHandoff(input) {
+    if (
+      !/^[^\s\p{Cc}\p{Cf}]+$/u.test(input.responsibleAgent || '') ||
+      !/^@[^\s:]+:[a-z0-9.-]+$/i.test(input.expectedSender || '')
+    )
+      throw new Error('handoff_binding_invalid');
+    return this.#execute('bind_handoff', {
+      item: { ...input, createdAt: input.createdAt || nowSeconds() },
+    });
+  }
+  getHandoffBinding(proposalId) {
+    const row = this.#execute('get_handoff_binding', { id: proposalId });
+    return (
+      row && {
+        responsibleAgent: row.responsible_agent,
+        expectedSender: row.expected_sender,
+        createdAt: row.created_at,
+      }
+    );
+  }
+  startResultOperation(input) {
+    return resultOperation(
+      this.#execute('start_result_operation', {
+        item: input,
+        event: this.eventItem({
+          conversationId: input.conversationId,
+          eventType: 'agent_result.result_pending',
+          payload: { operationId: input.id, action: input.action, ...input.audit },
+          occurredAt: input.createdAt,
+        }),
+      })
+    );
+  }
+  listResultOperations() {
+    return this.#execute('list_result_operations').map(resultOperation);
+  }
+  claimResultOperation(value, { owner, now, leaseSeconds = 60 }) {
+    const claimed = this.#execute('claim_result_operation', {
+      id: value,
+      owner,
+      now,
+      expiresAt: now + leaseSeconds,
+    });
+    return { claimed: claimed.claimed, item: resultOperation(claimed.item) };
+  }
+  markResultOperationStarted(value, owner, now) {
+    return this.#execute('result_operation_write_started', { id: value, owner, now });
+  }
+  markResultOperationUnknown(value, owner, now) {
+    return this.#execute('result_operation_unknown', { id: value, owner, now });
+  }
+  saveResult(input = {}) {
+    const createdAt = input.createdAt || nowSeconds();
+    const result = this.#execute('save_result', {
+      item: {
+        id: input.id || id('result'),
+        proposalId: input.proposalId,
+        parentResultId: input.parentResultId || null,
+        sourceBoard: input.sourceBoard,
+        sourceTaskId: input.sourceTaskId,
+        sourceKind: input.sourceKind || 'matrix',
+        sourceEventId: input.sourceEventId || null,
+        resultStatus: input.status,
+        statement: input.statement,
+        evidenceRefs: input.evidenceRefs || [],
+        nextStep: input.nextStep || null,
+        responsibleAgent: input.responsibleAgent,
+        occurredAt: input.occurredAt,
+        outcomeCandidate: input.outcomeCandidate || null,
+        managementDecision: input.managementDecision || null,
+        correlationStatus: input.correlationStatus || 'verified',
+        verificationStatus: input.verificationStatus || 'awaiting_acceptance',
+        kanbanReadback: input.kanbanReadback
+          ? { ...input.kanbanReadback, verificationReceipt: input.verificationReceipt || null }
+          : null,
+        createdAt,
+      },
+      reply: input.reply
+        ? this.messageItem({
+            conversationId: input.conversationId,
+            role: 'assistant',
+            content: input.reply,
+            createdAt,
+          })
+        : null,
+      event: this.eventItem({
+        conversationId: input.conversationId,
+        eventType: 'agent_result.ingested',
+        payload: { proposalId: input.proposalId, status: input.status },
+        occurredAt: createdAt,
+      }),
+    });
+    return {
+      result: assistantResult(result.result),
+      message: message(result.message),
+      deduplicated: result.deduplicated,
+    };
+  }
+  getResult(value) {
+    return assistantResult(this.#execute('get_result', { id: value }));
+  }
+  listResults(options = {}) {
+    return this.#execute('list_results', {
+      conversationId: options.conversationId ?? null,
+      proposalId: options.proposalId ?? null,
+    }).map(assistantResult);
+  }
+  decideResult(value, decision, options = {}) {
+    const now = options.now || nowSeconds();
+    const states = {
+      accept: 'accepted',
+      end: 'ended',
+      reject: 'rejected',
+    };
+    if (!states[decision]) throw new Error('result_decision_invalid');
+    const result = this.#execute('decide_result', {
+      id: value,
+      decision,
+      operation: options.operation,
+      verificationStatus: states[decision],
+      kanbanReadback: options.kanbanReadback || null,
+      now,
+      event: this.eventItem({
+        conversationId: options.conversationId,
+        eventType: `agent_result.${decision}`,
+        payload: { resultId: value, requestId: options.requestId || null, ...options.audit },
+        occurredAt: now,
+      }),
+    });
+    return { result: assistantResult(result.result), changed: result.changed };
+  }
+  createResultRound(input = {}) {
+    const createdAt = input.createdAt || nowSeconds();
+    const result = this.#execute('create_result_round', {
+      operation: input.operation,
+      item: {
+        id: input.id || id('round'),
+        resultId: input.resultId,
+        action: input.action,
+        instruction: input.instruction,
+        sourceBoard: input.sourceBoard,
+        sourceTaskId: input.sourceTaskId,
+        linkedTaskId: input.linkedTaskId,
+        requestId: input.requestId,
+        createdAt,
+      },
+      event: this.eventItem({
+        conversationId: input.conversationId,
+        eventType: `agent_result.${input.action}`,
+        payload: { resultId: input.resultId, linkedTaskId: input.linkedTaskId, ...input.audit },
+        occurredAt: createdAt,
+      }),
+    });
+    return { round: resultRound(result.round), deduplicated: result.deduplicated };
+  }
+  listResultRounds(resultId) {
+    return this.#execute('list_result_rounds', { resultId }).map(resultRound);
+  }
+  getResultRoundByRequestId(requestId) {
+    return resultRound(this.#execute('get_result_round_request', { requestId }));
   }
   appendEvent(input) {
     return this.#execute('append_event', { item: this.eventItem(input) });

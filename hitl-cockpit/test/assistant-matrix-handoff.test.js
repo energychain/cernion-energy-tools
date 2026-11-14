@@ -179,7 +179,7 @@ test('deduplicates concurrent and later delivery by handoff id', async () => {
   assert.deepEqual(left, later);
 });
 
-test('returns pending delivery status when sending fails and deduplicates the failure', async () => {
+test('returns pending delivery status and permits a later retry after sending fails', async () => {
   let sends = 0;
   const adapter = createAssistantMatrixHandoffAdapter({
     sender: async () => {
@@ -197,7 +197,7 @@ test('returns pending delivery status when sending fails and deduplicates the fa
   assert.equal(result.handoffId, 'handoff_2026_001');
   assert.equal(result.loopMarker, `${LOOP_MARKER_PREFIX}:handoff_2026_001`);
   assert.deepEqual(duplicate, result);
-  assert.equal(sends, 1);
+  assert.equal(sends, 2);
 });
 
 test('requires successful readback before marking a handoff delivered', async () => {

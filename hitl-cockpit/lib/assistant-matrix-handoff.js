@@ -1,5 +1,7 @@
 'use strict';
 
+const crypto = require('node:crypto');
+
 const ROOM_REF_PATTERN = /^![^\s:]{6,}:[a-z0-9.-]+$/i;
 const IDENTIFIER_PATTERN = /^[a-z0-9][a-z0-9_.:-]{2,127}$/i;
 const LOOP_MARKER_PREFIX = 'ASSISTANT_MATRIX_HANDOFF';
@@ -98,7 +100,14 @@ function readbackMatches(result, expected) {
   const eventId = event.eventId || event.event_id;
   const body = event.body || event.content?.body;
   return (
-    eventId === expected.eventId && typeof body === 'string' && body.includes(expected.loopMarker)
+    eventId === expected.eventId &&
+    (!event.room_id || event.room_id === expected.roomRef) &&
+    typeof body === 'string' &&
+    body
+      .split(/\r?\n/)
+      .some(
+        (line) => line === expected.loopMarker || line === `Loop marker: ${expected.loopMarker}`
+      )
   );
 }
 
@@ -146,6 +155,10 @@ function createAssistantMatrixHandoffAdapter(options = {}) {
 
         const content = handoffBody({ handoffId, topicId, decisionId, sourceId, text });
         loopMarker = content.loopMarker;
+        const transactionId = crypto
+          .createHash('sha256')
+          .update(`assistant:${handoffId}`)
+          .digest('hex');
         const sent = await sender({
           roomRef,
           content: {
@@ -154,10 +167,11 @@ function createAssistantMatrixHandoffAdapter(options = {}) {
           },
           handoffId,
           loopMarker,
+          transactionId,
         });
         const eventId = eventIdFrom(sent);
         const observed = await readback({ roomRef, eventId, handoffId, loopMarker });
-        if (!readbackMatches(observed, { eventId, loopMarker })) {
+        if (!readbackMatches(observed, { eventId, loopMarker, roomRef })) {
           throw new Error('matrix_readback_mismatch');
         }
         return {
@@ -186,11 +200,44 @@ function createAssistantMatrixHandoffAdapter(options = {}) {
 
     handoffs.set(handoffId, operation);
     const result = await operation;
-    handoffs.set(handoffId, Promise.resolve(result));
+    if (result.status === 'delivered') handoffs.set(handoffId, Promise.resolve(result));
+    else handoffs.delete(handoffId);
     return result;
   }
 
-  return { deliver };
+  async function reconcile(input = {}) {
+    // Lookup must be authoritative and keyed by our deterministic transaction. Never send here.
+    if (typeof options.findByTransaction !== 'function')
+      return { status: 'pending', error: 'matrix_lookup_unavailable' };
+    const handoffId = requireIdentifier('handoff_id', input.handoffId);
+    const roomRef = roomRefFromContext(input.context);
+    const loopMarker = `${LOOP_MARKER_PREFIX}:${handoffId}`;
+    const transactionId = crypto
+      .createHash('sha256')
+      .update(`assistant:${handoffId}`)
+      .digest('hex');
+    const located = await options.findByTransaction({
+      roomRef,
+      transactionId,
+      handoffId,
+      loopMarker,
+    });
+    if (!located) return { status: 'pending', error: 'matrix_event_not_found' };
+    const eventId = eventIdFrom(located);
+    const observed = await readback({ roomRef, eventId, handoffId, loopMarker });
+    if (!readbackMatches(observed, { roomRef, eventId, loopMarker }))
+      return { status: 'pending', error: 'matrix_readback_mismatch' };
+    return {
+      status: 'delivered',
+      verified: true,
+      handoffId,
+      roomRef,
+      eventId,
+      loopMarker,
+      transactionId,
+    };
+  }
+  return { deliver, reconcile };
 }
 
 module.exports = {

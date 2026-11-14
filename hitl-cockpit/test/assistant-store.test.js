@@ -94,8 +94,8 @@ test('schema initialization is atomic when the fixed schema fails part-way throu
   assert.deepEqual(JSON.parse(inspected.stdout), { tables: [], version: 0 });
 });
 
-test('upgrades every prior AP16 schema version to v6 without duplicate columns', () => {
-  for (const version of [1, 2, 3, 4, 5]) {
+test('upgrades every prior assistant schema version to v10 without duplicate columns', () => {
+  for (const version of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), `assistant-store-v${version}-`));
     roots.push(root);
     const database = path.join(root, 'assistant.db');
@@ -125,7 +125,7 @@ test('upgrades every prior AP16 schema version to v6 without duplicate columns',
     assert.equal(seeded.status, 0, seeded.stderr);
 
     const store = new AssistantStore({ database });
-    assert.deepEqual(store.initialize(), { schemaVersion: 6 });
+    assert.deepEqual(store.initialize(), { schemaVersion: 10 });
     const columns = store.getSchemaMetadata().conversationColumns;
     assert.equal(columns.filter((column) => column === 'hermes_session_messages').length, 1);
     assert.deepEqual(
