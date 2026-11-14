@@ -236,4 +236,43 @@ test('covered blocked work creates no decision while a possible escape creates a
   assert.equal(decision.decision_class, 'scope_violation');
   assert.equal(decision.classifier_label, 'RISK_ESCALATION');
   assert.match(decision.execution_scope_json, /scp_fixture01/);
+  assert.doesNotMatch(decision.execution_scope_json, /allowedSummary|forbiddenSummary/);
+});
+
+test('scope violation projection omits free-text scope summaries from public decisions', () => {
+  const projected = buildProjection({
+    boards: [
+      {
+        board: 'devops',
+        items: [
+          task({
+            status: 'blocked',
+            scopeDecision: {
+              state: 'unclear',
+              matches: [
+                {
+                  scopeId: 'scp_fixture02',
+                  scopeType: 'DEPLOY_SCOPE',
+                  sourceBoard: 'devops',
+                  sourceTaskId: 't_parent01',
+                  expiresAt: 1999999999,
+                  state: 'unclear',
+                  reason: 'explicit_reference_with_possible_scope_escape',
+                  allowedSummary: 'bounded deployment',
+                  forbiddenSummary: 'mixed-sensitive source material',
+                },
+              ],
+            },
+          }),
+        ],
+      },
+    ],
+    errors: [],
+    count: 1,
+  });
+
+  const [decision] = projected.decisions;
+  assert.equal(decision.decision_class, 'scope_violation');
+  assert.match(decision.execution_scope_json, /scp_fixture02/);
+  assert.doesNotMatch(decision.execution_scope_json, /mixed-sensitive|Summary/);
 });

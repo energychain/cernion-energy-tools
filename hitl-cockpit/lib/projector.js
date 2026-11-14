@@ -22,6 +22,18 @@ function sourceTimestamp(task) {
   return Number(task.completed_at || task.started_at || task.created_at || 0);
 }
 
+function publicScopeMatches(matches = []) {
+  return matches.map((match) => ({
+    scopeId: match.scopeId,
+    scopeType: match.scopeType,
+    sourceBoard: match.sourceBoard,
+    sourceTaskId: match.sourceTaskId,
+    expiresAt: match.expiresAt,
+    state: match.state,
+    reason: match.reason,
+  }));
+}
+
 function buildProjection(source, options = {}) {
   let decisions = [];
   const outcomes = [];
@@ -103,7 +115,7 @@ function buildProjection(source, options = {}) {
         deadline: task.deadline || null,
         non_decision_effect: task.nonDecisionEffect || null,
         execution_scope_json: JSON.stringify(
-          task.executionScope || task.scopeDecision?.matches || []
+          task.executionScope || publicScopeMatches(task.scopeDecision?.matches)
         ),
         excluded_scope_json: JSON.stringify(task.excludedScope || []),
         status: task.status,
