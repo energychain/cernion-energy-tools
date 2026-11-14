@@ -1,7 +1,7 @@
 # AgentOS HITL- und Management-Cockpit
 
 Stand: 2026-11-14
-Status: produktiver interner Low-Risk-Betrieb; AP 19 implementiert und für den beaufsichtigten Produktionsbetrieb vorgesehen
+Status: produktiver interner Low-Risk-Betrieb; AP 19–21 produktiv aktiviert
 
 ## Zweck
 
@@ -10,7 +10,7 @@ Das Cockpit bietet zwei additive Sichten auf Hermes Kanban:
 - `/`: bestehende Legacy-HITL-Liste mit den Aktionen Freigeben, Ablehnen, Rückfrage und Schließen;
 - `/management`: primäre Geschäftsführeroberfläche mit Lage, Entscheidungen, Abteilungen, Themen, Verlauf und Rhajaina Assistant Channel.
 
-Hermes Kanban bleibt System of Record. Die Management-SQLite ist eine abgeleitete Projektion und kann vollständig neu aufgebaut werden. Die Management-Decision-API bleibt im Shadow-Modus. Der getrennte Rhajaina Assistant Channel läuft produktiv im Modus `low_risk` und darf nach expliziter Bestätigung genau vier interne Aktionsklassen mit Kanban-Readback, Receipt und optionalem Matrix-Handoff ausführen.
+Hermes Kanban bleibt System of Record. Die Management-SQLite ist eine abgeleitete Projektion und kann vollständig neu aufgebaut werden. Die Management-Decision-API bleibt im Shadow-Modus. Der getrennte Rhajaina Assistant Channel läuft produktiv im Modus `low_risk` und darf nach expliziter Bestätigung genau fünf interne Aktionsklassen mit Kanban-Readback, Receipt und optionalem Matrix-Handoff ausführen. Persistente Reconciliation und verifizierter Ergebnisrücklauf sind aktiv.
 
 Verbindlicher aktueller Betriebsvertrag: `../agent-operating-system/management-cockpit-production-contract-v2.md`.
 Fachliche Policy: `../agent-operating-system/management-cockpit-policy-v1.md`.
@@ -29,7 +29,7 @@ MANAGEMENT_COCKPIT_DEFAULT_VIEW=management
 ASSISTANT mode=low_risk
 ASSISTANT writesEnabled=true
 ASSISTANT matrixHandoffEnabled=true
-ASSISTANT actionAllowlist=ask_question,delegate_followup,schedule_wakeup,return_for_completion
+ASSISTANT actionAllowlist=ask_question,archive_intake_noise,delegate_followup,schedule_wakeup,return_for_completion
 ```
 
 Wichtige Grenzen:
@@ -134,7 +134,7 @@ npm test
 node --test test/release-preflight.test.js
 ```
 
-Die Suite umfasst zusätzlich den Rhajaina Assistant Channel, Kontext-Attachments, Shadow-Proposals, idempotente Receipts, guarded Actions und Matrix-Handoffs.
+Die Suite umfasst zusätzlich den Rhajaina Assistant Channel, Kontext-Attachments, bestätigbare Vorschläge, idempotente Receipts, guarded Actions, Matrix-Handoffs, persistente Reconciliation und verifizierten Ergebnisrücklauf.
 
 ## Projektionsdatenbank
 
@@ -317,6 +317,15 @@ GET  /api/assistant/conversations/:id/messages
 POST /api/assistant/conversations/:id/messages
 GET  /api/assistant/runs/:id
 GET  /api/assistant/proposals
+GET  /api/assistant/reconciliation
+POST /api/assistant/reconciliation/:id/retry
+POST /api/assistant/reconciliation/:id/resolve
+POST /api/assistant/reconciliation/:id/escalate
+GET  /api/assistant/results
+POST /api/assistant/results/:id/accept
+POST /api/assistant/results/:id/correct
+POST /api/assistant/results/:id/continue
+POST /api/assistant/results/:id/end
 POST /api/assistant/proposals/:id/confirm
 POST /api/assistant/proposals/:id/reject
 ```
@@ -328,7 +337,7 @@ Das Karten-Attachment wird serverseitig aus Objektart und ID rekonstruiert. Ein 
 ## Reproduzierbare Releasebasis
 
 AP 17 führt keinen Cutover aus. Der Release-Preflight validiert Commit/`main`-Abstammung,
-Arbeitsbaum, Schema v5/v6, das geschlossene Runtime-Schema, getrennte Datenbankpfade und die
+Arbeitsbaum, Management-Schema v6, Assistant-Schema v10, das geschlossene Runtime-Schema, getrennte Datenbankpfade und die
 tatsächliche Lesbarkeit der erforderlichen Profile. Unbekannte Felder, Secret-Muster und
 NUL-/Binärinhalte werden abgewiesen. Das Artefakt wird nur aus committed Cockpit-Dateien plus der
 dokumentierten Runtime-Konfiguration gebaut; Profile werden nie kopiert:
@@ -389,9 +398,9 @@ Prozessgesundheit:
 
 Projektionsgesundheit:
 
-- Datenbank lesbar und Schema v5;
+- Datenbank lesbar und Schema v6;
 - `integrity_check=ok`;
-- letzte erfolgreiche Projektion im freigegebenen Parallelbetrieb höchstens 15 Minuten alt;
+- letzte erfolgreiche Projektion innerhalb der 5-Minuten-SLO;
 - Boardfehler null oder erklärt;
 - keine private/TWL-Quelle;
 - keine doppelten offenen Decision-IDs;
@@ -444,6 +453,9 @@ Ablauf:
 ## Aktuelle Übergabegrenzen
 
 - AP 17 stellt eine commitbasierte Release- und LKG-Mechanik bereit; ein neuer Release wird nur aus einem geprüften Commit gebaut.
+- AP 19 läuft produktiv als beaufsichtigter Projektionsprozess mit 120-Sekunden-Intervall, atomarem Datenbankwechsel und sichtbarer Frische-/Quellenabdeckung.
+- AP 20 läuft produktiv mit persistenter Outbox, Readback-first-Wiederaufnahme, Retry, Eskalation und auditierter Operator-Klärung.
+- AP 21 läuft produktiv mit kontinuierlichem Matrix-Ingest, strikter Ergebniskorrelation, Evidenzprüfung und fallabschließendem Kanban-Readback.
 - Der produktive Low-Risk-Pfad ist durch den versionierten Smoke-Nachweis belegt; die Freigabe gilt nicht für weitere Aktionsklassen.
 - Echte Management-Decision-Writes sind nicht implementiert und dürfen nicht durch Umgebungsvariablen erzwungen werden.
 - Ergebnisrücklauf und persistente Reconciliation sind implementiert: Teilfehler bleiben auditierbar und wiederaufnehmbar; verifizierte Agentenergebnisse werden in den ursprünglichen Rhajaina-Verlauf zurückgeführt und schließen Fälle erst nach terminalem Kanban-Readback.

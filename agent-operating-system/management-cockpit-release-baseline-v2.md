@@ -41,7 +41,7 @@ Der Preflight bricht ab, wenn:
 
 - der Commit nicht exakt `HEAD` ist oder `main` nicht enthält;
 - tracked Änderungen oder nicht freigegebene untracked Dateien existieren;
-- Management-Schema v5 oder Assistant-Schema v6 fehlen;
+- Management-Schema v6 oder Assistant-Schema v10 fehlen;
 - die committed Assistant-Policy nicht deaktiviert/read-only ist;
 - Write-, Matrix-Handoff- oder Management-Default-Flags unsicher sind;
 - Management- und Assistant-Datenbank nicht absolut, nicht getrennt oder innerhalb des Kanban-Pfads liegen;

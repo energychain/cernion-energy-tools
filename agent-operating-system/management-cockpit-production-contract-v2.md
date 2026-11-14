@@ -36,9 +36,10 @@ Management-Decision-Aktionen und Assistant-Aktionen sind getrennte Pfade. `MANAG
 Nach expliziter Bestätigung durch den authentifizierten Operator sind genau folgende internen Aktionsklassen erlaubt:
 
 1. `ask_question`: eine konkrete Rückfrage an der autorisierten Quellkarte dokumentieren;
-2. `delegate_followup`: einen Folgeauftrag an einen explizit genannten oder auf der Quellkarte belegten Agenten delegieren;
-3. `schedule_wakeup`: eine begründete Wiedervorlage mit Zeitpunkt und nächstem Schritt setzen;
-4. `return_for_completion`: einen unvollständigen Vorgang mit konkretem Grund zurückgeben.
+2. `archive_intake_noise`: einen eindeutig aufgelösten Intake ohne weiteren Handlungsbedarf mit Audittext fallabschließend schließen;
+3. `delegate_followup`: einen Folgeauftrag an einen explizit genannten oder auf der Quellkarte belegten Agenten delegieren;
+4. `schedule_wakeup`: eine begründete Wiedervorlage mit Zeitpunkt und nächstem Schritt setzen;
+5. `return_for_completion`: einen unvollständigen Vorgang mit konkretem Grund zurückgeben.
 
 Jede Ausführung benötigt:
 
@@ -111,7 +112,13 @@ beeinträchtigter oder nicht lesbarer Projektion fail-closed ab.
 
 Die Health-Antwort enthält keine Policy-Dateipfade, Transportpfade, Tokens, Cookies oder Matrix-Zugangsdaten. `aligned=false` ist ein Betriebsfehler und verbietet die Behauptung, die Runtime entspreche diesem Vertrag. Der Prozess darf für Diagnose und Rückfall weiterhin erreichbar bleiben.
 
-## 7. Produktiver Nachweis
+## 7. Persistente Reconciliation und Ergebnisrücklauf
+
+Vor jeder externen Nebenwirkung wird ein persistenter Outbox-Eintrag angelegt. Offene Kanban-, Matrix- und Ergebnisstufen werden nach Neustarts wieder aufgenommen. Der Worker führt zuerst einen autoritativen Readback durch und wiederholt eine Nebenwirkung nur, wenn sie nachweislich nicht erfolgt oder über den stabilen Idempotency-Key sicher wiederholbar ist. Teilfehler bleiben in der Cockpit-Lane „Störungen“ sichtbar; sie besitzen Owner, nächsten Prüftermin, Fehlercode und append-only Auditereignisse. Über 24 Stunden offene Fälle werden einmalig an Rhajaina eskaliert, ohne wiederholte Matrix-Benachrichtigungen.
+
+Fachagentenergebnisse werden nur dann als verifiziertes Ergebnis übernommen, wenn Matrix-Raum, Reply-Event, Handoff-Marker, erwarteter Sender, Quellkarte und zweiter Kanban-Readback zusammenpassen. Freie Antworten ohne diesen Vertrag bleiben Hinweise. Ein Abschluss benötigt materielle Evidenz und einen terminalen Kanban-Readback. Ergebnisse erscheinen genau einmal im ursprünglichen Rhajaina-Thread und können dort akzeptiert, korrigiert, fortgeführt oder beendet werden. Korrektur und Fortsetzung erzeugen eine verknüpfte neue Runde statt eines Doppelauftrags.
+
+## 8. Produktiver Nachweis
 
 Der Betriebsnachweis `rhajaina-assistant-channel-production-smoke-v1.md` belegt für einen realen Low-Risk-Fall:
 
@@ -119,9 +126,9 @@ Der Betriebsnachweis `rhajaina-assistant-channel-production-smoke-v1.md` belegt 
 
 Zusätzlich ist die Idempotenz unmittelbar und nach einem echten PM2-Neustart belegt. Derselbe Vorschlag erzeugte kein zweites Receipt, keinen zweiten Kanban-Kommentar und kein zweites Matrix-Event.
 
-Der Nachweis erweitert die erlaubten Aktionsklassen nicht.
+Der Nachweis erweitert die erlaubten Aktionsklassen nicht. Die produktive AP-19–21-Abnahme dokumentiert zusätzlich kontinuierliche Projektionsläufe, Reconciliation-Runtime, Ergebnis-Ingest, Datenbankintegrität, Browser-UAT und Prozesspersistenz.
 
-## 8. Betrieb und Verantwortlichkeiten
+## 9. Betrieb und Verantwortlichkeiten
 
 | Aufgabe                                | Primär           | Mitwirkung                    |
 | -------------------------------------- | ---------------- | ----------------------------- |
@@ -134,7 +141,7 @@ Der Nachweis erweitert die erlaubten Aktionsklassen nicht.
 
 Der aktuelle Vertrag macht das Cockpit zur produktiv nutzbaren primären Geschäftsführeroberfläche für die freigegebene Low-Risk-Lane. Er behauptet noch keine vollständige Abdeckung aller Führungsprozesse oder die Ablösung der Backend-Fallbacks.
 
-## 9. Rollback
+## 10. Rollback
 
 Der schnellste Rückfall deaktiviert den Assistant Channel oder setzt seine Runtime-Policy auf `read_only`, deaktiviert Assistant-Writes und Matrix-Handoff und stellt die Legacy-Sicht als Default bereit. Danach wird der Cockpit-Prozess kontrolliert mit der rückgerollten Policy neu geladen und Health, Legacy-Sicht sowie Quellintegrität werden geprüft.
 
@@ -148,7 +155,7 @@ Ein Cockpit-Rollback:
 
 Der commitbasierte Last-Known-Good- und Rollback-Dry-Run ist in `management-cockpit-release-baseline-v2.md` beschrieben. Die AP-0-Dateisicherung bleibt ausschließlich historischer Rückfallnachweis.
 
-## 10. Incident- und Stop-Kriterien
+## 11. Incident- und Stop-Kriterien
 
 Assistant-Writes und Matrix-Handoff werden sofort deaktiviert bei:
 
@@ -165,7 +172,7 @@ Assistant-Writes und Matrix-Handoff werden sofort deaktiviert bei:
 
 Containment sichert zuerst Evidenz und verhindert weitere Nebenwirkungen. Ein globales Restore der Quellboards ist ausgeschlossen.
 
-## 11. Änderungen an diesem Vertrag
+## 12. Änderungen an diesem Vertrag
 
 Eine Erweiterung von Modus, Aktionsklassen oder Wirkungsgrenzen benötigt:
 

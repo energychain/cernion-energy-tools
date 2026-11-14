@@ -47,11 +47,12 @@ Der aktuelle Kanal akzeptiert keine Dateien, lokalen Pfade, Drag-and-drop-Binari
 
 ## Erlaubte Aktionsklassen
 
-Genau vier produktive Aktionen sind erlaubt:
+Genau fünf produktive Aktionen sind erlaubt:
 
 | Aktion                  | Wirkung                                                     |
 | ----------------------- | ----------------------------------------------------------- |
 | `ask_question`          | konkrete Rückfrage als auditierter Kommentar                |
+| `archive_intake_noise`  | eindeutigen Intake als Rauschen fallabschließend schließen  |
 | `delegate_followup`     | Folgeauftrag an einen expliziten oder belegten Agenten      |
 | `schedule_wakeup`       | begründete Wiedervorlage mit Zeitpunkt und nächstem Schritt |
 | `return_for_completion` | unvollständigen Vorgang mit Begründung zurückgeben          |
@@ -83,7 +84,7 @@ Die produktive Policy wird außerhalb des Release-Artefakts unter
 | `mode`                 | `low_risk`                       |
 | `writesEnabled`        | `true`                           |
 | `matrixHandoffEnabled` | `true`                           |
-| `actionAllowlist`      | die vier Low-Risk-Aktionsklassen |
+| `actionAllowlist`      | die fünf Low-Risk-Aktionsklassen |
 | `transport.type`       | `cli`                            |
 | `transport.safeMode`   | `true`                           |
 | `transport.profile`    | `rhajaina`                       |
@@ -102,7 +103,7 @@ Conversation, Message, Run, Proposal, Event, Summary und Receipt liegen in einer
 
 Ein Write-Erfolg wird erst nach exaktem Readback gespeichert. Receipts sind append-only. Proposal-ID, Idempotency-Key und Matrix-Handoff-Marker bleiben über Prozessneustarts stabil. Ein Replay prüft zuerst persistente Zustände und erzeugt weder einen zweiten Kanban-Write noch ein zweites Matrix-Event.
 
-Teilwirkungen dürfen nicht als Erfolg erscheinen. Bis AP 20 eine vollständige Reconciliation-Outbox bereitstellt, bleiben unklare oder pending Handoffs sichtbar und benötigen gezielte Prüfung.
+Teilwirkungen dürfen nicht als Erfolg erscheinen. Die produktive Reconciliation-Outbox persistiert Kanban-, Matrix- und Ergebnisstufen vor der jeweiligen Nebenwirkung. Nach einem Neustart erfolgt zuerst ein Readback; nur nachweislich fehlende oder idempotent wiederholbare Stufen werden erneut ausgeführt. Offene Fälle sind im Cockpit mit Owner, nächstem Prüftermin, Fehlercode und Auditereignissen sichtbar. Fälle über 24 Stunden werden einmalig an Rhajaina eskaliert.
 
 ## Matrix-Handoff
 
@@ -116,6 +117,12 @@ Matrix-Handoffs benötigen:
 - direkten Event-Readback.
 
 Fehlt der Raum, bleibt der Handoff pending. Es wird kein Raum erfunden oder automatisch angelegt. Private/TWL-Räume sind ausgeschlossen.
+
+## Verifizierter Ergebnisrücklauf
+
+Der Server synchronisiert Antworten aus gebundenen Matrix-Fachräumen kontinuierlich. Ein Fachagentenergebnis gilt nur bei exaktem Reply auf das gespeicherte Handoff-Event, gültigem Handoff-Marker, erwartetem Agentensender, passender Quellkarte und zweitem Kanban-Readback als verifiziert. Freitext ohne Maschinenvertrag wird lediglich als Hinweis klassifiziert.
+
+Verifizierte Ergebnisse erscheinen genau einmal im ursprünglichen Rhajaina-Thread. „Erledigt“ ohne materielle Evidenz schließt keinen Fall. Die Operatoraktionen „Akzeptieren“, „Korrigieren“, „Fortsetzen“ und „Beenden“ sind idempotent; Korrektur und Fortsetzung erzeugen verknüpfte Folgerunden. Ein terminaler Abschluss wird erst nach erneutem Kanban-Readback in Topic, Agent Brief, Outcome und Verlauf projiziert.
 
 ## Telemetrie und Datenschutz
 

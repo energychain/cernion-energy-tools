@@ -54,7 +54,7 @@ Source Guard und TWL-Firewall
 Classifier / Digest / Topics / Outcomes / Wakeups / Agent Briefs
         |
         v
-Management SQLite, Schema v5 (abgeleitet, neu aufbaubar)
+Management SQLite, Schema v6 (abgeleitet, neu aufbaubar)
         |
         +--> Read API --> Management-UI
         |
@@ -197,11 +197,11 @@ ASSISTANT matrixHandoffEnabled=true
 ### Gate B – Read-only Parallelbetrieb
 
 - vollständiger Rebuild auf temporäres Ziel;
-- Schema v5 und Integritätsprüfung bestanden;
+- Schema v6 und Integritätsprüfung bestanden;
 - keine Quellmutation;
 - keine TWL-Leakage;
 - Legacy- und Management-Read-API-Smokes grün;
-- Projektion höchstens 15 Minuten alt;
+- Projektion innerhalb der 5-Minuten-SLO und Integritätsprüfung bestanden;
 - Rollback-Drill bestanden.
 
 ### Gate C – Shadow-Qualität
