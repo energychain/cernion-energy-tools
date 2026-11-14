@@ -85,7 +85,7 @@ function createRepository() {
   write(
     root,
     'hitl-cockpit/lib/projection-schema.sql',
-    'CREATE TABLE x (id TEXT);\nPRAGMA user_version = 5;\n'
+    'CREATE TABLE x (id TEXT);\nPRAGMA user_version = 6;\n'
   );
   write(
     root,
@@ -140,7 +140,7 @@ test('preflight verifies commit, clean tree, schemas, safe flags, database paths
 
   assert.equal(result.ok, true);
   assert.equal(result.commit, commit);
-  assert.deepEqual(result.schemas, { management: 5, assistant: 6 });
+  assert.deepEqual(result.schemas, { management: 6, assistant: 6 });
   assert.deepEqual(result.requiredProfiles, ['infrastructure', 'rhajaina']);
 
   fs.rmSync(path.join(repository, '.git', 'test-profiles', 'rhajaina'), { recursive: true });

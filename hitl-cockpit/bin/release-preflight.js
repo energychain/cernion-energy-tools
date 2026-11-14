@@ -268,7 +268,7 @@ function preflight(options) {
     management: schemaVersion(managementSchema, 'management'),
     assistant: schemaVersion(assistantSchema, 'assistant'),
   };
-  if (schemas.management !== 5 || schemas.assistant !== 6) {
+  if (schemas.management !== 6 || schemas.assistant !== 6) {
     throw new Error(
       `unexpected schema versions: management=${schemas.management}, assistant=${schemas.assistant}`
     );
