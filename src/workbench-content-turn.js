@@ -1606,6 +1606,7 @@ async function runContentTurn(
   });
   phaseTimes.caseStateMs = Math.max(1, Math.round(performance.now() - caseStateStarted));
   const answerStarted = performance.now();
+  let loopAdmission = null;
   if (loopJob !== null) {
     // Planned lookups ran next to the case-state update (latency, AP7); their hits pass the same
     // final scope, cross-case and data boundary before they join the answer evidence (#1137).
@@ -1627,6 +1628,7 @@ async function runContentTurn(
     });
     retrieval.evidence = [...(retrieval.evidence || []), ...admitted.evidence];
     retrieval.knowledgeLoop = admitted.summary;
+    loopAdmission = admitted;
   }
   // Which material the answer receives, by source and origin (no content): makes leaks and thin
   // evidence visible per turn.
@@ -1976,6 +1978,14 @@ async function runContentTurn(
     },
     phaseTimes,
     sources,
+    // Response-only context-use summary (#1117): closed scalar counts/enums, never stored.
+    contextUseSummary: require('./workbench-context-use-summary').contextUseSummary({
+      activeConversationIncluded: Boolean(envelope.conversationId),
+      selectedCaseIncluded: Boolean(caseId || conversation?.cetCaseId),
+      initialGate: gated,
+      loopAdmission,
+      suggestionShown: suggestComparable,
+    }),
     ...documentFlow.documentResponseFields(documentResult, eventSummary),
     ...(displayRef ? { caseDisplayRef: displayRef } : {}),
     ...(draftId ? { draftId } : {}),

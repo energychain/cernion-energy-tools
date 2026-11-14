@@ -225,7 +225,11 @@ async function admitLoopEvidence(loop, { scope = {}, gate = {}, dataScope = {} }
   const candidates = Array.isArray(loop?.evidence)
     ? loop.evidence.filter((hit) => hit && typeof hit === 'object')
     : [];
-  if (!candidates.length) return { evidence: [], summary: loopSummary(loop?.trace, 0, 0) };
+  // `gate` carries only decision classes and bounded failure/overflow counts of the final gate
+  // (#1117 context-use summary); it is answer-time and never stored.
+  const noGate = { decisions: [], judgementFailed: false, overflowCount: 0 };
+  if (!candidates.length)
+    return { evidence: [], summary: loopSummary(loop?.trace, 0, 0), gate: noGate };
   try {
     const scoped = require('./workbench-context-scope').scopeEvidence(candidates, scope);
     const gated = await require('./foreign-context-gate').gateForeignEvidence(scoped.evidence, {
@@ -238,10 +242,19 @@ async function admitLoopEvidence(loop, { scope = {}, gate = {}, dataScope = {} }
     return {
       evidence,
       summary: loopSummary(loop.trace, candidates.length, evidence.length),
+      gate: {
+        decisions: gated.decisions,
+        judgementFailed: gated.judgementFailed === true,
+        overflowCount: gated.overflowCount || 0,
+      },
     };
   } catch (_error) {
     // A failed judgement withholds every candidate.
-    return { evidence: [], summary: loopSummary(loop.trace, candidates.length, 0, true) };
+    return {
+      evidence: [],
+      summary: loopSummary(loop.trace, candidates.length, 0, true),
+      gate: { ...noGate, judgementFailed: true },
+    };
   }
 }
 

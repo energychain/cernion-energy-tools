@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased — Workbench turn response carries a closed context-use summary (#1117)
+
+- The Workbench chat turn response gains an additive, response-only `contextUseSummary`
+  (safety class `ephemeral_protected_context_use_summary`): policy version, whether the active
+  conversation and the selected case were in scope, counts of the cross-case decisions
+  (`linked`, `pattern`, `comparable`, `unrelated`) across the initial CTX-01 gate and the final
+  Knowledge-Loop gate, withheld foreign items (including overflow), the Knowledge-Loop
+  attempted/admitted/withheld/failed counts and source-class count, whether a comparable case was
+  offered, `foreignContentExposed: false`, and enum-only `reviewState` / `nextSafeGate`
+  (`continue_current_case`, `explicit_case_link_or_continue_current_case`,
+  `human_privacy_review`). Closed key set, bounded integers (0–99); no source, title, identifier,
+  query, error, prompt, lesson or content. It is built in memory and never persisted.
+- `gateForeignEvidence` additionally returns `judgementFailed` (model failure or a missing or
+  unrecognised row, still fail-closed to `unrelated`) and a bounded `overflowCount`;
+  `admitLoopEvidence` returns the final gate's decision classes and these diagnostics next to its
+  unchanged summary. Evidence, suggestion and persistence behaviour are unchanged. The persistent
+  selected-case receipt/inspector remains open (no parent/child erasure contract yet).
+
 ## Unreleased — Knowledge-Loop hits pass the final evidence gate; the stored turn keeps none (#1137)
 
 - Knowledge-Loop hits were appended after the conversation scope and cross-case gate, reached

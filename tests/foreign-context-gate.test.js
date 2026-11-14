@@ -31,7 +31,13 @@ describe('foreign context gate', () => {
   test('without foreign items no model call is made', async () => {
     const llm = llmReturning([]);
     const result = await gateForeignEvidence([own], { llm });
-    expect(result).toEqual({ evidence: [own], suggest: false, decisions: [] });
+    expect(result).toEqual({
+      evidence: [own],
+      suggest: false,
+      decisions: [],
+      judgementFailed: false,
+      overflowCount: 0,
+    });
     expect(llm.generateStructured).not.toHaveBeenCalled();
   });
 
@@ -105,6 +111,10 @@ describe('foreign context gate', () => {
     });
     expect(result.evidence).toEqual([own, named]);
     expect(logger.info).toHaveBeenCalledWith('Foreign context gate overflow', { dropped: 9 });
+    // Bounded diagnostics for the context-use summary (#1117).
+    expect(result.overflowCount).toBe(9);
+    expect(result.judgementFailed).toBe(false);
+    expect(result.decisions).toHaveLength(12);
   });
 
   test('a lesson carrying a name of the foreign case fails closed', async () => {
@@ -243,5 +253,24 @@ describe('foreign context gate', () => {
     expect(result.evidence).toEqual([own]);
     expect(result.suggest).toBe(false);
     expect(logger.warn).toHaveBeenCalled();
+    expect(result.judgementFailed).toBe(true);
+    expect(result.decisions).toEqual(['unrelated']);
+  });
+
+  test('a missing or unrecognised judgement row is reported as failed, still fail-closed', async () => {
+    for (const items of [[], [{ index: 0, decision: 'SENTINEL-DECISION', lesson: '' }]]) {
+      const result = await gateForeignEvidence([own, foreign('Vorgang G-7')], {
+        llm: llmReturning(items),
+      });
+      expect(result.evidence).toEqual([own]);
+      expect(result.decisions).toEqual(['unrelated']);
+      expect(result.judgementFailed).toBe(true);
+      expect(result.overflowCount).toBe(0);
+    }
+    const ordinary = await gateForeignEvidence([own, foreign('Vorgang G-8')], {
+      llm: llmReturning([{ index: 0, decision: 'unrelated', lesson: '' }]),
+    });
+    expect(ordinary.decisions).toEqual(['unrelated']);
+    expect(ordinary.judgementFailed).toBe(false);
   });
 });

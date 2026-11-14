@@ -167,10 +167,15 @@ async function gateForeignEvidence(evidence = [], options = {}) {
   ].slice(0, MAX_ITEMS);
   const overflow = candidates.length - foreign.length;
   if (overflow) options.logger?.info?.('Foreign context gate overflow', { dropped: overflow });
-  if (!foreign.length) return { evidence, suggest: false, decisions: [] };
+  // Bounded diagnostics only (#1117): whether the judgement failed and how many were dropped
+  // unjudged; never the error, the prompt or any item.
+  const overflowCount = Math.min(overflow, 99);
+  if (!foreign.length)
+    return { evidence, suggest: false, decisions: [], judgementFailed: false, overflowCount };
   const judge = foreign.filter((item) => !item.named);
   const llm = options.llm || require('./llm-client');
   let judged = [];
+  let judgementFailed = false;
   if (judge.length)
     try {
       const { answerProviderSchema, toFacadeSchema } = require('./workbench-understanding');
@@ -199,9 +204,13 @@ async function gateForeignEvidence(evidence = [], options = {}) {
       );
       judged = Array.isArray((raw?.data || raw)?.items) ? (raw.data || raw).items : [];
     } catch (error) {
+      judgementFailed = true;
       options.logger?.warn?.(`Foreign context gate failed: ${error.message}`);
     }
   const decision = new Map(judged.map((row) => [judge[row.index], row]));
+  // A missing or unrecognised row is a failed judgement too; it still falls closed to unrelated.
+  if (judge.some((item) => !DECISIONS.includes(decision.get(item)?.decision)))
+    judgementFailed = true;
   const replaced = new Map();
   const lessons = [];
   let suggest = false;
@@ -230,7 +239,7 @@ async function gateForeignEvidence(evidence = [], options = {}) {
   const kept = evidence.flatMap((hit, index) =>
     !foreignIndexes.has(index) ? [hit] : replaced.has(index) ? [replaced.get(index)] : []
   );
-  return { evidence: [...kept, ...lessons], suggest, decisions };
+  return { evidence: [...kept, ...lessons], suggest, decisions, judgementFailed, overflowCount };
 }
 
 module.exports = { SUGGESTION, foreignItem, gateForeignEvidence };

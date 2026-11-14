@@ -113,7 +113,16 @@ async function turn(loopHits, { message = 'Wie gehe ich bei der Rückmeldung vor
       (row) => row.doc.type === 'workbench_conversation_assistance'
     ).doc;
     const answerLog = logged.find(([text]) => text === 'Workbench answer evidence')?.[1];
-    return { result, stored, answerLog, logged };
+    // Every document the turn persisted: workbench stores plus case state and events.
+    const databases = [
+      ...Object.values(app.workbench).filter((value) => typeof value?.allDocs === 'function'),
+      app.router.db,
+      app.router.eventsDb,
+    ].filter((db) => typeof db?.allDocs === 'function');
+    const persisted = [];
+    for (const db of databases)
+      persisted.push(...(await db.allDocs({ include_docs: true })).rows.map((row) => row.doc));
+    return { result, stored, answerLog, logged, persisted };
   } finally {
     await app.cleanup();
   }
@@ -121,11 +130,43 @@ async function turn(loopHits, { message = 'Wie gehe ich bei der Rückmeldung vor
 
 const answerInput = () => answerPrompts.join('\n');
 
+// Response-only context-use summary (#1117): closed scalar keys, never persisted.
+const { KEYS: SUMMARY_KEYS } = require('../src/workbench-context-use-summary');
+function expectResponseOnlySummary({ result, persisted, logged }) {
+  const summary = result.contextUseSummary;
+  expect(Object.keys(summary).sort()).toEqual([...SUMMARY_KEYS].sort());
+  for (const value of Object.values(summary))
+    expect(['string', 'number', 'boolean']).toContain(typeof value);
+  expect(summary.foreignContentExposed).toBe(false);
+  expect(JSON.stringify(summary)).not.toMatch(/SENTINEL|ADMITTED|Kormoran|conv-own/);
+  expect(persisted.length).toBeGreaterThan(0);
+  const docs = JSON.stringify(persisted);
+  expect(docs).not.toContain('contextUseSummary');
+  expect(docs).not.toContain('foreignContentExposed');
+  expect(JSON.stringify(logged)).not.toContain('foreignContentExposed');
+  return summary;
+}
+
 beforeEach(() => {
   manifest.projectManifestAnswer.mockImplementation(
     jest.requireActual('../src/project-manifest-evidence').projectManifestAnswer
   );
 });
+test('a failed loop judgement is reported fail-closed with a human privacy review', async () => {
+  process.env.WORKBENCH_KNOWLEDGE_LOOP = 'all';
+  mockModels({ gate: { items: [] } });
+  const turnResult = await turn([foreignHit('SENTINEL-FOREIGN-HIT ohne Urteil.')]);
+  expect(answerInput()).not.toContain('SENTINEL-FOREIGN-HIT');
+  expect(expectResponseOnlySummary(turnResult)).toMatchObject({
+    evaluatedForeignCount: 1,
+    unrelatedCount: 1,
+    withheldCount: 1,
+    knowledgeLoopAdmittedCount: 0,
+    reviewState: 'judgement_failed_closed',
+    nextSafeGate: 'human_privacy_review',
+  });
+});
+
 afterEach(() => {
   delete process.env.WORKBENCH_KNOWLEDGE_LOOP;
   delete process.env.WORKBENCH_CONVERSATION_CORE;
@@ -141,13 +182,49 @@ test('loop off: the stored turn keeps the answer and retrieval as before', async
   expect(stored.retrieval).not.toHaveProperty('knowledgeLoop');
 });
 
+test('loop off and no foreign material: the summary reports current context only', async () => {
+  mockModels();
+  const turnResult = await turn([ownHit]);
+  expect(expectResponseOnlySummary(turnResult)).toMatchObject({
+    activeConversationIncluded: true,
+    evaluatedForeignCount: 0,
+    withheldCount: 0,
+    knowledgeLoopAttemptedCount: 0,
+    suggestionShown: false,
+    reviewState: 'current_context_only',
+    nextSafeGate: 'continue_current_case',
+  });
+});
+
 test('loop hits pass the final gate; the stored turn and logs keep no loop content', async () => {
   process.env.WORKBENCH_KNOWLEDGE_LOOP = 'all';
   mockModels({ gate: { items: [{ index: 0, decision: 'unrelated', lesson: '' }] } });
-  const { stored, answerLog, logged } = await turn([
+  const turnResult = await turn([
     ownHit,
     foreignHit('SENTINEL-FOREIGN-HIT anderer Vorgang mit Rückmeldung.'),
   ]);
+  const { stored, answerLog, logged } = turnResult;
+  // The response summary reflects the final loop gate: one unrelated foreign hit withheld.
+  expect(expectResponseOnlySummary(turnResult)).toEqual({
+    policyVersion: 'ctx-01-v1+final-evidence-gate-1',
+    activeConversationIncluded: true,
+    selectedCaseIncluded: expect.any(Boolean),
+    evaluatedForeignCount: 1,
+    linkedCount: 0,
+    patternCount: 0,
+    comparableCount: 0,
+    unrelatedCount: 1,
+    withheldCount: 1,
+    knowledgeLoopAttemptedCount: 2,
+    knowledgeLoopAdmittedCount: 1,
+    knowledgeLoopWithheldCount: 1,
+    knowledgeLoopFailedCount: 1,
+    knowledgeSourceClassCount: 2,
+    suggestionShown: false,
+    foreignContentExposed: false,
+    reviewState: 'foreign_context_bounded',
+    nextSafeGate: 'continue_current_case',
+  });
   expect(lookups.sort()).toEqual(['knowledge-gateway', 'knowledge-rag']);
   // Admitted own material reaches the answer; the unrelated foreign hit does not.
   expect(answerInput()).toContain('ADMITTED-LOOP-FACT');
@@ -182,8 +259,14 @@ test('a lesson repeating a foreign name pair reaches neither answer nor stored t
       ],
     },
   });
-  const { stored } = await turn([foreignHit('Im Vorgang Spur Kormoran fehlte die Rückmeldung.')]);
+  const turnResult = await turn([foreignHit('Im Vorgang Spur Kormoran fehlte die Rückmeldung.')]);
+  const { stored } = turnResult;
   expect(answerInput()).not.toContain('Kormoran');
+  expect(expectResponseOnlySummary(turnResult)).toMatchObject({
+    patternCount: 1,
+    withheldCount: 1,
+    knowledgeLoopAdmittedCount: 0,
+  });
   // Nothing of the loop was admitted, so the stored answer may stay; the lesson is not in it.
   expect(JSON.stringify(stored)).not.toMatch(/Kormoran|SENTINEL-FOREIGN/);
 });
@@ -198,8 +281,12 @@ test('a generic lesson may reach the answer as experience; its origin is not sto
       ],
     },
   });
-  const { stored } = await turn([foreignHit('SENTINEL-FOREIGN-HIT Rückmeldung blieb aus.')]);
+  const turnResult = await turn([foreignHit('SENTINEL-FOREIGN-HIT Rückmeldung blieb aus.')]);
+  const { stored } = turnResult;
   expect(answerInput()).toContain('GENERIC-LESSON');
+  const summary = expectResponseOnlySummary(turnResult);
+  expect(JSON.stringify(summary)).not.toContain('GENERIC-LESSON');
+  expect(summary).toMatchObject({ patternCount: 1, linkedCount: 0, knowledgeLoopAdmittedCount: 1 });
   expect(answerInput()).not.toContain('SENTINEL-FOREIGN-HIT');
   expect(JSON.stringify(stored)).not.toMatch(/SENTINEL|GENERIC-LESSON/);
 });

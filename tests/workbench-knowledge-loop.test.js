@@ -150,7 +150,27 @@ test('no loop candidates or a malformed loop result admit nothing', async () => 
     expect(result.evidence).toEqual([]);
     expectClosedSummary(result.summary);
     expect(result.summary.judgement).toBe('none');
+    expect(result.gate).toEqual({ decisions: [], judgementFailed: false, overflowCount: 0 });
   }
+});
+
+test('the final gate exposes only decision classes and bounded failure counts (#1117)', async () => {
+  const unrelated = await admitLoopEvidence(
+    { evidence: [own, foreign()], trace: [] },
+    options(gateLlm({ items: [{ index: 0, decision: 'unrelated', lesson: '' }] }))
+  );
+  expect(unrelated.gate).toEqual({
+    decisions: ['unrelated'],
+    judgementFailed: false,
+    overflowCount: 0,
+  });
+  const failed = await admitLoopEvidence(
+    { evidence: [foreign()], trace: [] },
+    options(gateLlm(new Error('SENTINEL-GATE-ERROR')))
+  );
+  expect(failed.evidence).toEqual([]);
+  expect(failed.gate.judgementFailed).toBe(true);
+  expect(JSON.stringify(failed.gate)).not.toMatch(/SENTINEL/);
 });
 
 test('own-conversation hits pass without a judgement and are marked answer-only', async () => {
