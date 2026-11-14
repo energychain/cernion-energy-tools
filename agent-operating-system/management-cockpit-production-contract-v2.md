@@ -1,6 +1,6 @@
 # Management-Cockpit: Produktiver Betriebsvertrag v2
 
-Stand: 2026-11-10
+Stand: 2026-11-14
 Status: verbindlicher aktueller Betriebsvertrag
 Maschinenlesbare Fassung: `../hitl-cockpit/config/production-contract.json`
 
@@ -95,6 +95,20 @@ Der produktive Matrix-Sender ist `@hermes-stromdao:matrix.stromdao.de`. Ein Hand
 - aktiven Aktionsklassen;
 - `aligned` und einer Liste abweichender Felder.
 
+Die Management-Read-API enthält zusätzlich einen sanitisierten Projektionszustand mit
+`lastAttempt`, `lastSuccess`, Alter, Lag, Quellabdeckung, Rückstand und ausschließlich
+allowlist-basierten Fehlercodes. Die Projektion läuft als eigener beaufsichtigter Prozess mit
+einem Start-zu-Start-Intervall von höchstens drei Minuten und einem harten Laufzeitbudget. Jeder
+Lauf verwendet einen persistenten Lock und Checkpoint. Eine neue Projektion wird in einer
+separaten Datenbank aufgebaut, auf Schema, Integrität und Datenschutzgrenzen geprüft und erst
+danach atomar als neue Last-Known-Good-Projektion aktiviert.
+
+Unveränderte Quellen werden anhand ihres deterministischen Fingerprints ohne erneuten
+Projektionsaufbau bestätigt. Quelländerungen während eines Laufs, Teilfehler, Budgetüberschreitung
+oder fehlende Quellen ersetzen die letzte gültige Projektion nicht. Sie werden als `stale` oder
+`degraded` sichtbar. Bestätigte Assistant-Writes und Legacy-HITL-Writes brechen bei veralteter,
+beeinträchtigter oder nicht lesbarer Projektion fail-closed ab.
+
 Die Health-Antwort enthält keine Policy-Dateipfade, Transportpfade, Tokens, Cookies oder Matrix-Zugangsdaten. `aligned=false` ist ein Betriebsfehler und verbietet die Behauptung, die Runtime entspreche diesem Vertrag. Der Prozess darf für Diagnose und Rückfall weiterhin erreichbar bleiben.
 
 ## 7. Produktiver Nachweis
@@ -145,6 +159,8 @@ Assistant-Writes und Matrix-Handoff werden sofort deaktiviert bei:
 - falschem oder nicht belegtem Matrix-Raum;
 - Authentifizierungs- oder Origin-Bypass;
 - beschädigter Assistant-Datenbank;
+- veralteter oder beeinträchtigter Managementprojektion;
+- wiederholter Budgetüberschreitung oder fehlender Projektionsquelle;
 - `operatingStatus.aligned=false` nach einer beabsichtigten Produktionsaktivierung.
 
 Containment sichert zuerst Evidenz und verhindert weitere Nebenwirkungen. Ein globales Restore der Quellboards ist ausgeschlossen.

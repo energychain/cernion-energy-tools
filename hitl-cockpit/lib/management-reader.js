@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { buildProjectionHealth } = require('./projection-health');
 
 const PRIVATE_BOARD = 'twl-netze-private';
 const PRIVATE_SENSITIVITIES = [
@@ -45,10 +46,22 @@ def like_term(value):
     escaped=value.lower().replace('!', '!!').replace('%', '!%').replace('_', '!_')
     return '%'+escaped+'%'
 
+def has_table(name):
+    return con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone() is not None
+
+def health_rows():
+    runs=rows('SELECT * FROM projection_runs ORDER BY started_at DESC, rowid DESC LIMIT 20') if has_table('projection_runs') else []
+    sources=rows('SELECT * FROM projection_source_health ORDER BY source_id') if has_table('projection_source_health') else []
+    return runs,sources
+
 operation=request['operation']
 if operation == 'metadata':
     board=con.execute('SELECT COUNT(*), COALESCE(SUM(source_count),0), COALESCE(MAX(projected_at),0) FROM projection_boards').fetchone()
-    output={'boardCount':board[0], 'sourceCount':board[1], 'projectedAt':board[2]}
+    health_runs,health_sources=health_rows()
+    output={'boardCount':board[0], 'sourceCount':board[1], 'projectedAt':board[2], 'runs':health_runs, 'sources':health_sources}
+elif operation == 'health':
+    health_runs,health_sources=health_rows()
+    output={'runs':health_runs, 'sources':health_sources}
 elif operation in ('overview', 'summary'):
     decision_filter=open_decision+" AND d.source_board != ? AND (t.topic_id IS NULL OR ("+public_topic.replace('sensitivity','t.sensitivity').replace('source_task_refs_json','t.source_task_refs_json')+"))"
     decision_params=[private_board]+private_sensitivities+['%"board":"'+private_board+'"%']
@@ -242,7 +255,20 @@ class ManagementReader {
       error.code = 'PROJECTION_READ_FAILED';
       throw error;
     }
-    return normalizeResult(JSON.parse(result.stdout));
+    const output = normalizeResult(JSON.parse(result.stdout));
+    if (operation === 'metadata' || operation === 'health') {
+      const health = buildProjectionHealth({
+        now: request.now,
+        staleAfterSeconds: options.staleAfterSeconds,
+        runs: output.runs,
+        sources: output.sources,
+      });
+      if (operation === 'health') return health;
+      delete output.runs;
+      delete output.sources;
+      output.health = health;
+    }
+    return output;
   }
 }
 

@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { ManagementStore } = require('../lib/management-store');
+const { ManagementReader } = require('../lib/management-reader');
 const { classifyShadow } = require('../lib/projector');
 
 const tempDirectories = [];
@@ -26,14 +27,17 @@ afterEach(() => {
 test('migration is atomic and records PRAGMA user_version', () => {
   const database = tempDatabase();
   const store = new ManagementStore({ database });
-  assert.deepEqual(store.initialize(), { schemaVersion: 5 });
-  assert.equal(store.query('PRAGMA user_version')[0].user_version, 5);
+  assert.deepEqual(store.initialize(), { schemaVersion: 6 });
+  assert.equal(store.query('PRAGMA user_version')[0].user_version, 6);
   const tables = store
     .query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
     .map((row) => row.name);
   assert.ok(tables.includes('management_topics'));
   assert.ok(tables.includes('classification_audit'));
   assert.ok(tables.includes('digest_items'));
+  assert.ok(tables.includes('projection_runs'));
+  assert.ok(tables.includes('projection_source_health'));
+  assert.ok(tables.includes('projection_checkpoint'));
 
   const brokenDatabase = tempDatabase();
   const brokenStore = new ManagementStore({
@@ -42,7 +46,7 @@ test('migration is atomic and records PRAGMA user_version', () => {
   });
   assert.throws(() => brokenStore.initialize(), /syntax error/);
   const probe = new ManagementStore({ database: brokenDatabase });
-  assert.equal(probe.query('PRAGMA user_version')[0].user_version, 5);
+  assert.equal(probe.query('PRAGMA user_version')[0].user_version, 6);
   assert.equal(
     probe.query("SELECT count(*) AS count FROM sqlite_master WHERE name='should_rollback'")[0]
       .count,
@@ -50,7 +54,7 @@ test('migration is atomic and records PRAGMA user_version', () => {
   );
 });
 
-test('schema v4 upgrades to v5 without duplicate-column failure', () => {
+test('schema v4 upgrades to v6 without duplicate-column failure', () => {
   const database = tempDatabase();
   const store = new ManagementStore({ database });
   store.initialize();
@@ -64,14 +68,44 @@ test('schema v4 upgrades to v5 without duplicate-column failure', () => {
     { encoding: 'utf8' }
   );
   assert.equal(downgrade.status, 0, downgrade.stderr);
-  assert.deepEqual(store.initialize(), { schemaVersion: 5 });
-  assert.equal(store.query('PRAGMA user_version')[0].user_version, 5);
+  assert.deepEqual(store.initialize(), { schemaVersion: 6 });
+  assert.equal(store.query('PRAGMA user_version')[0].user_version, 6);
   assert.equal(
     store.query(
       "SELECT count(*) AS count FROM sqlite_master WHERE type='table' AND name='digest_items'"
     )[0].count,
     1
   );
+});
+
+test('genuine v5 fixture remains health-readable before idempotent startup migration', () => {
+  const database = tempDatabase();
+  const store = new ManagementStore({ database });
+  store.initialize();
+  const downgrade = spawnSync(
+    'python3',
+    [
+      '-c',
+      [
+        'import sqlite3,sys',
+        'con=sqlite3.connect(sys.argv[1])',
+        "con.execute('DROP TABLE projection_runs')",
+        "con.execute('DROP TABLE projection_source_health')",
+        "con.execute('DROP TABLE projection_checkpoint')",
+        "con.execute('PRAGMA user_version=5')",
+        'con.commit()',
+      ].join(';'),
+      database,
+    ],
+    { encoding: 'utf8' }
+  );
+  assert.equal(downgrade.status, 0, downgrade.stderr);
+  const health = new ManagementReader({ database }).read('health', { staleAfterSeconds: 300 });
+  assert.equal(health.status, 'stale');
+  assert.equal(health.lastAttemptAt, null);
+  assert.deepEqual(store.initialize(), { schemaVersion: 6 });
+  assert.deepEqual(store.initialize(), { schemaVersion: 6 });
+  assert.equal(store.query('PRAGMA user_version')[0].user_version, 6);
 });
 
 test('shadow classification writes only classification_audit', () => {
@@ -126,7 +160,7 @@ test('shadow classification writes only classification_audit', () => {
   assert.deepEqual(after, before);
 });
 
-test('schema v1 source mappings migrate through v5 digest, context links and agent briefs', () => {
+test('schema v1 source mappings migrate through v6 health, digest, context links and briefs', () => {
   const database = tempDatabase();
   const setup = spawnSync(
     'python3',
@@ -147,7 +181,7 @@ test('schema v1 source mappings migrate through v5 digest, context links and age
   assert.equal(setup.status, 0, setup.stderr);
 
   const store = new ManagementStore({ database });
-  assert.deepEqual(store.initialize(), { schemaVersion: 5 });
+  assert.deepEqual(store.initialize(), { schemaVersion: 6 });
   assert.deepEqual(store.query('SELECT * FROM projection_objects'), [
     {
       object_type: 'topic',

@@ -90,6 +90,7 @@ function createManagementApi(options) {
       '/api/management/summary': 'summary',
       '/api/management/overview': 'overview',
       '/api/management/metadata': 'metadata',
+      '/api/management/health': 'health',
       '/api/management/decisions': 'decisions',
       '/api/management/departments': 'departments',
       '/api/management/topics': 'topics',

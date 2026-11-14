@@ -10,6 +10,8 @@ const {
 } = require('./lib/kanban-source');
 const { createManagementApi, decodeId } = require('./lib/management-api');
 const { ManagementReader } = require('./lib/management-reader');
+const { ManagementStore } = require('./lib/management-store');
+const { assertFreshForWrite } = require('./lib/projection-health');
 const { createSessionAuth, secureHeaders } = require('./lib/session-auth');
 const { createAssistantApi } = require('./lib/assistant-api');
 const { createAssistantActionExecutor } = require('./lib/assistant-action-executor');
@@ -53,6 +55,9 @@ const sessionAuth = createSessionAuth({
   allowLegacyBearer:
     String(process.env.HITL_COCKPIT_ALLOW_LEGACY_BEARER || 'false').toLowerCase() === 'true',
 });
+if (MANAGEMENT_COCKPIT_ENABLED && fs.existsSync(MANAGEMENT_DATABASE)) {
+  new ManagementStore({ database: MANAGEMENT_DATABASE }).initialize();
+}
 const managementReader = new ManagementReader({ database: MANAGEMENT_DATABASE });
 const managementApi = createManagementApi({
   reader: managementReader,
@@ -114,6 +119,7 @@ if (assistantConfig.enabled) {
 const assistantApi = createAssistantApi({
   config: assistantConfig,
   service: assistantService,
+  freshnessGuard: () => assertFreshForWrite(managementReader.read('health')),
   trustProxy: String(process.env.HITL_COCKPIT_TRUST_PROXY || 'false').toLowerCase() === 'true',
 });
 
@@ -302,6 +308,20 @@ function createServerKanbanAdapter() {
   };
 }
 
+function guardLegacyWrite(res) {
+  try {
+    assertFreshForWrite(managementReader.read('health'));
+    return true;
+  } catch (error) {
+    if (['PROJECTION_STALE', 'PROJECTION_DEGRADED'].includes(error.code)) {
+      json(res, 409, { ok: false, error: error.code });
+    } else {
+      json(res, 503, { ok: false, error: 'management_projection_unavailable' });
+    }
+    return false;
+  }
+}
+
 async function handleAction(req, res, board, taskId, action) {
   if (!validBoard(board) || !validTask(taskId))
     return json(res, 400, { ok: false, error: 'invalid_board_or_task' });
@@ -415,7 +435,10 @@ async function handler(req, res) {
     const m = url.pathname.match(
       /^\/api\/tasks\/([^/]+)\/([^/]+)\/(approve|reject|question|close)$/
     );
-    if (m && req.method === 'POST') return handleAction(req, res, m[1], m[2], m[3]);
+    if (m && req.method === 'POST') {
+      if (!guardLegacyWrite(res)) return;
+      return handleAction(req, res, m[1], m[2], m[3]);
+    }
     if (url.pathname === '/management' && !MANAGEMENT_COCKPIT_ENABLED)
       return json(res, 404, { ok: false, error: 'management_cockpit_disabled' });
     const file =

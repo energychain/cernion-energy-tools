@@ -205,4 +205,35 @@ CREATE TABLE IF NOT EXISTS digest_items (
 CREATE INDEX IF NOT EXISTS digest_items_observed
   ON digest_items(observed_at DESC, digest_id);
 
-PRAGMA user_version = 5;
+CREATE TABLE IF NOT EXISTS projection_runs (
+  run_id TEXT PRIMARY KEY,
+  started_at INTEGER NOT NULL,
+  completed_at INTEGER,
+  status TEXT NOT NULL,
+  source_count INTEGER NOT NULL DEFAULT 0,
+  projected_count INTEGER NOT NULL DEFAULT 0,
+  error_count INTEGER NOT NULL DEFAULT 0,
+  lag_seconds INTEGER,
+  fingerprint TEXT,
+  error_code TEXT
+);
+ALTER TABLE projection_runs ADD COLUMN error_code TEXT;
+CREATE INDEX IF NOT EXISTS projection_runs_started ON projection_runs(started_at DESC);
+
+CREATE TABLE IF NOT EXISTS projection_source_health (
+  source_id TEXT PRIMARY KEY,
+  source_type TEXT NOT NULL,
+  observed_at INTEGER NOT NULL,
+  last_event_at INTEGER,
+  status TEXT NOT NULL,
+  error_code TEXT,
+  source_count INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS projection_checkpoint (
+  checkpoint_key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+PRAGMA user_version = 6;

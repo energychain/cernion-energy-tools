@@ -1,7 +1,7 @@
 # AgentOS HITL- und Management-Cockpit
 
-Stand: 2026-11-11
-Status: produktiver interner Low-Risk-Betrieb; AP 17/18 im Integrations-Worktree konsolidiert
+Stand: 2026-11-14
+Status: produktiver interner Low-Risk-Betrieb; AP 19 implementiert und für den beaufsichtigten Produktionsbetrieb vorgesehen
 
 ## Zweck
 
@@ -60,6 +60,7 @@ Das Cockpit besitzt keine zusätzlichen npm-Abhängigkeiten. Es verwendet Node-C
 hitl-cockpit/
   bin/
     rebuild-projection.js
+    run-projection-loop.js
     export-telemetry.js
     process-wakeups.js
     release-preflight.js
@@ -96,6 +97,9 @@ hitl-cockpit/
 | `MANAGEMENT_COCKPIT_SHADOW_ONLY`   | `true`                                               | muss in v1 `true` bleiben                          |
 | `MANAGEMENT_COCKPIT_DEFAULT_VIEW`  | `legacy`                                             | Konfigurationshinweis; `/` bleibt Legacy           |
 | `MANAGEMENT_COCKPIT_DATABASE`      | `$HERMES_HOME/management-cockpit/management.db`      | Projektionsdatenbank                               |
+| `PROJECTION_INTERVAL_SECONDS`       | `120`                                                | Start-zu-Start-Intervall, maximal 180 Sekunden     |
+| `PROJECTION_BUDGET_SECONDS`         | `100`                                                | absolutes Laufzeitbudget eines Projektionslaufs    |
+| `PROJECTION_BACKOFF_SECONDS`        | `30`                                                 | Backoff nach Fehler oder belegtem Lock             |
 | `HITL_COCKPIT_SESSION_TTL_SECONDS` | `1800`                                               | 60 bis 28.800 Sekunden                             |
 | `HITL_COCKPIT_ALLOW_LEGACY_BEARER` | `false`                                              | befristeter Übergangsclient, nicht Browserstandard |
 | `AGENTOS_SCOPE_LEDGER`             | `$HOME/.hermes/agent-os-scoped-approval-ledger.json` | Scope-Ledger-Override                              |
@@ -104,6 +108,14 @@ hitl-cockpit/
 | `COCKPIT_PRODUCTION_CONTRACT`      | `config/production-contract.json`                    | secret-freier maschinenlesbarer Betriebsvertrag    |
 
 Bei abweichendem `--hermes-home` muss der Scope-Ledger-Pfad explizit mit `--scope-ledger` angegeben werden, wenn er nicht unter `$HOME/.hermes` liegt.
+
+Der versionierte PM2-Eintrag `ecosystem.config.js` betreibt die Projektion als separaten Prozess:
+
+```bash
+pm2 start ecosystem.config.js --only agentos-hitl-projection-loop
+```
+
+Der Supervisor startet jeden Lauf in einer eigenen Prozessgruppe, beendet ihn nach spätestens 100 Sekunden hart und persistiert `RUN_BUDGET_EXCEEDED`, ohne die letzte gültige Projektion zu ersetzen. `kill_timeout` liegt mit 110 Sekunden über dem Laufzeitbudget; `SIGTERM` beendet einen aktiven Kindprozess und danach die Schleife.
 
 ## Lokale Verifikation
 
@@ -126,7 +138,7 @@ Die Suite umfasst zusätzlich den Rhajaina Assistant Channel, Kontext-Attachment
 
 ## Projektionsdatenbank
 
-Aktuelles Schema: `PRAGMA user_version = 5`.
+Aktuelles Schema: `PRAGMA user_version = 6`.
 
 Standardpfad:
 
@@ -135,6 +147,11 @@ Standardpfad:
 ```
 
 Die Datenbank enthält abgeleitete Topics, Decisions, Briefs, Outcomes, Wakeups, Classification Audit, Digest Items, Projection Runs/Boards/Objects und Cockpit Events. Sie ist kein System of Record.
+
+Der Schreibschutz des Assistenzkanals bewertet die Projektionsfrische konservativ global. Eine
+Bestätigung wird bei einer veralteten oder beeinträchtigten Projektion mit `409` und bei fehlender,
+belegter oder nicht lesbarer Projektion mit einer bereinigten `503` abgewiesen. Eine spätere
+quellenspezifische Freigabe setzt eine serverautorisierte Quellenbindung des Vorschlags voraus.
 
 ### Sicherer Quelltest ohne Persistenz
 
@@ -177,7 +194,7 @@ Ein vollständiger Rebuild bleibt die verbindliche Rekonsolidierung für Topic-A
 
 1. Befehl endet mit Exit 0 und `boardErrors=0` oder vollständig erklärten Fehlern.
 2. `PRAGMA integrity_check` ergibt `ok`.
-3. `PRAGMA user_version` ist 5.
+3. `PRAGMA user_version` ist 6.
 4. private/TWL-Quellen sind nicht enthalten.
 5. keine doppelten offenen Decision-IDs.
 6. Outcomes besitzen Typ, Evidenz und Zeitpunkt.

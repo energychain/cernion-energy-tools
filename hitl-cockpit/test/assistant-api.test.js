@@ -79,6 +79,73 @@ test('disabled API exposes sanitized config only and all assistant routes return
   assert.equal((await handle(api, req('GET', '/api/assistant/conversations'))).status, 404);
 });
 
+test('confirming a write fails closed when projection freshness guard rejects it', async () => {
+  const service = serviceFixture();
+  const api = createAssistantApi({
+    config: {
+      enabled: true,
+      mode: 'low_risk',
+      writesEnabled: true,
+      matrixHandoffEnabled: false,
+      limits: { maxMessageChars: 4000, maxContextChars: 12000 },
+    },
+    service,
+    freshnessGuard() {
+      const error = new Error('management_projection_not_fresh');
+      error.code = 'PROJECTION_STALE';
+      error.status = 409;
+      throw error;
+    },
+  });
+  const result = await handle(
+    api,
+    req(
+      'POST',
+      '/api/assistant/proposals/proposal_11111111-1111-4111-8111-111111111111/confirm',
+      {},
+      { origin: 'https://cockpit.test' }
+    )
+  );
+  assert.deepEqual(result, { status: 409, body: { ok: false, error: 'PROJECTION_STALE' } });
+  assert.equal(service.calls.length, 0);
+});
+
+test('freshness guard sanitizes missing, busy and read failures as 503', async () => {
+  for (const code of ['PROJECTION_UNAVAILABLE', 'PROJECTION_BUSY', 'PROJECTION_READ_FAILED']) {
+    const service = serviceFixture();
+    const api = createAssistantApi({
+      config: {
+        enabled: true,
+        mode: 'low_risk',
+        writesEnabled: true,
+        matrixHandoffEnabled: false,
+        limits: { maxMessageChars: 4000, maxContextChars: 12000 },
+      },
+      service,
+      freshnessGuard() {
+        const error = new Error('raw private database path');
+        error.code = code;
+        throw error;
+      },
+    });
+    const result = await handle(
+      api,
+      req(
+        'POST',
+        '/api/assistant/proposals/proposal_11111111-1111-4111-8111-111111111111/confirm',
+        {},
+        { origin: 'https://cockpit.test' }
+      )
+    );
+    assert.deepEqual(result, {
+      status: 503,
+      body: { ok: false, error: 'management_projection_unavailable' },
+    });
+    assert.equal(JSON.stringify(result).includes('private database'), false);
+    assert.equal(service.calls.length, 0);
+  }
+});
+
 test('supports conversation/message pagination and polling contract with strict browser payload', async () => {
   const service = serviceFixture();
   const api = createAssistantApi({

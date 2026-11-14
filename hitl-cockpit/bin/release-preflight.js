@@ -7,7 +7,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const RELEASE_PREFIX = 'hitl-cockpit/';
-const RELEASE_TOP_LEVEL_FILES = new Set(['README.md', 'package.json', 'server.js']);
+const RELEASE_TOP_LEVEL_FILES = new Set([
+  'README.md',
+  'ecosystem.config.js',
+  'package.json',
+  'server.js',
+]);
 const RELEASE_DIRECTORIES = ['bin/', 'config/', 'lib/', 'public/'];
 const RELEASE_TEXT_EXTENSIONS = new Set(['.css', '.html', '.js', '.json', '.md', '.sql']);
 const DOCUMENTED_UNTRACKED_EXCEPTIONS = new Set([

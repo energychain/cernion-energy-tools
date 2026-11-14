@@ -7,12 +7,14 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const net = require('node:net');
+const { ManagementStore } = require('../lib/management-store');
 
 const cockpitRoot = path.resolve(__dirname, '..');
 const bootstrapToken = 'ap14-bootstrap-token-with-entropy';
 let baseUrl;
 let child;
 let tempRoot;
+let sessionCookie;
 
 function allocatePort() {
   return new Promise((resolve, reject) => {
@@ -41,6 +43,9 @@ async function waitForServer() {
 before(async () => {
   tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hitl-cockpit-ap14-'));
   fs.mkdirSync(path.join(tempRoot, 'kanban', 'boards'), { recursive: true });
+  new ManagementStore({
+    database: path.join(tempRoot, 'management-cockpit', 'management.db'),
+  }).initialize();
   const port = await allocatePort();
   baseUrl = `http://127.0.0.1:${port}`;
   child = spawn(process.execPath, ['server.js'], {
@@ -78,6 +83,7 @@ test('server bootstraps once, removes token from Location and accepts the sessio
   assert.match(setCookie, /Secure/);
   assert.match(setCookie, /SameSite=Strict/);
   const cookie = setCookie.split(';', 1)[0];
+  sessionCookie = cookie;
 
   const page = await fetch(`${baseUrl}${bootstrap.headers.get('location')}`, {
     headers: { cookie },
@@ -90,6 +96,34 @@ test('server bootstraps once, removes token from Location and accepts the sessio
   const api = await fetch(`${baseUrl}/api/health`, { headers: { cookie } });
   assert.equal(api.status, 200);
   assert.equal((await api.json()).ok, true);
+});
+
+test('legacy task writes fail closed on stale or unavailable projection', async () => {
+  const stale = await fetch(`${baseUrl}/api/tasks/public/t_public01/approve`, {
+    method: 'POST',
+    headers: { cookie: sessionCookie, 'content-type': 'application/json' },
+    body: '{}',
+  });
+  assert.equal(stale.status, 409);
+  assert.equal((await stale.json()).error, 'PROJECTION_STALE');
+
+  const database = path.join(tempRoot, 'management-cockpit', 'management.db');
+  const unavailable = `${database}.unavailable`;
+  fs.renameSync(database, unavailable);
+  try {
+    const response = await fetch(`${baseUrl}/api/tasks/public/t_public01/approve`, {
+      method: 'POST',
+      headers: { cookie: sessionCookie, 'content-type': 'application/json' },
+      body: '{}',
+    });
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), {
+      ok: false,
+      error: 'management_projection_unavailable',
+    });
+  } finally {
+    fs.renameSync(unavailable, database);
+  }
 });
 
 test('server rejects query-token API authentication and legacy bearer by default', async () => {

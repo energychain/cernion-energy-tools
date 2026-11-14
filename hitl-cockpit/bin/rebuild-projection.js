@@ -6,6 +6,7 @@ const { loadProjectionSource, defaultManagementDatabase } = require('../lib/kanb
 const { readRoomRegistry } = require('../lib/context-links');
 const { ScopedApprovalReader } = require('../lib/scoped-approval-reader');
 const { ManagementStore } = require('../lib/management-store');
+const { ProjectionLock } = require('../lib/projection-runner');
 const { readArtifactRegistry } = require('../lib/topic-projector');
 const {
   buildClassificationAudit,
@@ -110,10 +111,16 @@ function main(argv = process.argv.slice(2)) {
   }
 
   const database = path.resolve(options.database || defaultManagementDatabase(hermesHome));
-  const store = new ManagementStore({ database });
-  store.initialize();
-  project(store, source, projectionOptions);
-  if (options.shadow) classifyShadow(store, source, options);
+  const lock = new ProjectionLock(`${database}.projection.lock`);
+  if (!lock.acquire()) throw new Error('PROJECTION_LOCKED');
+  try {
+    const store = new ManagementStore({ database });
+    store.initialize();
+    project(store, source, projectionOptions);
+    if (options.shadow) classifyShadow(store, source, options);
+  } finally {
+    lock.release();
+  }
   console.log(
     JSON.stringify(
       {
@@ -139,7 +146,12 @@ if (require.main === module) {
   try {
     main();
   } catch (error) {
-    console.error(JSON.stringify({ ok: false, error: error.message }));
+    console.error(
+      JSON.stringify({
+        ok: false,
+        error: /^[A-Z0-9_]+$/.test(error.message) ? error.message : 'PROJECTION_REBUILD_FAILED',
+      })
+    );
     process.exitCode = 1;
   }
 }

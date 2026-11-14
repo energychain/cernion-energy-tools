@@ -1068,3 +1068,14 @@ footer a {
     transition: none !important;
   }
 }
+.projection-meta.projection-fresh {
+  border-left: 4px solid #2e7d32;
+}
+
+.projection-meta.projection-degraded {
+  border-left: 4px solid #ed8b00;
+}
+
+.projection-meta.projection-stale {
+  border-left: 4px solid #b3261e;
+}

@@ -10,6 +10,14 @@ function response(status, body) {
   return { status, body };
 }
 function apiError(error) {
+  if (
+    ['PROJECTION_UNAVAILABLE', 'PROJECTION_READ_FAILED', 'PROJECTION_BUSY'].includes(error.code)
+  ) {
+    return response(503, { ok: false, error: 'management_projection_unavailable' });
+  }
+  if (['PROJECTION_STALE', 'PROJECTION_DEGRADED'].includes(error.code)) {
+    return response(409, { ok: false, error: error.code });
+  }
   return response(error.status || 400, { ok: false, error: error.code || 'invalid_request' });
 }
 
@@ -63,6 +71,7 @@ function sameOrigin(req, trustProxy = false) {
 function createAssistantApi(options = {}) {
   const { config, service } = options;
   const trustProxy = options.trustProxy === true;
+  const freshnessGuard = options.freshnessGuard || null;
   const bodyLimit = options.bodyLimit || 16 * 1024;
   const policy = { windowMs: 60000, max: 30, maxBuckets: 1024, ...(options.rateLimit || {}) };
   const buckets = new Map();
@@ -212,6 +221,7 @@ function createAssistantApi(options = {}) {
           if (!config.writesEnabled) {
             return response(403, { ok: false, error: 'assistant_writes_disabled' });
           }
+          if (freshnessGuard) freshnessGuard();
           return response(200, {
             ok: true,
             ...(await service.confirmProposal(proposalId, {

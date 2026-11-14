@@ -5,7 +5,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const SCHEMA_PATH = path.join(__dirname, 'projection-schema.sql');
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 const PYTHON_STORE = String.raw`
 import json, os, sqlite3, sys
@@ -31,7 +31,7 @@ def migrate():
             for statement in statements:
                 try: con.execute(statement)
                 except sqlite3.OperationalError as error:
-                    if 'duplicate column name: source_refs_json' not in str(error): raise
+                    if 'duplicate column name:' not in str(error): raise
             con.commit()
         except Exception:
             con.rollback(); raise
@@ -97,6 +97,18 @@ elif action == 'audit':
     output={'schemaVersion':version,'written':len(request.get('rows', []))}
 elif action == 'query':
     output={'schemaVersion':version,'rows':[dict(row) for row in con.execute(request['sql'], request.get('params', [])).fetchall()]}
+elif action == 'projection_health':
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        run=request.get('run')
+        if run: insert_rows('projection_runs', [run])
+        if request.get('replaceSources'): con.execute('DELETE FROM projection_source_health')
+        for source in request.get('sources', []): insert_rows('projection_source_health', [source])
+        for checkpoint in request.get('checkpoints', []): insert_rows('projection_checkpoint', [checkpoint])
+        con.commit()
+    except Exception:
+        con.rollback(); raise
+    output={'schemaVersion':version,'written':True}
 else:
     raise RuntimeError('unknown store action')
 print(json.dumps(output, ensure_ascii=False))
@@ -144,6 +156,15 @@ class ManagementStore {
 
   query(sql, params = []) {
     return this.execute('query', { sql, params }).rows;
+  }
+
+  writeProjectionHealth(run, sources = [], checkpoints = [], options = {}) {
+    return this.execute('projection_health', {
+      run,
+      sources,
+      checkpoints,
+      replaceSources: options.replaceSources === true,
+    });
   }
 }
 

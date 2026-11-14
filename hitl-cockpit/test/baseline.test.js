@@ -7,6 +7,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const net = require('node:net');
+const { defaultManagementDatabase } = require('../lib/kanban-source');
+const { ProjectionRunner } = require('../lib/projection-runner');
 
 const cockpitRoot = path.resolve(__dirname, '..');
 const fixture = require('./fixtures/current-api-tasks.json');
@@ -111,6 +113,37 @@ before(async () => {
   createBoard(hermesHome, 'twl-netze-private', [
     { id: 't_private01', title: 'Private', status: 'blocked', block_kind: 'needs_input' },
   ]);
+  const projectedTask = {
+    id: 't_blocked01',
+    board: 'fixture-board',
+    title: 'Blocked',
+    body: '',
+    assignee: 'Felix',
+    status: 'blocked',
+    priority: 0,
+    created_by: 'fixture',
+    created_at: 1700000000,
+    started_at: null,
+    completed_at: null,
+    tenant: 'fixture',
+    result: null,
+    block_kind: 'needs_input',
+    project_id: null,
+    comments: [],
+    attachments: [],
+    reversibleInternal: true,
+  };
+  const projectionSource = {
+    generatedAt: Math.floor(Date.now() / 1000),
+    count: 1,
+    errors: [],
+    boards: [{ board: 'fixture-board', count: 1, items: [projectedTask] }],
+  };
+  const projection = new ProjectionRunner({
+    database: defaultManagementDatabase(hermesHome),
+    loadSource: () => projectionSource,
+  }).runOnce();
+  assert.equal(projection.status, 'success');
 
   const fakeHermes = path.join(tempRoot, 'fake-hermes.js');
   fs.writeFileSync(

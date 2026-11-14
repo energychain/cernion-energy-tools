@@ -755,14 +755,29 @@ function isMatureDecision(item) {
 async function loadMetadata() {
   try {
     const data = await api('/api/management/metadata');
-    const age = data.projectedAt
-      ? Math.max(0, Math.floor(Date.now() / 1000) - data.projectedAt)
-      : null;
-    byId('projection-meta').textContent =
-      `${data.boardCount} Quellen · Projektionsstand ${formatTime(data.projectedAt)}` +
-      (age !== null ? ` · ${Math.floor(age / 60)} Min. alt` : '');
+    const health = data.health || { status: 'stale', possiblyIncomplete: true };
+    const labels = { fresh: 'Aktuell', degraded: 'Beeinträchtigt', stale: 'Veraltet' };
+    const sourceErrors = (health.sourceErrors || [])
+      .map((source) => `${source.sourceId}: ${source.errorCode || source.status}`)
+      .join(' · ');
+    const meta = byId('projection-meta');
+    meta.className = `projection-meta projection-${health.status}`;
+    const coverage = health.coverage || { healthy: 0, total: 0, percent: 0 };
+    meta.textContent =
+      `${labels[health.status] || 'Unbekannt'} · ` +
+      `letzter Versuch ${formatTime(health.lastAttemptAt)} (${health.lastAttemptStatus || 'unbekannt'}) · ` +
+      `letzter Erfolg ${formatTime(health.lastSuccessAt || data.projectedAt)}` +
+      (health.ageSeconds !== null ? ` · ${Math.floor(health.ageSeconds / 60)} Min. alt` : '') +
+      (health.lagSeconds !== null ? ` · Lag ${health.lagSeconds} Sek.` : '') +
+      ` · Abdeckung ${coverage.healthy}/${coverage.total} (${coverage.percent} %)` +
+      (health.errorCount ? ` · ${health.errorCount} Fehler` : '') +
+      (health.lastAttemptErrorCode ? ` · ${health.lastAttemptErrorCode}` : '') +
+      (health.possiblyIncomplete ? ' · Lage möglicherweise unvollständig' : '') +
+      (sourceErrors ? ` · Quellenfehler: ${sourceErrors}` : '');
   } catch (cause) {
-    byId('projection-meta').textContent = `Projektion nicht verfügbar: ${cause.message}`;
+    const meta = byId('projection-meta');
+    meta.className = 'projection-meta projection-stale';
+    meta.textContent = `Lage möglicherweise unvollständig · Projektion nicht verfügbar: ${cause.message}`;
   }
 }
 
