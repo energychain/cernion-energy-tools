@@ -694,3 +694,80 @@ describe('case-work core: authority, decisions, withdrawn recommendations, limit
     });
   });
 });
+
+describe('corrected values (LON-A long dialogue)', () => {
+  const register = {
+    ref: 'n1',
+    kind: 'source_observed',
+    source: 'Register',
+    content: 'Versand am 14.03.',
+  };
+  const start = () =>
+    applyCaseUpdate(createCaseState(), {
+      evidence: [
+        register,
+        { ref: 'n2', kind: 'user_reported', source: 'Person', content: '13.03.' },
+      ],
+      crossEvidence: [
+        {
+          leftRef: 'n1',
+          rightRef: 'n2',
+          relation: 'outdated',
+          difference: '14.03. gegen 13.03.',
+          consequence: 'Suchfenster',
+          clarification: '',
+        },
+        {
+          leftRef: 'n1',
+          rightRef: 'n2',
+          relation: 'contradicts',
+          difference: 'Lokation',
+          consequence: 'Zuordnung',
+          clarification: 'prüfen',
+        },
+      ],
+      corrections: [
+        {
+          subject: 'Versanddatum des Zielvorgangs',
+          value: '13.03.2026',
+          replaces: '14.03.2026 laut Register',
+          correctedBy: 'Ausgangsjournal nach Angabe der Person',
+          evidenceRefs: ['n2'],
+        },
+      ],
+    });
+
+  test('the current value is listed with the replaced one; the decided difference leaves the comparison', () => {
+    const view = caseStateView(start());
+    expect(view.corrections).toEqual([
+      {
+        subject: 'Versanddatum des Zielvorgangs',
+        value: '13.03.2026',
+        replaces: '14.03.2026 laut Register',
+        correctedBy: 'Ausgangsjournal nach Angabe der Person',
+      },
+    ]);
+    expect(view.sourceComparison.map((row) => row.difference)).toEqual(['Lokation']);
+  });
+
+  test('a later correction of the same subject replaces the earlier one; empty entries are ignored', () => {
+    const state = applyCaseUpdate(start(), {
+      corrections: [
+        { subject: 'versanddatum des zielvorgangs', value: '12.03.2026', replaces: '13.03.2026' },
+        { subject: '', value: 'x' },
+        { subject: 'Lokation', value: '' },
+      ],
+    });
+    expect(caseStateView(state).corrections.map((row) => [row.subject, row.value])).toEqual([
+      ['versanddatum des zielvorgangs', '12.03.2026'],
+    ]);
+    expect(state.corrections[0].evidenceIds).toEqual([]);
+    expect(start().corrections[0].evidenceIds).toEqual(['E2']);
+  });
+
+  test('answer rules and the review know corrections and values without origin', () => {
+    const { CASE_VIEW_RULES } = require('../src/case-state');
+    expect(CASE_VIEW_RULES.join(' ')).toMatch(/corrections gelten/u);
+    expect(CASE_VIEW_RULES.join(' ')).toMatch(/noch festzulegen/u);
+  });
+});
