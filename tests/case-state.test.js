@@ -785,3 +785,18 @@ test('the case review receives the evidence with its content, bounded', async ()
   expect(prompt.evidence[0].content.length).toBeLessThanOrEqual(1200);
   expect(prompt.instruction).toMatch(/Angaben, die dort stehen/u);
 });
+
+test('a reading variant is no correction; open checks stay; negative searches stay bounded', async () => {
+  const { CASE_VIEW_RULES } = require('../src/case-state');
+  const llm = {
+    generateStructured: jest.fn(async () => ({})),
+  };
+  await updateCaseState(createCaseState(), { message: 'x' }, { llm });
+  const instruction = JSON.parse(llm.generateStructured.mock.calls[0][1]).instruction;
+  // LON-A: an OCR reading became the "valid" value and replaced the original reference.
+  expect(instruction).toMatch(/OCR-Ergebnis, eine Schreibvariante.*ist nie eine Korrektur/u);
+  expect(instruction).toMatch(/Noch nicht erledigte Prüfungen aus caseState/u);
+  const rules = CASE_VIEW_RULES.join(' ');
+  expect(rules).toMatch(/ergebnisloser Suchlauf belegt das Fehlen nur/u);
+  expect(rules).toMatch(/Ähnliche Kennungen, Referenzen oder Treffer sind Vergleichsmaterial/u);
+});
