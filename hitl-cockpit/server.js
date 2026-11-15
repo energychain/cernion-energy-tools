@@ -20,6 +20,7 @@ const { createAssistantContextResolver } = require('./lib/assistant-context');
 const { createAssistantMatrixHandoffAdapter } = require('./lib/assistant-matrix-handoff');
 const { createAssistantMatrixRuntime } = require('./lib/assistant-matrix-runtime');
 const { createMatrixResultSync } = require('./lib/assistant-matrix-result-sync');
+const { createMatrixListenerCursor } = require('./lib/matrix-listener-cursor');
 const { loadMatrixAgentRooms } = require('./lib/matrix-agent-rooms');
 const { createAssistantService } = require('./lib/assistant-service');
 const { createAssistantSourceResolver } = require('./lib/assistant-source-resolver');
@@ -159,6 +160,11 @@ if (assistantConfig.enabled) {
       ? createMatrixResultSync({
           runtime: assistantMatrixRuntime,
           ingest: (event) => assistantService.ingestAgentResult(event),
+          cursor: createMatrixListenerCursor({
+            file:
+              process.env.ASSISTANT_MATRIX_RESULT_CURSOR_FILE ||
+              path.join(HERMES_HOME, 'agent-os', 'matrix-result-listener-cursor.json'),
+          }),
         })
       : null;
   const reconcileLoop = async () => {
