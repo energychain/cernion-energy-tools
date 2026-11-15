@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "0cd9ca84fe8455db46bbd70fd852eaf258a32e258ecf0a2e913a4746a23f90fb",
+  "sourceHash": "e01b884092a47b04b9b1fab1447cc4448951a19e580e1c3f42a607643f530ac2",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -166807,6 +166807,10 @@
         {
           "kind": "service",
           "ref": "src/workbench-case-continuation.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-case-lifecycle-preview.js"
         },
         {
           "kind": "service",

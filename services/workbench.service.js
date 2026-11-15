@@ -45,6 +45,10 @@ const {
   presentToolRunInspectorList,
 } = require('../src/workbench-toolrun-presenter');
 const { buildTurnMemory, safeTurnMemory } = require('../src/workbench-turn-memory');
+const {
+  LIFECYCLE_PREVIEW_VIEW,
+  planCaseLifecyclePreview,
+} = require('../src/workbench-case-lifecycle-preview');
 const { hasConversationPreferences } = require('../src/workbench-communication');
 const {
   defaultPlaybooksForTenant,
@@ -556,6 +560,9 @@ module.exports = {
       async function (ctx) {
         const p = principal(ctx, ctx.params);
         const inspector = ctx.params.view === INSPECTOR_VIEW;
+        if (ctx.params.view === LIFECYCLE_PREVIEW_VIEW) {
+          return this.caseLifecyclePreviewFor(ctx, p, ctx.params.caseId);
+        }
         const shared = await caseLinking.sharedCaseSummary(this, p, ctx.params.caseId);
         if (shared && inspector) {
           // A shared summary cannot meet the local EvidenceRef contract; fail closed.
@@ -607,7 +614,11 @@ module.exports = {
       },
       {
         ...caseParams,
-        ...toolRunViewParams,
+        view: {
+          type: 'enum',
+          values: [INSPECTOR_VIEW, LIFECYCLE_PREVIEW_VIEW],
+          optional: true,
+        },
         evidenceLimit: { type: 'number', optional: true, convert: true, integer: true, min: 1 },
       }
     ),
@@ -2449,6 +2460,93 @@ module.exports = {
         clearance: p.clearance,
         evidenceById: evidenceIndex(evidence),
       };
+    },
+    // #1148: authorize the parent before any child-store read. Foreign-tenant, hidden,
+    // insufficient-clearance, stale and missing cases share one not-found answer.
+    async caseLifecyclePreviewFor(ctx, p, caseId) {
+      let parent;
+      try {
+        if (await caseLinking.sharedCaseSummary(this, p, caseId)) {
+          workbenchError(
+            'Case inspector unavailable for shared case summaries',
+            'WORKBENCH_CASE_INSPECTOR_UNAVAILABLE'
+          );
+        }
+        parent = await this.loadVisibleCase(ctx, p, caseId);
+      } catch (error) {
+        if (error.type === 'WORKBENCH_CASE_INSPECTOR_UNAVAILABLE') throw error;
+        if ([403, 404].includes(error.code) || error.status === 404) {
+          throw new Errors.MoleculerClientError(
+            'Workbench case not found',
+            404,
+            'WORKBENCH_NOT_FOUND'
+          );
+        }
+        throw error;
+      }
+      return this.caseLifecyclePreview(p, parent);
+    },
+    // #1148 selected-case lifecycle preview: closed counts only, read methods only. Never
+    // calls discard, unlinkConversation, saveTurn/readTurn or any put/remove path.
+    async caseLifecyclePreview(p, parent) {
+      const { tenantId } = p;
+      const caseId = parent.cetCaseId;
+      const mapping = await this.findConversationForCase(tenantId, caseId);
+      const assistancePrefix = 'conversation-assistance:';
+      const { rows: assistanceRows } = await this.conversationsDb.allDocs({
+        startkey: assistancePrefix,
+        endkey: `${assistancePrefix}\uffff`,
+        include_docs: true,
+      });
+      const encodedTenant = encodeURIComponent(tenantId);
+      const encodedConversation = mapping
+        ? encodeURIComponent(mapping.externalConversationId || '')
+        : null;
+      let assistance = 0;
+      let documentReviews = 0;
+      for (const { doc } of assistanceRows) {
+        if (doc?.tenantId !== tenantId) continue;
+        if (doc.type === 'workbench_document_review') {
+          if (doc.caseId === caseId) documentReviews += 1;
+        } else if (doc.type === 'workbench_conversation_assistance' && encodedConversation) {
+          // Only a live mapping proves the association: tenant + conversation key segments.
+          const parts = String(doc._id).split(':');
+          if (parts[1] === encodedTenant && parts[4] === encodedConversation) assistance += 1;
+        }
+      }
+      let caseEvents = 0;
+      let auditRecords = 0;
+      let unclassified = 0;
+      const router = this.broker.getLocalService('domain-router');
+      for (const { doc } of (await router.eventsDb.allDocs({ include_docs: true })).rows) {
+        if (doc?.tenantId !== tenantId) continue;
+        if (doc.cetCaseId !== caseId && doc.targetCaseId !== caseId) continue;
+        if (String(doc._id).startsWith('case-audit:')) auditRecords += 1;
+        else if (doc.eventType && doc.deliveryState) caseEvents += 1;
+        else unclassified += 1;
+      }
+      const scope = { tenantId, caseId };
+      return planCaseLifecyclePreview(
+        {
+          available: true,
+          discarded: parent.disposition === 'discarded',
+          conversationLinked: Boolean(mapping),
+        },
+        {
+          conversation_assistance: mapping ? assistance : null,
+          case_display_reference: (await this.store.hasCaseDisplayRef(scope)) ? 1 : 0,
+          case_drafts: (await conversationAssistance.listDrafts(this.conversationsDb, p, caseId))
+            .length,
+          document_reviews: documentReviews,
+          evidence_refs: (await this.store.listEvidence(scope)).length,
+          tool_runs: (await this.store.listToolRuns(scope)).length,
+          turn_memory: (await this.store.getTurnMemory(scope, { optional: true })) ? 1 : 0,
+          inbox_tasks: (await this.store.listInboxTasks(scope)).length,
+          case_events: caseEvents,
+          audit_records: auditRecords,
+          unclassified_children: unclassified,
+        }
+      );
     },
     async loadVisibleCase(ctx, p, caseId) {
       const service = this.broker.getLocalService('domain-router');

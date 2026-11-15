@@ -160,6 +160,17 @@ class WorkbenchStore {
     await this.conversationsDb.remove(doc);
   }
 
+  // Read-only presence check (#1148); unlike caseDisplayRef it never allocates a ref.
+  async hasCaseDisplayRef({ tenantId, caseId }) {
+    try {
+      await this.conversationsDb.get(key('case-display', tenantId, caseId));
+      return true;
+    } catch (error) {
+      if (error.status === 404) return false;
+      throw error;
+    }
+  }
+
   async caseDisplayRef({ tenantId, caseId }) {
     const _id = key('case-display', tenantId, caseId);
     try {
