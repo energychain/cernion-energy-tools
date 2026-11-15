@@ -439,3 +439,47 @@ test('a second free attempt that the checks empty again is not given as the deli
   );
   expect(rejected[1].filters['draft:completed_action']).toBeGreaterThan(0);
 });
+
+test('rule lines are no paragraphs; evidence ids stay only on evidence-based paragraphs', async () => {
+  const { annotateFreeAnswer } = require('../src/workbench-free-answer');
+  expect(paragraphs('## Lage\n\nText eins.\n\n---\n\nText zwei.\n\n***')).toEqual([
+    '## Lage\n\nText eins.',
+    'Text zwei.',
+  ]);
+  const client = {
+    generateStructured: jest.fn(async (_schema, raw) => {
+      const input = JSON.parse(raw);
+      expect(input.instruction).toMatch(/was die Person oder eine Quelle über bereits Erledigtes/u);
+      return {
+        paragraphs: [
+          {
+            index: 0,
+            kind: 'statement',
+            origin: 'input',
+            evidenceIds: ['E1'],
+            ruleClaim: false,
+            completedAction: false,
+            specific: false,
+          },
+          {
+            index: 1,
+            kind: 'statement',
+            origin: 'evidence',
+            evidenceIds: ['E1'],
+            ruleClaim: false,
+            completedAction: false,
+            specific: false,
+          },
+        ],
+      };
+    }),
+  };
+  const result = await annotateFreeAnswer(
+    'Laut deiner Rückmeldung hat der Fachbereich bestätigt.\n\nDas Archiv zeigt die Quittung.',
+    { evidence, llm: client }
+  );
+  expect(result.interpretation.map((claim) => [claim.origin, claim.evidenceIds])).toEqual([
+    ['input', []],
+    ['evidence', ['E1']],
+  ]);
+});
