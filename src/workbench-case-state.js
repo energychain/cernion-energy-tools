@@ -13,6 +13,7 @@ const {
   takeAddendum,
   ADDENDUM_LABEL,
   updateCaseState,
+  authorityGate,
 } = require('./case-state');
 
 // Background reflection after a turn (premium model, phase case_reflection): one per
@@ -118,7 +119,18 @@ async function reviewTurnReply(reply, caseState, { tenantId, logger } = {}) {
       logger?.info?.(
         `Workbench case state answer review: ${review.issues.map((issue) => issue.kind).join(', ')}${review.revised ? ' (revised)' : ''}`
       );
-    return review.revised ? { ...reply, responseText: review.reply } : reply;
+    // Authority gate (DEV-UAT-003) on the reviewed text: unbacked governance becomes an option.
+    const gate = await authorityGate(review.reply, caseState, { tenantId }).catch((error) => {
+      logger?.warn?.(`Workbench authority gate failed: ${error.message}`);
+      return { reply: review.reply, unbacked: [], revised: false };
+    });
+    if (gate.unbacked.length)
+      logger?.info?.('Workbench authority gate', {
+        unbacked: gate.unbacked.map((row) => row.subject),
+        revised: gate.revised,
+      });
+    const text = gate.reply;
+    return text === reply.responseText ? reply : { ...reply, responseText: text };
   } catch (error) {
     logger?.warn?.(`Workbench case state answer review failed: ${error.message}`);
     return reply;

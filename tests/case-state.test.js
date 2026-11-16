@@ -982,3 +982,103 @@ describe('recommendation ledger (DEV-UAT-002)', () => {
     ]);
   });
 });
+
+describe('authority gate (DEV-UAT-003)', () => {
+  const { authorityGate } = require('../src/case-state');
+  const state = applyCaseUpdate(createCaseState(), {
+    evidence: [report('n1', 'Ich leite die Netzwirtschaft.')],
+    roleUpdates: [
+      {
+        function: 'Leitung Netzwirtschaft',
+        holder: 'Person',
+        status: 'confirmed',
+        evidenceRefs: ['n1'],
+      },
+    ],
+  });
+  const reply =
+    'Die Steuerungsrunde gibt frei.\n\nDu leitest die Netzwirtschaft.\n\nAls Option eine Koordination.';
+  const llm = (statements, revisedReply) => ({
+    generateStructured: jest
+      .fn()
+      .mockResolvedValueOnce({ statements })
+      .mockResolvedValueOnce({ revisedReply }),
+  });
+
+  test('only asserted statements without backing are rewritten', async () => {
+    const client = llm(
+      [
+        {
+          excerpt: 'Die Steuerungsrunde gibt frei.',
+          subject: 'gate',
+          presentedAs: 'binding',
+          backing: '',
+        },
+        {
+          excerpt: 'Du leitest die Netzwirtschaft.',
+          subject: 'role',
+          presentedAs: 'assigned',
+          backing: 'P1',
+        },
+        {
+          excerpt: 'Du leitest die Netzwirtschaft.',
+          subject: 'role',
+          presentedAs: 'existing',
+          backing: 'E1',
+        },
+        {
+          excerpt: 'Als Option eine Koordination.',
+          subject: 'role',
+          presentedAs: 'option',
+          backing: '',
+        },
+      ],
+      'Als Option könnte eine Steuerungsrunde freigeben.\n\nDu leitest die Netzwirtschaft.\n\nAls Option eine Koordination.'
+    );
+    const result = await authorityGate(reply, state, { llm: client });
+    expect(result.unbacked).toEqual([
+      { excerpt: 'Die Steuerungsrunde gibt frei.', subject: 'gate' },
+      { excerpt: 'Du leitest die Netzwirtschaft.', subject: 'role' },
+    ]);
+    expect(result.revised).toBe(true);
+    const rewrite = JSON.parse(client.generateStructured.mock.calls[1][1]);
+    expect(rewrite.passages).toEqual([
+      'Die Steuerungsrunde gibt frei.',
+      'Du leitest die Netzwirtschaft.',
+    ]);
+  });
+
+  test('a confirmed role or evidence backs a statement; nothing is rewritten then', async () => {
+    const roleId = state.roles[0].id;
+    const client = llm(
+      [
+        {
+          excerpt: 'Du leitest die Netzwirtschaft.',
+          subject: 'role',
+          presentedAs: 'assigned',
+          backing: roleId,
+        },
+      ],
+      'x'
+    );
+    const result = await authorityGate(reply, state, { llm: client });
+    expect(result).toMatchObject({ unbacked: [], revised: false, reply });
+    expect(client.generateStructured).toHaveBeenCalledTimes(1);
+  });
+
+  test('an implausibly short rewrite keeps the draft', async () => {
+    const client = llm(
+      [
+        {
+          excerpt: 'Die Steuerungsrunde gibt frei.',
+          subject: 'body',
+          presentedAs: 'existing',
+          backing: '',
+        },
+      ],
+      'kurz'
+    );
+    const result = await authorityGate(reply, state, { llm: client });
+    expect(result).toMatchObject({ revised: false, reply });
+  });
+});

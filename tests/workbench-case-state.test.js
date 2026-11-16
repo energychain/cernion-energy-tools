@@ -137,13 +137,19 @@ test('the reply is revised where the check flags it; drafts are left as written'
     issues: [{ kind: 'overstated_evidence', excerpt: 'geprüft', fix: 'als Annahme' }],
     revisedReply: 'Ursache ist vermutlich A oder B; das ist noch nicht geprüft.',
   });
+  // The authority gate (DEV-UAT-003) then finds no organizational statement in the revision.
+  llm.generateStructured.mockResolvedValueOnce({ statements: [] });
   expect((await workbenchCaseState.reviewTurnReply(reply, state)).responseText).toBe(
+    'Ursache ist vermutlich A oder B; das ist noch nicht geprüft.'
+  );
+  expect(JSON.parse(llm.generateStructured.mock.calls[1][1]).reply).toBe(
     'Ursache ist vermutlich A oder B; das ist noch nicht geprüft.'
   );
   const withDraft = { ...reply, draft: 'Sehr geehrte …' };
   expect(await workbenchCaseState.reviewTurnReply(withDraft, state)).toBe(withDraft);
   expect(await workbenchCaseState.reviewTurnReply(reply, null)).toBe(reply);
-  expect(llm.generateStructured).toHaveBeenCalledTimes(1);
+  // Review and authority gate for the checked reply; none for a draft or without case state.
+  expect(llm.generateStructured).toHaveBeenCalledTimes(2);
 });
 
 describe('background reflection in the workbench', () => {
