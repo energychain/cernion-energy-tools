@@ -141,7 +141,7 @@ async function runChatTurn({
 }) {
   const scoped = scopedKey(tenantId, key);
   const existing = jobStore.findJobByIdempotencyKey(SERVICE, ACTION, scoped);
-  if (existing && existing.tenantId === String(tenantId)) return replay(existing);
+  if (existing?.tenantId === String(tenantId)) return replay(existing);
   if (running.has(scoped)) return replay(jobStore.getJob(running.get(scoped)));
 
   const t0 = Date.now();
@@ -215,7 +215,7 @@ function replay(job) {
 // Job lookups are tenant-scoped: another tenant's job reads as not found.
 function ownJob(jobId, tenantId) {
   const job = jobStore.getJob(String(jobId || ''));
-  if (!job || job.service !== SERVICE || job.tenantId !== String(tenantId)) return null;
+  if (job?.service !== SERVICE || job.tenantId !== String(tenantId)) return null;
   return job;
 }
 

@@ -830,6 +830,13 @@ function writeOpenAiChatCompletionStream(res, response) {
   closeOpenAiChatCompletionStream(res);
 }
 
+// Rate-limit class of a facade request: project bundles count as read/write, the rest as compute.
+function facadeEndpointClass(req, facadePath) {
+  if (!require('../src/project-bundle-http').isProjectBundleRequest(req.method, facadePath))
+    return 'compute';
+  return isReadMethod(req.method) ? 'read' : 'write';
+}
+
 // Shared auth/rate-limit/broker-call core for the synchronous /v1 OpenAI
 // facades (chat completions, image generations, ...). On success, writes any
 // rate-limit response headers and returns { requestBody, response } for the
@@ -846,14 +853,7 @@ async function runOpenAiFacadeAction(
   try {
     const meta = await buildOpenAiFacadeMeta(service, req, facadePath);
     const tenantIdForQuota = meta.tenantId || 'default';
-    const endpointClass = require('../src/project-bundle-http').isProjectBundleRequest(
-      req.method,
-      facadePath
-    )
-      ? isReadMethod(req.method)
-        ? 'read'
-        : 'write'
-      : 'compute';
+    const endpointClass = facadeEndpointClass(req, facadePath);
     const rateLimit = rateQuotaStore.acquireRateLimitToken({
       tenantId: tenantIdForQuota,
       endpointClass,
@@ -892,12 +892,8 @@ async function runOpenAiFacadeAction(
     }
     authorized?.(requestBody);
     const call = () => service.broker.call(brokerAction, requestBody, { meta: synchronousMeta });
-    if (invoke) {
-      const handled = await invoke({ meta: synchronousMeta, requestBody, call });
-      if (handled) return { requestBody, ...handled };
-    }
-    const response = await call();
-    return { requestBody, response };
+    const handled = invoke ? await invoke({ meta: synchronousMeta, requestBody, call }) : null;
+    return { requestBody, ...(handled || { response: await call() }) };
   } catch (err) {
     if (res.cernionStreamOpen) {
       // The event stream is already open: end it with an OpenAI error frame.
