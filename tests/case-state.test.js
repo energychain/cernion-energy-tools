@@ -1082,3 +1082,53 @@ describe('authority gate (DEV-UAT-003)', () => {
     expect(result).toMatchObject({ revised: false, reply });
   });
 });
+
+describe('verification task and execution status (DEV-UAT-004/005)', () => {
+  test('a step carries the verification fields; it is never executed through the case update', () => {
+    const state = applyCaseUpdate(createCaseState(), {
+      nextActions: [
+        {
+          action: 'Beleg gegen Register abgleichen',
+          input: 'DOC-1, REQ-1',
+          role: 'Marktkommunikationsprüfung',
+          expectedResult: 'Zuordnung',
+          closureCriterion: 'Ergebnis liegt vor',
+          kind: 'reversible_check',
+          searchSpace: 'Dokumentenpostfach',
+          period: '13.03.–18.03.',
+          method: 'exakte Suche und OCR-Variante',
+          returnFormat:
+            'Suchraum – Suchwert – Zeitraum – Ergebnis – Belegreferenz – Restunsicherheit',
+          stopCondition: 'kein Treffer: Prüfauftrag an Fachbereich',
+          allowedFollowUps: 'Dokumentation des Ergebnisses',
+          blockedFollowUps: 'Statusänderung, Abschluss',
+          controlDate: 'festzulegen durch Fallkoordination',
+          executionStatus: 'executed_with_evidence',
+        },
+        {
+          action: 'Wiedervorlage einrichten',
+          kind: 'recommendation',
+          executionStatus: 'requested_by_person',
+        },
+      ],
+    });
+    const [check, followUp] = caseStateView(state).nextActions;
+    expect(check).toMatchObject({
+      searchSpace: 'Dokumentenpostfach',
+      returnFormat: 'Suchraum – Suchwert – Zeitraum – Ergebnis – Belegreferenz – Restunsicherheit',
+      blockedFollowUps: 'Statusänderung, Abschluss',
+      controlDate: 'festzulegen durch Fallkoordination',
+      executionStatus: 'proposed',
+    });
+    expect(followUp.executionStatus).toBe('requested_by_person');
+  });
+
+  test('answer rules require executable tasks and proposals for follow-ups without proof', () => {
+    const { CASE_VIEW_RULES } = require('../src/case-state');
+    const rules = CASE_VIEW_RULES.join(' ');
+    expect(rules).toMatch(
+      /Rückgabeformat \(Fundstelle, Übereinstimmung, Restunsicherheit, Belegstatus\)/u
+    );
+    expect(rules).toMatch(/Kontrolltermin: festzulegen durch die zuständige Funktion/u);
+  });
+});
