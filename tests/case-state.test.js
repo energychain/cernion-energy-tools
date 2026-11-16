@@ -800,3 +800,100 @@ test('a reading variant is no correction; open checks stay; negative searches st
   expect(rules).toMatch(/ergebnisloser Suchlauf belegt das Fehlen nur/u);
   expect(rules).toMatch(/Ähnliche Kennungen, Referenzen oder Treffer sind Vergleichsmaterial/u);
 });
+
+describe('identifier ledger (DEV-UAT-001)', () => {
+  const id = (observedValue, relationToTarget, extra = {}) => ({
+    entity: 'Vorgang',
+    observedValue,
+    provenance: 'Quelle',
+    evidenceRefs: [],
+    relationToTarget,
+    valueForm: 'as_seen',
+    ...extra,
+  });
+  const byValue = (state) =>
+    Object.fromEntries(
+      caseStateView(state).identifiers.map((item) => [
+        item.value,
+        [item.status, item.usableForDecision],
+      ])
+    );
+
+  test('only the target and confirmed members are usable; a matching source is only observed', () => {
+    const state = applyCaseUpdate(createCaseState(), {
+      evidence: [
+        observed('n1', 'Archiv', 'ACK-1 LOC-A; DOC-1 LOC-B'),
+        report('n2', 'Der Beleg DOC-2 gehört zum Zielvorgang.'),
+      ],
+      identifierUpdates: [
+        id('REQ-1', 'target'),
+        id('DOC-1', 'belongs_to_target', { evidenceRefs: ['n1'], matchBasis: 'Referenz' }),
+        id('DOC-2', 'belongs_to_target', { evidenceRefs: ['n2'], matchBasis: 'Bestätigung' }),
+        id('DOC-3', 'belongs_to_target', { evidenceRefs: ['n2'] }),
+        id('ANS-9', 'other_object', { evidenceRefs: ['n1'] }),
+        id('X-1', 'unclear'),
+      ],
+    });
+    expect(byValue(state)).toEqual({
+      'REQ-1': ['target', true],
+      'DOC-1': ['observed', false],
+      'DOC-2': ['verified', true],
+      'DOC-3': ['candidate', false],
+      'ANS-9': ['foreign', false],
+      'X-1': ['observed', false],
+    });
+  });
+
+  test('a recognized value stays a candidate and never merges into the target', () => {
+    let state = applyCaseUpdate(createCaseState(), {
+      identifierUpdates: [id('REQ-2403', 'target')],
+    });
+    const target = state.identifiers[0].id;
+    state = applyCaseUpdate(state, {
+      evidence: [report('n1', 'OCR las REQ-24O3.')],
+      identifierUpdates: [
+        id('REQ-24O3', 'target', {
+          identifierId: target,
+          normalizedCandidate: 'REQ-2403',
+          evidenceRefs: ['n1'],
+        }),
+      ],
+    });
+    expect(byValue(state)).toEqual({
+      'REQ-2403': ['target', true],
+      'REQ-24O3': ['candidate', false],
+    });
+    const ocr = state.identifiers.find((item) => item.observedValue === 'REQ-24O3');
+    state = applyCaseUpdate(state, {
+      evidence: [report('n2', 'Bestätigt.')],
+      identifierUpdates: [
+        id('REQ-24O3', 'belongs_to_target', {
+          identifierId: ocr.id,
+          evidenceRefs: ['n2'],
+          matchBasis: 'Bestätigung',
+        }),
+      ],
+    });
+    expect(byValue(state)['REQ-24O3']).toEqual(['candidate', false]);
+    expect(state.violations.some((row) => row.rule === 'candidate_promoted')).toBe(true);
+  });
+
+  test('a foreign identifier returns only with new evidence; history is kept', () => {
+    let state = applyCaseUpdate(createCaseState(), {
+      evidence: [report('n1', 'Beleg gehört zu 018.')],
+      identifierUpdates: [id('DOC-1', 'other_object', { evidenceRefs: ['n1'] })],
+    });
+    const doc = state.identifiers[0].id;
+    state = applyCaseUpdate(state, {
+      identifierUpdates: [id('DOC-1', 'unclear', { identifierId: doc })],
+    });
+    expect(byValue(state)['DOC-1']).toEqual(['foreign', false]);
+    expect(state.violations.at(-1)).toMatchObject({ rule: 'reactivation_without_new_evidence' });
+    expect(state.identifiers[0].history.map((row) => row.to)).toEqual(['foreign']);
+  });
+
+  test('answer rules and the review know the ledger', () => {
+    const { CASE_VIEW_RULES } = require('../src/case-state');
+    expect(CASE_VIEW_RULES.join(' ')).toMatch(/nur auf Kennungen mit usableForDecision/u);
+  });
+});
