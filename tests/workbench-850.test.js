@@ -179,6 +179,9 @@ describe('850 scenarios 4–5: real dataset paths', () => {
     process.env.WORKBENCH_DATASET_DB_PATH = path.join(dir, 'rows');
     process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
     const datapoint = require('../services/datapoint.service');
+    // The harness budget counts the mocked model calls of every chat turn; since the authority
+    // gate (DEV-UAT-003) a case turn makes one more call, so the suite needs a larger budget.
+    process.env.LIVE_MAX_MODEL_CALLS = '80';
     ({ broker, workbench } = createLiveHarness(dir, [
       { ...datapoint, settings: { ...datapoint.settings, dbPath: path.join(dir, 'catalog') } },
       require('../services/dataset.service'),
@@ -234,6 +237,7 @@ describe('850 scenarios 4–5: real dataset paths', () => {
     await broker.stop();
     delete process.env.WORKBENCH_DATASET_DB_PATH;
     delete process.env.DATAPOINT_SCHEDULER_ENABLED;
+    delete process.env.LIVE_MAX_MODEL_CALLS;
     fs.rmSync(dir, { recursive: true, force: true });
   });
   const chat = (question, content, conversationId) =>
