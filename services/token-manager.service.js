@@ -17,6 +17,7 @@ const {
   isOperationsRunbookInvocation,
   isDomainRouterAdvisoryInvocation,
   isKnowledgeGatewayRequest,
+  isChatJobRequest,
 } = require('../src/gateway-request-classifiers');
 
 const { validateTokenIdentity } = require('../src/auth/token-policy');
@@ -426,7 +427,8 @@ module.exports = {
             (method === 'GET' && requestPath === '/v1/models') ||
             require('../src/file-channel-http').isFileChannelRequest(method, requestPath) ||
             require('../src/project-bundle-http').isProjectBundleRequest(method, requestPath) ||
-            isKnowledgeGatewayRequest(method, requestPath)
+            isKnowledgeGatewayRequest(method, requestPath) ||
+            isChatJobRequest(method, requestPath)
           )
         ) {
           return { success: true, valid: false, reason: 'GATEWAY_TOKEN_FORBIDDEN' };
