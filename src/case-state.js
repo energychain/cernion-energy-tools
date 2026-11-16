@@ -186,50 +186,70 @@ function identifierStatus(update, evidence, kinds = []) {
 
 // Deterministic safety of the identifier ledger: verified needs cited evidence, a closed status
 // (foreign, superseded, rejected) returns only with new evidence; every change keeps its history.
+// An id refers to an entry only with the same value; another value (an OCR reading under the
+// target's id) is its own entry and never merges into the target.
+function findIdentifier(state, update, value) {
+  const byId = update.identifierId
+    ? state.identifiers.find(
+        (item) => item.id === text(update.identifierId, 20) && sameValue(item.observedValue, value)
+      )
+    : null;
+  return (
+    byId ||
+    state.identifiers.find(
+      (item) => sameValue(item.observedValue, value) && sameStatement(item.entity, update.entity)
+    ) ||
+    null
+  );
+}
+
+// A recognized or normalized value (an existing candidate, or a new entry with a deviating
+// candidate) never becomes usable for a decision.
+function guardedStatus(state, status, { existing, update, value, turn }) {
+  if (!USABLE_IDENTIFIERS.has(status)) return status;
+  if (existing && (existing.status === 'candidate' || existing.normalizedCandidate)) {
+    state.violations.push({ turn, rule: 'candidate_promoted', identifierId: existing.id });
+    return 'candidate';
+  }
+  const variant = update.normalizedCandidate && !sameValue(update.normalizedCandidate, value);
+  return !existing && variant ? 'candidate' : status;
+}
+
+function addIdentifier(state, update, { value, status, evidence, turn, reason }) {
+  if (state.identifiers.length >= LIMITS.identifiers) return;
+  state.identifiers.push({
+    id: nextId('I', state.identifiers),
+    entity: text(update.entity, 200),
+    kind: text(update.kind, 80),
+    observedValue: value,
+    normalizedCandidate: sameValue(update.normalizedCandidate, value)
+      ? ''
+      : text(update.normalizedCandidate, 120),
+    provenance: text(update.provenance, 300),
+    scope: text(update.scope, 200),
+    status,
+    supersededBy: '',
+    evidenceIds: evidence,
+    firstSeenTurn: turn,
+    history: [{ turn, from: null, to: status, evidenceIds: evidence, reason }],
+  });
+}
+
 function applyIdentifierUpdate(state, update, { turn, idByRef, evidenceIds }) {
   const value = text(update.observedValue, 120);
   if (!value) return;
   const evidence = resolveRefs(update.evidenceRefs, idByRef, evidenceIds);
   const reason = text(update.reason, 300);
   const kinds = evidence.map((id) => state.evidence.find((item) => item.id === id)?.kind);
-  let status = identifierStatus(update, evidence, kinds);
-  // An id refers to an entry only with the same value; another value (an OCR reading under the
-  // target's id) is its own entry and never merges into the target.
-  const existing =
-    (update.identifierId &&
-      state.identifiers.find(
-        (item) => item.id === text(update.identifierId, 20) && sameValue(item.observedValue, value)
-      )) ||
-    state.identifiers.find(
-      (item) => sameValue(item.observedValue, value) && sameStatement(item.entity, update.entity)
-    ) ||
-    null;
-  // A recognized or normalized value never becomes usable for a decision.
-  const recognized = existing && (existing.status === 'candidate' || existing.normalizedCandidate);
-  if (recognized && USABLE_IDENTIFIERS.has(status)) {
-    state.violations.push({ turn, rule: 'candidate_promoted', identifierId: existing.id });
-    status = 'candidate';
-  }
-  const variant = update.normalizedCandidate && !sameValue(update.normalizedCandidate, value);
-  if (!existing && variant && USABLE_IDENTIFIERS.has(status)) status = 'candidate';
+  const existing = findIdentifier(state, update, value);
+  const status = guardedStatus(state, identifierStatus(update, evidence, kinds), {
+    existing,
+    update,
+    value,
+    turn,
+  });
   if (!existing) {
-    if (state.identifiers.length >= LIMITS.identifiers) return;
-    state.identifiers.push({
-      id: nextId('I', state.identifiers),
-      entity: text(update.entity, 200),
-      kind: text(update.kind, 80),
-      observedValue: value,
-      normalizedCandidate: sameValue(update.normalizedCandidate, value)
-        ? ''
-        : text(update.normalizedCandidate, 120),
-      provenance: text(update.provenance, 300),
-      scope: text(update.scope, 200),
-      status,
-      supersededBy: '',
-      evidenceIds: evidence,
-      firstSeenTurn: turn,
-      history: [{ turn, from: null, to: status, evidenceIds: evidence, reason }],
-    });
+    addIdentifier(state, update, { value, status, evidence, turn, reason });
     return;
   }
   const newEvidence = evidence.filter((id) => !existing.evidenceIds.includes(id));
