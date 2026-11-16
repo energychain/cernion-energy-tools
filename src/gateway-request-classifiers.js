@@ -50,7 +50,16 @@ function isKnowledgeGatewayRequest(method, requestPath) {
   );
 }
 
+// Reading the status or the persisted answer of an own asynchronous chat turn (DEV-UAT-006);
+// the job lookup itself is tenant-scoped (src/async-chat-turns.js).
+function isChatJobRequest(method, requestPath) {
+  const m = String(method || '').toUpperCase();
+  const pathOnly = String(requestPath || '').split('?')[0];
+  return m === 'GET' && /^\/v1\/chat\/jobs\/[0-9a-f-]{36}(?:\/message)?$/.test(pathOnly);
+}
+
 module.exports = {
+  isChatJobRequest,
   isKnowledgeGatewayRequest,
   isReadMethod,
   isReadOnlySidecarInvocation,

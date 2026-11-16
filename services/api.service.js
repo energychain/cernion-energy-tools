@@ -830,25 +830,30 @@ function writeOpenAiChatCompletionStream(res, response) {
   closeOpenAiChatCompletionStream(res);
 }
 
+// Rate-limit class of a facade request: project bundles count as read/write, the rest as compute.
+function facadeEndpointClass(req, facadePath) {
+  if (!require('../src/project-bundle-http').isProjectBundleRequest(req.method, facadePath))
+    return 'compute';
+  return isReadMethod(req.method) ? 'read' : 'write';
+}
+
 // Shared auth/rate-limit/broker-call core for the synchronous /v1 OpenAI
 // facades (chat completions, image generations, ...). On success, writes any
 // rate-limit response headers and returns { requestBody, response } for the
 // caller to serialize; on failure, writes the full OpenAI-compatible error
 // response itself and returns null — callers must check for that and return.
-async function runOpenAiFacadeAction(service, req, res, { facadePath, brokerAction, authorized }) {
+async function runOpenAiFacadeAction(
+  service,
+  req,
+  res,
+  { facadePath, brokerAction, authorized, invoke }
+) {
   const requestBody = req?.body || req?.$params || {};
   res.setHeader('X-Cernion-Build', buildInfo().fingerprint);
   try {
     const meta = await buildOpenAiFacadeMeta(service, req, facadePath);
     const tenantIdForQuota = meta.tenantId || 'default';
-    const endpointClass = require('../src/project-bundle-http').isProjectBundleRequest(
-      req.method,
-      facadePath
-    )
-      ? isReadMethod(req.method)
-        ? 'read'
-        : 'write'
-      : 'compute';
+    const endpointClass = facadeEndpointClass(req, facadePath);
     const rateLimit = rateQuotaStore.acquireRateLimitToken({
       tenantId: tenantIdForQuota,
       endpointClass,
@@ -886,10 +891,9 @@ async function runOpenAiFacadeAction(service, req, res, { facadePath, brokerActi
       if (headerValue != null) res.setHeader(headerName, String(headerValue));
     }
     authorized?.(requestBody);
-    const response = await service.broker.call(brokerAction, requestBody, {
-      meta: synchronousMeta,
-    });
-    return { requestBody, response };
+    const call = () => service.broker.call(brokerAction, requestBody, { meta: synchronousMeta });
+    const handled = invoke ? await invoke({ meta: synchronousMeta, requestBody, call }) : null;
+    return { requestBody, ...(handled || { response: await call() }) };
   } catch (err) {
     if (res.cernionStreamOpen) {
       // The event stream is already open: end it with an OpenAI error frame.
@@ -908,6 +912,48 @@ async function runOpenAiFacadeAction(service, req, res, { facadePath, brokerActi
   }
 }
 
+// Asynchronous chat turn (DEV-UAT-006): with the tenant switch and an Idempotency-Key, a
+// non-streaming turn becomes an idempotent job (src/async-chat-turns); otherwise unchanged.
+function asyncChatTurn(req) {
+  const turns = require('../src/async-chat-turns');
+  return async ({ meta, requestBody, call }) => {
+    if (requestBody?.stream === true || !turns.asyncTurnsEnabled(meta.tenantId)) return null;
+    const key = turns.idempotencyKeyOf(req);
+    if (!key) return null;
+    const outcome = await turns.runChatTurn({
+      tenantId: meta.tenantId,
+      key,
+      parent: turns.parentOf(req, requestBody),
+      run: call,
+      testDelayMs: turns.testDelayOf(req, meta.tenantId),
+    });
+    return { response: outcome.body, httpStatus: outcome.httpStatus };
+  };
+}
+
+// Status and persisted answer of an own asynchronous chat turn (DEV-UAT-006). Authenticated like
+// the chat path; another tenant's job reads as not found.
+async function handleOpenAiChatJob(req, res) {
+  res.setHeader('X-Cernion-Build', buildInfo().fingerprint);
+  res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
+  try {
+    const jobId = String(req.$params?.jobId || '');
+    const wantsMessage = String(req.url || '')
+      .split('?')[0]
+      .endsWith('/message');
+    const facadePath = `/v1/chat/jobs/${jobId}${wantsMessage ? '/message' : ''}`;
+    const meta = await buildOpenAiFacadeMeta(this, req, facadePath);
+    const turns = require('../src/async-chat-turns');
+    const job = turns.ownJob(jobId, meta.tenantId);
+    if (!job) throw new Errors.MoleculerClientError('Job not found.', 404, 'JOB_NOT_FOUND');
+    res.writeHead(200);
+    res.end(JSON.stringify(wantsMessage ? turns.persisted(job) : turns.descriptor(job)));
+  } catch (err) {
+    res.writeHead(resolveHttpStatus(err));
+    res.end(JSON.stringify(buildOpenAiErrorBody(err)));
+  }
+}
+
 async function handleOpenAiChatCompletions(req, res) {
   const result = await runOpenAiFacadeAction(this, req, res, {
     facadePath: '/v1/chat/completions',
@@ -915,9 +961,16 @@ async function handleOpenAiChatCompletions(req, res) {
     authorized: (body) => {
       if (body?.stream === true) openOpenAiChatCompletionStream(res);
     },
+    invoke: asyncChatTurn(req),
   });
   if (!result) return;
-  const { requestBody, response } = result;
+  const { requestBody, response, httpStatus } = result;
+  if (httpStatus && httpStatus !== 200) {
+    res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
+    res.writeHead(httpStatus);
+    res.end(JSON.stringify(response));
+    return;
+  }
   if (requestBody?.stream === true) {
     writeOpenAiChatCompletionStream(res, response);
     return;
@@ -1634,6 +1687,8 @@ module.exports = {
           ...require('../src/file-channel-http').fileAliases(runOpenAiFacadeAction),
           ...require('../src/project-bundle-http').projectBundleAliases(runOpenAiFacadeAction),
           'POST /chat/completions': handleOpenAiChatCompletions,
+          'GET /chat/jobs/:jobId': handleOpenAiChatJob,
+          'GET /chat/jobs/:jobId/message': handleOpenAiChatJob,
           'POST /images/generations': handleOpenAiImageGenerations,
           'POST /embeddings': handleOpenAiEmbeddings,
           // Unauthenticated by design — see OPENAI_MODEL_CATALOG comment above.
