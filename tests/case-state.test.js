@@ -897,3 +897,88 @@ describe('identifier ledger (DEV-UAT-001)', () => {
     expect(CASE_VIEW_RULES.join(' ')).toMatch(/nur auf Kennungen mit usableForDecision/u);
   });
 });
+
+describe('recommendation ledger (DEV-UAT-002)', () => {
+  const step = (action, extra = {}) => ({
+    action,
+    input: '',
+    role: '',
+    expectedResult: '',
+    closureCriterion: '',
+    kind: 'recommendation',
+    ...extra,
+  });
+
+  test('steps get stable ids; one left out stays active until it is closed with a reason', () => {
+    let state = applyCaseUpdate(createCaseState(), {
+      nextActions: [step('Beleg an 017 hängen'), step('Postfach prüfen')],
+    });
+    expect(caseStateView(state).recommendations.active.map((item) => item.id)).toEqual([
+      'R1',
+      'R2',
+    ]);
+    state = applyCaseUpdate(state, { nextActions: [step('Postfach prüfen')] });
+    expect(caseStateView(state).recommendations.active.map((item) => item.id)).toEqual([
+      'R1',
+      'R2',
+    ]);
+    state = applyCaseUpdate(state, {
+      nextActions: [step('Postfach prüfen')],
+      recommendationUpdates: [
+        { recommendationId: 'R1', status: 'withdrawn', reason: 'Beleg gehört zu 018' },
+        { recommendationId: 'R1', status: 'active', reason: 'erneut' },
+      ],
+    });
+    const view = caseStateView(state);
+    expect(view.recommendations.active.map((item) => item.id)).toEqual(['R2']);
+    expect(view.recommendations.retracted).toEqual([
+      expect.objectContaining({
+        id: 'R1',
+        status: 'withdrawn',
+        retractedAtTurn: 3,
+        reason: 'Beleg gehört zu 018',
+      }),
+    ]);
+    // A withdrawn recommendation does not come back, neither by update nor by a repeated step.
+    state = applyCaseUpdate(state, {
+      nextActions: [step('Beleg an 017 hängen')],
+      recommendationUpdates: [{ recommendationId: 'R1', status: 'active', reason: 'x' }],
+    });
+    expect(state.recommendations.find((item) => item.id === 'R1').status).toBe('withdrawn');
+    expect(caseStateView(state).recommendations.active.map((item) => item.action)).toEqual([
+      'Postfach prüfen',
+    ]);
+    expect(caseStateView(state).nextActions).toEqual([]);
+    expect(state.violations.at(-1)).toMatchObject({
+      rule: 'retracted_recommendation_repeated',
+      id: 'R1',
+    });
+  });
+
+  test('a recommendation resting on a dropped hypothesis is withdrawn with the reason', () => {
+    let state = applyCaseUpdate(createCaseState(), {
+      evidence: [report('n1', 'Scan nennt 017.')],
+      hypothesisUpdates: [
+        { statement: 'Scan gehört zu 017', status: 'open', evidenceRefs: ['n1'], reason: '' },
+      ],
+    });
+    state = applyCaseUpdate(state, {
+      nextActions: [step('Scan an 017 hängen', { dependsOn: ['H1'] })],
+    });
+    state = applyCaseUpdate(state, {
+      evidence: [report('n2', 'Scan gehört zu 018.')],
+      hypothesisUpdates: [
+        {
+          hypothesisId: 'H1',
+          statement: 'Scan gehört zu 017',
+          status: 'refuted',
+          evidenceRefs: ['n2'],
+          reason: 'Fachbereich',
+        },
+      ],
+    });
+    expect(caseStateView(state).recommendations.retracted).toEqual([
+      expect.objectContaining({ id: 'R1', status: 'withdrawn', reason: 'Grundlage entfallen: H1' }),
+    ]);
+  });
+});
