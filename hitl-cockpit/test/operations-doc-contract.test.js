@@ -24,7 +24,7 @@ function read(relativePath) {
 }
 
 test('production contract is closed, secret-free, and names the active low-risk lane', () => {
-  assert.equal(contract.contractId, 'management-cockpit-production-v2');
+  assert.equal(contract.contractId, 'management-cockpit-production-v3');
   assert.equal(contract.status, 'active');
   assert.equal(contract.interface.mode, 'low_risk');
   assert.equal(contract.interface.label, 'Assistenz · begrenzte Aktionen');
@@ -33,6 +33,9 @@ test('production contract is closed, secret-free, and names the active low-risk 
   assert.equal(contract.assistant.matrixHandoffEnabled, true);
   assert.equal(contract.assistant.confirmationRequired, true);
   assert.equal(contract.management.decisionWritesEnabled, false);
+  assert.equal(contract.management.decisionExecuteEnabled, false);
+  assert.equal(contract.management.decisionExecuteRequiresProductionSmoke, true);
+  assert.equal(contract.evidence.decisionExecuteProductionSmokeStatus, 'pending');
   assert.equal(contract.rollback.kanbanRestorePermitted, false);
   assert.doesNotMatch(
     JSON.stringify(contract),
@@ -48,6 +51,16 @@ test('operating status proves exact runtime alignment without exposing transport
       decisionWritesEnabled: false,
       shadowOnly: true,
       defaultView: 'management',
+      decisionExecuteEnabled: false,
+      decisionExecuteActionClasses: [
+        'choose',
+        'delegate',
+        'question',
+        'schedule',
+        'reject',
+        'return-to-rhajaina',
+      ],
+      decisionExecuteRequiresProductionSmoke: true,
     },
     assistant: {
       enabled: true,
@@ -72,6 +85,16 @@ test('operating status reports drift fail visibly instead of claiming alignment'
       decisionWritesEnabled: false,
       shadowOnly: true,
       defaultView: 'management',
+      decisionExecuteEnabled: false,
+      decisionExecuteActionClasses: [
+        'choose',
+        'delegate',
+        'question',
+        'schedule',
+        'reject',
+        'return-to-rhajaina',
+      ],
+      decisionExecuteRequiresProductionSmoke: true,
     },
     assistant: {
       enabled: true,
@@ -100,13 +123,13 @@ test('current operating documents point to exactly one production contract and n
   ];
   for (const relativePath of currentDocuments) {
     const body = read(relativePath);
-    assert.match(body, /management-cockpit-production-contract-v2\.md/);
+    assert.match(body, /management-cockpit-production-contract-v3\.md/);
     for (const pattern of forbiddenCurrentClaims) {
       assert.doesNotMatch(body, pattern, `${relativePath} contains stale current-state wording`);
     }
   }
   const contractReferences = currentDocuments.filter((relativePath) =>
-    read(relativePath).includes('management-cockpit-production-contract-v2.md')
+    read(relativePath).includes('management-cockpit-production-contract-v3.md')
   );
   assert.equal(contractReferences.length, currentDocuments.length);
 });

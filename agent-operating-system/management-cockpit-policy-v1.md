@@ -1,13 +1,13 @@
 # AgentOS Management-Cockpit Policy v1
 
 Stand: 2026-11-11
-Status: fachliche Policy; aktueller Betriebsvertrag ist `management-cockpit-production-contract-v2.md`
+Status: fachliche Policy; aktueller Betriebsvertrag ist `management-cockpit-production-contract-v3.md`
 
 ## 1. Zweck und Geltung
 
 Das Management-Cockpit ist die verdichtete Geschäftsführungs- und Governance-Sicht des AgentOS. Es zeigt Unternehmenslage, fachlich relevante Themen, belegte Ergebnisse, Risiken, Wiedervorlagen und entscheidungsreife Governance-Fragen. Es ersetzt weder Hermes Kanban als operatives System of Record noch Matrix als Gesprächs- und Arbeitsoberfläche.
 
-Diese Policy beschreibt die bleibenden fachlichen und sicherheitsbezogenen Grenzen. Der einzige verbindliche aktuelle Runtime-Vertrag ist `management-cockpit-production-contract-v2.md`; ältere AP-Dokumente bleiben zeitgebundene Implementierungsnachweise.
+Diese Policy beschreibt die bleibenden fachlichen und sicherheitsbezogenen Grenzen. Der einzige verbindliche aktuelle Runtime-Vertrag ist `management-cockpit-production-contract-v3.md`; ältere AP-Dokumente bleiben zeitgebundene Implementierungsnachweise.
 
 ## 2. Verbindlicher Systemzustand
 
@@ -252,4 +252,4 @@ Der vollständige Runtime-Restore folgt `management-cockpit-operations-v1.md`. V
 
 ## 17. Betriebsübergabe
 
-Der operative Einstieg steht in `hitl-cockpit/README.md`. Implementierungsdetails bleiben in den AP-Dokumenten. Änderungen am aktiven Modus oder an den Aktionsklassen richten sich ausschließlich nach `management-cockpit-production-contract-v2.md`.
+Der operative Einstieg steht in `hitl-cockpit/README.md`. Implementierungsdetails bleiben in den AP-Dokumenten. Änderungen am aktiven Modus oder an den Aktionsklassen richten sich ausschließlich nach `management-cockpit-production-contract-v3.md`.

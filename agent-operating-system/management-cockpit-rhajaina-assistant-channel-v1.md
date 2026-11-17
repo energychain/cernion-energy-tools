@@ -2,7 +2,7 @@
 
 Stand: 2026-11-11
 Status: produktiver interner Low-Risk-Kanal
-Verbindlicher Betriebsvertrag: `management-cockpit-production-contract-v2.md`
+Verbindlicher Betriebsvertrag: `management-cockpit-production-contract-v3.md`
 
 ## Zweck und Betriebsstatus
 

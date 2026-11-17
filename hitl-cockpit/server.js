@@ -27,6 +27,7 @@ const { createAssistantSourceResolver } = require('./lib/assistant-source-resolv
 const { AssistantStore } = require('./lib/assistant-store');
 const { buildOperatingStatus, loadProductionContract } = require('./lib/production-contract');
 const { RhajainaClient } = require('./lib/rhajaina-client');
+const DECISION_ACTIONS = require('./lib/decision-actions');
 
 const HOST = process.env.HITL_COCKPIT_HOST || '10.0.0.101';
 const PORT = Number(process.env.HITL_COCKPIT_PORT || 3927);
@@ -49,6 +50,9 @@ const MANAGEMENT_COCKPIT_SHADOW_ONLY =
   String(process.env.MANAGEMENT_COCKPIT_SHADOW_ONLY || 'true').toLowerCase() !== 'false';
 const MANAGEMENT_COCKPIT_DEFAULT_VIEW =
   process.env.MANAGEMENT_COCKPIT_DEFAULT_VIEW === 'management' ? 'management' : 'legacy';
+const MANAGEMENT_COCKPIT_DECISION_EXECUTE_ENABLED =
+  String(process.env.MANAGEMENT_COCKPIT_DECISION_EXECUTE_ENABLED || 'false').toLowerCase() ===
+  'true';
 const MANAGEMENT_DATABASE = path.resolve(
   process.env.MANAGEMENT_COCKPIT_DATABASE || defaultManagementDatabase(HERMES_HOME)
 );
@@ -68,6 +72,11 @@ const managementApi = createManagementApi({
   writeEnabled: MANAGEMENT_COCKPIT_WRITE_ENABLED,
   shadowOnly: MANAGEMENT_COCKPIT_SHADOW_ONLY,
   defaultView: MANAGEMENT_COCKPIT_DEFAULT_VIEW,
+  decisionExecuteEnabled: MANAGEMENT_COCKPIT_DECISION_EXECUTE_ENABLED,
+  decisionKanban: MANAGEMENT_COCKPIT_DECISION_EXECUTE_ENABLED
+    ? createDecisionKanbanAdapter()
+    : null,
+  excludedBoards: Array.from(EXCLUDE_BOARDS),
 });
 const assistantConfig = loadAssistantConfig({
   configPath: process.env.ASSISTANT_CONFIG || process.env.HITL_COCKPIT_ASSISTANT_CONFIG,
@@ -99,6 +108,9 @@ const operatingStatus = buildOperatingStatus({
     decisionWritesEnabled: MANAGEMENT_COCKPIT_WRITE_ENABLED,
     shadowOnly: MANAGEMENT_COCKPIT_SHADOW_ONLY,
     defaultView: MANAGEMENT_COCKPIT_DEFAULT_VIEW,
+    decisionExecuteEnabled: MANAGEMENT_COCKPIT_DECISION_EXECUTE_ENABLED,
+    decisionExecuteActionClasses: DECISION_ACTIONS.ACTIONS,
+    decisionExecuteRequiresProductionSmoke: true,
   },
   assistant: assistantConfig,
 });
@@ -392,6 +404,51 @@ async function createAssistantResultRound(input) {
   const task = readAssistantTask({ board, taskId: linkedTaskId });
   if (!task) throw new Error('assistant_result_round_readback_missing');
   return { task };
+}
+
+function createDecisionKanbanAdapter() {
+  return {
+    readTask: readAssistantTask,
+    async recordDecision(command) {
+      const { board, taskId } = command.source;
+      const { action, payload, decisionId, idempotencyKey } = command;
+      const outcome = {
+        choose: `Entscheidung ${decisionId}: Option "${payload.option}" gewählt.${payload.note ? ' ' + payload.note : ''}`,
+        delegate: `Entscheidung ${decisionId}: delegiert an ${payload.assignee}.${payload.note ? ' ' + payload.note : ''}`,
+        question: `Entscheidung ${decisionId}: Rückfrage — ${payload.question}`,
+        schedule: `Entscheidung ${decisionId}: Wiedervorlage ${payload.wakeAt} — ${payload.reason}; ${payload.nextAction}`,
+        reject: `Entscheidung ${decisionId}: abgelehnt — ${payload.reason}`,
+        'return-to-rhajaina': `Entscheidung ${decisionId}: an Rhajaina zurückgegeben.${payload.reason ? ' ' + payload.reason : ''}`,
+      }[action];
+      const auditText = `[MANAGEMENT-COCKPIT-DECISION] ${outcome} · ACTION_ID: ${idempotencyKey}`;
+      const results = [runHermes(['--board', board, 'comment', '--author', AUTHOR, taskId, auditText])];
+      if (action === 'delegate') {
+        const assignee = String(payload.assignee || '')
+          .trim()
+          .toLowerCase();
+        if (/^[a-z0-9][a-z0-9_-]{0,63}$/.test(assignee)) {
+          results.push(runHermes(['--board', board, 'assign', taskId, assignee]));
+        }
+      }
+      if (action === 'schedule') {
+        results.push(
+          runHermes([
+            '--board',
+            board,
+            'block',
+            '--kind',
+            'scheduled',
+            taskId,
+            `${payload.wakeAt}: ${payload.reason}; ${payload.nextAction}`,
+          ])
+        );
+      }
+      if (results.some((result) => !result.ok)) {
+        throw new Error('decision_execute_kanban_write_failed');
+      }
+      return results.map((result, index) => ({ step: index, ok: result.ok }));
+    },
+  };
 }
 
 function createServerKanbanAdapter() {
@@ -701,6 +758,21 @@ async function handler(req, res) {
       const body = await parseBody(req).catch(() => null);
       if (!body) return json(res, 400, { ok: false, error: 'invalid_json_body' });
       const response = managementApi.handleDecisionAction(decisionId, managementAction[2], body);
+      return json(res, response.status, response.body);
+    }
+    const managementActionExecute = url.pathname.match(
+      /^\/api\/management\/decisions\/([^/]+)\/(choose|delegate|question|schedule|reject|return-to-rhajaina)\/execute$/
+    );
+    if (managementActionExecute && req.method === 'POST') {
+      const decisionId = decodeId(managementActionExecute[1]);
+      if (!decisionId) return json(res, 400, { ok: false, error: 'invalid_management_id' });
+      const body = await parseBody(req).catch(() => null);
+      if (!body) return json(res, 400, { ok: false, error: 'invalid_json_body' });
+      const response = await managementApi.handleDecisionExecute(
+        decisionId,
+        managementActionExecute[2],
+        body
+      );
       return json(res, response.status, response.body);
     }
     if (url.pathname.startsWith('/api/management/')) {

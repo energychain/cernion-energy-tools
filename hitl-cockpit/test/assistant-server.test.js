@@ -210,7 +210,7 @@ test('disabled server exposes sanitized config but no assistant routes', async (
 test('health exposes an aligned secret-free production operating status', async () => {
   await startServer(lowRiskConfig);
   const health = await (await request('/api/health')).json();
-  assert.equal(health.operatingStatus.contractId, 'management-cockpit-production-v2');
+  assert.equal(health.operatingStatus.contractId, 'management-cockpit-production-v3');
   assert.equal(health.operatingStatus.declaredMode, 'low_risk');
   assert.equal(health.operatingStatus.label, 'Assistenz · begrenzte Aktionen');
   assert.equal(health.operatingStatus.aligned, true);

@@ -62,6 +62,9 @@ function createManagementApi(options) {
     reader,
     writeEnabled: config.writeEnabled,
     shadowOnly: config.shadowOnly,
+    executeEnabled: Boolean(options.decisionExecuteEnabled),
+    kanban: options.decisionKanban,
+    excludedBoards: options.excludedBoards,
     now: options.now,
   });
 
@@ -76,6 +79,20 @@ function createManagementApi(options) {
         return { status: error.status, body: { ok: false, error: error.code } };
       }
       return { status: 500, body: { ok: false, error: 'decision_action_preview_failed' } };
+    }
+  }
+
+  async function handleDecisionExecute(decisionId, action, body) {
+    if (!config.enabled)
+      return { status: 404, body: { ok: false, error: 'management_cockpit_disabled' } };
+    try {
+      const result = await decisionActions.execute(decisionId, action, body);
+      return { status: result.deduplicated ? 200 : 201, body: result };
+    } catch (error) {
+      if (error instanceof DecisionActionError) {
+        return { status: error.status, body: { ok: false, error: error.code } };
+      }
+      return { status: 500, body: { ok: false, error: 'decision_action_execute_failed' } };
     }
   }
 
@@ -141,7 +158,7 @@ function createManagementApi(options) {
     }
   }
 
-  return { config, handle, handleDecisionAction };
+  return { config, handle, handleDecisionAction, handleDecisionExecute };
 }
 
 module.exports = { createManagementApi, decodeId, queryOptions, readScopes };

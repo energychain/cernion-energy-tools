@@ -7,7 +7,7 @@ Geltungsbereich: bestehende Legacy-Sicht und alle folgenden Management-Cockpit-I
 
 > Historischer Baseline-Hinweis: Dieses Dokument fixiert den Last-Known-Good-Stand vor AP 1–15. Seine Angaben zur damaligen Query-Token-/Bearer-Authentifizierung, zum damaligen Dateisatz und zu vier Baseline-Tests beschreiben den Rückfallstand, nicht den aktuellen Zielvertrag. Für den konsolidierten AP-15-Stand gelten `management-cockpit-policy-v1.md` und `../hitl-cockpit/README.md`. Vor einem produktiven Rollout ist ein neuer vollständiger Snapshot des aktuellen Dateisatzes erforderlich.
 
-> Aktueller Betrieb: Der einzige verbindliche produktive Vertrag ist `management-cockpit-production-contract-v2.md`. Der dort dokumentierte Assistant-Modus `low_risk`, bestätigte Low-Risk-Writes und Matrix-Handoffs ersetzen keine der historischen AP-0-Baseline-Angaben in diesem Dokument; diese bleiben ausschließlich Rückfall- und Herkunftsnachweis.
+> Aktueller Betrieb: Der einzige verbindliche produktive Vertrag ist `management-cockpit-production-contract-v3.md`. Der dort dokumentierte Assistant-Modus `low_risk`, bestätigte Low-Risk-Writes und Matrix-Handoffs ersetzen keine der historischen AP-0-Baseline-Angaben in diesem Dokument; diese bleiben ausschließlich Rückfall- und Herkunftsnachweis.
 
 ## 1. Zweck und Betriebsstatus
 

@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 2,
-  "contractId": "management-cockpit-production-v2",
-  "effectiveDate": "2026-11-10",
+  "schemaVersion": 3,
+  "contractId": "management-cockpit-production-v3",
+  "effectiveDate": "2026-11-17",
   "status": "active",
   "interface": {
     "path": "/management",
@@ -13,7 +13,17 @@
     "enabled": true,
     "decisionWritesEnabled": false,
     "shadowOnly": true,
-    "defaultView": "management"
+    "defaultView": "management",
+    "decisionExecuteEnabled": false,
+    "decisionExecuteActionClasses": [
+      "choose",
+      "delegate",
+      "question",
+      "schedule",
+      "reject",
+      "return-to-rhajaina"
+    ],
+    "decisionExecuteRequiresProductionSmoke": true
   },
   "assistant": {
     "enabled": true,
@@ -68,6 +78,8 @@
     "kanbanRestorePermitted": false
   },
   "evidence": {
-    "productionSmoke": "agent-operating-system/rhajaina-assistant-channel-production-smoke-v1.md"
+    "productionSmoke": "agent-operating-system/rhajaina-assistant-channel-production-smoke-v1.md",
+    "decisionExecuteProductionSmoke": "agent-operating-system/management-decision-execute-production-smoke-v1.md",
+    "decisionExecuteProductionSmokeStatus": "pending"
   }
 }

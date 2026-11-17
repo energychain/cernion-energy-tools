@@ -1,5 +1,8 @@
 'use strict';
 
+const crypto = require('node:crypto');
+const { containsPrivateMarker, sourceFingerprint } = require('./assistant-action-executor');
+
 const ACTIONS = Object.freeze([
   'choose',
   'delegate',
@@ -8,6 +11,8 @@ const ACTIONS = Object.freeze([
   'reject',
   'return-to-rhajaina',
 ]);
+
+const DEFAULT_EXCLUDED_BOARDS = Object.freeze(['twl-netze-private']);
 
 class DecisionActionError extends Error {
   constructor(code, status = 400) {
@@ -149,9 +154,138 @@ function isActionable(decision) {
   );
 }
 
-function createDecisionActions({ reader, writeEnabled = false, shadowOnly = true, now } = {}) {
+function createDecisionActions({
+  reader,
+  writeEnabled = false,
+  shadowOnly = true,
+  executeEnabled = false,
+  kanban,
+  excludedBoards,
+  now,
+} = {}) {
   if (!reader || typeof reader.read !== 'function') throw new TypeError('reader_required');
   const clock = typeof now === 'function' ? now : () => Math.floor(Date.now() / 1000);
+  const excluded = new Set(
+    Array.isArray(excludedBoards) && excludedBoards.length ? excludedBoards : DEFAULT_EXCLUDED_BOARDS
+  );
+  const idempotency = new Map();
+
+  function loadActionableDecision(decisionId, action) {
+    if (!ACTIONS.includes(action)) throw new DecisionActionError('unknown_decision_action', 404);
+    const result = reader.read('decision', { id: decisionId });
+    const decision = result && result.item;
+    if (!decision) throw new DecisionActionError('decision_not_found', 404);
+    if (!isActionable(decision)) throw new DecisionActionError('decision_not_actionable', 409);
+    return decision;
+  }
+
+  function assertSafeSource(decision) {
+    if (excluded.has(decision.source_board)) {
+      throw new DecisionActionError('excluded_board_rejected', 403);
+    }
+    if (containsPrivateMarker(decision)) {
+      throw new DecisionActionError('private_source_rejected', 403);
+    }
+  }
+
+  /**
+   * Real, persisted execution of a decision action. Additive to preview(); never replaces it.
+   * Gated by `executeEnabled` (operator/runtime flag) AND an explicit `body.confirm === true`
+   * AND a caller-supplied idempotencyKey + sourceFingerprint. Fails closed on any mismatch,
+   * on excluded boards, or on any private/TWL marker. See
+   * management-cockpit-production-contract-v3.md section 3b.
+   */
+  async function execute(decisionId, action, body) {
+    if (!executeEnabled) throw new DecisionActionError('decision_execute_not_enabled', 501);
+    if (!kanban || typeof kanban.readTask !== 'function' || typeof kanban.recordDecision !== 'function') {
+      throw new DecisionActionError('decision_execute_kanban_adapter_missing', 500);
+    }
+    const input = body && typeof body === 'object' && !Array.isArray(body) ? body : {};
+    if (input.confirm !== true) throw new DecisionActionError('confirmation_required', 400);
+    const idempotencyKey = cleanText(input.idempotencyKey, 'idempotencyKey', {
+      required: true,
+      max: 256,
+    });
+    const expectedFingerprint = cleanText(input.sourceFingerprint, 'sourceFingerprint', {
+      required: true,
+      max: 128,
+    });
+
+    // The idempotency signature is built only from caller-submitted, stable inputs so that a
+    // retried call with the same key dedupes even though the live kanban state has since moved
+    // on (e.g. our own prior write changed the task). It intentionally does not depend on a
+    // fresh kanban read.
+    const signature = crypto
+      .createHash('sha256')
+      .update(JSON.stringify({ decisionId, action, input, expectedFingerprint }))
+      .digest('hex');
+    const existing = idempotency.get(idempotencyKey);
+    if (existing) {
+      if (existing.signature !== signature) {
+        throw new DecisionActionError('idempotency_key_conflict', 409);
+      }
+      const result = await existing.promise;
+      return { ...structuredClone(result), deduplicated: true };
+    }
+
+    const run = (async () => {
+      const decision = loadActionableDecision(decisionId, action);
+      assertSafeSource(decision);
+      const source = { board: decision.source_board, taskId: decision.source_task_id };
+      const beforeTask = await kanban.readTask(source);
+      if (!beforeTask) throw new DecisionActionError('source_task_not_found', 404);
+      if (containsPrivateMarker(beforeTask)) {
+        throw new DecisionActionError('private_source_rejected', 403);
+      }
+      if (sourceFingerprint(beforeTask) !== expectedFingerprint) {
+        throw new DecisionActionError('source_fingerprint_mismatch', 409);
+      }
+
+      const payload = normalizePayload(action, input, decision, clock());
+      const effects = plannedEffects(action, decision, payload);
+      const adapterReceipt = await kanban.recordDecision({
+        action,
+        source,
+        payload,
+        decisionId: decision.decision_id,
+        idempotencyKey,
+      });
+      const afterTask = await kanban.readTask(source);
+      if (!afterTask) throw new DecisionActionError('decision_execute_readback_missing', 502);
+      if (containsPrivateMarker(afterTask)) {
+        throw new DecisionActionError('private_source_rejected', 403);
+      }
+      return {
+        ok: true,
+        mode: 'execute',
+        shadowOnly: false,
+        writePerformed: true,
+        persisted: true,
+        action,
+        decisionId: decision.decision_id,
+        source,
+        idempotencyKey,
+        normalizedPayload: payload,
+        plannedEffects: effects,
+        receipt: {
+          adapter: adapterReceipt === undefined ? null : structuredClone(adapterReceipt),
+          readBack: {
+            task: structuredClone(afterTask),
+            fingerprint: sourceFingerprint(afterTask),
+          },
+        },
+        message: 'Entscheidung ausgeführt. Kanban-Readback und Receipt liegen vor.',
+      };
+    })();
+    idempotency.set(idempotencyKey, { signature, promise: run });
+    try {
+      const result = await run;
+      return { ...structuredClone(result), deduplicated: false };
+    } catch (error) {
+      idempotency.delete(idempotencyKey);
+      throw error;
+    }
+  }
 
   function preview(decisionId, action, body) {
     if (!ACTIONS.includes(action)) throw new DecisionActionError('unknown_decision_action', 404);
@@ -178,7 +312,7 @@ function createDecisionActions({ reader, writeEnabled = false, shadowOnly = true
     };
   }
 
-  return { actions: ACTIONS, preview };
+  return { actions: ACTIONS, preview, execute };
 }
 
 module.exports = {
@@ -188,4 +322,5 @@ module.exports = {
   isActionable,
   normalizePayload,
   plannedEffects,
+  DEFAULT_EXCLUDED_BOARDS,
 };

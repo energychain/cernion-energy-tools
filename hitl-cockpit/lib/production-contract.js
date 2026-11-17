@@ -58,8 +58,8 @@ function loadProductionContract(options = {}) {
     invalid('configuration is not readable JSON');
   }
   exactFields(contract, TOP_LEVEL_FIELDS, 'contract');
-  if (contract.schemaVersion !== 2) invalid('schemaVersion');
-  if (contract.contractId !== 'management-cockpit-production-v2') invalid('contractId');
+  if (contract.schemaVersion !== 3) invalid('schemaVersion');
+  if (contract.contractId !== 'management-cockpit-production-v3') invalid('contractId');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(contract.effectiveDate)) invalid('effectiveDate');
   if (contract.status !== 'active') invalid('status');
 
@@ -79,17 +79,32 @@ function loadProductionContract(options = {}) {
 
   exactFields(
     contract.management,
-    new Set(['enabled', 'decisionWritesEnabled', 'shadowOnly', 'defaultView']),
+    new Set([
+      'enabled',
+      'decisionWritesEnabled',
+      'shadowOnly',
+      'defaultView',
+      'decisionExecuteEnabled',
+      'decisionExecuteActionClasses',
+      'decisionExecuteRequiresProductionSmoke',
+    ]),
     'management'
   );
   if (
     contract.management.enabled !== true ||
     contract.management.decisionWritesEnabled !== false ||
     contract.management.shadowOnly !== true ||
-    contract.management.defaultView !== 'management'
+    contract.management.defaultView !== 'management' ||
+    contract.management.decisionExecuteEnabled !== false ||
+    contract.management.decisionExecuteRequiresProductionSmoke !== true
   ) {
     invalid('management values');
   }
+  exactStrings(
+    contract.management.decisionExecuteActionClasses,
+    DECISION_EXECUTE_ACTION_CLASSES,
+    'management.decisionExecuteActionClasses'
+  );
 
   exactFields(
     contract.assistant,
@@ -164,8 +179,16 @@ function loadProductionContract(options = {}) {
     invalid('rollback values');
   }
 
-  exactFields(contract.evidence, new Set(['productionSmoke']), 'evidence');
+  exactFields(
+    contract.evidence,
+    new Set(['productionSmoke', 'decisionExecuteProductionSmoke', 'decisionExecuteProductionSmokeStatus']),
+    'evidence'
+  );
   if (contract.evidence.productionSmoke.includes('..')) invalid('evidence path');
+  if (contract.evidence.decisionExecuteProductionSmoke.includes('..')) invalid('evidence path');
+  if (!['pending', 'passed'].includes(contract.evidence.decisionExecuteProductionSmokeStatus)) {
+    invalid('evidence decisionExecuteProductionSmokeStatus');
+  }
   return Object.freeze({ ...contract, contractPath });
 }
 
@@ -176,6 +199,11 @@ function buildOperatingStatus({ contract, management, assistant }) {
       decisionWritesEnabled: Boolean(management.decisionWritesEnabled),
       shadowOnly: Boolean(management.shadowOnly),
       defaultView: management.defaultView,
+      decisionExecuteEnabled: Boolean(management.decisionExecuteEnabled),
+      decisionExecuteActionClasses: [...(management.decisionExecuteActionClasses || [])],
+      decisionExecuteRequiresProductionSmoke: Boolean(
+        management.decisionExecuteRequiresProductionSmoke
+      ),
     },
     assistant: {
       enabled: Boolean(assistant.enabled),
@@ -187,7 +215,11 @@ function buildOperatingStatus({ contract, management, assistant }) {
   };
   const mismatches = [];
   for (const [field, expected] of Object.entries(contract.management)) {
-    if (runtime.management[field] !== expected) mismatches.push(`management.${field}`);
+    const actual = runtime.management[field];
+    const matches = Array.isArray(expected)
+      ? JSON.stringify(actual) === JSON.stringify(expected)
+      : actual === expected;
+    if (!matches) mismatches.push(`management.${field}`);
   }
   for (const field of ['enabled', 'mode', 'writesEnabled', 'matrixHandoffEnabled']) {
     if (runtime.assistant[field] !== contract.assistant[field])
@@ -217,3 +249,11 @@ module.exports = {
   buildOperatingStatus,
   loadProductionContract,
 };
+const DECISION_EXECUTE_ACTION_CLASSES = Object.freeze([
+  'choose',
+  'delegate',
+  'question',
+  'schedule',
+  'reject',
+  'return-to-rhajaina',
+]);

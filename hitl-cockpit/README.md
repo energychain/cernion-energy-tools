@@ -12,7 +12,7 @@ Das Cockpit bietet zwei additive Sichten auf Hermes Kanban:
 
 Hermes Kanban bleibt System of Record. Die Management-SQLite ist eine abgeleitete Projektion und kann vollständig neu aufgebaut werden. Die Management-Decision-API bleibt im Shadow-Modus. Der getrennte Rhajaina Assistant Channel läuft produktiv im Modus `low_risk` und darf nach expliziter Bestätigung genau fünf interne Aktionsklassen mit Kanban-Readback, Receipt und optionalem Matrix-Handoff ausführen. Persistente Reconciliation und verifizierter Ergebnisrücklauf sind aktiv.
 
-Verbindlicher aktueller Betriebsvertrag: `../agent-operating-system/management-cockpit-production-contract-v2.md`.
+Verbindlicher aktueller Betriebsvertrag: `../agent-operating-system/management-cockpit-production-contract-v3.md`.
 Fachliche Policy: `../agent-operating-system/management-cockpit-policy-v1.md`.
 Produktionsbaseline und Rückfall: `../agent-operating-system/management-cockpit-operations-v1.md`.
 Reproduzierbare Releasebasis: `../agent-operating-system/management-cockpit-release-baseline-v2.md`.
