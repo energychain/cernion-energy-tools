@@ -19,11 +19,18 @@ function tenantEvidenceBudgetMs(env = process.env) {
 }
 
 // `evidenceAnswer: false` (conversation core) keeps the learned checks and source corrections but
-// leaves answering from stored material to the content turn, where it is evidence.
+// leaves answering from stored material to the content turn, where it is evidence. It follows the
+// tenant's core switch unless a caller decides, so no path (an upload turn) answers directly in core.
 async function projectManifestTurn(
   service,
   ctx,
-  { p, envelope, pending, meta, evidenceAnswer = true }
+  {
+    p,
+    envelope,
+    pending,
+    meta,
+    evidenceAnswer = !require('./workbench-conversation-core').conversationCoreEnabled(p?.tenantId),
+  }
 ) {
   if (
     (!ctx.broker.getLocalService('project-manifest') &&
