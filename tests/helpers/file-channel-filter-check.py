@@ -77,8 +77,8 @@ async def check():
         request = SimpleNamespace(app=app)
         ref = {"fileId": "a" * 64, "name": file.filename, "mimeType": "text/plain", "size": len(original), "hash": "a" * 64}
         calls = []
-        async def cet(method, path, who, payload=None):
-            calls.append((method, path, who, payload))
+        async def cet(method, path, who, payload=None, route=None):
+            calls.append((method, path, who, payload, route))
             return SimpleNamespace(json=lambda: ref)
         filter.cet = cet
         body = {"model": "cernion-governance-assistant", "files": [{"id": "synthetic-source", "type": "file", "path": "/etc/passwd"}], "messages": [{"role": "user", "content": "Save file"}]}
@@ -90,7 +90,7 @@ async def check():
         assert len(routes) == 1
         assert router.routes[0].path == "/api/v1/cet-files/{file_id}"
         assert isinstance(router.routes[1], routing.Mount)
-        assert routes[0][0][1].__defaults__ == (verified,)
+        assert routes[0][0][1].__defaults__ == (verified, "")
         assert routes[0][0][1].__annotations__["request"] is fastapi.Request
         await filter.inlet({"model": "cernion-governance-assistant", "files": []}, {"id": user.id}, request)
         assert len(routes) == 1
@@ -128,7 +128,7 @@ async def check():
         assert filter.headers({"id": user.id, "email": user.email})["X-OpenWebUI-User-Email"] == user.email
         assert "X-OpenWebUI-User-Email" not in filter.headers({"id": user.id})
         # Exercise the actual mounted proxy with authenticated server-side identity.
-        async def download_cet(method, path, who, payload=None):
+        async def download_cet(method, path, who, payload=None, route=None):
             assert method == "GET" and who == {"id": user.id, "email": user.email}
             assert "openWebuiOrgId=synthetic-org" in path
             return SimpleNamespace(content=original, headers={"content-type": "text/plain", "cache-control": "no-store"})
@@ -144,6 +144,56 @@ async def check():
             raise AssertionError("rejected download succeeded")
         except HTTPException as error:
             assert error.status_code == 403
+        # Tenant routes: a further tenant's assistant uploads and downloads with its own
+        # gateway token and organization; the base route stays as it was.
+        import json
+        other = secrets.token_urlsafe(32)
+        filter.valves.TENANT_ROUTES = json.dumps({"tenant-b-assistant": {"GATEWAY_TOKEN": other, "OPENWEBUI_ORG_ID": "org-b"}})
+        assert filter.route_for("cernion-governance-assistant") == {"token": gateway, "org": "synthetic-org"}
+        assert filter.route_for("tenant-b-assistant") == {"token": other, "org": "org-b"}
+        assert filter.headers({"id": user.id}, filter.route_for("tenant-b-assistant"))["Authorization"] == "Bearer " + other
+        routed = []
+        async def routed_cet(method, path, who, payload=None, route=None):
+            routed.append((method, path, payload, route))
+            return SimpleNamespace(json=lambda: ref, content=original, headers={"content-type": "text/plain"})
+        filter.cet = routed_cet
+        filter.valves.MAX_BYTES = 1024
+        mount = filter.mount_downloads
+        filter.mount_downloads = lambda _: None
+        b_body = {"model": "tenant-b-assistant", "files": [{"id": "synthetic-source"}]}
+        await filter.inlet(b_body, {"id": user.id}, request)
+        assert routed[-1][2]["openWebuiOrgId"] == "org-b" and routed[-1][3]["token"] == other
+        assert b_body["files"] == [] and b_body["cet_file_refs"] == [ref]
+        link = "[file](/v1/files/" + "a" * 64 + "/content?ticket=abc.def)"
+        b_out = await filter.outlet({"model": "tenant-b-assistant", "messages": [{"role": "assistant", "content": link}]})
+        assert b_out["messages"][0]["content"] == "[file](/api/v1/cet-files/" + "a" * 64 + "?ticket=abc.def&org=org-b)"
+        base_out = await filter.outlet({"model": "cernion-governance-assistant", "messages": [{"role": "assistant", "content": link}]})
+        assert "&org=" not in base_out["messages"][0]["content"]
+        assert other not in str(b_out) and gateway not in str(b_out)
+        await proxy("a" * 64, request, "synthetic.ticket", user, org="org-b")
+        assert "openWebuiOrgId=org-b" in routed[-1][1] and routed[-1][3]["token"] == other
+        await proxy("a" * 64, request, "synthetic.ticket", user)
+        assert "openWebuiOrgId=synthetic-org" in routed[-1][1] and routed[-1][3]["token"] == gateway
+        for org, status in (("org-unknown", 403), ("bad org/..", 422)):
+            try:
+                await proxy("a" * 64, request, "synthetic.ticket", user, org=org)
+                raise AssertionError("unrouted organization downloaded")
+            except HTTPException as error:
+                assert error.status_code == status
+        # A broken route list fails closed for the model it names and never leaks its token;
+        # unrelated models stay no-ops and the base route keeps working.
+        filter.valves.TENANT_ROUTES = '{"tenant-b-assistant": {"GATEWAY_TOKEN": "' + other + '"}}'
+        try:
+            await filter.inlet({"model": "tenant-b-assistant", "files": [{"id": "synthetic-source"}]}, {"id": user.id}, request)
+            raise AssertionError("incomplete tenant route accepted")
+        except ValueError as error:
+            assert other not in str(error)
+        assert filter.route_for("foreign-model") is None
+        assert filter.route_for("cernion-governance-assistant")["token"] == gateway
+        filter.valves.TENANT_ROUTES = "{not json"
+        assert filter.route_for("foreign-model") is None
+        filter.valves.TENANT_ROUTES = ""
+        filter.mount_downloads = mount
         # A stable 503 must escape inlet without returning files to the text path.
         filter.mount_downloads = lambda _: None
         filter.valves.MAX_BYTES = 1024
