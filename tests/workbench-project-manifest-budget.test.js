@@ -60,3 +60,26 @@ test('in the conversation core the direct path leaves stored material to the con
   expect(reply).toBeNull();
   expect(evidence.projectManifestAnswer).not.toHaveBeenCalled();
 });
+
+test('an upload turn of a core tenant does not answer directly when the caller does not decide', async () => {
+  process.env.WORKBENCH_CONVERSATION_CORE = 'core-tenant';
+  const service = { logger: { info: jest.fn() }, conversationsDb: {}, settings: {} };
+  const ctx = { broker: { getLocalService: () => ({}) }, call: jest.fn() };
+  const upload = (tenantId) =>
+    projectManifestTurn(service, ctx, {
+      p: { tenantId, actorId: 'a' },
+      envelope: {
+        userRequest: 'Im Anhang ist eine Archivansicht. Erstelle eine erste Evidenzmatrix.',
+        conversationId: 'c',
+        tenantEvidenceReady: true,
+        evidenceSourceIds: ['doc-1'],
+      },
+      pending: {},
+      meta: {},
+    });
+  expect(await upload('core-tenant')).toBeNull();
+  expect(evidence.projectManifestAnswer).not.toHaveBeenCalled();
+  evidence.projectManifestAnswer.mockResolvedValue(null);
+  await upload('other-tenant');
+  expect(evidence.projectManifestAnswer).toHaveBeenCalled();
+});
