@@ -73,7 +73,7 @@ function normalizeMessages(rawMessages, { preserveDocuments = false } = {}) {
     throw openAiError('messages must be a non-empty array.', 400, 'messages_required');
   }
 
-  const messages = rawMessages.map((message, index) => {
+  const mapped = rawMessages.map((message, index) => {
     const role = String(message?.role || '')
       .trim()
       .toLowerCase();
@@ -97,6 +97,10 @@ function normalizeMessages(rawMessages, { preserveDocuments = false } = {}) {
         : compactMarkdown(rawContent, require('../src/workbench-thread').maxInputChars())
       : compactString(normalizeContent(message?.content), 2000);
 
+    // A failed earlier turn leaves an empty assistant message in the client's history; it
+    // carries nothing and is skipped, so one failure does not reject every later turn.
+    if (!content && !hasToolCalls && role === 'assistant' && index < rawMessages.length - 1)
+      return null;
     if (!content && !hasToolCalls) {
       throw openAiError(`messages[${index}].content is required.`, 400, 'message_content_required');
     }
@@ -114,6 +118,7 @@ function normalizeMessages(rawMessages, { preserveDocuments = false } = {}) {
     if (message?.name) normalized.name = String(message.name);
     return normalized;
   });
+  const messages = mapped.filter(Boolean);
 
   if (!messages.some((message) => message.role === 'user')) {
     throw openAiError('At least one user message is required.', 400, 'user_message_required');
