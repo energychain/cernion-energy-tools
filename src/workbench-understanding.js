@@ -1483,13 +1483,14 @@ async function generateAnswerResult({
       const freeAnswer = require('./workbench-free-answer');
       // A free answer that fails the checks is repaired on the proven structured path (a second
       // free attempt failed the same way in the long-dialogue test).
+      // Analysis turns are written freely too (REG-01: as claims they shrank to a sentence or two);
+      // short conversation stays on the structured path unless a running case gives it substance.
       const free =
         attempt === 0 &&
         freeAnswer.freeAnswerEnabled(tenantId) &&
         !situation.requestedOutput?.requested &&
         !draftRequested &&
-        !conversationMode &&
-        !analysisOnly &&
+        (!conversationMode || Boolean(caseView)) &&
         !nextStepOnly;
       // An ordered internal deliverable is written freely as Markdown (LON-A: long deliverables
       // as claim JSON broke the JSON three times); the artifact checks apply unchanged.
