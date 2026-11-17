@@ -316,6 +316,48 @@ describe('OpenAI Compatible Service', () => {
     expect(result.choices[0].message.content).toBe('Cernion advisory answer.');
   });
 
+  it('skips the empty assistant message a failed earlier turn left in the history', async () => {
+    const ctx = {
+      params: {
+        messages: [
+          { role: 'user', content: 'Erste Frage' },
+          { role: 'assistant', content: '' },
+          { role: 'user', content: 'Zweite Frage' },
+        ],
+      },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+      call: jest.fn().mockResolvedValue({
+        success: true,
+        sessionId: 'session-retry',
+        chatMode: CHAT_MODES.CONSULTATION,
+        reply: 'Cernion advisory answer.',
+      }),
+    };
+
+    const result = await handler(ctx);
+
+    expect(result.choices[0].message.content).toBe('Cernion advisory answer.');
+    expect(JSON.stringify(ctx.call.mock.calls[0][1])).not.toContain('"content":""');
+  });
+
+  it('still rejects an empty final message', async () => {
+    const ctx = {
+      params: {
+        messages: [
+          { role: 'user', content: 'Frage' },
+          { role: 'assistant', content: '' },
+        ],
+      },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+      call: jest.fn(),
+    };
+
+    await expect(handler(ctx)).rejects.toMatchObject({
+      code: 400,
+      type: 'message_content_required',
+    });
+  });
+
   it('requires at least one user message', async () => {
     const ctx = {
       params: {
