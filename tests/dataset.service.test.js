@@ -577,6 +577,39 @@ describe('tenant dataset catalog', () => {
     expect(query.summaries[0].integralUnit).toBe('kWh');
     expect(query.summaries[0].integral / 1000).toBeCloseTo((3478.874 + 0.00025) * 4, 8);
   });
+  test('a corrected value of an entry is no table semantics correction', async () => {
+    const { datasetCorrection } = require('../src/dataset-correction');
+    const records = [
+      {
+        id: 'ds-register',
+        title: 'register.csv',
+        columns: [{ name: 'reference' }, { name: 'event_date' }],
+        semantic: { units: {} },
+        quality: {},
+        selectedInConversations: ['synthetic-chat'],
+      },
+    ];
+    const question = 'Korrektur: Das Versanddatum war der 11.04.2026, nicht der 14.04.2026.';
+    const judged = (target) => ({
+      kind: 'metadata',
+      target,
+      basis: 'Das Versanddatum war der 11.04.2026',
+      datasetId: 'ds-register',
+      rowNumbers: [],
+      units: [],
+    });
+    llm.generateStructured.mockResolvedValueOnce(judged('entry_value'));
+    expect(await datasetCorrection(records, question, 'synthetic', 'synthetic-chat')).toBeNull();
+    llm.generateStructured.mockResolvedValueOnce(judged('column_meaning'));
+    expect(await datasetCorrection(records, question, 'synthetic', 'synthetic-chat')).toMatchObject(
+      {
+        kind: 'metadata',
+        datasetIds: ['ds-register'],
+      }
+    );
+    const [schema] = llm.generateStructured.mock.calls.at(-1);
+    expect(schema.required).toContain('target');
+  });
   test('byte limit refuses the whole dataset', async () => {
     process.env.WORKBENCH_DATASET_MAX_BYTES = '100';
     await expect(upload()).rejects.toMatchObject({ type: 'WORKBENCH_DATASET_LIMIT' });
