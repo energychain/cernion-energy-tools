@@ -213,9 +213,11 @@ class Filter:
             return body
         # Browser downloads keep its OWUI session; the gateway key stays on the server.
         pattern = r"(?:https?://[^\s/)]+)?/v1/files/([a-f0-9]{64})/content\?ticket=([A-Za-z0-9_.-]+)"
+        # The organization picks the download route; it is no credential. ORG_PATTERN keeps
+        # it free of backslashes, so it is safe inside the replacement template.
+        suffix = "" if route["org"] == self.valves.OPENWEBUI_ORG_ID else "&org=" + route["org"]
+        replacement = r"/api/v1/cet-files/\1?ticket=\2" + suffix
         for message in body.get("messages", []):
             if message.get("role") == "assistant" and isinstance(message.get("content"), str):
-                # The organization picks the download route; it is no credential.
-                suffix = "" if route["org"] == self.valves.OPENWEBUI_ORG_ID else "&org=" + route["org"]
-                message["content"] = re.sub(pattern, lambda match: f"/api/v1/cet-files/{match.group(1)}?ticket={match.group(2)}{suffix}", message["content"])
+                message["content"] = re.sub(pattern, replacement, message["content"])
         return body
