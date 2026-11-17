@@ -405,6 +405,26 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
     };
   if (!read) return null;
   const { answer, evidence } = read;
+  // Conversation core: in a running case the table read is evidence of the case answer (with its
+  // case state, corrections and hypotheses), not a separate answer that cannot relate the table to it.
+  if (
+    require('./workbench-conversation-core').conversationCoreEnabled(p.tenantId) &&
+    pending?.caseState
+  ) {
+    await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
+      datasetContext: {
+        datasetIds: grounded,
+        lastDatasetId: candidates.length === 1 ? candidates[0].id : undefined,
+      },
+    });
+    envelope.tableEvidence = [
+      ...evidence,
+      ...(answer
+        ? [{ source: 'dataset.query', retrievalSource: 'dataset', value: answer, metadata: {} }]
+        : []),
+    ];
+    return null;
+  }
   const combined = await require('./workbench-project-manifest').supplementDatasetAnswer(
     service,
     ctx,
@@ -1342,7 +1362,11 @@ async function runContentTurn(
     ...codes.unresolvedQuestions(resolvedCodes.resolutions, situation.conversationPreferences),
     ...situation.missingInformation.filter((item) => !item.key?.startsWith('code:')),
   ].slice(0, 10);
-  retrieval.evidence = [...resolvedCodes.evidence, ...(retrieval.evidence || [])];
+  retrieval.evidence = [
+    ...resolvedCodes.evidence,
+    ...(envelope.tableEvidence || []),
+    ...(retrieval.evidence || []),
+  ];
   retrieval.trace = [...(retrieval.trace || []), ...resolvedCodes.trace];
   const toolResult = await tools;
   phaseTimes.toolsMs = toolResult.ms;
