@@ -40,11 +40,27 @@ Container-Test verwendet genau dieses Image; Umfang und Grenzen stehen unter
    | `GATEWAY_TOKEN` | Eigener Dateikanal-Gateway-Token, normales sichtbares Textfeld |
    | `OPENWEBUI_ORG_ID` | Exakte `externalOrgId` aus `workbench:map -- --list` |
    | `MODEL_IDS` | Kommagetrennte exakte IDs; Standard `cernion-governance-assistant` |
+   | `TENANT_ROUTES` | Optional: weitere Assistenten anderer Tenants, siehe unten |
    | `MAX_BYTES` | Standard 10485760, höchstens CETs Dateigrenze |
    | `TIMEOUT_SECONDS` | Standard 60 |
    | `priority` | Standard 0; Dateikanal vor Filtern ausführen, die Anhänge verändern |
 
    Bei einem eigenen Modell-Preset dessen tatsächliche ID in `MODEL_IDS` ergänzen.
+
+   **Weitere Tenants auf derselben Open-WebUI-Instanz:** Eine zweite Kopie der Funktion
+   nicht anlegen; beide Kopien teilen sich die Download-Route. Stattdessen in
+   `TENANT_ROUTES` je Modell-ID den Gateway-Token und die `externalOrgId` des Tenants
+   eintragen, als JSON-Objekt in einer Zeile:
+
+   ```json
+   {"<prefix>.cernion-governance-assistant": {"GATEWAY_TOKEN": "<Gateway-Token des Tenants>", "OPENWEBUI_ORG_ID": "<externalOrgId>"}}
+   ```
+
+   `MODEL_IDS`, `GATEWAY_TOKEN` und `OPENWEBUI_ORG_ID` bleiben die Basisroute. Uploads eines
+   Modells aus `TENANT_ROUTES` gehen mit dessen Token und Organisation an CET; seine
+   Download-Links tragen die Organisation (`&org=`) und werden über dieselbe Route
+   abgerufen. Ein unvollständiger oder ungültiger Eintrag bricht für die darin genannten
+   Modelle sichtbar ab; andere Modelle und die Basisroute bleiben unberührt.
    Benutzer können diese Administrator-Valves nicht ändern. Für Chat weiterhin
    `ENABLE_FORWARD_USER_INFO_HEADERS=true` setzen; der Dateikanal sendet selbst
    `X-OpenWebUI-User-Id` und, sofern vorhanden, `X-OpenWebUI-User-Email`.
