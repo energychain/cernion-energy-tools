@@ -95,16 +95,18 @@ describe('asynchronous chat turns (DEV-UAT-006, TECH-ASYNC-01)', () => {
       key: 'key-delay-0001',
       parent: 'msg-3',
       run: () => later(5, completion('x')),
-      testDelayMs: 120,
+      testDelayMs: 600,
       syncWindowMs: 30,
     });
     expect(first.httpStatus).toBe(202);
-    await later(60);
-    expect(turns.ownJob(first.body.jobId, 't2').status).not.toBe('completed');
-    await later(100);
+    // Checkpoints are measured from the start, so a slow runner cannot move them past the delay.
+    await later(Math.max(0, started + 300 - Date.now()));
+    if (Date.now() - started < 550)
+      expect(turns.ownJob(first.body.jobId, 't2').status).not.toBe('completed');
+    await later(Math.max(0, started + 800 - Date.now()));
     const job = turns.ownJob(first.body.jobId, 't2');
     expect(job.status).toBe('completed');
-    expect(Date.parse(job.completedAt) - started).toBeGreaterThanOrEqual(110);
+    expect(Date.parse(job.completedAt) - started).toBeGreaterThanOrEqual(590);
     expect(turns.ownJob(first.body.jobId, 'other-tenant')).toBeNull();
   });
 

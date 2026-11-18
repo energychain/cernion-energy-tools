@@ -55,7 +55,41 @@ function sourceLabel(label) {
     : 'Abgefragte Datenquelle';
 }
 
+// Names of documents are what the person calls their material (scanned-response.pdf); they look
+// like internal identifiers (dataset.query) but are no tool output (REG-01: a step list naming the
+// attached scan was removed and the answer ended in "… vor:").
+const DOCUMENT_EXTENSIONS = new Set(
+  'pdf png jpg jpeg webp csv tsv xls xlsx doc docx ppt pptx txt md eml edi'.split(' ')
+);
+const EDGE = new Set([...'.,;:!?()[]{}"\'„“”‚‘’`*']);
+function documentName(token) {
+  let start = 0;
+  let end = token.length;
+  while (start < end && EDGE.has(token[start])) start++;
+  while (end > start && EDGE.has(token[end - 1])) end--;
+  const word = token.slice(start, end);
+  const dot = word.lastIndexOf('.');
+  return dot > 0 && DOCUMENT_EXTENSIONS.has(word.slice(dot + 1).toLowerCase());
+}
+function withoutDocumentNames(text, evidence) {
+  let value = String(text);
+  for (const hit of evidence) {
+    for (const name of [hit?.source, hit?.metadata?.name])
+      if (typeof name === 'string' && name.length >= 5) value = value.split(name).join(' ');
+  }
+  return value
+    .split('\n')
+    .map((line) =>
+      line
+        .split(' ')
+        .map((token) => (documentName(token) ? '' : token))
+        .join(' ')
+    )
+    .join('\n');
+}
+
 function internalToolText(text, evidence = []) {
+  text = withoutDocumentNames(text, evidence);
   if (/\b(?:fn|ds|case|agent|proc|operation|capability)[_:-][A-Za-z\d_.:-]+\b/u.test(text))
     return true;
   if (/\b[a-z][a-z-]{2,}\.[a-z][A-Za-z\d]+\b/u.test(text)) return true;
