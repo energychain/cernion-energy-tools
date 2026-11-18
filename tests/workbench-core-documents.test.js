@@ -19,7 +19,7 @@ jest.mock('../src/workbench-document-question', () => ({
 const { documentReply, caseDocumentEvidence } = require('../src/workbench-document-flow');
 const { documentQuestion } = require('../src/workbench-document-question');
 
-const run = (question) =>
+const run = (question, situation = {}) =>
   documentReply(
     { store: {}, broker: { getLocalService: () => null }, logger: {} },
     { meta: {} },
@@ -27,7 +27,7 @@ const run = (question) =>
       p: { tenantId: 'tenant-core', roles: [] },
       envelope: { userRequest: question, conversationId: 'c' },
       caseId: 'case-1',
-      situation: {},
+      situation,
       retrieval: { evidence: [] },
     }
   );
@@ -49,6 +49,27 @@ test('conversation core: case documents become evidence of the regular answer', 
   });
   expect(result.caseDocuments.every((hit) => hit.value.length <= 1500)).toBe(true);
   expect(result.caseDocuments.some((hit) => hit.source === 'leer.pdf')).toBe(false);
+});
+
+test('conversation core: a question that mentions a check is no ordered document review', async () => {
+  process.env.WORKBENCH_CONVERSATION_CORE = 'tenant-core';
+  const result = await run(
+    'Gleiche ihn mit dem bisherigen Stand ab. Welche Aussagen sind belastbar und welche Prüfung fehlt noch?',
+    { turnKind: 'review', requestedOutput: { requested: false } }
+  );
+  expect(result.caseDocuments.length).toBeGreaterThan(0);
+  expect(documentQuestion).not.toHaveBeenCalled();
+});
+
+test('conversation core: an ordered review work product leaves the case-document answer', async () => {
+  process.env.WORKBENCH_CONVERSATION_CORE = 'tenant-core';
+  // The review path itself needs the conversation store, which this unit setup does not provide;
+  // what matters here is that the case-document shortcut is not taken.
+  const result = await run('Erstelle eine Stellungnahme zu den Unterlagen.', {
+    turnKind: 'review',
+    requestedOutput: { requested: true, kind: 'internal', parts: [] },
+  }).catch(() => ({}));
+  expect(result?.caseDocuments).toBeUndefined();
 });
 
 test('without the core the document question path answers as before', async () => {
