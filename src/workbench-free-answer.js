@@ -165,13 +165,25 @@ async function annotateBlocks(
     const cited = (row.evidenceIds || []).filter((id) => known.has(id));
     const origin = row.origin === 'evidence' && !cited.length ? 'model' : row.origin || 'model';
     const evidenceIds = origin === 'evidence' ? cited : [];
+    // A paragraph that reports what the person said (with their verbatim words) or what a cited
+    // source shows was done claims no execution by CET (REG-01: openings like "Archiv B wurde
+    // geprüft" were removed as completed actions and the answers began mid-thought). The origin
+    // label alone is not enough: an own claim of execution can be mislabelled as a report.
+    const quote = String(row.inputQuote || '').trim();
+    const reported =
+      (origin === 'input' &&
+        quote.length >= 12 &&
+        [message, ...conversation.map((turn) => turn?.text ?? turn?.content ?? '')].some((text) =>
+          String(text).includes(quote)
+        )) ||
+      (origin === 'evidence' && evidenceIds.length > 0);
     return {
       kind: KINDS.includes(row.kind) ? row.kind : 'statement',
       claim: {
         text: block,
         origin,
         supported: origin === 'evidence' ? 'evidence' : 'model',
-        completedAction: row.completedAction === true,
+        completedAction: row.completedAction === true && !reported,
         specific: row.specific === true,
         ruleClaim: row.ruleClaim !== false,
         inputQuote: String(row.inputQuote || ''),
