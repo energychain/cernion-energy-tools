@@ -131,6 +131,50 @@ test('a free answer is annotated and then runs through the same checks', async (
   expect(result.answerStatus).not.toBe('fallback');
 });
 
+test('a reported or sourced past action is kept; only an own claim of execution is removed', async () => {
+  process.env.WORKBENCH_FREE_ANSWER = 'all';
+  llm.generateText.mockResolvedValue(
+    [
+      'Wie du berichtet hast, wurde Archiv B für den exakten Suchwert ohne Treffer geprüft.',
+      'Laut Quelle wurde die Transportquittung angenommen; eine fachliche Rückmeldung ist getrennt davon.',
+      'Ich habe den Vorgang bereits auf beantwortet gesetzt.',
+      'Prüfe als Nächstes die übrigen Suchräume, weil der Negativbefund nur für Archiv B gilt.',
+    ].join('\n\n')
+  );
+  const row = (index, kind, origin, extra = {}) => ({
+    index,
+    kind,
+    origin,
+    evidenceIds: [],
+    ruleClaim: false,
+    completedAction: index < 3,
+    specific: false,
+    ...extra,
+  });
+  llm.generateStructured.mockResolvedValue({
+    paragraphs: [
+      row(0, 'statement', 'input', {
+        inputQuote: 'Archiv B wurde für den exakten Suchwert geprüft',
+      }),
+      row(1, 'statement', 'evidence', { evidenceIds: ['E1'] }),
+      // An own claim of execution mislabelled as a report, without the person's words.
+      row(2, 'statement', 'input'),
+      row(3, 'step', 'model'),
+    ],
+  });
+  const result = await answer({
+    situation,
+    retrieval: { evidence },
+    message:
+      'Archiv B wurde für den exakten Suchwert geprüft; kein Treffer. Aktualisiere den Befund.',
+    tenantId: 't',
+  });
+  expect(result.responseText).toContain('Wie du berichtet hast, wurde Archiv B');
+  expect(result.responseText).toContain('Transportquittung angenommen');
+  expect(result.responseText).not.toContain('bereits auf beantwortet gesetzt');
+  expect(result.responseText).toContain('Prüfe als Nächstes');
+});
+
 test('a requested draft keeps the structured path', async () => {
   process.env.WORKBENCH_FREE_ANSWER = 'all';
   llm.generateText.mockResolvedValue(
