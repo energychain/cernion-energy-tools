@@ -103,6 +103,28 @@ function isInternalDescription(value, internalContext = []) {
   );
 }
 
+// A question mark ends a question when it closes a word; inside or after an identifier it marks
+// characters a scan could not read (REQ-DEV-17?, LOC-DEV-BE?A) and asks nothing (REG-01: step
+// lists naming such identifiers were removed as questions and the answer ended mid-list).
+const isLetter = (ch) => Boolean(ch) && ch.toLowerCase() !== ch.toUpperCase();
+function asksQuestion(text) {
+  const value = String(text);
+  for (let i = value.indexOf('?'); i >= 0; i = value.indexOf('?', i + 1)) {
+    const next = value[i + 1];
+    if (isLetter(next) || (next && '0123456789'.includes(next))) continue;
+    let start = i;
+    while (start > 0 && !' \n\t'.includes(value[start - 1])) start--;
+    const word = value.slice(start, i);
+    if (
+      word &&
+      isLetter(word[word.length - 1]) &&
+      !'0123456789-_'.split('').some((c) => word.includes(c))
+    )
+      return true;
+  }
+  return false;
+}
+
 function filterAnswer(
   parsed,
   {
@@ -229,7 +251,7 @@ function filterAnswer(
         )
       )
         rules.push('completed_action');
-      if (field !== 'draft' && claim.text.includes('?') && claim.questionTarget !== 'other')
+      if (field !== 'draft' && asksQuestion(claim.text) && claim.questionTarget !== 'other')
         rules.push('question_in_claim');
       if (
         claim.supported === 'model'
@@ -341,4 +363,10 @@ function repairForFilters(counts) {
     'Jede bedingte Entwurfsvariante muss vollständig sein. Weitere ausdrücklich verlangte Ergebnisse wie Zusammenfassung und Prüfung in interpretation sowie nächste Schritte erhalten; expectation bleibt leer. Nur bei einer alleinstehenden Entwurfsbitte bleiben die übrigen Antwortfelder leer.',
   ].join('\n');
 }
-module.exports = { filterAnswer, repairForFilters, unsupportedEarlierDate, isInternalDescription };
+module.exports = {
+  filterAnswer,
+  repairForFilters,
+  unsupportedEarlierDate,
+  isInternalDescription,
+  asksQuestion,
+};
