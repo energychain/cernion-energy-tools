@@ -62,12 +62,15 @@ const DOCUMENT_EXTENSIONS = new Set(
   'pdf png jpg jpeg webp csv tsv xls xlsx doc docx ppt pptx txt md eml edi'.split(' ')
 );
 const EDGE = new Set([...'.,;:!?()[]{}"\'„“”‚‘’`*']);
-function documentName(token) {
+function trimmed(token) {
   let start = 0;
   let end = token.length;
   while (start < end && EDGE.has(token[start])) start++;
   while (end > start && EDGE.has(token[end - 1])) end--;
-  const word = token.slice(start, end);
+  return token.slice(start, end);
+}
+function documentName(token) {
+  const word = trimmed(token);
   const dot = word.lastIndexOf('.');
   return dot > 0 && DOCUMENT_EXTENSIONS.has(word.slice(dot + 1).toLowerCase());
 }
@@ -77,12 +80,23 @@ function withoutDocumentNames(text, evidence) {
     for (const name of [hit?.source, hit?.metadata?.name])
       if (typeof name === 'string' && name.length >= 5) value = value.split(name).join(' ');
   }
+  // Words copied from the material itself (column names and values of an attached table such as
+  // verified_request_reference) are the person's material too, not internal field names (REG-01
+  // T03, T12: paragraphs citing the attached table were removed as raw tool output).
+  const material = evidence
+    .filter((hit) => hit?.retrievalSource !== 'capability-read')
+    .map((hit) => String(hit?.value || ''))
+    .filter(Boolean);
+  const fromMaterial = (token) => {
+    const word = trimmed(token);
+    return word.length >= 4 && material.some((value) => value.includes(word));
+  };
   return value
     .split('\n')
     .map((line) =>
       line
         .split(' ')
-        .map((token) => (documentName(token) ? '' : token))
+        .map((token) => (documentName(token) || fromMaterial(token) ? '' : token))
         .join(' ')
     )
     .join('\n');
