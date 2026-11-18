@@ -494,10 +494,18 @@ async function documentReply(
   });
   if (!documents.length) return null;
   const question = envelope.userRequest;
-  if (envelope.documents?.length) {
+  // Conversation core: the understanding decides whether a review of the documents is ordered (a
+  // review turn with an ordered deliverable), not a word in the question (REG-01 T03: a question
+  // naming a missing check started the asynchronous review, and every later attachment, T12, was
+  // then answered only as an update of that review).
+  const core = require('./workbench-conversation-core').conversationCoreEnabled(p.tenantId);
+  const reviewOrdered = core
+    ? situation.turnKind === 'review' && Boolean(situation.requestedOutput?.requested)
+    : isReviewRequest(question);
+  if (envelope.documents?.length && !core) {
     const previousJob = await readJob(service, reviewKey(p, envelope, caseId));
     if (
-      !isReviewRequest(question) &&
+      !reviewOrdered &&
       !documentDraftRequested(question) &&
       jobScope(previousJob, p, caseId, access) &&
       !jobMatchesDocuments(previousJob, documents)
@@ -515,12 +523,12 @@ async function documentReply(
     return null;
   // Conversation core: a turn that asks for no document review is answered by the regular answer
   // with case state and history; the case documents are its evidence, not a separate answer.
-  if (
-    require('./workbench-conversation-core').conversationCoreEnabled(p.tenantId) &&
-    !isReviewRequest(question) &&
-    !documentDraftRequested(question) &&
-    !reviewResultRequested(question)
-  )
+  // A question about the state of a review only addresses one that exists for this case.
+  const reviewStateAsked =
+    reviewResultRequested(question) &&
+    (!core ||
+      Boolean(service.conversationsDb && (await readJob(service, reviewKey(p, envelope, caseId)))));
+  if (core && !reviewOrdered && !documentDraftRequested(question) && !reviewStateAsked)
     return { caseDocuments: caseDocumentEvidence(documents), storageNote };
   // A statement for the working context is not answered from document excerpts as if it were a
   // question about them; with a question in the same turn, the regular path answers.
