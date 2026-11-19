@@ -1822,7 +1822,18 @@ module.exports = {
               datasetTurn
             );
           }
-          if (datasetTurn.documents) envelope.documents = datasetTurn.documents;
+          if (datasetTurn.documents) {
+            // The attached tables leave the documents for the dataset store; in a running case
+            // their text stays evidence of this conversation, so the case answer sees the rows
+            // themselves, not only an analysis of a question the table cannot answer (REG-01 T03).
+            const kept = new Set(datasetTurn.documents.map((doc) => doc?.text));
+            envelope.attachedTables = (envelope.documents || [])
+              .filter(
+                (doc) => typeof doc?.text === 'string' && doc.text.trim() && !kept.has(doc.text)
+              )
+              .slice(0, 3);
+            envelope.documents = datasetTurn.documents;
+          }
           envelope.datasetConfirmations = datasetTurn.confirmations || [];
           envelope.datasetReceipts = datasetTurn.datasetReceipts || [];
           envelope.datasetIds = datasetTurn.datasetIds || [];
