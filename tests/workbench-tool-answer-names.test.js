@@ -40,3 +40,19 @@ test('column names and values copied from the attached material are no tool outp
     ])
   ).toBe(true);
 });
+
+test('values of a table read are the person material, other tool output is not', () => {
+  const tableRead = {
+    source: 'dataset.analyze',
+    retrievalSource: 'capability-read',
+    value: 'record_id;register;request_reference\nREC-DEV-A1;Register Alpha;REQ-DEV-17A',
+  };
+  expect(
+    internalToolText('Für REC-DEV-A1 liegt laut request_reference REQ-DEV-17A vor.', [tableRead])
+  ).toBe(false);
+  expect(
+    internalToolText('Der Lauf meldete internal_run_state.', [
+      { source: 'case.lookup', retrievalSource: 'capability-read', value: 'internal_run_state=ok' },
+    ])
+  ).toBe(true);
+});
