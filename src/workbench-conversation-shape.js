@@ -51,7 +51,10 @@ function singleQuestion(text, questions = [], priority = '') {
   const responseText = String(text)
     .split(/\n\n/)
     .filter((paragraph) => {
-      if (!paragraph.includes('?')) return !forbiddenMeta(paragraph);
+      // Unreadable characters of a scanned identifier (REQ-DEV-17?) ask nothing (REG-01 T02: a step
+      // list naming them was dropped as a second question).
+      if (!require('./workbench-answer-filter').asksQuestion(paragraph))
+        return !forbiddenMeta(paragraph);
       if (!naturalQuestion(paragraph) || kept) return false;
       if (selected && !paragraph.includes(selected)) return false;
       kept = true;

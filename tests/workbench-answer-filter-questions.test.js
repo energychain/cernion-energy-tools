@@ -43,3 +43,16 @@ test('a step naming unreadable identifiers stays in the answer', () => {
   expect(counts.has('nextSteps:question_in_claim')).toBe(false);
   expect(parsed.nextSteps).toHaveLength(1);
 });
+
+test('a step list naming unreadable identifiers is no second question in the answer', () => {
+  const { singleQuestion } = require('../src/workbench-conversation-shape');
+  const text = [
+    'Welche Lokation ist gemeint?',
+    'Als nächster Schritt:\n* Prüfgegenstand: DOC-DEV-071 mit REQ-DEV-17? und LOC-DEV-BE?A',
+    'Und noch eine Frage an dich?',
+  ].join('\n\n');
+  const { responseText } = singleQuestion(text, [{ question: 'Welche Lokation ist gemeint?' }]);
+  expect(responseText).toContain('LOC-DEV-BE?A');
+  expect(responseText).toContain('Welche Lokation ist gemeint?');
+  expect(responseText).not.toContain('Und noch eine Frage');
+});
