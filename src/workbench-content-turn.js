@@ -418,6 +418,12 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
       },
     });
     envelope.tableEvidence = [
+      ...(envelope.attachedTables || []).map((doc) => ({
+        source: String(doc.name || 'Tabelle').slice(0, 120),
+        retrievalSource: 'documents',
+        value: doc.text.slice(0, 4000),
+        metadata: { name: doc.name, ownConversation: true },
+      })),
       ...evidence,
       ...(answer
         ? [{ source: 'dataset.query', retrievalSource: 'dataset', value: answer, metadata: {} }]

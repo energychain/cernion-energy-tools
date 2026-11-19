@@ -32,8 +32,9 @@ const call = jest.fn(async (name) => {
     return { answer: 'REQ-A am 14.04.; REQ-B am 10.04.', provenance: 'Herkunft: register.csv' };
   throw new Error(`unexpected ${name}`);
 });
-const run = (pending) => {
+const run = (pending, extra = {}) => {
   const envelope = {
+    ...extra,
     userRequest: 'Gleiche den Registerauszug mit dem bisherigen Stand ab. Was ist belastbar?',
     conversationId: 'c',
     datasetIds: ['ds-register'],
@@ -72,4 +73,18 @@ test('without a running case or the core the table answers as before', async () 
   expect((await run({})).reply.responseText).toContain('REQ-B am 10.04.');
   delete process.env.WORKBENCH_CONVERSATION_CORE;
   expect((await run({ caseState: { turn: 2 } })).reply.responseText).toContain('REQ-B am 10.04.');
+});
+
+test('the attached table text itself is evidence of the case answer', async () => {
+  process.env.WORKBENCH_CONVERSATION_CORE = 'tenant-core';
+  const { envelope } = await run(
+    { caseState: { turn: 2 } },
+    { attachedTables: [{ name: 'register.csv', text: 'record;reference\nREC-B1;REQ-B' }] }
+  );
+  expect(envelope.tableEvidence[0]).toMatchObject({
+    source: 'register.csv',
+    retrievalSource: 'documents',
+    metadata: { ownConversation: true },
+  });
+  expect(envelope.tableEvidence[0].value).toContain('REC-B1;REQ-B');
 });
