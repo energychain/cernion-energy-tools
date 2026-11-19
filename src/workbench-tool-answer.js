@@ -83,8 +83,13 @@ function withoutDocumentNames(text, evidence) {
   // Words copied from the material itself (column names and values of an attached table such as
   // verified_request_reference) are the person's material too, not internal field names (REG-01
   // T03, T12: paragraphs citing the attached table were removed as raw tool output).
+  // A table read returns the person's table data; other tool output stays unwhitelisted.
   const material = evidence
-    .filter((hit) => hit?.retrievalSource !== 'capability-read')
+    .filter(
+      (hit) =>
+        hit?.retrievalSource !== 'capability-read' ||
+        String(hit?.source || '').startsWith('dataset.')
+    )
     .map((hit) => String(hit?.value || ''))
     .filter(Boolean);
   const fromMaterial = (token) => {
