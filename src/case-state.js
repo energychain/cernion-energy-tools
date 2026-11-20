@@ -821,6 +821,7 @@ const CASE_VIEW_RULES = [
   'recommendations: Eine Empfehlung aus recommendations.retracted mit retractedAtTurn gleich turn in dieser Antwort ausdrücklich zurücknehmen: die frühere Empfehlung benennen, den Grund und die jetzt geltende Grenze; sie nie wieder als gültig führen. Abschlüsse, Übergaben und Parkstände enthalten nur Aufträge aus recommendations.active und keine widersprüchlichen aktiven Aufträge.',
   'Wird eine erbetene Handlung nicht ausgeführt, jeden Sperrgrund einzeln nennen: fehlende Befugnis oder Autorisierung zur Ausführung, fehlender Nachweis und die geltende Handlungsgrenze, jeweils mit der Bedingung, unter der sie entfällt.',
   'Wird eine Festlegung von Rolle, Zuständigkeit, Freigabe oder entscheidender Stelle erbeten, die Gespräch und Grundlagen nicht tragen: keine Festlegung, sondern den formellen Klärungsschritt beschreiben, also wer darüber entscheidet oder zu benennen ist, mit welchem Input und welcher Frage, und was bis zur Entscheidung gilt.',
+  'Fragt die Person, was belastbar, was Annahme oder Hypothese und was noch offen ist, gliedere genau so: jede Hypothese aus activeHypotheses und jeder Kandidat aus identifiers (candidate, observed) steht ausdrücklich als Hypothese da, mit dem konkret fehlenden Nachweis, der sie bestätigen oder widerlegen würde; belastbar ist nur, was source_observed, confirmed oder verified ist.',
   'doNotAct sind Handlungsgrenzen: diese Handlungen nicht empfehlen, solange until nicht erfüllt ist; in Übergaben, Parkpositionen und Abschlüssen ausdrücklich mit Grund und Bedingung nennen.',
   'deliverable beschreibt das erwartete Arbeitsprodukt: jede Antwort trägt erkennbar dazu bei; wird es verlangt, liefere jeden Abschnitt inhaltlich ausgearbeitet und ohne Chatverlauf verständlich, mit offenen Punkten, Rollenstatus und nächster Befassung, nie nur die Gliederung.',
   'Zuständigkeiten, Freigaben, Gremien und Beschlüsse nur nennen, wenn das Gespräch sie bestätigt; sonst die benötigte Funktion beschreiben und die Besetzung als offenen Punkt führen. Vorgeschlagene Strukturen, Lösungen und Prüfkriterien als Vorschlag oder Prüfauftrag kennzeichnen, nicht als bestehend oder beschlossen.',
@@ -1399,7 +1400,13 @@ async function reflectCaseState(previous, input = {}, options = {}) {
 function mergeReflection(current, reflection = {}) {
   const state = normalizeCaseState(current);
   if (!reflection.turn) return state;
-  const merged = applyCaseUpdate(state, reflection.delta || {}, { turn: state.turn });
+  // A reflection reads the state of its own turn and takes minutes. When a newer turn has updated
+  // the case meanwhile, its whole-list snapshots (next actions, open questions, boundaries) are
+  // older than the current lists and would undo that turn (REG-01 UAT T13: a search period updated
+  // in T09/T11 fell back to its earlier window); its id-based changes still apply.
+  const delta = { ...(reflection.delta || {}) };
+  if (reflection.turn < state.turn) for (const field of LIST_FIELDS) delete delta[field];
+  const merged = applyCaseUpdate(state, delta, { turn: state.turn });
   merged.reflectedAtTurn = Math.max(state.reflectedAtTurn || 0, reflection.turn);
   if (reflection.addendum) {
     merged.pendingAddendum = reflection.addendum;
