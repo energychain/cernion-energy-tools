@@ -210,7 +210,10 @@ async function annotateFreeAnswer(text, options = {}) {
   const result = emptyAnswer();
   if (!blocks.length) return result;
   for (const { kind, claim } of await annotateBlocks(blocks, options)) {
-    if (kind === 'question') result.questions.push(claim.text);
+    // Only a paragraph that asks something is a question: a hypothesis listing identifiers with
+    // an unreadable character ("R-17?") labelled as a question vanished from the answer (REG-01 T03).
+    if (kind === 'question' && require('./workbench-answer-filter').asksQuestion(claim.text))
+      result.questions.push(claim.text);
     else if (kind === 'step') result.nextSteps.push(claim);
     else if (kind === 'assumption') result.assumptions.push(claim);
     else result.interpretation.push(claim);

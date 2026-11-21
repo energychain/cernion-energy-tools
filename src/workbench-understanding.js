@@ -1671,8 +1671,12 @@ async function generateAnswerResult({
           parsed.draft = [];
           parsed.assumptions = [];
         }
-        if (conversationMode) parsed.nextSteps = [];
-        if (decisive || conversationMode) parsed.assumptions = [];
+        // A free answer is written as a whole with the case state; its assumption and step
+        // paragraphs are part of it (REG-01 T03: the hypotheses and open checks of a requested
+        // categorization vanished as conversation-mode extras). The short conversational form
+        // applies to structured answers only.
+        if (conversationMode && !free) parsed.nextSteps = [];
+        if (decisive || (conversationMode && !free)) parsed.assumptions = [];
         const filterOptions = {
           internalContext: [
             situation.concern,
@@ -1990,6 +1994,26 @@ function withoutStatedCodes(situation, evidence) {
   };
 }
 
+// A value the case ledger tracks as an identifier (caseView.identifiers, with its status) is a
+// case identifier, not a code whose meaning is unknown: the unresolved-code rules would remove
+// every hypothesis about it (REG-01 T03: the open scan assignment vanished). Its use stays bound by
+// the case-state review (unvalidated_identifier).
+function withoutCaseIdentifiers(situation, caseView) {
+  const tracked = new Set(
+    (caseView?.identifiers || []).flatMap((item) => [item.value, item.candidate]).filter(Boolean)
+  );
+  if (!tracked.size || !situation.codeReferences?.length) return situation;
+  const kept = (entry) => !tracked.has(entry.value);
+  const codeReferences = situation.codeReferences.filter(kept);
+  if (codeReferences.length === situation.codeReferences.length) return situation;
+  return {
+    ...situation,
+    codeReferences,
+    codeResolutions: (situation.codeResolutions || []).filter(kept),
+    codeMeaningQuestion: Boolean(situation.codeMeaningQuestion && codeReferences.length),
+  };
+}
+
 async function answer({
   situation,
   retrieval,
@@ -2007,7 +2031,10 @@ async function answer({
   caseView = null,
   logger,
 }) {
-  situation = withoutStatedCodes(situation, retrieval?.evidence || []);
+  situation = withoutCaseIdentifiers(
+    withoutStatedCodes(situation, retrieval?.evidence || []),
+    caseView
+  );
   const roleReply = require('./workbench-role-context').roleConfirmation(situation, message);
   // A message that asks something is answered; the confirmation of the work context is added to
   // that answer (long-dialogue test: "Ich möchte zwei Linien prüfen … Wie arbeiten beide …?" got only it).
@@ -2637,6 +2664,7 @@ function routingRequest(situation) {
 module.exports = {
   selfDescriptionOnly,
   withoutStatedCodes,
+  withoutCaseIdentifiers,
   answerProviderSchema,
   artifactProviderSchema,
   restoreArtifactContract,
