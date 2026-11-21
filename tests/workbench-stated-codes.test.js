@@ -26,3 +26,19 @@ test('a code the statement does not name stays a code question', () => {
   };
   expect(withoutStatedCodes(situation, [statement]).codeMeaningQuestion).toBe(true);
 });
+
+test('an identifier tracked in the case ledger is no unresolved code', () => {
+  const { withoutCaseIdentifiers } = require('../src/workbench-understanding');
+  const situation = {
+    codeMeaningQuestion: false,
+    codeReferences: [{ value: 'R-17?' }, { value: 'Z29' }],
+    codeResolutions: [
+      { value: 'R-17?', status: 'unresolved' },
+      { value: 'Z29', status: 'unresolved' },
+    ],
+  };
+  const caseView = { identifiers: [{ value: 'R-17?', status: 'observed' }] };
+  const result = withoutCaseIdentifiers(situation, caseView);
+  expect(result.codeResolutions.map((entry) => entry.value)).toEqual(['Z29']);
+  expect(withoutCaseIdentifiers(situation, null)).toBe(situation);
+});

@@ -527,3 +527,25 @@ test('rule lines are no paragraphs; evidence ids stay only on evidence-based par
     ['evidence', ['E1']],
   ]);
 });
+
+test('a paragraph labelled as a question stays in the answer unless it asks something', async () => {
+  const { annotateFreeAnswer } = require('../src/workbench-free-answer');
+  const row = (index) => ({
+    index,
+    kind: 'question',
+    origin: 'model',
+    evidenceIds: [],
+    ruleClaim: false,
+    completedAction: false,
+    specific: false,
+  });
+  const client = { generateStructured: jest.fn(async () => ({ paragraphs: [row(0), row(1)] })) };
+  const result = await annotateFreeAnswer(
+    '### Hypothesen\n* Der Bezug R-17? gehört vermutlich zu R-17A; es fehlt die Bestätigung.\n\nWelche Quelle ist maßgeblich?',
+    { evidence, llm: client }
+  );
+  expect(result.interpretation.map((claim) => claim.text)).toEqual([
+    '### Hypothesen\n* Der Bezug R-17? gehört vermutlich zu R-17A; es fehlt die Bestätigung.',
+  ]);
+  expect(result.questions).toEqual(['Welche Quelle ist maßgeblich?']);
+});
