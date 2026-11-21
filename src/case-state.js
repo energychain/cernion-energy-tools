@@ -546,28 +546,34 @@ function applyCaseUpdate(previous, delta = {}, { turn } = {}) {
       targets: list(row.targets).map((id) => text(id, 20)),
     }));
   if (Array.isArray(delta.nextActions))
-    state.nextActions = delta.nextActions.slice(0, LIMITS.nextActions).map((row) => ({
-      action: text(row.action),
-      input: text(row.input),
-      role: text(row.role, 200),
-      expectedResult: text(row.expectedResult),
-      closureCriterion: text(row.closureCriterion),
-      kind: oneOf(row.kind, ACTION_KINDS, 'recommendation'),
-      dependsOn: list(row.dependsOn)
-        .map((id) => text(id, 20))
-        .filter((id) => hypothesisIds.has(id)),
-      searchSpace: text(row.searchSpace, 300),
-      period: text(row.period, 120),
-      method: text(row.method, 300),
-      returnFormat: text(row.returnFormat, 300),
-      stopCondition: text(row.stopCondition, 300),
-      allowedFollowUps: text(row.allowedFollowUps, 300),
-      blockedFollowUps: text(row.blockedFollowUps, 300),
-      controlDate: text(row.controlDate, 200),
-      // Executed only with a tool result; the case update has none, so it stays a proposal.
-      executionStatus:
-        row.executionStatus === 'requested_by_person' ? 'requested_by_person' : 'proposed',
-    }));
+    state.nextActions = keepActionScopes(
+      state,
+      delta.nextActions.slice(0, LIMITS.nextActions).map((row) => ({
+        actionId: text(row.actionId, 20),
+        scopeChangeReason: text(row.scopeChangeReason, 300),
+        action: text(row.action),
+        input: text(row.input),
+        role: text(row.role, 200),
+        expectedResult: text(row.expectedResult),
+        closureCriterion: text(row.closureCriterion),
+        kind: oneOf(row.kind, ACTION_KINDS, 'recommendation'),
+        dependsOn: list(row.dependsOn)
+          .map((id) => text(id, 20))
+          .filter((id) => hypothesisIds.has(id)),
+        searchSpace: text(row.searchSpace, 300),
+        period: text(row.period, 120),
+        method: text(row.method, 300),
+        returnFormat: text(row.returnFormat, 300),
+        stopCondition: text(row.stopCondition, 300),
+        allowedFollowUps: text(row.allowedFollowUps, 300),
+        blockedFollowUps: text(row.blockedFollowUps, 300),
+        controlDate: text(row.controlDate, 200),
+        // Executed only with a tool result; the case update has none, so it stays a proposal.
+        executionStatus:
+          row.executionStatus === 'requested_by_person' ? 'requested_by_person' : 'proposed',
+      })),
+      now
+    );
   syncRecommendations(state, delta, { turn: now });
   if (Array.isArray(delta.closureCriteria))
     state.closureCriteria = delta.closureCriteria
@@ -582,6 +588,41 @@ function closeRecommendation(item, to, { turn, reason, supersededBy = '' }) {
   item.status = to;
   if (RETRACTED_RECOMMENDATIONS.has(to)) item.retractedAtTurn = turn;
   if (supersededBy) item.supersededBy = supersededBy;
+}
+
+// Deterministic continuity of tasks (REG-01 T15): a task continued under its actionId keeps its
+// search space and period unless the update names the reason for the change (new evidence or a
+// correction); new tasks get the next free id. A silent narrowing or widening is reverted.
+const SCOPE_FIELDS = ['searchSpace', 'period'];
+function keepActionScopes(state, rows, turn) {
+  const previous = new Map(
+    list(state.nextActions)
+      .filter((row) => row.actionId)
+      .map((row) => [row.actionId, row])
+  );
+  let counter = Math.max(
+    0,
+    ...[...previous.keys(), ...rows.map((row) => row.actionId)]
+      .map((id) => Number(String(id).slice(1)))
+      .filter(Number.isFinite)
+  );
+  const used = new Set();
+  return rows.map((row) => {
+    const earlier = previous.get(row.actionId);
+    if (!earlier || used.has(row.actionId)) {
+      counter += 1;
+      used.add(`A${counter}`);
+      return { ...row, actionId: `A${counter}`, scopeChangeReason: '' };
+    }
+    used.add(row.actionId);
+    const kept = { ...row };
+    for (const field of SCOPE_FIELDS)
+      if (earlier[field] && row[field] !== earlier[field] && !row.scopeChangeReason) {
+        kept[field] = earlier[field];
+        state.violations.push({ turn, rule: 'silent_scope_change', actionId: row.actionId, field });
+      }
+    return kept;
+  });
 }
 
 // The current steps become recommendations with a stable id. A step that repeats a withdrawn or
@@ -830,8 +871,9 @@ const CASE_VIEW_RULES = [
   'identifiers: fachliche Ableitungen, Zuordnungen und Arbeitsaufträge nur auf Kennungen mit usableForDecision stützen. observed als in der Quelle gesehen und noch nicht der Zielentität zugeordnet nennen, candidate (normalisiert, erkannt, OCR) ausdrücklich als Kandidat mit Herkunft, nie als bestätigte Kennung; foreign als zu einem anderen Objekt gehörig; superseded und rejected nur als ersetzt bzw. verworfen.',
   'corrections gelten: für subject nur value als gültigen Wert verwenden, auch wenn eine Quelle noch den ersetzten Wert zeigt; den ersetzten Wert (replaces) höchstens als überholt mit Herkunft nennen, nie als gleichwertigen, parallelen oder offenen Widerspruch. Chronologie, Suchfenster, Hypothesen und Folgerungen am gültigen Wert ausrichten.',
   'Keine konkreten Termine, Fristen, Zeiträume, Beträge oder Eskalationsstufen setzen, die weder die Person noch eine Quelle nennt; stattdessen beschreiben, woran sich der Wert bemisst und wer ihn festlegt (noch festzulegen).',
+  'Aktive Aufträge aus nextActions erscheinen mit unverändertem Suchraum (searchSpace), Zeitraum (period) und Suchwert; nenne eine Änderung nur mit dem Grund aus scopeChangeReason. Ein ergebnisloser Suchlauf steht immer mit Suchraum, Zeitraum und Suchwert da, nie als allgemeines Fehlen. Ein Kontrolltermin ist ein Datum nur mit belegter Frist, sonst festzulegen, auch nicht vorschlagsweise.',
   'Schließe mit dem nächsten ausführbaren Schritt aus nextActions (Input, benötigte Funktion, erwartetes Ergebnis, Abschlusskriterium) und höchstens den Rückfragen aus openQuestions.',
-  'Ein Prüf- oder Arbeitsauftrag ist ohne Rückfrage ausführbar: Prüfgegenstand, Input und Referenzen, Suchraum und Zeitraum, Methode, Rückgabeformat (Fundstelle, Übereinstimmung, Restunsicherheit, Belegstatus), benötigte Funktion oder festzulegen, Kontrolltermin oder festzulegen durch die genannte Funktion, Abbruch- und Eskalationsbedingung, erlaubte und gesperrte Folgehandlungen; kompakt und nur, was für diesen Auftrag gilt.',
+  'Ein Prüf- oder Arbeitsauftrag ist ohne Rückfrage ausführbar: Prüfgegenstand, Input und Referenzen, Suchraum und Zeitraum, Methode, Rückgabeformat (Fundstelle, Übereinstimmung, Restunsicherheit, Belegstatus), benötigte Funktion oder festzulegen, Kontrolltermin nur aus einer von der Person oder in caseState belegten Frist, sonst festzulegen durch die genannte Funktion (ein Datum aus Quellen oder Suchzeiträumen ist kein Kontrolltermin), Abbruch- und Eskalationsbedingung, erlaubte und gesperrte Folgehandlungen; kompakt und nur, was für diesen Auftrag gilt.',
   'Parkstand und Wiedervorlage: den Ausführungsstatus nennen; eine Wiedervorlage, ein Termin, eine Erinnerung oder Nachricht ist ein Vorschlag, solange kein Werkzeugergebnis ihre Einrichtung zeigt. Ohne belegte Frist kein Datum, sondern Kontrolltermin: festzulegen durch die zuständige Funktion, und den nächsten Befassungspunkt; die nötige Autorisierung für jede Folgehandlung nennen.',
   'Rollen aus roles: nur Einträge mit authoritative als zuständig oder verantwortlich nennen; bei anderen die Funktion beschreiben und die Besetzung (vorgeschlagen oder offen) als offenen Punkt führen. Entscheidungen aus decisions nur mit settled als getroffen darstellen, sonst als Vorschlag oder offene Befassung.',
   'Einträge aus withdrawn nicht mehr empfehlen; wurden sie früher empfohlen, sie ausdrücklich zurücknehmen oder begrenzen und den Grund nennen.',
@@ -936,6 +978,9 @@ const CASE_UPDATE_SCHEMA = obj(
         closureCriterion: str(300),
         kind: { type: 'string', enum: ACTION_KINDS },
         dependsOn: arr(str(20), 4),
+        // Stable id of a continued task and the reason for a changed scope (REG-01 T15).
+        actionId: str(20),
+        scopeChangeReason: str(300),
         // Executable verification task (DEV-UAT-004); empty where it does not apply.
         searchSpace: str(300),
         period: str(120),
@@ -1060,7 +1105,7 @@ const UPDATE_INSTRUCTION = [
   'hypothesisUpdates: Prüfe jede bestehende Hypothese gegen die neue Evidenz. Widerspricht neue Evidenz, setze refuted; löst eine neue Hypothese sie ab, superseded mit supersededBy; Begründung in reason mit evidenceRefs. Eine widerlegte oder ersetzte Hypothese darf nur mit neuer Evidenz wieder open oder supported werden. Neue Hypothesen ohne hypothesisId.',
   'crossEvidence: Vergleiche entscheidungsrelevante Angaben verschiedener Quellen zum selben Objekt (Kennungen, Zeiträume, Status, Bezugsrahmen): agrees, contradicts, not_comparable, outdated oder unresolved, mit dem konkreten Unterschied, seiner fachlichen Auswirkung und der nötigen Klärung. Ähnliche Bezeichnungen nicht vorschnell gleichsetzen.',
   'openQuestions: höchstens die Rückfragen, deren Antwort die wichtigsten Hypothesen trennt oder den nächsten Schritt ermöglicht, mit der Unsicherheit, die sie klärt (resolves) und den betroffenen ids (targets). Nichts fragen, was bereits beantwortet ist.',
-  'nextActions: unmittelbar ausführbare Arbeits- oder Prüfaufträge, geordnet nach Wirkung und Abhängigkeit, mit benötigtem Input, benötigter Funktion in role (eine Person, Stelle, Fachrolle oder ein Gremium nur, wenn das Gespräch diese Zuständigkeit bestätigt; sonst die Funktion, etwa fachlich zuständige Linie oder noch zu benennende Koordination), erwartetem Ergebnis und Abschlusskriterium; kind unterscheidet reversible Prüfung, Empfehlung, folgenreiche Handlung und nötige menschliche Entscheidung. Noch nicht erledigte Prüfungen aus caseState (offene Suchräume, Suchvarianten, Abgleiche) bleiben in der Liste, bis die Person ihre Erledigung oder ihr Ergebnis berichtet; ein fortgeführter Auftrag behält Suchraum und Zeitraum (period) aus caseState, bis eine Korrektur oder neue Evidenz sie ändert, und wird nicht stillschweigend verengt oder offen gestellt. Für Prüfaufträge zusätzlich searchSpace, period, method, returnFormat (etwa Suchraum – Suchwert – Zeitraum – Ergebnis – Belegreferenz – Restunsicherheit), stopCondition (Abbruch oder Eskalation), allowedFollowUps und blockedFollowUps, controlDate nur aus Angaben der Person oder Quellen, sonst festzulegen durch die benötigte Funktion; sonst leer. executionStatus: requested_by_person, wenn die Person den Schritt ausdrücklich beauftragt hat, sonst proposed.',
+  'nextActions: unmittelbar ausführbare Arbeits- oder Prüfaufträge nach diesem Turn (was die Person in message gerade verlangt, liefert die Antwort dieses Turns selbst und ist kein nextAction), geordnet nach Wirkung und Abhängigkeit, mit benötigtem Input, benötigter Funktion in role (eine Person, Stelle, Fachrolle oder ein Gremium nur, wenn das Gespräch diese Zuständigkeit bestätigt; sonst die Funktion, etwa fachlich zuständige Linie oder noch zu benennende Koordination), erwartetem Ergebnis und Abschlusskriterium; kind unterscheidet reversible Prüfung, Empfehlung, folgenreiche Handlung und nötige menschliche Entscheidung. Noch nicht erledigte Prüfungen aus caseState (offene Suchräume, Suchvarianten, Abgleiche) bleiben in der Liste, bis die Person ihre Erledigung oder ihr Ergebnis berichtet; ein fortgeführter Auftrag behält Suchraum und Zeitraum (period) aus caseState, bis eine Korrektur oder neue Evidenz sie ändert, und wird nicht stillschweigend verengt, erweitert oder offen gestellt: schreibe einen bestehenden Auftrag mit seiner actionId aus caseState fort (neue Aufträge mit leerer actionId); ändert sich sein searchSpace oder period, nenne in scopeChangeReason die neue Evidenz oder Korrektur, die das trägt, sonst bleibt scopeChangeReason leer. Für Prüfaufträge zusätzlich searchSpace, period, method, returnFormat (etwa Suchraum – Suchwert – Zeitraum – Ergebnis – Belegreferenz – Restunsicherheit), stopCondition (Abbruch oder Eskalation), allowedFollowUps und blockedFollowUps, controlDate nur aus einer von der Person genannten oder in caseState belegten Frist, sonst festzulegen durch die benötigte Funktion (ein Datum aus Quellen, Belegen oder Suchzeiträumen ist kein controlDate, auch nicht vorschlagsweise); sonst leer. executionStatus: requested_by_person, wenn die Person den Schritt ausdrücklich beauftragt hat, sonst proposed.',
   'closureCriteria: woran erkennbar ist, dass der Fall geklärt ist, oder welche Entscheidung offen bleibt.',
   'dependsOn: bei Empfehlungen in claims und nextActions die ids der Hypothesen, auf denen sie beruhen; fällt eine davon weg, gilt die Empfehlung als zurückgenommen.',
   'roleUpdates: benötigte Funktionen und Zuständigkeiten. status needed für eine benötigte, unbesetzte Funktion; proposed für eine vorgeschlagene oder diskutierte Besetzung (holder); confirmed, accepted oder delivered nur, wenn das Gespräch genau diese Zuständigkeit, Übernahme oder Lieferung mit evidenceRefs zeigt. Keine Person, Stelle oder kein Gremium als zuständig setzen, das die Person nicht genannt hat.',
@@ -1098,6 +1143,17 @@ function stateForPrompt(state) {
       evidenceIds,
     })),
     openQuestions: state.openQuestions,
+    // The current tasks with their ids: a continued task keeps its scope (REG-01 T15).
+    nextActions: state.nextActions.map(
+      ({ actionId, action, searchSpace, period, controlDate, executionStatus }) => ({
+        actionId,
+        action,
+        searchSpace,
+        period,
+        controlDate,
+        executionStatus,
+      })
+    ),
     roles: state.roles.map(({ id, function: role, holder, status }) => ({
       id,
       function: role,
@@ -1207,7 +1263,7 @@ const REVIEW_INSTRUCTION = [
   'Prüfe den Antwortentwurf (reply) gegen den Fallzustand (caseState), bevor er ausgegeben wird. Antworte ausschließlich als JSON nach Schema.',
   'issues: inactive_hypothesis, wenn eine Hypothese aus noLongerValid als aktive oder gleichwertige mögliche Ursache erscheint; unlisted_cause, wenn als Ursache etwas genannt wird, das weder in activeHypotheses steht noch aus claims folgt und dem Stand widerspricht; overstated_evidence, wenn eine Aussage als gesichert, geprüft oder belegt dargestellt wird, deren basis nicht source_observed oder confirmed ist, oder wenn ein ergebnisloser Suchlauf über seinen Suchraum, Zeitraum und Suchwert hinaus als Nachweis des Fehlens oder als Widerlegung erscheint, während im Fall genannte Suchvarianten oder Suchräume offen sind; missed_contradiction, wenn ein entscheidungsrelevanter Unterschied aus sourceComparison fehlt; off_task, wenn die Antwort nicht den Auftrag aus workIntent bedient.',
   'unsupported_rule, wenn eine Rechts-, Prozess- oder Systemregel oder deren Folge für diesen Fall (etwa eine Frist, ein frühester oder spätester Zeitpunkt, eine Zuständigkeit, eine Pflicht oder eine Abhängigkeit) als feststehend erscheint, ohne dass eine source_observed- oder confirmed-Grundlage sie trägt; invented_link, wenn zwischen beobachteten Angaben ein Zusammenhang, eine Vorgeschichte, eine zeitliche Abfolge, ein Ziel- oder Wechselzustand oder eine Bedeutung von Referenzen behauptet wird, den die Grundlagen nicht zeigen; premature_cause, wenn eine Ursache für einen Zeitraum festgelegt wird, ohne Grundlage für genau diesen Zeitraum, oder wenn das Vorhandensein eines Dokuments oder Versands als dessen Empfang, Verarbeitung, Annahme oder Ablehnung gilt; unsafe_change, wenn eine Änderung an Stammdaten, Verträgen, Zuordnungen oder ein erneuter Versand empfohlen wird, bevor der konkrete Fehler belegt von den anderen möglichen Fehlern (fehlend, falsche Referenz, Rolle, Zuordnung, Zeitscheibe) unterschieden ist; premature_closure, wenn ein Abschluss, eine Verbindlichkeit oder das Fehlen offener Punkte behauptet wird, solange Hypothesen oder entscheidungsrelevante Angaben nicht bestätigt sind; internal_label, wenn interne Kennzeichnungen sichtbar sind (Codes der Grundlage wie basis- oder kind-Werte, englische oder schemaartige Abschnittsmarken, Tool- oder Plannamen). premature_cause gilt für jeden Zeitraum einzeln.',
-  'invented_authority, wenn einer Person, Organisationseinheit, Fachrolle oder einem Gremium eine Zuständigkeit, Ergebnisverantwortung, Freigabe, Gegenzeichnung, ein Mandat oder ein Beschluss zugeschrieben wird oder eine solche Rolle als bestehend erscheint, ohne dass Gespräch oder Grundlagen das zeigen; withdrawn_recommendation, wenn ein Eintrag aus withdrawn wieder empfohlen wird, ohne ihn als zurückgenommen zu kennzeichnen; missing_boundary, wenn eine Handlung aus doNotAct empfohlen wird oder eine Übergabe, Parkposition oder ein Abschluss eine Grenze aus doNotAct weglässt; invented_authority gilt auch, wenn ein Eintrag aus roles ohne authoritative oder aus decisions ohne settled als zuständig, freigegeben oder entschieden erscheint; option_as_fact, wenn eine im Gespräch erst vorgeschlagene oder zu prüfende Struktur, Architektur, Lösung, Regel, Schwelle oder ein Prüfschritt als bestehend, beschlossen, verbindlich oder zwingend erscheint; claimed_execution, wenn eine Wiedervorlage, ein Termin, eine Erinnerung, eine Nachricht oder eine Systemänderung als eingerichtet, gesetzt, versendet oder ausgeführt erscheint, ohne dass ein Werkzeugergebnis in evidence das zeigt; missing_retraction, wenn eine Empfehlung aus recommendations.retracted mit retractedAtTurn gleich turn nicht ausdrücklich als zurückgenommen genannt wird oder eine zurückgenommene Empfehlung als gültig erscheint, oder wenn Abschluss, Übergabe oder Parkstand Aufträge außerhalb von recommendations.active führen; unvalidated_identifier, wenn eine Kennung aus identifiers ohne usableForDecision als bestätigt, zugeordnet oder tragende Grundlage einer Ableitung oder eines Arbeitsauftrags erscheint, ein Kandidat als Originalwert oder eine foreign-Kennung als zur Zielentität gehörig; superseded_value, wenn für einen Gegenstand aus corrections der ersetzte Wert (replaces) in der Antwort neben dem gültigen Wert (value) steht, als gültig oder gleichwertig erscheint oder der Unterschied als offene Diskrepanz, Abweichung oder Klärungspunkt geführt wird (die Korrektur hat ihn entschieden); invented_specific, wenn die Antwort selbst einen künftigen Termin, eine Frist, einen Zeitraum, einen Betrag oder eine Eskalationsstufe für das weitere Vorgehen festsetzt (etwa eine Wiedervorlage zum Datum X), für den weder caseState noch die Antwort eine Herkunft (Angabe der Person oder Quelle) zeigt; niemals für Kennungen, Orte, Daten, Zeiträume oder Werte, die die Antwort aus Angaben der Person, Quellen oder caseState (claims, corrections, nextActions mit period) wiedergibt; ein solcher Zeitraum ist festgelegt und wird nicht durch noch festzulegen ersetzt.',
+  'invented_authority, wenn einer Person, Organisationseinheit, Fachrolle oder einem Gremium eine Zuständigkeit, Ergebnisverantwortung, Freigabe, Gegenzeichnung, ein Mandat oder ein Beschluss zugeschrieben wird oder eine solche Rolle als bestehend erscheint, ohne dass Gespräch oder Grundlagen das zeigen; withdrawn_recommendation, wenn ein Eintrag aus withdrawn wieder empfohlen wird, ohne ihn als zurückgenommen zu kennzeichnen; missing_boundary, wenn eine Handlung aus doNotAct empfohlen wird oder eine Übergabe, Parkposition oder ein Abschluss eine Grenze aus doNotAct weglässt; invented_authority gilt auch, wenn ein Eintrag aus roles ohne authoritative oder aus decisions ohne settled als zuständig, freigegeben oder entschieden erscheint; option_as_fact, wenn eine im Gespräch erst vorgeschlagene oder zu prüfende Struktur, Architektur, Lösung, Regel, Schwelle oder ein Prüfschritt als bestehend, beschlossen, verbindlich oder zwingend erscheint; claimed_execution, wenn eine Wiedervorlage, ein Termin, eine Erinnerung, eine Nachricht oder eine Systemänderung als eingerichtet, gesetzt, versendet oder ausgeführt erscheint, ohne dass ein Werkzeugergebnis in evidence das zeigt; missing_retraction, wenn eine Empfehlung aus recommendations.retracted mit retractedAtTurn gleich turn nicht ausdrücklich als zurückgenommen genannt wird oder eine zurückgenommene Empfehlung als gültig erscheint, oder wenn Abschluss, Übergabe oder Parkstand Aufträge außerhalb von recommendations.active führen; unvalidated_identifier, wenn eine Kennung aus identifiers ohne usableForDecision als bestätigt, zugeordnet oder tragende Grundlage einer Ableitung oder eines Arbeitsauftrags erscheint, ein Kandidat als Originalwert oder eine foreign-Kennung als zur Zielentität gehörig; superseded_value, wenn für einen Gegenstand aus corrections der ersetzte Wert (replaces) in der Antwort neben dem gültigen Wert (value) steht, als gültig oder gleichwertig erscheint oder der Unterschied als offene Diskrepanz, Abweichung oder Klärungspunkt geführt wird (die Korrektur hat ihn entschieden); invented_specific, wenn die Antwort selbst einen künftigen Termin, eine Frist, einen Zeitraum, einen Betrag oder eine Eskalationsstufe für das weitere Vorgehen festsetzt (etwa eine Wiedervorlage zum Datum X), für den weder caseState noch die Antwort eine Herkunft (Angabe der Person oder Quelle) zeigt; niemals für Kennungen, Orte, Daten, Zeiträume oder Werte, die die Antwort aus Angaben der Person, Quellen oder caseState (claims, corrections, nextActions mit period) wiedergibt; ein solcher Zeitraum ist festgelegt und wird nicht durch noch festzulegen ersetzt. Die Ausnahme gilt nur für die Wiedergabe in derselben Rolle: ein Datum aus Quellen, Suchzeiträumen oder Belegen, das die Antwort als Kontrolltermin, Frist, Wiedervorlage oder Termin für das weitere Vorgehen festsetzt, ist invented_specific.',
   'Korrektur dieser Arten: dieselbe Aussage als zu prüfende Annahme oder Hypothese mit dem nächsten Prüfschritt formulieren; nur die belegten Angaben als Tatsache stehen lassen; bei unsafe_change zuerst die unterscheidende Prüfung nennen; bei internal_label die Herkunft in natürlicher Sprache nennen (etwa nach deiner Angabe, laut Dokument); bei invented_authority die benötigte Funktion beschreiben (etwa die fachlich zuständige Linie, eine noch zu benennende koordinierende Rolle) und die Besetzung als offenen Klärungspunkt führen; bei option_as_fact dieselbe Aussage als Vorschlag, Option oder Prüfauftrag kennzeichnen; bei withdrawn_recommendation die Empfehlung ausdrücklich zurücknehmen oder begrenzen und den Grund nennen; bei missing_boundary die Grenze mit Grund und Bedingung ergänzen; bei claimed_execution dieselbe Handlung als Vorschlag mit nötiger Autorisierung formulieren; bei missing_retraction die frühere Empfehlung ausdrücklich zurücknehmen, mit Grund und jetzt geltender Grenze; bei unvalidated_identifier die Kennung mit ihrem Status (gesehen, Kandidat, fremd) und dem nötigen Abgleich nennen und die Ableitung als zu prüfen kennzeichnen; bei superseded_value nur den gültigen Wert verwenden und den ersetzten höchstens als überholt mit Herkunft nennen; bei invented_specific den Wert durch noch festzulegen ersetzen und nennen, woran er sich bemisst und wer ihn festlegt.',
   'Gibt es issues, liefere in revisedReply die vollständige korrigierte Antwort: nur die genannten Stellen ändern, alles andere wörtlich behalten, gleiche Sprache und Form. Ohne issues bleibt revisedReply leer.',
   'evidence enthält die Grundlagen des Falls mit Inhalt: Angaben, die dort stehen (Kennungen, Orte, Daten, Status), sind belegt und kein invented_link, overstated_evidence oder invented_specific; eine ausdrücklich als offen bezeichnete Frage ist kein premature_closure.',

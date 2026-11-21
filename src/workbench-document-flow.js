@@ -486,7 +486,11 @@ async function documentReply(
       logger: service.logger,
     });
   const added = attached.filter((entry) => !entry.duplicate).length;
-  const storageNote = added ? `${added} Dokument(e) als Fallgrundlage gespeichert.` : '';
+  // A case attachment is evidence of this case, not a change to any record (REG-01 T01: "gespeichert"
+  // under a no-change instruction read as an executed action).
+  const storageNote = added
+    ? `${added} Anlage(n) als Beleg dieses Falls gespeichert; an Beständen wurde nichts geändert.`
+    : '';
   if (envelope.documentKnowledgeReceipt) return { responseText: envelope.documentKnowledgeReceipt };
   const documents = await loadDocuments(service.store, identity, {
     broker: service.broker,
