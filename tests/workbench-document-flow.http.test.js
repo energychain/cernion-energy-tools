@@ -243,7 +243,7 @@ describe('document flow through authenticated HTTP', () => {
       expect(replies[1]).toContain('Termin offen');
       expect(replies[2]).toContain('Synthetisches Ende');
       expect(
-        replies.filter((reply) => reply.includes('als Fallgrundlage gespeichert'))
+        replies.filter((reply) => reply.includes('als Beleg dieses Falls gespeichert'))
       ).toHaveLength(1);
       expect(
         save.mock.calls.filter(

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "1042d20beaba5e9ccdd1eeeb2c33b0c9884af77fb24882c605a48fb660383261",
+  "sourceHash": "37c8307b879bde18fa592a5bf40208d5d9b69054e3b4576569f9aa3f710177e4",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
