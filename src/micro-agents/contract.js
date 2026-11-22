@@ -155,6 +155,14 @@ function normalizeFinding(raw = {}, { pack, objectId } = {}) {
   };
 }
 
+// One fact as a line of answer evidence: statement, value with unit, provenance and basis.
+function factLine(fact) {
+  const unit = fact.unit ? ' ' + fact.unit : '';
+  const value = fact.value ? ' [' + fact.value + unit + ']' : '';
+  const ref = fact.provenance.ref ? ', ' + fact.provenance.ref : '';
+  return `${fact.statement}${value} (Herkunft: ${fact.provenance.source}${ref}; Grundlage: ${fact.basis})`;
+}
+
 // A finding as answer evidence: one hit per finding, its facts with provenance as text the answer
 // can cite, the structured facts in metadata for the provenance check.
 function findingEvidence(findings, { packLabels = {} } = {}) {
@@ -173,10 +181,7 @@ function findingEvidence(findings, { packLabels = {} } = {}) {
     .filter((finding) => finding.facts.length || finding.negatives.length)
     .map((finding, index) => {
       const lines = [
-        ...finding.facts.map(
-          (fact) =>
-            `${fact.statement}${fact.value ? ` [${fact.value}${fact.unit ? ` ${fact.unit}` : ''}]` : ''} (Herkunft: ${fact.provenance.source}${fact.provenance.ref ? `, ${fact.provenance.ref}` : ''}; Grundlage: ${fact.basis})`
-        ),
+        ...finding.facts.map(factLine),
         ...finding.negatives.map(
           (negative) =>
             `Gesucht: ${negative.searched}; Reichweite: ${negative.scope}; Ergebnis: ${negative.result}`

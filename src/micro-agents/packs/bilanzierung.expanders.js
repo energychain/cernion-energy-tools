@@ -57,18 +57,21 @@ async function read(ctx, action, params) {
 
 const unavailable = (searched, scope) => ({ searched, scope, result: 'service_unavailable' });
 
+// Optional clause of a statement: the clause built from a present value, otherwise nothing.
+const clause = (value, build) => (value ? build(value) : '');
+
 // ── EIC format (check character per the ENTSO-E reference manual) ────────────────────────────
 
 const isEic = (value) => eicCodes(value).some((hit) => hit.value === value);
 const eicValue = (ch) => {
-  if (ch >= '0' && ch <= '9') return ch.charCodeAt(0) - 48;
+  if (ch >= '0' && ch <= '9') return ch.codePointAt(0) - 48;
   if (ch === '-') return 36;
-  return ch.charCodeAt(0) - 55;
+  return ch.codePointAt(0) - 55;
 };
 const eicChar = (value) => {
   if (value < 10) return String(value);
   if (value === 36) return '-';
-  return String.fromCharCode(value + 55);
+  return String.fromCodePoint(value + 55);
 };
 
 function eicCheckCharacter(code) {
@@ -128,10 +131,11 @@ async function eicDirectory(ctx, code) {
   if (!hit)
     return { facts: [], negatives: [{ searched: code, scope: EIC_SCOPE, result: 'no_hit' }] };
   const details = [hit.type, hit.country].filter(Boolean).join(', ');
+  const detailText = clause(details, (text) => ` (${text})`);
   return {
     facts: [
       {
-        statement: `Im EIC-Verzeichnis ist ${hit.code} geführt als ${hit.name || 'ohne Namen'}${details ? ` (${details})` : ''}.`,
+        statement: `Im EIC-Verzeichnis ist ${hit.code} geführt als ${hit.name || 'ohne Namen'}${detailText}.`,
         value: hit.code,
         role: 'identifier',
         basis: 'source',
@@ -171,19 +175,20 @@ function namesEntry(value, entry) {
 // A text mentions an entry literally: its ID as a token or its name; metadata values only when
 // asked (EIC codes in a message are recognized as objects of their own already).
 function mentionsEntry(text, entry, { metadata = false } = {}) {
-  const words = tokens(text).map(lower);
+  const words = new Set(tokens(text).map(lower));
   const name = lower(entry.payload.name);
-  if (words.includes(lower(entry.id))) return true;
+  if (words.has(lower(entry.id))) return true;
   if (name.length >= MIN_NAME_LENGTH && lower(text).includes(name)) return true;
-  return metadata && metadataStrings(entry.payload).some(([, meta]) => words.includes(lower(meta)));
+  return metadata && metadataStrings(entry.payload).some(([, meta]) => words.has(lower(meta)));
 }
 
 function entryFacts(entry, { participants = true } = {}) {
   const { id, payload } = entry;
   const source = { source: 'bilanzkreis.list', ref: id };
+  const nameText = clause(payload.name, (name) => ` („${name}“)`);
   const facts = [
     {
-      statement: `Bilanzkreis ${id}${payload.name ? ` („${payload.name}“)` : ''} ist im Bilanzkreis-Register geführt: Typ ${payload.type || 'ohne Angabe'}, Status ${payload.status || 'ohne Angabe'}.`,
+      statement: `Bilanzkreis ${id}${nameText} ist im Bilanzkreis-Register geführt: Typ ${payload.type || 'ohne Angabe'}, Status ${payload.status || 'ohne Angabe'}.`,
       value: id,
       role: 'identifier',
       basis: 'source',
@@ -221,8 +226,10 @@ function entryFacts(entry, { participants = true } = {}) {
   for (const member of members.slice(0, MAX_PARTICIPANTS)) {
     if (!member?.meloId) continue;
     const share = Number(member.share ?? 1);
+    const roleText = PARTICIPANT_ROLES[member.role] || member.role || 'Teilnehmer';
+    const shareText = share === 1 ? '' : ` (Anteil ${share})`;
     facts.push({
-      statement: `Marktlokation ${member.meloId} ist ${PARTICIPANT_ROLES[member.role] || member.role || 'Teilnehmer'} im Bilanzkreis ${id}${share !== 1 ? ` (Anteil ${share})` : ''}.`,
+      statement: `Marktlokation ${member.meloId} ist ${roleText} im Bilanzkreis ${id}${shareText}.`,
       value: member.meloId,
       role: 'identifier',
       basis: 'source',
@@ -269,6 +276,9 @@ async function expandGroup(ctx, object) {
     }
   }
   const registered = facts.some((fact) => fact.provenance.source === 'bilanzkreis.list');
+  let confidence = 0.3;
+  if (registered) confidence = 0.9;
+  else if (facts.length) confidence = 0.6;
   return {
     facts,
     relations,
@@ -282,7 +292,7 @@ async function expandGroup(ctx, object) {
           },
         ]
       : [],
-    confidence: registered ? 0.9 : facts.length ? 0.6 : 0.3,
+    confidence,
   };
 }
 
@@ -299,13 +309,18 @@ function namesProfile(value, profile) {
 
 function quarterHour(index) {
   const minutes = index * 15;
-  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+  const hours = String(Math.floor(minutes / 60)).padStart(2, '0');
+  const rest = String(minutes % 60).padStart(2, '0');
+  return `${hours}:${rest}`;
 }
 
 async function profileFacts(ctx, profile) {
+  const kind = profile.type === 'custom' ? 'Mandantenprofil' : 'Standardprofil';
+  const descriptionText = clause(profile.description, (text) => `: ${text}`);
+  const baseText = clause(profile.baseProfile, (base) => `; Basisprofil ${base}`);
   const facts = [
     {
-      statement: `Lastprofil ${profile.id} („${profile.name}“, ${profile.type === 'custom' ? 'Mandantenprofil' : 'Standardprofil'})${profile.description ? `: ${profile.description}` : ''}${profile.baseProfile ? `; Basisprofil ${profile.baseProfile}` : ''}.`,
+      statement: `Lastprofil ${profile.id} („${profile.name}“, ${kind})${descriptionText}${baseText}.`,
       value: profile.id,
       role: 'classification',
       basis: 'source',
@@ -325,15 +340,19 @@ async function profileFacts(ctx, profile) {
     };
   const peak = values.indexOf(Math.max(...values));
   const period = [response.data.season, response.data.dayType].filter(Boolean).join(', ');
+  const periodText = clause(period, (text) => ` (${text})`);
+  const periodRef = clause(period, (text) => ` ${text}`);
   facts.push({
-    statement: `Profilwerte ${profile.id}${period ? ` (${period})` : ''}: ${values.length} Viertelstundenwerte, höchster Anteil ${values[peak]} im Intervall ab ${quarterHour(peak)} Uhr.`,
+    statement: `Profilwerte ${profile.id}${periodText}: ${values.length} Viertelstundenwerte, höchster Anteil ${values[peak]} im Intervall ab ${quarterHour(peak)} Uhr.`,
     value: quarterHour(peak),
     role: 'quantity',
     basis: 'source',
-    provenance: { source: 'slp.getProfile', ref: `${profile.id}${period ? ` ${period}` : ''}` },
+    provenance: { source: 'slp.getProfile', ref: `${profile.id}${periodRef}` },
   });
   return { facts, negatives: [] };
 }
+
+const profileLabel = (profile) => `${profile.id} (${profile.name})`;
 
 async function expandProfile(ctx, object) {
   const value = object.value.trim();
@@ -343,12 +362,13 @@ async function expandProfile(ctx, object) {
     (profile) => profile?.id
   );
   const matches = profiles.filter((profile) => namesProfile(value, profile)).slice(0, MAX_MATCHES);
-  if (!matches.length)
+  if (!matches.length) {
+    const profileList = profiles.map(profileLabel).join(', ');
     return {
       facts: profiles.length
         ? [
             {
-              statement: `Im System hinterlegte Lastprofile: ${profiles.map((profile) => `${profile.id} (${profile.name})`).join(', ')}.`,
+              statement: `Im System hinterlegte Lastprofile: ${profileList}.`,
               value: profiles.map((profile) => profile.id).join(', '),
               role: 'classification',
               basis: 'source',
@@ -359,6 +379,7 @@ async function expandProfile(ctx, object) {
       negatives: [{ searched: value, scope: PROFILE_SCOPE, result: 'no_hit' }],
       confidence: 0.4,
     };
+  }
   const found = await Promise.all(matches.map((profile) => profileFacts(ctx, profile)));
   return {
     facts: found.flatMap((row) => row.facts),
@@ -371,8 +392,12 @@ async function expandProfile(ctx, object) {
 
 function ruleSetFact(ruleSet) {
   const tests = ruleSet.testResults;
+  const labelText = clause(ruleSet.label, (label) => ` „${label}“`);
+  const toText = clause(ruleSet.effectiveTo, (to) => ` bis ${to}`);
+  const legalText = clause(ruleSet.legalBasis, (basis) => `; Rechtsgrundlage: ${basis}`);
+  const testText = tests?.total ? `; Testfälle ${tests.passed}/${tests.total} bestanden` : '';
   return {
-    statement: `Regelwerk Ausgleichsenergie${ruleSet.label ? ` „${ruleSet.label}“` : ''} für Netzbetreiber ${ruleSet.gridOperatorId || 'ohne Angabe'}, gültig ab ${ruleSet.effectiveFrom || 'ohne Angabe'}${ruleSet.effectiveTo ? ` bis ${ruleSet.effectiveTo}` : ''}${ruleSet.legalBasis ? `; Rechtsgrundlage: ${ruleSet.legalBasis}` : ''}${tests?.total ? `; Testfälle ${tests.passed}/${tests.total} bestanden` : ''}.`,
+    statement: `Regelwerk Ausgleichsenergie${labelText} für Netzbetreiber ${ruleSet.gridOperatorId || 'ohne Angabe'}, gültig ab ${ruleSet.effectiveFrom || 'ohne Angabe'}${toText}${legalText}${testText}.`,
     value: String(ruleSet._id || ''),
     role: 'classification',
     basis: 'source',
@@ -434,12 +459,11 @@ function registerSummary(register) {
     const type = entry.payload.type || 'ohne Typ';
     byType[type] = (byType[type] || 0) + 1;
   }
+  const counts = Object.entries(byType)
+    .map(([type, count]) => `${type}: ${count}`)
+    .join(', ');
   return {
-    statement: `Das Bilanzkreis-Register des Mandanten führt ${register.length} Bilanzkreise (${Object.entries(
-      byType
-    )
-      .map(([type, count]) => `${type}: ${count}`)
-      .join(', ')}).`,
+    statement: `Das Bilanzkreis-Register des Mandanten führt ${register.length} Bilanzkreise (${counts}).`,
     value: String(register.length),
     role: 'quantity',
     basis: 'source',

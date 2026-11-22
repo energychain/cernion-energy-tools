@@ -173,10 +173,15 @@ const validationsOf = (data) => (Array.isArray(data?.validations) ? data.validat
 
 function validationFacts(communityId, rows) {
   const newest = rows[0];
-  const ref = `Prüfbericht ${newest.id}${newest.createdAt ? ` vom ${newest.createdAt}` : ''}`;
+  const dateNote = newest.createdAt ? ' vom ' + newest.createdAt : '';
+  const ref = `Prüfbericht ${newest.id}${dateNote}`;
+  const nameNote = newest.communityName ? ' „' + newest.communityName + '“' : '';
+  const findingsNote = Number.isFinite(newest.findingsCount)
+    ? ' mit ' + newest.findingsCount + ' Prüfbefunden'
+    : '';
   const facts = [
     {
-      statement: `Energy-Sharing-Antrag der Gemeinschaft ${communityId}${newest.communityName ? ` „${newest.communityName}“` : ''}: letzte Prüfentscheidung ${newest.decision || 'ohne Entscheidung'}${Number.isFinite(newest.findingsCount) ? ` mit ${newest.findingsCount} Prüfbefunden` : ''}.`,
+      statement: `Energy-Sharing-Antrag der Gemeinschaft ${communityId}${nameNote}: letzte Prüfentscheidung ${newest.decision || 'ohne Entscheidung'}${findingsNote}.`,
       value: String(newest.decision || ''),
       role: 'status',
       basis: 'source',
@@ -217,10 +222,12 @@ function isActive(member, day) {
 // Community-level facts only: counts, never member identifiers or names.
 function communityFacts(doc, day) {
   const members = Array.isArray(doc.members) ? doc.members : [];
-  const label = `${doc.communityId || doc.id}${doc.name ? ` „${doc.name}“` : ''}`;
+  const nameNote = doc.name ? ' „' + doc.name + '“' : '';
+  const label = `${doc.communityId || doc.id}${nameNote}`;
+  const standNote = doc.updatedAt ? ', Stand ' + doc.updatedAt : '';
   const provenance = {
     source: 'energy-sharing-community.getCommunity',
-    ref: `Gemeinschaft ${doc.communityId || doc.id}${doc.updatedAt ? `, Stand ${doc.updatedAt}` : ''}`,
+    ref: `Gemeinschaft ${doc.communityId || doc.id}${standNote}`,
   };
   const active = members.filter((member) => isActive(member, day));
   const byRole = (role) =>

@@ -52,60 +52,99 @@ function isoDate(year, month, day) {
 }
 
 const lastDay = (year, month) => new Date(Date.UTC(year, month, 0)).getUTCDate();
-const fullYear = (value) =>
-  value.length === 4 ? Number(value) : value.length === 2 ? 2000 + Number(value) : NaN;
+function fullYear(value) {
+  if (value.length === 4) return Number(value);
+  if (value.length === 2) return 2000 + Number(value);
+  return Number.NaN;
+}
+
+// The year of a product code: the rest of the token when it has one (read by restYear), else
+// the next token when it is all digits.
+const productYearText = (rest, next, restYear) => {
+  if (rest) return restYear(rest);
+  return allDigits(next) ? next : '';
+};
+const productQuote = (rest, token, next) => (rest ? token : `${token} ${next}`);
+
+// ISO date: 2027-01-15.
+function isoDayPeriod(token) {
+  if (token.length !== 10 || token[4] !== '-' || token[7] !== '-') return null;
+  const day = isoDate(+token.slice(0, 4), +token.slice(5, 7), +token.slice(8, 10));
+  if (day && allDigits(token.replaceAll('-', ''))) return { start: day, end: day, quote: token };
+  return null;
+}
+
+// German date: 15.01.2027.
+function germanDayPeriod(token) {
+  const dotted = token.split('.');
+  if (dotted.length !== 3 || dotted[2].length !== 4 || !dotted.every(allDigits)) return null;
+  const day = isoDate(+dotted[2], +dotted[1], +dotted[0]);
+  if (day && dotted[0].length <= 2 && dotted[1].length <= 2)
+    return { start: day, end: day, quote: token };
+  return null;
+}
+
+// ISO month: 2027-01.
+function monthPeriod(token) {
+  if (token.length !== 7 || token[4] !== '-' || !allDigits(token.slice(0, 4) + token.slice(5)))
+    return null;
+  const year = +token.slice(0, 4);
+  const month = +token.slice(5);
+  if (month < 1 || month > 12) return null;
+  return {
+    start: isoDate(year, month, 1),
+    end: isoDate(year, month, lastDay(year, month)),
+    quote: token,
+  };
+}
+
+// Quarter product: Q1-27, Q1/2027, Q1 2027.
+function quarterPeriod(token, next) {
+  const upper = token.toUpperCase();
+  if (upper.length < 2 || upper[0] !== 'Q' || !'1234'.includes(upper[1])) return null;
+  const rest = upper.slice(2);
+  const yearText = productYearText(rest, next, (text) =>
+    text.length > 1 && '-/'.includes(text[0]) ? text.slice(1) : ''
+  );
+  const year = fullYear(yearText);
+  if (!Number.isFinite(year) || !allDigits(yearText)) return null;
+  const first = (Number(upper[1]) - 1) * 3 + 1;
+  return {
+    start: isoDate(year, first, 1),
+    end: isoDate(year, first + 2, lastDay(year, first + 2)),
+    quote: productQuote(rest, token, next),
+  };
+}
+
+// Calendar product: Cal-27, Cal 2027.
+function calendarPeriod(token, next) {
+  const upper = token.toUpperCase();
+  if (!upper.startsWith('CAL')) return null;
+  const rest = upper.slice(3);
+  const yearText = productYearText(rest, next, (text) => (text[0] === '-' ? text.slice(1) : text));
+  const year = fullYear(yearText);
+  if (!Number.isFinite(year) || !allDigits(yearText)) return null;
+  return {
+    start: isoDate(year, 1, 1),
+    end: isoDate(year, 12, 31),
+    quote: productQuote(rest, token, next),
+  };
+}
+
+const PERIOD_FORMATS = [isoDayPeriod, germanDayPeriod, monthPeriod, quarterPeriod, calendarPeriod];
 
 // One token (or a token and the next) as a delivery period: ISO date, German date, ISO month,
 // quarter product (Q1-27, Q1/2027, Q1 2027) or calendar product (Cal-27, Cal 2027).
 function periodOf(token, next = '') {
-  if (token.length === 10 && token[4] === '-' && token[7] === '-') {
-    const day = isoDate(+token.slice(0, 4), +token.slice(5, 7), +token.slice(8, 10));
-    if (day && allDigits(token.replaceAll('-', ''))) return { start: day, end: day, quote: token };
-  }
-  const dotted = token.split('.');
-  if (dotted.length === 3 && dotted[2].length === 4 && dotted.every(allDigits)) {
-    const day = isoDate(+dotted[2], +dotted[1], +dotted[0]);
-    if (day && dotted[0].length <= 2 && dotted[1].length <= 2)
-      return { start: day, end: day, quote: token };
-  }
-  if (token.length === 7 && token[4] === '-' && allDigits(token.slice(0, 4) + token.slice(5))) {
-    const year = +token.slice(0, 4);
-    const month = +token.slice(5);
-    if (month >= 1 && month <= 12)
-      return {
-        start: isoDate(year, month, 1),
-        end: isoDate(year, month, lastDay(year, month)),
-        quote: token,
-      };
-  }
-  const upper = token.toUpperCase();
-  if (upper.length >= 2 && upper[0] === 'Q' && '1234'.includes(upper[1])) {
-    const rest = upper.slice(2);
-    const joined = rest.length > 1 && '-/'.includes(rest[0]) ? rest.slice(1) : '';
-    const yearText = rest ? joined : allDigits(next) ? next : '';
-    const year = fullYear(yearText);
-    if (Number.isFinite(year) && allDigits(yearText)) {
-      const first = (Number(upper[1]) - 1) * 3 + 1;
-      return {
-        start: isoDate(year, first, 1),
-        end: isoDate(year, first + 2, lastDay(year, first + 2)),
-        quote: rest ? token : `${token} ${next}`,
-      };
-    }
-  }
-  if (upper.startsWith('CAL')) {
-    const rest = upper.slice(3);
-    const yearText = rest ? (rest[0] === '-' ? rest.slice(1) : rest) : allDigits(next) ? next : '';
-    const year = fullYear(yearText);
-    if (Number.isFinite(year) && allDigits(yearText))
-      return {
-        start: isoDate(year, 1, 1),
-        end: isoDate(year, 12, 31),
-        quote: rest ? token : `${token} ${next}`,
-      };
+  for (const format of PERIOD_FORMATS) {
+    const hit = format(token, next);
+    if (hit) return hit;
   }
   return null;
 }
+
+// Same order as the default sort (ISO dates sort as text), with an explicit compare function.
+const byText = (a, b) => String(a).localeCompare(String(b));
 
 function parsePeriod(text) {
   const parts = tokens(text);
@@ -115,10 +154,10 @@ function parsePeriod(text) {
     if (hit && String(text).includes(hit.quote)) found.push(hit);
   }
   if (!found.length) return null;
-  const start = found.map((row) => row.start).sort()[0];
+  const start = found.map((row) => row.start).sort(byText)[0];
   const end = found
     .map((row) => row.end)
-    .sort()
+    .sort(byText)
     .at(-1);
   return { start, end, quotes: [...new Set(found.map((row) => row.quote))], parsed: true };
 }
@@ -147,6 +186,13 @@ function capped(period) {
 
 const periodLabel = (period) =>
   period.start === period.end ? period.start : `${period.start} bis ${period.end}`;
+
+// Scope of a capped period: its label, plus the period asked for when it was capped.
+function cappedScopeLabel(scopePeriod, period) {
+  const label = periodLabel(scopePeriod);
+  if (!scopePeriod.capped) return label;
+  return `${label} (erste ${MAX_PERIOD_DAYS} Tage von ${periodLabel(period)})`;
+}
 
 // Grid operator numbers of the market master data register: SNB and twelve digits.
 const gridOperatorNumbers = (text) =>
@@ -288,7 +334,7 @@ async function dayAheadPrices(ctx, period) {
     dateTo: scopePeriod.end,
     includeStatistics: true,
   };
-  const scope = `entsoe.dayAheadPrices, ${PRICE_REGION_LABEL}, ${periodLabel(scopePeriod)}${scopePeriod.capped ? ` (erste ${MAX_PERIOD_DAYS} Tage von ${periodLabel(period)})` : ''}`;
+  const scope = `entsoe.dayAheadPrices, ${PRICE_REGION_LABEL}, ${cappedScopeLabel(scopePeriod, period)}`;
   const searched = 'Day-Ahead-Preise';
   const response = await read(ctx, 'entsoe.dayAheadPrices', params);
   if (!response.ok) return { facts: [], negatives: [unavailable(searched, scope)] };
@@ -407,6 +453,7 @@ async function gasStorage(ctx) {
     ref: sourceRef(result, [`country ${GAS_COUNTRY}`, gasDay ? `Gastag ${gasDay}` : '']),
   };
   const dated = gasDay ? { validFrom: gasDay, validTo: gasDay } : {};
+  const dayText = gasDay ? ` am ${gasDay}` : '';
   const facts = [];
   const share = pick(data, [
     'fillPercentage',
@@ -417,7 +464,7 @@ async function gasStorage(ctx) {
   ]);
   if (share)
     facts.push({
-      statement: `Füllstand der Gasspeicher in Deutschland${gasDay ? ` am ${gasDay}` : ''}: ${round(share.value)} %`,
+      statement: `Füllstand der Gasspeicher in Deutschland${dayText}: ${round(share.value)} %`,
       value: round(share.value),
       unit: '%',
       role: 'quantity',
@@ -428,7 +475,7 @@ async function gasStorage(ctx) {
   const volume = pick(data, ['gasInStorage', 'fillLevel']);
   if (volume)
     facts.push({
-      statement: `Gasmenge in den Speichern in Deutschland${gasDay ? ` am ${gasDay}` : ''}: ${round(volume.value)} TWh`,
+      statement: `Gasmenge in den Speichern in Deutschland${dayText}: ${round(volume.value)} TWh`,
       value: round(volume.value),
       unit: 'TWh',
       role: 'quantity',
@@ -443,7 +490,7 @@ async function gasStorage(ctx) {
 
 async function entsoeForecast(ctx, action, period, { label, searched, params = {}, known }) {
   const scopePeriod = capped(period);
-  const scope = `${action}, ${PRICE_REGION_LABEL}, ${periodLabel(scopePeriod)}${scopePeriod.capped ? ` (erste ${MAX_PERIOD_DAYS} Tage von ${periodLabel(period)})` : ''}`;
+  const scope = `${action}, ${PRICE_REGION_LABEL}, ${cappedScopeLabel(scopePeriod, period)}`;
   const response = await read(ctx, action, {
     region: PRICE_REGION,
     dateFrom: scopePeriod.start,
@@ -551,73 +598,88 @@ async function forecastRun(ctx, runId) {
 
 const FNAV_SCOPE = 'fnav-commercial-hedging, gespeicherte Einträge des Mandanten (bis 100)';
 
+const unitContractFact = (doc) => ({
+  statement: `fNAV-Vertrag für ${doc.mastrNummer}: Status ${doc.status}, installierte Leistung ${doc.installedCapacityKw} kW, garantierte Mindestleistung ${doc.minimumGuaranteedPowerKw} kW, Entschädigungssatz ${doc.compensationRateEurPerMwh} EUR/MWh`,
+  value: String(doc.installedCapacityKw ?? ''),
+  unit: 'kW',
+  role: 'quantity',
+  basis: 'source',
+  validFrom: doc.contractStartDate || '',
+  validTo: doc.contractEndDate || '',
+  provenance: { source: 'fnav-commercial-hedging.listContracts', ref: doc._id },
+});
+
+function contractSummaryFact(rows) {
+  const active = rows.filter((doc) => doc?.status === 'ACTIVE');
+  const capacity = active.reduce(
+    (total, doc) => total + (finite(doc.installedCapacityKw) ? +doc.installedCapacityKw : 0),
+    0
+  );
+  return {
+    statement: `Gespeicherte fNAV-Verträge des Mandanten: ${rows.length}, davon aktiv ${active.length} mit zusammen ${round(capacity)} kW installierter Leistung`,
+    value: String(active.length),
+    role: 'quantity',
+    basis: 'source',
+    provenance: { source: 'fnav-commercial-hedging.listContracts', ref: FNAV_SCOPE },
+  };
+}
+
+// Contracts of the named units (one fact each), or a summary of all contracts of the tenant.
+function contractFindings(contracts, unitNumbers) {
+  const searched = unitNumbers.length
+    ? `fNAV-Verträge (flexible Netzanschlussvereinbarungen) für ${unitNumbers.join(', ')}`
+    : 'fNAV-Verträge (flexible Netzanschlussvereinbarungen)';
+  if (!contracts.ok) return { facts: [], negatives: [unavailable(searched, FNAV_SCOPE)] };
+  const all = Array.isArray(contracts.result?.contracts) ? contracts.result.contracts : [];
+  const rows = unitNumbers.length
+    ? all.filter((doc) => unitNumbers.includes(doc?.mastrNummer))
+    : all;
+  const negatives = rows.length ? [] : [noHit(searched, FNAV_SCOPE)];
+  if (unitNumbers.length) return { facts: rows.slice(0, 6).map(unitContractFact), negatives };
+  return { facts: rows.length ? [contractSummaryFact(rows)] : [], negatives };
+}
+
+const scenarioFact = (doc) => ({
+  statement: `fNAV-Szenario "${doc.scenarioName}" (${doc.mastrNummer}): erwartete Entschädigungsverpflichtung ${doc.commercialRisk.compensationLiabilityEur} EUR pro Jahr, Risikostufe ${doc.commercialRisk.riskLevel}, angenommener Marktpreis ${doc.scenarioParams?.electricityMarketPriceEurPerMwh} EUR/MWh`,
+  value: String(doc.commercialRisk.compensationLiabilityEur),
+  unit: 'EUR',
+  role: 'monetary',
+  basis: 'source',
+  provenance: { source: 'fnav-commercial-hedging.listScenarios', ref: doc._id },
+});
+
+// The three scenarios with the highest compensation liability (of the named units, if any).
+function scenarioFindings(scenarios, unitNumbers) {
+  if (!scenarios.ok)
+    return {
+      facts: [],
+      negatives: [unavailable('fNAV-Engpass-Szenarien (Entschädigungsrisiko)', FNAV_SCOPE)],
+    };
+  const list = Array.isArray(scenarios.result?.scenarios) ? scenarios.result.scenarios : [];
+  const rows = (
+    unitNumbers.length ? list.filter((doc) => unitNumbers.includes(doc?.mastrNummer)) : list
+  )
+    .filter((doc) => finite(doc?.commercialRisk?.compensationLiabilityEur))
+    .sort(
+      (a, b) =>
+        b.commercialRisk.compensationLiabilityEur - a.commercialRisk.compensationLiabilityEur
+    );
+  return { facts: rows.slice(0, 3).map(scenarioFact), negatives: [] };
+}
+
 async function fnavPositions(ctx, unitNumbers) {
   const [contracts, scenarios] = await Promise.all([
     read(ctx, 'fnav-commercial-hedging.listContracts', { limit: 100 }),
     read(ctx, 'fnav-commercial-hedging.listScenarios', { limit: 100 }),
   ]);
-  const facts = [];
-  const negatives = [];
-  const searched = unitNumbers.length
-    ? `fNAV-Verträge (flexible Netzanschlussvereinbarungen) für ${unitNumbers.join(', ')}`
-    : 'fNAV-Verträge (flexible Netzanschlussvereinbarungen)';
-  if (!contracts.ok) negatives.push(unavailable(searched, FNAV_SCOPE));
-  else {
-    const all = Array.isArray(contracts.result?.contracts) ? contracts.result.contracts : [];
-    const rows = unitNumbers.length
-      ? all.filter((doc) => unitNumbers.includes(doc?.mastrNummer))
-      : all;
-    if (!rows.length) negatives.push(noHit(searched, FNAV_SCOPE));
-    if (unitNumbers.length)
-      for (const doc of rows.slice(0, 6))
-        facts.push({
-          statement: `fNAV-Vertrag für ${doc.mastrNummer}: Status ${doc.status}, installierte Leistung ${doc.installedCapacityKw} kW, garantierte Mindestleistung ${doc.minimumGuaranteedPowerKw} kW, Entschädigungssatz ${doc.compensationRateEurPerMwh} EUR/MWh`,
-          value: String(doc.installedCapacityKw ?? ''),
-          unit: 'kW',
-          role: 'quantity',
-          basis: 'source',
-          validFrom: doc.contractStartDate || '',
-          validTo: doc.contractEndDate || '',
-          provenance: { source: 'fnav-commercial-hedging.listContracts', ref: doc._id },
-        });
-    else if (rows.length) {
-      const active = rows.filter((doc) => doc?.status === 'ACTIVE');
-      const capacity = active.reduce(
-        (total, doc) => total + (finite(doc.installedCapacityKw) ? +doc.installedCapacityKw : 0),
-        0
-      );
-      facts.push({
-        statement: `Gespeicherte fNAV-Verträge des Mandanten: ${rows.length}, davon aktiv ${active.length} mit zusammen ${round(capacity)} kW installierter Leistung`,
-        value: String(active.length),
-        role: 'quantity',
-        basis: 'source',
-        provenance: { source: 'fnav-commercial-hedging.listContracts', ref: FNAV_SCOPE },
-      });
-    }
-  }
-  if (!scenarios.ok)
-    negatives.push(unavailable('fNAV-Engpass-Szenarien (Entschädigungsrisiko)', FNAV_SCOPE));
-  else {
-    const list = Array.isArray(scenarios.result?.scenarios) ? scenarios.result.scenarios : [];
-    const rows = (
-      unitNumbers.length ? list.filter((doc) => unitNumbers.includes(doc?.mastrNummer)) : list
-    )
-      .filter((doc) => finite(doc?.commercialRisk?.compensationLiabilityEur))
-      .sort(
-        (a, b) =>
-          b.commercialRisk.compensationLiabilityEur - a.commercialRisk.compensationLiabilityEur
-      );
-    for (const doc of rows.slice(0, 3))
-      facts.push({
-        statement: `fNAV-Szenario "${doc.scenarioName}" (${doc.mastrNummer}): erwartete Entschädigungsverpflichtung ${doc.commercialRisk.compensationLiabilityEur} EUR pro Jahr, Risikostufe ${doc.commercialRisk.riskLevel}, angenommener Marktpreis ${doc.scenarioParams?.electricityMarketPriceEurPerMwh} EUR/MWh`,
-        value: String(doc.commercialRisk.compensationLiabilityEur),
-        unit: 'EUR',
-        role: 'monetary',
-        basis: 'source',
-        provenance: { source: 'fnav-commercial-hedging.listScenarios', ref: doc._id },
-      });
-  }
-  return { facts, negatives };
+  const found = [
+    contractFindings(contracts, unitNumbers),
+    scenarioFindings(scenarios, unitNumbers),
+  ];
+  return {
+    facts: found.flatMap((part) => part.facts),
+    negatives: found.flatMap((part) => part.negatives),
+  };
 }
 
 // ── Expanders ───────────────────────────────────────────────────────────────────

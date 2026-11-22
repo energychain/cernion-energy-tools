@@ -76,8 +76,10 @@ function fact(statement, { value, unit, role = 'status', basis = 'source', sourc
   };
 }
 
-const scopeOf = (service, tenant, extra = '') =>
-  `${service}, Mandant ${tenant}${extra ? `, ${extra}` : ''}`;
+const scopeOf = (service, tenant, extra = '') => {
+  const suffix = extra ? `, ${extra}` : '';
+  return `${service}, Mandant ${tenant}${suffix}`;
+};
 
 function negative(searched, service, tenant, result = 'no_hit', extra = '') {
   return { searched, scope: scopeOf(service, tenant, extra), result };
@@ -755,25 +757,7 @@ async function expandMeasure(ctx, object, context) {
   return finding;
 }
 
-// The person's question: the state of the area for the tenant. As a consequence check only what
-// blocks (gates and evaluations that a finding of another area could hit).
-async function expandConcern(ctx, object, context) {
-  const tenant = tenantOf(ctx, context);
-  const consequence = Boolean(context.consequenceOf);
-  const finding = newFinding();
-  const [readiness, gates, special, models, rules] = await Promise.all([
-    read(ctx, context, 'redispatch-readiness-gate.getStatus', {}),
-    read(ctx, context, 'battery-redispatch-special-gate.listGates', { limit: LIST_LIMIT }),
-    read(ctx, context, 'redispatch-special-case-gate.listRuns', {
-      status: 'blocked',
-      limit: LIST_LIMIT,
-    }),
-    consequence
-      ? null
-      : read(ctx, context, 'flexibility-conductor-role-model.listModels', { limit: LIST_LIMIT }),
-    consequence ? null : read(ctx, context, 'rcs-rule-catalog.listRuleSets', {}),
-  ]);
-
+function concernReadiness(finding, readiness, { tenant, consequence }) {
   const status = readiness.ok ? readiness.value : null;
   if (!readiness.ok)
     finding.negatives.push(
@@ -790,7 +774,9 @@ async function expandConcern(ctx, object, context) {
     );
   else if (!consequence || status.overallStatus !== 'ready')
     merge(finding, readinessFacts(status, 'redispatch-readiness-gate.getStatus'));
+}
 
+function concernBatteryGates(finding, gates, { tenant, consequence, object }) {
   const gateRows = gates.ok
     ? (gates.value?.gates || []).filter((row) => ownRecord(row, tenant))
     : [];
@@ -817,7 +803,10 @@ async function expandConcern(ctx, object, context) {
       finding,
       batteryFacts(gate, 'battery-redispatch-special-gate.listGates', object.objectId)
     );
+}
 
+// Blocked special-case runs of the tenant; returns them for the no-hit note of the overview.
+function concernSpecialCases(finding, special, { tenant, object }) {
   const blockedRuns = special.ok
     ? (special.value?.runs || []).filter((row) => ownRecord(row, tenant))
     : [];
@@ -832,38 +821,68 @@ async function expandConcern(ctx, object, context) {
     );
   for (const run of blockedRuns.slice(0, MAX_RECORDS))
     merge(finding, specialCaseFacts(run, 'redispatch-special-case-gate.listRuns', object.objectId));
+  return blockedRuns;
+}
 
-  if (consequence) {
-    if (!finding.facts.length) {
-      finding.negatives.push(
-        negative(
-          'Blockierende Redispatch- und Flexibilitätsvorgänge',
-          'redispatch-readiness-gate, battery-redispatch-special-gate, redispatch-special-case-gate',
-          tenant
-        )
-      );
-      finding.openQuestions.push(askIdentifier('die betroffene Maßnahme oder Anlage', MEASURE));
-    }
-  } else {
-    if (special.ok && !blockedRuns.length)
-      finding.negatives.push(
-        negative(
-          'Blockierte Sonderfallprüfungen',
-          'redispatch-special-case-gate',
-          tenant,
-          'no_hit',
-          listExtra
-        )
-      );
-    const latestModel = models?.ok
-      ? (models.value?.models || []).find((row) => ownRecord(row, tenant))
-      : null;
-    if (latestModel)
-      merge(finding, roleModelFacts(latestModel, 'flexibility-conductor-role-model.listModels'));
-    const ruleSets = rules?.ok ? rules.value?.items || [] : [];
-    const latestRule = ruleSets.find((row) => row.id === rules.value?.latestRuleSetId);
-    if (latestRule) finding.facts.push(ruleSetFact(latestRule, 'rcs-rule-catalog.listRuleSets'));
-  }
+// As a consequence check without any blocking record: say so and ask for the affected item.
+function concernConsequenceGap(finding, tenant) {
+  if (finding.facts.length) return;
+  finding.negatives.push(
+    negative(
+      'Blockierende Redispatch- und Flexibilitätsvorgänge',
+      'redispatch-readiness-gate, battery-redispatch-special-gate, redispatch-special-case-gate',
+      tenant
+    )
+  );
+  finding.openQuestions.push(askIdentifier('die betroffene Maßnahme oder Anlage', MEASURE));
+}
+
+// The full overview (not a consequence check): no-hit note, latest role model and rule set.
+function concernOverview(finding, { special, blockedRuns, models, rules, tenant }) {
+  if (special.ok && !blockedRuns.length)
+    finding.negatives.push(
+      negative(
+        'Blockierte Sonderfallprüfungen',
+        'redispatch-special-case-gate',
+        tenant,
+        'no_hit',
+        listExtra
+      )
+    );
+  const latestModel = models?.ok
+    ? (models.value?.models || []).find((row) => ownRecord(row, tenant))
+    : null;
+  if (latestModel)
+    merge(finding, roleModelFacts(latestModel, 'flexibility-conductor-role-model.listModels'));
+  const ruleSets = rules?.ok ? rules.value?.items || [] : [];
+  const latestRule = ruleSets.find((row) => row.id === rules.value?.latestRuleSetId);
+  if (latestRule) finding.facts.push(ruleSetFact(latestRule, 'rcs-rule-catalog.listRuleSets'));
+}
+
+// The person's question: the state of the area for the tenant. As a consequence check only what
+// blocks (gates and evaluations that a finding of another area could hit).
+async function expandConcern(ctx, object, context) {
+  const tenant = tenantOf(ctx, context);
+  const consequence = Boolean(context.consequenceOf);
+  const finding = newFinding();
+  const [readiness, gates, special, models, rules] = await Promise.all([
+    read(ctx, context, 'redispatch-readiness-gate.getStatus', {}),
+    read(ctx, context, 'battery-redispatch-special-gate.listGates', { limit: LIST_LIMIT }),
+    read(ctx, context, 'redispatch-special-case-gate.listRuns', {
+      status: 'blocked',
+      limit: LIST_LIMIT,
+    }),
+    consequence
+      ? null
+      : read(ctx, context, 'flexibility-conductor-role-model.listModels', { limit: LIST_LIMIT }),
+    consequence ? null : read(ctx, context, 'rcs-rule-catalog.listRuleSets', {}),
+  ]);
+
+  concernReadiness(finding, readiness, { tenant, consequence });
+  concernBatteryGates(finding, gates, { tenant, consequence, object });
+  const blockedRuns = concernSpecialCases(finding, special, { tenant, object });
+  if (consequence) concernConsequenceGap(finding, tenant);
+  else concernOverview(finding, { special, blockedRuns, models, rules, tenant });
   finding.confidence = finding.facts.length ? 0.7 : 0.3;
   return finding;
 }

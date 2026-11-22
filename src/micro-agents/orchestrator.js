@@ -85,6 +85,63 @@ function withinScope(finding, { tenantScope, conversation }) {
   return withheld ? { ...finding, facts, withheldRecords: withheld } : finding;
 }
 
+// Stage one: every object by the packs that declare its kind, the concern by the selected packs.
+function stageOneJobs({ objects, selection, byPack, packs, job }) {
+  return objects.flatMap((object) => {
+    if (object.kind !== CONCERN_KIND)
+      return packsForKind(packs, object.kind).map((pack) => job(pack, object));
+    return selection.selected
+      .map((row) => byPack.get(row.pack))
+      .filter((pack) => pack?.concern)
+      .map((pack) => job(pack, object));
+  });
+}
+
+// Runs the jobs of a stage within its limit; duplicates (null jobs) are skipped first.
+async function runJobs(jobs, limit) {
+  const runs = jobs
+    .filter(Boolean)
+    .slice(0, limit)
+    .map((run) => run());
+  return (await Promise.all(runs)).filter(Boolean);
+}
+
+// One model call: which candidate areas do the findings touch, with a concrete reason.
+async function checkConsequences({
+  found,
+  candidates,
+  message,
+  llm,
+  llmOptions,
+  tenantId,
+  logger,
+}) {
+  if (!candidates.length || !found.some((finding) => finding.facts.length)) return [];
+  try {
+    const client = llm || require('../llm-client');
+    const raw = await client.generateStructured(
+      CONSEQUENCE_SCHEMA,
+      JSON.stringify({
+        instruction: CONSEQUENCE_INSTRUCTION,
+        message: String(message || '').slice(0, 2000),
+        findings: summary(found),
+        candidates: candidates.map(({ pack, label, description }) => ({
+          pack,
+          label,
+          description,
+        })),
+      }),
+      { ...llmOptions, phase: 'micro_agent_consequences', tenantId }
+    );
+    return ((raw?.data || raw)?.packs || []).filter(
+      (row) => row.affected && row.reason && candidates.some((pack) => pack.pack === row.pack)
+    );
+  } catch (error) {
+    logger?.warn?.(`Micro-agent consequence check failed: ${error.message}`);
+    return [];
+  }
+}
+
 async function runMicroAgents({
   broker,
   call,
@@ -180,25 +237,10 @@ async function runMicroAgents({
     expanded.add(key);
     return () => expand(pack, object);
   };
-  const stageOne = [];
-  for (const object of objects) {
-    if (object.kind === CONCERN_KIND) {
-      for (const row of selection.selected) {
-        const pack = byPack.get(row.pack);
-        if (pack?.concern) stageOne.push(job(pack, object));
-      }
-      continue;
-    }
-    for (const pack of packsForKind(packs, object.kind)) stageOne.push(job(pack, object));
-  }
-  const first = (
-    await Promise.all(
-      stageOne
-        .filter(Boolean)
-        .slice(0, MAX_STAGE_ONE)
-        .map((run) => run())
-    )
-  ).filter(Boolean);
+  const first = await runJobs(
+    stageOneJobs({ objects, selection, byPack, packs, job }),
+    MAX_STAGE_ONE
+  );
 
   const plans = await Promise.all(
     first
@@ -207,49 +249,24 @@ async function runMicroAgents({
         bounded(`${byPack.get(finding.pack).service}.plan`, { finding, object })
       )
   );
-  const followUps = [];
-  for (const next of plans)
-    for (const nextObject of next || [])
-      for (const owner of packsForKind(packs, nextObject.kind))
-        followUps.push(job(owner, nextObject));
-  const second = (
-    await Promise.all(
-      followUps
-        .filter(Boolean)
-        .slice(0, MAX_STAGE_TWO)
-        .map((run) => run())
+  const followUps = plans.flatMap((next) =>
+    (next || []).flatMap((nextObject) =>
+      packsForKind(packs, nextObject.kind).map((owner) => job(owner, nextObject))
     )
-  ).filter(Boolean);
+  );
+  const second = await runJobs(followUps, MAX_STAGE_TWO);
 
-  let consequences = [];
-  const found = [...first, ...second].map((row) => row.finding);
-  const candidates = selection.consequences
-    .map((row) => byPack.get(row.pack))
-    .filter((pack) => pack?.concern);
-  if (candidates.length && found.some((finding) => finding.facts.length)) {
-    try {
-      const client = llm || require('../llm-client');
-      const raw = await client.generateStructured(
-        CONSEQUENCE_SCHEMA,
-        JSON.stringify({
-          instruction: CONSEQUENCE_INSTRUCTION,
-          message: String(message || '').slice(0, 2000),
-          findings: summary(found),
-          candidates: candidates.map(({ pack, label, description }) => ({
-            pack,
-            label,
-            description,
-          })),
-        }),
-        { ...llmOptions, phase: 'micro_agent_consequences', tenantId }
-      );
-      consequences = ((raw?.data || raw)?.packs || []).filter(
-        (row) => row.affected && row.reason && candidates.some((pack) => pack.pack === row.pack)
-      );
-    } catch (error) {
-      logger?.warn?.(`Micro-agent consequence check failed: ${error.message}`);
-    }
-  }
+  const consequences = await checkConsequences({
+    found: [...first, ...second].map((row) => row.finding),
+    candidates: selection.consequences
+      .map((row) => byPack.get(row.pack))
+      .filter((pack) => pack?.concern),
+    message,
+    llm,
+    llmOptions,
+    tenantId,
+    logger,
+  });
   const concern = objects.find((object) => object.kind === CONCERN_KIND);
   const third = (
     await Promise.all(

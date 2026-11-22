@@ -309,9 +309,12 @@ async function listedSettlements(ctx, period) {
     );
   for (const row of rows.slice(0, MAX_LISTED)) {
     const total = row.summary?.totalCompensation_eur;
+    const rowPeriod = periodText(row.period);
+    const periodNote = rowPeriod ? ', Zeitraum ' + rowPeriod : '';
+    const totalNote = isNumber(total) ? ', Summe ' + total + ' EUR' : '';
     facts.push(
       fact(
-        `Gespeicherte Abrechnung ${row.key} (Typ ${row.type || 'unbekannt'}${periodText(row.period) ? `, Zeitraum ${periodText(row.period)}` : ''})${isNumber(total) ? `, Summe ${total} EUR` : ''}.`,
+        `Gespeicherte Abrechnung ${row.key} (Typ ${row.type || 'unbekannt'}${periodNote})${totalNote}.`,
         {
           value: row.key,
           role: 'identifier',
@@ -402,11 +405,15 @@ function ruleSetFacts(doc, source, quote) {
       isNumber(formula.fixedCharge) ? `fixedCharge ${formula.fixedCharge}` : '',
       Array.isArray(formula.tiers) ? `${formula.tiers.length} Stufen` : '',
     ].filter(Boolean);
+    const termsNote = terms.length
+      ? ' (' + terms.join(', ') + '; Einheiten im Regelwerk nicht angegeben)'
+      : '';
     rows.push(
-      fact(
-        `Formel des Regelwerks ${id}: ${formula.formula}${terms.length ? ` (${terms.join(', ')}; Einheiten im Regelwerk nicht angegeben)` : ''}.`,
-        { ...base, value: formula.formula, role: 'explanation' }
-      )
+      fact(`Formel des Regelwerks ${id}: ${formula.formula}${termsNote}.`, {
+        ...base,
+        value: formula.formula,
+        role: 'explanation',
+      })
     );
   }
   if (isNumber(doc.testResults?.total))
@@ -484,9 +491,11 @@ async function revenueCapFacts(ctx, gridOperatorId) {
       ],
     };
   return {
-    facts: datapoints.map((row) =>
-      fact(
-        `${REVENUE_CAP_KEYS[row.key]} für Netzbetreiber ${gridOperatorId}${row.periodYear ? ` (${row.periodYear})` : ''}: ${row.value}${row.unit ? ` ${row.unit}` : ''} (Herkunft des Datenpunkts: ${row.source || 'nicht angegeben'}, Vertrauen: ${row.confidence || 'nicht angegeben'}).`,
+    facts: datapoints.map((row) => {
+      const yearNote = row.periodYear ? ' (' + row.periodYear + ')' : '';
+      const unitNote = row.unit ? ' ' + row.unit : '';
+      return fact(
+        `${REVENUE_CAP_KEYS[row.key]} für Netzbetreiber ${gridOperatorId}${yearNote}: ${row.value}${unitNote} (Herkunft des Datenpunkts: ${row.source || 'nicht angegeben'}, Vertrauen: ${row.confidence || 'nicht angegeben'}).`,
         {
           value: row.value,
           unit: row.unit,
@@ -495,8 +504,8 @@ async function revenueCapFacts(ctx, gridOperatorId) {
           ref: row.id,
           validFrom: row.periodYear,
         }
-      )
-    ),
+      );
+    }),
     negatives: [],
   };
 }
@@ -515,9 +524,13 @@ async function ruleSetFindings(ctx, doc, source, quote, seen = new Set()) {
 function gridFeeFacts(id, evidence) {
   const source = READ_ACTIONS.gridFeeEvidence;
   const base = { source, ref: evidence.evidenceId || id };
+  const versionNote = evidence.tariffSheetVersion
+    ? ' (Version ' + evidence.tariffSheetVersion + ')'
+    : '';
+  const areaNote = evidence.gridAreaId ? ', Netzgebiet ' + evidence.gridAreaId : '';
   const rows = [
     fact(
-      `Variable Netzentgelt-Berechnung ${id} nach Preisblatt ${evidence.tariffSheetId || 'ohne Kennung'}${evidence.tariffSheetVersion ? ` (Version ${evidence.tariffSheetVersion})` : ''}${evidence.gridAreaId ? `, Netzgebiet ${evidence.gridAreaId}` : ''}.`,
+      `Variable Netzentgelt-Berechnung ${id} nach Preisblatt ${evidence.tariffSheetId || 'ohne Kennung'}${versionNote}${areaNote}.`,
       { ...base, value: id, role: 'identifier' }
     ),
   ];
@@ -586,7 +599,8 @@ async function feeRecord(ctx, id) {
   const result = await read(ctx, READ_ACTIONS.ruleSet, { id });
   // The registry returns a rule set by id without a tenant check; another tenant's rule set is
   // treated as not found.
-  if (result.error || !result.data || result.data.tenantId !== getTenantId(ctx))
+  const ownerTenantId = result.data?.tenantId;
+  if (result.error || !result.data || ownerTenantId !== getTenantId(ctx))
     return {
       facts: [],
       negatives: [
@@ -823,16 +837,20 @@ function followUps(finding) {
   };
   for (const row of finding?.facts || []) {
     const value = str(row.value);
-    if (row.role === 'identifier') {
-      for (const hit of registerUnitNumbers(value)) add('plant.register_unit', hit.value);
-      if (isLocationId(value)) add('mako.location_id', value);
-    }
-    if (row.role === 'reference') {
-      for (const hit of sectionReferences(value)) add('reg.section', hit.value);
-      for (const hit of rulingNumbers(value)) add('reg.ruling', hit.value);
-    }
+    if (row.role === 'identifier') addIdentifierFollowUps(value, add);
+    if (row.role === 'reference') addReferenceFollowUps(value, add);
   }
   return next;
+}
+
+function addIdentifierFollowUps(value, add) {
+  for (const hit of registerUnitNumbers(value)) add('plant.register_unit', hit.value);
+  if (isLocationId(value)) add('mako.location_id', value);
+}
+
+function addReferenceFollowUps(value, add) {
+  for (const hit of sectionReferences(value)) add('reg.section', hit.value);
+  for (const hit of rulingNumbers(value)) add('reg.ruling', hit.value);
 }
 
 module.exports = {

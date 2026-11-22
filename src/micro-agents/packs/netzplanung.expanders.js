@@ -67,9 +67,9 @@ function parseNumber(raw) {
   const value = String(raw);
   if (!value || ![...value].every((ch) => isDigit(ch) || ch === ',' || ch === '.')) return null;
   let normalized = value;
-  if (value.includes(',')) normalized = value.split('.').join('').replace(',', '.');
+  if (value.includes(',')) normalized = value.replaceAll('.', '').replace(',', '.');
   else if (value.includes('.') && value.split('.').pop().length === 3)
-    normalized = value.split('.').join('');
+    normalized = value.replaceAll('.', '');
   const number = Number(normalized);
   return Number.isFinite(number) && number > 0 ? number : null;
 }
@@ -203,8 +203,9 @@ function projectHitFact(hit) {
   ]
     .filter(Boolean)
     .join(', ');
+  const detailsText = details ? ` (${details})` : '';
   return {
-    statement: `MaStR-Einheit ${asset.mastrNummer} ist im ZNP-Projekt „${projectName(project)}“ als Layer-0-Anlage geführt${details ? ` (${details})` : ''}.`,
+    statement: `MaStR-Einheit ${asset.mastrNummer} ist im ZNP-Projekt „${projectName(project)}“ als Layer-0-Anlage geführt${detailsText}.`,
     value: asset.mastrNummer,
     role: 'reference',
     basis: 'source',
@@ -231,8 +232,10 @@ async function municipalityAndProjects(ctx, plz, context) {
     });
     return { facts, negatives, relations };
   }
+  const stateText = profile.state ? ` (${profile.state})` : '';
+  const keyText = profile.ags ? `, Gemeindeschlüssel ${profile.ags}` : '';
   facts.push({
-    statement: `PLZ ${plz} gehört zur Gemeinde ${profile.name}${profile.state ? ` (${profile.state})` : ''}${profile.ags ? `, Gemeindeschlüssel ${profile.ags}` : ''}.`,
+    statement: `PLZ ${plz} gehört zur Gemeinde ${profile.name}${stateText}${keyText}.`,
     value: profile.ags || profile.name,
     role: 'reference',
     basis: 'source',
@@ -267,6 +270,34 @@ async function municipalityAndProjects(ctx, plz, context) {
   return { facts, negatives, relations };
 }
 
+function operatorFact(summary, plz, ref) {
+  const shareText = present(summary.dominantOperatorShare)
+    ? ` (Anteil ${Math.round(Number(summary.dominantOperatorShare) * 100)} %)`
+    : '';
+  return {
+    statement: `Häufigster Betreiber-Tag der Stationen im PLZ-Gebiet ${plz}: ${summary.dominantOperator}${shareText}.`,
+    value: summary.dominantOperator,
+    role: 'reference',
+    basis: 'source',
+    provenance: { source: 'osm-geo.substationFinder', ref },
+  };
+}
+
+function stationFact(station, name, ref) {
+  const operatorText = station.operator ? `, Betreiber-Tag ${station.operator}` : '';
+  return {
+    statement: `Station „${name}“ (${station.subtype || station.type || 'Station'}, Ebene ${station.voltageLevel || 'unbekannt'}${operatorText}) ist in OpenStreetMap erfasst.`,
+    value: name,
+    role: 'reference',
+    basis: 'source',
+    provenance: {
+      source: 'osm-geo.substationFinder',
+      ref: `${ref}; ${station.osmId || ''}`,
+      quote: name,
+    },
+  };
+}
+
 // OSM substations of a postal code area; names that occur in the text are named nodes.
 async function substationsOfArea(ctx, plz, levels, text, context) {
   const facts = [];
@@ -274,7 +305,8 @@ async function substationsOfArea(ctx, plz, levels, text, context) {
   const named = [];
   const params = { postalCode: plz, maxResults: 200 };
   if (levels.length === 1) params.voltageLevel = VOLTAGE_CODES[levels[0]];
-  const scope = `OpenStreetMap über osm-geo.substationFinder, PLZ ${plz}${params.voltageLevel ? `, Ebene ${params.voltageLevel}` : ''}`;
+  const levelText = params.voltageLevel ? `, Ebene ${params.voltageLevel}` : '';
+  const scope = `OpenStreetMap über osm-geo.substationFinder, PLZ ${plz}${levelText}`;
   const res = await read(ctx, 'osm-geo.substationFinder', params, context);
   if (!res.ok)
     return { facts, negatives: [unavailable(`Umspannwerke/Stationen ${plz}`, scope)], named };
@@ -289,7 +321,8 @@ async function substationsOfArea(ctx, plz, levels, text, context) {
   const data = payload(res.data) || {};
   const summary = data.summary || {};
   const coverage = data.dataQuality?.coverageLabel;
-  const ref = `postalCode=${plz}${coverage ? `; OSM-Abdeckung ${coverage}` : ''}`;
+  const coverageText = coverage ? `; OSM-Abdeckung ${coverage}` : '';
+  const ref = `postalCode=${plz}${coverageText}`;
   if (!Number(summary.totalSubstations)) {
     negatives.push({
       searched: `Umspannwerke/Stationen im PLZ-Gebiet ${plz}`,
@@ -302,55 +335,189 @@ async function substationsOfArea(ctx, plz, levels, text, context) {
     .filter(([, count]) => Number(count) > 0)
     .map(([level, count]) => `${level} ${count}`)
     .join(', ');
+  const byLevelText = levelsText ? ` (${levelsText})` : '';
   facts.push({
-    statement: `In OpenStreetMap sind im PLZ-Gebiet ${plz} ${summary.totalSubstations} Umspannwerke/Stationen erfasst${levelsText ? ` (${levelsText})` : ''}; OSM bildet das Netz nicht vollständig ab.`,
+    statement: `In OpenStreetMap sind im PLZ-Gebiet ${plz} ${summary.totalSubstations} Umspannwerke/Stationen erfasst${byLevelText}; OSM bildet das Netz nicht vollständig ab.`,
     value: String(summary.totalSubstations),
     role: 'quantity',
     basis: 'source',
     provenance: { source: 'osm-geo.substationFinder', ref },
   });
-  if (summary.dominantOperator)
-    facts.push({
-      statement: `Häufigster Betreiber-Tag der Stationen im PLZ-Gebiet ${plz}: ${summary.dominantOperator}${present(summary.dominantOperatorShare) ? ` (Anteil ${Math.round(Number(summary.dominantOperatorShare) * 100)} %)` : ''}.`,
-      value: summary.dominantOperator,
-      role: 'reference',
-      basis: 'source',
-      provenance: { source: 'osm-geo.substationFinder', ref },
-    });
+  if (summary.dominantOperator) facts.push(operatorFact(summary, plz, ref));
   const haystack = lower(text);
   for (const station of Array.isArray(data.substations) ? data.substations : []) {
     const name = String(station.name || '').trim();
     if (name.length < 4 || !haystack.includes(lower(name))) continue;
     named.push(name);
-    facts.push({
-      statement: `Station „${name}“ (${station.subtype || station.type || 'Station'}, Ebene ${station.voltageLevel || 'unbekannt'}${station.operator ? `, Betreiber-Tag ${station.operator}` : ''}) ist in OpenStreetMap erfasst.`,
-      value: name,
-      role: 'reference',
-      basis: 'source',
-      provenance: {
-        source: 'osm-geo.substationFinder',
-        ref: `${ref}; ${station.osmId || ''}`,
-        quote: name,
-      },
-    });
+    facts.push(stationFact(station, name, ref));
   }
   return { facts, negatives, named: unique(named) };
 }
 
 // ─── Expanders ───────────────────────────────────────────────────────────────
 
+const registerUnitQuestion = () => ({
+  openQuestions: [
+    {
+      question: 'Wie lautet die MaStR-Nummer der Einheit?',
+      resolves: 'Stammdaten, Netzbetreiberzuordnung und Lage in der Zielnetzplanung',
+    },
+  ],
+  confidence: 0.2,
+});
+
+const VALIDATE_SCOPE = 'osm-geo.validate (MaStR-Daten und VNBdigital, ohne OSM-Schicht)';
+
+function gridOperatorFact(installation, number, provenance) {
+  const idText = installation.registeredGridOperatorId
+    ? ` (${installation.registeredGridOperatorId})`
+    : '';
+  return {
+    statement: `Einheit ${number} ist im MaStR dem Netzbetreiber ${installation.registeredGridOperator}${idText} zugeordnet.`,
+    value: installation.registeredGridOperatorId || installation.registeredGridOperator,
+    role: 'reference',
+    basis: 'source',
+    provenance,
+  };
+}
+
+function validationFact(validation, number, provenance) {
+  const scoreText = present(validation.confidenceScore)
+    ? `, Score ${validation.confidenceScore}`
+    : '';
+  const vnbText = validation.layer1_vnbdigital?.vnbFound
+    ? `; VNBdigital nennt ${validation.layer1_vnbdigital.vnbFound}`
+    : '';
+  return {
+    statement: `Prüfung der Netzbetreiberzuordnung von ${number} (VNBdigital): ${validation.verdict}${scoreText}${vnbText}.`,
+    value: validation.verdict,
+    role: 'status',
+    basis: 'source',
+    provenance,
+  };
+}
+
+// Facts of the MaStR master data record of a unit (type, capacity, grid operator, check).
+function installationFacts(installation, validation, number) {
+  const facts = [];
+  const provenance = { source: 'osm-geo.validate', ref: `mastrNummer=${number}` };
+  if (installation.installationType)
+    facts.push({
+      statement: `Einheit ${number}: Anlagenart laut MaStR ${installation.installationType}.`,
+      value: installation.installationType,
+      role: 'classification',
+      basis: 'source',
+      provenance,
+    });
+  if (present(installation.bruttoleistungKW))
+    facts.push({
+      statement: `Einheit ${number}: Bruttoleistung ${installation.bruttoleistungKW} kW laut MaStR.`,
+      value: String(installation.bruttoleistungKW),
+      unit: 'kW',
+      role: 'quantity',
+      basis: 'source',
+      provenance,
+    });
+  if (installation.registeredGridOperator)
+    facts.push(gridOperatorFact(installation, number, provenance));
+  if (validation.verdict) facts.push(validationFact(validation, number, provenance));
+  return facts;
+}
+
+function installationLocation(installation) {
+  const lat = Number(installation.location?.lat);
+  const lon = Number(installation.location?.lon);
+  return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
+}
+
+// Master data of the unit from the validation service: facts, negatives and the location.
+function masterData(validated, number) {
+  const searched = `Stammdaten der Einheit ${number}`;
+  if (!validated.ok)
+    return { facts: [], negatives: [unavailable(searched, VALIDATE_SCOPE)], location: null };
+  if (validated.data?.success === false)
+    return {
+      facts: [],
+      negatives: [
+        {
+          searched,
+          scope: VALIDATE_SCOPE,
+          result: `degraded_${validated.data.degradedReason || 'unknown'}`,
+        },
+      ],
+      location: null,
+    };
+  const data = payload(validated.data) || {};
+  const installation = data.installation;
+  if (!installation || (data.mastrNummer && data.mastrNummer !== number))
+    return {
+      facts: [],
+      negatives: [{ searched, scope: VALIDATE_SCOPE, result: 'no_hit' }],
+      location: null,
+    };
+  return {
+    facts: installationFacts(installation, data.validation || {}, number),
+    negatives: [],
+    location: installationLocation(installation),
+  };
+}
+
+const insideBox = (location, box) =>
+  location.lat >= Number(box.south) &&
+  location.lat <= Number(box.north) &&
+  location.lon >= Number(box.west) &&
+  location.lon <= Number(box.east);
+
+// The unit lies inside a project's area but is missing from its Layer 0.
+function missingFromLayerZeroFacts(projects, location, number) {
+  if (!location) return [];
+  return projects
+    .filter((project) => insideBox(location, project.bbox || {}))
+    .map((project) => ({
+      statement: `Der MaStR-Standort von ${number} liegt im Planungsgebiet des ZNP-Projekts „${projectName(project)}“, die Einheit fehlt dort aber in Layer 0.`,
+      value: project.projectId,
+      role: 'status',
+      basis: 'source',
+      provenance: {
+        source: 'znp.listProjects',
+        ref: `projectId=${project.projectId}; Standort aus osm-geo.validate`,
+      },
+    }));
+}
+
+// Where the unit stands in the tenant's target grid planning projects.
+function planningPresence(found, number, object, location) {
+  const searched = `${number} in der Zielnetzplanung`;
+  if (!found.ok) return { negatives: [unavailable(searched, 'znp.listProjects')] };
+  if (!found.projects.length)
+    return {
+      negatives: [
+        {
+          searched,
+          scope: 'ZNP-Projekte des Mandanten (znp.listProjects)',
+          result: 'no_projects',
+        },
+      ],
+    };
+  if (found.hits.length)
+    return {
+      facts: found.hits.map(projectHitFact),
+      relations: found.hits.map((hit) => ({
+        from: object.objectId,
+        rel: 'belongs_to',
+        to: `ZNP-Projekt ${projectName(hit.project)}`,
+      })),
+    };
+  return {
+    negatives: [{ searched: number, scope: projectScope(found), result: 'no_hit' }],
+    facts: missingFromLayerZeroFacts(found.projects, location, number),
+  };
+}
+
 async function expandRegisterUnit(ctx, object, context) {
   const number = String(object.value || '').trim();
   if (!registerUnitNumbers(number).some((row) => row.value === number))
-    return {
-      openQuestions: [
-        {
-          question: 'Wie lautet die MaStR-Nummer der Einheit?',
-          resolves: 'Stammdaten, Netzbetreiberzuordnung und Lage in der Zielnetzplanung',
-        },
-      ],
-      confidence: 0.2,
-    };
+    return registerUnitQuestion();
   const facts = [
     {
       statement: `${number} hat das Format einer MaStR-Nummer (Präfix ${number.slice(0, 3)}, zwölf Ziffern).`,
@@ -360,113 +527,15 @@ async function expandRegisterUnit(ctx, object, context) {
       provenance: { source: 'detectors.registerUnitNumbers', quote: number },
     },
   ];
-  const negatives = [];
-  const relations = [];
-  const validateScope = 'osm-geo.validate (MaStR-Daten und VNBdigital, ohne OSM-Schicht)';
   const [validated, found] = await Promise.all([
     read(ctx, 'osm-geo.validate', { mastrNummer: number, skipOsmLayer: true }, context),
     findUnitsInProjects(ctx, [number], context),
   ]);
-
-  let location = null;
-  if (!validated.ok) negatives.push(unavailable(`Stammdaten der Einheit ${number}`, validateScope));
-  else if (validated.data?.success === false)
-    negatives.push({
-      searched: `Stammdaten der Einheit ${number}`,
-      scope: validateScope,
-      result: `degraded_${validated.data.degradedReason || 'unknown'}`,
-    });
-  else {
-    const data = payload(validated.data) || {};
-    const installation = data.installation;
-    if (!installation || (data.mastrNummer && data.mastrNummer !== number))
-      negatives.push({
-        searched: `Stammdaten der Einheit ${number}`,
-        scope: validateScope,
-        result: 'no_hit',
-      });
-    else {
-      const provenance = { source: 'osm-geo.validate', ref: `mastrNummer=${number}` };
-      if (installation.installationType)
-        facts.push({
-          statement: `Einheit ${number}: Anlagenart laut MaStR ${installation.installationType}.`,
-          value: installation.installationType,
-          role: 'classification',
-          basis: 'source',
-          provenance,
-        });
-      if (present(installation.bruttoleistungKW))
-        facts.push({
-          statement: `Einheit ${number}: Bruttoleistung ${installation.bruttoleistungKW} kW laut MaStR.`,
-          value: String(installation.bruttoleistungKW),
-          unit: 'kW',
-          role: 'quantity',
-          basis: 'source',
-          provenance,
-        });
-      if (installation.registeredGridOperator)
-        facts.push({
-          statement: `Einheit ${number} ist im MaStR dem Netzbetreiber ${installation.registeredGridOperator}${installation.registeredGridOperatorId ? ` (${installation.registeredGridOperatorId})` : ''} zugeordnet.`,
-          value: installation.registeredGridOperatorId || installation.registeredGridOperator,
-          role: 'reference',
-          basis: 'source',
-          provenance,
-        });
-      const lat = Number(installation.location?.lat);
-      const lon = Number(installation.location?.lon);
-      if (Number.isFinite(lat) && Number.isFinite(lon)) location = { lat, lon };
-      const validation = data.validation || {};
-      if (validation.verdict)
-        facts.push({
-          statement: `Prüfung der Netzbetreiberzuordnung von ${number} (VNBdigital): ${validation.verdict}${present(validation.confidenceScore) ? `, Score ${validation.confidenceScore}` : ''}${validation.layer1_vnbdigital?.vnbFound ? `; VNBdigital nennt ${validation.layer1_vnbdigital.vnbFound}` : ''}.`,
-          value: validation.verdict,
-          role: 'status',
-          basis: 'source',
-          provenance,
-        });
-    }
-  }
-
-  if (!found.ok)
-    negatives.push(unavailable(`${number} in der Zielnetzplanung`, 'znp.listProjects'));
-  else if (!found.projects.length)
-    negatives.push({
-      searched: `${number} in der Zielnetzplanung`,
-      scope: 'ZNP-Projekte des Mandanten (znp.listProjects)',
-      result: 'no_projects',
-    });
-  else if (found.hits.length)
-    for (const hit of found.hits) {
-      facts.push(projectHitFact(hit));
-      relations.push({
-        from: object.objectId,
-        rel: 'belongs_to',
-        to: `ZNP-Projekt ${projectName(hit.project)}`,
-      });
-    }
-  else {
-    negatives.push({ searched: number, scope: projectScope(found), result: 'no_hit' });
-    // The unit lies inside a project's area but is missing from its Layer 0.
-    for (const project of location ? found.projects : []) {
-      const box = project.bbox || {};
-      const inside =
-        location.lat >= Number(box.south) &&
-        location.lat <= Number(box.north) &&
-        location.lon >= Number(box.west) &&
-        location.lon <= Number(box.east);
-      if (!inside) continue;
-      facts.push({
-        statement: `Der MaStR-Standort von ${number} liegt im Planungsgebiet des ZNP-Projekts „${projectName(project)}“, die Einheit fehlt dort aber in Layer 0.`,
-        value: project.projectId,
-        role: 'status',
-        basis: 'source',
-        provenance: {
-          source: 'znp.listProjects',
-          ref: `projectId=${project.projectId}; Standort aus osm-geo.validate`,
-        },
-      });
-    }
-  }
+  const master = masterData(validated, number);
+  const presence = planningPresence(found, number, object, master.location);
+  facts.push(...master.facts, ...(presence.facts || []));
+  const negatives = [...master.negatives, ...(presence.negatives || [])];
+  const relations = presence.relations || [];
   return { facts, negatives, relations, confidence: facts.length > 1 ? 0.8 : 0.4 };
 }
 
@@ -541,6 +610,41 @@ function matchesElement(text, elementId) {
   return id.includes(' ') ? lower(text).includes(id) : tokens(lower(text)).includes(id);
 }
 
+// Facts of one matched bottleneck: its rating, up to two findings and the fNAV coverage.
+function bottleneckFacts(assessment, bottleneck) {
+  const facts = [];
+  const ref = `assessment=${assessment._id}; element=${bottleneck.elementId}; ${assessment.createdAt || ''}`;
+  const levelText = bottleneck.voltageLevel ? ` (${bottleneck.voltageLevel})` : '';
+  const labelText = assessment.label ? ` „${assessment.label}“` : '';
+  facts.push({
+    statement: `Netzelement ${bottleneck.elementId}${levelText} ist in der Engpassbewertung${labelText} als ${bottleneck.severity} eingestuft.`,
+    value: bottleneck.severity,
+    role: 'status',
+    basis: 'source',
+    provenance: { source: 'agnes-bottleneck.list', ref },
+  });
+  for (const finding of (bottleneck.findings || []).slice(0, 2))
+    facts.push({
+      statement: `${bottleneck.elementId}: ${finding.message || finding.code}`,
+      value: present(finding.value) ? String(finding.value) : '',
+      role: 'quantity',
+      basis: 'source',
+      provenance: { source: 'agnes-bottleneck.list', ref, quote: finding.message || '' },
+    });
+  const coverage = (assessment.fnavCoverage || []).find(
+    (row) => row.elementId === bottleneck.elementId
+  );
+  if (coverage?.coverageStatus)
+    facts.push({
+      statement: `fNAV-Deckung für ${bottleneck.elementId}: ${coverage.coverageStatus}.`,
+      value: coverage.coverageStatus,
+      role: 'status',
+      basis: 'source',
+      provenance: { source: 'agnes-bottleneck.list', ref },
+    });
+  return facts;
+}
+
 async function bottlenecksFor(ctx, texts, context) {
   const facts = [];
   const negatives = [];
@@ -552,38 +656,30 @@ async function bottlenecksFor(ctx, texts, context) {
     for (const bottleneck of assessment.bottlenecks || []) {
       if (!texts.some((value) => matchesElement(value, bottleneck.elementId))) continue;
       matched.push(bottleneck.elementId);
-      const ref = `assessment=${assessment._id}; element=${bottleneck.elementId}; ${assessment.createdAt || ''}`;
-      facts.push({
-        statement: `Netzelement ${bottleneck.elementId}${bottleneck.voltageLevel ? ` (${bottleneck.voltageLevel})` : ''} ist in der Engpassbewertung${assessment.label ? ` „${assessment.label}“` : ''} als ${bottleneck.severity} eingestuft.`,
-        value: bottleneck.severity,
-        role: 'status',
-        basis: 'source',
-        provenance: { source: 'agnes-bottleneck.list', ref },
-      });
-      for (const finding of (bottleneck.findings || []).slice(0, 2))
-        facts.push({
-          statement: `${bottleneck.elementId}: ${finding.message || finding.code}`,
-          value: present(finding.value) ? String(finding.value) : '',
-          role: 'quantity',
-          basis: 'source',
-          provenance: { source: 'agnes-bottleneck.list', ref, quote: finding.message || '' },
-        });
-      const coverage = (assessment.fnavCoverage || []).find(
-        (row) => row.elementId === bottleneck.elementId
-      );
-      if (coverage?.coverageStatus)
-        facts.push({
-          statement: `fNAV-Deckung für ${bottleneck.elementId}: ${coverage.coverageStatus}.`,
-          value: coverage.coverageStatus,
-          role: 'status',
-          basis: 'source',
-          provenance: { source: 'agnes-bottleneck.list', ref },
-        });
+      facts.push(...bottleneckFacts(assessment, bottleneck));
     }
   }
   if (!matched.length)
     negatives.push({ searched: texts.join('; ').slice(0, 300), scope, result: 'no_hit' });
   return { facts, negatives, matched: unique(matched) };
+}
+
+function segmentFact(row, segment) {
+  const horizonText = segment.decommissionHorizon
+    ? `, Stilllegungshorizont ${segment.decommissionHorizon}`
+    : '';
+  const signalText = segment.totexSignal ? `, Investitionssignal ${segment.totexSignal}` : '';
+  const yearText = row.planningYear ? ` ${row.planningYear}` : '';
+  return {
+    statement: `Gasnetzabschnitt ${segment.segmentId}: Stranded-Asset-Risiko ${segment.strandedRisk}${horizonText}${signalText} (Abgleich mit der Wärmeplanung${yearText}).`,
+    value: segment.strandedRisk || '',
+    role: 'status',
+    basis: 'source',
+    provenance: {
+      source: 'gasnetz-waermeplanung.list',
+      ref: `reconciliation=${row._id}; segment=${segment.segmentId}`,
+    },
+  };
 }
 
 async function gasSegmentsFor(ctx, text, context) {
@@ -594,16 +690,7 @@ async function gasSegmentsFor(ctx, text, context) {
   for (const row of Array.isArray(res.data?.reconciliations) ? res.data.reconciliations : []) {
     for (const segment of row.segmentResults || []) {
       if (!matchesElement(text, segment.segmentId)) continue;
-      facts.push({
-        statement: `Gasnetzabschnitt ${segment.segmentId}: Stranded-Asset-Risiko ${segment.strandedRisk}${segment.decommissionHorizon ? `, Stilllegungshorizont ${segment.decommissionHorizon}` : ''}${segment.totexSignal ? `, Investitionssignal ${segment.totexSignal}` : ''} (Abgleich mit der Wärmeplanung${row.planningYear ? ` ${row.planningYear}` : ''}).`,
-        value: segment.strandedRisk || '',
-        role: 'status',
-        basis: 'source',
-        provenance: {
-          source: 'gasnetz-waermeplanung.list',
-          ref: `reconciliation=${row._id}; segment=${segment.segmentId}`,
-        },
-      });
+      facts.push(segmentFact(row, segment));
     }
   }
   return { facts, negatives: facts.length ? [] : [{ searched: text, scope, result: 'no_hit' }] };
@@ -635,6 +722,76 @@ async function expandGridNode(ctx, object, context) {
   return { facts, negatives, openQuestions, confidence: facts.length > levels.length ? 0.7 : 0.3 };
 }
 
+function projectOverview(listed) {
+  const facts = [];
+  const negatives = [];
+  if (!listed.ok) negatives.push(unavailable('ZNP-Projekte', 'znp.listProjects'));
+  else if (!listed.projects.length)
+    negatives.push({
+      searched: 'ZNP-Projekte',
+      scope: 'znp.listProjects des Mandanten',
+      result: 'no_hit',
+    });
+  for (const project of listed.projects.slice(0, OVERVIEW_LIMIT)) {
+    const keyText = project.municipalityKey
+      ? ` (Gemeindeschlüssel ${project.municipalityKey})`
+      : '';
+    facts.push({
+      statement: `ZNP-Projekt „${projectName(project)}“${keyText}: Layer ${(project.layers || []).join(', ') || 'keine'}, ${project.graphStats?.nodes ?? '?'} Knoten.`,
+      value: project.projectId,
+      role: 'status',
+      basis: 'source',
+      provenance: { source: 'znp.listProjects', ref: `projectId=${project.projectId}` },
+    });
+  }
+  return { facts, negatives };
+}
+
+const CRITICAL_SCOPE =
+  'Engpassbewertungen des Mandanten mit Gesamtstufe CRITICAL (agnes-bottleneck.list)';
+
+function criticalOverview(critical) {
+  if (!critical.ok)
+    return { facts: [], negatives: [unavailable('kritische Engpässe', CRITICAL_SCOPE)] };
+  const rows = Array.isArray(critical.data?.assessments) ? critical.data.assessments : [];
+  const negatives = rows.length
+    ? []
+    : [{ searched: 'kritische Engpässe', scope: CRITICAL_SCOPE, result: 'no_hit' }];
+  const facts = rows.map((row) => {
+    const labelText = row.label ? ` „${row.label}“` : '';
+    return {
+      statement: `Engpassbewertung${labelText} vom ${String(row.createdAt || '').slice(0, 10)}: ${row.summary?.criticalCount ?? '?'} kritische, ${row.summary?.warningCount ?? '?'} Warn-Engpässe, ${row.summary?.uncoveredBottlenecks ?? '?'} ohne ausreichende fNAV-Deckung.`,
+      value: row.overallSeverity || 'CRITICAL',
+      role: 'status',
+      basis: 'source',
+      provenance: { source: 'agnes-bottleneck.list', ref: `assessment=${row._id}` },
+    };
+  });
+  return { facts, negatives };
+}
+
+const GAS_SCOPE = 'Abgleiche Gasnetz/Wärmeplanung des Mandanten (gasnetz-waermeplanung.list)';
+
+function gasOverview(gas) {
+  if (!gas.ok)
+    return { facts: [], negatives: [unavailable('Abgleiche Gasnetz/Wärmeplanung', GAS_SCOPE)] };
+  const rows = Array.isArray(gas.data?.reconciliations) ? gas.data.reconciliations : [];
+  const facts = rows
+    .filter((entry) => Number(entry.kpis?.highRiskCount) > 0)
+    .map((row) => {
+      const labelText = row.label ? ` „${row.label}“` : '';
+      const yearText = row.planningYear ? ` (${row.planningYear})` : '';
+      return {
+        statement: `Abgleich Gasnetz/Wärmeplanung${labelText}${yearText}: ${row.kpis.highRiskCount} von ${row.kpis.totalSegments} Abschnitten mit hohem Stranded-Asset-Risiko.`,
+        value: String(row.kpis.highRiskCount),
+        role: 'quantity',
+        basis: 'source',
+        provenance: { source: 'gasnetz-waermeplanung.list', ref: `reconciliation=${row._id}` },
+      };
+    });
+  return { facts, negatives: [] };
+}
+
 async function areaOverview(ctx, object, context) {
   const facts = [];
   const negatives = [];
@@ -649,66 +806,24 @@ async function areaOverview(ctx, object, context) {
     ),
     read(ctx, 'gasnetz-waermeplanung.list', { limit: OVERVIEW_LIMIT }, context),
   ]);
-  if (!listed.ok) negatives.push(unavailable('ZNP-Projekte', 'znp.listProjects'));
-  else if (!listed.projects.length)
-    negatives.push({
-      searched: 'ZNP-Projekte',
-      scope: 'znp.listProjects des Mandanten',
-      result: 'no_hit',
-    });
-  for (const project of listed.projects.slice(0, OVERVIEW_LIMIT))
-    facts.push({
-      statement: `ZNP-Projekt „${projectName(project)}“${project.municipalityKey ? ` (Gemeindeschlüssel ${project.municipalityKey})` : ''}: Layer ${(project.layers || []).join(', ') || 'keine'}, ${project.graphStats?.nodes ?? '?'} Knoten.`,
-      value: project.projectId,
-      role: 'status',
-      basis: 'source',
-      provenance: { source: 'znp.listProjects', ref: `projectId=${project.projectId}` },
-    });
-  const criticalScope =
-    'Engpassbewertungen des Mandanten mit Gesamtstufe CRITICAL (agnes-bottleneck.list)';
-  if (!critical.ok) negatives.push(unavailable('kritische Engpässe', criticalScope));
-  else {
-    const rows = Array.isArray(critical.data?.assessments) ? critical.data.assessments : [];
-    if (!rows.length)
-      negatives.push({ searched: 'kritische Engpässe', scope: criticalScope, result: 'no_hit' });
-    for (const row of rows)
-      facts.push({
-        statement: `Engpassbewertung${row.label ? ` „${row.label}“` : ''} vom ${String(row.createdAt || '').slice(0, 10)}: ${row.summary?.criticalCount ?? '?'} kritische, ${row.summary?.warningCount ?? '?'} Warn-Engpässe, ${row.summary?.uncoveredBottlenecks ?? '?'} ohne ausreichende fNAV-Deckung.`,
-        value: row.overallSeverity || 'CRITICAL',
-        role: 'status',
-        basis: 'source',
-        provenance: { source: 'agnes-bottleneck.list', ref: `assessment=${row._id}` },
-      });
-  }
-  const gasScope = 'Abgleiche Gasnetz/Wärmeplanung des Mandanten (gasnetz-waermeplanung.list)';
-  if (!gas.ok) negatives.push(unavailable('Abgleiche Gasnetz/Wärmeplanung', gasScope));
-  else
-    for (const row of (Array.isArray(gas.data?.reconciliations)
-      ? gas.data.reconciliations
-      : []
-    ).filter((entry) => Number(entry.kpis?.highRiskCount) > 0))
-      facts.push({
-        statement: `Abgleich Gasnetz/Wärmeplanung${row.label ? ` „${row.label}“` : ''}${row.planningYear ? ` (${row.planningYear})` : ''}: ${row.kpis.highRiskCount} von ${row.kpis.totalSegments} Abschnitten mit hohem Stranded-Asset-Risiko.`,
-        value: String(row.kpis.highRiskCount),
-        role: 'quantity',
-        basis: 'source',
-        provenance: { source: 'gasnetz-waermeplanung.list', ref: `reconciliation=${row._id}` },
-      });
   const operators = await Promise.all(
     marketPartnerCodes(text)
       .slice(0, 1)
       .map((row) => operatorConnectionKpis(ctx, row.value, context))
   );
-  for (const part of operators) {
-    facts.push(...part.facts);
-    negatives.push(...part.negatives);
-  }
   const places = await Promise.all(
     postalCodes(text)
       .slice(0, 1)
       .map((plz) => municipalityAndProjects(ctx, plz, context))
   );
-  for (const part of places) {
+  const parts = [
+    projectOverview(listed),
+    criticalOverview(critical),
+    gasOverview(gas),
+    ...operators,
+    ...places,
+  ];
+  for (const part of parts) {
     facts.push(...part.facts);
     negatives.push(...part.negatives);
   }
@@ -736,9 +851,12 @@ async function operatorConnectionKpis(ctx, bdewCode, context) {
       : bdewCode;
   const ref = `bdewCode=${bdewCode}; ${snapshot.timestamp || ''}`;
   const facts = [];
+  const medianText = present(durations.bundesmedianEeNS_weeks)
+    ? ` (Bundesmedian ${durations.bundesmedianEeNS_weeks} Wochen)`
+    : '';
   if (present(durations.eeNS_weeks))
     facts.push({
-      statement: `Anschlussdauer EE-Anlagen in der Niederspannung bei ${name}: ${durations.eeNS_weeks} Wochen${present(durations.bundesmedianEeNS_weeks) ? ` (Bundesmedian ${durations.bundesmedianEeNS_weeks} Wochen)` : ''}.`,
+      statement: `Anschlussdauer EE-Anlagen in der Niederspannung bei ${name}: ${durations.eeNS_weeks} Wochen${medianText}.`,
       value: String(durations.eeNS_weeks),
       unit: 'Wochen',
       role: 'quantity',

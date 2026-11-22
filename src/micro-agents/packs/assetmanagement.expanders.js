@@ -164,6 +164,13 @@ function emptyFinding() {
   return { facts: [], relations: [], negatives: [], openQuestions: [], confidence: 0.3 };
 }
 
+// Direct identifier hits are strongest; a store overview alone is weaker.
+function findingConfidence(identifierHits, overviewFacts) {
+  if (identifierHits) return 0.8;
+  if (overviewFacts) return 0.5;
+  return 0.3;
+}
+
 function merge(target, part) {
   for (const key of ['facts', 'relations', 'negatives', 'openQuestions'])
     target[key].push(...(part[key] || []));
@@ -301,9 +308,10 @@ function capexSummaryFact(analysis) {
 function capexMeasureFacts(analysis, measure) {
   const source = STORES.capex.action;
   const ref = `${analysis._id}, Maßnahme ${measure.measureId}`;
+  const description = measure.description ? ` (${measure.description})` : '';
   const facts = [
     fact(
-      `Maßnahme ${measure.measureId}${measure.description ? ` (${measure.description})` : ''}: Klasse ${measure.classification}, Dringlichkeit ${measure.urgency}, Priorität ${measure.priorityScore}; durch Flexibilität ersetzbar: ${measure.canBeReplacedByFlex ? 'ja' : 'nein'}.`,
+      `Maßnahme ${measure.measureId}${description}: Klasse ${measure.classification}, Dringlichkeit ${measure.urgency}, Priorität ${measure.priorityScore}; durch Flexibilität ersetzbar: ${measure.canBeReplacedByFlex ? 'ja' : 'nein'}.`,
       { value: measure.classification, role: 'classification', source, ref }
     ),
   ];
@@ -367,9 +375,10 @@ function matchCapex(store, value, { exact = false } = {}) {
 function gateFacts(gate) {
   const source = STORES.gates.action;
   const ref = gate._id;
+  const maturity = gate.maturityLevel ? `, Reifegrad ${gate.maturityLevel}` : '';
   const facts = [
     fact(
-      `Reifegrad-Gate ${gate._id} für Investitionsfall ${gate.investmentCaseId}${dated(gate)}: Status ${gate.evidenceStatus}${gate.maturityLevel ? `, Reifegrad ${gate.maturityLevel}` : ''}.`,
+      `Reifegrad-Gate ${gate._id} für Investitionsfall ${gate.investmentCaseId}${dated(gate)}: Status ${gate.evidenceStatus}${maturity}.`,
       { value: gate.evidenceStatus, source, ref }
     ),
   ];
@@ -563,15 +572,19 @@ function matchAltdaten(store, value) {
 
 // ─── Asset overrides (assets.overrides) ──────────────────────────────────────
 
+function overrideFact(row) {
+  const previous = present(row.previousValue)
+    ? ` (vorher ${JSON.stringify(row.previousValue)})`
+    : '';
+  const recorded = row.createdAt ? `, erfasst ${String(row.createdAt).slice(0, 10)}` : '';
+  return fact(
+    `Korrektur am Anlagenstammsatz ${row.assetId}: Feld ${row.field} = ${JSON.stringify(row.value)}${previous}, Freigabestatus ${row.approvalStatus}${recorded}.`,
+    { value: row.approvalStatus, source: 'assets.overrides', ref: row.id }
+  );
+}
+
 function overrideFacts(data) {
-  return (data?.overrides || [])
-    .slice(-MAX_MATCHES)
-    .map((row) =>
-      fact(
-        `Korrektur am Anlagenstammsatz ${row.assetId}: Feld ${row.field} = ${JSON.stringify(row.value)}${present(row.previousValue) ? ` (vorher ${JSON.stringify(row.previousValue)})` : ''}, Freigabestatus ${row.approvalStatus}${row.createdAt ? `, erfasst ${String(row.createdAt).slice(0, 10)}` : ''}.`,
-        { value: row.approvalStatus, source: 'assets.overrides', ref: row.id }
-      )
-    );
+  return (data?.overrides || []).slice(-MAX_MATCHES).map((row) => overrideFact(row));
 }
 
 // ─── Expanders ───────────────────────────────────────────────────────────────
@@ -761,7 +774,7 @@ async function expandConcern(ctx, object, context) {
   const state = overview(stores);
   finding.facts.push(...state.facts);
   finding.negatives.push(...state.negatives);
-  finding.confidence = ids.found.length ? 0.8 : state.facts.length ? 0.5 : 0.3;
+  finding.confidence = findingConfidence(ids.found.length, state.facts.length);
   return finding;
 }
 

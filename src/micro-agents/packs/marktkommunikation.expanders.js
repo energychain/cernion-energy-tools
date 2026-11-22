@@ -177,8 +177,8 @@ async function pickQuotes(question, hits, context = {}) {
         };
       })
       .filter(Boolean);
-  } catch (_error) {
-    // Without the model the source references below still stand.
+  } catch {
+    // Deliberately swallowed: without the model the source references below still stand.
     return [];
   } finally {
     clearTimeout(timer);
@@ -393,7 +393,7 @@ async function expandEdifactMessage(ctx, object, context) {
     });
     return { ...finding, confidence: 0.2 };
   }
-  const release = version.split(':').filter(Boolean).pop() || '';
+  const release = version.split(':').findLast(Boolean) || '';
   const willi = await williFinding(ctx, {
     query: [type, release, 'Nachricht'].filter(Boolean).join(' '),
     question: `Zweck und Aufbau der Nachricht ${type}`,
@@ -573,6 +573,13 @@ async function expandLocationId(ctx, object) {
 
 // ---- Processes, response codes, concern --------------------------------------------------------
 
+// Confidence tiers: [selected quotes, source hits only, nothing found].
+function williConfidence(willi, [picked, hitsOnly, none]) {
+  if (willi.picks.length) return picked;
+  if (willi.hits.length) return hitsOnly;
+  return none;
+}
+
 async function expandProcess(ctx, object, context) {
   const willi = await williFinding(ctx, {
     query: object.value,
@@ -593,23 +600,24 @@ async function expandProcess(ctx, object, context) {
     facts: willi.facts,
     negatives: willi.negatives,
     openQuestions,
-    confidence: willi.picks.length ? 0.8 : willi.hits.length ? 0.5 : 0.2,
+    confidence: williConfidence(willi, [0.8, 0.5, 0.2]),
   };
 }
 
 async function expandResponseCode(ctx, object, context) {
   const code = object.value.trim();
   const qualifier = object.label ? `${object.label} ` : '';
+  const labelNote = object.label ? ` (${object.label})` : '';
   const willi = await williFinding(ctx, {
     query: `${qualifier}${code} Code`,
-    question: `Bedeutung des Codes ${code}${object.label ? ` (${object.label})` : ''} und was daraufhin zu tun ist`,
+    question: `Bedeutung des Codes ${code}${labelNote} und was daraufhin zu tun ist`,
     mustContain: [code],
     context,
   });
   return {
     facts: willi.facts,
     negatives: willi.negatives,
-    confidence: willi.picks.length ? 0.8 : willi.hits.length ? 0.5 : 0.2,
+    confidence: williConfidence(willi, [0.8, 0.5, 0.2]),
   };
 }
 
@@ -639,7 +647,7 @@ async function expandConcern(ctx, object, context = {}) {
         ? []
         : [{ searched: consequence, scope: WILLI_SCOPE, result: 'no_relevant_quote' }]),
     ],
-    confidence: willi.picks.length ? 0.7 : willi.hits.length ? 0.4 : 0.1,
+    confidence: williConfidence(willi, [0.7, 0.4, 0.1]),
   };
 }
 

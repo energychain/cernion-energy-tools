@@ -193,6 +193,8 @@ async function pickMeasures(rows, subject, { tenantId, remaining }) {
     }
     return picked;
   } catch (_error) {
+    // A failed or malformed model pick only means "no picked measures"; the literal matches and
+    // the negatives already report the search, so the error is deliberately not propagated.
     return [];
   }
 }
@@ -203,14 +205,18 @@ function measureFacts({ analysis, measure, quote }) {
   const ref = measureRef(id, measure.measureId);
   const provenance = { source: CAPEX_LIST, ref, quote: clip(quote || measure.description) };
   const label = MEASURE_CLASS_LABEL[measure.classification] || measure.classification;
+  const urgency = measure.urgency ? ', Dringlichkeit ' + measure.urgency : '';
+  const priority = isNumber(measure.priorityScore)
+    ? ', Priorität ' + measure.priorityScore + '/100'
+    : '';
+  const basis = measure.regulatoryBasis
+    ? ', Rechtsgrundlage laut Analyse: ' + measure.regulatoryBasis
+    : '';
   const facts = [
     {
       statement:
         `CAPEX-Maßnahme ${measure.measureId} („${clip(measure.description, 160)}“) ist in der ` +
-        `Priorisierung ${id} als ${label} eingestuft` +
-        `${measure.urgency ? `, Dringlichkeit ${measure.urgency}` : ''}` +
-        `${isNumber(measure.priorityScore) ? `, Priorität ${measure.priorityScore}/100` : ''}` +
-        `${measure.regulatoryBasis ? `, Rechtsgrundlage laut Analyse: ${measure.regulatoryBasis}` : ''}.`,
+        `Priorisierung ${id} als ${label} eingestuft${urgency}${priority}${basis}.`,
       value: String(measure.classification || ''),
       role: 'classification',
       basis: 'source',
@@ -246,10 +252,11 @@ function summaryFacts(analysis) {
     .filter(Boolean)
     .join(', ');
   const provenance = { source: CAPEX_LIST, ref: `${CAPEX_LIST}:${id}` };
+  const scopeNote = scope ? ' (' + scope + ')' : '';
   const facts = [];
   if (isNumber(summary.totalCapexEur))
     facts.push({
-      statement: `CAPEX-Priorisierung ${id}${scope ? ` (${scope})` : ''}: ${summary.totalMeasures ?? '?'} Maßnahmen mit zusammen ${euro(summary.totalCapexEur)} CAPEX.`,
+      statement: `CAPEX-Priorisierung ${id}${scopeNote}: ${summary.totalMeasures ?? '?'} Maßnahmen mit zusammen ${euro(summary.totalCapexEur)} CAPEX.`,
       value: String(summary.totalCapexEur),
       unit: 'EUR',
       role: 'monetary',
@@ -292,42 +299,19 @@ function latestDatapoints(datapoints) {
   });
 }
 
-async function expandEog(ctx, vnbId, { tenantId, remaining, values, origin }) {
-  const params = { tenantId, vnbId };
-  const [model, status] = await Promise.all([
-    values ? readCall(ctx, EOG_MODEL, params, { tenantId, remaining }) : null,
-    readCall(ctx, EOG_STATUS, params, { tenantId, remaining }),
-  ]);
+function eogStatusFacts(status, { tenantId, vnbId }) {
   const facts = [];
-  const negatives = [];
-  const scope = `eog-calculator, Mandant ${tenantId}, VNB-Kennung ${vnbId} aus ${origin}, alle Jahre und Sparten`;
-  if (!status.ok && (!model || !model.ok)) {
-    negatives.push({
-      searched: `EOG-Eingangsdaten für VNB ${vnbId}`,
-      scope,
-      result: 'unavailable',
-    });
-    return { facts, negatives };
-  }
-  const datapoints =
-    model?.ok && Array.isArray(model.data?.datapoints) ? model.data.datapoints : [];
   const dataStatus = status.ok ? status.data?.dataStatus : null;
-  if (dataStatus === 'blocked' || (model?.ok && !datapoints.length && !status.ok)) {
-    negatives.push({
-      searched: `EOG-Datenpunkte für VNB ${vnbId}`,
-      scope,
-      result: 'no_hit',
-    });
-    return { facts, negatives };
-  }
-  if (dataStatus)
+  if (dataStatus) {
+    const confidence = status.data?.confidence ? ', Vertrauen ' + status.data.confidence : '';
     facts.push({
-      statement: `EOG-Eingangsdaten für VNB ${vnbId}: Datenstatus ${DATA_STATUS_LABEL[dataStatus] || dataStatus}${status.data?.confidence ? `, Vertrauen ${status.data.confidence}` : ''}.`,
+      statement: `EOG-Eingangsdaten für VNB ${vnbId}: Datenstatus ${DATA_STATUS_LABEL[dataStatus] || dataStatus}${confidence}.`,
       value: String(dataStatus),
       role: 'status',
       basis: 'source',
       provenance: { source: EOG_STATUS, ref: `${EOG_STATUS}:${tenantId}:${vnbId}` },
     });
+  }
   const missing = status.ok && Array.isArray(status.data?.missing) ? status.data.missing : [];
   for (const row of missing.slice(0, MAX_EOG_MISSING))
     facts.push({
@@ -341,23 +325,71 @@ async function expandEog(ctx, vnbId, { tenantId, remaining, values, origin }) {
         quote: clip(row.explanation),
       },
     });
-  for (const row of latestDatapoints(datapoints).slice(0, MAX_EOG_VALUES)) {
-    const period = [row.periodYear, row.sector, row.regulatoryPeriod].filter(Boolean).join('/');
-    const amount = isNumber(row.value) && row.unit === 'EUR' ? euro(row.value) : String(row.value);
-    const unit = row.unit && row.unit !== 'EUR' ? ` ${row.unit}` : '';
-    facts.push({
-      statement: `EOG-Datenpunkt ${row.typedKey || row.key} für VNB ${vnbId}${period ? ` (${period})` : ''}: ${amount}${unit}; im EOG-Modell erfasst mit Herkunft ${row.source || 'unbekannt'}, Vertrauen ${row.confidence || 'unbekannt'}.`,
-      value: String(row.value),
-      unit: clip(row.unit, 40),
-      role: row.unit === 'EUR' ? 'monetary' : 'quantity',
-      basis: 'source',
-      provenance: { source: EOG_MODEL, ref: `eogdp:${row.id || row.key}` },
-    });
-  }
-  return { facts, negatives };
+  return facts;
+}
+
+function eogDatapointFact(row, vnbId) {
+  const period = [row.periodYear, row.sector, row.regulatoryPeriod].filter(Boolean).join('/');
+  const periodNote = period ? ' (' + period + ')' : '';
+  const amount = isNumber(row.value) && row.unit === 'EUR' ? euro(row.value) : String(row.value);
+  const unit = row.unit && row.unit !== 'EUR' ? ` ${row.unit}` : '';
+  return {
+    statement: `EOG-Datenpunkt ${row.typedKey || row.key} für VNB ${vnbId}${periodNote}: ${amount}${unit}; im EOG-Modell erfasst mit Herkunft ${row.source || 'unbekannt'}, Vertrauen ${row.confidence || 'unbekannt'}.`,
+    value: String(row.value),
+    unit: clip(row.unit, 40),
+    role: row.unit === 'EUR' ? 'monetary' : 'quantity',
+    basis: 'source',
+    provenance: { source: EOG_MODEL, ref: `eogdp:${row.id || row.key}` },
+  };
+}
+
+async function expandEog(ctx, vnbId, { tenantId, remaining, values, origin }) {
+  const params = { tenantId, vnbId };
+  const [model, status] = await Promise.all([
+    values ? readCall(ctx, EOG_MODEL, params, { tenantId, remaining }) : null,
+    readCall(ctx, EOG_STATUS, params, { tenantId, remaining }),
+  ]);
+  const scope = `eog-calculator, Mandant ${tenantId}, VNB-Kennung ${vnbId} aus ${origin}, alle Jahre und Sparten`;
+  if (!status.ok && !model?.ok)
+    return {
+      facts: [],
+      negatives: [{ searched: `EOG-Eingangsdaten für VNB ${vnbId}`, scope, result: 'unavailable' }],
+    };
+  const datapoints =
+    model?.ok && Array.isArray(model.data?.datapoints) ? model.data.datapoints : [];
+  const dataStatus = status.ok ? status.data?.dataStatus : null;
+  if (dataStatus === 'blocked' || (model?.ok && !datapoints.length && !status.ok))
+    return {
+      facts: [],
+      negatives: [{ searched: `EOG-Datenpunkte für VNB ${vnbId}`, scope, result: 'no_hit' }],
+    };
+  const facts = eogStatusFacts(status, { tenantId, vnbId });
+  for (const row of latestDatapoints(datapoints).slice(0, MAX_EOG_VALUES))
+    facts.push(eogDatapointFact(row, vnbId));
+  return { facts, negatives: [] };
 }
 
 // ── Expansion ──────────────────────────────────────────────────────────────────────────────
+// The negative of the CAPEX search, or null when measures were found.
+function capexSearchNegative(capex, { subject, tenantScope, matchedCount, measureCount }) {
+  const searched = `CAPEX-Maßnahmen zu „${clip(subject, 120)}“`;
+  const capexScope = `CAPEX-Priorisierungsanalysen, ${tenantScope}, die ${ANALYSIS_LIMIT} neuesten`;
+  if (!capex.ok) return { searched, scope: capexScope, result: 'unavailable' };
+  if (!capex.analyses.length) return { searched, scope: capexScope, result: 'no_analyses' };
+  if (!matchedCount)
+    return {
+      searched,
+      scope: `${capexScope} (${capex.analyses.length} Analysen, ${measureCount} Maßnahmen)`,
+      result: 'no_hit',
+    };
+  return null;
+}
+
+function financeConfidence(sourced, capexOk) {
+  if (sourced) return capexOk ? 0.8 : 0.6;
+  return capexOk ? 0.5 : 0.2;
+}
+
 async function expandFinance(ctx, object, context, { subject, descriptions, values, affects }) {
   const remaining = clock(ctx);
   const tenantId = tenantOf(ctx, context);
@@ -407,25 +439,13 @@ async function expandFinance(ctx, object, context, { subject, descriptions, valu
     negatives.push(...part.negatives);
   }
 
-  const capexScope = `CAPEX-Priorisierungsanalysen, ${tenantScope}, die ${ANALYSIS_LIMIT} neuesten`;
-  if (!capex.ok)
-    negatives.unshift({
-      searched: `CAPEX-Maßnahmen zu „${clip(subject, 120)}“`,
-      scope: capexScope,
-      result: 'unavailable',
-    });
-  else if (!capex.analyses.length)
-    negatives.unshift({
-      searched: `CAPEX-Maßnahmen zu „${clip(subject, 120)}“`,
-      scope: capexScope,
-      result: 'no_analyses',
-    });
-  else if (!matched.length)
-    negatives.unshift({
-      searched: `CAPEX-Maßnahmen zu „${clip(subject, 120)}“`,
-      scope: `${capexScope} (${capex.analyses.length} Analysen, ${rows.length} Maßnahmen)`,
-      result: 'no_hit',
-    });
+  const capexNegative = capexSearchNegative(capex, {
+    subject,
+    tenantScope,
+    matchedCount: matched.length,
+    measureCount: rows.length,
+  });
+  if (capexNegative) negatives.unshift(capexNegative);
 
   // The revenue cap needs the grid operator's identifier; without one there is nothing to read.
   if (values && tenantId && !vnbIds.length)
@@ -435,13 +455,12 @@ async function expandFinance(ctx, object, context, { subject, descriptions, valu
       resolves: 'EOG-Datenpunkte und Datenstatus aus dem EOG-Rechner',
     });
 
-  const sourced = facts.length > 0;
   return {
     facts,
     relations,
     negatives,
     openQuestions,
-    confidence: sourced ? (capex.ok ? 0.8 : 0.6) : capex.ok ? 0.5 : 0.2,
+    confidence: financeConfidence(facts.length > 0, capex.ok),
   };
 }
 

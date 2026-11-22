@@ -274,11 +274,9 @@ function merge(...parts) {
   for (const part of parts)
     for (const key of Object.keys(finding)) finding[key].push(...(part[key] || []));
   const ruleFacts = finding.facts.filter((fact) => fact.basis === 'rule').length;
-  finding.confidence = finding.facts.length
-    ? Math.min(0.9, 0.6 + 0.1 * ruleFacts)
-    : finding.negatives.length
-      ? 0.6
-      : 0.2;
+  if (finding.facts.length) finding.confidence = Math.min(0.9, 0.6 + 0.1 * ruleFacts);
+  else if (finding.negatives.length) finding.confidence = 0.6;
+  else finding.confidence = 0.2;
   return finding;
 }
 

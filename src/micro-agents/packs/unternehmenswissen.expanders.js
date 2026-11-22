@@ -42,6 +42,9 @@ const CONCERN_FACTS = 3;
 const QUOTE_MAX = 300;
 const QUOTE_BEFORE = 100;
 const MIN_PHRASE = 3;
+// Regex fragments for literalPassage: a letter or digit, and a run of anything else.
+const LETTER_OR_DIGIT = String.raw`[\p{L}\p{N}]`;
+const NON_LETTER_RUN = String.raw`[^\p{L}\p{N}]+`;
 
 const RACI_FIELDS = ['verantwortlich', 'durchfuehrend', 'mitwirkend', 'information'];
 const RACI_LABELS = {
@@ -103,7 +106,7 @@ function literalPassage(source, phrase) {
   // The words of the phrase in order, separated only by non-letters ("Test Gatekeeper" finds
   // "TEST_GATEKEEPER"); the passage itself is cut from the source text unchanged.
   const match = new RegExp(
-    `(?<![\\p{L}\\p{N}])${words.join('[^\\p{L}\\p{N}]+')}(?![\\p{L}\\p{N}])`,
+    `(?<!${LETTER_OR_DIGIT})${words.join(NON_LETTER_RUN)}(?!${LETTER_OR_DIGIT})`,
     'iu'
   ).exec(raw);
   if (!match) return null;
@@ -138,6 +141,13 @@ function tenantOf(ctx, context = {}) {
   if (!tenant) return null;
   if (context.tenantId && context.tenantId !== tenant) return null;
   return tenant;
+}
+
+// Confidence tiers: a direct match, other facts only, nothing found.
+function tieredConfidence(direct, anyFacts) {
+  if (direct) return 0.8;
+  if (anyFacts) return 0.6;
+  return 0.2;
 }
 
 function noTenant() {
@@ -235,20 +245,24 @@ function knowledgeFact(hit, statement, quote, role = 'explanation') {
 }
 
 // ── Records of the responsibility matrices and governance items ──────────────────────────────
+// The first RACI field of `task` naming the wanted role, with the matching actor, or null.
+function raciMatch(task, wanted) {
+  for (const field of RACI_FIELDS) {
+    const actor = (Array.isArray(task[field]) ? task[field] : [])
+      .map(actorId)
+      .find((id) => phraseMatch(normalizeRole(id), wanted));
+    if (actor) return { field, actor };
+  }
+  return null;
+}
+
 function roleTasks(matrices, mention) {
   const wanted = normalizeRole(mention);
   const rows = [];
   for (const matrix of matrices) {
     for (const task of Array.isArray(matrix.tasks) ? matrix.tasks : []) {
-      for (const field of RACI_FIELDS) {
-        const actor = (Array.isArray(task[field]) ? task[field] : [])
-          .map(actorId)
-          .find((id) => phraseMatch(normalizeRole(id), wanted));
-        if (actor) {
-          rows.push({ matrix, task, field, actor });
-          break;
-        }
-      }
+      const match = raciMatch(task, wanted);
+      if (match) rows.push({ matrix, task, ...match });
     }
   }
   return rows;
@@ -406,7 +420,7 @@ async function expandRole(ctx, object, context = {}) {
             resolves: 'Zuordnung der Rolle zu Verantwortungsmatrix und Governance-Vorgängen',
           },
         ],
-    confidence: tasks.length ? 0.8 : facts.length ? 0.6 : 0.2,
+    confidence: tieredConfidence(tasks.length > 0, facts.length > 0),
   };
 }
 
@@ -421,14 +435,39 @@ async function expandDocument(ctx, object, context = {}) {
     readCards(ctx, tenant),
     readKnowledge(ctx, mention),
   ]);
-  const facts = [];
-  const relations = [];
-  const expectations = [];
-  const negatives = [];
-  const openQuestions = [];
-
+  const finding = { facts: [], relations: [], expectations: [], negatives: [], openQuestions: [] };
   const wanted = normalize(mention);
-  const found = knowledge.hits
+
+  const found = documentKnowledgeHits(knowledge, mention, wanted);
+  mergeDocumentPart(finding, documentKnowledgePart(found, mention, knowledge));
+  mergeDocumentPart(finding, documentCardsPart(cards, mention, wanted, object.objectId));
+  mergeDocumentPart(finding, documentTasksPart(matrices, mention));
+
+  // The released knowledge bases of the Knowledge Gateway have no read-only search (a search
+  // stores citations), so they are named as not searched instead of reported as "not found".
+  if (!found.length)
+    finding.openQuestions.push({
+      question: `Liegt „${clip(mention, 120)}“ in einer freigegebenen Wissensbasis des Knowledge Gateway?`,
+      resolves: 'Die freigegebenen Wissensbasen wurden nicht durchsucht (kein lesender Suchweg).',
+    });
+
+  return {
+    ...finding,
+    confidence: tieredConfidence(
+      found.some((row) => row.titled),
+      finding.facts.length > 0
+    ),
+  };
+}
+
+function mergeDocumentPart(target, part) {
+  for (const key of ['facts', 'relations', 'expectations', 'negatives'])
+    target[key].push(...(part[key] || []));
+}
+
+// Knowledge hits that contain the document: by title or by a literal passage.
+function documentKnowledgeHits(knowledge, mention, wanted) {
+  return knowledge.hits
     .map((hit) => {
       const titled = phraseMatch(normalize(hitTitle(hit)), wanted);
       const quote = literalPassage(hitText(hit), mention) || (titled ? clip(hitText(hit)) : null);
@@ -436,88 +475,95 @@ async function expandDocument(ctx, object, context = {}) {
     })
     .filter((row) => row.quote)
     .slice(0, DOCUMENT_FACTS);
-  for (const { hit, titled, quote } of found) {
-    facts.push(
-      knowledgeFact(
-        hit,
-        titled
-          ? `Die Unterlage „${hitTitle(hit)}“ liegt in der Wissensbasis vor.`
-          : `Die Unterlage „${hitTitle(hit)}“ erwähnt „${clip(mention, 120)}“.`,
-        quote,
-        titled ? 'reference' : 'explanation'
-      )
-    );
-  }
-  if (!found.length) negatives.push(negative(mention, SCOPE.knowledge, knowledge));
+}
 
+function documentKnowledgePart(found, mention, knowledge) {
+  const facts = found.map(({ hit, titled, quote }) =>
+    knowledgeFact(
+      hit,
+      titled
+        ? `Die Unterlage „${hitTitle(hit)}“ liegt in der Wissensbasis vor.`
+        : `Die Unterlage „${hitTitle(hit)}“ erwähnt „${clip(mention, 120)}“.`,
+      quote,
+      titled ? 'reference' : 'explanation'
+    )
+  );
+  const negatives = found.length ? [] : [negative(mention, SCOPE.knowledge, knowledge)];
+  return { facts, negatives };
+}
+
+function citingCardStatement(card, citedAsEvidence) {
+  const title = clip(card.title, 160);
+  const status = text(card.status) || 'unbekannt';
+  return citedAsEvidence
+    ? `Die Unterlage ist als Nachweis im Governance-Vorgang „${title}“ hinterlegt (Status ${status}).`
+    : `Governance-Vorgang „${title}“ (Status ${status}).`;
+}
+
+// One governance item citing the document: its facts, relations and open deadline.
+function citingCardPart(card, ref, mention, objectId) {
+  const facts = [cardFact(card, citingCardStatement(card, ref))];
+  const relations = [];
+  const expectations = [];
+  if (card.closureRationale)
+    facts.push({
+      statement: `Abschlussbegründung des Governance-Vorgangs „${clip(card.title, 160)}“.`,
+      value: clip(card.closureRationale),
+      role: 'explanation',
+      basis: 'source',
+      provenance: { source: CARDS, ref: text(card.cardId), quote: clip(card.closureRationale) },
+    });
+  relations.push({ from: mention, rel: 'refers_to', to: clip(card.title, 160) });
+  if (card.ownerRole)
+    relations.push({ from: mention, rel: 'belongs_to', to: text(card.ownerRole) });
+  if (!CLOSED_CARD_STATUSES.has(card.status)) {
+    const deadline = cardDeadlineFacts(card, objectId);
+    facts.push(...deadline.facts);
+    expectations.push(...deadline.expectations);
+  }
+  return { facts, relations, expectations };
+}
+
+function documentCardsPart(cards, mention, wanted, objectId) {
   const citing = cards.items
     .map((card) => ({ card, ref: evidenceRefMatches(card, mention) }))
     .filter(({ card, ref }) => ref || phraseMatch(normalize(card.title), wanted))
     .slice(0, CARD_FACTS);
-  for (const { card, ref } of citing) {
-    facts.push(
-      cardFact(
-        card,
-        ref
-          ? `Die Unterlage ist als Nachweis im Governance-Vorgang „${clip(card.title, 160)}“ hinterlegt (Status ${text(card.status) || 'unbekannt'}).`
-          : `Governance-Vorgang „${clip(card.title, 160)}“ (Status ${text(card.status) || 'unbekannt'}).`
-      )
-    );
-    if (card.closureRationale)
-      facts.push({
-        statement: `Abschlussbegründung des Governance-Vorgangs „${clip(card.title, 160)}“.`,
-        value: clip(card.closureRationale),
-        role: 'explanation',
-        basis: 'source',
-        provenance: { source: CARDS, ref: text(card.cardId), quote: clip(card.closureRationale) },
-      });
-    relations.push({ from: mention, rel: 'refers_to', to: clip(card.title, 160) });
-    if (card.ownerRole)
-      relations.push({ from: mention, rel: 'belongs_to', to: text(card.ownerRole) });
-    if (!CLOSED_CARD_STATUSES.has(card.status)) {
-      const deadline = cardDeadlineFacts(card, object.objectId);
-      facts.push(...deadline.facts);
-      expectations.push(...deadline.expectations);
-    }
-  }
-  if (!citing.length) negatives.push(negative(mention, SCOPE.cardsEvidence, cards));
+  const part = { facts: [], relations: [], expectations: [], negatives: [] };
+  for (const { card, ref } of citing)
+    mergeDocumentPart(part, citingCardPart(card, ref, mention, objectId));
+  if (!citing.length) part.negatives.push(negative(mention, SCOPE.cardsEvidence, cards));
+  return part;
+}
 
+function requiredTaskFact(matrix, task, requirement, owners) {
+  const ownerNote = owners.length ? `; verantwortlich: ${owners.join(', ')}` : '';
+  return {
+    statement: `Die Aufgabe „${taskName(task)}“ der Verantwortungsmatrix „${clip(matrix.name || matrix.id, 120)}“ verlangt „${clip(requirement.label, 160)}“ als Nachweis${ownerNote}.`,
+    value: clip(requirement.label, 160),
+    role: 'reference',
+    basis: 'source',
+    provenance: {
+      source: MATRICES,
+      ref: taskRef(matrix, task),
+      quote: clip(`evidenceRequirements: ${text(requirement.label)}`),
+    },
+  };
+}
+
+function documentTasksPart(matrices, mention) {
   const required = tasksRequiring(matrices.items, mention).slice(0, TASK_FACTS);
+  const facts = [];
+  const relations = [];
   for (const { matrix, task, requirement } of required) {
     const owners = (Array.isArray(task.verantwortlich) ? task.verantwortlich : [])
       .map(actorId)
       .filter(Boolean);
-    facts.push({
-      statement: `Die Aufgabe „${taskName(task)}“ der Verantwortungsmatrix „${clip(matrix.name || matrix.id, 120)}“ verlangt „${clip(requirement.label, 160)}“ als Nachweis${owners.length ? `; verantwortlich: ${owners.join(', ')}` : ''}.`,
-      value: clip(requirement.label, 160),
-      role: 'reference',
-      basis: 'source',
-      provenance: {
-        source: MATRICES,
-        ref: taskRef(matrix, task),
-        quote: clip(`evidenceRequirements: ${text(requirement.label)}`),
-      },
-    });
+    facts.push(requiredTaskFact(matrix, task, requirement, owners));
     for (const owner of owners) relations.push({ from: mention, rel: 'belongs_to', to: owner });
   }
-  if (!required.length) negatives.push(negative(mention, SCOPE.matrixEvidence, matrices));
-
-  // The released knowledge bases of the Knowledge Gateway have no read-only search (a search
-  // stores citations), so they are named as not searched instead of reported as "not found".
-  if (!found.length)
-    openQuestions.push({
-      question: `Liegt „${clip(mention, 120)}“ in einer freigegebenen Wissensbasis des Knowledge Gateway?`,
-      resolves: 'Die freigegebenen Wissensbasen wurden nicht durchsucht (kein lesender Suchweg).',
-    });
-
-  return {
-    facts,
-    relations,
-    expectations,
-    negatives,
-    openQuestions,
-    confidence: found.some((row) => row.titled) ? 0.8 : facts.length ? 0.6 : 0.2,
-  };
+  const negatives = required.length ? [] : [negative(mention, SCOPE.matrixEvidence, matrices)];
+  return { facts, relations, negatives };
 }
 
 // The question itself: the best relevant passages of the tenant's released knowledge. During the

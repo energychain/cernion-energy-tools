@@ -80,6 +80,25 @@ function registerUnitNumbers(text) {
 // written with at least two capitals (EnWG, StromNEV, MsbG). The quote is the literal passage.
 const SUBDIVISIONS = new Set(['Abs', 'Absatz', 'S', 'Satz', 'Nr', 'Ziff', 'lit', 'Buchst']);
 const capitals = (value) => [...value].filter(isUpper).length;
+// Index of the first token after the subdivisions (each a subdivision name and a number).
+function afterSubdivisions(parts, next) {
+  let position = next;
+  while (
+    SUBDIVISIONS.has(parts[position]) &&
+    parts[position + 1] &&
+    isDigit(parts[position + 1][0])
+  )
+    position += 2;
+  return position;
+}
+
+// The literal passage from the section sign through the act abbreviation when it follows closely.
+function sectionQuote(raw, start, head, act) {
+  if (!act || !isUpper(act[0]) || capitals(act) < 2) return head;
+  const end = raw.indexOf(act, start);
+  return end > start && end - start < 60 ? raw.slice(start, end + act.length) : head;
+}
+
 function sectionReferences(text) {
   const raw = String(text ?? '');
   const parts = tokens(raw);
@@ -88,17 +107,11 @@ function sectionReferences(text) {
     if (parts[index] !== '§' && parts[index] !== '§§') continue;
     const number = parts[index + 1] || '';
     if (!number || !isDigit(number[0])) continue;
-    let next = index + 2;
-    while (SUBDIVISIONS.has(parts[next]) && parts[next + 1] && isDigit(parts[next + 1][0]))
-      next += 2;
-    const act = parts[next] || '';
-    const start = raw.indexOf(`${parts[index]} ${number}`);
+    const act = parts[afterSubdivisions(parts, index + 2)] || '';
+    const head = `${parts[index]} ${number}`;
+    const start = raw.indexOf(head);
     if (start < 0) continue;
-    let quote = `${parts[index]} ${number}`;
-    if (act && isUpper(act[0]) && capitals(act) >= 2) {
-      const end = raw.indexOf(act, start);
-      if (end > start && end - start < 60) quote = raw.slice(start, end + act.length);
-    }
+    const quote = sectionQuote(raw, start, head, act);
     rows.push({ value: quote, quote });
   }
   return unique(rows);
@@ -156,8 +169,8 @@ function makoLocationIds(text) {
           (token.length === 33 &&
             isUpper(token[0]) &&
             isUpper(token[1]) &&
-            [...token.slice(2)].every((ch) => isDigit(ch) || isUpper(ch)) &&
-            [...token.slice(2)].some(isDigit))
+            [...token].slice(2).every((ch) => isDigit(ch) || isUpper(ch)) &&
+            [...token].slice(2).some(isDigit))
       )
       .map((token) => ({ value: token, quote: token }))
   );
