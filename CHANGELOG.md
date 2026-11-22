@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased — Micro-agent tier: domain packs for the conversation (off by default)
+
+- New `src/micro-agents/` core:
+  - object/finding contract;
+  - pack mixin and service factory;
+  - registry over `function-model.json`;
+  - recognition (format detectors plus one model call with verbatim quotes);
+  - graded responsibility;
+  - two-stage expansion with consequence check;
+  - answer-side provenance check.
+- The core is domain-free (`check:domain-free-core`, `check:language-patterns`).
+- Eleven domain packs: Marktkommunikation/EDM, Beschaffung, Bilanzierung, Abrechnung, Netzplanung, Netzbetrieb, Asset, Regulierung, Vertrieb, Finanzen, Unternehmenswissen. Each expands objects with read-only actions of existing services. Facts carry provenance; deadlines never come from the model.
+- Tenant records enter the answer only within the conversation scope (CTX-01).
+- With the tier enabled, a handled dataset/EDIFACT upload is evidence of the regular answer.
+- Switch `WORKBENCH_MICRO_AGENTS` (`all` or a tenant list); off by default.
+- Case state: a task register. Tasks end only with a status and reason, a task left out stays active, and a closed task returns only with `reopenReason`.
+- Documentation: `docs/architecture/micro-agents.md`.
+
 ## Unreleased — Workbench turn response carries a closed context-use summary (#1117)
 
 - The Workbench chat turn response gains an additive, response-only `contextUseSummary`
