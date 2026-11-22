@@ -30,5 +30,6 @@
       "label": "Prognose",
       "description": "Eine Last-, Mengen- oder Erzeugungsprognose"
     }
-  ]
+  ],
+  "recordSources": ["fnav-commercial-hedging.", "forecast-sandbox."]
 }

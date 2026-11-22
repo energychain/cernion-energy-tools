@@ -54,5 +54,6 @@
       "label": "Antwort- oder Fehlercode",
       "description": "Ein Antwort-, Prüf- oder Fehlercode einer Marktnachricht"
     }
-  ]
+  ],
+  "recordSources": ["edm."]
 }

@@ -21,5 +21,6 @@
       "label": "Mehr-/Mindermenge",
       "description": "Eine Bilanzabweichung, Mehr- oder Mindermenge, Ausgleichsenergie"
     }
-  ]
+  ],
+  "recordSources": ["bilanzkreis.", "regulatorische-entgeltlogik."]
 }

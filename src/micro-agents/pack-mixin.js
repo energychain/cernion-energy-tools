@@ -48,6 +48,7 @@ function createDomainPackMixin({
   objectKinds = [],
   expanders = {},
   playbooks = [],
+  recordSources = [],
   timeoutMs = DEFAULT_TIMEOUT_MS,
 }) {
   if (!pack || !label || !description)
@@ -67,6 +68,7 @@ function createDomainPackMixin({
     objectKinds: kinds,
     expands: handled,
     concern: Boolean(expanders[CONCERN_KIND]),
+    recordSources,
   };
   return {
     metadata: { microAgent: manifest },
@@ -138,6 +140,12 @@ function createDomainPackMixin({
               { ...raw, elapsedMs: Date.now() - started },
               { pack, objectId: object.objectId }
             );
+            // Facts read from the tenant's own records (the pack names those sources): the
+            // orchestrator admits them only within the conversation's scope.
+            for (const fact of finding.facts)
+              fact.record = recordSources.some((prefix) =>
+                fact.provenance.source.startsWith(prefix)
+              );
             if (dropped.length)
               this.logger.info(`Micro-agent ${pack} contract dropped parts`, { dropped });
             return { ...finding, dropped: dropped.length };

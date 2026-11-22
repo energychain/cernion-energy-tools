@@ -20,6 +20,7 @@ const { discoverPacks, packsForKind } = require('./registry');
 const { recognize } = require('./recognizer');
 const { selectPacks } = require('./responsibility');
 const { findingEvidence, CONCERN_KIND } = require('./contract');
+const { detailTokens } = require('./provenance');
 
 const STAGE_TIMEOUT_MS = 6000;
 const MAX_STAGE_ONE = 12;
@@ -71,12 +72,26 @@ function summary(findings) {
     .slice(0, 30);
 }
 
+// Conversation scope (CTX-01): a fact from the tenant's own records enters the answer only when
+// the conversation names it (a detail or its value occurs in the message, the attachments or the
+// case) or when the person asks about the company's records; otherwise it is withheld and counted.
+function withinScope(finding, { tenantScope, conversation }) {
+  if (tenantScope) return finding;
+  const named = (fact) =>
+    (fact.value && conversation.includes(fact.value)) ||
+    detailTokens(`${fact.value} ${fact.statement}`).some((token) => conversation.includes(token));
+  const facts = finding.facts.filter((fact) => !fact.record || named(fact));
+  const withheld = finding.facts.length - facts.length;
+  return withheld ? { ...finding, facts, withheldRecords: withheld } : finding;
+}
+
 async function runMicroAgents({
   broker,
   call,
   message,
   documents = [],
   caseView = null,
+  tenantScope = false,
   tenantId,
   logger,
   llm,
@@ -95,6 +110,11 @@ async function runMicroAgents({
     });
   // Attachments travel with the context: an object holds at most its quote, the expander that
   // parses it needs the whole document (an EDIFACT interchange, a register extract).
+  const conversationText = [
+    message,
+    ...documents.map((doc) => String(doc?.text || '')),
+    caseView ? JSON.stringify(caseView) : '',
+  ].join('\n');
   const context = {
     caseView,
     tenantId,
@@ -238,7 +258,13 @@ async function runMicroAgents({
     )
   ).filter(Boolean);
 
-  const findings = [...first, ...second, ...third].map((row) => row.finding);
+  const findings = [...first, ...second, ...third].map((row) =>
+    withinScope(row.finding, { tenantScope, conversation: conversationText })
+  );
+  const withheldRecords = findings.reduce(
+    (sum, finding) => sum + (finding.withheldRecords || 0),
+    0
+  );
   const evidence = findingEvidence(findings, {
     packLabels: Object.fromEntries(packs.map((pack) => [pack.pack, pack.label])),
   });
@@ -249,8 +275,9 @@ async function runMicroAgents({
     consequences: consequences.map((row) => row.pack),
     findings: findings.length,
     evidence: evidence.length,
+    withheldRecords,
   });
-  return { objects, selection, consequences, findings, evidence, trace };
+  return { objects, selection, consequences, findings, evidence, trace, withheldRecords };
 }
 
 module.exports = { runMicroAgents, microAgentsEnabled };

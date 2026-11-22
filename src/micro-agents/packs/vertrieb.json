@@ -24,5 +24,6 @@
       "label": "Tarif oder Produkt",
       "description": "Ein Tarif, Produkt oder Angebot für Kunden"
     }
-  ]
+  ],
+  "recordSources": ["energy-sharing"]
 }

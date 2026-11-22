@@ -29,5 +29,14 @@
       "label": "Investition",
       "description": "Eine Investitions- oder Reinvestitionsmaßnahme mit Budget"
     }
+  ],
+  "recordSources": [
+    "reinvest-signal.",
+    "ghost-asset-alert.",
+    "assets.overrides",
+    "investment-planning.",
+    "capex-prioritization.",
+    "investment-maturity-off-balance-gate.",
+    "altdaten-assessment."
   ]
 }

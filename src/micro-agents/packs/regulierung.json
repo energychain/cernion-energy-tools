@@ -35,5 +35,6 @@
       "label": "Pflicht oder Frist",
       "description": "Eine regulatorische Pflicht, Meldung oder Frist"
     }
-  ]
+  ],
+  "recordSources": ["regulatorische-entgeltlogik."]
 }

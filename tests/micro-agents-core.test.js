@@ -253,3 +253,65 @@ test('every pack definition loads as a service with known detectors and a functi
     expect(manifest.functionDomains.length + manifest.functionServices.length).toBeGreaterThan(0);
   }
 });
+
+test('tenant records enter the answer only when the conversation names them or asks for them', async () => {
+  const broker = new ServiceBroker({ logger: false, transporter: null });
+  broker.createService({
+    name: 'micro-agent.gamma',
+    mixins: [
+      createDomainPackMixin({
+        pack: 'gamma',
+        label: 'Bereich G',
+        description: 'Synthetischer Bereich G mit eigenen Beständen',
+        functionDomains: ['area-a'],
+        recordSources: ['store-g.'],
+        expanders: {
+          concern: async () => ({
+            facts: [
+              {
+                statement: 'Projekt P-77 läuft',
+                value: 'P-77',
+                role: 'status',
+                basis: 'source',
+                provenance: { source: 'store-g.list' },
+              },
+              {
+                statement: 'Projekt P-12 läuft',
+                value: 'P-12',
+                role: 'status',
+                basis: 'source',
+                provenance: { source: 'store-g.list' },
+              },
+              {
+                statement: 'Regel R gilt',
+                role: 'explanation',
+                basis: 'rule',
+                provenance: { source: 'regelwerk' },
+              },
+            ],
+          }),
+        },
+      }),
+    ],
+  });
+  await broker.start();
+  const run = (tenantScope) =>
+    runMicroAgents({
+      broker,
+      call: (action, params, opts) => broker.call(action, params, opts),
+      message: 'Wie steht es um P-77?',
+      tenantScope,
+      llm: { generateStructured: async () => ({ mentions: [], packs: [] }) },
+      resolveFunctions: async () => ({ matches: [{ functionId: 'fn-a', score: 0.9 }] }),
+      options: { registry: { model }, responsibility: { modelOptions: { model } } },
+    });
+  const scoped = await run(false);
+  expect(scoped.findings[0].facts.map((fact) => fact.value || fact.statement)).toEqual([
+    'P-77',
+    'Regel R gilt',
+  ]);
+  expect(scoped.withheldRecords).toBe(1);
+  const tenant = await run(true);
+  expect(tenant.findings[0].facts).toHaveLength(3);
+  await broker.stop();
+});

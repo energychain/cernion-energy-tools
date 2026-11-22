@@ -46,5 +46,6 @@
       "label": "Netzknoten",
       "description": "Ein Umspannwerk, eine Ortsnetzstation, ein Netzabschnitt oder eine Spannungsebene"
     }
-  ]
+  ],
+  "recordSources": ["znp.", "agnes-bottleneck.", "gasnetz-waermeplanung."]
 }

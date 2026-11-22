@@ -1608,6 +1608,7 @@ async function runContentTurn(
           text: String(doc?.text || ''),
         })),
         caseView: pending?.caseState ? workbenchCaseState.caseStateView(pending.caseState) : null,
+        tenantScope: require('./workbench-context-scope').tenantScope(situation),
         tenantId: p.tenantId,
         logger: service.logger,
         llmOptions: require('./workbench-understanding').llmOptions(p.tenantId),

@@ -29,5 +29,12 @@
       "description": "Ein Netzentgelt, Messentgelt, eine Umlage oder Preisblatt-Position",
       "detector": "feeRecordIds"
     }
+  ],
+  "recordSources": [
+    "settlement.",
+    "regulatorische-entgeltlogik.",
+    "re4de-variable-grid-fee.",
+    "eog-calculator.",
+    "rcs-rule-catalog."
   ]
 }
