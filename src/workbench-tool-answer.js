@@ -132,7 +132,7 @@ function internalToolText(text, evidence = []) {
     );
 }
 
-function availableToolAnswer(evidence, message = '', scope) {
+function availableToolAnswer(evidence, message = '', scope, { skipEmpty = false } = {}) {
   if (scope) evidence = require('./workbench-data-scope').scopedDataEvidence(evidence, scope);
   const hits = evidence.filter((hit) => hit.retrievalSource === 'capability-read');
   return hits
@@ -147,6 +147,9 @@ function availableToolAnswer(evidence, message = '', scope) {
       const rows = Array.isArray(data) ? data : data.data;
       const count = hit.metadata?.rowCount ?? data.count ?? rows?.length;
       if (!Number.isSafeInteger(count)) return '';
+      // An empty query result adds nothing to an answer that stands on other evidence (REG-01 T03:
+      // "0 Datensätze" under the three register rows the answer had just listed).
+      if (skipEmpty && count === 0) return '';
       const stats = /\b(?:davon|darunter|deren|of those|among them)\b/iu.test(message)
         ? hit.metadata?.sourceStatistics || hit.metadata?.statistics || data.statistics || []
         : hit.metadata?.statistics || data.statistics || [];
