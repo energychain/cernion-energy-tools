@@ -140,7 +140,8 @@
     "src/failure-anonymization.js",
     "src/knowledge-need-recognition.js",
     "src/knowledge-elicitation.js",
-    "src/knowledge-prefill.js"
+    "src/knowledge-prefill.js",
+    "src/micro-agents/*.js"
   ],
   "optionalPaths": [
     "src/function-model.js",
@@ -153,7 +154,11 @@
   "genericPackageShare": 0.05,
   "referenceCorpus": {
     "maxFilesPerPackage": 40,
-    "extensions": [".js", ".cjs", ".mjs"],
+    "extensions": [
+      ".js",
+      ".cjs",
+      ".mjs"
+    ],
     "generatedAt": "2026-10-03T00:00:00.000Z"
   }
 }

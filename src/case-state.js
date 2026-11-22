@@ -78,6 +78,7 @@ const LIMITS = {
   contradictions: 20,
   openQuestions: 3,
   nextActions: 6,
+  closedTasks: 20,
   closureCriteria: 4,
   roles: 12,
   decisions: 12,
@@ -128,6 +129,9 @@ function createCaseState() {
     corrections: [],
     identifiers: [],
     recommendations: [],
+    // Task register (REG-01 T13–T15): tasks ended with status and reason; they never return
+    // silently and are never listed as open again.
+    closedTasks: [],
     // Background reflection: the turn it last covered and an addendum for the next answer.
     reflectedAtTurn: 0,
     pendingAddendum: '',
@@ -545,12 +549,14 @@ function applyCaseUpdate(previous, delta = {}, { turn } = {}) {
       resolves: text(row.resolves),
       targets: list(row.targets).map((id) => text(id, 20)),
     }));
+  const previousTasks = list(state.nextActions).filter((row) => row.actionId);
   if (Array.isArray(delta.nextActions))
     state.nextActions = keepActionScopes(
       state,
       delta.nextActions.slice(0, LIMITS.nextActions).map((row) => ({
         actionId: text(row.actionId, 20),
         scopeChangeReason: text(row.scopeChangeReason, 300),
+        reopenReason: text(row.reopenReason, 300),
         action: text(row.action),
         input: text(row.input),
         role: text(row.role, 200),
@@ -575,6 +581,7 @@ function applyCaseUpdate(previous, delta = {}, { turn } = {}) {
       now
     );
   syncRecommendations(state, delta, { turn: now });
+  keepTaskRegister(state, previousTasks, delta, now);
   if (Array.isArray(delta.closureCriteria))
     state.closureCriteria = delta.closureCriteria
       .slice(0, LIMITS.closureCriteria)
@@ -590,6 +597,82 @@ function closeRecommendation(item, to, { turn, reason, supersededBy = '' }) {
   if (supersededBy) item.supersededBy = supersededBy;
 }
 
+// Task register (REG-01 T13–T15): a task ends only through taskUpdates (done, withdrawn,
+// superseded) with a reason. A task the update neither lists nor ends stays active; a closed task
+// returns only with reopenReason. Each rule leaves a violation in the trace when it intervenes.
+const TASK_END_STATES = ['done', 'withdrawn', 'superseded'];
+function keepTaskRegister(state, previousTasks, delta, turn) {
+  state.closedTasks = list(state.closedTasks);
+  const ends = new Map(
+    list(delta.taskUpdates)
+      .filter((row) => TASK_END_STATES.includes(row?.status) && text(row?.reason).trim())
+      .map((row) => [text(row.actionId, 20), row])
+  );
+  const known = new Map(
+    [...previousTasks, ...list(state.nextActions)].map((row) => [row.actionId, row])
+  );
+  // A recommendation the ledger closed (withdrawn, superseded, done) ends the task of the same
+  // wording: both ledgers tell the same story.
+  for (const task of known.values()) {
+    if (ends.has(task.actionId)) continue;
+    const item = list(state.recommendations).find(
+      (entry) =>
+        (RETRACTED_RECOMMENDATIONS.has(entry.status) || entry.status === 'done') &&
+        sameStatement(entry.action, task.action)
+    );
+    if (item)
+      ends.set(task.actionId, {
+        actionId: task.actionId,
+        status: item.status === 'done' ? 'done' : item.status,
+        reason: item.history?.at(-1)?.reason || item.status,
+      });
+  }
+  for (const [actionId, row] of ends) {
+    const task = known.get(actionId);
+    if (!task || state.closedTasks.some((closed) => closed.actionId === actionId)) continue;
+    state.closedTasks.push({
+      actionId,
+      action: task.action,
+      searchSpace: task.searchSpace,
+      period: task.period,
+      status: row.status,
+      reason: text(row.reason, 300),
+      closedAtTurn: turn,
+    });
+  }
+  const closed = (row) =>
+    state.closedTasks.find(
+      (task) => task.actionId === row.actionId || sameStatement(task.action, row.action)
+    );
+  state.nextActions = list(state.nextActions).filter((row) => {
+    const task = closed(row);
+    if (!task) return true;
+    if (ends.has(task.actionId) || !row.reopenReason) {
+      if (!ends.has(task.actionId))
+        state.violations.push({ turn, rule: 'closed_task_reopened', actionId: task.actionId });
+      return false;
+    }
+    // A reopened task leaves the closed list: it is active again, with its reason.
+    state.closedTasks = state.closedTasks.filter((entry) => entry !== task);
+    return true;
+  });
+  if (!Array.isArray(delta.nextActions)) return;
+  const present = new Set(state.nextActions.map((row) => row.actionId));
+  for (const task of previousTasks) {
+    if (
+      present.has(task.actionId) ||
+      ends.has(task.actionId) ||
+      closed(task) ||
+      state.nextActions.some((row) => sameStatement(row.action, task.action))
+    )
+      continue;
+    if (state.nextActions.length >= LIMITS.nextActions) break;
+    state.nextActions.push(task);
+    state.violations.push({ turn, rule: 'silent_task_drop', actionId: task.actionId });
+  }
+  state.closedTasks = state.closedTasks.slice(-LIMITS.closedTasks);
+}
+
 // Deterministic continuity of tasks (REG-01 T15): a task continued under its actionId keeps its
 // search space and period unless the update names the reason for the change (new evidence or a
 // correction); new tasks get the next free id. A silent narrowing or widening is reverted.
@@ -602,13 +685,27 @@ function keepActionScopes(state, rows, turn) {
   );
   let counter = Math.max(
     0,
-    ...[...previous.keys(), ...rows.map((row) => row.actionId)]
+    ...[
+      ...previous.keys(),
+      ...rows.map((row) => row.actionId),
+      ...list(state.closedTasks).map((task) => task.actionId),
+    ]
       .map((id) => Number(String(id).slice(1)))
       .filter(Number.isFinite)
   );
   const used = new Set();
   return rows.map((row) => {
-    const earlier = previous.get(row.actionId);
+    // A continued task is recognized by its id, or by its wording when the update left the id
+    // out; ids are never reused for another task.
+    const earlier =
+      previous.get(row.actionId) ||
+      [...previous.values()].find(
+        (task) => !used.has(task.actionId) && sameStatement(task.action, row.action)
+      );
+    // The scope guard applies only to a task the update continues under its own id: matched by
+    // wording alone, the update's values stand (a widened period must not be reverted).
+    const explicit = Boolean(earlier && earlier.actionId === row.actionId);
+    if (earlier && !explicit) row = { ...row, actionId: earlier.actionId };
     if (!earlier || used.has(row.actionId)) {
       counter += 1;
       used.add(`A${counter}`);
@@ -617,7 +714,7 @@ function keepActionScopes(state, rows, turn) {
     used.add(row.actionId);
     const kept = { ...row };
     for (const field of SCOPE_FIELDS)
-      if (earlier[field] && row[field] !== earlier[field] && !row.scopeChangeReason) {
+      if (explicit && earlier[field] && row[field] !== earlier[field] && !row.scopeChangeReason) {
         kept[field] = earlier[field];
         state.violations.push({ turn, rule: 'silent_scope_change', actionId: row.actionId, field });
       }
@@ -763,18 +860,31 @@ function caseStateView(state) {
       })),
     openQuestions: s.openQuestions,
     nextActions: s.nextActions.filter((action) => !weakened(action)),
+    // Ended tasks with their reason: named as done or withdrawn, never as open (REG-01 T14).
+    closedTasks: list(s.closedTasks).map(({ action, status, reason, closedAtTurn }) => ({
+      action,
+      status,
+      reason,
+      closedAtTurn,
+    })),
     // Recommendations whose basis is no longer valid: withdrawn or limited, never repeated.
     withdrawn: [
       ...currentClaims(s)
         .filter(weakened)
         .map((claim) => claim.statement),
       ...s.nextActions.filter(weakened).map((action) => action.action),
-    ].map((statement) => ({
-      statement,
-      because: s.hypotheses
-        .filter((item) => INACTIVE_STATES.has(item.status))
-        .map((item) => item.statement),
-    })),
+      // Tasks the register closed as withdrawn or superseded are withdrawn recommendations too.
+      ...list(s.closedTasks)
+        .filter((task) => task.status !== 'done')
+        .map((task) => task.action),
+    ]
+      .filter((statement, index, all) => all.indexOf(statement) === index)
+      .map((statement) => ({
+        statement,
+        because: s.hypotheses
+          .filter((item) => INACTIVE_STATES.has(item.status))
+          .map((item) => item.statement),
+      })),
     closureCriteria: s.closureCriteria,
     roles: s.roles.map((role) => ({
       function: role.function,
@@ -871,6 +981,7 @@ const CASE_VIEW_RULES = [
   'identifiers: fachliche Ableitungen, Zuordnungen und Arbeitsaufträge nur auf Kennungen mit usableForDecision stützen. observed als in der Quelle gesehen und noch nicht der Zielentität zugeordnet nennen, candidate (normalisiert, erkannt, OCR) ausdrücklich als Kandidat mit Herkunft, nie als bestätigte Kennung; foreign als zu einem anderen Objekt gehörig; superseded und rejected nur als ersetzt bzw. verworfen.',
   'corrections gelten: für subject nur value als gültigen Wert verwenden, auch wenn eine Quelle noch den ersetzten Wert zeigt; den ersetzten Wert (replaces) höchstens als überholt mit Herkunft nennen, nie als gleichwertigen, parallelen oder offenen Widerspruch. Chronologie, Suchfenster, Hypothesen und Folgerungen am gültigen Wert ausrichten.',
   'Keine konkreten Termine, Fristen, Zeiträume, Beträge oder Eskalationsstufen setzen, die weder die Person noch eine Quelle nennt; stattdessen beschreiben, woran sich der Wert bemisst und wer ihn festlegt (noch festzulegen).',
+  'Aufträge aus closedTasks sind beendet: nenne sie höchstens als erledigt, zurückgenommen oder ersetzt mit ihrem Grund, nie als offenen Punkt, offene Prüfung oder aktiven Auftrag. Aktive Aufträge sind genau die aus nextActions.',
   'Aktive Aufträge aus nextActions erscheinen mit unverändertem Suchraum (searchSpace), Zeitraum (period) und Suchwert; nenne eine Änderung nur mit dem Grund aus scopeChangeReason. Ein ergebnisloser Suchlauf steht immer mit Suchraum, Zeitraum und Suchwert da, nie als allgemeines Fehlen. Ein Kontrolltermin ist ein Datum nur mit belegter Frist, sonst festzulegen, auch nicht vorschlagsweise.',
   'Schließe mit dem nächsten ausführbaren Schritt aus nextActions (Input, benötigte Funktion, erwartetes Ergebnis, Abschlusskriterium) und höchstens den Rückfragen aus openQuestions.',
   'Ein Prüf- oder Arbeitsauftrag ist ohne Rückfrage ausführbar: Prüfgegenstand, Input und Referenzen, Suchraum und Zeitraum, Methode, Rückgabeformat (Fundstelle, Übereinstimmung, Restunsicherheit, Belegstatus), benötigte Funktion oder festzulegen, Kontrolltermin nur aus einer von der Person oder in caseState belegten Frist, sonst festzulegen durch die genannte Funktion (ein Datum aus Quellen oder Suchzeiträumen ist kein Kontrolltermin), Abbruch- und Eskalationsbedingung, erlaubte und gesperrte Folgehandlungen; kompakt und nur, was für diesen Auftrag gilt.',
@@ -981,6 +1092,7 @@ const CASE_UPDATE_SCHEMA = obj(
         // Stable id of a continued task and the reason for a changed scope (REG-01 T15).
         actionId: str(20),
         scopeChangeReason: str(300),
+        reopenReason: str(300),
         // Executable verification task (DEV-UAT-004); empty where it does not apply.
         searchSpace: str(300),
         period: str(120),
@@ -1023,6 +1135,14 @@ const CASE_UPDATE_SCHEMA = obj(
     boundaries: arr(
       obj({ action: str(300), reason: str(300), until: str(300) }),
       LIMITS.boundaries
+    ),
+    taskUpdates: arr(
+      obj({
+        actionId: str(20),
+        status: { type: 'string', enum: TASK_END_STATES },
+        reason: str(300),
+      }),
+      8
     ),
     recommendationUpdates: arr(
       obj(
@@ -1092,6 +1212,7 @@ const CASE_UPDATE_SCHEMA = obj(
     'deliverable',
     'corrections',
     'identifierUpdates',
+    'taskUpdates',
     'recommendationUpdates',
   ]
 );
@@ -1105,7 +1226,7 @@ const UPDATE_INSTRUCTION = [
   'hypothesisUpdates: Prüfe jede bestehende Hypothese gegen die neue Evidenz. Widerspricht neue Evidenz, setze refuted; löst eine neue Hypothese sie ab, superseded mit supersededBy; Begründung in reason mit evidenceRefs. Eine widerlegte oder ersetzte Hypothese darf nur mit neuer Evidenz wieder open oder supported werden. Neue Hypothesen ohne hypothesisId.',
   'crossEvidence: Vergleiche entscheidungsrelevante Angaben verschiedener Quellen zum selben Objekt (Kennungen, Zeiträume, Status, Bezugsrahmen): agrees, contradicts, not_comparable, outdated oder unresolved, mit dem konkreten Unterschied, seiner fachlichen Auswirkung und der nötigen Klärung. Ähnliche Bezeichnungen nicht vorschnell gleichsetzen.',
   'openQuestions: höchstens die Rückfragen, deren Antwort die wichtigsten Hypothesen trennt oder den nächsten Schritt ermöglicht, mit der Unsicherheit, die sie klärt (resolves) und den betroffenen ids (targets). Nichts fragen, was bereits beantwortet ist.',
-  'nextActions: unmittelbar ausführbare Arbeits- oder Prüfaufträge nach diesem Turn (was die Person in message gerade verlangt, liefert die Antwort dieses Turns selbst und ist kein nextAction), geordnet nach Wirkung und Abhängigkeit, mit benötigtem Input, benötigter Funktion in role (eine Person, Stelle, Fachrolle oder ein Gremium nur, wenn das Gespräch diese Zuständigkeit bestätigt; sonst die Funktion, etwa fachlich zuständige Linie oder noch zu benennende Koordination), erwartetem Ergebnis und Abschlusskriterium; kind unterscheidet reversible Prüfung, Empfehlung, folgenreiche Handlung und nötige menschliche Entscheidung. Noch nicht erledigte Prüfungen aus caseState (offene Suchräume, Suchvarianten, Abgleiche) bleiben in der Liste, bis die Person ihre Erledigung oder ihr Ergebnis berichtet; ein fortgeführter Auftrag behält Suchraum und Zeitraum (period) aus caseState, bis eine Korrektur oder neue Evidenz sie ändert, und wird nicht stillschweigend verengt, erweitert oder offen gestellt: schreibe einen bestehenden Auftrag mit seiner actionId aus caseState fort (neue Aufträge mit leerer actionId); ändert sich sein searchSpace oder period, nenne in scopeChangeReason die neue Evidenz oder Korrektur, die das trägt, sonst bleibt scopeChangeReason leer. Für Prüfaufträge zusätzlich searchSpace, period, method, returnFormat (etwa Suchraum – Suchwert – Zeitraum – Ergebnis – Belegreferenz – Restunsicherheit), stopCondition (Abbruch oder Eskalation), allowedFollowUps und blockedFollowUps, controlDate nur aus einer von der Person genannten oder in caseState belegten Frist, sonst festzulegen durch die benötigte Funktion (ein Datum aus Quellen, Belegen oder Suchzeiträumen ist kein controlDate, auch nicht vorschlagsweise); sonst leer. executionStatus: requested_by_person, wenn die Person den Schritt ausdrücklich beauftragt hat, sonst proposed.',
+  'nextActions: unmittelbar ausführbare Arbeits- oder Prüfaufträge nach diesem Turn (was die Person in message gerade verlangt, liefert die Antwort dieses Turns selbst und ist kein nextAction), geordnet nach Wirkung und Abhängigkeit, mit benötigtem Input, benötigter Funktion in role (eine Person, Stelle, Fachrolle oder ein Gremium nur, wenn das Gespräch diese Zuständigkeit bestätigt; sonst die Funktion, etwa fachlich zuständige Linie oder noch zu benennende Koordination), erwartetem Ergebnis und Abschlusskriterium; kind unterscheidet reversible Prüfung, Empfehlung, folgenreiche Handlung und nötige menschliche Entscheidung. Noch nicht erledigte Prüfungen aus caseState (offene Suchräume, Suchvarianten, Abgleiche) bleiben in der Liste, bis die Person ihre Erledigung oder ihr Ergebnis berichtet; ein fortgeführter Auftrag behält Suchraum und Zeitraum (period) aus caseState, bis eine Korrektur oder neue Evidenz sie ändert, und wird nicht stillschweigend verengt, erweitert oder offen gestellt: schreibe einen bestehenden Auftrag mit seiner actionId aus caseState fort (neue Aufträge mit leerer actionId); ändert sich sein searchSpace oder period, nenne in scopeChangeReason die neue Evidenz oder Korrektur, die das trägt, sonst bleibt scopeChangeReason leer. Ein Auftrag endet nur über taskUpdates mit seiner actionId (done nach Bericht der Person, withdrawn wenn seine Grundlage widerlegt oder er unzulässig ist, superseded wenn ein anderer ihn ersetzt), jeweils mit Grund in reason; ein Auftrag, der weder in nextActions noch in taskUpdates steht, bleibt aktiv. Ein Auftrag aus closedTasks kehrt nur mit reopenReason (neue Evidenz oder ausdrücklicher Auftrag der Person) zurück. Für Prüfaufträge zusätzlich searchSpace, period, method, returnFormat (etwa Suchraum – Suchwert – Zeitraum – Ergebnis – Belegreferenz – Restunsicherheit), stopCondition (Abbruch oder Eskalation), allowedFollowUps und blockedFollowUps, controlDate nur aus einer von der Person genannten oder in caseState belegten Frist, sonst festzulegen durch die benötigte Funktion (ein Datum aus Quellen, Belegen oder Suchzeiträumen ist kein controlDate, auch nicht vorschlagsweise); sonst leer. executionStatus: requested_by_person, wenn die Person den Schritt ausdrücklich beauftragt hat, sonst proposed.',
   'closureCriteria: woran erkennbar ist, dass der Fall geklärt ist, oder welche Entscheidung offen bleibt.',
   'dependsOn: bei Empfehlungen in claims und nextActions die ids der Hypothesen, auf denen sie beruhen; fällt eine davon weg, gilt die Empfehlung als zurückgenommen.',
   'roleUpdates: benötigte Funktionen und Zuständigkeiten. status needed für eine benötigte, unbesetzte Funktion; proposed für eine vorgeschlagene oder diskutierte Besetzung (holder); confirmed, accepted oder delivered nur, wenn das Gespräch genau diese Zuständigkeit, Übernahme oder Lieferung mit evidenceRefs zeigt. Keine Person, Stelle oder kein Gremium als zuständig setzen, das die Person nicht genannt hat.',
@@ -1154,6 +1275,12 @@ function stateForPrompt(state) {
         executionStatus,
       })
     ),
+    closedTasks: list(state.closedTasks).map(({ actionId, action, status, reason }) => ({
+      actionId,
+      action,
+      status,
+      reason,
+    })),
     roles: state.roles.map(({ id, function: role, holder, status }) => ({
       id,
       function: role,

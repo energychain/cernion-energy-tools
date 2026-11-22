@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "37c8307b879bde18fa592a5bf40208d5d9b69054e3b4576569f9aa3f710177e4",
+  "sourceHash": "bb25b6658d9ca7e4507ffb51ccc8438b7fdc395fdc2439d96f7c4a91bd9c6e01",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -166519,6 +166519,26 @@
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/contract.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/orchestrator.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/recognizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/responsibility.js"
         },
         {
           "kind": "service",

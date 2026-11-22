@@ -21,6 +21,7 @@ const SCOPE = [
   /^src\/case-[^/]+\.js$/u,
   /^src\/(?:requested-effect|foreign-context-gate|conversation-context)\.js$/u,
   /^services\/(?:workbench|openai-compatible)\.service\.js$/u,
+  /^src\/micro-agents\/[^/]+\.js$/u,
 ];
 // A pattern counts as language when it holds a word of four or more letters next to an
 // alternation, a word boundary or a space.

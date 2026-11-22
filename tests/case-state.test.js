@@ -948,11 +948,17 @@ describe('recommendation ledger (DEV-UAT-002)', () => {
     expect(caseStateView(state).recommendations.active.map((item) => item.action)).toEqual([
       'Postfach prüfen',
     ]);
-    expect(caseStateView(state).nextActions).toEqual([]);
-    expect(state.violations.at(-1)).toMatchObject({
-      rule: 'retracted_recommendation_repeated',
-      id: 'R1',
-    });
+    // Task register: the active recommendation stays an active task although the update left it
+    // out; the withdrawn one does not come back as a task either.
+    expect(caseStateView(state).nextActions.map((item) => item.action)).toEqual([
+      'Postfach prüfen',
+    ]);
+    expect(state.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rule: 'retracted_recommendation_repeated', id: 'R1' }),
+        expect.objectContaining({ rule: 'silent_task_drop' }),
+      ])
+    );
   });
 
   test('a recommendation resting on a dropped hypothesis is withdrawn with the reason', () => {

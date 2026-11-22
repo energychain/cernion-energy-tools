@@ -1588,6 +1588,36 @@ async function runContentTurn(
       JSON.stringify([situation.actorContext.role, situation.actorContext.organization]);
   const workbenchCaseState = require('./workbench-case-state');
   const knowledgeLoop = require('./workbench-knowledge-loop');
+  const microAgents = require('./micro-agents/orchestrator');
+  let microJob = null;
+  if (
+    microAgents.microAgentsEnabled(p.tenantId) &&
+    !draftRequest &&
+    !understandingFailed &&
+    situation.turnKind !== 'smalltalk'
+  ) {
+    // Micro-agent tier: domain packs expand what the person and the attachments mention, next to
+    // the case-state update; attachments count, since identifiers and messages arrive there.
+    microJob = microAgents
+      .runMicroAgents({
+        broker: service.broker,
+        call: (action, params, options = {}) => ctx.call(action, params, { ...options, meta }),
+        message: [
+          envelope.userRequest,
+          ...(envelope.documents || []).map((doc) => String(doc?.text || '').slice(0, 8000)),
+        ]
+          .filter(Boolean)
+          .join('\n\n'),
+        caseView: pending?.caseState ? workbenchCaseState.caseStateView(pending.caseState) : null,
+        tenantId: p.tenantId,
+        logger: service.logger,
+        llmOptions: require('./workbench-understanding').llmOptions(p.tenantId),
+      })
+      .catch((error) => {
+        service.logger.warn(`Micro-agents failed: ${error.message}`);
+        return null;
+      });
+  }
   let loopJob = null;
   if (
     knowledgeLoop.knowledgeLoopEnabled(p.tenantId) &&
@@ -1659,6 +1689,38 @@ async function runContentTurn(
     retrieval.evidence = [...(retrieval.evidence || []), ...admitted.evidence];
     retrieval.knowledgeLoop = admitted.summary;
     loopAdmission = admitted;
+  }
+  if (microJob !== null) {
+    // Findings pass the same final scope, cross-case and data boundary as loop hits.
+    const run = await microJob;
+    if (run?.evidence?.length) {
+      const admitted = await knowledgeLoop.admitLoopEvidence(
+        { evidence: run.evidence, trace: [] },
+        {
+          scope: {
+            conversationId: envelope.conversationId,
+            caseId: caseId || conversation?.cetCaseId,
+            message: envelope.userRequest,
+            situation,
+          },
+          gate: {
+            message: envelope.userRequest,
+            suggestionPending: Boolean(pending?.comparableSuggested),
+            currentCase: { concern: situation.concern, situation: situation.situation },
+            tenantId: p.tenantId,
+            logger: service.logger,
+          },
+          dataScope: retrieval.dataScope,
+        }
+      );
+      retrieval.evidence = [
+        ...(retrieval.evidence || []),
+        ...admitted.evidence.map((hit) => ({
+          ...hit,
+          metadata: { ...hit.metadata, answerOnly: 'micro-agent' },
+        })),
+      ];
+    }
   }
   // Which material the answer receives, by source and origin (no content): makes leaks and thin
   // evidence visible per turn.
