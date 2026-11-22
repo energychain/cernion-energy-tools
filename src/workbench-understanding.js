@@ -1581,6 +1581,7 @@ async function generateAnswerResult({
         if (writtenFreely) {
           // Questions stay outside the claims; at most one is shown after the checks (AP5).
           run.freeQuestion = free ? (parsed.questions || [])[0] || '' : '';
+          run.writtenFreely = true;
           delete parsed.questions;
         } else if (!validateAnswer(parsed)) throw schemaError(validateAnswer.errors);
         if (situation.requestedOutput?.requested) {
@@ -2521,7 +2522,9 @@ async function answer({
     situation,
     evidence,
     questions,
-    decisive,
+    // A freely written answer already works the open points; a system question goes after it,
+    // never as its opening line (REG-01 T02/T03 began with a question nobody could answer).
+    decisive: decisive && !run.writtenFreely,
     result,
     modelFailed,
   });
@@ -2542,7 +2545,9 @@ async function answer({
   });
   const toolEvidence = evidence.filter((hit) => hit.retrievalSource === 'capability-read');
   const toolAnswer = require('./workbench-tool-answer');
-  const available = toolAnswer.availableToolAnswer(toolEvidence, message);
+  const available = toolAnswer.availableToolAnswer(toolEvidence, message, undefined, {
+    skipEmpty: answerStatus !== 'fallback' && claims.length > 0,
+  });
   if (
     available &&
     (answerStatus === 'fallback' ||
