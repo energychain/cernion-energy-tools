@@ -315,3 +315,21 @@ test('tenant records enter the answer only when the conversation names them or a
   expect(tenant.findings[0].facts).toHaveLength(3);
   await broker.stop();
 });
+
+test('graded area relevance selects the answering area and names touched ones as consequences', () => {
+  const packs = [
+    { pack: 'alpha', functionIds: ['fn-a'], expands: [], concern: true },
+    { pack: 'beta', functionIds: ['fn-b'], expands: [], concern: true },
+    { pack: 'gamma', functionIds: ['fn-c'], expands: [], concern: true },
+  ];
+  const result = selectPacks({
+    packs,
+    objects: [],
+    functionMatches: [{ functionId: 'fn-c', score: 0.9 }],
+    areaRelevance: { alpha: 1, beta: 0.5, gamma: 0 },
+    options: { modelOptions: { model } },
+  });
+  expect(result.selected.map((row) => row.pack)).toEqual(['alpha']);
+  expect(result.consequences.map((row) => row.pack)).toContain('beta');
+  expect(result.consequences.map((row) => row.pack)).not.toContain('gamma');
+});

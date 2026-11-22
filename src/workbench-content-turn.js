@@ -409,7 +409,9 @@ async function incomingDatasetReply(service, ctx, { p, envelope, pending, meta }
   // case state, corrections and hypotheses), not a separate answer that cannot relate the table to it.
   if (
     require('./workbench-conversation-core').conversationCoreEnabled(p.tenantId) &&
-    pending?.caseState
+    // With the micro-agent tier the first upload is case evidence too: its packs expand the
+    // attachment (an EDIFACT message, a register extract) in the regular answer.
+    (pending?.caseState || require('./micro-agents/orchestrator').microAgentsEnabled(p.tenantId))
   ) {
     await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
       datasetContext: {
@@ -1603,10 +1605,9 @@ async function runContentTurn(
         broker: service.broker,
         call: (action, params, options = {}) => ctx.call(action, params, { ...options, meta }),
         message: envelope.userRequest,
-        documents: (envelope.documents || []).map((doc) => ({
-          name: doc?.name,
-          text: String(doc?.text || ''),
-        })),
+        documents: [...(envelope.documents || []), ...(envelope.attachedTables || [])].map(
+          (doc) => ({ name: doc?.name, text: String(doc?.text || '') })
+        ),
         caseView: pending?.caseState ? workbenchCaseState.caseStateView(pending.caseState) : null,
         tenantScope: require('./workbench-context-scope').tenantScope(situation),
         tenantId: p.tenantId,

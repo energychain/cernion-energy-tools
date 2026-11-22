@@ -13,10 +13,14 @@ const { CONCERN_KIND } = require('./contract');
 
 const DEFAULTS = {
   maxPacks: 3,
-  maxConsequences: 2,
+  maxConsequences: 3,
   threshold: 0.3,
   functionWeight: 0.6,
   objectBonus: 0.4,
+  relativeShare: 0.8,
+  areaWeight: 0.7,
+  consequenceRelevance: 0.4,
+  functionWeightWithArea: 0.2,
 };
 
 function bestScore(pack, scores) {
@@ -34,22 +38,41 @@ function bestScore(pack, scores) {
  * @param {Array} input.objects - recognized objects (kind, value)
  * @param {Array} input.functionMatches - [{ functionId, score }] from the hybrid resolver
  */
-function selectPacks({ packs = [], objects = [], functionMatches = [], options = {} }) {
+function selectPacks({
+  packs = [],
+  objects = [],
+  functionMatches = [],
+  areaRelevance = {},
+  options = {},
+}) {
   const settings = { ...DEFAULTS, ...options };
   const scores = new Map(
     functionMatches.map((match) => [match.functionId, Number(match.score) || 0])
   );
-  const kinds = new Set(
-    objects.map((object) => object.kind).filter((kind) => kind !== CONCERN_KIND)
-  );
+  // The object bonus follows the recognition's confidence: a format match counts fully, a
+  // semantic mention of the model only in part.
+  const kindConfidence = new Map();
+  for (const object of objects) {
+    if (object.kind === CONCERN_KIND) continue;
+    const confidence = Number(object.confidence ?? 1);
+    kindConfidence.set(object.kind, Math.max(kindConfidence.get(object.kind) || 0, confidence));
+  }
   const rated = packs
     .map((pack) => {
       const best = bestScore(pack, scores);
-      const objectHit = (pack.expands || []).some((kind) => kinds.has(kind));
-      const score = Math.min(
-        1,
-        settings.functionWeight * best.score + (objectHit ? settings.objectBonus : 0)
+      const objectConfidence = Math.max(
+        0,
+        ...(pack.expands || []).map((kind) => kindConfidence.get(kind) || 0)
       );
+      const objectHit = objectConfidence > 0;
+      // The semantic judgement of the area (graded) carries most weight when present; the
+      // function model stays as the second signal, the recognized objects as the third.
+      const judged = Object.prototype.hasOwnProperty.call(areaRelevance, pack.pack);
+      const semantic = judged
+        ? settings.areaWeight * areaRelevance[pack.pack] +
+          settings.functionWeightWithArea * best.score
+        : settings.functionWeight * best.score;
+      const score = Math.min(1, semantic + settings.objectBonus * objectConfidence);
       return {
         pack: pack.pack,
         service: pack.service,
@@ -59,8 +82,11 @@ function selectPacks({ packs = [], objects = [], functionMatches = [], options =
       };
     })
     .sort((left, right) => right.score - left.score || left.pack.localeCompare(right.pack));
+  // Graded and relative: a pack answers when it clears the threshold and stays close to the best
+  // one, so a clearly responsible area is not diluted by weaker ones.
+  const top = rated[0]?.score || 0;
   const selected = rated
-    .filter((row) => row.score >= settings.threshold)
+    .filter((row) => row.score >= settings.threshold && row.score >= top * settings.relativeShare)
     .slice(0, settings.maxPacks);
   // Every recognized object is expanded by the packs that declare its kind, even when the pack
   // is not among the top-scored ones: a named identifier is never left unexpanded.
@@ -84,6 +110,13 @@ function selectPacks({ packs = [], objects = [], functionMatches = [], options =
           consequenceScores.set(pack.pack, value);
       }
     }
+  }
+  // Areas the semantic judgement sees as substantially touched but not answering (a direct
+  // consequence) are consequence candidates too, next to the graph neighbours.
+  for (const [pack, relevance] of Object.entries(areaRelevance)) {
+    if (chosen.has(pack) || relevance < settings.consequenceRelevance) continue;
+    if (!packs.some((entry) => entry.pack === pack)) continue;
+    consequenceScores.set(pack, Math.max(consequenceScores.get(pack) || 0, relevance));
   }
   const consequences = [...consequenceScores.entries()]
     .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))

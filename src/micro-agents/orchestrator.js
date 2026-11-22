@@ -148,6 +148,7 @@ async function runMicroAgents({
     logger?.warn?.(`Micro-agent responsibility failed: ${error.message}`);
   }
   const selection = selectPacks({
+    areaRelevance: objects.areas || {},
     packs,
     objects,
     functionMatches,

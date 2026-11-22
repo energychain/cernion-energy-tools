@@ -158,7 +158,18 @@ function normalizeFinding(raw = {}, { pack, objectId } = {}) {
 // A finding as answer evidence: one hit per finding, its facts with provenance as text the answer
 // can cite, the structured facts in metadata for the provenance check.
 function findingEvidence(findings, { packLabels = {} } = {}) {
-  return findings
+  // A fact two objects of the same pack established (one message recognized twice) is listed once.
+  const seen = new Set();
+  const unique = findings.map((finding) => ({
+    ...finding,
+    facts: finding.facts.filter((fact) => {
+      const key = `${finding.pack}\u0000${fact.statement}\u0000${fact.value}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }),
+  }));
+  return unique
     .filter((finding) => finding.facts.length || finding.negatives.length)
     .map((finding, index) => {
       const lines = [
