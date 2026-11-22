@@ -1791,9 +1791,23 @@ async function runContentTurn(
     if (storageNote) reply = { ...reply, responseText: `${reply.responseText}\n\n${storageNote}` };
     // The addendum is checked together with the answer it precedes.
     ({ reply, caseState } = workbenchCaseState.withAddendum(reply, caseState));
+    // Micro-agent tier (Phase 4): every checkable detail of the answer is looked up in the turn's
+    // sources; sentences with a detail found nowhere go to the case review as unsourced.
+    let unsourced = [];
+    if (microJob !== null && reply?.responseText) {
+      unsourced = require('./micro-agents/provenance').checkProvenance(reply.responseText, {
+        message: envelope.userRequest,
+        conversation: documentFlow.cleanDocumentHistory(ctx.params.messages || []),
+        evidence: [...(retrieval.evidence || []), ...(envelope.tableEvidence || [])],
+        caseView: caseState ? workbenchCaseState.caseStateView(caseState) : null,
+      }).unsourced;
+      if (unsourced.length)
+        service.logger.info('Micro-agent provenance check', { unsourced: unsourced.length });
+    }
     reply = await workbenchCaseState.reviewTurnReply(reply, caseState, {
       tenantId: p.tenantId,
       logger: service.logger,
+      unsourced,
     });
     if (suggestComparable && !reply.responseText.includes(foreignContextGate.SUGGESTION))
       reply = {
