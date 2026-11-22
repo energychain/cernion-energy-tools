@@ -1,0 +1,57 @@
+{
+  "pack": "mako",
+  "label": "Marktkommunikation und EDM",
+  "description": "Marktkommunikation zwischen Marktrollen (Lieferant, Netzbetreiber, Messstellenbetreiber, Bilanzkreisverantwortlicher): EDIFACT-Nachrichten wie UTILMD, MSCONS, APERAK, CONTRL, INVOIC, ORDERS, PRICAT; Prozesse der GPKE, WiM, MaBiS und GeLi Gas; Prüfidentifikatoren, Antwort- und Fehlercodes, Fristen der Prozesse, Marktlokation, Messlokation, Zählpunkt, Stammdaten und Energiedatenmanagement.",
+  "functionDomains": [
+    "market-communication",
+    "market-operations",
+    "edm",
+    "edm-customer-service",
+    "edm-monitoring",
+    "stammdaten",
+    "imsys-cls-value-chain",
+    "metering-governance",
+    "metering-data-governance"
+  ],
+  "functionServices": [
+    "edm",
+    "edm-validation",
+    "edm-messkonzept",
+    "edm-virtual",
+    "mscons-import",
+    "eic-codes",
+    "willi-mako",
+    "willi-federated",
+    "connection-rejection-evidence",
+    "mqtt-edm-ingest"
+  ],
+  "objectKinds": [
+    {
+      "kind": "edifact.message",
+      "label": "EDIFACT-Nachricht",
+      "description": "Eine EDIFACT-Nachricht (UTILMD, MSCONS, APERAK, CONTRL, INVOIC …) mit ihren Segmenten",
+      "detector": "edifactMessages"
+    },
+    {
+      "kind": "market.partner_code",
+      "label": "Marktpartner-Codenummer",
+      "description": "BDEW- oder DVGW-Codenummer eines Marktpartners (13 Ziffern)",
+      "detector": "marketPartnerCodes"
+    },
+    {
+      "kind": "mako.location_id",
+      "label": "Markt- oder Messlokation",
+      "description": "Marktlokations-ID, Messlokations-ID oder Zählpunktbezeichnung"
+    },
+    {
+      "kind": "mako.process",
+      "label": "Marktprozess",
+      "description": "Ein benannter Marktprozess oder Prozessschritt, etwa Lieferbeginn, Lieferende, Stammdatenänderung, Messwertübermittlung"
+    },
+    {
+      "kind": "mako.response_code",
+      "label": "Antwort- oder Fehlercode",
+      "description": "Ein Antwort-, Prüf- oder Fehlercode einer Marktnachricht"
+    }
+  ]
+}

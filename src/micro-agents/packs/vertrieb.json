@@ -1,0 +1,28 @@
+{
+  "pack": "vertrieb",
+  "label": "Vertrieb, Marketing und Kunde",
+  "description": "Vertrieb und Marketing eines Stadtwerks: Tarife und Produkte, Preisanpassungen und Kundenkommunikation, Kundensegmente, Kundenservice, Energiegemeinschaften und Energy Sharing, Kampagnen und Marktanalysen.",
+  "functionDomains": ["energy-sharing", "inhouse"],
+  "functionServices": [
+    "customer-service",
+    "community",
+    "energy-sharing",
+    "energy-sharing-allocation",
+    "energy-sharing-community",
+    "business-intelligence",
+    "utility-report",
+    "presentation"
+  ],
+  "objectKinds": [
+    {
+      "kind": "customer.segment",
+      "label": "Kundensegment",
+      "description": "Eine Kundengruppe oder ein Segment"
+    },
+    {
+      "kind": "customer.product",
+      "label": "Tarif oder Produkt",
+      "description": "Ein Tarif, Produkt oder Angebot für Kunden"
+    }
+  ]
+}

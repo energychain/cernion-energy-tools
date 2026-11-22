@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "1425320b8afcf4347db099efa04573b2489421330ff0e9e67e6dd22aa2d28ed5",
+  "sourceHash": "5843ba7f9cf7175ace446edcce9f181955e6031501c6ef35170cb42407e31150",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -9578,6 +9578,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/observability-context.js"
         },
         {
@@ -13492,6 +13496,10 @@
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
         },
         {
           "kind": "service",
@@ -22099,6 +22107,10 @@
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
         },
         {
           "kind": "service",
@@ -33044,6 +33056,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/observability-context.js"
         },
         {
@@ -37268,6 +37284,10 @@
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
         },
         {
           "kind": "service",
@@ -57590,6 +57610,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/observability-context.js"
         },
         {
@@ -68180,6 +68204,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/observability-context.js"
         },
         {
@@ -74099,6 +74127,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/observability-context.js"
         },
         {
@@ -79823,6 +79855,10 @@
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
         },
         {
           "kind": "service",
@@ -86134,6 +86170,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/netzfahrplan-schema.js"
         },
         {
@@ -89364,6 +89404,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/observability-context.js"
         },
         {
@@ -92316,6 +92360,10 @@
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
         },
         {
           "kind": "service",
@@ -101411,6 +101459,10 @@
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
         },
         {
           "kind": "service",
@@ -115425,6 +115477,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/netzfahrplan-schema.js"
         },
         {
@@ -128393,6 +128449,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/observability-context.js"
         },
         {
@@ -131747,6 +131807,10 @@
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
         },
         {
           "kind": "service",
@@ -137162,6 +137226,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/netzfahrplan-schema.js"
         },
         {
@@ -141932,6 +142000,10 @@
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
         },
         {
           "kind": "service",
@@ -146825,6 +146897,10 @@
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
         },
         {
           "kind": "service",
@@ -151773,6 +151849,10 @@
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
         },
         {
           "kind": "service",
@@ -166522,6 +166602,30 @@
         },
         {
           "kind": "service",
+          "ref": "src/micro-agents/contract.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/orchestrator.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/recognizer.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/registry.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/responsibility.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/observability-context.js"
         },
         {
@@ -176604,6 +176708,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/netzfahrplan-schema.js"
         },
         {
@@ -184064,6 +184172,10 @@
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
         },
         {
           "kind": "service",
@@ -206700,6 +206812,10 @@
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/micro-agents/provenance.js"
         },
         {
           "kind": "service",

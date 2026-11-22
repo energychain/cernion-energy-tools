@@ -1,0 +1,25 @@
+{
+  "pack": "bilanzierung",
+  "label": "Bilanzierung",
+  "description": "Bilanzkreise und Bilanzkreisverantwortung, Zuordnung von Marktlokationen, Standardlastprofile (SLP) und registrierende Leistungsmessung (RLM), Mehr- und Mindermengen, Ausgleichsenergie, MaBiS-Prozesse und Bilanzierungsfristen.",
+  "functionDomains": [],
+  "functionServices": ["bilanzkreis", "slp", "ewk-monitoring"],
+  "objectKinds": [
+    {
+      "kind": "balancing.group",
+      "label": "Bilanzkreis",
+      "description": "Ein Bilanzkreis, bezeichnet über EIC-Code oder Namen",
+      "detector": "eicCodes"
+    },
+    {
+      "kind": "balancing.profile",
+      "label": "Lastprofil",
+      "description": "Ein Standardlastprofil oder Messverfahren (SLP, RLM)"
+    },
+    {
+      "kind": "balancing.deviation",
+      "label": "Mehr-/Mindermenge",
+      "description": "Eine Bilanzabweichung, Mehr- oder Mindermenge, Ausgleichsenergie"
+    }
+  ]
+}
