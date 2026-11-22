@@ -74,6 +74,8 @@ The module declares the following:
   only (`packs/detectors.js`), never a word list.
 - `expanders`: `{ [kind]: async (ctx, object, context) => finding }`. `concern` expands the
   question itself, and `context.consequenceOf` is set during the consequence check.
+  `context.documents` carries the turn's attachments (`{ name, text }`, up to four, 60,000
+  characters each), so an expander can parse the whole document an object was quoted from.
 - `playbooks`: `[{ from: kind, next: (finding, object) => [object] }]`, the fixed dependencies
   of the area.
 

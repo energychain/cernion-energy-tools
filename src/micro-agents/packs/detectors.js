@@ -75,18 +75,31 @@ function registerUnitNumbers(text) {
   );
 }
 
-// Section references: "§" followed by a section number and the abbreviation of the act.
+// Section references: "§" with a section number, optional subdivisions of the citation format
+// (Abs., Satz, Nr. … each followed by a number) and the abbreviation of the act, which is
+// written with at least two capitals (EnWG, StromNEV, MsbG). The quote is the literal passage.
+const SUBDIVISIONS = new Set(['Abs', 'Absatz', 'S', 'Satz', 'Nr', 'Ziff', 'lit', 'Buchst']);
+const capitals = (value) => [...value].filter(isUpper).length;
 function sectionReferences(text) {
-  const parts = tokens(text);
+  const raw = String(text ?? '');
+  const parts = tokens(raw);
   const rows = [];
   for (let index = 0; index < parts.length; index++) {
     if (parts[index] !== '§' && parts[index] !== '§§') continue;
     const number = parts[index + 1] || '';
-    const act = parts[index + 2] || '';
     if (!number || !isDigit(number[0])) continue;
-    const quote =
-      act && isUpper(act[0]) ? `${parts[index]} ${number} ${act}` : `${parts[index]} ${number}`;
-    if (String(text).includes(quote)) rows.push({ value: quote, quote });
+    let next = index + 2;
+    while (SUBDIVISIONS.has(parts[next]) && parts[next + 1] && isDigit(parts[next + 1][0]))
+      next += 2;
+    const act = parts[next] || '';
+    const start = raw.indexOf(`${parts[index]} ${number}`);
+    if (start < 0) continue;
+    let quote = `${parts[index]} ${number}`;
+    if (act && isUpper(act[0]) && capitals(act) >= 2) {
+      const end = raw.indexOf(act, start);
+      if (end > start && end - start < 60) quote = raw.slice(start, end + act.length);
+    }
+    rows.push({ value: quote, quote });
   }
   return unique(rows);
 }

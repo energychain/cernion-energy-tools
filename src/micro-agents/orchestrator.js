@@ -24,6 +24,8 @@ const { findingEvidence, CONCERN_KIND } = require('./contract');
 const STAGE_TIMEOUT_MS = 6000;
 const MAX_STAGE_ONE = 12;
 const MAX_STAGE_TWO = 6;
+const MAX_DOCUMENTS = 4;
+const MAX_DOCUMENT_CHARS = 60000;
 
 function microAgentsEnabled(tenantId, env = process.env) {
   const value = String(env.WORKBENCH_MICRO_AGENTS || '').trim();
@@ -73,6 +75,7 @@ async function runMicroAgents({
   broker,
   call,
   message,
+  documents = [],
   caseView = null,
   tenantId,
   logger,
@@ -90,10 +93,24 @@ async function runMicroAgents({
       trace.push({ action, failed: error.message });
       return null;
     });
-  const context = { caseView, tenantId };
+  // Attachments travel with the context: an object holds at most its quote, the expander that
+  // parses it needs the whole document (an EDIFACT interchange, a register extract).
+  const context = {
+    caseView,
+    tenantId,
+    documents: documents
+      .filter((doc) => doc && typeof doc.text === 'string' && doc.text.trim())
+      .slice(0, MAX_DOCUMENTS)
+      .map((doc) => ({
+        name: String(doc.name || ''),
+        text: doc.text.slice(0, MAX_DOCUMENT_CHARS),
+      })),
+  };
 
   const objects = await recognize({
-    text: message,
+    text: [message, ...context.documents.map((doc) => doc.text.slice(0, 8000))]
+      .filter(Boolean)
+      .join('\n\n'),
     packs,
     call: (action, params) => call(action, params, { timeout: 2000 }),
     llm,
@@ -133,29 +150,55 @@ async function runMicroAgents({
       return finding ? { finding, object } : null;
     });
 
+  // Each pack expands an object once per turn (a recognized object and the same object proposed
+  // by a playbook are one job), and the stage limits count jobs before any of them starts.
+  const expanded = new Set();
+  const job = (pack, object) => {
+    const key = `${pack.pack}\u0000${object.kind}\u0000${String(object.value).toLowerCase()}`;
+    if (expanded.has(key)) return null;
+    expanded.add(key);
+    return () => expand(pack, object);
+  };
   const stageOne = [];
   for (const object of objects) {
     if (object.kind === CONCERN_KIND) {
       for (const row of selection.selected) {
         const pack = byPack.get(row.pack);
-        if (pack?.concern) stageOne.push(expand(pack, object));
+        if (pack?.concern) stageOne.push(job(pack, object));
       }
       continue;
     }
-    for (const pack of packsForKind(packs, object.kind)) stageOne.push(expand(pack, object));
+    for (const pack of packsForKind(packs, object.kind)) stageOne.push(job(pack, object));
   }
-  const first = (await Promise.all(stageOne.slice(0, MAX_STAGE_ONE))).filter(Boolean);
+  const first = (
+    await Promise.all(
+      stageOne
+        .filter(Boolean)
+        .slice(0, MAX_STAGE_ONE)
+        .map((run) => run())
+    )
+  ).filter(Boolean);
 
+  const plans = await Promise.all(
+    first
+      .filter(({ finding }) => finding.facts.length)
+      .map(({ finding, object }) =>
+        bounded(`${byPack.get(finding.pack).service}.plan`, { finding, object })
+      )
+  );
   const followUps = [];
-  for (const { finding, object } of first) {
-    if (!finding.facts.length) continue;
-    const pack = byPack.get(finding.pack);
-    const next = (await bounded(`${pack.service}.plan`, { finding, object })) || [];
-    for (const nextObject of next)
+  for (const next of plans)
+    for (const nextObject of next || [])
       for (const owner of packsForKind(packs, nextObject.kind))
-        if (followUps.length < MAX_STAGE_TWO) followUps.push(expand(owner, nextObject));
-  }
-  const second = (await Promise.all(followUps)).filter(Boolean);
+        followUps.push(job(owner, nextObject));
+  const second = (
+    await Promise.all(
+      followUps
+        .filter(Boolean)
+        .slice(0, MAX_STAGE_TWO)
+        .map((run) => run())
+    )
+  ).filter(Boolean);
 
   let consequences = [];
   const found = [...first, ...second].map((row) => row.finding);

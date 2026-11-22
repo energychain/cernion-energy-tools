@@ -112,7 +112,7 @@ function packBeta() {
                 ]
               : [],
           }),
-          slow: () => new Promise((resolve) => setTimeout(resolve, 5000)),
+          slow: () => new Promise((resolve) => setTimeout(resolve, 5000).unref()),
         },
         timeoutMs: 200,
       }),

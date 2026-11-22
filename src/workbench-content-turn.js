@@ -1602,12 +1602,11 @@ async function runContentTurn(
       .runMicroAgents({
         broker: service.broker,
         call: (action, params, options = {}) => ctx.call(action, params, { ...options, meta }),
-        message: [
-          envelope.userRequest,
-          ...(envelope.documents || []).map((doc) => String(doc?.text || '').slice(0, 8000)),
-        ]
-          .filter(Boolean)
-          .join('\n\n'),
+        message: envelope.userRequest,
+        documents: (envelope.documents || []).map((doc) => ({
+          name: doc?.name,
+          text: String(doc?.text || ''),
+        })),
         caseView: pending?.caseState ? workbenchCaseState.caseStateView(pending.caseState) : null,
         tenantId: p.tenantId,
         logger: service.logger,
