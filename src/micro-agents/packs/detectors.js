@@ -165,3 +165,58 @@ function makoLocationIds(text) {
 
 module.exports.maloCheckDigit = maloCheckDigit;
 module.exports.makoLocationIds = makoLocationIds;
+
+// Settlement keys of the settlement service: <type>_<yyyy>q<1-4>_<unit>, type eeg or redispatch.
+function isSettlementKey(token) {
+  const parts = String(token).split('_');
+  if (parts.length !== 3) return false;
+  const [type, quarter, unit] = parts;
+  return (
+    ['eeg', 'redispatch'].includes(type) &&
+    quarter.length === 6 &&
+    allDigits(quarter.slice(0, 4)) &&
+    quarter[4] === 'q' &&
+    '1234'.includes(quarter[5]) &&
+    unit.length > 0 &&
+    [...unit].every((ch) => isDigit(ch) || isUpper(ch) || (ch >= 'a' && ch <= 'z'))
+  );
+}
+
+function settlementKeys(text) {
+  return unique(
+    tokens(text)
+      .filter(isSettlementKey)
+      .map((token) => ({ value: token, quote: token }))
+  );
+}
+
+// Fee records: rule sets of the tariff rule registry (rel:<uuid>) and variable grid-fee
+// calculations (re4de-vgf:<uuid>).
+function isUuid(value) {
+  const text = String(value);
+  return (
+    text.length === 36 &&
+    [...text].every((ch, index) =>
+      [8, 13, 18, 23].includes(index)
+        ? ch === '-'
+        : isDigit(ch) || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')
+    )
+  );
+}
+
+const FEE_RECORD_PREFIXES = ['rel:', 're4de-vgf:'];
+
+function feeRecordIds(text) {
+  return unique(
+    tokens(text)
+      .filter((token) =>
+        FEE_RECORD_PREFIXES.some(
+          (prefix) => token.startsWith(prefix) && isUuid(token.slice(prefix.length))
+        )
+      )
+      .map((token) => ({ value: token, quote: token }))
+  );
+}
+
+module.exports.settlementKeys = settlementKeys;
+module.exports.feeRecordIds = feeRecordIds;

@@ -20,12 +20,14 @@
     {
       "kind": "billing.invoice",
       "label": "Rechnung",
-      "description": "Eine Netznutzungs-, Liefer- oder Messrechnung"
+      "description": "Eine Netznutzungs-, Liefer- oder Messrechnung",
+      "detector": "settlementKeys"
     },
     {
       "kind": "billing.fee",
       "label": "Entgelt oder Preisposition",
-      "description": "Ein Netzentgelt, Messentgelt, eine Umlage oder Preisblatt-Position"
+      "description": "Ein Netzentgelt, Messentgelt, eine Umlage oder Preisblatt-Position",
+      "detector": "feeRecordIds"
     }
   ]
 }
