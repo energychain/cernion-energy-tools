@@ -34,7 +34,13 @@ function packDefinition(area, { dir = PACK_DIR } = {}) {
 
 function packService(area, options) {
   const definition = packDefinition(area, options);
-  return { name: `micro-agent.${definition.pack}`, mixins: [createDomainPackMixin(definition)] };
+  // An explicit (empty) actions map: tooling that rebuilds schemas ({ ...schema, actions })
+  // keeps the mixin's actions instead of passing undefined to Moleculer.
+  return {
+    name: `micro-agent.${definition.pack}`,
+    mixins: [createDomainPackMixin(definition)],
+    actions: {},
+  };
 }
 
 module.exports = { packService, packDefinition, PACK_DIR };
