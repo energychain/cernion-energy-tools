@@ -6,20 +6,7 @@
  * Each detector returns [{ value, quote }] with the literal text it found.
  */
 
-const EDGE = '„“”"\'`()[]{}<>.,;:!?*|';
-
-function tokens(text) {
-  return String(text ?? '')
-    .split(/\s+/u)
-    .map((token) => {
-      let start = 0;
-      let end = token.length;
-      while (start < end && EDGE.includes(token[start])) start++;
-      while (end > start && EDGE.includes(token[end - 1])) end--;
-      return token.slice(start, end);
-    })
-    .filter(Boolean);
-}
+const { plainTokens: tokens } = require('../provenance');
 
 const isDigit = (ch) => ch >= '0' && ch <= '9';
 const isUpper = (ch) => ch >= 'A' && ch <= 'Z';

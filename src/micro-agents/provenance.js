@@ -12,7 +12,8 @@
 
 const EDGE = '„“”"\'`()[]{}<>.,;:!?*|';
 
-function detailTokens(text) {
+// Tokens of a text with surrounding punctuation removed.
+function plainTokens(text) {
   return String(text ?? '')
     .split(/\s+/u)
     .map((token) => {
@@ -22,7 +23,11 @@ function detailTokens(text) {
       while (end > start && EDGE.includes(token[end - 1])) end--;
       return token.slice(start, end);
     })
-    .filter((token) => [...token].some((ch) => ch >= '0' && ch <= '9'));
+    .filter(Boolean);
+}
+
+function detailTokens(text) {
+  return plainTokens(text).filter((token) => [...token].some((ch) => ch >= '0' && ch <= '9'));
 }
 
 function sourceText({ message = '', conversation = [], evidence = [], caseView = null } = {}) {
@@ -69,4 +74,4 @@ function checkProvenance(answer, sources = {}) {
   return { unsourced, sourced: unsourced.length === 0 };
 }
 
-module.exports = { checkProvenance, detailTokens, sentences, sourceText };
+module.exports = { checkProvenance, detailTokens, plainTokens, sentences, sourceText };
