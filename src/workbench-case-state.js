@@ -109,12 +109,12 @@ async function updateTurnCaseState({ previous, envelope, retrieval, tenantId, lo
 }
 
 // Revises only the passages the check flags; drafts are left as written.
-async function reviewTurnReply(reply, caseState, { tenantId, logger } = {}) {
+async function reviewTurnReply(reply, caseState, { tenantId, logger, unsourced = [] } = {}) {
   // A fallback is no answer to correct: a revision would turn it into an invented one (TWL).
   if (!caseState || !reply?.responseText || reply.draft || reply.answerStatus === 'fallback')
     return reply;
   try {
-    const review = await reviewAnswer(reply.responseText, caseState, { tenantId });
+    const review = await reviewAnswer(reply.responseText, caseState, { tenantId, unsourced });
     if (review.issues.length)
       logger?.info?.(
         `Workbench case state answer review: ${review.issues.map((issue) => issue.kind).join(', ')}${review.revised ? ' (revised)' : ''}`

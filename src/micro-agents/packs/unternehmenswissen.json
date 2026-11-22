@@ -33,5 +33,6 @@
       "label": "Unterlage",
       "description": "Eine interne Unterlage, Richtlinie, ein Protokoll oder Beschluss"
     }
-  ]
+  ],
+  "recordSources": ["vdmi.", "governance-cards."]
 }

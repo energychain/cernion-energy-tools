@@ -18,5 +18,6 @@
       "label": "Budget oder Kennzahl",
       "description": "Eine Budgetposition, Kennzahl oder Ergebnisgröße"
     }
-  ]
+  ],
+  "recordSources": ["capex-prioritization.", "eog-calculator."]
 }

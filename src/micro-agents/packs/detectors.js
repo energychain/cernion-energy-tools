@@ -75,18 +75,44 @@ function registerUnitNumbers(text) {
   );
 }
 
-// Section references: "§" followed by a section number and the abbreviation of the act.
+// Section references: "§" with a section number, optional subdivisions of the citation format
+// (Abs., Satz, Nr. … each followed by a number) and the abbreviation of the act, which is
+// written with at least two capitals (EnWG, StromNEV, MsbG). The quote is the literal passage.
+const SUBDIVISIONS = new Set(['Abs', 'Absatz', 'S', 'Satz', 'Nr', 'Ziff', 'lit', 'Buchst']);
+const capitals = (value) => [...value].filter(isUpper).length;
+// Index of the first token after the subdivisions (each a subdivision name and a number).
+function afterSubdivisions(parts, next) {
+  let position = next;
+  while (
+    SUBDIVISIONS.has(parts[position]) &&
+    parts[position + 1] &&
+    isDigit(parts[position + 1][0])
+  )
+    position += 2;
+  return position;
+}
+
+// The literal passage from the section sign through the act abbreviation when it follows closely.
+function sectionQuote(raw, start, head, act) {
+  if (!act || !isUpper(act[0]) || capitals(act) < 2) return head;
+  const end = raw.indexOf(act, start);
+  return end > start && end - start < 60 ? raw.slice(start, end + act.length) : head;
+}
+
 function sectionReferences(text) {
-  const parts = tokens(text);
+  const raw = String(text ?? '');
+  const parts = tokens(raw);
   const rows = [];
   for (let index = 0; index < parts.length; index++) {
     if (parts[index] !== '§' && parts[index] !== '§§') continue;
     const number = parts[index + 1] || '';
-    const act = parts[index + 2] || '';
     if (!number || !isDigit(number[0])) continue;
-    const quote =
-      act && isUpper(act[0]) ? `${parts[index]} ${number} ${act}` : `${parts[index]} ${number}`;
-    if (String(text).includes(quote)) rows.push({ value: quote, quote });
+    const act = parts[afterSubdivisions(parts, index + 2)] || '';
+    const head = `${parts[index]} ${number}`;
+    const start = raw.indexOf(head);
+    if (start < 0) continue;
+    const quote = sectionQuote(raw, start, head, act);
+    rows.push({ value: quote, quote });
   }
   return unique(rows);
 }
@@ -120,3 +146,90 @@ module.exports = {
   sectionReferences,
   rulingNumbers,
 };
+
+// Check digit of an 11-digit market location id: digits at odd positions plus twice the digits
+// at even positions of the first ten, the check digit completes the sum to a multiple of ten.
+function maloCheckDigit(value) {
+  const digits = String(value ?? '');
+  if (digits.length !== 11 || !allDigits(digits)) return null;
+  let sum = 0;
+  for (let index = 0; index < 10; index++) sum += Number(digits[index]) * (index % 2 ? 2 : 1);
+  return (10 - (sum % 10)) % 10;
+}
+
+// Location ids of the market communication: an 11-digit market location id with a valid check
+// digit, or a 33-character metering location / metering point id (two country letters, then
+// digits and capital letters).
+function makoLocationIds(text) {
+  return unique(
+    tokens(text)
+      .filter(
+        (token) =>
+          (token.length === 11 && maloCheckDigit(token) === Number(token[10])) ||
+          (token.length === 33 &&
+            isUpper(token[0]) &&
+            isUpper(token[1]) &&
+            [...token].slice(2).every((ch) => isDigit(ch) || isUpper(ch)) &&
+            [...token].slice(2).some(isDigit))
+      )
+      .map((token) => ({ value: token, quote: token }))
+  );
+}
+
+module.exports.maloCheckDigit = maloCheckDigit;
+module.exports.makoLocationIds = makoLocationIds;
+
+// Settlement keys of the settlement service: <type>_<yyyy>q<1-4>_<unit>, type eeg or redispatch.
+function isSettlementKey(token) {
+  const parts = String(token).split('_');
+  if (parts.length !== 3) return false;
+  const [type, quarter, unit] = parts;
+  return (
+    ['eeg', 'redispatch'].includes(type) &&
+    quarter.length === 6 &&
+    allDigits(quarter.slice(0, 4)) &&
+    quarter[4] === 'q' &&
+    '1234'.includes(quarter[5]) &&
+    unit.length > 0 &&
+    [...unit].every((ch) => isDigit(ch) || isUpper(ch) || (ch >= 'a' && ch <= 'z'))
+  );
+}
+
+function settlementKeys(text) {
+  return unique(
+    tokens(text)
+      .filter(isSettlementKey)
+      .map((token) => ({ value: token, quote: token }))
+  );
+}
+
+// Fee records: rule sets of the tariff rule registry (rel:<uuid>) and variable grid-fee
+// calculations (re4de-vgf:<uuid>).
+function isUuid(value) {
+  const text = String(value);
+  return (
+    text.length === 36 &&
+    [...text].every((ch, index) =>
+      [8, 13, 18, 23].includes(index)
+        ? ch === '-'
+        : isDigit(ch) || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')
+    )
+  );
+}
+
+const FEE_RECORD_PREFIXES = ['rel:', 're4de-vgf:'];
+
+function feeRecordIds(text) {
+  return unique(
+    tokens(text)
+      .filter((token) =>
+        FEE_RECORD_PREFIXES.some(
+          (prefix) => token.startsWith(prefix) && isUuid(token.slice(prefix.length))
+        )
+      )
+      .map((token) => ({ value: token, quote: token }))
+  );
+}
+
+module.exports.settlementKeys = settlementKeys;
+module.exports.feeRecordIds = feeRecordIds;

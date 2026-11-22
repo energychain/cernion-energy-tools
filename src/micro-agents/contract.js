@@ -155,17 +155,33 @@ function normalizeFinding(raw = {}, { pack, objectId } = {}) {
   };
 }
 
+// One fact as a line of answer evidence: statement, value with unit, provenance and basis.
+function factLine(fact) {
+  const unit = fact.unit ? ' ' + fact.unit : '';
+  const value = fact.value ? ' [' + fact.value + unit + ']' : '';
+  const ref = fact.provenance.ref ? ', ' + fact.provenance.ref : '';
+  return `${fact.statement}${value} (Herkunft: ${fact.provenance.source}${ref}; Grundlage: ${fact.basis})`;
+}
+
 // A finding as answer evidence: one hit per finding, its facts with provenance as text the answer
 // can cite, the structured facts in metadata for the provenance check.
 function findingEvidence(findings, { packLabels = {} } = {}) {
-  return findings
+  // A fact two objects of the same pack established (one message recognized twice) is listed once.
+  const seen = new Set();
+  const unique = findings.map((finding) => ({
+    ...finding,
+    facts: finding.facts.filter((fact) => {
+      const key = `${finding.pack}\u0000${fact.statement}\u0000${fact.value}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }),
+  }));
+  return unique
     .filter((finding) => finding.facts.length || finding.negatives.length)
     .map((finding, index) => {
       const lines = [
-        ...finding.facts.map(
-          (fact) =>
-            `${fact.statement}${fact.value ? ` [${fact.value}${fact.unit ? ` ${fact.unit}` : ''}]` : ''} (Herkunft: ${fact.provenance.source}${fact.provenance.ref ? `, ${fact.provenance.ref}` : ''}; Grundlage: ${fact.basis})`
-        ),
+        ...finding.facts.map(factLine),
         ...finding.negatives.map(
           (negative) =>
             `Gesucht: ${negative.searched}; Reichweite: ${negative.scope}; Ergebnis: ${negative.result}`

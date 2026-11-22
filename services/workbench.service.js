@@ -1805,7 +1805,28 @@ module.exports = {
             },
             { meta: correctionMeta }
           );
-          if (datasetTurn.handled) {
+          // Micro-agent tier: an uploaded message or extract the dataset service read is evidence
+          // of the regular answer, where the domain packs expand it (BK-01: an APERAK was answered
+          // as "Bedeutung ungeklärt: ERC TZ07" by the storage receipt alone).
+          if (
+            datasetTurn.handled &&
+            datasetTurn.responseText &&
+            require('../src/workbench-conversation-core').conversationCoreEnabled(p.tenantId) &&
+            require('../src/micro-agents/orchestrator').microAgentsEnabled(p.tenantId)
+          ) {
+            envelope.tableEvidence = [
+              ...(envelope.tableEvidence || []),
+              {
+                source: 'dataset.turn',
+                retrievalSource: 'dataset',
+                value: String(datasetTurn.responseText).slice(0, 6000),
+                metadata: { ownConversation: true, datasetIds: datasetTurn.datasetIds || [] },
+              },
+            ];
+            envelope.datasetIds = [
+              ...new Set([...(envelope.datasetIds || []), ...(datasetTurn.datasetIds || [])]),
+            ];
+          } else if (datasetTurn.handled) {
             const combined =
               await require('../src/workbench-project-manifest').supplementDatasetAnswer(
                 this,

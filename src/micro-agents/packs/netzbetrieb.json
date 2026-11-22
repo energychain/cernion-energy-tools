@@ -41,5 +41,14 @@
       "label": "Flexible Anlage",
       "description": "Ein Speicher, eine steuerbare Verbrauchseinrichtung oder flexible Erzeugung"
     }
+  ],
+  "recordSources": [
+    "redispatch-",
+    "battery-redispatch-special-gate.",
+    "bess-screening.",
+    "flexibilitaetskosten-raster.",
+    "flexibility-conductor-role-model.",
+    "rcs-simulation-run.",
+    "rcs-rule-catalog."
   ]
 }

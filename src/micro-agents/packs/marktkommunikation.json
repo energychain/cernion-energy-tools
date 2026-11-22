@@ -41,7 +41,8 @@
     {
       "kind": "mako.location_id",
       "label": "Markt- oder Messlokation",
-      "description": "Marktlokations-ID, Messlokations-ID oder Zählpunktbezeichnung"
+      "description": "Marktlokations-ID, Messlokations-ID oder Zählpunktbezeichnung",
+      "detector": "makoLocationIds"
     },
     {
       "kind": "mako.process",
@@ -53,5 +54,6 @@
       "label": "Antwort- oder Fehlercode",
       "description": "Ein Antwort-, Prüf- oder Fehlercode einer Marktnachricht"
     }
-  ]
+  ],
+  "recordSources": ["edm."]
 }
