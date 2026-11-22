@@ -120,3 +120,35 @@ module.exports = {
   sectionReferences,
   rulingNumbers,
 };
+
+// Check digit of an 11-digit market location id: digits at odd positions plus twice the digits
+// at even positions of the first ten, the check digit completes the sum to a multiple of ten.
+function maloCheckDigit(value) {
+  const digits = String(value ?? '');
+  if (digits.length !== 11 || !allDigits(digits)) return null;
+  let sum = 0;
+  for (let index = 0; index < 10; index++) sum += Number(digits[index]) * (index % 2 ? 2 : 1);
+  return (10 - (sum % 10)) % 10;
+}
+
+// Location ids of the market communication: an 11-digit market location id with a valid check
+// digit, or a 33-character metering location / metering point id (two country letters, then
+// digits and capital letters).
+function makoLocationIds(text) {
+  return unique(
+    tokens(text)
+      .filter(
+        (token) =>
+          (token.length === 11 && maloCheckDigit(token) === Number(token[10])) ||
+          (token.length === 33 &&
+            isUpper(token[0]) &&
+            isUpper(token[1]) &&
+            [...token.slice(2)].every((ch) => isDigit(ch) || isUpper(ch)) &&
+            [...token.slice(2)].some(isDigit))
+      )
+      .map((token) => ({ value: token, quote: token }))
+  );
+}
+
+module.exports.maloCheckDigit = maloCheckDigit;
+module.exports.makoLocationIds = makoLocationIds;
