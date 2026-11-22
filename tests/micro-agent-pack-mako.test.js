@@ -189,6 +189,20 @@ describe('micro-agent pack mako', () => {
     expect(next[0].label).toBe('APERAK ERC');
   });
 
+  test('the whole interchange is read from the attachment the header was quoted from', async () => {
+    const header = APERAK.slice(0, APERAK.indexOf("'", APERAK.indexOf('UNH+')) + 1);
+    const finding = await broker.call('micro-agent.mako.expand', {
+      object: {
+        objectId: 'O3',
+        kind: 'edifact.message',
+        value: 'APERAK',
+        provenance: { quote: header },
+      },
+      context: { documents: [{ name: 'test-aperak.txt', text: APERAK }] },
+    });
+    expect(finding.facts.map((fact) => fact.value)).toEqual(expect.arrayContaining(['Z18']));
+  });
+
   test('a market partner code is resolved with provenance, an unknown one with scope', async () => {
     const known = await expand({ kind: 'market.partner_code', value: PARTNER });
     const fromSource = known.facts.filter((fact) => fact.basis === 'source');

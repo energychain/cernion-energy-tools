@@ -355,7 +355,13 @@ function interchangeFacts(text) {
 }
 
 async function expandEdifactMessage(ctx, object, context) {
-  const candidates = [object.value, object.provenance.quote].filter(Boolean);
+  // The whole interchange comes from the attachment the object was quoted from (context.documents);
+  // the object itself holds at most its first segments.
+  const quote = object.provenance.quote || object.value;
+  const attached = (context.documents || [])
+    .map((doc) => String(doc.text || '').trim())
+    .filter((text) => text.includes(quote));
+  const candidates = [...attached, object.value, object.provenance.quote].filter(Boolean);
   const full = candidates.find((text) => edifact.recognizes(text) && text.includes('UNT+'));
   const finding = { facts: [], negatives: [], openQuestions: [], relations: [] };
   let type = '';
