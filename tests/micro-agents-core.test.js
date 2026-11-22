@@ -236,3 +236,20 @@ test('provenance: details from any source are sourced, others are reported by se
     { sentence: 'Die Frist endet am 20.05.2026.', tokens: ['20.05.2026'] },
   ]);
 });
+
+test('every pack definition loads as a service with known detectors and a function link', () => {
+  const fs = require('node:fs');
+  const { packService, PACK_DIR } = require('../src/micro-agents/pack-service');
+  const areas = fs
+    .readdirSync(PACK_DIR)
+    .filter((file) => file.endsWith('.json'))
+    .map((file) => file.slice(0, -5));
+  expect(areas.length).toBe(11);
+  for (const area of areas) {
+    const schema = packService(area);
+    const manifest = schema.mixins[0].metadata.microAgent;
+    expect(schema.name).toBe(`micro-agent.${manifest.pack}`);
+    expect(manifest.description.length).toBeGreaterThan(40);
+    expect(manifest.functionDomains.length + manifest.functionServices.length).toBeGreaterThan(0);
+  }
+});

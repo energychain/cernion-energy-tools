@@ -1,0 +1,34 @@
+{
+  "pack": "beschaffung",
+  "label": "Energiebeschaffung und Portfolio",
+  "description": "Strom- und Gasbeschaffung, Großhandelspreise (Spot, Termin), Beschaffungsstrategie, offene Position, Hedging, Mengen- und Lastprognosen, Residuallast, Erzeugungsdaten, Gasspeicher und Portfolio-Bewertung.",
+  "functionDomains": ["forecast", "energy-routing", "gas", "gas-strategy"],
+  "functionServices": [
+    "energy-market",
+    "entsoe",
+    "forecast",
+    "forecast-engine",
+    "forecast-sandbox",
+    "residual-load",
+    "fnav-commercial-hedging",
+    "gas-storage",
+    "nbp-monitor"
+  ],
+  "objectKinds": [
+    {
+      "kind": "market.price",
+      "label": "Marktpreis",
+      "description": "Ein Börsen- oder Großhandelspreis mit Produkt und Zeitraum"
+    },
+    {
+      "kind": "portfolio.position",
+      "label": "Portfolio-Position",
+      "description": "Eine Beschaffungs- oder Absatzposition, offene Menge, Hedge"
+    },
+    {
+      "kind": "forecast.series",
+      "label": "Prognose",
+      "description": "Eine Last-, Mengen- oder Erzeugungsprognose"
+    }
+  ]
+}

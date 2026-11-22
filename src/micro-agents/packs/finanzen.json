@@ -1,0 +1,22 @@
+{
+  "pack": "finanzen",
+  "label": "Finanzen und Controlling",
+  "description": "Finanzen und Controlling: Ergebnis- und Budgetwirkung, Planung, Investitionsfinanzierung, Kennzahlen, steuerliche Datenübergaben und Szenarien zur Unternehmenssteuerung.",
+  "functionDomains": [
+    "finance",
+    "finance-agent",
+    "finance-governance",
+    "investment-finance-governance",
+    "transformation-finance-governance",
+    "tax-finance-data-handover",
+    "management-steering"
+  ],
+  "functionServices": ["finance-agent", "capex-prioritization", "utility-report"],
+  "objectKinds": [
+    {
+      "kind": "finance.budget",
+      "label": "Budget oder Kennzahl",
+      "description": "Eine Budgetposition, Kennzahl oder Ergebnisgröße"
+    }
+  ]
+}
