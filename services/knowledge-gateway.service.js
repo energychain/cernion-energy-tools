@@ -366,7 +366,18 @@ module.exports = {
       ),
       async handler(ctx) {
         const p = await this.identity(ctx, { gateway: true });
-        return this.search(p, ctx.params || {});
+        // Public searches always record their citations (they are resolved later).
+        return this.search(p, { ...(ctx.params || {}), recordCitations: true });
+      },
+    },
+
+    // Internal read-only search (micro-agent packs): the same access checks and projection as
+    // `search`, without storing citation records, so a read-only caller writes nothing.
+    searchReadOnly: {
+      visibility: 'public',
+      async handler(ctx) {
+        const p = await this.identity(ctx, { gateway: true });
+        return this.search(p, { ...(ctx.params || {}), recordCitations: false });
       },
     },
 
@@ -724,7 +735,8 @@ module.exports = {
         if (!kb || !policy.canRead(p, kb) || !doc || !policy.searchable(p, doc)) continue;
         if (doc.active.generation !== hit.chunk.generation) continue;
         const citation = policy.citationId(p.tenantId, hit.chunk._id);
-        await this.rememberCitation(p.tenantId, citation, hit.chunk._id, doc, kb);
+        if (input.recordCitations !== false)
+          await this.rememberCitation(p.tenantId, citation, hit.chunk._id, doc, kb);
         results.push(policy.resultView({ citation, kb, doc, chunk: hit.chunk, score: hit.score }));
       }
       return { queryId, results };

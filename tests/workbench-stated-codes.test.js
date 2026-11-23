@@ -42,3 +42,15 @@ test('an identifier tracked in the case ledger is no unresolved code', () => {
   expect(result.codeResolutions.map((entry) => entry.value)).toEqual(['Z29']);
   expect(withoutCaseIdentifiers(situation, null)).toBe(situation);
 });
+
+test('identifiers the understanding lists and their prefixes are no codes to explain', () => {
+  const { withoutCaseIdentifiers } = require('../src/workbench-understanding');
+  const situation = {
+    codeMeaningQuestion: true,
+    identifiers: [{ value: 'DEMO-DOC-1212' }, { value: 'DEMO-CASE-12' }],
+    codeReferences: [{ value: 'DEMO-DOC-1212' }, { value: 'DEMO' }, { value: 'Z29' }],
+    codeResolutions: [],
+  };
+  const result = withoutCaseIdentifiers(situation, null);
+  expect(result.codeReferences.map((entry) => entry.value)).toEqual(['Z29']);
+});

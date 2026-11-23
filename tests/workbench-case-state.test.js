@@ -126,7 +126,7 @@ test('the answer receives the case-state view and its rules', async () => {
   expect(JSON.parse(llm.generateText.mock.calls[1][0])).not.toHaveProperty('caseState');
 });
 
-test('the reply is revised where the check flags it; drafts are left as written', async () => {
+test('the reply is revised where the check flags it, drafts included', async () => {
   const state = applyCaseUpdate(createCaseState(), emptyDelta);
   const reply = {
     responseText: 'Ursache ist A oder B, das ist geprüft.',
@@ -145,11 +145,24 @@ test('the reply is revised where the check flags it; drafts are left as written'
   expect(JSON.parse(llm.generateStructured.mock.calls[1][1]).reply).toBe(
     'Ursache ist vermutlich A oder B; das ist noch nicht geprüft.'
   );
-  const withDraft = { ...reply, draft: 'Sehr geehrte …' };
-  expect(await workbenchCaseState.reviewTurnReply(withDraft, state)).toBe(withDraft);
+  // A draft is checked as well: a letter asserting liability without evidence is corrected.
+  const withDraft = {
+    responseText: 'Entwurf: Wir nehmen Sie für unsere Erlösausfälle in Haftung.',
+    draft: 'Wir nehmen Sie für unsere Erlösausfälle in Haftung.',
+    questions: [],
+  };
+  llm.generateStructured.mockResolvedValueOnce({
+    issues: [{ kind: 'unbacked_legal_claim', excerpt: 'in Haftung', fix: 'als offene Frage' }],
+    revisedReply:
+      'Entwurf zur Freigabe: Das Ticket ist seit mehreren Tagen offen; ob ein Anspruch besteht, prüft die Vertragsfunktion.',
+  });
+  llm.generateStructured.mockResolvedValueOnce({ statements: [] });
+  expect((await workbenchCaseState.reviewTurnReply(withDraft, state)).responseText).toMatch(
+    /prüft die Vertragsfunktion/u
+  );
   expect(await workbenchCaseState.reviewTurnReply(reply, null)).toBe(reply);
-  // Review and authority gate for the checked reply; none for a draft or without case state.
-  expect(llm.generateStructured).toHaveBeenCalledTimes(2);
+  // Review and authority gate for both replies; none without case state.
+  expect(llm.generateStructured).toHaveBeenCalledTimes(4);
 });
 
 describe('background reflection in the workbench', () => {

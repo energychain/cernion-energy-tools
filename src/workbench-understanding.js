@@ -1892,10 +1892,14 @@ function answerBody({
   return decisive ? [...questionLines, ...body] : [...body, ...questionLines];
 }
 
-function boundaryLine(situation) {
-  return situation.requestedAction?.externalEffect
-    ? `Ich kann das nicht nach außen ausführen. Der Entwurf ist für ${situation.conversationPreferences?.register === 'Sie' ? 'Ihre' : 'deine'} weitere Befassung.`
+// The draft sentence only stands next to a draft (conversation pack: "Der Entwurf ist für deine
+// weitere Befassung" closed answers that contained no draft).
+function boundaryLine(situation, hasDraft = false) {
+  if (!situation.requestedAction?.externalEffect) return '';
+  const draftNote = hasDraft
+    ? ` Der Entwurf ist für ${situation.conversationPreferences?.register === 'Sie' ? 'Ihre' : 'deine'} weitere Befassung.`
     : '';
+  return `Ich kann das nicht nach außen ausführen.${draftNote}`;
 }
 
 function decorateAnswer(
@@ -1932,7 +1936,7 @@ function decorateAnswer(
     lines.unshift(
       'Die Aussage bleibt eine zu prüfende Annahme; eine belegte Fundstelle liegt nicht vor.'
     );
-  if (boundaryLine(situation)) lines.push(boundaryLine(situation));
+  if (boundaryLine(situation)) lines.push(boundaryLine(situation, Boolean(draft)));
   if (situation.requestedAction.externalEffect && explicitlyRequestsSending(message))
     lines.push(
       draft
@@ -2000,11 +2004,21 @@ function withoutStatedCodes(situation, evidence) {
 // every hypothesis about it (REG-01 T03: the open scan assignment vanished). Its use stays bound by
 // the case-state review (unvalidated_identifier).
 function withoutCaseIdentifiers(situation, caseView) {
+  // Identifiers of the case ledger and those the understanding itself lists as identifiers of
+  // the message (conversation pack MICRO-012: a document id, a case id and their prefix "DEMO"
+  // were answered as codes of unknown meaning).
   const tracked = new Set(
-    (caseView?.identifiers || []).flatMap((item) => [item.value, item.candidate]).filter(Boolean)
+    [
+      ...(caseView?.identifiers || []).flatMap((item) => [item.value, item.candidate]),
+      ...(situation.identifiers || []).map((item) => item?.value),
+    ]
+      .filter(Boolean)
+      .map(String)
   );
   if (!tracked.size || !situation.codeReferences?.length) return situation;
-  const kept = (entry) => !tracked.has(entry.value);
+  const partOfIdentifier = (value) =>
+    [...tracked].some((identifier) => identifier !== value && identifier.startsWith(`${value}-`));
+  const kept = (entry) => !tracked.has(entry.value) && !partOfIdentifier(String(entry.value));
   const codeReferences = situation.codeReferences.filter(kept);
   if (codeReferences.length === situation.codeReferences.length) return situation;
   return {
@@ -2357,7 +2371,7 @@ async function answer({
     );
     return {
       responseText: [
-        boundaryLine(situation),
+        boundaryLine(situation, true),
         ...questions
           .filter(
             (item) =>
@@ -2591,6 +2605,10 @@ async function answer({
   );
   if (
     hasReadTool &&
+    // In running case work without a data question, a failed incidental read is no message for
+    // the person (conversation pack: "Die angefragten Daten konnten gerade nicht abgerufen werden"
+    // opening unrelated turns); a data request keeps the honest source-failure line.
+    !(caseView && !situation.dataQuestion?.requested) &&
     !available &&
     !toolEvidence.length &&
     // Only cited evidence can stand in for the missing values; an ungrounded
