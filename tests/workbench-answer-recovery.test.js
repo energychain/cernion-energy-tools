@@ -131,6 +131,28 @@ test('second schema error produces a neutral, LLM-free fallback without stale pr
   expect(reply.evidenceTrace.rawEvidence[0].value).toBe(raw);
 });
 
+test('the fallback never lists working evidence meant only for the answer model', async () => {
+  llm.generateText.mockRejectedValue(new Error('provider unavailable'));
+  const working = {
+    evidenceId: 'MA1',
+    source: 'micro-agent.gamma',
+    retrievalSource: 'micro-agent',
+    title: 'Bereich G',
+    value:
+      'Projekt „Sandbox Q“: Layer keine, 1 Knoten. Gesucht: Preise; Ergebnis: source_unavailable',
+    metadata: { answerOnly: 'micro-agent' },
+  };
+  const reply = await answer({
+    situation,
+    retrieval: { evidence: [working, ...retrieval.evidence] },
+    logger: { warn: jest.fn() },
+  });
+  expect(reply.answerStatus).toBe('fallback');
+  expect(reply.responseText).not.toContain('Sandbox Q');
+  expect(reply.responseText).not.toContain('source_unavailable');
+  expect(reply.responseText).toContain('Gefundene Fundstellen:');
+});
+
 test('provider errors and timeouts never trigger schema repair; skipModel makes no LLM call', async () => {
   llm.generateText.mockRejectedValue(new Error('provider unavailable'));
   await answer({ situation, retrieval, logger: { warn: jest.fn() } });

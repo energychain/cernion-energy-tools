@@ -1312,7 +1312,10 @@ function fallbackAnswer(
   modelFailed = false,
   message = ''
 ) {
-  const findings = prepareAnswerEvidence(evidence, situation, 240).map((hit) =>
+  // Working evidence meant only for the answer model (micro-agent findings, loop and core
+  // material) never reaches the person unprocessed; the fallback lists citable sources only.
+  const citable = evidence.filter((hit) => !hit?.metadata?.answerOnly);
+  const findings = prepareAnswerEvidence(citable, situation, 240).map((hit) =>
     [sourceLine([hit]).replace(/^Quellen: /u, ''), safeSituationText(hit.value, 240)]
       .filter(Boolean)
       .join(': ')

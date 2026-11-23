@@ -20,7 +20,7 @@ const { discoverPacks, packsForKind } = require('./registry');
 const { recognize } = require('./recognizer');
 const { selectPacks } = require('./responsibility');
 const { findingEvidence, CONCERN_KIND } = require('./contract');
-const { detailTokens } = require('./provenance');
+const { detailTokens, plainTokens } = require('./provenance');
 
 const STAGE_TIMEOUT_MS = 6000;
 const MAX_STAGE_ONE = 12;
@@ -75,11 +75,25 @@ function summary(findings) {
 // Conversation scope (CTX-01): a fact from the tenant's own records enters the answer only when
 // the conversation names it (a detail or its value occurs in the message, the attachments or the
 // case) or when the person asks about the company's records; otherwise it is withheld and counted.
+// A detail names a record only when it is long enough to identify one; a short number such as
+// the "1" of "1 Knoten" occurs in almost any conversation and names nothing.
+const IDENTIFYING_LENGTH = 4;
+
 function withinScope(finding, { tenantScope, conversation }) {
   if (tenantScope) return finding;
-  const named = (fact) =>
-    (fact.value && conversation.includes(fact.value)) ||
-    detailTokens(`${fact.value} ${fact.statement}`).some((token) => conversation.includes(token));
+  const said = new Set(plainTokens(conversation));
+  const identifying = (text) => text.length >= IDENTIFYING_LENGTH;
+  const named = (fact) => {
+    const value = String(fact.value ?? '');
+    if (
+      identifying(value) &&
+      (said.has(value) || (value.includes(' ') && conversation.includes(value)))
+    )
+      return true;
+    return detailTokens(`${value} ${fact.statement}`)
+      .filter(identifying)
+      .some((token) => said.has(token));
+  };
   const facts = finding.facts.filter((fact) => !fact.record || named(fact));
   const withheld = finding.facts.length - facts.length;
   return withheld ? { ...finding, facts, withheldRecords: withheld } : finding;
