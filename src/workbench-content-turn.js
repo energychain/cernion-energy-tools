@@ -1913,16 +1913,20 @@ async function runContentTurn(
         );
   result.responseText = guarded.responseText;
   reply.questions = guarded.questions;
-  const knowledgeAsk = await require('./knowledge-elicitation').inlineAsk(ctx, {
-    situation,
-    envelope,
-    pending,
-    reply,
-    result,
-    retrieval,
-    incomingDocuments,
-    meta,
-  });
+  // The cold-start question (#997) belongs to orientation, not to running case work, where it read
+  // as an unrelated aside ("Was gilt bei euch für Sparte?").
+  const knowledgeAsk = caseState?.nextActions?.length
+    ? null
+    : await require('./knowledge-elicitation').inlineAsk(ctx, {
+        situation,
+        envelope,
+        pending,
+        reply,
+        result,
+        retrieval,
+        incomingDocuments,
+        meta,
+      });
   if (knowledgeAsk) {
     result.responseText = `${result.responseText}\n\n${knowledgeAsk.text}`;
     reply.questions = [...reply.questions, knowledgeAsk.question];

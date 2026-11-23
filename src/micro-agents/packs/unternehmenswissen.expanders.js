@@ -13,8 +13,10 @@
  *   access and the relevance filter; `knowledge-rag.query` runs as an internal call
  *   (`$gateway: false`), so no job record is written, and searches the tenant's index namespace.
  *
- * Not used, because they write: `knowledge-gateway.search` stores a citation record per hit
- * (`rememberCitation` → `db.put`); `tenant-memory-policy.list`/`glossary` write an audit entry
+ * - `knowledge-gateway.searchReadOnly`: the released company knowledge bases with the gateway's
+ *   access checks, without the citation records the public `search` stores.
+ *
+ * Not used, because they write: `tenant-memory-policy.list`/`glossary` write an audit entry
  * per call and are restricted to tenant administrators. `company` is a registry of market partner
  * groupings without a tenant field, so it is no source of the tenant's own knowledge.
  *
@@ -29,6 +31,9 @@ const MATRICES = 'vdmi.list';
 const CARDS = 'governance-cards.listCards';
 const KNOWLEDGE = 'personal-agent.collectWorkbenchEvidence';
 const KNOWLEDGE_SOURCE = 'knowledge-rag';
+// Released company knowledge bases, read without citation records (Knowledge Gateway).
+const GATEWAY = 'knowledge-gateway.searchReadOnly';
+const GATEWAY_TOP_K = 5;
 
 const CALL_TIMEOUT_MS = 2500;
 const DEFAULT_BUDGET_MS = 4000;
@@ -196,14 +201,35 @@ async function readKnowledge(ctx, query) {
       },
     }
   );
-  if (!result.ok) return { ...result, hits: [] };
+  const gateway = await readGateway(ctx, concern);
+  if (!result.ok) return { ...result, hits: gateway, ok: gateway.length > 0 };
   const status = (result.value?.trace || []).find((entry) => entry?.source === KNOWLEDGE_SOURCE);
   const hits = (result.value?.evidence || []).filter(
     (hit) => hit && (hit.retrievalSource || KNOWLEDGE_SOURCE) === KNOWLEDGE_SOURCE
   );
   // Skipped (source not released for the tenant), timed out or unavailable: not searched.
   const searched = !status || ['available', 'missing'].includes(status.status);
-  return { ok: searched, hits: searched ? hits : [], error: searched ? null : status.status };
+  return {
+    ok: searched || gateway.length > 0,
+    hits: [...gateway, ...(searched ? hits : [])],
+    error: searched ? null : status.status,
+  };
+}
+
+// The company's released knowledge bases: the gateway checks access before and after retrieval.
+async function readGateway(ctx, query) {
+  const result = await read(ctx, GATEWAY, { question: query, topK: GATEWAY_TOP_K });
+  if (!result.ok) return [];
+  return (result.value?.results || []).map((item) => ({
+    source: text(item.title || 'Wissensbasis'),
+    value: text(item.content),
+    provenanceSource: GATEWAY,
+    metadata: {
+      documentTitle: text(item.title),
+      sectionTitle: text(item.location?.section),
+      hitId: text(item.documentId),
+    },
+  }));
 }
 
 // The collector appends "· Dokumenttyp: …" and "· Score: …" to the passage; the passage is the
@@ -237,7 +263,7 @@ function knowledgeFact(hit, statement, quote, role = 'explanation') {
     role,
     basis: 'source',
     provenance: {
-      source: `${KNOWLEDGE}:${KNOWLEDGE_SOURCE}`,
+      source: hit.provenanceSource || `${KNOWLEDGE}:${KNOWLEDGE_SOURCE}`,
       ref: hitRef(hit),
       quote: clip(quote),
     },

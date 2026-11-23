@@ -107,3 +107,16 @@ describe('task register', () => {
     expect(caseStateView(state).closedTasks).toEqual([]);
   });
 });
+
+test('a task records the turn it last changed', () => {
+  let state = applyCaseUpdate(createCaseState(), { nextActions: [task()] }, { turn: 1 });
+  expect(state.nextActions[0].updatedAtTurn).toBe(1);
+  state = applyCaseUpdate(state, { nextActions: [task({ actionId: 'A1' })] }, { turn: 2 });
+  expect(state.nextActions[0].updatedAtTurn).toBe(1);
+  state = applyCaseUpdate(
+    state,
+    { nextActions: [task({ actionId: 'A1', method: 'Abfrage im Originalindex' })] },
+    { turn: 3 }
+  );
+  expect(state.nextActions[0].updatedAtTurn).toBe(3);
+});

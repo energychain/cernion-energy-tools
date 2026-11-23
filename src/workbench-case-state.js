@@ -108,11 +108,12 @@ async function updateTurnCaseState({ previous, envelope, retrieval, tenantId, lo
   }
 }
 
-// Revises only the passages the check flags; drafts are left as written.
+// Revises only the passages the check flags. Drafts are checked too: a letter to a third party
+// that asserts liability or damage without evidence is the riskiest text an answer can carry
+// (conversation pack MICRO-006, CROSS-004); a fallback is never revised.
 async function reviewTurnReply(reply, caseState, { tenantId, logger, unsourced = [] } = {}) {
   // A fallback is no answer to correct: a revision would turn it into an invented one (TWL).
-  if (!caseState || !reply?.responseText || reply.draft || reply.answerStatus === 'fallback')
-    return reply;
+  if (!caseState || !reply?.responseText || reply.answerStatus === 'fallback') return reply;
   try {
     const review = await reviewAnswer(reply.responseText, caseState, { tenantId, unsourced });
     if (review.issues.length)

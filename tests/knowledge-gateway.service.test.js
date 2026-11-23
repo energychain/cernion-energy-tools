@@ -208,6 +208,17 @@ test('search without selection uses released defaults; results carry stable cita
   const serialized = JSON.stringify(first);
   for (const leak of ['embedding', 'tenant-a', 'tenantId', 'cernion_knowledge_v1', 'chunk:'])
     expect(serialized).not.toContain(leak);
+  // The read-only search returns the same projection and stores no citation record.
+  const service = broker.getLocalService('knowledge-gateway');
+  const put = jest.spyOn(service.db, 'put');
+  const readOnly = await call(
+    'searchReadOnly',
+    { question: 'Welche Frist gilt beim Zählerwechsel?' },
+    BEN
+  );
+  expect(readOnly.results[0]).toMatchObject({ documentId: doc.documentId, title: 'handbuch.md' });
+  expect(put).not.toHaveBeenCalled();
+  put.mockRestore();
   const again = await call('search', { question: 'Welche Frist gilt beim Zählerwechsel?' }, BEN);
   expect(again.results[0].citationId).toBe(hit.citationId);
   expect((await call('citations.get', { citationId: hit.citationId }, BEN)).content).toBe(
