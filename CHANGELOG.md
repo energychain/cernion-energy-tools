@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — A review never drops a section; misattributed sources
+
+- Answer review and authority gate: a revision with fewer Markdown sections than the draft is
+  not used, and the draft stands (REG-01 T15: the handover lost its control date, role boundary
+  and execution status in a revision). A renamed heading still counts.
+- Review: `unsupported_rule` also covers a rule, date or finding attributed to a source, a
+  documented procedure, a method or "the evidence" that does not contain it, or to the wrong
+  section. The correction drops the attribution or names the source that holds it.
+
 ## Unreleased — Company knowledge as a working method; safeguards under pressure
 
 - Micro-agents: the company knowledge pack (`wissen`) is standing and answers every concern
