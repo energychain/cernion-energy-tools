@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — Tenant isolation of ZNP projects and fallback without working evidence
+
+- ZNP: a project without a tenant tag (persisted before tenant tagging) belongs to the default
+  tenant only. `listProjects` and every project action now check the calling tenant
+  (`getTenantProject`); before, untagged projects were visible to every tenant, and the layer,
+  G-factor, assumption, prompt and disturbance actions checked no tenant at all.
+- Micro-agents (CTX-01): a tenant record counts as named in the conversation only by a whole
+  token of at least four characters; a short number such as the "1" of "1 Knoten" no longer
+  admits records.
+- The answer fallback after a model failure lists citable sources only; working evidence meant
+  for the answer model (`metadata.answerOnly`, e.g. micro-agent findings and search logs) is not
+  shown to the person.
+
 ## Unreleased — Micro-agent tier: domain packs for the conversation (off by default)
 
 - New `src/micro-agents/` core:

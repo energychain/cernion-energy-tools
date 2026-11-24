@@ -83,7 +83,7 @@ const { fetchBuildingsForBbox, mapAssetsToBuildings } = require('../src/znp-osm-
 const { detectClusters, computeGFactorAdjustment } = require('../src/znp-clustering-heuristics');
 const { generateStructured, SchemaType } = require('../src/llm-client');
 const { normaliseBoolFlag } = require('../src/redispatch-utils');
-const { getTenantId } = require('../src/tenant-context');
+const { getTenantId, DEFAULT_TENANT } = require('../src/tenant-context');
 const { computePortfolioAssessment } = require('../src/znp-portfolio-logic');
 const { buildGasGraphFromScigrid } = require('../tools/gas_layer_ingest');
 
@@ -483,7 +483,7 @@ module.exports = {
       async handler(ctx) {
         const { projectId, assets } = ctx.params;
         await this.ensureProjectHydrated(projectId);
-        const { graph } = this.getProject(projectId);
+        const { graph } = this.getTenantProject(ctx, projectId);
         let nodesAdded = 0;
         let edgesAdded = 0;
         const skipped = [];
@@ -624,7 +624,7 @@ module.exports = {
       async handler(ctx) {
         const { projectId } = ctx.params;
         await this.ensureProjectHydrated(projectId);
-        const project = this.getProject(projectId); // throws 404 if unknown
+        const project = this.getTenantProject(ctx, projectId); // throws 404 if unknown
         const { graph, bbox } = project;
         const activeGraphs = this.activeGraphs;
         const updateMeta = this.updateProjectMeta.bind(this);
@@ -833,7 +833,7 @@ module.exports = {
         }
 
         await this.ensureProjectHydrated(projectId);
-        const project = this.getProject(projectId); // throws 404 if unknown
+        const project = this.getTenantProject(ctx, projectId); // throws 404 if unknown
         const { graph } = project;
         const updateMeta = this.updateProjectMeta.bind(this);
         const persistGraph = this.persistGraph.bind(this);
@@ -1075,7 +1075,7 @@ module.exports = {
         const { projectId, substationId } = ctx.params;
         const targetLayer = ctx.params.target_layer;
         await this.ensureProjectHydrated(projectId);
-        const project = this.getProject(projectId);
+        const project = this.getTenantProject(ctx, projectId);
         const { graph } = project;
 
         // Validate the target substation node exists in the graph
@@ -1287,8 +1287,7 @@ module.exports = {
         const tenantId = getTenantId(ctx);
 
         await this.ensureProjectHydrated(projectId);
-        const project = this.getProject(projectId);
-        this.requireProjectTenant(project, tenantId, projectId);
+        const project = this.getTenantProject(ctx, projectId);
 
         const metrics = this.collectPortfolioMetrics(project);
         metrics.missingFnavApproval = ctx.params.kaufmaennischeFreigabeFnav !== true;
@@ -1362,11 +1361,9 @@ module.exports = {
       },
       async handler(ctx) {
         const { projectId } = ctx.params;
-        const tenantId = getTenantId(ctx);
         const thresholdKW = ctx.params.thresholdMW * 1000;
         await this.ensureProjectHydrated(projectId);
-        const project = this.getProject(projectId);
-        this.requireProjectTenant(project, tenantId, projectId);
+        const project = this.getTenantProject(ctx, projectId);
 
         const { graph } = project;
         const assumptions = [];
@@ -1789,7 +1786,7 @@ module.exports = {
       async handler(ctx) {
         const { projectId } = ctx.params;
         await this.ensureProjectHydrated(projectId);
-        const project = this.getProject(projectId);
+        const project = this.getTenantProject(ctx, projectId);
         const { graph } = project;
 
         // ── Build graph summary for LLM context ──────────────────────────────
@@ -1931,6 +1928,7 @@ module.exports = {
             projectId,
           });
         }
+        this.requireProjectTenant(project, getTenantId(ctx), projectId);
 
         const novaOption = {
           id: `NOVA-OPT-${Date.now()}`,
@@ -2000,7 +1998,7 @@ module.exports = {
       async handler(ctx) {
         const { projectId, text } = ctx.params;
         await this.ensureProjectHydrated(projectId);
-        const project = this.getProject(projectId);
+        const project = this.getTenantProject(ctx, projectId);
         const { graph } = project;
 
         const id = crypto.randomUUID();
@@ -2110,7 +2108,7 @@ module.exports = {
       async handler(ctx) {
         const { projectId, text } = ctx.params;
         await this.ensureProjectHydrated(projectId);
-        const project = this.getProject(projectId);
+        const project = this.getTenantProject(ctx, projectId);
         const { graph } = project;
 
         const planningAssist = await this.getAgentAnalyzeAssist(ctx, {
@@ -2303,11 +2301,9 @@ module.exports = {
           offset = 0,
           sortByCapacity = 'desc',
         } = ctx.params;
-        const tenantId = getTenantId(ctx);
 
         await this.ensureProjectHydrated(projectId);
-        const project = this.getProject(projectId); // throws 404 if not found
-        this.requireProjectTenant(project, tenantId, projectId);
+        const project = this.getTenantProject(ctx, projectId); // throws 404 if not found
         const { graph } = project;
 
         // Collect all mastr_asset nodes (Layer 0 only — excludes assumptions, buildings, etc.)
@@ -2379,10 +2375,8 @@ module.exports = {
       },
       async handler(ctx) {
         const { projectId } = ctx.params;
-        const tenantId = getTenantId(ctx);
         await this.ensureProjectHydrated(projectId);
-        const project = this.getProject(projectId); // throws 404 if not found
-        this.requireProjectTenant(project, tenantId, projectId);
+        const project = this.getTenantProject(ctx, projectId); // throws 404 if not found
 
         return {
           projectId,
@@ -2420,7 +2414,7 @@ module.exports = {
         const tenantId = getTenantId(ctx);
         const projects = [];
         for (const [projectId, project] of this.activeGraphs.entries()) {
-          if (project.tenantId && project.tenantId !== tenantId) continue;
+          if (!this.projectVisibleTo(project, tenantId)) continue;
           projects.push({
             projectId,
             name: project.name,
@@ -2581,11 +2575,10 @@ module.exports = {
       },
       async handler(ctx) {
         const { id: projectId, commodity, bbox: bboxOverride, source } = ctx.params;
-        const tenantId = ctx.meta?.tenantId || null;
+        const tenantId = getTenantId(ctx);
 
         await this.ensureProjectHydrated(projectId);
-        const parent = this.getProject(projectId);
-        this.requireProjectTenant(parent, tenantId, projectId);
+        const parent = this.getTenantProject(ctx, projectId);
 
         const commodityKey = `${projectId}:${commodity}`;
         const metaDocId = `${DOC_PREFIX_META}${commodityKey}`;
@@ -2826,8 +2819,20 @@ module.exports = {
       return project;
     },
 
+    // A project created before tenant tagging carries no tenantId. It belongs to
+    // the default tenant only; every other tenant must not see or change it.
+    projectVisibleTo(project, tenantId) {
+      return (project.tenantId || DEFAULT_TENANT) === (tenantId || DEFAULT_TENANT);
+    },
+
+    getTenantProject(ctx, projectId) {
+      const project = this.getProject(projectId);
+      this.requireProjectTenant(project, getTenantId(ctx), projectId);
+      return project;
+    },
+
     requireProjectTenant(project, tenantId, projectId) {
-      if (!project.tenantId || project.tenantId === tenantId) {
+      if (this.projectVisibleTo(project, tenantId)) {
         return;
       }
 

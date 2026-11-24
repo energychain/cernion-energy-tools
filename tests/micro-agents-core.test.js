@@ -283,6 +283,14 @@ test('tenant records enter the answer only when the conversation names them or a
                 provenance: { source: 'store-g.list' },
               },
               {
+                // A short number ("1") occurs in the message too, but names no record.
+                statement: 'Projekt „Sandbox Q“: Layer keine, 1 Knoten.',
+                value: 'a1b2c3d4-0000-4000-8000-000000000001',
+                role: 'status',
+                basis: 'source',
+                provenance: { source: 'store-g.list' },
+              },
+              {
                 statement: 'Regel R gilt',
                 role: 'explanation',
                 basis: 'rule',
@@ -299,7 +307,7 @@ test('tenant records enter the answer only when the conversation names them or a
     runMicroAgents({
       broker,
       call: (action, params, opts) => broker.call(action, params, opts),
-      message: 'Wie steht es um P-77?',
+      message: 'Wie steht es um P-77? Es geht um 1 Fall.',
       tenantScope,
       llm: { generateStructured: async () => ({ mentions: [], packs: [] }) },
       resolveFunctions: async () => ({ matches: [{ functionId: 'fn-a', score: 0.9 }] }),
@@ -310,9 +318,9 @@ test('tenant records enter the answer only when the conversation names them or a
     'P-77',
     'Regel R gilt',
   ]);
-  expect(scoped.withheldRecords).toBe(1);
+  expect(scoped.withheldRecords).toBe(2);
   const tenant = await run(true);
-  expect(tenant.findings[0].facts).toHaveLength(3);
+  expect(tenant.findings[0].facts).toHaveLength(4);
   await broker.stop();
 });
 

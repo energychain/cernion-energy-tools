@@ -565,6 +565,44 @@ describe('ZNP Service', () => {
       expect(listB.projects.some((p) => p.projectId === b.projectId)).toBe(true);
       expect(listB.projects.some((p) => p.projectId === a.projectId)).toBe(false);
     });
+
+    it('keeps a project without tenant tag inside the default tenant', async () => {
+      const { projectId } = await broker.call('znp.createProject', {
+        bbox: makeBbox(),
+        name: 'Untagged legacy project',
+      });
+      // Projects persisted before tenant tagging hydrate with tenantId null.
+      broker.getLocalService('znp').activeGraphs.get(projectId).tenantId = null;
+      const other = { meta: { tenantId: 'tenant-b' } };
+
+      const listOther = await broker.call('znp.listProjects', {}, other);
+      expect(listOther.projects.some((p) => p.projectId === projectId)).toBe(false);
+      const listDefault = await broker.call('znp.listProjects', {});
+      expect(listDefault.projects.some((p) => p.projectId === projectId)).toBe(true);
+
+      await expect(broker.call('znp.getProjectAssets', { projectId }, other)).rejects.toMatchObject(
+        { code: 404, type: 'ZNP_PROJECT_NOT_FOUND' }
+      );
+      await expect(
+        broker.call('znp.addLayer0', { projectId, assets: makeAssets(1) }, other)
+      ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
+    });
+
+    it('rejects writes to another tenant project', async () => {
+      const { projectId } = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+      await expect(
+        broker.call(
+          'znp.addLayer0',
+          { projectId, assets: makeAssets(1) },
+          { meta: { tenantId: 'tenant-b' } }
+        )
+      ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
+      expect(broker.getLocalService('znp').activeGraphs.get(projectId).graph.order).toBe(1);
+    });
   });
 
   describe('getProjectMeta', () => {
