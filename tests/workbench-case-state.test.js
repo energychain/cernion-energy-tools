@@ -126,6 +126,34 @@ test('the answer receives the case-state view and its rules', async () => {
   expect(JSON.parse(llm.generateText.mock.calls[1][0])).not.toHaveProperty('caseState');
 });
 
+test('review and authority gate read the company method the answer read whole, nothing else', async () => {
+  const state = applyCaseUpdate(createCaseState(), emptyDelta);
+  const reply = { responseText: 'Die Testprüfung liefert den Nachweis.', draft: '', questions: [] };
+  llm.generateStructured.mockResolvedValueOnce({ issues: [], revisedReply: '' });
+  llm.generateStructured.mockResolvedValueOnce({ statements: [] });
+  await workbenchCaseState.reviewTurnReply(reply, state, {
+    evidence: [
+      {
+        title: 'Unternehmenswissen',
+        value: 'Rollenfamilien: Testprüfung; Testfreigabe.',
+        metadata: { keepWhole: true },
+      },
+      { title: 'Archiv', value: 'Ein gewöhnlicher Treffer.', metadata: {} },
+    ],
+  });
+  for (const [, prompt] of llm.generateStructured.mock.calls.slice(-2)) {
+    const turn = JSON.parse(prompt).evidence.filter((item) => item.id.startsWith('w'));
+    expect(turn).toEqual([
+      {
+        id: 'w1',
+        kind: 'source_observed',
+        source: 'Unternehmenswissen',
+        content: 'Rollenfamilien: Testprüfung; Testfreigabe.',
+      },
+    ]);
+  }
+});
+
 test('the reply is revised where the check flags it, drafts included', async () => {
   const state = applyCaseUpdate(createCaseState(), emptyDelta);
   const reply = {

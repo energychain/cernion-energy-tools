@@ -49,6 +49,9 @@ function createDomainPackMixin({
   expanders = {},
   playbooks = [],
   recordSources = [],
+  // A standing pack answers every concern (e.g. the company's own knowledge), besides the packs
+  // the responsibility step selects; it takes none of their places.
+  standing = false,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 }) {
   if (!pack || !label || !description)
@@ -68,6 +71,7 @@ function createDomainPackMixin({
     objectKinds: kinds,
     expands: handled,
     concern: Boolean(expanders[CONCERN_KIND]),
+    standing: Boolean(standing && expanders[CONCERN_KIND]),
     recordSources,
   };
   return {

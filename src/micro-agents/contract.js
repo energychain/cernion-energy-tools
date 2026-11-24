@@ -46,7 +46,11 @@ const LIMITS = {
   openQuestions: 4,
   text: 600,
   quote: 300,
+  // The wording of a passage the answer must read as a whole (a section of a company method).
+  passage: 6000,
 };
+// Characters of passages per finding: a finding carrying passages is kept whole by the answer.
+const PASSAGE_BUDGET = 10000;
 
 const text = (value, max = LIMITS.text) => String(value ?? '').slice(0, max);
 const list = (value) => (Array.isArray(value) ? value : []);
@@ -104,6 +108,7 @@ function normalizeFinding(raw = {}, { pack, objectId } = {}) {
         ref: text(fact.provenance?.ref, 200),
         quote: text(fact.provenance?.quote, LIMITS.quote),
       },
+      ...(text(fact.passage).trim() ? { passage: text(fact.passage, LIMITS.passage) } : {}),
     });
   }
   const negatives = [];
@@ -160,7 +165,8 @@ function factLine(fact) {
   const unit = fact.unit ? ' ' + fact.unit : '';
   const value = fact.value ? ' [' + fact.value + unit + ']' : '';
   const ref = fact.provenance.ref ? ', ' + fact.provenance.ref : '';
-  return `${fact.statement}${value} (Herkunft: ${fact.provenance.source}${ref}; Grundlage: ${fact.basis})`;
+  const line = `${fact.statement}${value} (Herkunft: ${fact.provenance.source}${ref}; Grundlage: ${fact.basis})`;
+  return fact.passage ? `${line}\nWortlaut:\n${fact.passage}` : line;
 }
 
 // A finding as answer evidence: one hit per finding, its facts with provenance as text the answer
@@ -180,8 +186,21 @@ function findingEvidence(findings, { packLabels = {} } = {}) {
   return unique
     .filter((finding) => finding.facts.length || finding.negatives.length)
     .map((finding, index) => {
+      // Passages beyond the budget of the finding are left out; their facts stay as lines.
+      let budget = PASSAGE_BUDGET;
+      const facts = finding.facts.map((fact) => {
+        if (!fact.passage) return fact;
+        if (fact.passage.length > budget) {
+          const line = { ...fact };
+          delete line.passage;
+          return line;
+        }
+        budget -= fact.passage.length;
+        return fact;
+      });
+      const keepWhole = facts.some((fact) => fact.passage);
       const lines = [
-        ...finding.facts.map(factLine),
+        ...facts.map(factLine),
         ...finding.negatives.map(
           (negative) =>
             `Gesucht: ${negative.searched}; Reichweite: ${negative.scope}; Ergebnis: ${negative.result}`
@@ -201,6 +220,7 @@ function findingEvidence(findings, { packLabels = {} } = {}) {
           facts: finding.facts,
           negatives: finding.negatives,
           relations: finding.relations,
+          ...(keepWhole ? { keepWhole: true } : {}),
         },
       };
     });
@@ -213,6 +233,7 @@ module.exports = {
   ORIGINS,
   CONCERN_KIND,
   LIMITS,
+  PASSAGE_BUDGET,
   normalizeObject,
   normalizeFinding,
   findingEvidence,

@@ -374,3 +374,40 @@ test('gateway tokens reach only the read side; the tool document names cernion_k
   );
   expect(JSON.stringify(document)).not.toMatch(/tenantId|token/i);
 });
+
+test('the internal read-only search can return whole sections, one result per section', async () => {
+  const kb = await call('bases.create', { name: 'Methode', visibility: 'tenant' }, ANNA);
+  const steps = Array.from(
+    { length: 14 },
+    (_, index) => `Station ${index + 1}: Die Frist im Zählerwechsel wird mit Nachweis geprüft.`
+  ).join('\n\n');
+  const card = `# Laufkarte Zählerwechsel\n\n${steps}\n\nGrenze: keine Abrechnung ohne Nachweis.\n\n# Störung\n\nEine Störung im Netz wird sofort gemeldet.`;
+  await upload(ANNA, kb.knowledgeBaseId, 'methode.md', card);
+  await settle();
+  const question = {
+    question: 'Frist im Zählerwechsel',
+    topK: 5,
+    knowledgeBaseIds: [kb.knowledgeBaseId],
+  };
+  const chunked = await call('searchReadOnly', question, ANNA);
+  const sameSection = chunked.results.filter(
+    (row) => row.location.section === 'Laufkarte Zählerwechsel'
+  );
+  expect(sameSection.length).toBeGreaterThan(1);
+  expect(sameSection.every((row) => row.content.length < card.length)).toBe(true);
+
+  const whole = await call('searchReadOnly', { ...question, wholeSections: true }, ANNA);
+  const sections = whole.results.map((row) => row.location.section);
+  expect(new Set(sections).size).toBe(sections.length);
+  const section = whole.results.find((row) => row.location.section === 'Laufkarte Zählerwechsel');
+  expect(section.content).toContain('Station 1:');
+  expect(section.content).toContain('Station 14:');
+  expect(section.content).toContain('Grenze: keine Abrechnung ohne Nachweis.');
+  expect(section.content).not.toContain('Eine Störung im Netz');
+
+  // The public search keeps its chunk projection.
+  const rest = await call('search', { ...question, wholeSections: true }, ANNA);
+  expect(
+    rest.results.filter((row) => row.location.section === 'Laufkarte Zählerwechsel').length
+  ).toBe(sameSection.length);
+});

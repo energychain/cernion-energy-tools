@@ -1808,6 +1808,7 @@ async function runContentTurn(
       tenantId: p.tenantId,
       logger: service.logger,
       unsourced,
+      evidence: retrieval.evidence,
     });
     if (suggestComparable && !reply.responseText.includes(foreignContextGate.SUGGESTION))
       reply = {

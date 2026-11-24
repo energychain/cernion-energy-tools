@@ -9,7 +9,7 @@ const TENANT = 'tenant-test-wissen';
 const FOREIGN = 'tenant-test-foreign';
 const meta = { tenantId: TENANT };
 const calls = [];
-const state = { slowKnowledge: false, knowledgeStatus: 'available', timers: [] };
+const state = { slowKnowledge: false, knowledgeStatus: 'available', timers: [], sections: [] };
 
 const matrices = [
   {
@@ -112,6 +112,10 @@ function stubs() {
         search() {
           throw new Error('knowledge-gateway.search writes citations and must not be called');
         },
+        searchReadOnly(ctx) {
+          record(ctx);
+          return { results: state.sections };
+        },
       },
     },
     {
@@ -169,6 +173,45 @@ describe('micro-agent pack wissen', () => {
       { object, context, ...(options.budget ? { budget: options.budget } : {}) },
       { meta: options.meta || meta }
     );
+
+  test('the concern reads whole sections of the company knowledge in their wording', async () => {
+    const card = [
+      '### TEST-LK-1 Prüfkarte',
+      '**Rollenfamilien:** Testprüfung; Testfreigabe',
+      '**Stationen:** S1 Signal; S2 Prüfung; S3 Freigabe',
+      'Grenze: keine Freigabe ohne Nachweis.',
+    ].join('\n');
+    state.sections = [
+      {
+        documentId: 'doc-test-1',
+        title: 'TEST-METHODE.md',
+        content: card,
+        location: { chunkIndex: 4, section: 'TEST-LK-1 Prüfkarte' },
+      },
+    ];
+    const finding = await expand({ kind: 'concern', value: 'Antrag ohne Nachweis' });
+    state.sections = [];
+    const queries = calls
+      .filter((call) => call.action === 'knowledge-gateway.searchReadOnly')
+      .map((call) => call.params);
+    expect(queries).toHaveLength(2);
+    expect(queries.every((query) => query.wholeSections === true)).toBe(true);
+    expect(queries[0].question).toBe('Antrag ohne Nachweis');
+    expect(queries[1].question).toContain('Antrag ohne Nachweis');
+    // Both queries return the same section: it is read once, whole.
+    const section = finding.facts.filter(
+      (fact) => fact.provenance.source === 'knowledge-gateway.searchReadOnly'
+    );
+    expect(section).toHaveLength(1);
+    expect(section[0].passage).toBe(card);
+    expect(section[0].statement).toContain('Abschnitt „TEST-LK-1 Prüfkarte“');
+    expect(section[0].provenance.source).toBe('knowledge-gateway.searchReadOnly');
+  });
+
+  test('the knowledge pack is standing: it answers every concern', async () => {
+    const manifest = await broker.call('micro-agent.wissen.describe');
+    expect(manifest.standing).toBe(true);
+  });
 
   test('describe lists the declared kinds and the concern', async () => {
     const manifest = await broker.call('micro-agent.wissen.describe');
@@ -243,6 +286,7 @@ describe('micro-agent pack wissen', () => {
     const after = await broker.call('test-parent.run', {}, { meta });
     expect([...new Set(calls.map((call) => call.action))].sort()).toEqual([
       'governance-cards.listCards',
+      'knowledge-gateway.searchReadOnly',
       'personal-agent.collectWorkbenchEvidence',
       'vdmi.list',
     ]);

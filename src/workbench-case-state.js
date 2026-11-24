@@ -111,20 +111,39 @@ async function updateTurnCaseState({ previous, envelope, retrieval, tenantId, lo
 // Revises only the passages the check flags. Drafts are checked too: a letter to a third party
 // that asserts liability or damage without evidence is the riskiest text an answer can carry
 // (conversation pack MICRO-006, CROSS-004); a fallback is never revised.
-async function reviewTurnReply(reply, caseState, { tenantId, logger, unsourced = [] } = {}) {
+// Evidence of the turn the answer read whole (keepWhole, e.g. a company method from the knowledge
+// pack): the review and the authority gate see it, since the case update ran without it.
+function wholeTurnEvidence(evidence = []) {
+  return (Array.isArray(evidence) ? evidence : [])
+    .filter((hit) => hit?.metadata?.keepWhole === true && String(hit.value || '').trim())
+    .map((hit) => ({ source: hit.title || hit.source, content: String(hit.value) }));
+}
+
+async function reviewTurnReply(
+  reply,
+  caseState,
+  { tenantId, logger, unsourced = [], evidence = [] } = {}
+) {
   // A fallback is no answer to correct: a revision would turn it into an invented one (TWL).
   if (!caseState || !reply?.responseText || reply.answerStatus === 'fallback') return reply;
+  const turnEvidence = wholeTurnEvidence(evidence);
   try {
-    const review = await reviewAnswer(reply.responseText, caseState, { tenantId, unsourced });
+    const review = await reviewAnswer(reply.responseText, caseState, {
+      tenantId,
+      unsourced,
+      turnEvidence,
+    });
     if (review.issues.length)
       logger?.info?.(
         `Workbench case state answer review: ${review.issues.map((issue) => issue.kind).join(', ')}${review.revised ? ' (revised)' : ''}`
       );
     // Authority gate (DEV-UAT-003) on the reviewed text: unbacked governance becomes an option.
-    const gate = await authorityGate(review.reply, caseState, { tenantId }).catch((error) => {
-      logger?.warn?.(`Workbench authority gate failed: ${error.message}`);
-      return { reply: review.reply, unbacked: [], revised: false };
-    });
+    const gate = await authorityGate(review.reply, caseState, { tenantId, turnEvidence }).catch(
+      (error) => {
+        logger?.warn?.(`Workbench authority gate failed: ${error.message}`);
+        return { reply: review.reply, unbacked: [], revised: false };
+      }
+    );
     if (gate.unbacked.length)
       logger?.info?.('Workbench authority gate', {
         unbacked: gate.unbacked.map((row) => row.subject),
