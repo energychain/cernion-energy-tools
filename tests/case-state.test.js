@@ -989,6 +989,65 @@ describe('recommendation ledger (DEV-UAT-002)', () => {
   });
 });
 
+describe('a revision never removes a section of the draft (REG-01 T15)', () => {
+  const { reviewAnswer, authorityGate } = require('../src/case-state');
+  const state = applyCaseUpdate(createCaseState(), {
+    evidence: [report('n1', 'Übergabe bitte vorbereiten.')],
+  });
+  const draft = [
+    '## Stand',
+    'Der Vorgang bleibt offen, Kontrolltermin am 20.05.2026.',
+    '## Kontrollbefassung',
+    'Kontrolltermin: festzulegen durch die Fallkoordination.',
+    '## Ausführungsstatus',
+    'Nichts wurde ausgeführt.',
+  ].join('\n');
+  const shortened = [
+    '## Stand',
+    'Der Vorgang bleibt offen, ein Kontrolltermin ist noch festzulegen.',
+    '## Kontrollbefassung',
+    'Kontrolltermin: festzulegen durch die Fallkoordination, nach den Bearbeitungszeiten.',
+  ].join('\n');
+  const renamed = draft
+    .replace('## Ausführungsstatus', '## Tatsächlicher Ausführungsstatus')
+    .replace('am 20.05.2026', 'noch festzulegen');
+
+  test('the review keeps the draft when its revision loses a section, not when it renames one', async () => {
+    const issue = { kind: 'invented_specific', excerpt: '20.05.2026', fix: '' };
+    const lost = await reviewAnswer(draft, state, {
+      llm: {
+        generateStructured: jest
+          .fn()
+          .mockResolvedValue({ issues: [issue], revisedReply: shortened }),
+      },
+    });
+    expect(lost).toMatchObject({ revised: false, reply: draft });
+    const kept = await reviewAnswer(draft, state, {
+      llm: {
+        generateStructured: jest.fn().mockResolvedValue({ issues: [issue], revisedReply: renamed }),
+      },
+    });
+    expect(kept).toMatchObject({ revised: true, reply: renamed });
+  });
+
+  test('the authority gate keeps the draft when its rewrite loses a section', async () => {
+    const client = {
+      generateStructured: jest
+        .fn()
+        .mockResolvedValueOnce({
+          statements: [
+            { excerpt: 'Fallkoordination', subject: 'role', presentedAs: 'assigned', backing: '' },
+          ],
+        })
+        .mockResolvedValueOnce({ revisedReply: shortened }),
+    };
+    expect(await authorityGate(draft, state, { llm: client })).toMatchObject({
+      revised: false,
+      reply: draft,
+    });
+  });
+});
+
 describe('authority gate (DEV-UAT-003)', () => {
   const { authorityGate } = require('../src/case-state');
   const state = applyCaseUpdate(createCaseState(), {
