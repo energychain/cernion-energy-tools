@@ -19,7 +19,9 @@ areas.
    always an object.
 2. **Responsibility** (`responsibility.js`). Packs are scored against the function model
    (`resolveFunctionsHybrid`, graded) and against the recognized objects. At most three packs are
-   selected, and every recognized object is expanded by the packs that declare its kind.
+   selected, and every recognized object is expanded by the packs that declare its kind. A
+   standing pack (`standing: true`, the company's own knowledge) expands every concern in
+   addition and takes none of the three places.
 3. **Expansion** (`orchestrator.js`).
    - Stage 1: objects and concern, run in parallel through `broker.call` with timeouts.
    - Stage 2: follow-up objects from the packs' playbooks (`plan`).
@@ -28,7 +30,10 @@ areas.
    the concern.
 5. **Evidence.** Findings become answer-only evidence (`retrievalSource: 'micro-agent'`). It
    passes the same final scope, cross-case and data gate as the knowledge loop
-   (`admitLoopEvidence`).
+   (`admitLoopEvidence`). A finding whose facts carry a `passage` is marked `keepWhole`: the
+   answer receives it whole (up to 11,000 characters, outside the passage window), and the answer
+   review and the authority gate read it as turn evidence, since the case update runs in parallel
+   without it.
 
 ## Contract (`contract.js`)
 
@@ -36,7 +41,7 @@ An expander returns a finding:
 
 ```js
 {
-  facts: [{ statement, value?, unit?, role, basis, provenance: { source, ref?, quote? } }],
+  facts: [{ statement, value?, unit?, role, basis, provenance: { source, ref?, quote? }, passage? }],
   relations: [{ from, rel, to }],             // answers | refers_to | belongs_to | expects | supersedes | affects
   expectations: [{ what, dueFactId?, basis }], // a due date only as a reference to an accepted fact
   negatives: [{ searched, scope, result }],    // a negative result always with its scope
@@ -51,6 +56,10 @@ The contract refuses:
 - a `deadline` fact whose basis is not `rule`, `source`, `person` or `case`, so the model can
   never set a deadline;
 - a negative result without `searched` and `scope`.
+
+`passage` is the literal wording a fact rests on when the answer must read it as a whole, such as
+a section of a company method with its stations, role families and artefacts (up to 6,000
+characters, at most 10,000 per finding). The evidence line shows it after `Wortlaut:`.
 
 ## Writing a pack
 

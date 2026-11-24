@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased — Company knowledge as a working method; safeguards under pressure
+
+- Micro-agents: the company knowledge pack (`wissen`) is standing and answers every concern
+  besides the selected packs. It reads the released knowledge bases through
+  `knowledge-gateway.searchReadOnly` with the new option `wholeSections`: a hit carries its whole
+  document section (one result per section, up to 6,000 characters), for the concern and for the
+  company's way of working on it.
+- Contract: a fact may carry its literal `passage`. The answer receives it after `Wortlaut:`,
+  and a finding with passages is kept whole (`keepWhole`) instead of being cut to the
+  1,500-character window. Before, only the document title of a knowledge hit reached the answer.
+- Roles: a role family that a company method in the evidence names for a task is used with its
+  contribution and source; the local assignment stays open. Answer review and authority gate now
+  read this turn evidence, so such a role family is no longer rewritten as an unbacked option.
+- Case rules and review: an instruction to drop a required check, documentation, learning or
+  approval step is an open decision, not a task (`skipped_safeguard`). A link the person did not
+  state, an example from a general source or an unresolved abbreviation is not proof
+  (`unbacked_inference`). A draft claims no check that did not happen (`claimed_execution`), and
+  a letter to third parties holds no claim and no internal note (`unbacked_legal_claim`).
+
 ## Unreleased — Tenant isolation of ZNP projects and fallback without working evidence
 
 - ZNP: a project without a tenant tag (persisted before tenant tagging) belongs to the default

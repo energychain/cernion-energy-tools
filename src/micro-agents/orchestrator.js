@@ -104,8 +104,9 @@ function stageOneJobs({ objects, selection, byPack, packs, job }) {
   return objects.flatMap((object) => {
     if (object.kind !== CONCERN_KIND)
       return packsForKind(packs, object.kind).map((pack) => job(pack, object));
-    return selection.selected
-      .map((row) => byPack.get(row.pack))
+    const selected = selection.selected.map((row) => byPack.get(row.pack));
+    const standing = packs.filter((pack) => pack.standing && !selected.includes(pack));
+    return [...selected, ...standing]
       .filter((pack) => pack?.concern)
       .map((pack) => job(pack, object));
   });

@@ -341,3 +341,107 @@ test('graded area relevance selects the answering area and names touched ones as
   expect(result.consequences.map((row) => row.pack)).toContain('beta');
   expect(result.consequences.map((row) => row.pack)).not.toContain('gamma');
 });
+
+test('a fact passage reaches the answer in its wording, within the budget of its finding', () => {
+  const { findingEvidence, LIMITS, PASSAGE_BUDGET } = require('../src/micro-agents/contract');
+  const { finding } = normalizeFinding(
+    {
+      facts: [
+        {
+          statement: 'Arbeitsweise zur Frage: Abschnitt „Prüfkarte“.',
+          role: 'explanation',
+          basis: 'source',
+          provenance: { source: 'store-k.read', quote: 'Prüfkarte' },
+          passage: 'Stationen: S1 Signal; S2 Prüfung. Rollenfamilien: Testprüfung.',
+        },
+        {
+          statement: 'Zweiter Abschnitt.',
+          role: 'explanation',
+          basis: 'source',
+          provenance: { source: 'store-k.read' },
+          passage: 'a'.repeat(LIMITS.passage),
+        },
+        {
+          statement: 'Dritter Abschnitt.',
+          role: 'explanation',
+          basis: 'source',
+          provenance: { source: 'store-k.read' },
+          passage: 'b'.repeat(PASSAGE_BUDGET - LIMITS.passage),
+        },
+      ],
+    },
+    { pack: 'gamma', objectId: 'O1' }
+  );
+  const [hit] = findingEvidence([{ ...finding, pack: 'gamma', objectId: 'O1' }]);
+  expect(hit.value).toContain('Wortlaut:\nStationen: S1 Signal; S2 Prüfung.');
+  expect(hit.value).toContain('a'.repeat(100));
+  // The third passage exceeds what is left of the budget: its fact stays, its wording not.
+  expect(hit.value).toContain('Dritter Abschnitt.');
+  expect(hit.value).not.toContain('b'.repeat(100));
+  expect(hit.metadata.keepWhole).toBe(true);
+});
+
+test('a standing pack expands the concern without taking a place of the selected packs', async () => {
+  const broker = new ServiceBroker({ logger: false, transporter: null });
+  const concern = (pack) => async () => ({
+    facts: [
+      {
+        statement: `${pack} beantwortet das Anliegen.`,
+        role: 'explanation',
+        basis: 'source',
+        provenance: { source: `${pack}.read` },
+      },
+    ],
+  });
+  broker.createService({
+    name: 'micro-agent.delta',
+    mixins: [
+      createDomainPackMixin({
+        pack: 'delta',
+        label: 'Bereich D',
+        description: 'Synthetischer Bereich D',
+        functionDomains: ['area-c'],
+        standing: true,
+        expanders: { concern: concern('delta') },
+      }),
+    ],
+  });
+  broker.createService({
+    name: 'micro-agent.epsilon',
+    mixins: [
+      createDomainPackMixin({
+        pack: 'epsilon',
+        label: 'Bereich E',
+        description: 'Synthetischer Bereich E',
+        functionDomains: ['area-c'],
+        expanders: { concern: concern('epsilon') },
+      }),
+    ],
+  });
+  await broker.start();
+  const result = await runMicroAgents({
+    broker,
+    call: (action, params, opts) => broker.call(action, params, opts),
+    message: 'Ein allgemeines Anliegen ohne Bereich.',
+    llm: { generateStructured: async () => ({ mentions: [], packs: [] }) },
+    resolveFunctions: async () => ({ matches: [] }),
+    options: { registry: { model }, responsibility: { modelOptions: { model } } },
+  });
+  expect(result.selection.selected).toEqual([]);
+  expect(result.findings.map((finding) => finding.pack)).toEqual(['delta']);
+  await broker.stop();
+});
+
+test('answer evidence keeps material marked whole beyond the passage window', () => {
+  const { prepareAnswerEvidence } = require('../src/workbench-answer-evidence');
+  const method = 'Station S1. '.repeat(400);
+  const prepared = prepareAnswerEvidence(
+    [
+      { source: 'micro-agent.wissen', value: method, metadata: { keepWhole: true } },
+      { source: 'archiv', value: 'Station S1. '.repeat(400) + 'Ende' },
+    ],
+    { concern: 'Station', retrievalTerms: [] }
+  );
+  expect(prepared[0].value).toBe(method);
+  expect(prepared[1].value.length).toBeLessThanOrEqual(1500);
+});

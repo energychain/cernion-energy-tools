@@ -2,6 +2,7 @@
   "pack": "wissen",
   "label": "Unternehmenswissen",
   "description": "Freigegebenes Wissen des eigenen Unternehmens: Prozessbeschreibungen, Zuständigkeiten und Rollen, Protokolle und Beschlüsse, frühere Fälle, interne Regeln und Glossar.",
+  "standing": true,
   "functionDomains": [
     "governance",
     "governance-management",

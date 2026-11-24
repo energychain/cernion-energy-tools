@@ -33,7 +33,17 @@ const KNOWLEDGE = 'personal-agent.collectWorkbenchEvidence';
 const KNOWLEDGE_SOURCE = 'knowledge-rag';
 // Released company knowledge bases, read without citation records (Knowledge Gateway).
 const GATEWAY = 'knowledge-gateway.searchReadOnly';
-const GATEWAY_TOP_K = 5;
+const GATEWAY_TOP_K = 4;
+// Passages of the company's knowledge reach the answer in their wording: a gateway hit as its
+// whole section (a process card with stations, roles and artefacts is read as one), other hits
+// as their passage.
+const SECTION_FACTS = 3;
+const PASSAGE_MAX = 6000;
+const HIT_PASSAGE_MAX = 1500;
+// The second query asks for the company's way of working on such a case, so a general method
+// (role projection, evidence and approval rules) is found next to the case-specific card.
+const METHOD_QUERY = (concern) =>
+  `Wie arbeiten wir bei einem solchen Fall: Vorgehen, Stationen, Rollen und Zuständigkeiten, Nachweise und Freigabegrenzen. Fall: ${concern}`;
 
 const CALL_TIMEOUT_MS = 2500;
 const DEFAULT_BUDGET_MS = 4000;
@@ -189,19 +199,21 @@ async function readCards(ctx, tenant) {
 // is not reused, since it answers another query.
 async function readKnowledge(ctx, query) {
   const concern = clip(query, 600);
-  const result = await read(
-    ctx,
-    KNOWLEDGE,
-    { situation: { concern, situation: '', hypotheses: [], retrievalTerms: [concern] } },
-    {
-      meta: {
-        workbenchEvidenceSources: [KNOWLEDGE_SOURCE],
-        workbenchPrefetchedKnowledge: null,
-        workbenchToolsManaged: true,
-      },
-    }
-  );
-  const gateway = await readGateway(ctx, concern);
+  const [result, gateway] = await Promise.all([
+    read(
+      ctx,
+      KNOWLEDGE,
+      { situation: { concern, situation: '', hypotheses: [], retrievalTerms: [concern] } },
+      {
+        meta: {
+          workbenchEvidenceSources: [KNOWLEDGE_SOURCE],
+          workbenchPrefetchedKnowledge: null,
+          workbenchToolsManaged: true,
+        },
+      }
+    ),
+    readGateways(ctx, concern),
+  ]);
   if (!result.ok) return { ...result, hits: gateway, ok: gateway.length > 0 };
   const status = (result.value?.trace || []).find((entry) => entry?.source === KNOWLEDGE_SOURCE);
   const hits = (result.value?.evidence || []).filter(
@@ -217,10 +229,34 @@ async function readKnowledge(ctx, query) {
 }
 
 // The company's released knowledge bases: the gateway checks access before and after retrieval.
+// The concern and the way of working on it, each section once.
+async function readGateways(ctx, concern) {
+  const lists = await Promise.all([
+    readGateway(ctx, concern),
+    readGateway(ctx, METHOD_QUERY(concern)),
+  ]);
+  // Interleaved, so the best hit of the method query is not crowded out by the concern's.
+  const interleaved = [];
+  for (let index = 0; index < GATEWAY_TOP_K; index++)
+    for (const list of lists) if (list[index]) interleaved.push(list[index]);
+  const seen = new Set();
+  return interleaved.filter((hit) => {
+    const key = `${hit.metadata.hitId}\u0000${hit.metadata.sectionTitle || hit.value}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 async function readGateway(ctx, query) {
-  const result = await read(ctx, GATEWAY, { question: query, topK: GATEWAY_TOP_K });
+  const result = await read(ctx, GATEWAY, {
+    question: query,
+    topK: GATEWAY_TOP_K,
+    wholeSections: true,
+  });
   if (!result.ok) return [];
   return (result.value?.results || []).map((item) => ({
+    section: Boolean(item.location?.section),
     source: text(item.title || 'Wissensbasis'),
     value: text(item.content),
     provenanceSource: GATEWAY,
@@ -256,7 +292,7 @@ function hitRef(hit) {
     .slice(0, 200);
 }
 
-function knowledgeFact(hit, statement, quote, role = 'explanation') {
+function knowledgeFact(hit, statement, quote, role = 'explanation', passage = '') {
   return {
     statement,
     value: hitTitle(hit),
@@ -267,6 +303,7 @@ function knowledgeFact(hit, statement, quote, role = 'explanation') {
       ref: hitRef(hit),
       quote: clip(quote),
     },
+    ...(passage ? { passage } : {}),
   };
 }
 
@@ -600,19 +637,25 @@ async function expandConcern(ctx, object, context = {}) {
   const consequence = text(context.consequenceOf).trim();
   const query = [object.value, consequence].filter(Boolean).join(' ');
   const knowledge = await readKnowledge(ctx, query);
-  const facts = knowledge.hits
-    .map((hit) => ({ hit, quote: clip(hitText(hit)) }))
-    .filter((row) => row.quote)
-    .slice(0, CONCERN_FACTS)
-    .map(({ hit, quote }) =>
-      knowledgeFact(
+  const sections = knowledge.hits.filter((hit) => hit.section).slice(0, SECTION_FACTS);
+  const passages = knowledge.hits.filter((hit) => !hit.section).slice(0, CONCERN_FACTS);
+  const facts = [...sections, ...passages]
+    .map((hit) => ({ hit, passage: hitText(hit) }))
+    .filter((row) => row.passage)
+    .map(({ hit, passage }) => {
+      const where = hit.section
+        ? `Abschnitt „${hit.metadata.sectionTitle}“ aus „${hitTitle(hit)}“`
+        : `„${hitTitle(hit)}“`;
+      return knowledgeFact(
         hit,
         consequence
-          ? `Unternehmenswissen zur Folge aus einem anderen Bereich: „${hitTitle(hit)}“.`
-          : `Unternehmenswissen zur Frage: „${hitTitle(hit)}“.`,
-        quote
-      )
-    );
+          ? `Unternehmenswissen zur Folge aus einem anderen Bereich: ${where}.`
+          : `Unternehmenswissen zur Frage: ${where}.`,
+        clip(passage),
+        'explanation',
+        passage.slice(0, hit.section ? PASSAGE_MAX : HIT_PASSAGE_MAX)
+      );
+    });
   return {
     facts,
     relations: facts.map((fact) => ({ from: 'concern', rel: 'answers', to: fact.value })),

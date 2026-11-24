@@ -1072,6 +1072,71 @@ describe('authority gate (DEV-UAT-003)', () => {
     expect(client.generateStructured).toHaveBeenCalledTimes(1);
   });
 
+  test('a role family of a company method read this turn backs a statement', async () => {
+    const method = {
+      source: 'Unternehmenswissen',
+      content: 'Rollenfamilien: Testprüfung; Testfreigabe. Grenze: keine Freigabe ohne Nachweis.',
+    };
+    const client = llm(
+      [
+        {
+          excerpt: 'Die Steuerungsrunde gibt frei.',
+          subject: 'role',
+          presentedAs: 'assigned',
+          backing: 'w1',
+        },
+      ],
+      'x'
+    );
+    const result = await authorityGate(reply, state, { llm: client, turnEvidence: [method] });
+    expect(result).toMatchObject({ unbacked: [], revised: false, reply });
+    const asked = JSON.parse(client.generateStructured.mock.calls[0][1]);
+    expect(asked.evidence.at(-1)).toMatchObject({ id: 'w1', content: method.content });
+    // Without the method the same id backs nothing.
+    const without = llm(
+      [
+        {
+          excerpt: 'Die Steuerungsrunde gibt frei.',
+          subject: 'role',
+          presentedAs: 'assigned',
+          backing: 'w1',
+        },
+      ],
+      'Als Option könnte eine Steuerungsrunde freigeben.\n\nDu leitest die Netzwirtschaft.\n\nAls Option eine Koordination.'
+    );
+    expect((await authorityGate(reply, state, { llm: without })).unbacked).toHaveLength(1);
+  });
+
+  test('the review knows dropped safeguards and unbacked inferences and sees the method', async () => {
+    const { reviewAnswer } = require('../src/case-state');
+    const draft =
+      'Auftrag: Vorgang ohne Ursachenanalyse schließen. Belegt ist die Ursache durch deine Angabe.';
+    const revised =
+      'Den Abschluss ohne Ursachenanalyse entscheidet die befugte Funktion; die Analyse bleibt offen. Die Ursache ist eine Hypothese.';
+    const client = {
+      generateStructured: jest.fn().mockResolvedValue({
+        issues: [
+          { kind: 'skipped_safeguard', excerpt: 'Vorgang ohne Ursachenanalyse schließen', fix: '' },
+          { kind: 'unbacked_inference', excerpt: 'Belegt ist die Ursache', fix: '' },
+        ],
+        revisedReply: revised,
+      }),
+    };
+    const result = await reviewAnswer(draft, state, {
+      llm: client,
+      turnEvidence: [
+        { source: 'Unternehmenswissen', content: 'Audit Loop: Abschluss nur mit Ursache.' },
+      ],
+    });
+    expect(result.issues.map((issue) => issue.kind)).toEqual([
+      'skipped_safeguard',
+      'unbacked_inference',
+    ]);
+    expect(result).toMatchObject({ revised: true, reply: revised });
+    const asked = JSON.parse(client.generateStructured.mock.calls[0][1]);
+    expect(asked.evidence.at(-1)).toMatchObject({ id: 'w1', source: 'Unternehmenswissen' });
+  });
+
   test('an implausibly short rewrite keeps the draft', async () => {
     const client = llm(
       [

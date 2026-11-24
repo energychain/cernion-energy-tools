@@ -60,6 +60,22 @@ function sectionChunks(text) {
   });
 }
 
+// The whole section of a hit (option wholeSections of the internal read-only search): its chunks
+// in document order, bounded; the chunk boundaries of a long section do not cut a method apart.
+const SECTION_CHARS = 6000;
+
+function sectionText(rows = [], hit) {
+  const parts = rows
+    .map((row) => row.doc)
+    .filter(
+      (chunk) => chunk && chunk.section === hit.section && chunk.generation === hit.generation
+    )
+    .sort((a, b) => a.chunkIndex - b.chunkIndex)
+    .map((chunk) => String(chunk.content || '').trim())
+    .filter(Boolean);
+  return (parts.length ? parts.join('\n') : String(hit.content || '')).slice(0, SECTION_CHARS);
+}
+
 const ID_EXAMPLES = { knowledgeBaseId: 'kb_…', documentId: 'doc_…', citationId: 'cit_…' };
 
 function openapi(rest, summary, extra = {}) {
@@ -367,12 +383,17 @@ module.exports = {
       async handler(ctx) {
         const p = await this.identity(ctx, { gateway: true });
         // Public searches always record their citations (they are resolved later).
-        return this.search(p, { ...(ctx.params || {}), recordCitations: true });
+        return this.search(p, {
+          ...(ctx.params || {}),
+          recordCitations: true,
+          wholeSections: false,
+        });
       },
     },
 
     // Internal read-only search (micro-agent packs): the same access checks and projection as
-    // `search`, without storing citation records, so a read-only caller writes nothing.
+    // `search`, without storing citation records, so a read-only caller writes nothing. With
+    // wholeSections, a hit carries its whole document section, one result per section.
     searchReadOnly: {
       visibility: 'public',
       async handler(ctx) {
@@ -716,11 +737,13 @@ module.exports = {
       const { embeddings } = require('../src/llm-client');
       const [vector] = await embeddings([query], { tenantId: p.tenantId });
       const scored = [];
+      const chunksOf = new Map();
       for (const doc of docs) {
         const rows = await this.prefix(
           key.chunkPrefix(p.tenantId, doc.documentId, doc.active.generation),
           { limit: 100000 }
         );
+        chunksOf.set(doc.documentId, rows);
         for (const { doc: chunk } of rows) {
           const score = cosineSimilarity(vector || [], chunk.embedding || []);
           if (score >= threshold) scored.push({ doc, chunk, score });
@@ -728,7 +751,11 @@ module.exports = {
       }
       scored.sort((a, b) => b.score - a.score);
       const results = [];
-      for (const hit of scored.slice(0, topK)) {
+      const sections = new Set();
+      for (const hit of scored) {
+        if (results.length >= topK) break;
+        const sectionKey = `${hit.doc.documentId}\u0000${hit.chunk.section || hit.chunk._id}`;
+        if (input.wholeSections && sections.has(sectionKey)) continue;
         // Projection check: the base and the document are read again before anything leaves.
         const kb = await this.getDoc(key.kb(p.tenantId, hit.doc.knowledgeBaseId));
         const doc = await this.getDoc(key.doc(p.tenantId, hit.doc.documentId));
@@ -737,7 +764,11 @@ module.exports = {
         const citation = policy.citationId(p.tenantId, hit.chunk._id);
         if (input.recordCitations !== false)
           await this.rememberCitation(p.tenantId, citation, hit.chunk._id, doc, kb);
-        results.push(policy.resultView({ citation, kb, doc, chunk: hit.chunk, score: hit.score }));
+        sections.add(sectionKey);
+        const view = policy.resultView({ citation, kb, doc, chunk: hit.chunk, score: hit.score });
+        if (input.wholeSections && hit.chunk.section)
+          view.content = sectionText(chunksOf.get(hit.doc.documentId), hit.chunk);
+        results.push(view);
       }
       return { queryId, results };
     },

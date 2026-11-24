@@ -11,6 +11,19 @@ function words(text) {
 // passages of 500 characters, bounded in total; fallback listings pass a smaller window.
 const MAX_PASSAGES = 10;
 const TOTAL_CHARS = 12000;
+// Material whose structure carries the meaning (a company method with stations, roles and
+// artefacts; marked keepWhole by its producer) is passed whole up to this cap, outside the budget.
+const WHOLE_CHARS = 11000;
+const keptWhole = (hit) =>
+  ['dataset.query', 'cases'].includes(hit.source) || hit.metadata?.keepWhole === true;
+
+// Dataset and case results keep their own cap, material marked whole its cap; every other
+// passage is the best-matching window.
+function passageValue(hit, value, best, limit) {
+  if (['dataset.query', 'cases'].includes(hit.source)) return value.slice(0, 12000);
+  if (hit.metadata?.keepWhole === true) return value.slice(0, WHOLE_CHARS);
+  return value.slice(best, best + limit);
+}
 
 function prepareAnswerEvidence(evidence, situation, limit = 1500) {
   let remaining = TOTAL_CHARS;
@@ -41,7 +54,7 @@ function prepareAnswerEvidence(evidence, situation, limit = 1500) {
     .slice(0, MAX_PASSAGES)
     .filter(({ hit }) => {
       // The budget bounds ordinary passages; dataset and case results keep their own cap.
-      if (['dataset.query', 'cases'].includes(hit.source)) return true;
+      if (keptWhole(hit)) return true;
       if (remaining <= 0) return false;
       remaining -= limit;
       return true;
@@ -63,9 +76,7 @@ function prepareAnswerEvidence(evidence, situation, limit = 1500) {
         title: readableSourceTitle(hit),
         // Material from another conversation or case (conversation scope) names its origin.
         ...(hit.metadata?.scopeOrigin ? { origin: hit.metadata.scopeOrigin } : {}),
-        value: ['dataset.query', 'cases'].includes(hit.source)
-          ? value.slice(0, 12000)
-          : value.slice(best, best + limit),
+        value: passageValue(hit, value, best, limit),
       };
     });
 }
