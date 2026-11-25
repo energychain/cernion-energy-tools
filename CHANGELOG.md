@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — Remaining hard fails of the clean conversation-pack run
+
+- Source line: a lookup that found nothing (a working finding with negatives only) is no longer
+  named under "Quellen".
+- Case view and review: a status change, link, closure or park state in the system counts as not
+  executed until a tool result shows it, and the handover says so (`claimed_execution` now
+  covers "formal geparkt", "im Parkstand gesichert"; REG-01 T15).
+- A prioritisation, assessment or selection rule set by the person is an open decision of the
+  responsible function, not a rule in force (`skipped_safeguard`).
+- A decision, resolution or approval the person reports appears as their report, not as an
+  option; the authority gate treats the person's report as backing and its rewrite keeps it.
+
 ## Unreleased — A review never drops a section; misattributed sources
 
 - Answer review and authority gate: a revision with fewer Markdown sections than the draft is
