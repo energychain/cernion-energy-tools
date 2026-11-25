@@ -363,6 +363,71 @@ The script is idempotent for the local spike:
 4. upserts the REST queries with explicit schemas,
 5. upserts the generated screen with query-backed table blocks.
 
+## Existing-Target Delivery Gate
+
+The no-flag apply run above is the **explicit local First Create**: it finds _or creates_ the
+Budibase Application and Workspace App. It must not be used for Workbench delivery or acceptance.
+For delivery into an environment where the target must already exist, use the fail-closed
+existing-target modes. Both use the same authentication (`BUDIBASE_EMAIL`/`BUDIBASE_PASSWORD` or
+`BUDIBASE_COOKIE_FILE`) and cannot be combined with each other or with `--dry-run`.
+
+Acceptance sequence (exact order):
+
+```bash
+# 1. read-only preflight: after authentication only GET requests (session check + two catalogs)
+BUDIBASE_BASE_URL=http://localhost:10000 \
+BUDIBASE_COOKIE_FILE=/path/to/budibase.cookies \
+CERNION_BASE_URL=http://172.17.0.1:3900 \
+node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js --preflight-existing
+
+# 2. inspect the secret-free receipt: targetState must be ready_existing,
+#    mutationPerformed false, the bound appId / workspaceApp id the intended target
+
+# 3. controlled apply: re-resolves the target and updates only that existing target
+node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js --require-existing
+
+# 4. visible presentation smoke of the rendered screen (nextSafeGate: visible_presentation_smoke)
+```
+
+Both modes first confirm the session with `GET /api/global/self`: Budibase answers the application
+catalog with an empty list to an unauthenticated (for example expired-cookie) session, so without
+this check an expired cookie would look like `missing_application`. A failed session check is a
+bounded `auth_failed` error (exit 1, `nextSafeGate: operator_refresh_budibase_credentials`) before
+any catalog read.
+
+A preflight receipt is evidence, not authorization: `--require-existing` resolves the target again
+immediately before any write and does not trust an earlier receipt.
+
+The resolver matches the Budibase Application by manifest `name` (and `url` when set), then the
+Workspace App inside it by `workspaceApp.name` (and `workspaceApp.url` when set). Target identity
+comes only from the checked manifest; there is no caller-supplied app ID. Exactly one match is
+required at each level:
+
+| `targetState`             | Meaning                                              | Exit |
+| ------------------------- | ---------------------------------------------------- | ---- |
+| `ready_existing`          | exactly one Application and one Workspace App match  | 0    |
+| `missing_application`     | no Application with the expected identity            | 3    |
+| `ambiguous_application`   | more than one Application with the expected name     | 3    |
+| `missing_workspace_app`   | no Workspace App with the expected identity          | 3    |
+| `ambiguous_workspace_app` | more than one Workspace App with the expected name   | 3    |
+| `manifest_mismatch`       | name and URL point to different or drifted targets   | 3    |
+| `catalog_unreadable`      | a catalog GET failed or returned an unexpected shape | 1    |
+
+Every non-ready state stops before a POST/PUT/PATCH/DELETE. In the ready state
+`--require-existing` binds the resolved app and workspace-app IDs and never enters the create
+branches of `ensureApp`/`ensureWorkspaceApp`. There is no First Create in these modes — a missing
+or ambiguous target is an operator task and a visible-demo blocker, never permission to create a
+replacement target.
+
+Stdout carries an allowlisted JSON receipt: `mode`, `manifest` (file basename, app name),
+`screenRoute`, `expected` names/URLs, exact `matches` counts, the resolved `application`
+(`appId`, `name`, `url`, `status`) and `workspaceApp` (`id`, `name`, `url`) only when unique,
+`targetState`, `mutationPerformed` and `nextSafeGate`; `--require-existing` adds `applied`
+(datasource ID, query count, screen ID and route). `mutationPerformed` is `true` as soon as any
+write request was sent, including a partially failed apply. Errors (exit 1) go to stderr as the same
+receipt plus `error: { boundary, code, message }` with fixed messages. Upstream bodies, error
+causes, headers, cookies, passwords, tokens and login responses are never printed.
+
 ## Dev Loop Apply Gate
 
 For Budibase workbench issues, repo changes alone are not enough for a visible demo update.
