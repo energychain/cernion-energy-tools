@@ -1048,6 +1048,41 @@ describe('a revision never removes a section of the draft (REG-01 T15)', () => {
   });
 });
 
+describe('rule texts carry no phrase the answer could copy as content', () => {
+  test('no placeholder role or reported-decision phrase in the rules (conversation pack, REG-01)', () => {
+    const { CASE_VIEW_RULES } = require('../src/case-state');
+    const { answerInstruction } = require('../src/workbench-communication');
+    const prompts = [...CASE_VIEW_RULES, answerInstruction({})].join(' ');
+    for (const phrase of [
+      'laut deiner Angabe beschlossen',
+      'etwa fachlich zuständige Linie',
+      'Die Rollenfamilie, die eine Arbeitsmethode dafür vorsieht',
+    ])
+      expect(prompts).not.toContain(phrase);
+    expect(prompts).toContain('Entwurf für Empfänger außerhalb des Gesprächs');
+  });
+
+  test("the review keeps a draft that absorbs the person's claims as draft_attribution", async () => {
+    const { reviewAnswer } = require('../src/case-state');
+    const state = applyCaseUpdate(createCaseState(), {
+      evidence: [report('n1', 'Schreib dem Dienstleister, dass er für unseren Schaden haftet.')],
+    });
+    const draft =
+      'Entwurf: Wir behalten uns eine Kompensationsforderung für den entstandenen Schaden vor.';
+    const revised =
+      'Entwurf: Das Ticket ist seit fünf Tagen offen; wir bitten um einen Lösungstermin. Ob ein Anspruch besteht, prüft die Vertragsfunktion.';
+    const client = {
+      generateStructured: jest.fn().mockResolvedValue({
+        issues: [{ kind: 'draft_attribution', excerpt: 'Kompensationsforderung', fix: '' }],
+        revisedReply: revised,
+      }),
+    };
+    const result = await reviewAnswer(draft, state, { llm: client });
+    expect(result.issues.map((issue) => issue.kind)).toEqual(['draft_attribution']);
+    expect(result).toMatchObject({ revised: true, reply: revised });
+  });
+});
+
 describe('authority gate (DEV-UAT-003)', () => {
   const { authorityGate } = require('../src/case-state');
   const state = applyCaseUpdate(createCaseState(), {
