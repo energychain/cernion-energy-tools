@@ -179,11 +179,17 @@ function readableSourceTitle(hit) {
   return '';
 }
 
+// A lookup that found nothing (a working finding with negatives only) is no source of the answer.
+const foundNothing = (hit) =>
+  Boolean(hit?.metadata?.answerOnly) &&
+  Array.isArray(hit.metadata.facts) &&
+  hit.metadata.facts.length === 0;
+
 function sourceLine(evidence) {
   const labels = [
     ...new Set(
       evidence
-        .filter((hit) => hit.retrievalSource !== 'capability-read')
+        .filter((hit) => hit.retrievalSource !== 'capability-read' && !foundNothing(hit))
         .map((hit) => {
           const title = readableSourceTitle(hit);
           if (!title) return '';

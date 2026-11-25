@@ -445,3 +445,22 @@ test('answer evidence keeps material marked whole beyond the passage window', ()
   expect(prepared[0].value).toBe(method);
   expect(prepared[1].value.length).toBeLessThanOrEqual(1500);
 });
+
+test('a lookup that found nothing is named in no source line', () => {
+  const { sourceLine } = require('../src/workbench-answer-evidence');
+  const nothing = {
+    source: 'micro-agent.gamma',
+    title: 'Bereich G',
+    value: 'Gesucht: Preise; Reichweite: Register G; Ergebnis: no_hit',
+    metadata: { answerOnly: 'micro-agent', facts: [], negatives: [{ searched: 'Preise' }] },
+  };
+  const found = {
+    source: 'micro-agent.delta',
+    title: 'Bereich D',
+    value: 'Projekt P-77 läuft',
+    metadata: { answerOnly: 'micro-agent', facts: [{ statement: 'Projekt P-77 läuft' }] },
+  };
+  const document = { source: 'archiv', title: 'Prüfleitfaden', value: 'Abschnitt 2' };
+  expect(sourceLine([nothing, found, document])).toBe('Quellen: Bereich D; Prüfleitfaden');
+  expect(sourceLine([nothing])).toBe('');
+});
