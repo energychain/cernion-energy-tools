@@ -123,6 +123,7 @@ async function reviewDisclosure(parsed, situation, options) {
         )
       )
         throw schemaError([], 'disclosure_incomplete');
+      const fallbacks = new Set();
       for (const item of result.paragraphs) {
         if (records[item.index].declaredAudience === 'external') item.audience = 'external';
         const text = item.safe ? claims[item.index].text : item.replacement;
@@ -142,6 +143,11 @@ async function reviewDisclosure(parsed, situation, options) {
                   )
                 ? `Guten Tag${recipient ? ` ${recipient}` : ''},\n\nDer Sachstand ist in Klärung mit beteiligten Stellen.\n\nMit freundlichen Grüßen`
                 : 'Der Sachstand ist in Klärung mit beteiligten Stellen.';
+          // The neutral fallback stands once: repeated, it would turn a letter into a loop of the
+          // same sentence and greeting (conversation pack CROSS-004).
+          if ([...fallbacks].some((earlier) => earlier.includes(item.replacement)))
+            item.omit = true;
+          fallbacks.add(item.replacement);
         }
       }
       return result;
@@ -150,8 +156,12 @@ async function reviewDisclosure(parsed, situation, options) {
   for (const item of review.paragraphs)
     if (!item.safe && item.audience !== 'internal') {
       // A neutral paraphrase retains the existing provenance, never invents a source.
-      claims[item.index].text = item.replacement;
+      claims[item.index].text = item.omit ? '' : item.replacement;
     }
+  const kept = (claim) => String(claim.text || '').trim();
+  if (parsed.draft?.some((claim) => !kept(claim))) parsed.draft = parsed.draft.filter(kept);
+  for (const part of parsed.artifact || [])
+    if (part.content?.some((claim) => !kept(claim))) part.content = part.content.filter(kept);
   require('./workbench-communication').validateCommunication(
     parsed,
     situation,
