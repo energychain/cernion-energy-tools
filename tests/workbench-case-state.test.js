@@ -154,6 +154,26 @@ test('review and authority gate read the company method the answer read whole, n
   }
 });
 
+test('general domain knowledge enters the case update labelled as such, never as case evidence', async () => {
+  llm.generateStructured.mockResolvedValueOnce(emptyDelta);
+  await workbenchCaseState.updateTurnCaseState({
+    previous: null,
+    envelope: { userRequest: 'Wie gehen wir mit DOC-DEMO-1 um?' },
+    retrieval: {
+      evidence: [
+        { source: 'willi-mako', title: 'Konsultationsfassung 2025', value: 'Allgemeiner Text.' },
+        { source: 'documents', title: 'DOC-DEMO-1', value: 'Unterlage des Falls.' },
+      ],
+    },
+    tenantId: 'tenant-a',
+  });
+  const prompt = JSON.parse(llm.generateStructured.mock.calls.at(-1)[1]);
+  const sources = JSON.stringify(prompt);
+  expect(sources).toContain('Allgemeines Fachwissen: Konsultationsfassung 2025');
+  expect(sources).not.toContain('Allgemeines Fachwissen: DOC-DEMO-1');
+  expect(sources).toContain('keine Evidenz dieses Falls');
+});
+
 test('the reply is revised where the check flags it, drafts included', async () => {
   const state = applyCaseUpdate(createCaseState(), emptyDelta);
   const reply = {
