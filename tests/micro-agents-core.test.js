@@ -464,3 +464,32 @@ test('a lookup that found nothing is named in no source line', () => {
   expect(sourceLine([nothing, found, document])).toBe('Quellen: Bereich D; Prüfleitfaden');
   expect(sourceLine([nothing])).toBe('');
 });
+
+test('evidence is classified by its source: general knowledge, company knowledge, system reads', () => {
+  const { evidenceClass, prepareAnswerEvidence } = require('../src/workbench-answer-evidence');
+  expect(evidenceClass({ source: 'willi-mako' })).toBe('Allgemeines Fachwissen');
+  expect(evidenceClass({ retrievalSource: 'knowledge-rag-federated', source: 'BDEW' })).toBe(
+    'Allgemeines Fachwissen'
+  );
+  expect(evidenceClass({ source: 'knowledge-rag' })).toBe('');
+  expect(evidenceClass({ source: 'knowledge-gateway' })).toBe('Unternehmenswissen');
+  expect(
+    evidenceClass({
+      source: 'micro-agent.wissen',
+      metadata: { answerOnly: 'micro-agent', pack: 'wissen' },
+    })
+  ).toBe('Unternehmenswissen');
+  expect(evidenceClass({ retrievalSource: 'capability-read', source: 'dashboard-api' })).toBe(
+    'Systemabfrage'
+  );
+  expect(evidenceClass({ source: 'documents', title: 'Anlage' })).toBe('');
+  const [general, attachment] = prepareAnswerEvidence(
+    [
+      { evidenceId: 'E1', source: 'willi-mako', value: 'Ein Prüfbeispiel zur Frist.' },
+      { evidenceId: 'E2', source: 'documents', value: 'Die Frist im Anhang.' },
+    ],
+    { concern: 'Frist', retrievalTerms: [] }
+  );
+  expect(general.basis).toBe('Allgemeines Fachwissen');
+  expect(attachment).not.toHaveProperty('basis');
+});

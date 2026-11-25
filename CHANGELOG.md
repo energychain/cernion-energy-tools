@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — General domain knowledge is no evidence of the case
+
+- Answer evidence carries its class (`basis`) by source: Allgemeines Fachwissen (`willi-mako`,
+  `knowledge-rag-federated`), Unternehmenswissen (Knowledge Gateway, team memory, the knowledge
+  pack) or Systemabfrage (capability reads, micro-agent reads).
+- The answer instruction: general domain knowledge explains rules, terms and examples but states
+  no fact of this case (date, status, cause, obligation, identity of a case document); a document
+  from it is never the case document unless an identifier matches literally; a system read
+  backs only the values of the object read.
+- Case update and review: general knowledge enters the case update labelled "Allgemeines
+  Fachwissen: …" and is not recorded as case evidence; a case fact derived from it is
+  `unbacked_inference` (conversation pack: a real regulatory file taken for the case document, a
+  statute obligation applied to the case, another object's dashboard status).
+
 ## Unreleased — Template artifacts in case answers
 
 - Team memory: a request, wish or instruction to change, release, close or implement something is

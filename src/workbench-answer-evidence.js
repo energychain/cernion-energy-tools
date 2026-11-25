@@ -25,6 +25,29 @@ function passageValue(hit, value, best, limit) {
   return value.slice(best, best + limit);
 }
 
+// What a piece of evidence can back, by its source: general domain knowledge explains rules,
+// terms and examples but never states a fact of this case (conversation pack: a real regulatory
+// file taken for the case document, a statute obligation applied to the case, a dashboard status
+// of another object cited for the subject). Classified by source, never by wording.
+// knowledge-rag itself is tenant-scoped (it may hold the company's own documents): not general.
+const GENERAL_SOURCES = new Set(['willi-mako', 'knowledge-rag-federated']);
+const COMPANY_SOURCES = new Set(['knowledge-gateway', 'tenant-memory']);
+const SYSTEM_SOURCES = new Set(['capability-read', 'micro-agent']);
+const EVIDENCE_CLASSES = {
+  general: 'Allgemeines Fachwissen',
+  company: 'Unternehmenswissen',
+  system: 'Systemabfrage',
+};
+
+function evidenceClass(hit) {
+  const names = [hit?.metadata?.answerOnly, hit?.retrievalSource, hit?.source].filter(Boolean);
+  if (names.some((name) => GENERAL_SOURCES.has(name))) return EVIDENCE_CLASSES.general;
+  if (hit?.metadata?.pack === 'wissen' || names.some((name) => COMPANY_SOURCES.has(name)))
+    return EVIDENCE_CLASSES.company;
+  if (names.some((name) => SYSTEM_SOURCES.has(name))) return EVIDENCE_CLASSES.system;
+  return '';
+}
+
 function prepareAnswerEvidence(evidence, situation, limit = 1500) {
   let remaining = TOTAL_CHARS;
   const wanted = new Set(words([situation.concern, ...(situation.retrievalTerms || [])].join(' ')));
@@ -74,6 +97,7 @@ function prepareAnswerEvidence(evidence, situation, limit = 1500) {
         evidenceId: hit.evidenceId,
         source: hit.source,
         title: readableSourceTitle(hit),
+        ...(evidenceClass(hit) ? { basis: evidenceClass(hit) } : {}),
         // Material from another conversation or case (conversation scope) names its origin.
         ...(hit.metadata?.scopeOrigin ? { origin: hit.metadata.scopeOrigin } : {}),
         value: passageValue(hit, value, best, limit),
@@ -210,6 +234,8 @@ function sourceLine(evidence) {
 }
 
 module.exports = {
+  EVIDENCE_CLASSES,
+  evidenceClass,
   prepareAnswerEvidence,
   copiesEvidence,
   safeSituationText,

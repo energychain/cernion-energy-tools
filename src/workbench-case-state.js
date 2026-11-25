@@ -87,11 +87,19 @@ function turnEvidence(envelope = {}, retrieval = {}) {
   const sources = (retrieval?.evidence || [])
     .filter((hit) => hit && String(hit.value || '').trim())
     .slice(0, MAX_SOURCES)
-    .map((hit) => ({
-      source: String(hit.title || hit.name || hit.source || 'Quelle').slice(0, 160),
-      kind: hit.source === 'tenant-memory' ? 'user_reported' : 'source_observed',
-      content: String(hit.value),
-    }));
+    .map((hit) => {
+      const title = String(hit.title || hit.name || hit.source || 'Quelle');
+      // General domain knowledge is no observation of this case: its label says so, and the case
+      // update and the review treat it as reference (EVIDENCE_CLASSES).
+      const general =
+        require('./workbench-answer-evidence').evidenceClass(hit) ===
+        require('./workbench-answer-evidence').EVIDENCE_CLASSES.general;
+      return {
+        source: (general ? `Allgemeines Fachwissen: ${title}` : title).slice(0, 160),
+        kind: hit.source === 'tenant-memory' ? 'user_reported' : 'source_observed',
+        content: String(hit.value),
+      };
+    });
   return [...documents, ...sources];
 }
 
