@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — Drafts to third parties; no copyable phrases in rule texts
+
+- Drafts for recipients outside the conversation hold only facts from the evidence or confirmed
+  statements. A claim, assessment or demand of the person never appears there as a fact, as a
+  department's assessment or as the company's demand. A draft that puts options to a body
+  presents them equally with their criteria. New review kind `draft_attribution`
+  (conversation pack CROSS-004/006).
+- `claimed_execution` also covers a task presented as taken over or in progress by a function
+  that nobody confirmed (MICRO-005).
+- Rule texts no longer contain example phrases the answer copied as content: "laut deiner Angabe
+  beschlossen" (REG-01 T03, nothing had been decided), the placeholder "fachlich zuständige
+  Linie" and the correction wording of `invented_authority` (which appeared verbatim as a role).
+  A needed function is described by its task in the case; the authority rewrite states an open
+  assignment once instead of marking every role "als Option".
+
 ## Unreleased — General domain knowledge is no evidence of the case
 
 - Answer evidence carries its class (`basis`) by source: Allgemeines Fachwissen (`willi-mako`,
