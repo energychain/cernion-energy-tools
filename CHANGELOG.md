@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased — Budibase existing-target delivery gate (#41)
+
+- `integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js --preflight-existing` is
+  read-only: after authentication it issues only GETs — a session check (`/api/global/self`, so an
+  expired cookie is `auth_failed` rather than a misleading empty catalog) and the two catalog reads
+  (Applications, Workspace Apps) — resolves exactly one Application and one Workspace App by the manifest names (and URLs
+  when set) and reports `ready_existing`, `missing_application`, `ambiguous_application`,
+  `missing_workspace_app`, `ambiguous_workspace_app`, `manifest_mismatch` or
+  `catalog_unreadable`, always with `mutationPerformed: false`. It exits 0 only for
+  `ready_existing`.
+- `--require-existing` re-runs the same resolver immediately before apply, stops before every
+  write unless the target is `ready_existing`, then updates datasource, queries and screen on the
+  resolved IDs only; it never enters the create branches of `ensureApp`/`ensureWorkspaceApp`. A
+  successful run reports `nextSafeGate: visible_presentation_smoke`.
+- Both modes print an allowlisted JSON receipt and bounded errors (`boundary`, `code`, fixed
+  message) without upstream bodies, cookies, headers, passwords or tokens. `--dry-run` and the
+  two gate modes are mutually exclusive; the no-flag run stays the explicit local First Create.
+  Ported selectively from the pre-reset `10585692` reference.
+
 ## Unreleased — General domain knowledge is no evidence of the case
 
 - Answer evidence carries its class (`basis`) by source: Allgemeines Fachwissen (`willi-mako`,
