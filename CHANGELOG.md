@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — Template artifacts in case answers
+
+- Team memory: a request, wish or instruction to change, release, close or implement something is
+  no organizational statement and is not confirmed as "Hab ich festgehalten" (conversation pack
+  CROSS-010: "Änderung der Validierungsregel für alle Fälle" after a refusal).
+- Disclosure review: the neutral fallback for restricted paragraphs of an external text stands
+  once; repeated paragraphs and greetings are left out (CROSS-004: a letter of four identical
+  "in Klärung" blocks).
+- Answer: in running case work without a data question, an incidental capability read adds no
+  "Die vorhandene Abfrage enthält …" line; dataset answers are unchanged.
+
 ## Unreleased — Remaining hard fails of the clean conversation-pack run
 
 - Source line: a lookup that found nothing (a working finding with negatives only) is no longer

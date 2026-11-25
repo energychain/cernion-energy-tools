@@ -2565,8 +2565,15 @@ async function answer({
   const available = toolAnswer.availableToolAnswer(toolEvidence, message, undefined, {
     skipEmpty: answerStatus !== 'fallback' && claims.length > 0,
   });
+  // In running case work without a data question, an incidental read is no statement for the
+  // person (conversation pack: "Die vorhandene Abfrage enthält 1 Datensätze" under case answers).
+  const incidentalRead =
+    Boolean(caseView) &&
+    !situation.dataQuestion?.requested &&
+    !toolEvidence.some((hit) => hit.source === 'dataset.query');
   if (
     available &&
+    !incidentalRead &&
     (answerStatus === 'fallback' ||
       !claims.some(
         (claim) =>

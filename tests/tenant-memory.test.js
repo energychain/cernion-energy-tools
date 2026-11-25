@@ -1773,3 +1773,10 @@ describe('tenant memory acceptance and lifecycle', () => {
   });
 });
 module.exports = { setup, context, principal, assertion, situation, assessments };
+
+test('a request to change something is no team memory, only a reported state is', () => {
+  const { SCOPE_CHECK_SCHEMA } = require('../src/tenant-memory');
+  const { SCOPE_INSTRUCTION } = require('../src/tenant-memory-schema');
+  expect(SCOPE_CHECK_SCHEMA.properties.items.items.properties.scope.enum).toContain('request');
+  expect(SCOPE_INSTRUCTION).toContain('Aufforderung, ein Wunsch oder eine Anweisung');
+});

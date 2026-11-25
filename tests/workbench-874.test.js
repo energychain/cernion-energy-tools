@@ -225,6 +225,35 @@ test('scenario 4: separate disclosure pass replaces external internals while pre
   expect(llm.generateStructured).toHaveBeenCalledTimes(1);
 });
 
+test('the neutral fallback for restricted paragraphs stands once (conversation pack CROSS-004)', async () => {
+  const texts = [
+    'Guten Tag Lieferant A,\nwir melden einen Stau in System A.\nMit freundlichen Grüßen',
+    'System A blockiert seit Tagen die Bearbeitung.',
+    'Lieferant B hat den Fehler in System A bestätigt.',
+    'Bitte melden Sie sich bis Freitag.',
+  ];
+  const parsed = { draft: texts.map((text) => fixture.claim(text)) };
+  const situation = fixture.situation('', {
+    disclosure: {
+      external: true,
+      recipient: 'Lieferant A',
+      restricted: ['System A', 'Lieferant B'],
+    },
+  });
+  // The model marks every paragraph safe; the literal boundary still replaces the restricted ones.
+  llm.generateStructured.mockResolvedValue({
+    paragraphs: texts.map((_text, index) => ({ index, safe: true, replacement: '', reason: '' })),
+  });
+  await reviewDisclosure(parsed, situation, { tenantId: fixture.tenantId });
+  const letter = parsed.draft.map((claim) => claim.text).join('\n\n');
+  expect(letter).not.toMatch(/System A|Lieferant B/u);
+  expect(letter.match(/Der Sachstand ist in Klärung mit beteiligten Stellen\./gu)).toHaveLength(1);
+  expect(parsed.draft.map((claim) => claim.text)).toEqual([
+    'Guten Tag Lieferant A,\n\nDer Sachstand ist in Klärung mit beteiligten Stellen.\n\nMit freundlichen Grüßen',
+    'Bitte melden Sie sich bis Freitag.',
+  ]);
+});
+
 test('C.1: incomplete or contaminated review never releases the draft', async () => {
   llm.generateStructured.mockResolvedValue({ paragraphs: [] });
   await expect(
