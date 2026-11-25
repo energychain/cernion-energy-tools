@@ -1073,12 +1073,15 @@ describe('rule texts carry no phrase the answer could copy as content', () => {
       'Entwurf: Das Ticket ist seit fünf Tagen offen; wir bitten um einen Lösungstermin. Ob ein Anspruch besteht, prüft die Vertragsfunktion.';
     const client = {
       generateStructured: jest.fn().mockResolvedValue({
-        issues: [{ kind: 'draft_attribution', excerpt: 'Kompensationsforderung', fix: '' }],
+        issues: [
+          { kind: 'draft_attribution', excerpt: 'Kompensationsforderung', fix: '' },
+          { kind: 'dropped_task', excerpt: 'Offene Aufträge', fix: '' },
+        ],
         revisedReply: revised,
       }),
     };
     const result = await reviewAnswer(draft, state, { llm: client });
-    expect(result.issues.map((issue) => issue.kind)).toEqual(['draft_attribution']);
+    expect(result.issues.map((issue) => issue.kind)).toEqual(['draft_attribution', 'dropped_task']);
     expect(result).toMatchObject({ revised: true, reply: revised });
   });
 });

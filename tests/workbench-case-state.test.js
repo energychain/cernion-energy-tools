@@ -174,6 +174,28 @@ test('general domain knowledge enters the case update labelled as such, never as
   expect(sources).toContain('keine Evidenz dieses Falls');
 });
 
+test('the next case update reads what the previous answer delivered (REG-01 T01 matrix)', async () => {
+  llm.generateStructured.mockResolvedValueOnce(emptyDelta);
+  await workbenchCaseState.updateTurnCaseState({
+    previous: null,
+    envelope: { userRequest: 'Weiter mit der OCR-Variante.' },
+    retrieval: { evidence: [] },
+    tenantId: 'tenant-a',
+    lastAnswer: '## Evidenzmatrix\n| Beleg | Status |\n| ACK-DEMO-1 | Transportquittung |',
+  });
+  const prompt = JSON.parse(llm.generateStructured.mock.calls.at(-1)[1]);
+  expect(prompt.lastAnswer).toContain('## Evidenzmatrix');
+  expect(prompt.instruction).toContain('wenn lastAnswer sein Ergebnis bereits geliefert hat');
+  llm.generateStructured.mockResolvedValueOnce(emptyDelta);
+  await workbenchCaseState.updateTurnCaseState({
+    previous: null,
+    envelope: { userRequest: 'Erste Frage.' },
+    retrieval: { evidence: [] },
+    tenantId: 'tenant-a',
+  });
+  expect(JSON.parse(llm.generateStructured.mock.calls.at(-1)[1])).not.toHaveProperty('lastAnswer');
+});
+
 test('the reply is revised where the check flags it, drafts included', async () => {
   const state = applyCaseUpdate(createCaseState(), emptyDelta);
   const reply = {
