@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — The authority gate leaves the case's own boundaries alone
+
+- A boundary or block of the case (what CET or the case does not execute, change, link, close or
+  release while a condition is missing) and its reason are no rule statement: the gate turned
+  "status change only with a confirmed answer and authorisation" into an open check (REG-01
+  T10). A position is only a stance taken towards a recipient outside the conversation, not the
+  reason why CET does not take something over.
+- The note on a removed position appears only when a position actually left the text (REG-01
+  T14: it stood under an answer without any letter).
+
 ## Unreleased — Letters to third parties take no position; rules without a source stay open
 
 - The authority gate also lists rule statements (a duty, prohibition, breach or binding
