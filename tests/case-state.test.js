@@ -1146,9 +1146,45 @@ describe('authority gate (DEV-UAT-003)', () => {
     expect(result.revised).toBe(true);
     const rewrite = JSON.parse(client.generateStructured.mock.calls[1][1]);
     expect(rewrite.passages).toEqual([
-      'Die Steuerungsrunde gibt frei.',
-      'Du leitest die Netzwirtschaft.',
+      { excerpt: 'Die Steuerungsrunde gibt frei.', subject: 'gate' },
+      { excerpt: 'Du leitest die Netzwirtschaft.', subject: 'role' },
     ]);
+  });
+
+  test('a position towards a third party counts in any form; only a taken decision backs it', async () => {
+    const letter = 'Wir behalten uns Ansprüche vor.\n\nBitte um Status.';
+    const statements = (backing) => [
+      {
+        excerpt: 'Wir behalten uns Ansprüche vor.',
+        subject: 'position',
+        presentedAs: 'option',
+        backing,
+      },
+      {
+        excerpt: 'Das ist ein Verstoß gegen die Regel.',
+        subject: 'rule',
+        presentedAs: 'binding',
+        backing: 'E1',
+      },
+    ];
+    const open = await authorityGate(letter, state, {
+      llm: llm(statements('E1'), 'Bitte um Status.\n\nDie Anspruchsfrage ist offen.'),
+    });
+    // Evidence does not back a position; the rule backed by evidence stays.
+    expect(open.unbacked).toEqual([
+      { excerpt: 'Wir behalten uns Ansprüche vor.', subject: 'position' },
+    ]);
+    const decided = applyCaseUpdate(state, {
+      decisionUpdates: [
+        { statement: 'Ansprüche vorbehalten', status: 'taken', evidenceRefs: ['E1'] },
+      ],
+    });
+    const decisionId = decided.decisions.find((row) => row.status === 'taken')?.id;
+    expect(decisionId).toBeTruthy();
+    const backed = await authorityGate(letter, decided, {
+      llm: llm(statements(decisionId), 'x'),
+    });
+    expect(backed.unbacked).toEqual([]);
   });
 
   test('a confirmed role or evidence backs a statement; nothing is rewritten then', async () => {

@@ -10,6 +10,7 @@ const {
   unsupportedEarlierDate,
 } = require('./workbench-answer-filter');
 const {
+  citableSource,
   prepareAnswerEvidence,
   safeSituationText,
   sourceLine,
@@ -1928,13 +1929,7 @@ function decorateAnswer(
   if (
     situation.regulatoryQuestion &&
     unverifiedRule &&
-    !(sources || []).some(
-      (hit) =>
-        ['knowledge-rag', 'knowledge-rag-federated', 'knowledge-gateway', 'willi-mako'].includes(
-          hit.retrievalSource || hit.source
-        ) &&
-        (hit.metadata?.sectionId || hit.metadata?.url)
-    )
+    !(sources || []).some((hit) => citableSource(hit))
   )
     lines.unshift(
       'Die Aussage bleibt eine zu prüfende Annahme; eine belegte Fundstelle liegt nicht vor.'

@@ -48,6 +48,23 @@ function evidenceClass(hit) {
   return '';
 }
 
+// A hit that can stand as the source of a rule: a listed knowledge source with a section or URL,
+// or the company's own knowledge (its method and documents; pack wissen carries no section field).
+// Without this, company-backed statements got the unsourced-assumption label (pack judges).
+const CITED_SOURCES = new Set([
+  'knowledge-rag',
+  'knowledge-rag-federated',
+  'knowledge-gateway',
+  'willi-mako',
+]);
+function citableSource(hit) {
+  if (evidenceClass(hit) === EVIDENCE_CLASSES.company) return true;
+  return (
+    CITED_SOURCES.has(hit?.retrievalSource || hit?.source) &&
+    Boolean(hit?.metadata?.sectionId || hit?.metadata?.url)
+  );
+}
+
 function prepareAnswerEvidence(evidence, situation, limit = 1500) {
   let remaining = TOTAL_CHARS;
   const wanted = new Set(words([situation.concern, ...(situation.retrievalTerms || [])].join(' ')));
@@ -175,6 +192,9 @@ function readableSourceTitle(hit) {
         String(candidate).trim()
       ) ||
       /^(?:[a-z]\)|\d+[.)]\s)|^[a-zäöü].*,/u.test(String(candidate)) ||
+      // A Markdown heading at the start is passage text, not a document title (pack CROSS-002:
+      // "Quellen: ### 9. … im Detail Die …-Nachricht dient …").
+      /^#{1,6}\s/u.test(String(candidate).trim()) ||
       (candidate === hit.title &&
         !metadata.title &&
         !metadata.documentTitle &&
@@ -236,6 +256,7 @@ function sourceLine(evidence) {
 module.exports = {
   EVIDENCE_CLASSES,
   evidenceClass,
+  citableSource,
   prepareAnswerEvidence,
   copiesEvidence,
   safeSituationText,
