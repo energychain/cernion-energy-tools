@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased — Letters to third parties take no position; rules without a source stay open
+
+- The authority gate also lists rule statements (a duty, prohibition, breach or binding
+  precondition stated as applying to the case, conditional wording included) and positions
+  towards third parties (liability, damage, compensation, a reservation of claims, also phrased
+  as a precautionary note) plus a letter's claims about its own status. A rule needs evidence
+  that states it; a position needs a decision the case shows as taken, evidence never backs it.
+- A position found word for word is removed from the text instead of rewritten (a rewrite kept
+  the stance, or fell below the usable share of a revision), and the system states once outside
+  the letter that such a position requires the authorised legal or contract function, which also
+  releases the draft. A rule becomes an open check with the function that runs it (pack
+  MICRO-006, CROSS-004: vendor letters reserving claims; CROSS-002, MICRO-007/009: a breach of
+  market rules stated right after "no source found").
+- The case update keeps a demanded legal or commercial position as an open decision of the
+  authorised function, not a taken one.
+- Company knowledge (the micro-agent's wissen pack, knowledge gateway, tenant memory) counts as
+  a source for a rule: its statements no longer get the "unsourced assumption" prefix
+  (`citableSource`, shared by both label paths). Passage text that starts with a Markdown
+  heading is no source title ("Quellen: ### 9. … im Detail …").
+
 ## Unreleased — The station's artefact is delivered, with the value of clarification
 
 - Case state gains `artifact` (the work product the company method provides for the case's

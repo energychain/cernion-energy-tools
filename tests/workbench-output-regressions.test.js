@@ -49,6 +49,13 @@ test('metadata title takes precedence over a text fragment; absent true title gi
     readableSourceTitle({ title: fragment, metadata: { documentTitle: 'Synthetischer Leitfaden' } })
   ).toBe('Synthetischer Leitfaden');
   expect(sourceLine([{ value: 'Text ohne Titel', source: 'knowledge-rag' }])).toBe('');
+  // A passage beginning with a Markdown heading is no document title either.
+  expect(
+    readableSourceTitle({
+      title: '### 9. Nachricht im Detail Die Nachricht dient der Übermittlung',
+      metadata: { title: '### 9. Nachricht im Detail Die Nachricht dient der Übermittlung' },
+    })
+  ).toBe('');
 });
 
 test('document hash prevents even renamed duplicates from calling the evidence store again', async () => {

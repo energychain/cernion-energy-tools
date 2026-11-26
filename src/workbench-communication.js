@@ -189,14 +189,7 @@ function validateCommunication(parsed, situation, evidence) {
         claim.evidenceIds?.some((id) =>
           evidence.some(
             (hit) =>
-              hit.evidenceId === id &&
-              [
-                'knowledge-rag',
-                'knowledge-rag-federated',
-                'knowledge-gateway',
-                'willi-mako',
-              ].includes(hit.retrievalSource || hit.source) &&
-              (hit.metadata?.sectionId || hit.metadata?.url)
+              hit.evidenceId === id && require('./workbench-answer-evidence').citableSource(hit)
           )
         );
       if (!grounded && !/zu prüfende Annahme/iu.test(claim.text)) {

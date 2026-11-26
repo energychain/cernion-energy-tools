@@ -2310,3 +2310,31 @@ test.each([
 ])('only a pure self-description leaves the protective path: %s', (basis, self) => {
   expect(require('../src/workbench-understanding').selfDescriptionOnly(basis)).toBe(self);
 });
+
+test('a rule backed by the company knowledge is not labelled as an unsourced assumption', () => {
+  const backed = {
+    ...fixture.claim('Vor der Freigabe ist der Nachweis zu prüfen.'),
+    origin: 'evidence',
+    evidenceIds: ['MA1'],
+  };
+  const unbacked = {
+    ...fixture.claim('Vor der Freigabe ist der Nachweis zu prüfen.'),
+    origin: 'evidence',
+    evidenceIds: ['MA2'],
+  };
+  const parsed = { interpretation: [backed, unbacked] };
+  validateCommunication(parsed, { regulatoryQuestion: true }, [
+    {
+      evidenceId: 'MA1',
+      retrievalSource: 'micro-agent',
+      metadata: { answerOnly: 'micro-agent', pack: 'wissen' },
+    },
+    {
+      evidenceId: 'MA2',
+      retrievalSource: 'micro-agent',
+      metadata: { answerOnly: 'micro-agent', pack: 'finanzen' },
+    },
+  ]);
+  expect(parsed.interpretation[0].text).toBe('Vor der Freigabe ist der Nachweis zu prüfen.');
+  expect(parsed.interpretation[1].text).toMatch(/^Zu prüfende Annahme, ohne belegte Fundstelle: /u);
+});
