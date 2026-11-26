@@ -37,6 +37,7 @@ const {
   takeAddendum,
   ADDENDUM_LABEL,
   updateCaseState,
+  appendCaseSections,
 } = require('../../src/case-state');
 
 const CASE_REFLECTION_TIMEOUT_MS = Number(process.env.CASE_REFLECTION_TIMEOUT_MS) || 300000;
@@ -424,9 +425,14 @@ module.exports = {
         this.logger?.info(
           `Case state answer review: ${review.issues.map((issue) => issue.kind).join(', ')}${review.revised ? ' (revised)' : ''}`
         );
+      const reply = await appendCaseSections(review.reply, caseState, {
+        tenantId,
+        broker: this.broker,
+        logger: this.logger,
+      });
       return {
         ...result,
-        reply: review.reply,
+        reply,
         caseReview: { issues: review.issues, revised: review.revised },
       };
     } catch (error) {

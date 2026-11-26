@@ -256,3 +256,131 @@ describe('company method of the case (process card and station)', () => {
     expect(state.method).toMatchObject({ card: 'TK-200 Andere Karte', since: 4 });
   });
 });
+
+describe('artefact of the station and resolution value', () => {
+  const { updateCaseState, artifactSection, resolutionSection } = require('../src/case-state');
+  const evidence = [
+    {
+      source: 'Arbeitsmethode',
+      content: 'Station S2 Zuordnung: Artefakt AF-7 Klärobjekt mit Befund, Optionen, Entscheider.',
+    },
+  ];
+  const llm = (artifactUpdate) => ({
+    generateStructured: jest.fn().mockResolvedValue({ nextActions: [], artifactUpdate }),
+  });
+
+  test('an artefact enters only when the sources name it, with its fields', async () => {
+    const named = await updateCaseState(
+      createCaseState(),
+      { message: 'Weiter.', newEvidence: evidence },
+      {
+        llm: llm({
+          set: true,
+          artifact: 'AF-7 Klärobjekt',
+          station: 'S2 Zuordnung',
+          quote: 'Artefakt AF-7 Klärobjekt',
+          fields: ['Befund', 'Optionen', 'Entscheider'],
+        }),
+      }
+    );
+    expect(caseStateView(named).artifact).toEqual({
+      name: 'AF-7 Klärobjekt',
+      station: 'S2 Zuordnung',
+      fields: ['Befund', 'Optionen', 'Entscheider'],
+    });
+    const invented = await updateCaseState(
+      createCaseState(),
+      { message: 'Weiter.', newEvidence: evidence },
+      {
+        llm: llm({
+          set: true,
+          artifact: 'AF-9 Eigene Vorlage',
+          station: 'S2',
+          quote: 'AF-9 Eigene Vorlage',
+          fields: [],
+        }),
+      }
+    );
+    expect(caseStateView(invented).artifact).toBeNull();
+  });
+
+  test('the resolution value needs both sides and is carried until stated anew', () => {
+    let state = applyCaseUpdate(
+      createCaseState(),
+      { resolutionValue: { set: true, ifClarified: 'Vorgang läuft weiter', ifNotClarified: '' } },
+      { turn: 1 }
+    );
+    expect(state.resolution).toBeNull();
+    state = applyCaseUpdate(
+      state,
+      {
+        resolutionValue: {
+          set: true,
+          ifClarified: 'Vorgang läuft weiter',
+          ifNotClarified: 'Vorgang bleibt stehen',
+          measuredBy: 'offenes Volumen, beziffert durch die zuständige Funktion',
+        },
+      },
+      { turn: 2 }
+    );
+    state = applyCaseUpdate(state, { resolutionValue: { set: false } }, { turn: 3 });
+    expect(caseStateView(state).resolution).toEqual({
+      ifClarified: 'Vorgang läuft weiter',
+      ifNotClarified: 'Vorgang bleibt stehen',
+      measuredBy: 'offenes Volumen, beziffert durch die zuständige Funktion',
+    });
+    // Stated in the turn it changed (2), not repeated in turn 3.
+    expect(resolutionSection(state)).toBe('');
+    expect(resolutionSection({ ...state, turn: 2 })).toContain(
+      '- Ohne Klärung: Vorgang bleibt stehen'
+    );
+    const reworded = applyCaseUpdate(
+      state,
+      {
+        resolutionValue: {
+          set: true,
+          ifClarified: 'Der Vorgang läuft weiter',
+          ifNotClarified: 'Der Vorgang bleibt stehen',
+          measuredBy: '',
+        },
+      },
+      { turn: 4 }
+    );
+    expect(reworded.resolution.changedAt).toBe(2);
+  });
+
+  test('the artefact is filled once per new station and rendered as a table', async () => {
+    const state = applyCaseUpdate(
+      createCaseState(),
+      {
+        artifactUpdate: {
+          set: true,
+          artifact: 'AF-7 Klärobjekt',
+          station: 'S2',
+          quote: '',
+          fields: ['Befund', 'Optionen'],
+        },
+      },
+      { turn: 1 }
+    );
+    const generateStructured = jest.fn().mockResolvedValue({
+      rows: [
+        { field: 'Befund', content: 'Ablehnung liegt vor', status: 'belegt', origin: 'Quittung' },
+        { field: 'Optionen', content: 'Nachforderung | Eskalation', status: 'Annahme', origin: '' },
+      ],
+    });
+    const section = await artifactSection(state, { llm: { generateStructured } });
+    expect(section).toContain('### AF-7 Klärobjekt (S2)');
+    expect(section).toContain('| Befund | Ablehnung liegt vor | belegt | Quittung |');
+    expect(section).toContain('| Optionen | Nachforderung / Eskalation | Annahme | – |');
+    expect(generateStructured.mock.calls[0][1]).toContain('"fields":["Befund","Optionen"]');
+    // Same artefact and station in the next turn: nothing to deliver, no call.
+    const next = applyCaseUpdate(
+      state,
+      { artifactUpdate: { set: true, artifact: 'AF-7 Klärobjekt', station: 'S2', fields: [] } },
+      { turn: 2 }
+    );
+    expect(await artifactSection(next, { llm: { generateStructured } })).toBe('');
+    expect(generateStructured).toHaveBeenCalledTimes(1);
+  });
+});

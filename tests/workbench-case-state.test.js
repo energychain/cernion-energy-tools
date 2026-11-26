@@ -235,6 +235,41 @@ test('the reply is revised where the check flags it, drafts included', async () 
   expect(llm.generateStructured).toHaveBeenCalledTimes(4);
 });
 
+test('the station artefact and the value of clarification follow the reviewed reply', async () => {
+  const state = applyCaseUpdate(
+    createCaseState(),
+    {
+      ...emptyDelta,
+      artifactUpdate: { set: true, artifact: 'AF-7 Klärobjekt', station: 'S2', fields: [] },
+      resolutionValue: {
+        set: true,
+        ifClarified: 'Vorgang läuft weiter',
+        ifNotClarified: 'Vorgang bleibt stehen',
+        measuredBy: '',
+      },
+    },
+    { turn: 1 }
+  );
+  const reply = { responseText: 'Einordnung des Falls.', draft: '', questions: [] };
+  llm.generateStructured
+    .mockResolvedValueOnce({ issues: [], revisedReply: '' })
+    .mockResolvedValueOnce({ statements: [] })
+    .mockResolvedValueOnce({
+      rows: [{ field: 'Befund', content: 'Ablehnung liegt vor', status: 'belegt', origin: 'n1' }],
+    });
+  const text = (await workbenchCaseState.reviewTurnReply(reply, state)).responseText;
+  expect(text).toMatch(/^Einordnung des Falls\.\n\n### AF-7 Klärobjekt \(S2\)/u);
+  expect(text).toContain('### Wert der Klärung');
+  // The artefact without fields from the source is filled with the default fields.
+  expect(llm.generateStructured.mock.calls.at(-1)[1]).toContain('Entscheidende Funktion');
+  // A document draft stays as it is.
+  llm.generateStructured
+    .mockResolvedValueOnce({ issues: [], revisedReply: '' })
+    .mockResolvedValueOnce({ statements: [] });
+  const draft = { ...reply, draft: 'Sehr geehrte Damen und Herren' };
+  expect(await workbenchCaseState.reviewTurnReply(draft, state)).toBe(draft);
+});
+
 describe('background reflection in the workbench', () => {
   const p = { tenantId: 't1', actorId: 'a1' };
   const envelope = { channel: 'api', conversationId: 'c1', userRequest: 'x' };
