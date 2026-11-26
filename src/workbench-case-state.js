@@ -14,6 +14,7 @@ const {
   ADDENDUM_LABEL,
   updateCaseState,
   authorityGate,
+  appendCaseSections,
 } = require('./case-state');
 
 // Background reflection after a turn (premium model, phase case_reflection): one per
@@ -168,7 +169,11 @@ async function reviewTurnReply(
         unbacked: gate.unbacked.map((row) => row.subject),
         revised: gate.revised,
       });
-    const text = gate.reply;
+    // The station's artefact and the value of clarification follow as their own sections; a
+    // document draft stays as it is.
+    const text = reply.draft
+      ? gate.reply
+      : await appendCaseSections(gate.reply, caseState, { tenantId, turnEvidence, logger });
     return text === reply.responseText ? reply : { ...reply, responseText: text };
   } catch (error) {
     logger?.warn?.(`Workbench case state answer review failed: ${error.message}`);

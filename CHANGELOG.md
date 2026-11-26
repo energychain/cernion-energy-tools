@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased — The station's artefact is delivered, with the value of clarification
+
+- Case state gains `artifact` (the work product the company method provides for the case's
+  station, with the fields the source names) and `resolution` (what clarifying the case changes,
+  what follows if it stays open, and what that is measured by). The artefact enters only with a
+  literal quote from the turn's sources that names it, like the process card; the resolution
+  value needs both sides and is carried until a later turn states it anew.
+- Both sections are rendered from the case state, not left to the answer model (a rule in the
+  case view was not followed): when the artefact or the station is new, one call fills the
+  artefact's fields from the case and its evidence (status: belegt, Angabe der Person, Annahme,
+  offen, with origin) and the answer carries it as a table; the value of clarification follows
+  as a short section when it changed this turn (a reworded value is not repeated). Workbench and
+  personal agent share `appendCaseSections`; document drafts stay as they are (judges: artefacts
+  named but never produced, R6; resolution value almost never described, R8).
+- The authority rewrite no longer carries a copyable phrase about the open assignment.
+
 ## Unreleased — The case keeps its company method (process card and station)
 
 - Case state gains `method` (process card, current station, since which turn). The case update
