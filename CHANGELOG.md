@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — The authority gate never loosens a block
+
+- Each rule statement the gate lists carries `restrictsAction` (it only holds an action back while
+  a proof, condition or approval is missing). Such a statement, or one that matches a boundary the
+  case keeps, is not rewritten. The rewrite itself keeps any block inside a rule statement as a
+  boundary and only turns a stated breach, duty or legal consequence into an open check, in the
+  statement's own words (on #51 the pack still showed "Ob die Einbuchung ohne formelle Freigabe …
+  zulässig ist, prüft …" in place of the block, CROSS-007/CROSS-002 T3).
+
 ## Unreleased — The authority gate leaves the case's own boundaries alone
 
 - A boundary or block of the case (what CET or the case does not execute, change, link, close or

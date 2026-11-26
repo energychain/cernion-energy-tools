@@ -1336,3 +1336,58 @@ describe('verification task and execution status (DEV-UAT-004/005)', () => {
     expect(rules).toMatch(/Kontrolltermin: festzulegen durch die zuständige Funktion/u);
   });
 });
+
+describe('authority gate keeps boundaries', () => {
+  const { authorityGate, applyCaseUpdate, createCaseState } = require('../src/case-state');
+  test('a rule that only holds an action back, or matches a case boundary, is not rewritten', async () => {
+    const state = applyCaseUpdate(createCaseState(), {
+      boundaries: [
+        {
+          action: 'Einbuchung des Mehrerlöses ohne Freigabe',
+          reason: 'Analyse offen',
+          until: 'Freigabe',
+        },
+      ],
+    });
+    const reply =
+      'Die Einbuchung des Mehrerlöses ohne Freigabe ist gesperrt.\n\nDie Buchung ist ohne Analyse unzulässig.\n\nDas ist ein Verstoß gegen die Regel.';
+    const generateStructured = jest
+      .fn()
+      .mockResolvedValueOnce({
+        statements: [
+          {
+            excerpt: 'Die Einbuchung des Mehrerlöses ohne Freigabe ist gesperrt.',
+            subject: 'rule',
+            presentedAs: 'binding',
+            backing: '',
+            restrictsAction: false,
+          },
+          {
+            excerpt: 'Die Buchung ist ohne Analyse unzulässig.',
+            subject: 'rule',
+            presentedAs: 'binding',
+            backing: '',
+            restrictsAction: true,
+          },
+          {
+            excerpt: 'Das ist ein Verstoß gegen die Regel.',
+            subject: 'rule',
+            presentedAs: 'binding',
+            backing: '',
+            restrictsAction: false,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        revisedReply: reply.replace(
+          'Das ist ein Verstoß gegen die Regel.',
+          'Ob ein Verstoß vorliegt, prüft die Fachfunktion.'
+        ),
+      });
+    const result = await authorityGate(reply, state, { llm: { generateStructured } });
+    expect(result.unbacked).toEqual([
+      { excerpt: 'Das ist ein Verstoß gegen die Regel.', subject: 'rule' },
+    ]);
+    expect(result.reply).toContain('Die Buchung ist ohne Analyse unzulässig.');
+  });
+});
