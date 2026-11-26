@@ -1,5 +1,8 @@
 'use strict';
 
+// Characters of the delivered answer the next case update reads (task completion).
+const CASE_ANSWER_CHARS = 8000;
+
 const { persistentSituation } = require('./workbench-turn-scope');
 
 const crypto = require('node:crypto');
@@ -1662,6 +1665,7 @@ async function runContentTurn(
     previous: pending?.caseState,
     envelope,
     retrieval,
+    lastAnswer: pending?.caseAnswer || '',
     tenantId: p.tenantId,
     logger: service.logger,
   });
@@ -2014,6 +2018,12 @@ async function runContentTurn(
     lastQuestion: '',
     // An answer built from Knowledge-Loop hits may repeat their lookups; it is not stored.
     lastAnswer: retrieval.knowledgeLoop?.admittedCount ? '' : reply.responseText.slice(0, 600),
+    // What this turn delivered, for the next case update: a task whose result it already holds
+    // is done (REG-01: the evidence matrix of T01 stayed an open task to the end).
+    // Like lastAnswer, an answer built from Knowledge-Loop hits is not stored.
+    caseAnswer: retrieval.knowledgeLoop?.admittedCount
+      ? ''
+      : reply.responseText.slice(0, CASE_ANSWER_CHARS),
     comparableSuggested: suggestComparable,
     comparableSuggestionShown: Boolean(pending?.comparableSuggestionShown || suggestComparable),
     ...(caseState ? { caseState } : {}),

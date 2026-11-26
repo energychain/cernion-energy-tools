@@ -120,3 +120,58 @@ test('a task records the turn it last changed', () => {
   );
   expect(state.nextActions[0].updatedAtTurn).toBe(3);
 });
+
+test('an id reused for different work becomes a new task; the earlier one stays (REG-01 A1)', () => {
+  let state = applyCaseUpdate(
+    createCaseState(),
+    {
+      nextActions: [task({ action: 'Erstellung der Evidenzmatrix mit Transport und Fachantwort' })],
+    },
+    { turn: 1 }
+  );
+  state = applyCaseUpdate(
+    state,
+    {
+      nextActions: [
+        task({ actionId: 'A1', action: 'Gezielte Suche nach dem OCR-Kandidaten im Archiv' }),
+      ],
+    },
+    { turn: 2 }
+  );
+  const actions = state.nextActions.map((row) => [row.actionId, row.action]);
+  expect(actions).toEqual(
+    expect.arrayContaining([
+      ['A1', 'Erstellung der Evidenzmatrix mit Transport und Fachantwort'],
+      ['A2', 'Gezielte Suche nach dem OCR-Kandidaten im Archiv'],
+    ])
+  );
+  expect(state.violations.some((row) => row.rule === 'task_id_reused')).toBe(true);
+});
+
+test('a reworded but unchanged task keeps the turn it last changed', () => {
+  let state = applyCaseUpdate(createCaseState(), { nextActions: [task()] }, { turn: 1 });
+  state = applyCaseUpdate(
+    state,
+    {
+      nextActions: [
+        task({ actionId: 'A1', action: 'Getrennte Suche nach der Lesevariante durchführen' }),
+      ],
+    },
+    { turn: 2 }
+  );
+  expect(state.nextActions[0].updatedAtTurn).toBe(1);
+  state = applyCaseUpdate(
+    state,
+    {
+      nextActions: [
+        task({
+          actionId: 'A1',
+          period: '11.04.2026 bis 15.05.2026',
+          scopeChangeReason: 'Die Person hat den Zeitraum erweitert.',
+        }),
+      ],
+    },
+    { turn: 3 }
+  );
+  expect(state.nextActions[0].updatedAtTurn).toBe(3);
+});

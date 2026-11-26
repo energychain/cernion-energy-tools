@@ -103,11 +103,22 @@ function turnEvidence(envelope = {}, retrieval = {}) {
   return [...documents, ...sources];
 }
 
-async function updateTurnCaseState({ previous, envelope, retrieval, tenantId, logger }) {
+async function updateTurnCaseState({
+  previous,
+  envelope,
+  retrieval,
+  tenantId,
+  logger,
+  lastAnswer = '',
+}) {
   try {
     return await updateCaseState(
       previous || null,
-      { message: envelope?.userRequest || '', newEvidence: turnEvidence(envelope, retrieval) },
+      {
+        message: envelope?.userRequest || '',
+        newEvidence: turnEvidence(envelope, retrieval),
+        lastAnswer,
+      },
       { tenantId }
     );
   } catch (error) {

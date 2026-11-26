@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased — Task register: delivered tasks end, ids stay with their work
+
+- The case update reads what CET delivered in the previous turn (`caseAnswer`, stored like
+  `lastAnswer` and never for answers built from Knowledge-Loop hits). A task whose result CET
+  could deliver itself (a matrix, overview, ledger, draft) ends as done; searches and checks only
+  a function or the person can run stay open until their result is reported. Before, no task was
+  ever closed (REG-01: the evidence matrix of T01 stayed open to the end).
+- `done` needs the reported result of exactly this task; clarifying another subject does not end
+  it. A known search variant (reading, OCR or spelling variant) gets its own task, and a search
+  space or period widened by a correction yields tasks for the parts not yet covered.
+- An id returned with different work becomes a new task, the earlier one stays (`task_id_reused`;
+  REG-01: A1 "Evidenzmatrix" was overwritten by a new search). `updatedAtTurn` changes only when
+  subject, search space, period, method or control date change, not on rewording.
+- Review: `dropped_task` — an overview or handover that leaves out an active task, changes its
+  search space, value or period, or lists a closed task as open.
+
 ## Unreleased — Drafts to third parties; no copyable phrases in rule texts
 
 - Drafts for recipients outside the conversation hold only facts from the evidence or confirmed
