@@ -175,3 +175,84 @@ test('a reworded but unchanged task keeps the turn it last changed', () => {
   );
   expect(state.nextActions[0].updatedAtTurn).toBe(3);
 });
+
+describe('company method of the case (process card and station)', () => {
+  const { updateCaseState } = require('../src/case-state');
+  const llm = (methodUpdate) => ({
+    generateStructured: jest.fn().mockResolvedValue({ nextActions: [], methodUpdate }),
+  });
+  const lastAnswer =
+    'Nach der Arbeitsmethode TK-100 Prüfkarte Eingang stehen wir an Station S2 Zuordnung.';
+
+  test('a card enters only with a literal quote from the sources that names it', async () => {
+    const quoted = await updateCaseState(
+      createCaseState(),
+      { message: 'Weiter.', lastAnswer },
+      {
+        llm: llm({
+          set: true,
+          card: 'TK-100 Prüfkarte Eingang',
+          station: 'S2 Zuordnung',
+          quote: 'Arbeitsmethode TK-100 Prüfkarte Eingang',
+          reason: '',
+        }),
+      }
+    );
+    expect(caseStateView(quoted).method).toMatchObject({
+      card: 'TK-100 Prüfkarte Eingang',
+      station: 'S2 Zuordnung',
+    });
+    const unquoted = await updateCaseState(
+      createCaseState(),
+      { message: 'Weiter.', lastAnswer },
+      {
+        llm: llm({
+          set: true,
+          card: 'TK-900 Erfundene Karte',
+          station: 'S1',
+          quote: 'TK-900 Erfundene Karte',
+          reason: '',
+        }),
+      }
+    );
+    expect(caseStateView(unquoted).method).toBeNull();
+  });
+
+  test('the card stays unless a reason is given; the station moves on', () => {
+    let state = applyCaseUpdate(
+      createCaseState(),
+      { methodUpdate: { set: true, card: 'TK-100 Prüfkarte', station: 'S1 Signal' } },
+      { turn: 1 }
+    );
+    state = applyCaseUpdate(
+      state,
+      { methodUpdate: { set: true, card: 'TK-100 Prüfkarte', station: 'S3 Status' } },
+      { turn: 2 }
+    );
+    expect(state.method).toMatchObject({
+      card: 'TK-100 Prüfkarte',
+      station: 'S3 Status',
+      since: 1,
+    });
+    state = applyCaseUpdate(
+      state,
+      { methodUpdate: { set: true, card: 'TK-200 Andere Karte', station: 'S1' } },
+      { turn: 3 }
+    );
+    expect(state.method.card).toBe('TK-100 Prüfkarte');
+    expect(state.violations.some((row) => row.rule === 'silent_method_change')).toBe(true);
+    state = applyCaseUpdate(
+      state,
+      {
+        methodUpdate: {
+          set: true,
+          card: 'TK-200 Andere Karte',
+          station: 'S1',
+          reason: 'Die Person hat einen neuen Fallgegenstand genannt.',
+        },
+      },
+      { turn: 4 }
+    );
+    expect(state.method).toMatchObject({ card: 'TK-200 Andere Karte', since: 4 });
+  });
+});

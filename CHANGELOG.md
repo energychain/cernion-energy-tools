@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — The case keeps its company method (process card and station)
+
+- Case state gains `method` (process card, current station, since which turn). The case update
+  proposes it from the turn's evidence or the previous answer with a literal quote; a quote not
+  found in those sources, or one that does not name the card, drops the proposal, so no card
+  comes from the model's own knowledge.
+- A set card stays the card of the case; another card only with a reason (a changed subject).
+  The station may move on. A change without reason keeps the card (`silent_method_change`).
+- The case view carries `method`; the answer classifies the case by that card and station and
+  never switches card silently (judges: cards switched between turns, e.g. LK-003 → LK-006).
+
 ## Unreleased — Task register: delivered tasks end, ids stay with their work
 
 - The case update reads what CET delivered in the previous turn (`caseAnswer`, stored like
