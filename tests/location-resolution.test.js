@@ -408,3 +408,14 @@ describe('Location Resolution — Bug regression: Sinsheim / Schleswig-Holstein'
     expect(trace.operatorAmbiguous).toBe(false);
   });
 });
+
+describe('postal code needs postal context', () => {
+  const { postalCodeInContext } = require('../src/municipality-resolver');
+  test('an identifier of PLZ format is no location without label or place', () => {
+    expect(postalCodeInContext('Prüfidentifikator 55001 im MaKo-Kontext', '55001')).toBe(false);
+    expect(postalCodeInContext('Bitte 13002 prüfen', '13002')).toBe(false);
+    expect(postalCodeInContext('PV-Anlagen in 74889 Sinsheim', '74889')).toBe(true);
+    expect(postalCodeInContext('PLZ: 74889', '74889')).toBe(true);
+    expect(postalCodeInContext('74889', '74889')).toBe(true);
+  });
+});

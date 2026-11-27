@@ -163,12 +163,15 @@ function selectLayer1ByName(key, stateHint) {
 const l2PlzToOrt = new Map(); // '41569' → { name:'Rommerskirchen', state:'Nordrhein-Westfalen' }
 const l2NameToPlzList = new Map(); // 'mannheim' → ['68159', '68161', ...] (all PLZ for this name, any state)
 const l2NameStatePlzList = new Map(); // 'leimen|Baden-Württemberg' → ['69181', ...] (state-scoped subset)
+const l2PlzToNames = new Map(); // '55116' → Set{'mainz'} (every place a PLZ names)
 
 for (const row of rawPlzData) {
   const plzStr = String(row.plz).padStart(5, '0');
   const name = row.ort;
   if (!plzStr || !name) continue;
   if (!l2PlzToOrt.has(plzStr)) l2PlzToOrt.set(plzStr, { name, state: row.bundesland });
+  if (!l2PlzToNames.has(plzStr)) l2PlzToNames.set(plzStr, new Set());
+  l2PlzToNames.get(plzStr).add(name.toLowerCase().trim());
   const key = name.toLowerCase().trim();
   if (!l2NameToPlzList.has(key)) l2NameToPlzList.set(key, []);
   l2NameToPlzList.get(key).push(plzStr);
@@ -368,4 +371,24 @@ function resolveMunicipalityProfile({ municipality, ags } = {}) {
   };
 }
 
-module.exports = { resolveMunicipalityProfile, gemeindenData };
+// A five-digit number is a postal code only when it is an assigned PLZ and the text marks it as
+// one: a label right before it (PLZ, Postleitzahl) or the place it belongs to. Without that it is
+// some other identifier of the same format (MaKo practice: the Prüfidentifikator 55001 was read
+// as a location and routed to a solar register query).
+const POSTAL_LABEL = /(?:\bPLZ|Postleitzahl)[\s:.-]*$/iu;
+const PLACE_CHARS = 3;
+function postalCodeInContext(text, value, index = String(text || '').indexOf(value)) {
+  const names = l2PlzToNames.get(String(value || ''));
+  if (!names || index < 0) return false;
+  const source = String(text || '');
+  // A value given on its own (a location field) is that place.
+  if (source.trim() === value) return true;
+  if (POSTAL_LABEL.test(source.slice(Math.max(0, index - 20), index))) return true;
+  const lower = source.toLowerCase();
+  return [...names].some((name) => {
+    const head = name.split(/[\s,(/]/u)[0];
+    return head.length >= PLACE_CHARS && lower.includes(head);
+  });
+}
+
+module.exports = { resolveMunicipalityProfile, gemeindenData, postalCodeInContext };

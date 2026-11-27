@@ -107,6 +107,12 @@ function extractEnergyIds(text) {
     let match;
     while ((match = globalPattern.exec(text)) !== null) {
       const value = match[0];
+      // A five-digit number counts as a postal code only when the text marks it as one.
+      if (
+        rule.type === 'postalCode' &&
+        !require('../municipality-resolver').postalCodeInContext(text, value, match.index)
+      )
+        continue;
       const key = `${rule.type}:${value.toUpperCase()}`;
       if (!seen.has(key)) {
         seen.add(key);

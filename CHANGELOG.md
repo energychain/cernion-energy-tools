@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — A five-digit identifier is no postal code without postal context
+
+- A five-digit number counts as a postal code only when it is an assigned PLZ and the text marks
+  it as one: a label right before it (PLZ, Postleitzahl), the place it belongs to, or the number
+  given on its own as a location value (`postalCodeInContext` in `municipality-resolver`, used by
+  `location-resolution` and `energy-id-extractor`). Before, any five-digit number was a PLZ with
+  confidence 0.95: in real use in market communication, the Prüfidentifikator 55001 was read as
+  a location again and a solar/register query was proposed despite the explicit MaKo context.
+- A bare assigned PLZ in running text without label or place ("Anlagen in 74889") is no longer
+  taken as a location either; "74889 Sinsheim" and "PLZ 74889" still are.
+
 ## Unreleased — The authority gate never loosens a block
 
 - Each rule statement the gate lists carries `restrictsAction` (it only holds an action back while
