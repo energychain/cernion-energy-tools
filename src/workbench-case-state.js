@@ -15,6 +15,7 @@ const {
   updateCaseState,
   authorityGate,
   appendCaseSections,
+  withPositionNote,
 } = require('./case-state');
 
 // Background reflection after a turn (premium model, phase case_reflection): one per
@@ -142,7 +143,7 @@ function wholeTurnEvidence(evidence = []) {
 async function reviewTurnReply(
   reply,
   caseState,
-  { tenantId, logger, unsourced = [], evidence = [] } = {}
+  { tenantId, logger, unsourced = [], evidence = [], outbound = false } = {}
 ) {
   // A fallback is no answer to correct: a revision would turn it into an invented one (TWL).
   if (!caseState || !reply?.responseText || reply.answerStatus === 'fallback') return reply;
@@ -171,9 +172,10 @@ async function reviewTurnReply(
       });
     // The station's artefact and the value of clarification follow as their own sections; a
     // document draft stays as it is.
+    const noted = withPositionNote(gate.reply, caseState, { outbound });
     const text = reply.draft
-      ? gate.reply
-      : await appendCaseSections(gate.reply, caseState, { tenantId, turnEvidence, logger });
+      ? noted
+      : await appendCaseSections(noted, caseState, { tenantId, turnEvidence, logger });
     return text === reply.responseText ? reply : { ...reply, responseText: text };
   } catch (error) {
     logger?.warn?.(`Workbench case state answer review failed: ${error.message}`);
