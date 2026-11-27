@@ -221,8 +221,18 @@ describe('energy-id-extractor', () => {
       expect(results.some((r) => r.type === 'postalCode' && r.value === '76137')).toBe(true);
     });
 
+    it('a five-digit identifier without postal context is no postal code', () => {
+      // MaKo: the Prüfidentifikator 55001 was read as a location.
+      expect(
+        extractFirstOfType('Prüfidentifikator 55001 in der Marktkommunikation', 'postalCode')
+      ).toBeNull();
+      // An assigned PLZ without label or place is not taken either.
+      expect(extractFirstOfType('Vorgang 69115 offen', 'postalCode')).toBeNull();
+      expect(extractFirstOfType('Anlagen in 69115 Heidelberg', 'postalCode')).toBe('69115');
+    });
+
     it('de-duplicates repeated occurrences of the same value', () => {
-      const text = '69115 und 69115';
+      const text = 'PLZ 69115 und PLZ 69115';
       const results = extractEnergyIds(text);
       const plzHits = results.filter((r) => r.type === 'postalCode');
       expect(plzHits).toHaveLength(1);
