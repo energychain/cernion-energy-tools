@@ -2499,6 +2499,19 @@ async function answer({
       });
     }
   }
+  // The review marker needs a detail found in no source: the model's own flag also fires on values
+  // from the conversation (UAT 723cfb52 T06: "(bitte gegenprüfen)" under the person's own date).
+  {
+    const { unsourcedDetail } = require('./workbench-free-answer');
+    const sources = [
+      message,
+      ...conversation.map((turn) => String(turn?.text ?? turn?.content ?? '')),
+      ...evidence.map((hit) => String(hit.value || '')),
+    ];
+    for (const field of ['interpretation', 'expectation', 'nextSteps', 'assumptions', 'draft'])
+      for (const claim of result[field] || [])
+        if (claim?.specific) claim.specific = unsourcedDetail(claim.text, sources);
+  }
   const outcome = answerOutcome({
     questions,
     result,
