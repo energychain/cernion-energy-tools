@@ -47,7 +47,14 @@ const MARKET_PARTNER_ROLE = Object.freeze({
 
 // ─── Extraction Patterns ──────────────────────────────────────────────────────
 
-const POSTAL_CODE_PATTERN = /\b(\d{5})\b/;
+const POSTAL_CODE_PATTERN = /\b(\d{5})\b/g;
+// The first five-digit number the text marks as a postal code (see postalCodeInContext).
+function postalCodeMatch(text) {
+  const { postalCodeInContext } = require('./municipality-resolver');
+  for (const match of String(text || '').matchAll(POSTAL_CODE_PATTERN))
+    if (postalCodeInContext(text, match[1], match.index)) return match;
+  return null;
+}
 
 // "74889 Sinsheim", "12345 Berlin-Mitte"
 const CITY_AFTER_POSTAL_PATTERN =
@@ -450,7 +457,7 @@ function resolveLocationFromText(text = '', ctx = {}) {
   let postalCode = null;
   let municipality = null;
 
-  const plzMatch = POSTAL_CODE_PATTERN.exec(haystack);
+  const plzMatch = postalCodeMatch(haystack);
   if (plzMatch) {
     postalCode = plzMatch[1];
     evidence.push({
