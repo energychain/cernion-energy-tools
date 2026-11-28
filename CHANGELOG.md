@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased — UAT replay on e4d86c78: letters only, no block rewrites, R/A/C/I columns
+
+- The gate removes positions only from a letter to a third party (`outbound`). It never removes a
+  sentence that carries a detail the person asked for, such as a deadline or date. Before, the
+  requested deadline left the letter, and the note stood under answers without any letter.
+- Rule statements are listed but no longer rewritten. The rewrite kept turning the case's own
+  blocks into open questions ("Ob … gesperrt bleiben"; REG-01 T10, pack CROSS-007, UAT T01/T02).
+  Positions outside a letter stay as written as well.
+- A reported statement of someone else (a colleague's rule claim) is case evidence, not a person
+  assessment. Before, it replaced the answer with the observation/hypothesis template.
+- An assignment scheme named by its letters (R/A/C/I, V/D/M/I) is a table with one column per
+  letter. Before, the matrix came without the letters.
+- A station numbered lower than the current one on the same card is a step back. It is kept only
+  with a reason; before, the station went from S2 in T03 back to S1 in T08.
+- Work CET delivers in an answer (options, decision template, draft, overview, assignment) is no
+  task for CET. A delivered draft continues as review and approval, not as "to be written".
+
 ## Unreleased — External UAT 723cfb52: letters, stations, method and review marker
 
 - Position note outside the letter:

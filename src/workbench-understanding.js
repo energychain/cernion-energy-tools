@@ -702,6 +702,12 @@ async function understand({
       part.columns = part.columns.filter((heading) =>
         literal.includes(` ${normalizePhrase(heading)} `)
       );
+      // An assignment scheme named by its letters (R/A/C/I, V/D/M/I) is a table with one column per
+      // letter (UAT 723cfb52 T02: the matrix came without the letters). A format check.
+      const scheme = /\b[A-Z](?:\/[A-Z]){2,}\b/u.exec(message);
+      if (scheme && (part.layout === 'table' || part.columns.length))
+        for (const letter of scheme[0].split('/'))
+          if (!part.columns.includes(letter)) part.columns.push(letter);
     }
   }
   if (result.caseSearch?.requested)

@@ -1,5 +1,7 @@
 'use strict';
 
+const { detailTokens } = require('./micro-agents/provenance');
+
 /**
  * Domain-free case state of a work case (BK-01..04).
  *
@@ -645,9 +647,13 @@ function keepMethod(state, update, turn) {
     return;
   }
   const sameCard = current && statementKey(current.card) === statementKey(card);
+  // A station numbered lower than the current one on the same card is a step back, kept only with
+  // a reason (UAT 723cfb52: S2 in T03, S1 again in T08). A format check on the station number.
+  const number = (value) => Number((/\bS(\d+)\b/u.exec(String(value || '')) || [])[1]);
+  const back = sameCard && number(station) < number(current.station) && !reason;
   state.method = {
     card,
-    station: station || (sameCard ? current.station : ''),
+    station: back ? current.station : station || (sameCard ? current.station : ''),
     since: sameCard ? current.since : turn,
     stationSince: sameCard && current.station === station ? current.stationSince : turn,
     reason: sameCard ? current.reason : reason,
@@ -1391,6 +1397,7 @@ const UPDATE_INSTRUCTION = [
   'openQuestions: höchstens die Rückfragen, deren Antwort die wichtigsten Hypothesen trennt oder den nächsten Schritt ermöglicht, mit der Unsicherheit, die sie klärt (resolves) und den betroffenen ids (targets). Nichts fragen, was bereits beantwortet ist.',
   'Aufträge zuerst gegen lastAnswer prüfen (falls vorhanden): liefert lastAnswer das Ergebnis eines Auftrags aus caseState.nextActions, den CET selbst erstellen konnte (eine verlangte Matrix, Übersicht, Gegenüberstellung, Liste, ein Ledger oder Entwurf), endet er in diesem Turn über taskUpdates mit done und dem Grund, dass die letzte Antwort ihn geliefert hat; er erscheint nicht mehr in nextActions. Suchen, Abgleiche und Prüfungen in Systemen oder Archiven, die nur eine Stelle oder die Person ausführen kann, bleiben offen, bis ihr Ergebnis berichtet wird. Wird für einen Suchwert eine Suchvariante bekannt (eine Lesart, OCR- oder Schreibvariante), führt nextActions für sie einen eigenen Prüfauftrag mit genau diesem Suchwert, eigenem Suchraum und Zeitraum, bis sein Ergebnis berichtet ist. done gilt nur mit dem berichteten Ergebnis genau dieses Auftrags (sein Suchwert in seinem Suchraum und Zeitraum) oder wenn lastAnswer ihn geliefert hat; die Klärung eines anderen Gegenstands beendet ihn nicht, withdrawn nur, wenn seine eigene Grundlage widerlegt ist. Wird ein Zeitraum oder Suchraum durch eine Korrektur oder neue Evidenz größer, als die bisherigen Suchläufe abdecken, führt nextActions die nicht abgedeckten Teile je Suchraum als Prüfauftrag.',
   'nextActions: unmittelbar ausführbare Arbeits- oder Prüfaufträge nach diesem Turn (was die Person in message gerade verlangt, liefert die Antwort dieses Turns selbst und ist kein nextAction), geordnet nach Wirkung und Abhängigkeit, mit benötigtem Input, benötigter Funktion in role (eine Person, Stelle, Fachrolle oder ein Gremium nur, wenn das Gespräch diese Zuständigkeit bestätigt; sieht eine Arbeitsmethode des Unternehmens in den Grundlagen für diese Aufgabe eine Rollenfamilie vor, diese Rollenfamilie mit ihrem Beitrag, die lokale Besetzung bleibt offen; sonst die Funktion über ihre Aufgabe in diesem Fall beschrieben (wer was prüft, liefert, freigibt oder entscheidet), nie ein allgemeiner Platzhalter für eine Stelle), erwartetem Ergebnis und Abschlusskriterium; kind unterscheidet reversible Prüfung, Empfehlung, folgenreiche Handlung und nötige menschliche Entscheidung. Noch nicht erledigte Prüfungen aus caseState (offene Suchräume, Suchvarianten, Abgleiche) bleiben in der Liste, bis die Person ihre Erledigung oder ihr Ergebnis berichtet; ein fortgeführter Auftrag behält Suchraum und Zeitraum (period) aus caseState, bis eine Korrektur oder neue Evidenz sie ändert, und wird nicht stillschweigend verengt, erweitert oder offen gestellt: schreibe einen bestehenden Auftrag mit seiner actionId aus caseState fort (neue Aufträge mit leerer actionId); ändert sich sein searchSpace oder period, nenne in scopeChangeReason die neue Evidenz oder Korrektur, die das trägt, sonst bleibt scopeChangeReason leer. Ein Auftrag endet nur über taskUpdates mit seiner actionId (done nach Bericht der Person oder wenn lastAnswer sein Ergebnis bereits geliefert hat, etwa eine Übersicht, Matrix, ein Ledger oder Entwurf, den CET selbst erstellen konnte; Prüfungen, die nur eine Stelle oder die Person ausführen kann, bleiben offen, bis ihr Ergebnis berichtet wird, withdrawn wenn seine Grundlage widerlegt oder er unzulässig ist, superseded wenn ein anderer ihn ersetzt), jeweils mit Grund in reason; ein Auftrag, der weder in nextActions noch in taskUpdates steht, bleibt aktiv. Ein Auftrag aus closedTasks kehrt nur mit reopenReason (neue Evidenz oder ausdrücklicher Auftrag der Person) zurück. Für Prüfaufträge zusätzlich searchSpace, period, method, returnFormat (etwa Suchraum – Suchwert – Zeitraum – Ergebnis – Belegreferenz – Restunsicherheit), stopCondition (Abbruch oder Eskalation), allowedFollowUps und blockedFollowUps, controlDate nur aus einer von der Person genannten oder in caseState belegten Frist, sonst festzulegen durch die benötigte Funktion (ein Datum aus Quellen, Belegen oder Suchzeiträumen ist kein controlDate, auch nicht vorschlagsweise); sonst leer. executionStatus: requested_by_person, wenn die Person den Schritt ausdrücklich beauftragt hat, sonst proposed.',
+  'Was CET selbst in einer Antwort liefern kann (Optionen, Entscheidungsvorlage, Entwurf, Übersicht, Zuordnung), ist nie ein Auftrag an CET oder eine Assistenzfunktion: verlangt die Person es jetzt, liefert es diese Antwort; hat lastAnswer es geliefert, endet der Auftrag mit done, und ein Entwurf wird als Prüfung und Freigabe durch die zuständige Funktion fortgeführt, nicht als zu erstellen.',
   'closureCriteria: woran erkennbar ist, dass der Fall geklärt ist, oder welche Entscheidung offen bleibt.',
   'dependsOn: bei Empfehlungen in claims und nextActions die ids der Hypothesen, auf denen sie beruhen; fällt eine davon weg, gilt die Empfehlung als zurückgenommen.',
   'roleUpdates: benötigte Funktionen und Zuständigkeiten. status needed für eine benötigte, unbesetzte Funktion; proposed für eine vorgeschlagene oder diskutierte Besetzung (holder); confirmed, accepted oder delivered nur, wenn das Gespräch genau diese Zuständigkeit, Übernahme oder Lieferung mit evidenceRefs zeigt. Keine Person, Stelle oder kein Gremium als zuständig setzen, das die Person nicht genannt hat.',
@@ -1827,7 +1834,17 @@ async function authorityGate(reply, state, options = {}) {
   if (!unbacked.length) return { reply: draft, unbacked, revised: false };
   // A position found word for word is removed from the text: a rewrite kept the letter's stance or
   // fell below the share of a usable revision once two of four sentences went (pack MICRO-006).
-  const found = unbacked.filter((row) => row.subject === 'position' && draft.includes(row.excerpt));
+  // Positions are removed only from a letter to a third party, and never a sentence carrying a
+  // detail the person asked for (UAT 723cfb52 T04: the requested deadline left the letter; T06/T07:
+  // the note stood under answers without any letter).
+  const asked = new Set(detailTokens(String(options.message || '')));
+  const found = unbacked.filter(
+    (row) =>
+      options.outbound === true &&
+      row.subject === 'position' &&
+      draft.includes(row.excerpt) &&
+      !detailTokens(row.excerpt).some((token) => asked.has(token))
+  );
   // Removal never empties a text: when the passages make up most of it, the rewrite handles them
   // (UAT 723cfb52 T04: only the review marker was left between salutation and closing).
   const share = found.reduce((sum, row) => sum + row.excerpt.length, 0) / (draft.length || 1);
@@ -1845,7 +1862,12 @@ async function authorityGate(reply, state, options = {}) {
     .replace(/ {2,}/gu, ' ')
     .replace(/[ \t]+$/gmu, '')
     .replace(/\n{3,}/gu, '\n\n');
-  const passages = unbacked.filter((row) => !removed.includes(row));
+  // Rule statements are listed, not rewritten: the rewrite turned the case's own blocks into open
+  // questions again and again (REG-01 T10, pack CROSS-007, UAT 723cfb52 T01/T02). Positions outside
+  // a letter stay as written as well.
+  const passages = unbacked.filter(
+    (row) => !removed.includes(row) && row.subject !== 'rule' && row.subject !== 'position'
+  );
   const revision = passages.length
     ? await rewritePassages(llm, stripped, passages, call)
     : stripped;
