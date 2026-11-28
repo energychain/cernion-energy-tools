@@ -143,7 +143,7 @@ function wholeTurnEvidence(evidence = []) {
 async function reviewTurnReply(
   reply,
   caseState,
-  { tenantId, logger, unsourced = [], evidence = [], outbound = false } = {}
+  { tenantId, logger, unsourced = [], evidence = [], outbound = false, message = '' } = {}
 ) {
   // A fallback is no answer to correct: a revision would turn it into an invented one (TWL).
   if (!caseState || !reply?.responseText || reply.answerStatus === 'fallback') return reply;
@@ -159,12 +159,15 @@ async function reviewTurnReply(
         `Workbench case state answer review: ${review.issues.map((issue) => issue.kind).join(', ')}${review.revised ? ' (revised)' : ''}`
       );
     // Authority gate (DEV-UAT-003) on the reviewed text: unbacked governance becomes an option.
-    const gate = await authorityGate(review.reply, caseState, { tenantId, turnEvidence }).catch(
-      (error) => {
-        logger?.warn?.(`Workbench authority gate failed: ${error.message}`);
-        return { reply: review.reply, unbacked: [], revised: false };
-      }
-    );
+    const gate = await authorityGate(review.reply, caseState, {
+      tenantId,
+      turnEvidence,
+      outbound,
+      message,
+    }).catch((error) => {
+      logger?.warn?.(`Workbench authority gate failed: ${error.message}`);
+      return { reply: review.reply, unbacked: [], revised: false };
+    });
     if (gate.unbacked.length)
       logger?.info?.('Workbench authority gate', {
         unbacked: gate.unbacked.map((row) => row.subject),

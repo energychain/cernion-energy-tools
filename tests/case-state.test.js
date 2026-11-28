@@ -1414,3 +1414,65 @@ describe('position note outside the letter', () => {
     expect(withPositionNote(letter, createCaseState(), { outbound: true })).toBe(letter);
   });
 });
+
+describe('gate on letters only, keeping asked details and rules', () => {
+  const { authorityGate, applyCaseUpdate, createCaseState } = require('../src/case-state');
+  const letter =
+    'Guten Tag,\n\nFakt A.\n\nBitte um Rückmeldung bis zum 30.11.2026.\n\nWir behalten uns Ansprüche vor.\n\nMit freundlichen Grüßen';
+  const statements = [
+    {
+      excerpt: 'Bitte um Rückmeldung bis zum 30.11.2026.',
+      subject: 'position',
+      presentedAs: 'binding',
+      backing: '',
+    },
+    {
+      excerpt: 'Wir behalten uns Ansprüche vor.',
+      subject: 'position',
+      presentedAs: 'binding',
+      backing: '',
+    },
+    { excerpt: 'Fakt A.', subject: 'rule', presentedAs: 'binding', backing: '' },
+  ];
+  const client = () => ({ generateStructured: jest.fn().mockResolvedValue({ statements }) });
+  test('a letter loses the stance, keeps the asked deadline; rules stay as written', async () => {
+    const llm = client();
+    const result = await authorityGate(letter, createCaseState(), {
+      llm,
+      outbound: true,
+      message: 'Schreiben mit Rückgabefrist 30.11.2026.',
+    });
+    expect(result.reply).toContain('bis zum 30.11.2026');
+    expect(result.reply).not.toContain('Ansprüche vor');
+    expect(result.reply).toContain('Fakt A.');
+    expect(result.reply.startsWith('Nicht im Entwurf enthalten')).toBe(true);
+    // No rewrite call for rules or positions.
+    expect(llm.generateStructured).toHaveBeenCalledTimes(1);
+  });
+  test('without a letter nothing is removed and no note is added', async () => {
+    const result = await authorityGate(letter, createCaseState(), {
+      llm: client(),
+      outbound: false,
+    });
+    expect(result.reply).toBe(letter);
+  });
+  test('the station does not step back without a reason', () => {
+    let state = applyCaseUpdate(
+      createCaseState(),
+      { methodUpdate: { set: true, card: 'LK-003 Karte', station: 'S2 Zuordnung' } },
+      { turn: 1 }
+    );
+    state = applyCaseUpdate(
+      state,
+      { methodUpdate: { set: true, card: 'LK-003 Karte', station: 'S1 Signal' } },
+      { turn: 2 }
+    );
+    expect(state.method.station).toBe('S2 Zuordnung');
+    state = applyCaseUpdate(
+      state,
+      { methodUpdate: { set: true, card: 'LK-003 Karte', station: 'S3 Bewertung' } },
+      { turn: 3 }
+    );
+    expect(state.method.station).toBe('S3 Bewertung');
+  });
+});

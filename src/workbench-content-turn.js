@@ -1815,6 +1815,7 @@ async function runContentTurn(
       evidence: retrieval.evidence,
       // A letter to someone outside the conversation is part of this turn's output.
       outbound: Boolean(situation.requestedOutput?.parts?.some((part) => part.letter === true)),
+      message: envelope.userRequest,
     });
     if (suggestComparable && !reply.responseText.includes(foreignContextGate.SUGGESTION))
       reply = {
