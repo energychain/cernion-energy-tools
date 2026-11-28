@@ -1391,3 +1391,26 @@ describe('authority gate keeps boundaries', () => {
     expect(result.reply).toContain('Die Buchung ist ohne Analyse unzulässig.');
   });
 });
+
+describe('position note outside the letter', () => {
+  const { withPositionNote, applyCaseUpdate, createCaseState } = require('../src/case-state');
+  const letter = '## Schreiben\n\nGuten Tag,\n\nbitte um Rückmeldung.\n\nMit freundlichen Grüßen';
+  test('an open stance towards the recipient puts the note in front of a letter', () => {
+    const state = applyCaseUpdate(createCaseState(), {
+      decisionUpdates: [
+        {
+          statement: 'Vorbehalt gegenüber dem Anbieter',
+          status: 'open',
+          evidenceRefs: [],
+          position: true,
+        },
+      ],
+    });
+    const noted = withPositionNote(letter, state, { outbound: true });
+    expect(noted.startsWith('Nicht im Entwurf enthalten ist eine Position')).toBe(true);
+    expect(noted.endsWith('Mit freundlichen Grüßen')).toBe(true);
+    expect(withPositionNote(noted, state, { outbound: true })).toBe(noted);
+    expect(withPositionNote(letter, state, { outbound: false })).toBe(letter);
+    expect(withPositionNote(letter, createCaseState(), { outbound: true })).toBe(letter);
+  });
+});

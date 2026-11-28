@@ -287,7 +287,8 @@ test('separate letter claims keep the signature free of markers after joining', 
       nextSteps: [],
       draft: [
         claim('Guten Tag,'),
-        { ...claim('Eine prüfbare Angabe ist noch offen.'), specific: true },
+        // A detail found in no source (the marker needs one; a flag alone is not enough).
+        { ...claim('Die Antwort ist binnen 14 Tagen nach § 99 fällig.'), specific: true },
         { ...claim('Mit freundlichen Grüßen'), specific: true },
         { ...claim('Team Service'), specific: true },
       ],
@@ -334,4 +335,22 @@ test('answer block guard consolidates multiple unchecked paragraphs and drops un
     retrieval: { evidence: [] },
   });
   expect(grounded.responseText).not.toContain('gegenprüfen');
+});
+
+test('a detail the person gave in the conversation gets no review marker', async () => {
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      interpretation: [{ ...claim('Die Rückgabefrist ist der 30.11.2026.'), specific: true }],
+      expectation: [],
+      nextSteps: [],
+      draft: [],
+    })
+  );
+  const reply = await answer({
+    situation,
+    retrieval: { evidence: [] },
+    message: 'Wie ist der Stand?',
+    conversation: [{ role: 'user', text: 'Rückgabefrist 30.11.2026.' }],
+  });
+  expect(reply.responseText).not.toContain('(bitte gegenprüfen)');
 });

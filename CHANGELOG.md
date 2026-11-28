@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased — External UAT 723cfb52: letters, stations, method and review marker
+
+- Position note outside the letter:
+  - The note on a third-party position now stands in front of the answer. Before, it was
+    appended at the end and read as part of a letter that ended the answer.
+  - It also appears when the person asks for the stance while a letter is written, without
+    anything to remove. The case marks such open decisions with `position`; the workbench passes
+    `outbound` for turns with a letter.
+- Letter content survives the gate:
+  - Facts of the case, a request for information, a reply, a check or a fix, and a deadline for
+    it are no position.
+  - Removal never empties a text. When the passages make up most of it, the rewrite handles them.
+  - A removed sentence takes its review marker along. Before, a letter body was left as
+    "(bitte gegenprüfen)" only.
+- No invented method:
+  - Without a company method in the evidence, CET names no Laufkarte or station. It says once
+    that no method is available and orders the case by signal, check, decision and closure.
+  - With a method, it chooses the card by its signal router (a card whose signals require an
+    excluded context does not fit) and names card and station with their source labels.
+  - The station advances with a reason, or the answer says what is missing for it to advance.
+- The station's artefact is not delivered again for a reworded station.
+- The review marker needs a detail found in no source: message, conversation or evidence.
+  Before, a date the person had given got "(bitte gegenprüfen)".
+
 ## Unreleased — A five-digit identifier is no postal code without postal context
 
 - A five-digit number counts as a postal code only when it is an assigned PLZ and the text marks
